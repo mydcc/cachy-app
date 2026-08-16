@@ -1580,7 +1580,45 @@
       "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
     },
     "toggleMarketTiles": "Toggle Market Tiles",
-    "toggleMarketSentiment": "Toggle Market Sentiment"
+    "toggleMarketSentiment": "Toggle Market Sentiment",
+    "risk": {
+      "subTab": "Risk & Kill Switch",
+      "killSwitch": {
+        "title": "Kill switch",
+        "engaged": "Kill switch is ENGAGED — no new positions are being opened",
+        "disengaged": "Kill switch is off — orders are sent normally",
+        "description": "Blocks every order that would open or increase a position, immediately and until you clear it. Closing positions, cancelling orders and adjusting stops keep working — a panic button that also trapped you in your trades would turn a scare into a loss. It survives a reload.",
+        "engagedSince": "Engaged since {time}",
+        "engage": "Engage kill switch",
+        "release": "Release kill switch",
+        "confirmTitle": "Release the kill switch?",
+        "confirmMessage": "Orders that open or increase a position will be sent again from this moment on. Continue?"
+      },
+      "dailyStatusTitle": "Today",
+      "realizedToday": "Realised PnL today: {amount} USDT",
+      "resetBoundary": "The daily window runs 00:00–00:00 UTC. Next reset: {local} (your local time).",
+      "paperExcluded": "Paper trades are never counted towards the daily loss limit.",
+      "limitsTitle": "Limits",
+      "limitsDescription": "Leave a field empty to leave that limit off. Limits are checked where orders leave the app, not in the calculator form, so an order built any other way is checked too. They never block closing a position or cancelling an order.",
+      "notConfigured": "Off",
+      "invalidValue": "That value was not stored. A limit has to be a number of zero or more.",
+      "persistFailed": "This device could not save the setting, so it will NOT survive a reload. Check your browser storage.",
+      "maxPositionSize": "Max position size",
+      "maxPositionSizeHint": "Largest order value (quantity × entry price) allowed.",
+      "maxPositionSizePercent": "Max position size (% of account)",
+      "maxPositionSizePercentHint": "Same limit as a share of the account size shown in the calculator.",
+      "maxLeverage": "Max leverage",
+      "maxLeverageHint": "Refuses any order above this leverage.",
+      "maxLossPerTrade": "Max loss per trade",
+      "maxLossPerTradeHint": "Distance from entry to stop × quantity, before fees.",
+      "maxDailyLoss": "Max loss per day",
+      "maxDailyLossHint": "Measured against realised PnL for the current UTC day.",
+      "maxOpenPositions": "Max concurrent open positions",
+      "maxOpenPositionsHint": "Adding to a position you already hold does not count as a new one.",
+      "resetLimits": "Clear all limits",
+      "resetTitle": "Clear all limits?",
+      "resetMessage": "Every limit will be switched off. The kill switch is not affected. Continue?"
+    }
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -2280,8 +2318,8 @@
     "missing": "Order refused: {field} is missing from the order, so it could not be verified. The order was not sent.",
     "sizeMismatch": "Order refused: the size does not match a fresh calculation (expected {expected}, got {actual}, tolerance {tolerance}). The order was not sent.",
     "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
-    "killSwitch": "Order refused: the kill switch is engaged. No orders are sent while it is on.",
-    "riskLimit": "Order refused: {field} exceeds a configured risk limit ({detail}). The order was not sent.",
+    "killSwitch": "Order refused: the kill switch is engaged. No orders that open or increase a position are sent while it is on — closing positions, cancelling orders and adjusting stops still work.",
+    "riskLimit": "Order refused: {field} exceeds the configured limit (limit {limit}, this order {actual}). The order was not sent.",
     "bypassed": "Order refused: an order of type {action} tried to reach the exchange without passing verification. This is a bug — please report it.",
     "fields": {
       "account": "the account",
@@ -2292,6 +2330,12 @@
       "killSwitch": "the kill switch",
       "leverage": "leverage",
       "marginMode": "margin mode",
+      "maxDailyLoss": "the daily loss limit",
+      "maxLeverage": "the leverage limit",
+      "maxLossPerTrade": "the loss-per-trade limit",
+      "maxOpenPositions": "the open-positions limit",
+      "maxPositionSize": "the position size limit",
+      "maxPositionSizePercent": "the position size limit (share of equity)",
       "orderId": "the order ID",
       "positionId": "the position ID",
       "price": "the entry price",
@@ -2301,7 +2345,9 @@
       "stopLoss": "the stop loss",
       "symbol": "the symbol",
       "takeProfit": "the take profit"
-    }
+    },
+    "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
+    "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent."
   },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",

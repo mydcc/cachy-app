@@ -1580,7 +1580,45 @@
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
     },
     "toggleMarketTiles": "Marktübersicht umschalten",
-    "toggleMarketSentiment": "Marktstimmung umschalten"
+    "toggleMarketSentiment": "Marktstimmung umschalten",
+    "risk": {
+      "subTab": "Risiko & Kill Switch",
+      "killSwitch": {
+        "title": "Kill Switch",
+        "engaged": "Kill Switch ist AKTIV — es werden keine neuen Positionen eröffnet",
+        "disengaged": "Kill Switch ist aus — Orders werden normal gesendet",
+        "description": "Blockiert sofort jede Order, die eine Position eröffnen oder vergrößern würde, bis du ihn wieder löst. Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin — ein Notaus, der dich zusätzlich in deinen Trades einsperrt, macht aus einem Schreck einen Verlust. Er überlebt einen Reload.",
+        "engagedSince": "Aktiv seit {time}",
+        "engage": "Kill Switch aktivieren",
+        "release": "Kill Switch lösen",
+        "confirmTitle": "Kill Switch lösen?",
+        "confirmMessage": "Ab sofort werden wieder Orders gesendet, die Positionen eröffnen oder vergrößern. Fortfahren?"
+      },
+      "dailyStatusTitle": "Heute",
+      "realizedToday": "Realisierter PnL heute: {amount} USDT",
+      "resetBoundary": "Das Tagesfenster läuft von 00:00 bis 00:00 UTC. Nächster Reset: {local} (deine lokale Zeit).",
+      "paperExcluded": "Paper Trades zählen nie auf das Tagesverlust-Limit ein.",
+      "limitsTitle": "Limits",
+      "limitsDescription": "Ein leeres Feld lässt das jeweilige Limit aus. Limits werden dort geprüft, wo Orders die App verlassen, nicht im Rechner-Formular — eine anders gebaute Order wird also ebenfalls geprüft. Sie blockieren nie das Schließen einer Position oder das Stornieren einer Order.",
+      "notConfigured": "Aus",
+      "invalidValue": "Dieser Wert wurde nicht gespeichert. Ein Limit muss eine Zahl ab null sein.",
+      "persistFailed": "Dieses Gerät konnte die Einstellung nicht speichern — sie überlebt einen Reload NICHT. Bitte den Browser-Speicher prüfen.",
+      "maxPositionSize": "Max. Positionsgröße",
+      "maxPositionSizeHint": "Größter erlaubter Orderwert (Menge × Einstiegskurs).",
+      "maxPositionSizePercent": "Max. Positionsgröße (% des Kontos)",
+      "maxPositionSizePercentHint": "Dasselbe Limit als Anteil der im Rechner angezeigten Kontogröße.",
+      "maxLeverage": "Max. Hebel",
+      "maxLeverageHint": "Lehnt jede Order über diesem Hebel ab.",
+      "maxLossPerTrade": "Max. Verlust pro Trade",
+      "maxLossPerTradeHint": "Abstand Einstieg zu Stop × Menge, vor Gebühren.",
+      "maxDailyLoss": "Max. Verlust pro Tag",
+      "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages.",
+      "maxOpenPositions": "Max. gleichzeitig offene Positionen",
+      "maxOpenPositionsHint": "Das Aufstocken einer bereits gehaltenen Position zählt nicht als neue.",
+      "resetLimits": "Alle Limits löschen",
+      "resetTitle": "Alle Limits löschen?",
+      "resetMessage": "Jedes Limit wird ausgeschaltet. Der Kill Switch ist davon nicht betroffen. Fortfahren?"
+    }
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -2265,8 +2303,8 @@
     "missing": "Order abgelehnt: {field} fehlt in der Order und konnte deshalb nicht geprüft werden. Die Order wurde nicht gesendet.",
     "sizeMismatch": "Order abgelehnt: Die Größe stimmt nicht mit einer frischen Berechnung überein (erwartet {expected}, erhalten {actual}, Toleranz {tolerance}). Die Order wurde nicht gesendet.",
     "stale": "Order abgelehnt: Der Kontostand ({field}) ist {age}s alt und damit älter als das Limit von {max}s. Bitte aktualisieren und erneut versuchen.",
-    "killSwitch": "Order abgelehnt: Der Kill Switch ist aktiv. Solange er an ist, werden keine Orders gesendet.",
-    "riskLimit": "Order abgelehnt: {field} überschreitet ein konfiguriertes Risiko-Limit ({detail}). Die Order wurde nicht gesendet.",
+    "killSwitch": "Order abgelehnt: Der Kill Switch ist aktiv. Solange er an ist, werden keine Orders gesendet, die eine Position eröffnen oder vergrößern — Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin.",
+    "riskLimit": "Order abgelehnt: {field} überschreitet das konfigurierte Limit (Limit {limit}, diese Order {actual}). Die Order wurde nicht gesendet.",
     "bypassed": "Order abgelehnt: Eine Order vom Typ {action} hat versucht, die Börse ohne Prüfung zu erreichen. Das ist ein Fehler — bitte melden.",
     "fields": {
       "account": "das Konto",
@@ -2277,6 +2315,12 @@
       "killSwitch": "der Kill Switch",
       "leverage": "der Hebel",
       "marginMode": "der Margin-Modus",
+      "maxDailyLoss": "das Tagesverlust-Limit",
+      "maxLeverage": "das Hebel-Limit",
+      "maxLossPerTrade": "das Verlust-pro-Trade-Limit",
+      "maxOpenPositions": "das Limit für offene Positionen",
+      "maxPositionSize": "das Positionsgrößen-Limit",
+      "maxPositionSizePercent": "das Positionsgrößen-Limit (Anteil am Kapital)",
       "orderId": "die Order-ID",
       "positionId": "die Positions-ID",
       "price": "der Einstiegskurs",
@@ -2286,7 +2330,9 @@
       "stopLoss": "der Stop-Loss",
       "symbol": "das Symbol",
       "takeProfit": "der Take-Profit"
-    }
+    },
+    "riskLimitDailyLoss": "Order abgelehnt: Der heute realisierte Verlust beträgt {actual} und hat das Tageslimit von {limit} erreicht oder überschritten. Das Limit wird um 00:00 UTC zurückgesetzt. Positionen schließen und Orders stornieren ist weiterhin möglich.",
+    "riskLimitUnmeasurable": "Order abgelehnt: Für {field} ist ein Limit konfiguriert, aber diese Order enthält nichts, woran es geprüft werden könnte. Die Order wurde nicht gesendet."
   },
   "workerErrors": {
     "eventError": "Worker Fehler Event",

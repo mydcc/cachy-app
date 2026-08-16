@@ -227,7 +227,14 @@ export interface OrderIntent {
 // ---------------------------------------------------------------------------
 
 export type RiskLimitCheck = (intent: OrderIntent) => OrderRefusal | null;
-export type KillSwitchCheck = () => boolean;
+
+/**
+ * Receives the intent, because "stop all trading" is not the same as "stop
+ * all traffic": FEAT-0013's switch blocks orders that create or increase
+ * exposure and lets closes and cancels through. A switch that also blocked
+ * closing would turn a scare into a loss.
+ */
+export type KillSwitchCheck = (intent: OrderIntent) => boolean;
 
 let riskLimitCheck: RiskLimitCheck | null = null;
 let killSwitchCheck: KillSwitchCheck | null = null;
@@ -358,7 +365,7 @@ class OrderGate {
 
         // --- kill switch (FEAT-0013) ---------------------------------------
         checked.push("killSwitch");
-        if (killSwitchCheck?.() === true) {
+        if (killSwitchCheck?.(intent) === true) {
             return refuse({
                 field: "killSwitch",
                 reason: "killSwitch",

@@ -21,6 +21,10 @@ export const CONSTANTS = {
   LOCAL_STORAGE_TRADE_KEY: "cachy_trade_store",
   LOCAL_STORAGE_JOURNAL_KEY: "tradeJournal",
   LOCAL_STORAGE_PRESETS_KEY: "cryptoCalculatorPresets",
+  // FEAT-0013. Class A, and deliberately its own key rather than a corner of
+  // the settings blob: the kill switch is written synchronously on every
+  // change, and it must not share a debounced save with anything else.
+  LOCAL_STORAGE_RISK_KEY: "cachy_risk_limits",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
   LOCAL_STORAGE_QUIZ_KEY: "cachy_quiz_state",
   LOCAL_STORAGE_QUIZ_CATEGORY_KEY: "cachy_quiz_category",

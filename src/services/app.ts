@@ -43,6 +43,7 @@ import { marketAnalyst } from "./marketAnalyst";
 import { serializationService } from "./serializationService";
 import { logger } from "./logger";
 import { setupRealtimeUpdatesEffect } from "./appEffects.svelte";
+import { rmsService } from "./rmsService";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -76,6 +77,10 @@ export const app = {
       });
 
       // 1. Initialise core logic
+      // Risk limits and the kill switch (FEAT-0013) must be attached to the
+      // order gate before anything can place an order — unregistered hooks
+      // mean the gate approves on those two checks.
+      rmsService.installGateHooks();
       app.populatePresetLoader();
       app.setupMarketSync();
       tradeCalculator.init(() => app.calculateAndDisplay());

@@ -21,6 +21,7 @@
     import Toggle from "../../shared/Toggle.svelte";
     import HotkeySettings from "../HotkeySettings.svelte";
     import IndicatorSettings from "./IndicatorSettings.svelte";
+    import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import {
         HOTKEY_ACTIONS,
@@ -40,6 +41,10 @@
         {
             id: "chart",
             label: $_("settings.trading.chartTitle") || "Chart & Technicals",
+        },
+        {
+            id: "risk",
+            label: $_("settings.risk.subTab") || "Risk & Kill Switch",
         },
         { id: "hotkeys", label: $_("settings.tabs.hotkeys") || "Controls" },
     ];
@@ -519,6 +524,12 @@
         {/if}
 
         <!-- Hotkeys -->
+        {#if activeSubTab === "risk"}
+            <section class="animate-fade-in">
+                <RiskLimitsSettings />
+            </section>
+        {/if}
+
         {#if activeSubTab === "hotkeys"}
             <section class="settings-section animate-fade-in">
                 <div class="flex justify-between items-center mb-4">
