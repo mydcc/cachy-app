@@ -18,6 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+    checkBodyForStrayClosingRefs,
     closingReferences,
     decideLink,
     declaresBacklogItem,
@@ -214,6 +215,72 @@ describe("the two incidents on 2026-08-16", () => {
             action: "conflict",
             existing: [2002],
             wanted: 2009,
+        });
+    });
+});
+
+describe("checkBodyForStrayClosingRefs", () => {
+    it("passes a body with no closing reference at all", () => {
+        // Whether the required Fixes line is present is a different rule.
+        expect(checkBodyForStrayClosingRefs("Just a description.")).toEqual({
+            ok: true,
+            declared: null,
+        });
+    });
+
+    it("passes a body that closes only its own declared issue", () => {
+        expect(checkBodyForStrayClosingRefs("Fixes #2009\n\nDescription.")).toEqual({
+            ok: true,
+            declared: 2009,
+        });
+    });
+
+    it("passes when the same issue is referenced twice", () => {
+        expect(
+            checkBodyForStrayClosingRefs("Fixes #2009\n\n...as #2009 fixes it..."),
+        ).toEqual({ ok: true, declared: 2009 });
+    });
+
+    it("fails a body closing a second, different issue", () => {
+        const body = "Fixes #2009\n\nDescription. Also closes #2008.";
+        expect(checkBodyForStrayClosingRefs(body)).toEqual({
+            ok: false,
+            declared: 2009,
+            conflicts: [2008],
+        });
+    });
+
+    it("fails BUG-0221's first real incident: an explanatory past tense keyword", () => {
+        const body =
+            "Fixes #2009\n\n" +
+            "This PR previously read Fixes #2002, which was wrong — that link " +
+            "was not written by hand: the squash of #2003 closed #2002 anyway.";
+        const result = checkBodyForStrayClosingRefs(body);
+        expect(result.ok).toBe(false);
+        expect(result).toMatchObject({ declared: 2009, conflicts: [2002] });
+    });
+
+    it("fails BUG-0221's second real incident: quoting the first mistake to explain it", () => {
+        const body =
+            "Fixes #2009\n\n" +
+            "The corrected description quoted the offending phrase — " +
+            "\"it closed #2002\" — in order to explain what had gone wrong.";
+        const result = checkBodyForStrayClosingRefs(body);
+        expect(result.ok).toBe(false);
+        expect(result).toMatchObject({ declared: 2009, conflicts: [2002] });
+    });
+
+    it("passes the same explanation once escaped, as the actual fix used", () => {
+        const body = "Fixes #2009\n\nit closed #<!-- -->2002 in an earlier draft.";
+        expect(checkBodyForStrayClosingRefs(body)).toEqual({ ok: true, declared: 2009 });
+    });
+
+    it("returns every conflicting issue when there is more than one", () => {
+        const body = "Fixes #2009\n\ncloses #2008 and also resolves #7";
+        expect(checkBodyForStrayClosingRefs(body)).toEqual({
+            ok: false,
+            declared: 2009,
+            conflicts: [2008, 7],
         });
     });
 });

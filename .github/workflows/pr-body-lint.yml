@@ -1,0 +1,48 @@
+name: PR Description Link Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+    branches: [main, develop]
+
+# Least-privilege default: this only reads the PR description to lint it, it
+# never writes to the repo or the GitHub API.
+permissions:
+  contents: read
+
+jobs:
+  check-pr-body:
+    name: Closing References
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reject a description that closes more than its own issue
+        # A separate job from commit-lint.yml's Conventional Commits check on
+        # purpose: that one lints commits, which should never carry a closing
+        # keyword at all (BUG-0220); this one lints the PR description, which
+        # CLAUDE.md requires to carry exactly one — `Fixes #<own-issue>` — and
+        # is checking that nothing else slipped in beside it (BUG-0221).
+        #
+        # Runs on `edited` as well as `opened`/`synchronize`, unlike
+        # commit-lint.yml's tip-only check: a description can be rewritten
+        # after the PR is opened without any new commit, and both real
+        # incidents this check exists for were introduced that way.
+        #
+        # The body is handed to the script through `env:`, not interpolated
+        # into this `run:` script directly — it is untrusted external content
+        # (any PR author can set it), and interpolating it into a shell
+        # command would be a command-injection surface. `env:` hands it to the
+        # process as data instead of as script text.
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: npx tsx scripts/lint-pr-body-refs.ts

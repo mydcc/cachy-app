@@ -220,17 +220,18 @@ Two details it gets right that a quick regex would not:
 Escapes pass: `Fixes #<!-- -->1770` does not match, because the keyword is not
 directly followed by a reference.
 
-**What the enforcement does not cover: pull request descriptions.** Instances
+**What this enforcement did not cover: pull request descriptions.** Instances
 three and four both happened there, and GitHub offers no pre-submit hook for a
 description — by the time a workflow could run, the link already exists. The
-escape form and the corrected convention are all that guard that surface, and
-the fourth instance is evidence that a convention alone is not sufficient.
+escape form and the corrected convention were, at the time this item closed,
+all that guarded that surface — and the fourth instance was evidence that a
+convention alone is not sufficient.
 
-A follow-up worth its own item: a workflow step on `pull_request: [edited]`
-that fails when the description carries a closing reference to an issue other
-than the one the branch declares. It cannot prevent the link, only surface it
-before merge — which is exactly what the linked-PR list did by hand both times,
-and the reason both were caught.
+Filed and fixed separately, deliberately: see
+[`BUG-0221`](BUG-0221-pr-body-closing-keyword-unenforced.md). It adds the
+workflow step this paragraph called for — it cannot prevent the link, only
+surface it before merge, same as the linked-PR list did by hand both times —
+using both real incidents from this item as its test fixtures.
 
 ## Acceptance criteria
 

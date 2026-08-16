@@ -136,6 +136,33 @@ export function matchPRsForItem<T extends MatchablePR>(
     return prs.filter(pr => declaresBacklogItem(pr, itemId, existingIssueNumber));
 }
 
+/** Outcome of checking a PR description for a stray closing reference. */
+export type BodyRefCheck =
+    | { ok: true; declared: number | null }
+    | { ok: false; declared: number; conflicts: number[] };
+
+/**
+ * Does this PR description close anything besides the issue it declares?
+ *
+ * `CLAUDE.md` requires `Fixes #<issue>` at the start of every PR description —
+ * so the first closing reference in the body *is* the declared issue, and
+ * `closingReferences` already returns references in first-seen order with
+ * duplicates removed. Anything after that first one is a second, accidental
+ * link: exactly the shape of both incidents in BUG-0221, where a `Fixes
+ * #<own-issue>` line was followed by prose that used a keyword in passing.
+ *
+ * A body with no closing reference at all is not this check's concern —
+ * whether the required line is present is a different rule — so it passes
+ * with `declared: null` rather than failing.
+ */
+export function checkBodyForStrayClosingRefs(body: string | null | undefined): BodyRefCheck {
+    const refs = closingReferences(body);
+    if (refs.length === 0) return { ok: true, declared: null };
+    const [declared, ...conflicts] = refs;
+    if (conflicts.length === 0) return { ok: true, declared };
+    return { ok: false, declared, conflicts };
+}
+
 /** What to do about a PR that is missing its `Fixes #<issue>` line. */
 export type LinkDecision =
     | { action: "already-linked" }

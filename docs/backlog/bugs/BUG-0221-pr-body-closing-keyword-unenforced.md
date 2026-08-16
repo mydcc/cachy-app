@@ -2,7 +2,7 @@
 id: BUG-0221
 title: A PR description can close the wrong issue and nothing catches it before merge
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -57,23 +57,29 @@ down, in the exact artifact (a PR description) the rule was written for.
 
 ## Fix
 
-Add a `pull_request: [opened, edited, synchronize]` job — in
-`commit-lint.yml` alongside the existing commit check, or a new workflow — that
-runs `scripts/lint-commit-refs.mjs` (or a small variant of it) against
-`github.event.pull_request.body`, with one difference from the commit check:
-the PR's own `Fixes #<issue>` line is expected and must be allowed. The rule is
-not "no closing keyword anywhere in the body" — `CLAUDE.md` requires exactly
-one, naming the issue this PR fixes — it is "no closing keyword pointing at any
-*other* issue".
+A new workflow, `.github/workflows/pr-body-lint.yml`, triggered on
+`pull_request: [opened, edited, synchronize]` against `main` and `develop`. A
+separate file from `commit-lint.yml` rather than a job added to it: that
+workflow's existing trigger has no `types:` override, so it runs on the
+default set (`opened`, `synchronize`, `reopened`) and does not need `edited` —
+adding it there would re-run the unrelated Conventional Commits check on every
+title or description tweak for no reason. Keeping the file separate meant the
+working trigger did not need touching.
 
-That needs the PR to declare which issue it fixes so the check has something to
-compare against. Two ways to get there, either acceptable:
+The check itself: `scripts/lint-pr-body-refs.ts` calls
+`checkBodyForStrayClosingRefs`, a new function in `scripts/lib/pr-issue-match.ts`
+next to `closingReferences` and `decideLink`. `CLAUDE.md` requires `Fixes
+#<issue>` at the start of every description, and `closingReferences` already
+returns references in first-seen order — so the first one *is* the declared
+issue, and anything after it is a second, unintended link. A body with no
+closing reference at all is a different rule's concern (whether the required
+line is present) and passes here.
 
-- Parse the required `Fixes #<issue>` line first (`CLAUDE.md` already mandates
-  it be at the start of the description) and treat any *other* closing
-  reference in the body as the violation.
-- Reuse `decideLink`'s `conflict` result from `scripts/lib/pr-issue-match.ts` —
-  it already expresses exactly this distinction for the sync script's own use.
+The PR body reaches the script through `env: PR_BODY:` in the workflow, not
+interpolated into the `run:` script text. The body is attacker-controlled — any
+PR author sets it — and `${{ github.event.pull_request.body }}` spliced
+directly into a shell command is a documented GitHub Actions injection vector;
+`env:` hands it to the process as data instead.
 
 **Left alone:** `scripts/lint-commit-refs.mjs` and its commit-message scope.
 That check is about a surface (commit messages) that should carry no closing
@@ -83,15 +89,17 @@ Different rule, not a relaxation of the first.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect and fails without the fix: a PR body
+- [x] A test reproduces the defect and fails without the fix: a PR body
       containing `Fixes #<own-issue>` *and* a closing reference to some other
       issue is rejected
-- [ ] The test passes with the fix
-- [ ] A PR body containing only the required `Fixes #<own-issue>` line passes
-- [ ] The check runs on `opened`, `edited`, and `synchronize`, so an edit after
+- [x] The test passes with the fix
+- [x] A PR body containing only the required `Fixes #<own-issue>` line passes
+- [x] The check runs on `opened`, `edited`, and `synchronize`, so an edit after
       the initial open is caught before merge, not only at creation
-- [ ] Verified against both real incidents from `BUG-0220`'s pull request as
-      fixtures: both are rejected
+- [x] Verified against both real incidents from `BUG-0220`'s pull request as
+      fixtures: both are rejected — `checkBodyForStrayClosingRefs` in
+      `scripts/lib/pr-issue-match.test.ts`, one case per incident, plus the
+      escaped form of the same text passing
 
 ## Out of scope
 
@@ -101,14 +109,19 @@ Different rule, not a relaxation of the first.
 - A GitHub App or bot that edits/corrects the PR body automatically. Failing
   the check and naming the problem is enough; auto-rewriting someone else's PR
   description is a different, riskier feature.
+- Enforcing that the required `Fixes #<issue>` line is present at all. This
+  check only rejects a *stray second* reference; a missing first one is a
+  different, unenforced rule today, named but not built here.
 
 ## Links
 
 - [`BUG-0220`](BUG-0220-issue-autolink-substring-match.md) — where both
   incidents happened and where the "not covered" gap was first named
-- `scripts/lib/pr-issue-match.ts` — `decideLink`, the conflict logic this item
-  can reuse
-- `scripts/lint-commit-refs.mjs` — the sibling check for commit messages
-- `.github/workflows/commit-lint.yml` — where the new job likely belongs
+- `scripts/lib/pr-issue-match.ts` — `checkBodyForStrayClosingRefs`, and
+  `scripts/lib/pr-issue-match.test.ts` covering it with the real fixtures
+- `scripts/lint-pr-body-refs.ts` — the CLI entry point the workflow runs
+- `.github/workflows/pr-body-lint.yml` — the new workflow
+- `scripts/lint-commit-refs.mjs`, `.github/workflows/commit-lint.yml` — the
+  sibling check for commit messages, left as it was
 - `CLAUDE.md`, `AGENTS.md` — the `Fixes #<issue>` requirement and the
-  closing-keyword convention this item would enforce rather than merely state
+  closing-keyword convention this item now enforces rather than merely states
