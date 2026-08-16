@@ -56,8 +56,32 @@ on GitHub and does not parse as a reference.)
 GitHub parses closing keywords in merged commit messages as well as in PR
 bodies, and quotation marks, backticks and surrounding prose do not exempt the
 phrase. The squash commit `db4d908` carried the text into `develop`; the
-release notes for `1.6.0-beta.54` recorded `closes #2004 #2002 #2002`. The
-issue was reopened by hand.
+release notes for `1.6.0-beta.54` recorded all three references. The issue was
+reopened by hand.
+
+### Third instance: the fix's own pull request
+
+The pull request implementing this item described the second incident with the
+sentence "the squash of #2003 closed #2002". `closed` is a closing keyword —
+GitHub's set covers `close`/`closes`/`closed`, `fix`/`fixes`/`fixed` and
+`resolve`/`resolves`/`resolved`, and only the position directly before the
+reference matters. So the PR that exists to prevent this acquired a closing
+reference to the same unrelated issue, and would have shut it again on merge.
+Caught before merging, because the issue's `closed_by_pull_requests` listed it.
+
+The convention first written into `CLAUDE.md` and `AGENTS.md` for the second
+instance was wrong for the same reason: it advised naming the issue "without
+the keyword" and gave `"closed #1770 in error"` as the example. Past tense
+reads as description and parses as an instruction.
+
+Two things follow, and they are why this item is worth more than its P2:
+
+- The hand-rolled verification scan used `(Fixes|Closes|Resolves) #\d+` and so
+  passed cleanly over `closed #2002`. A check narrower than the thing it
+  checks is worse than no check, because it is believed.
+- Three instances in one day, from three different mechanisms, by an author
+  who had read the previous two. That is the argument for the `commit-lint`
+  rule under "Not done" rather than for more care.
 
 So the hazard is broader than the sync script: **any** text that reaches a
 commit message or PR body can close an issue, including text whose only purpose
