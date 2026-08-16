@@ -90,6 +90,7 @@ target/
 technicals-wasm/target/
 __pycache__/
 .claude/settings.local.json
+.audit-results.json
 
 
 build_old_*/
