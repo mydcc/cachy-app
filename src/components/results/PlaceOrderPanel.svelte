@@ -89,6 +89,19 @@
     return $_((r.errorKey ?? "orderEntry.errors.entryRejected") as TranslationKey);
   }
 
+  /**
+   * The exchange's own text, when there is any.
+   *
+   * Some errors carry an i18n key here rather than prose — "apiErrors.generic"
+   * is one. svelte-i18n echoes a key it does not know, so a round trip through
+   * `$_` translates the ones that are keys and leaves real exchange text
+   * alone, instead of printing a dotted path at the trader.
+   */
+  function detailText(detail: string): string {
+    const translated = $_(detail as TranslationKey);
+    return translated === detail ? detail : translated;
+  }
+
   function isAccountStateStale(): boolean {
     const at = tradeState.remoteAccountStateAt;
     return at === undefined || Date.now() - at > MAX_ACCOUNT_STATE_AGE_MS;
@@ -255,7 +268,7 @@
         <!-- A refusal's `errorDetail` is the gate's English developer string,
              which only repeats what the translated message already said. -->
         {#if result.errorDetail && !result.refusal}
-          <span class="detail">{result.errorDetail}</span>
+          <span class="detail">{detailText(result.errorDetail)}</span>
         {/if}
       </div>
     {/if}

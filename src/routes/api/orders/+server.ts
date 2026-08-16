@@ -128,7 +128,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         const orderPayload: BitunixOrderPayload = {
           symbol: payload.symbol,
           side: payload.side,
-          type: payload.orderType, // Correct field from schema
+          orderType: payload.orderType,
           qty: payload.qty,
           price: payload.price,
           reduceOnly: Boolean(payload.reduceOnly),
@@ -162,7 +162,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         const closeOrder: BitunixOrderPayload = {
           symbol: payload.symbol,
           side: payload.side,
-          type: "MARKET",
+          orderType: "MARKET",
           qty: safeAmount,
           reduceOnly: true,
         };
@@ -559,7 +559,7 @@ async function placeBitunixOrder(
     qty: safeQty,
   };
 
-  const type = payload.type;
+  const type = payload.orderType;
   if (type === "LIMIT" || type === "STOP_LIMIT" || type === "TAKE_PROFIT_LIMIT") {
     const safePrice = formatApiNum(orderData.price);
     if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
