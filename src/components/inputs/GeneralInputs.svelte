@@ -178,7 +178,9 @@
             data-track-id="btn-sync-leverage"
             title={isLeverageSynced
               ? $_("dashboard.generalInputs.syncedWithApi")
-              : $_("dashboard.generalInputs.manualOverride", { value: remoteLev + "x" })}
+              : $_("dashboard.generalInputs.manualOverride", {
+                  values: { value: remoteLev + "x" },
+                })}
             onclick={syncLeverage}
           ></button>
         {/if}
@@ -219,7 +221,9 @@
             data-track-id="btn-sync-fees"
             title={isFeeSynced
               ? $_("dashboard.generalInputs.syncedWithApi")
-              : $_("dashboard.generalInputs.manualOverride", { value: targetRemoteFee + "%" })}
+              : $_("dashboard.generalInputs.manualOverride", {
+                  values: { value: targetRemoteFee + "%" },
+                })}
             onclick={syncFee}
           ></button>
         {/if}

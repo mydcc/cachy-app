@@ -17,6 +17,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { decideLink, matchPRsForItem } from './lib/pr-issue-match';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PROJECT_SYNC_TOKEN = process.env.PROJECT_SYNC_TOKEN || GITHUB_TOKEN;
@@ -180,28 +181,38 @@ async function fetchAllOpenPRs(): Promise<GitHubPullRequest[]> {
 }
 
 async function ensurePRsAreLinked(item: BacklogItem, issueNumber: number, openPRs: GitHubPullRequest[]) {
-    const matchingPRs = openPRs.filter(pr =>
-        pr.title.includes(item.id) ||
-        pr.body?.includes(item.id) ||
-        pr.head.ref.includes(item.id)
-    );
+    const matchingPRs = matchPRsForItem(openPRs, item.id, issueNumber);
 
     for (const pr of matchingPRs) {
-        const hasIssueLink = pr.body?.match(new RegExp(`Fixes #${issueNumber}|Closes #${issueNumber}|Resolves #${issueNumber}`, 'i'));
-        if (!hasIssueLink) {
-            console.log(`[PR Auto-Link] Prepending 'Fixes #${issueNumber}' to PR #${pr.number} for ${item.id}`);
-            const updatedBody = `Fixes #${issueNumber}\n\n${pr.body || ''}`;
-            await fetch(pr.url, {
-                method: 'PATCH',
-                headers: {
-                    "Authorization": `Bearer ${GITHUB_TOKEN}`,
-                    "Accept": "application/vnd.github+json",
-                    "Content-Type": "application/json",
-                    "X-GitHub-Api-Version": "2022-11-28"
-                },
-                body: JSON.stringify({ body: updatedBody })
-            });
+        const decision = decideLink(pr.body, issueNumber);
+
+        if (decision.action === 'already-linked') continue;
+
+        // A body that already closes a *different* issue is the case that made
+        // BUG-0220: adding a second reference here means one merge closes two
+        // issues, and the script cannot tell which one was meant. Report it and
+        // leave the body alone.
+        if (decision.action === 'conflict') {
+            console.warn(
+                `[PR Auto-Link] Skipping PR #${pr.number} for ${item.id}: its body already closes ` +
+                `${decision.existing.map(n => `#${n}`).join(', ')}, wanted #${decision.wanted}. ` +
+                `Resolve by hand — one of these references is wrong.`
+            );
+            continue;
         }
+
+        console.log(`[PR Auto-Link] Prepending the closing reference for #${issueNumber} to PR #${pr.number} for ${item.id}`);
+        const updatedBody = `Fixes #${issueNumber}\n\n${pr.body || ''}`;
+        await fetch(pr.url, {
+            method: 'PATCH',
+            headers: {
+                "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                "Accept": "application/vnd.github+json",
+                "Content-Type": "application/json",
+                "X-GitHub-Api-Version": "2022-11-28"
+            },
+            body: JSON.stringify({ body: updatedBody })
+        });
     }
 }
 
@@ -736,12 +747,11 @@ async function main() {
             issue.title.startsWith(`[${item.id}]`)
         );
         
-        const matchingPRs = openPRs.filter(pr =>
-            pr.title.includes(item.id) ||
-            pr.body?.includes(item.id) ||
-            pr.head.ref.includes(item.id) ||
-            (existing?.number && pr.body?.match(new RegExp(`(?:Fixes|Closes|Resolves)\\s+#${existing.number}\\b`, 'i')))
-        );
+        // Same rule as the auto-linker, from the same function on purpose: this
+        // drives the `in-review` Kanban status, and when the two copies of the
+        // rule drifted apart an item could be linked but not marked, or marked
+        // but not linked. See BUG-0220.
+        const matchingPRs = matchPRsForItem(openPRs, item.id, existing?.number);
         const hasOpenPR = matchingPRs.length > 0;
 
         const res = await createOrUpdateIssue(item, existing, milestones, hasOpenPR);

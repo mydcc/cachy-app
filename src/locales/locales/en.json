@@ -67,7 +67,21 @@
     "refresh": "Refresh",
     "launchApp": "Launch App",
     "academy": "Academy",
-    "deepwiki": "DeepWiki"
+    "deepwiki": "DeepWiki",
+    "yes": "Yes",
+    "no": "No",
+    "autoBackup": {
+      "restoreTitle": "Recover Local Data",
+      "restoreSubtitle": "An automatic safety snapshot was found on this device.",
+      "restoreDescription": "It looks like your browser storage was recently cleared or reset. We found an automatic local backup (OPFS) that can restore your trade journal, presets, and settings.",
+      "snapshotDate": "Snapshot Date",
+      "journalTrades": "Journal Trades",
+      "presets": "Presets",
+      "settingsSaved": "Settings & State",
+      "dismissButton": "Start Fresh / Ignore",
+      "restoreButton": "Restore My Data",
+      "restoring": "Restoring..."
+    }
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -1489,6 +1503,13 @@
       "utilities": "Media Storage"
     },
     "system": {
+      "autoBackupTitle": "Automatic OPFS Backup",
+      "active": "Active",
+      "unsupported": "Not supported",
+      "autoBackupDesc": "Silently backs up all local data (Class A) to the browser's protected file system.",
+      "lastSnapshot": "Last snapshot",
+      "snapshotNow": "Snapshot Now",
+      "snapshotCreated": "Safety snapshot created.",
       "backup": "Create Backup",
       "backupDesc": "Backup your settings & data as a file.",
       "cacheCleared": "Cache cleared.",
@@ -2523,6 +2544,58 @@
     "paperMode": {
       "badge": "Paper",
       "tooltip": "Paper trading is on. Orders are simulated and no money moves."
+    }
+  },
+  "orderEntry": {
+    "title": "Place this position",
+    "notReady": "Enter an entry price and a stop to size a position first.",
+    "submitLive": "Place order",
+    "submitPaper": "Place paper order",
+    "submitting": "Placing…",
+    "placed": "Order placed",
+    "timeInForce": "Time in force",
+    "type": {
+      "market": "Market",
+      "limit": "Limit",
+      "trigger": "Trigger"
+    },
+    "side": {
+      "long": "long",
+      "short": "short"
+    },
+    "summary": {
+      "size": "Size",
+      "entry": "Entry",
+      "stop": "Stop"
+    },
+    "unsupported": {
+      "trigger": "Trigger orders are not integrated for this exchange yet — Cachy has no verified request format for one.",
+      "generic": "This exchange does not support that order type.",
+      "unknownExchange": "Cachy does not know what this exchange supports, so it will not offer order types it cannot verify."
+    },
+    "notes": {
+      "noAttachedProtection": "This exchange cannot attach a stop to the entry. The stop is placed as a second request, so the position is briefly unprotected — you will be told if it does not arrive.",
+      "firstTargetOnly": "This exchange accepts one take-profit per order, so only your first target is attached. The rest stay in the calculator."
+    },
+    "confirm": {
+      "titleLive": "Place this order?",
+      "titlePaper": "Place this paper order?",
+      "message": "{side} {qty} {symbol} as a {type} order, with a stop at {stop}. Continue?"
+    },
+    "protection": {
+      "attached": "attached to the entry",
+      "placed": "placed separately",
+      "none": "not requested",
+      "failed": "NOT PRESENT"
+    },
+    "result": {
+      "placed": "Entry placed. Stop: {stop}. Target: {target}."
+    },
+    "errors": {
+      "entryRejected": "The order was not placed.",
+      "unprotectedTitle": "Position is unprotected",
+      "unprotected": "The entry was placed but its stop is not on the exchange. The position is open with no stop. Cachy will not close it for you — set a stop now, or close the position yourself.",
+      "targetMissing": "The entry and its stop are in place, but the take-profit is not."
     }
   }
 }

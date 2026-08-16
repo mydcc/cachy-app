@@ -119,6 +119,36 @@ const SAFE_CONTEXTS = [
 ];
 
 let violations = [];
+let interpolationViolations = [];
+
+/**
+ * svelte-i18n takes interpolation values under a `values` key:
+ *
+ *     $_("positionsList.confirmClose", { values: { symbol } })
+ *
+ * Passing the variables directly — `{ symbol }` — is silently ignored. No type
+ * error, no runtime error: the placeholder is simply rendered as literal
+ * "{symbol}" to the user. That has now reached production three times, so it
+ * is checked here rather than found by whoever reads the dialog next.
+ */
+function checkInterpolation(content, filePath) {
+    // `$_(` followed by a key (string literal, template literal, or an
+    // identifier/cast) and then an object argument.
+    const call = /\$_\(\s*(?:"[^"]*"|'[^']*'|`[^`]*`|[\w.[\]]+(?:\s+as\s+[\w.]+)?)\s*,\s*\{/g;
+    for (const match of content.matchAll(call)) {
+        const after = content.slice(match.index + match[0].length);
+        // `values` may sit on the next line; anything else in first position
+        // means the variables were passed bare.
+        if (/^\s*values\s*:/.test(after)) continue;
+        // An empty object is pointless but harmless.
+        if (/^\s*\}/.test(after)) continue;
+        interpolationViolations.push({
+            file: path.relative(process.cwd(), filePath),
+            line: content.slice(0, match.index).split('\n').length,
+            context: content.slice(match.index, match.index + 90).split('\n')[0].trim(),
+        });
+    }
+}
 
 /**
  * Check if a line contains a safe context that exempts it from i18n requirements
@@ -133,6 +163,8 @@ function isSafeContext(line) {
 function scanFile(filePath) {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n');
+
+    checkInterpolation(content, filePath);
 
     lines.forEach((line, index) => {
         // Skip safe contexts
@@ -206,15 +238,33 @@ SCAN_FILES.forEach(file => {
     }
 });
 
+let failed = false;
+
 if (violations.length > 0) {
+    failed = true;
     console.error(`❌ Found ${violations.length} potential i18n violations:\n`);
     violations.forEach(v => {
         console.error(`  ${v.file}:${v.line}`);
         console.error(`    String: "${v.string}"`);
         console.error(`    Context: ${v.context}\n`);
     });
-    process.exit(1);
 } else {
     console.log('✅ No hardcoded UI strings detected');
-    process.exit(0);
 }
+
+if (interpolationViolations.length > 0) {
+    failed = true;
+    console.error(
+        `\n❌ Found ${interpolationViolations.length} $_() call(s) passing interpolation values without the \`values\` wrapper.`,
+    );
+    console.error('   svelte-i18n ignores them and renders the raw {placeholder} to the user.\n');
+    interpolationViolations.forEach(v => {
+        console.error(`  ${v.file}:${v.line}`);
+        console.error(`    Context: ${v.context}`);
+        console.error(`    Fix:     $_("key", { values: { … } })\n`);
+    });
+} else {
+    console.log('✅ All $_() interpolations pass their values correctly');
+}
+
+process.exit(failed ? 1 : 0);

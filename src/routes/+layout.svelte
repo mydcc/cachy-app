@@ -19,12 +19,14 @@
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
+  import AutoBackupRestoreModal from "../components/shared/AutoBackupRestoreModal.svelte";
   import MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
 import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
   import PositionTooltip from "../components/shared/PositionTooltip.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { onMount } from "svelte";
+  import { initAutoBackup } from "../services/autoBackupService.svelte";
 import { afterNavigate } from "$app/navigation";
   import { page } from "$app/stores";
   import { trackPageView } from "../services/trackingService";
@@ -50,6 +52,13 @@ import { afterNavigate } from "$app/navigation";
   }
 
   let { children }: Props = $props();
+
+  // --- Automated OPFS Local Backup (FEAT-0212) ---
+  $effect(() => {
+    if (!browser) return;
+    const cleanup = initAutoBackup();
+    return cleanup;
+  });
 
   // --- CachyLog Integration (Developer & Manual Opt-in) ---
   // Connect to Server-Sent Events stream for real-time server logs
@@ -427,6 +436,8 @@ import { afterNavigate } from "$app/navigation";
 {#if !settingsState.disclaimerAccepted}
   <DisclaimerModal />
 {/if}
+
+<AutoBackupRestoreModal />
 
 <WindowContainer />
 <ToastContainer />

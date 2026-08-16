@@ -56,3 +56,19 @@ jobs:
         #   message directly sidesteps range/parent logic entirely.
         run: |
           git log -1 --format=%B "${{ github.event.pull_request.head.sha }}" | npx commitlint --verbose
+
+      - name: Reject closing keywords in commit messages
+        # Unlike the Conventional Commits check above, this one *does* scan the
+        # whole base..head range, and deliberately so: GitHub's squash merge
+        # folds every commit message in the PR into the merge body, so a
+        # keyword in any commit closes the issue it names — not just one in the
+        # tip. The reason the check above lints only the tip (an early WIP
+        # commit's format can never be fixed without a history rewrite) does not
+        # transfer, because this rule is about an issue being wrongly closed on
+        # merge, which a rewrite is a proportionate price to avoid.
+        #
+        # BUG-0220: a commit body that quoted a mis-linked reference in order to
+        # document it closed an unrelated, unfixed P1 on merge.
+        run: |
+          node scripts/lint-commit-refs.mjs \
+            "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"

@@ -88,7 +88,9 @@
   }
 
   function handleClose(pos: OMSPosition) {
-    if (confirm($_("positionsList.confirmClose", { symbol: pos.symbol }))) {
+    // svelte-i18n takes interpolation under `values`; a bare object is ignored
+    // and the trader is asked to close a position for literal "{symbol}".
+    if (confirm($_("positionsList.confirmClose", { values: { symbol: pos.symbol } }))) {
       onclose?.(pos);
     }
   }
