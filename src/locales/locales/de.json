@@ -737,7 +737,7 @@
   },
   "settings": {
     "decryptionWarningTitle": "Sicherheitswarnung",
-    "decryptionWarningMessage": "gespeicherte Schlüssel konnten nicht gelesen werden und müssen neu eingegeben werden.",
+    "decryptionWarningMessage": "gespeicherte Schlüssel konnten aufgrund eines Resets des Gerätespeichers nicht gelesen werden und müssen neu eingegeben werden, um die Verbindung wiederherzustellen.",
     "calculation": {
       "analyzeFavorites": "Alle Favoriten analysieren",
       "analyzeFavoritesBadgeAll": "Alle Favoriten",
