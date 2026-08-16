@@ -539,7 +539,7 @@ export const newsService = {
         return {
           score: 0,
           regime: "UNCERTAIN",
-          summary: "Sentiment temporarily unavailable.",
+          summary: "Failed to analyze sentiment.",
           keyFactors: [],
         };
       } finally {
