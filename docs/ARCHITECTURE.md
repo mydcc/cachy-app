@@ -76,6 +76,7 @@ The largest directory, ~50 modules with tests alongside. The groups that matter:
 | --- | --- | --- |
 | **Exchange** | `bitunixWs.ts`, `bitgetWs.ts`, `tradeService.ts`, `syncService.ts`, `apiService.ts`, `connectionManager.ts` | Two parallel implementations. [FEAT-0016](backlog/features/FEAT-0016-exchange-adapter-interface.md) replaces this with one adapter interface |
 | **Order state** | `omsService.ts`, `rmsService.ts` | Order and risk management |
+| **Execution gate** | `orderGate.ts` | The one checkpoint between order construction and transport. `tradeService.signedRequest` refuses a state-mutating order without a pass from it — see [FEAT-0011](backlog/features/FEAT-0011-preflight-order-verification.md) |
 | **Calculation** | `calculatorService.ts`, `calculationStrategy.ts`, `tradeCalculator.svelte.ts` | Orchestrates `lib/calculator.ts` |
 | **Technicals** | `technicalsService.ts`, `wasmCalculator.ts`, `webGpuCalculator.ts`, `activeTechnicalsManager.svelte.ts` | Three engines behind one service: WASM, WebGPU, JS |
 | **Analysis** | `marketWatcher.ts`, `marketAnalyst.ts`, `patternDetection.ts`, `chartPatterns.ts`, `candlestickPatterns.ts`, `mdaService.ts`, `smc/` | |

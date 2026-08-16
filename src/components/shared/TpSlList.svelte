@@ -22,6 +22,8 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import TpSlEditModal from "./TpSlEditModal.svelte";
   import { toastService } from "../../services/toastService.svelte";
+  import { OrderRefusedError } from "../../services/orderGate";
+  import { getDisplayMessage } from "../../utils/errorUtils";
 
   interface Props {
     isActive?: boolean;
@@ -67,6 +69,12 @@
       toastService.success($_("dashboard.alerts.orderCancelled"));
       fetchOrders(); // Refresh
     } catch (e) {
+      // A gate refusal (FEAT-0011) already names the field that disagreed;
+      // collapsing it into the generic "cancel failed" would throw that away.
+      if (e instanceof OrderRefusedError) {
+        toastService.error(getDisplayMessage(e, $_));
+        return;
+      }
       const message = e instanceof Error ? e.message : String(e);
       const msg =
         message.startsWith("dashboard.alerts")

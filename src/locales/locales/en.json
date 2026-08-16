@@ -2274,6 +2274,35 @@
     "dataError": "Data Inconsistency Detected",
     "orderNotFound": "Order not found"
   },
+  "orderGate": {
+    "title": "Order refused",
+    "mismatch": "Order refused: {field} does not match what was displayed (expected {expected}, got {actual}). The order was not sent.",
+    "missing": "Order refused: {field} is missing from the order, so it could not be verified. The order was not sent.",
+    "sizeMismatch": "Order refused: the size does not match a fresh calculation (expected {expected}, got {actual}, tolerance {tolerance}). The order was not sent.",
+    "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
+    "killSwitch": "Order refused: the kill switch is engaged. No orders are sent while it is on.",
+    "riskLimit": "Order refused: {field} exceeds a configured risk limit ({detail}). The order was not sent.",
+    "bypassed": "Order refused: an order of type {action} tried to reach the exchange without passing verification. This is a bug — please report it.",
+    "fields": {
+      "account": "the account",
+      "accountState": "leverage / margin mode",
+      "action": "the order action",
+      "endpoint": "the target endpoint",
+      "gate": "verification",
+      "killSwitch": "the kill switch",
+      "leverage": "leverage",
+      "marginMode": "margin mode",
+      "orderId": "the order ID",
+      "positionId": "the position ID",
+      "price": "the entry price",
+      "qty": "the position size",
+      "reduceOnly": "the reduce-only flag",
+      "side": "the direction",
+      "stopLoss": "the stop loss",
+      "symbol": "the symbol",
+      "takeProfit": "the take profit"
+    }
+  },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
     "closeAllFailed": "Flash Close Failed for: {failedSymbols}",

@@ -40,7 +40,7 @@ jobs:
 
           VIOLATIONS=0
 
-          for file in src/services/tradeService.ts src/services/apiService.ts src/lib/calculator.ts; do
+          for file in src/services/tradeService.ts src/services/apiService.ts src/services/orderGate.ts src/lib/calculator.ts; do
             if [ -f "$file" ]; then
               MATCHES=$(grep -n -E '(Number\(|parseFloat\(|parseFloat |toFixed\()' "$file" || true)
               if [ ! -z "$MATCHES" ]; then

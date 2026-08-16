@@ -570,7 +570,7 @@
       // account rejecting a close that's missing tradeSide/positionId, see
       // BUG-0062) was never visible to the user. Same pattern
       // handleCancelOrder already used correctly below.
-      const msg = getDisplayMessage(e);
+      const msg = getDisplayMessage(e, $_);
       uiState.showError(msg || $_("dashboard.alerts.failedClose"));
     }
   }
@@ -587,7 +587,7 @@
     } catch (e: unknown) {
         // Prefer rawMessage on BitunixApiError — `e.message` carries the i18n
         // key "apiErrors.generic" and would render as a literal string otherwise.
-        const msg = getDisplayMessage(e);
+        const msg = getDisplayMessage(e, $_);
         uiState.showError(msg || $_("dashboard.alerts.cancelOrderError"));
     }
   }
