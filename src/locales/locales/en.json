@@ -1697,7 +1697,8 @@
     "unrealizedPnl": "Unrealized PnL",
     "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view.",
     "tierMmr": "Maint. Margin Rate (Tier)",
-    "nextTierAt": "Next Tier at"
+    "nextTierAt": "Next Tier at",
+    "tpslActive": "TP/SL"
   },
   "symbolPicker": {
     "title": "Select Symbol",

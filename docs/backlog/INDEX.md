@@ -2,9 +2,9 @@
 
 # Backlog index
 
-103 items. How to read and add them: [README.md](README.md).
+104 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 59
+Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 60
 
 ---
 
@@ -63,7 +63,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 59
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | 📋 specced | trade-panel |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | trade-panel |
-| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | trade-panel |
+| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | trade-panel |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 📋 specced | exchange |
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | exchange |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | 📋 specced | execution |
@@ -154,6 +154,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 59
 | [FEAT-0197](features/FEAT-0197-split-settings-store.md) | Extract entitlement state and the settings load/persist path out of settings.svelte.ts | P2 | ✅ done | security |
 | [FEAT-0198](features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md) | Add characterisation tests for market.svelte.ts's buffer-pool acquire/release pairing | P2 | ✅ done | services |
 | [FEAT-0200](features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md) | Encrypt API keys and other secrets at rest in localStorage | P2 | 💡 idea | security |
+| [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | trade-panel |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -210,7 +211,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 59
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | M4 | community, pro, private | A | none | — |
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | ✅ done | M0 | community, pro, private | none | ADR-0006 | — |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
-| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
+| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 📋 specced | M3 | community, pro, private | C | none | — |
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
@@ -259,6 +260,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 59
 | [FEAT-0197](features/FEAT-0197-split-settings-store.md) | Extract entitlement state and the settings load/persist path out of settings.svelte.ts | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [FEAT-0198](features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md) | Add characterisation tests for market.svelte.ts's buffer-pool acquire/release pairing | P2 | ✅ done | none | community, pro, private | C | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [FEAT-0200](features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md) | Encrypt API keys and other secrets at rest in localStorage | P2 | 💡 idea | none | community, pro, private | A | ADR-0001 | — |
+| [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |

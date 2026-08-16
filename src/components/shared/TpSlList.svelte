@@ -24,6 +24,7 @@
   import { toastService } from "../../services/toastService.svelte";
   import { OrderRefusedError } from "../../services/orderGate";
   import { getDisplayMessage } from "../../utils/errorUtils";
+  import { tpSlState } from "../../stores/tpsl.svelte";
 
   interface Props {
     isActive?: boolean;
@@ -42,6 +43,17 @@
 
   async function fetchOrders() {
     if (!isActive) return;
+
+    // The pending view shares its cache with the position cards (FEAT-0057),
+    // so opening this tab after looking at the positions list is free. The
+    // history view is this component's alone — a closed plan can never belong
+    // to an open position, so caching it would buy nothing.
+    if (view === "pending") {
+      await tpSlState.ensureFresh();
+      orders = [...tpSlState.orders];
+      error = tpSlState.error ? $_("apiErrors.failedToLoadOrders") : "";
+      return;
+    }
 
     loading = true;
     error = "";
@@ -67,6 +79,9 @@
     try {
       await tradeService.cancelTpSlOrder(order);
       toastService.success($_("dashboard.alerts.orderCancelled"));
+      // The position cards read the same cache; leaving it stale would show
+      // a stop that no longer exists.
+      tpSlState.invalidate();
       fetchOrders(); // Refresh
     } catch (e) {
       // A gate refusal (FEAT-0011) already names the field that disagreed;
@@ -92,6 +107,7 @@
   function handleEditSuccess() {
     showEditModal = false;
     editingOrder = null;
+    tpSlState.invalidate();
     fetchOrders();
   }
 

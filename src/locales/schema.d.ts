@@ -1499,6 +1499,7 @@ export type TranslationKey =
   | "positionsList.pnlToggleHint"
   | "positionsList.tierMmr"
   | "positionsList.nextTierAt"
+  | "positionsList.tpslActive"
   | "symbolPicker.title"
   | "symbolPicker.searchPlaceholder"
   | "symbolPicker.favorites"
