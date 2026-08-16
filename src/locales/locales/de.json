@@ -2461,7 +2461,8 @@
     "unrealizedPnl": "Unrealisierter PnL",
     "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht.",
     "tierMmr": "Maint.-Margin-Rate (Stufe)",
-    "nextTierAt": "Nächste Stufe ab"
+    "nextTierAt": "Nächste Stufe ab",
+    "tpslActive": "TP/SL"
   },
   "trade": {
     "apiError": "API-Fehler: {error}",
