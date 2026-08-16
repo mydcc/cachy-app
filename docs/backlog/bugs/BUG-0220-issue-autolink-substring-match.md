@@ -33,9 +33,36 @@ before `#2005` claimed 0217 for the WebSocket bug:
 - `#2003` — title `fix: send orderType to Bitunix place_order ... (BUG-0217)`
 - `#2004` — title `fix(orders): send orderType instead of type ... (BUG-0217)`
 
-Both received `Fixes #2002`. Neither touches `bitunixWs.ts`. Both were caught
-by hand during conflict resolution; had either merged first, `#2002` would have
-closed silently.
+Both received the closing keyword for `#2002`. Neither touches `bitunixWs.ts`.
+Both were caught by hand during conflict resolution; had either merged first,
+`#2002` would have closed silently.
+
+### Second instance: the write-up closed it anyway
+
+Worth recording, because it is the same failure through a different door and it
+defeated the fix for the first one.
+
+`#2003` was corrected to point at `#2008` before merging, and GitHub no longer
+listed `#2002` among its closing references. `#2002` closed on merge regardless.
+The cause was the commit message of `3d6c008` — the commit that added *this
+file* — which described the mis-link by quoting it literally:
+
+> ...this prepended `Fixes #<!-- -->2002` to both #2003 and #2004...
+
+(The keyword above is deliberately broken with an empty HTML comment so that
+quoting this file cannot repeat the incident. It renders as the original text
+on GitHub and does not parse as a reference.)
+
+GitHub parses closing keywords in merged commit messages as well as in PR
+bodies, and quotation marks, backticks and surrounding prose do not exempt the
+phrase. The squash commit `db4d908` carried the text into `develop`; the
+release notes for `1.6.0-beta.54` recorded `closes #2004 #2002 #2002`. The
+issue was reopened by hand.
+
+So the hazard is broader than the sync script: **any** text that reaches a
+commit message or PR body can close an issue, including text whose only purpose
+is to describe a closing reference. A bug write-up is a likely place for that to
+happen, which makes it worth a convention rather than vigilance.
 
 The two pieces of code that disagree are in `scripts/sync-github-issues.ts`.
 The script already knows what a stable identity looks like — line 37 defines
@@ -114,6 +141,18 @@ is a substring of `BUG-00210`, should the backlog ever pass four digits.
 - Leave the milestone and issue-lookup paths alone. `existingIssues.find` on
   line 733 already keys on `backlog-id:` correctly and is not implicated.
 
+For the second instance, which no change to the sync script would have
+prevented:
+
+- Write a convention into `CLAUDE.md` / `AGENTS.md`: when a commit message or
+  PR body needs to *mention* a closing reference rather than make one, break
+  the keyword — `Fixes&#32;#2002` renders normally but does not parse, and
+  naming the issue without the keyword ("closed #2002 in error") is simpler
+  still.
+- Consider a `commit-lint` rule that rejects a closing keyword pointing at an
+  issue the branch does not declare. `.github/workflows/commit-lint.yml`
+  already inspects every commit on a PR, so the hook exists.
+
 ## Acceptance criteria
 
 - [ ] A test reproduces the defect and fails without the fix: an open PR whose
@@ -127,6 +166,9 @@ is a substring of `BUG-00210`, should the backlog ever pass four digits.
 - [ ] An item whose ID is merely *mentioned* by an unrelated open PR is not
       labelled `status:in-review` — the line 739 half of the same defect
 - [ ] `BUG-0021` does not match `BUG-00210`
+- [ ] A commit message or PR body that quotes a closing keyword for an issue
+      the change does not fix cannot close it — by convention documented in
+      `CLAUDE.md`, and ideally enforced in `commit-lint`
 
 ## Out of scope
 
