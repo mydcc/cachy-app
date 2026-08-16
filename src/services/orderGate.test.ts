@@ -411,6 +411,78 @@ describe("orderGate — account state freshness", () => {
         intent.displayed.accountStateAt = Date.now() - MAX_ACCOUNT_STATE_AGE_MS * 10;
         expect(orderGate.verify(intent).approved).toBe(true);
     });
+
+    it("does not gate a paper order on it either", () => {
+        // Nothing stamps `accountStateAt` in paper mode — there is no exchange
+        // read to stamp it — so applying the check refuses every simulated
+        // order, which defeats the point of a practice mode.
+        const intent = openIntent();
+        intent.displayed.paperMode = true;
+        delete intent.displayed.accountStateAt;
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("still refuses a live order that has no account read", () => {
+        // The paper exemption must not be reachable by omission: absent
+        // paperMode means live, and live still needs a fresh read.
+        const intent = openIntent();
+        delete intent.displayed.accountStateAt;
+        expect(orderGate.verify(intent).refusal?.field).toBe("accountState");
+    });
+
+    it("names the age and the limit, so the message can say them", () => {
+        // The refusal text interpolates {field}, {age} and {max}. A caller that
+        // renders `messageKey` without these values shows the trader the raw
+        // placeholders — which is exactly what shipped once.
+        const intent = openIntent();
+        intent.displayed.accountStateAt = Date.now() - MAX_ACCOUNT_STATE_AGE_MS * 3;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.values.field).toBe("accountState");
+        expect(Number(refusal?.values.age)).toBeGreaterThanOrEqual(
+            Math.round((MAX_ACCOUNT_STATE_AGE_MS * 3) / 1000),
+        );
+        expect(refusal?.values.max).toBe(String(MAX_ACCOUNT_STATE_AGE_MS / 1000));
+    });
+});
+
+describe("orderGate — rendering a refusal", () => {
+    // A fake `$_`: substitutes {placeholders}, and echoes the key back when it
+    // has no entry, the way svelte-i18n does.
+    const MESSAGES: Record<string, string> = {
+        "orderGate.stale":
+            "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
+        "orderGate.fields.accountState": "account state",
+    };
+    const t = (key: string, options?: { values?: Record<string, string> }) => {
+        const template = MESSAGES[key];
+        if (template === undefined) return key;
+        return template.replace(/\{(\w+)\}/g, (_m, name) => options?.values?.[name] ?? `{${name}}`);
+    };
+
+    it("fills in the field, the age and the limit", () => {
+        const intent = openIntent();
+        intent.displayed.accountStateAt = Date.now() - 120_000;
+        const refusal = orderGate.verify(intent).refusal!;
+
+        const text = translateRefusal(refusal, t);
+        expect(text).toContain("account state");
+        expect(text).toContain("120s old");
+        expect(text).toContain("60s limit");
+        // The bug this file is guarding against.
+        expect(text).not.toContain("{");
+    });
+
+    it("falls back to the raw field name when it has no translation", () => {
+        const refusal = {
+            field: "takeProfit[0]",
+            reason: "mismatch",
+            messageKey: "orderGate.mismatch",
+            values: { field: "takeProfit[0]" },
+        };
+        // svelte-i18n echoes an unknown key; the raw name beats showing the
+        // trader a dotted key path.
+        expect(translateRefusal(refusal, t)).not.toContain("orderGate.fields.");
+    });
 });
 
 describe("orderGate — FEAT-0013 seam", () => {

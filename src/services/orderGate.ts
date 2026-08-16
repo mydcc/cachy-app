@@ -698,6 +698,16 @@ class OrderGate {
 
         if (displayed.leverage !== undefined || displayed.marginMode !== undefined) {
             checked.push("accountState");
+            // In paper mode there is no remote account for this to be stale
+            // relative to — the simulator *is* the account, and nothing ever
+            // stamps `accountStateAt` because no exchange read happens. Without
+            // this, every simulated order is refused, which is the opposite of
+            // what a practice mode is for.
+            //
+            // A live order cannot reach this by claiming to be paper:
+            // `assertGatePass` re-reads the real mode at transmit time and
+            // refuses a pass whose paperMode disagrees.
+            if (displayed.paperMode === true) return null;
             const age =
                 displayed.accountStateAt === undefined
                     ? Number.POSITIVE_INFINITY

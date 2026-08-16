@@ -62,7 +62,10 @@ than reimplementing it.
       source, not its consumers.
 - [x] A partially placed order group (entry filled, stop rejected) is detected
       and reported, with a test
-- [x] German and English strings
+- [x] German and English strings — but see
+      [`BUG-0215`](../bugs/BUG-0215-order-refusal-placeholders.md): the strings
+      existed and the panel rendered gate refusals without their interpolation
+      values, so traders saw literal `{field}` and `{age}`. Fixed there.
 
 ## Decisions
 
@@ -119,6 +122,12 @@ than reimplementing it.
 - **Fixed-risk as a distinct order type.** It is not one — it is how the
   calculator sizes every order Cachy places, so every entry here is already
   fixed-risk. No separate control was added for something that is always on.
+- **A satisfiable freshness requirement, first time round.** The panel required
+  a recent leverage/margin-mode read and wired nothing that produces one, so
+  live orders went stale after a minute and paper orders were refused
+  outright. [`BUG-0215`](../bugs/BUG-0215-order-refusal-placeholders.md) fixed
+  it. Worth remembering when adding the next gate check: a check nothing
+  satisfies is indistinguishable from a broken feature.
 - **A retry that can actually re-place a stop.** `replaceStop` has nothing to
   call: `tpsl/place_order` is [`FEAT-0070`](FEAT-0070-bitunix-tpsl-placement.md).
   The retry therefore re-checks rather than re-places, and reaches the

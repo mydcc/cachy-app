@@ -2,9 +2,9 @@
 
 # Backlog index
 
-107 items. How to read and add them: [README.md](README.md).
+108 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 67
+Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 68
 
 ---
 
@@ -58,6 +58,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 67
 | [BUG-0055](bugs/BUG-0055-position-mark-price-always-zero.md) | Position mark price always renders as "0 → 0 | P1 | ✅ done | trade-panel |
 | [BUG-0059](bugs/BUG-0059-account-fetch-error-silently-swallowed.md) | A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account | P1 | ✅ done | trade-panel |
 | [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | trade-panel |
+| [BUG-0215](bugs/BUG-0215-order-refusal-placeholders.md) | Gate refusals render raw placeholders and refuse every paper order | P1 | ✅ done | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
@@ -203,6 +204,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 67
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) |
 | [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0215](bugs/BUG-0215-order-refusal-placeholders.md) | Gate refusals render raw placeholders and refuse every paper order | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -288,4 +290,4 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 67
 
 ---
 
-Next free number: **0215**
+Next free number: **0216**

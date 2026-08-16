@@ -229,6 +229,33 @@ describe("FEAT-0021 — the entry itself fails", () => {
         expect(result.errorKey).toBe("orderGate.sizeMismatch");
     });
 
+    it("passes the refusal through whole, not just its message key", async () => {
+        // The gate's messages interpolate the field and the numbers that
+        // disagreed. Keeping only `errorKey` leaves a caller with a template
+        // and nothing to fill it, which renders as literal {field} on screen.
+        placeOrder.mockRejectedValue(
+            new OrderRefusedError({
+                field: "accountState",
+                reason: "stale",
+                messageKey: "orderGate.stale",
+                values: { field: "accountState", age: "120", max: "60" },
+            }),
+        );
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+        expect(result.refusal?.values).toEqual({
+            field: "accountState",
+            age: "120",
+            max: "60",
+        });
+    });
+
+    it("leaves refusal unset when the exchange, not the gate, said no", async () => {
+        placeOrder.mockRejectedValue(new Error("insufficient margin"));
+        const result = await orderPlacementService.placeEntryGroup(plan());
+        expect(result.refusal).toBeUndefined();
+    });
+
     it("reports an exchange rejection", async () => {
         placeOrder.mockRejectedValue(new Error("insufficient margin"));
         const result = await orderPlacementService.placeEntryGroup(plan());

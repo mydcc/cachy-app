@@ -47,7 +47,7 @@ import { tradeService } from "./tradeService";
 import { tpSlState } from "../stores/tpsl.svelte";
 import { capabilitiesOf, type OrderEntryType, type TimeInForce } from "./exchangeCapabilities";
 import { logger } from "./logger";
-import { OrderRefusedError } from "./orderGate";
+import { OrderRefusedError, type OrderRefusal } from "./orderGate";
 
 export type ProtectionState =
     /** Rode along with the entry and was confirmed present afterwards. */
@@ -73,6 +73,15 @@ export interface PlacementResult {
     unprotected: boolean;
     /** i18n key describing what went wrong, when something did. */
     errorKey?: string;
+    /**
+     * The gate's refusal, whole, when the gate is what stopped this.
+     *
+     * `errorKey` alone is not enough to render one: the `orderGate.*` messages
+     * name the field and the numbers that disagreed, and a caller translating
+     * the bare key shows the trader raw `{field}` placeholders. Render this
+     * with `translateRefusal` (or `getDisplayMessage`) instead.
+     */
+    refusal?: OrderRefusal;
     /** Untranslated detail from the exchange, for the error surface. */
     errorDetail?: string;
 }
@@ -149,6 +158,7 @@ class OrderPlacementService {
                     e instanceof OrderRefusedError
                         ? e.refusal.messageKey
                         : "orderEntry.errors.entryRejected",
+                refusal: e instanceof OrderRefusedError ? e.refusal : undefined,
                 errorDetail: e instanceof Error ? e.message : String(e),
             };
         }
