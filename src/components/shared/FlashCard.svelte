@@ -77,22 +77,6 @@
     tabindex="0"
     onkeydown={(e) => e.key === "Escape" && quizState.closeQuiz()}
   >
-    <!-- Close Button. Top-left, not top-right: ToastContainer anchors at
-         top:24px/right:24px, and a real toast firing while the quiz is open
-         would sit directly over a top-right close button. -->
-    <button
-      type="button"
-      class="absolute top-4 left-4 z-20 p-1.5 rounded-lg text-xl leading-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
-      onclick={(e) => {
-        e.stopPropagation();
-        quizState.closeQuiz();
-      }}
-      aria-label={$_("common.close")}
-      title={$_("common.close")}
-    >
-      {$_("common.remove")}
-    </button>
-
     <!-- Category Switcher Pills -->
     <div
       class="flex items-center gap-1.5 p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-lg glass-panel z-10"
@@ -127,23 +111,38 @@
     </div>
 
     <!-- Card Container -->
-    <div
-      class="relative w-full max-w-md aspect-[4/3] perspective-1000 cursor-pointer group"
-      onclick={(e) => {
-        e.stopPropagation();
-        if (!isFlipped) handleFlip();
-      }}
-      transition:scale={{ duration: 300, easing: quintOut, start: 0.8 }}
-      role="button"
-      tabindex="0"
-      onkeydown={(e) => e.key === "Enter" && handleFlip()}
-    >
-      <!-- Card Inner -->
-      <div
-        class="relative w-full h-full duration-500 preserve-3d transition-transform {isFlipped
-          ? 'rotate-y-180'
-          : ''}"
+    <div class="relative w-full max-w-md aspect-[4/3]">
+      <!-- Close Button -->
+      <button
+        type="button"
+        class="absolute -top-14 right-0 md:-right-14 md:top-0 z-20 w-12 h-12 flex items-center justify-center rounded-full text-3xl leading-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] border border-transparent hover:border-[var(--border-color)] transition-all shadow-none hover:shadow-lg glass-panel"
+        onclick={(e) => {
+          e.stopPropagation();
+          quizState.closeQuiz();
+        }}
+        aria-label={$_("common.close")}
+        title={$_("common.close")}
       >
+        {$_("common.remove")}
+      </button>
+
+      <div
+        class="relative w-full h-full perspective-1000 cursor-pointer group"
+        onclick={(e) => {
+          e.stopPropagation();
+          if (!isFlipped) handleFlip();
+        }}
+        transition:scale={{ duration: 300, easing: quintOut, start: 0.8 }}
+        role="button"
+        tabindex="0"
+        onkeydown={(e) => e.key === "Enter" && handleFlip()}
+      >
+        <!-- Card Inner -->
+        <div
+          class="relative w-full h-full duration-500 preserve-3d transition-transform {isFlipped
+            ? 'rotate-y-180'
+            : ''}"
+        >
         <!-- Front -->
         <div
           use:burn={settingsState.enableBurningBorders &&
@@ -209,6 +208,7 @@
               {$_("quiz.known")}
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>
