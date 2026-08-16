@@ -48,6 +48,7 @@ import { tpSlState } from "../stores/tpsl.svelte";
 import { capabilitiesOf, type OrderEntryType, type TimeInForce } from "./exchangeCapabilities";
 import { logger } from "./logger";
 import { OrderRefusedError, type OrderRefusal } from "./orderGate";
+import { getDisplayMessage } from "../utils/errorUtils";
 
 export type ProtectionState =
     /** Rode along with the entry and was confirmed present afterwards. */
@@ -159,7 +160,12 @@ class OrderPlacementService {
                         ? e.refusal.messageKey
                         : "orderEntry.errors.entryRejected",
                 refusal: e instanceof OrderRefusedError ? e.refusal : undefined,
-                errorDetail: e instanceof Error ? e.message : String(e),
+                // `getDisplayMessage`, not `e.message`: BitunixApiError puts the
+                // i18n key "apiErrors.generic" in `message` and the exchange's
+                // own text — the only thing that says *why* the order failed —
+                // in `rawMessage`. Reading `message` threw that away and showed
+                // the trader the key instead.
+                errorDetail: getDisplayMessage(e),
             };
         }
 

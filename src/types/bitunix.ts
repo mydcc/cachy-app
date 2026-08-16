@@ -113,7 +113,13 @@ export interface NormalizedPosition {
 export interface BitunixOrderPayload {
   symbol: string;
   side: string;
-  type: string;
+  /**
+   * `orderType`, not `type` — this object is serialised straight onto the
+   * wire, and place_order documents the field as `orderType` and requires it
+   * (docs/bitunix-api/07_trade.md:584). Sending `type` meant no order type
+   * reached the exchange at all; see BUG-0219.
+   */
+  orderType: string;
   qty: string | number;
   price?: string | number;
   reduceOnly?: boolean;
