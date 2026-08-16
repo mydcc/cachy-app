@@ -70,6 +70,8 @@ interface PassRecord {
     endpoint: string;
     action: string;
     symbol?: string;
+    /** Paper or live, as it stood when the gate approved (FEAT-0012). */
+    paperMode: boolean;
 }
 
 const issuedPasses = new WeakMap<object, PassRecord>();
@@ -160,6 +162,12 @@ export interface DisplayedState {
     provider: string;
     /** Non-secret identifier of the active API key (never the key itself). */
     accountFingerprint: string;
+    /**
+     * Whether the UI showed paper mode as active (FEAT-0012). The dangerous
+     * direction is believing you are simulating while live, so the transport
+     * re-reads the real mode and compares it against this.
+     */
+    paperMode?: boolean;
     symbol?: string;
     side?: string;
     entryPrice?: Decimal;
@@ -227,7 +235,14 @@ export interface OrderIntent {
 // ---------------------------------------------------------------------------
 
 export type RiskLimitCheck = (intent: OrderIntent) => OrderRefusal | null;
-export type KillSwitchCheck = () => boolean;
+
+/**
+ * Receives the intent, because "stop all trading" is not the same as "stop
+ * all traffic": FEAT-0013's switch blocks orders that create or increase
+ * exposure and lets closes and cancels through. A switch that also blocked
+ * closing would turn a scare into a loss.
+ */
+export type KillSwitchCheck = (intent: OrderIntent) => boolean;
 
 let riskLimitCheck: RiskLimitCheck | null = null;
 let killSwitchCheck: KillSwitchCheck | null = null;
@@ -358,7 +373,7 @@ class OrderGate {
 
         // --- kill switch (FEAT-0013) ---------------------------------------
         checked.push("killSwitch");
-        if (killSwitchCheck?.() === true) {
+        if (killSwitchCheck?.(intent) === true) {
             return refuse({
                 field: "killSwitch",
                 reason: "killSwitch",
@@ -709,6 +724,7 @@ class OrderGate {
             endpoint: intent.endpoint,
             action: mutatingActionOf(intent.payload) ?? "",
             symbol: typeof intent.payload.symbol === "string" ? intent.payload.symbol : undefined,
+            paperMode: intent.displayed.paperMode === true,
         });
 
         return await transport(pass);
@@ -728,6 +744,8 @@ export interface TransportContext {
     provider: string;
     /** Fingerprint of the key the transport is about to sign with. */
     accountFingerprint: string;
+    /** The live paper/live mode, read at transmit time (FEAT-0012). */
+    paperMode: boolean;
 }
 
 /**
@@ -786,6 +804,18 @@ export function assertGatePass(ctx: TransportContext, pass?: GatePass): void {
     if (record.accountFingerprint !== ctx.accountFingerprint) {
         throw new OrderRefusedError(
             mismatch("account", record.accountFingerprint, ctx.accountFingerprint),
+        );
+    }
+    // The failure that matters is not "I placed a paper order thinking it was
+    // live" — it is the reverse. If the mode changed between approval and
+    // transmission, the order does not go anywhere.
+    if (record.paperMode !== ctx.paperMode) {
+        throw new OrderRefusedError(
+            mismatch(
+                "mode",
+                record.paperMode ? "paper" : "live",
+                ctx.paperMode ? "paper" : "live",
+            ),
         );
     }
 }

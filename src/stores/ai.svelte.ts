@@ -683,7 +683,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     const trade = tradeState;
     const market = marketState.data;
     const account = accountState;
-    const journal = journalState.entries || [];
+    // Real trades only: the assistant should not reason about the user's
+    // performance from simulated fills.
+    const journal = journalState.analysisEntries || [];
     const settings = settingsState;
 
     // CMC Data

@@ -43,6 +43,8 @@ import { marketAnalyst } from "./marketAnalyst";
 import { serializationService } from "./serializationService";
 import { logger } from "./logger";
 import { setupRealtimeUpdatesEffect } from "./appEffects.svelte";
+import { rmsService } from "./rmsService";
+import { paperTradingService } from "./paperTradingService";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -76,6 +78,13 @@ export const app = {
       });
 
       // 1. Initialise core logic
+      // Risk limits and the kill switch (FEAT-0013) must be attached to the
+      // order gate before anything can place an order — unregistered hooks
+      // mean the gate approves on those two checks.
+      rmsService.installGateHooks();
+      // FEAT-0012: points the simulator at the live feed and mirrors the
+      // paper book into the shared stores. No-op while paper mode is off.
+      paperTradingService.install();
       app.populatePresetLoader();
       app.setupMarketSync();
       tradeCalculator.init(() => app.calculateAndDisplay());

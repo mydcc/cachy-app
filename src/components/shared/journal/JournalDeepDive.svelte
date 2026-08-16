@@ -68,7 +68,10 @@
     };
 
     // --- Data Logic derived from stores ---
-    let journal = $derived(journalState.entries);
+    // Real trades only — a simulated fill in these trends would describe a
+    // discipline the trader never actually had. Paper entries stay visible in
+    // the journal list; see journalState.analysisEntries.
+    let journal = $derived(journalState.analysisEntries);
 
     // 1. PERFORMANCE (Trends)
     let rollingData = $derived(

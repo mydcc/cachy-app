@@ -495,6 +495,7 @@ describe("orderGate — submit", () => {
                     payload: intent.payload,
                     provider: ACCOUNT.provider,
                     accountFingerprint: ACCOUNT.accountFingerprint,
+                    paperMode: false,
                 },
                 pass,
             );
@@ -513,6 +514,7 @@ describe("orderGate — the transport is unreachable without a pass", () => {
         payload,
         provider: ACCOUNT.provider,
         accountFingerprint: ACCOUNT.accountFingerprint,
+        paperMode: false,
     });
 
     it("rejects a mutating request with no pass at all", () => {
@@ -602,6 +604,19 @@ describe("orderGate — the transport is unreachable without a pass", () => {
                 ),
             ),
         ).rejects.toMatchObject({ refusal: { field: "account" } });
+    });
+
+    it("refuses when paper mode changed between approval and transmission", async () => {
+        // FEAT-0012. The dangerous direction is believing you are simulating
+        // while live, so a mode that moved under the order stops it.
+        const intent = reduceIntent();
+        await expect(
+            orderGate.submit(intent, async (pass) =>
+                assertGatePass({ ...ctx(intent.payload), paperMode: true }, pass),
+            ),
+        ).rejects.toMatchObject({
+            refusal: { field: "mode", values: { expected: "live", actual: "paper" } },
+        });
     });
 
     it("classifies every mutating action and no read-only one", () => {

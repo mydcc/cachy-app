@@ -21,6 +21,8 @@
     import Toggle from "../../shared/Toggle.svelte";
     import HotkeySettings from "../HotkeySettings.svelte";
     import IndicatorSettings from "./IndicatorSettings.svelte";
+    import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
+    import PaperTradingSettings from "../PaperTradingSettings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import {
         HOTKEY_ACTIONS,
@@ -40,6 +42,14 @@
         {
             id: "chart",
             label: $_("settings.trading.chartTitle") || "Chart & Technicals",
+        },
+        {
+            id: "risk",
+            label: $_("settings.risk.subTab") || "Risk & Kill Switch",
+        },
+        {
+            id: "paper",
+            label: $_("settings.paper.subTab") || "Paper Trading",
         },
         { id: "hotkeys", label: $_("settings.tabs.hotkeys") || "Controls" },
     ];
@@ -149,6 +159,24 @@
                             >
                         </select>
                     </div>
+
+                    <!-- Save paper trades to the journal -->
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.trading.journalPaperTrades")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_(
+                                    "settings.trading.journalPaperTradesDesc",
+                                )}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.journalPaperTrades}
+                        />
+                    </label>
 
                     <!-- Auto Update Input -->
                     <label class="toggle-card self-end">
@@ -519,6 +547,18 @@
         {/if}
 
         <!-- Hotkeys -->
+        {#if activeSubTab === "risk"}
+            <section class="animate-fade-in">
+                <RiskLimitsSettings />
+            </section>
+        {/if}
+
+        {#if activeSubTab === "paper"}
+            <section class="animate-fade-in">
+                <PaperTradingSettings />
+            </section>
+        {/if}
+
         {#if activeSubTab === "hotkeys"}
             <section class="settings-section animate-fade-in">
                 <div class="flex justify-between items-center mb-4">
