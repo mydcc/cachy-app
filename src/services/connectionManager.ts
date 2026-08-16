@@ -38,6 +38,15 @@ export interface PollingService {
     resync?: () => void;
 }
 
+// A tab hidden for less than this is ordinary alt-tabbing: WebSocket
+// heartbeats survive it, and forcing a reconnect on every glance away would
+// tear down and rebuild subscriptions for nothing. Above it, the browser's
+// background-timer throttling (Chrome/Firefox/Safari all do this) can have
+// starved the ping/watchdog cycle before it noticed the connection was gone —
+// matches the 15s threshold bitunixWs's own monitor loop already uses for the
+// same staleness question while the tab is visible.
+const HIDDEN_RECONNECT_THRESHOLD_MS = 15_000;
+
 class ConnectionManager {
     private static instanceCount = 0;
     private instanceId = 0;
@@ -45,10 +54,62 @@ class ConnectionManager {
     private providers = new Map<string, ManagedService>();
     private pollingService: PollingService | null = null;
     private isDestroying = false;
+    private hiddenAt: number | null = null;
 
     constructor() {
         this.instanceId = ++ConnectionManager.instanceCount;
         logger.log("governance", `[ConnectionManager] Instance #${this.instanceId} created.`);
+
+        // `typeof window` guards both listeners at once, mirroring the check
+        // bitunixWs already uses for its own `online`/`offline` listeners —
+        // in every real environment `window` implies `document` too.
+        if (typeof window !== "undefined") {
+            document.addEventListener("visibilitychange", () => {
+                this.notifyVisibilityChange(document.visibilityState === "visible");
+            });
+
+            // `visibilitychange` covers a hidden/backgrounded *tab*, but a
+            // Cachy window that stays the frontmost tab while the whole
+            // browser window loses OS focus (e.g. working in another
+            // application on a second monitor) never fires it — the same
+            // background-timer throttling still applies in that case in some
+            // browsers, so `focus`/`blur` feed the identical path.
+            window.addEventListener("focus", () => this.notifyVisibilityChange(true));
+            window.addEventListener("blur", () => this.notifyVisibilityChange(false));
+        }
+    }
+
+    /**
+     * Reacts to the tab's visibility changing. Exposed separately from the
+     * `document` listener above so tests can drive it without a real DOM
+     * event (BUG-0217).
+     *
+     * A background tab throttles `setInterval`/`setTimeout` down to roughly
+     * once a minute or suspends them outright, so the socket can die silently
+     * while nothing is watching. Coming back to a *long-hidden* tab forces a
+     * reconnect of whichever provider is active instead of waiting for the
+     * user to notice the offline banner and click "Reconnect" by hand.
+     */
+    public notifyVisibilityChange(visible: boolean) {
+        if (!visible) {
+            this.hiddenAt = Date.now();
+            return;
+        }
+
+        const hiddenAt = this.hiddenAt;
+        this.hiddenAt = null;
+        // Never hidden this session (or already handled) — nothing to do.
+        if (hiddenAt === null) return;
+
+        const hiddenForMs = Date.now() - hiddenAt;
+        if (hiddenForMs < HIDDEN_RECONNECT_THRESHOLD_MS) return;
+        if (!this.activeProvider) return;
+
+        logger.log(
+            "governance",
+            `[ConnectionManager] Tab refocused after ${Math.round(hiddenForMs / 1000)}s hidden; forcing reconnect of ${this.activeProvider}.`,
+        );
+        void this.switchProvider(this.activeProvider, { force: true });
     }
 
     public registerProvider(name: string, service: ManagedService) {
