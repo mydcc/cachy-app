@@ -665,6 +665,11 @@
       "fri": "Fr",
       "sat": "Sa",
       "sun": "So"
+    },
+    "paper": {
+      "badge": "Paper",
+      "tooltip": "Simulierte Ausführung — kein echtes Geld, und aus jeder Statistik ausgeschlossen.",
+      "showToggle": "Paper anzeigen ({count})"
     }
   },
   "marketOverview": {
@@ -1412,7 +1417,9 @@
       "autoTrading": "Automatisierter Handel (Beta)",
       "autoTradingDesc": "Aktivieren Sie automatisierte Handelsfunktionen (Demnächst).",
       "multiAccount": "Multi-Account-Verwaltung",
-      "multiAccountDesc": "Verwalten Sie mehrere Börsenkonten gleichzeitig (Demnächst)."
+      "multiAccountDesc": "Verwalten Sie mehrere Börsenkonten gleichzeitig (Demnächst).",
+      "journalPaperTrades": "Paper Trades im Journal speichern",
+      "journalPaperTradesDesc": "Simulierte Ausführungen werden gespeichert, damit du sie auswerten kannst. Sie sind immer mit PAPER markiert und zählen nie in deine Statistiken oder das Tagesverlust-Limit."
     },
     "profile": {
       "appearanceTitle": "Erscheinungsbild & Identität",

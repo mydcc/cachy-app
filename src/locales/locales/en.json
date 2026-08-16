@@ -665,6 +665,11 @@
       "fri": "Fri",
       "sat": "Sat",
       "sun": "Sun"
+    },
+    "paper": {
+      "badge": "Paper",
+      "tooltip": "Simulated fill — not real money, and excluded from every statistic.",
+      "showToggle": "Show paper ({count})"
     }
   },
   "marketOverview": {
@@ -1577,7 +1582,9 @@
       "autoTrading": "Auto Trading (Beta)",
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",
       "multiAccount": "Multi-Account Management",
-      "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
+      "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon).",
+      "journalPaperTrades": "Save paper trades to the journal",
+      "journalPaperTradesDesc": "Simulated fills are recorded so you can review them. They are always marked PAPER and never counted in your statistics or the daily loss limit."
     },
     "toggleMarketTiles": "Toggle Market Tiles",
     "toggleMarketSentiment": "Toggle Market Sentiment",

@@ -155,6 +155,24 @@
                         </select>
                     </div>
 
+                    <!-- Save paper trades to the journal -->
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.trading.journalPaperTrades")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_(
+                                    "settings.trading.journalPaperTradesDesc",
+                                )}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.journalPaperTrades}
+                        />
+                    </label>
+
                     <!-- Auto Update Input -->
                     <label class="toggle-card self-end">
                         <div class="flex flex-col">
