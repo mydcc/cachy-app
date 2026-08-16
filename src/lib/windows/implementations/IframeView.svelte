@@ -117,17 +117,16 @@
     }
     function cleanSnippet(text?: string): string {
         if (!text) return "";
-        return text
-            .replace(/<style[\s\S]*?<\/style>/gi, "")
-            .replace(/<script[\s\S]*?<\/script>/gi, "")
-            .replace(/<[^>]*>/g, "")
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">")
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/&nbsp;/g, " ")
-            .trim();
+        if (typeof window !== "undefined" && typeof DOMParser !== "undefined") {
+            try {
+                const doc = new DOMParser().parseFromString(text, "text/html");
+                doc.querySelectorAll("script, style, iframe").forEach((el) => el.remove());
+                return (doc.body.textContent || "").trim();
+            } catch {
+                // Fallthrough to trimmed raw text
+            }
+        }
+        return text.trim();
     }
 </script>
 

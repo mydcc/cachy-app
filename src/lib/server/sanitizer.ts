@@ -42,3 +42,22 @@ export function sanitizeChatInput(text: string): string {
         RETURN_DOM_FRAGMENT: false
     });
 }
+
+/**
+ * Sanitizes untrusted HTML input (such as RSS feeds or external article snippets) to plain text.
+ * - Strips all HTML tags using DOMPurify.
+ * - Removes script/style content completely.
+ */
+export function sanitizeHtmlToText(text: string): string {
+    if (!text) return "";
+
+    const cleaned = purify.sanitize(text, {
+        ALLOWED_TAGS: [],
+        KEEP_CONTENT: true,
+        WHOLE_DOCUMENT: false,
+        RETURN_DOM: false,
+        RETURN_DOM_FRAGMENT: false
+    });
+
+    return cleaned.trim();
+}
