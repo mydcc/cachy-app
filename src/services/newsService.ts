@@ -490,7 +490,11 @@ export const newsService = {
             logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
             throw new Error("NO_API_KEY");
           }
-          logger.error("ai", `Sentiment API failed (${response.status}): ${errText}`);
+          if (response.status === 503 || errText.includes("503") || errText.includes("high demand")) {
+            logger.warn("ai", `Sentiment API temporary overload (${response.status}): ${errText.slice(0, 150)}`);
+          } else {
+            logger.error("ai", `Sentiment API failed (${response.status}): ${errText}`);
+          }
           throw new Error("apiErrors.generic");
         }
 
@@ -502,7 +506,11 @@ export const newsService = {
             logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
             throw new Error("NO_API_KEY");
           }
-          logger.error("ai", `Sentiment API returned error: ${data.error}`);
+          if (String(data.error).includes("503") || String(data.error).includes("high demand")) {
+            logger.warn("ai", `Sentiment API temporary overload: ${String(data.error).slice(0, 150)}`);
+          } else {
+            logger.error("ai", `Sentiment API returned error: ${data.error}`);
+          }
           throw new Error("apiErrors.generic");
         }
 
@@ -526,12 +534,12 @@ export const newsService = {
         if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY") || msg.includes("NO_API_KEY")) {
           logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
         } else {
-          logger.error("ai", "Sentiment Analysis Failed", e);
+          logger.warn("ai", `Sentiment Analysis unavailable: ${msg}`);
         }
         return {
           score: 0,
           regime: "UNCERTAIN",
-          summary: "Failed to analyze sentiment.",
+          summary: "Sentiment temporarily unavailable.",
           keyFactors: [],
         };
       } finally {

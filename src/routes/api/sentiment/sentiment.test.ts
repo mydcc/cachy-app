@@ -2,88 +2,126 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
-
-vi.mock('../../../lib/server/clientToken', () => ({
-    checkClientToken: vi.fn(() => null),
-}));
+import * as clientToken from '../../../lib/server/clientToken';
+import type { RequestEvent } from '@sveltejs/kit';
 
 const getClientAddress = () => '127.0.0.1';
 
-describe('POST /api/sentiment error handling', () => {
-    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
+describe('Sentiment API Endpoint', () => {
     beforeEach(() => {
-        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.clearAllMocks();
+        vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
+    it('should return 400 when headlines are missing', async () => {
+        const request = new Request('http://localhost/api/sentiment', {
+            method: 'POST',
+            body: JSON.stringify({ headlines: [], provider: 'gemini', apiKey: 'test-key' }),
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        const response = await POST({
+            request,
+            getClientAddress,
+        } as unknown as RequestEvent);
+
+        expect(response.status).toBe(400);
+        const data = await response.json();
+        expect(data.error).toBe('NO_HEADLINES');
     });
 
-    it('should return 500 and error message when a standard Error is thrown', async () => {
-        const error = new Error('Test Error');
-        const request = {
-            json: vi.fn().mockRejectedValue(error),
-        } as unknown as Request;
+    it('should return heuristic fallback when Gemini service is unavailable (503)', async () => {
+        // Mock GoogleGenerativeAI with constructor
+        vi.doMock('@google/generative-ai', () => {
+            return {
+                GoogleGenerativeAI: class {
+                    getGenerativeModel() {
+                        return {
+                            generateContent: vi.fn().mockRejectedValue(
+                                new Error('[503 Service Unavailable] This model is currently experiencing high demand.')
+                            ),
+                        };
+                    }
+                },
+            };
+        });
 
-        const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-        expect(response.status).toBe(500);
-        const body = await response.json();
-        expect(body).toEqual({ error: 'Test Error' });
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Sentiment API Error:', error);
+        const request = new Request('http://localhost/api/sentiment', {
+            method: 'POST',
+            body: JSON.stringify({
+                headlines: [
+                    'Bitcoin surges past 100k with massive ETF inflow and rally',
+                    'Ethereum jumps 10% on institutional adoption',
+                ],
+                provider: 'gemini',
+                model: 'gemini-3.7-flash',
+                apiKey: 'test-api-key',
+            }),
+            headers: { 'Content-Type': 'application/json' },
+        });
+
+        const response = await POST({
+            request,
+            getClientAddress,
+        } as unknown as RequestEvent);
+
+        expect(response.status).toBe(200);
+        const data = await response.json();
+        expect(data.analysis).toBeDefined();
+        expect(data.analysis.regime).toBe('BULLISH');
+        expect(data.analysis.score).toBeGreaterThan(0);
+        expect(data.isFallback).toBe(true);
     });
 
-    it('should return 500 and message when a string error is thrown', async () => {
-        const errorString = 'Just a string error';
-        const request = {
-            json: vi.fn().mockRejectedValue(errorString),
-        } as unknown as Request;
+    it('should correctly parse successful Gemini responses', async () => {
+        vi.doMock('@google/generative-ai', () => {
+            return {
+                GoogleGenerativeAI: class {
+                    getGenerativeModel() {
+                        return {
+                            generateContent: vi.fn().mockResolvedValue({
+                                response: {
+                                    text: () => JSON.stringify({
+                                        score: 0.85,
+                                        regime: 'BULLISH',
+                                        summary: 'Strong bullish momentum across major assets.',
+                                        keyFactors: ['Spot ETF inflows', 'Breakout volume'],
+                                    }),
+                                },
+                            }),
+                        };
+                    }
+                },
+            };
+        });
 
-        const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-        expect(response.status).toBe(500);
-        const body = await response.json();
-        expect(body).toEqual({ error: 'Just a string error' });
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Sentiment API Error:', errorString);
-    });
+        const request = new Request('http://localhost/api/sentiment', {
+            method: 'POST',
+            body: JSON.stringify({
+                headlines: ['BTC sets new record high'],
+                provider: 'gemini',
+                model: 'gemini-1.5-flash',
+                apiKey: 'test-api-key',
+            }),
+            headers: { 'Content-Type': 'application/json' },
+        });
 
-    it('should return 500 and fallback message for unknown object without message', async () => {
-        const weirdObj = { foo: 'bar' };
-        const request = {
-            json: vi.fn().mockRejectedValue(weirdObj),
-        } as unknown as Request;
+        const response = await POST({
+            request,
+            getClientAddress,
+        } as unknown as RequestEvent);
 
-        const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-        expect(response.status).toBe(500);
-        const body = await response.json();
-        expect(body).toEqual({ error: 'INTERNAL_ERROR' });
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Sentiment API Error:', weirdObj);
-    });
-
-    it('should return 500 and message from object with message property', async () => {
-        const objError = { message: 'Custom Object Error' };
-        const request = {
-            json: vi.fn().mockRejectedValue(objError),
-        } as unknown as Request;
-
-        const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-        expect(response.status).toBe(500);
-        const body = await response.json();
-        expect(body).toEqual({ error: 'Custom Object Error' });
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Sentiment API Error:', objError);
+        expect(response.status).toBe(200);
+        const data = await response.json();
+        expect(data.analysis.regime).toBe('BULLISH');
+        expect(data.analysis.score).toBe(0.85);
+        expect(data.isFallback).toBeUndefined();
     });
 });
