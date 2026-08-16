@@ -19,11 +19,11 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { cryptoService } from "./cryptoService";
 
-const BACKUP_VERSION = 4; // Version 4: PBKDF2 600k Iterations + Strict Data Validation
-const APP_NAME = "R-Calculator";
+export const BACKUP_VERSION = 4; // Version 4: PBKDF2 600k Iterations + Strict Data Validation
+export const APP_NAME = "R-Calculator";
 
 // The structure for the data payload in the backup
-interface BackupData {
+export interface BackupData {
   settings: string | null; // Stored as a raw string from localStorage
   presets: string | null; // Stored as a raw string from localStorage
   journal: string | null; // Stored as a raw string from localStorage
@@ -33,7 +33,7 @@ interface BackupData {
 }
 
 // The overall structure of the backup file
-interface BackupFile {
+export interface BackupFile {
   backupVersion: number;
   timestamp: string;
   appName: string;
@@ -51,15 +51,15 @@ interface BackupFile {
  * @returns The raw string data or null if not found.
  */
 function getDataFromLocalStorage(key: string): string | null {
-  if (!browser) return null;
+  if (!browser && typeof localStorage === "undefined") return null;
   return localStorage.getItem(key);
 }
 
 /**
- * Creates a JSON backup file of the user's data and triggers a download.
+ * Generates the BackupFile structure containing validated data from localStorage.
  */
-export async function createBackup(password?: string) {
-  if (!browser) return;
+export async function getBackupPayload(password?: string): Promise<BackupFile | null> {
+  if (!browser && typeof localStorage === "undefined") return null;
 
   // Validation: Ensure we are not backing up garbage
   const getValidatedData = (key: string): string | null => {
@@ -72,7 +72,6 @@ export async function createBackup(password?: string) {
       console.error(
         `Backup Logic: Detected corrupt JSON for key ${key}. Skipping.`,
       );
-      // Optional: We could throw interrupt here, but skipping corrupt keys might be safer for user data retrieval
       return null;
     }
   };
@@ -84,7 +83,7 @@ export async function createBackup(password?: string) {
     tradeState: getValidatedData(
       CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
     ),
-    theme: getDataFromLocalStorage("theme"), // Theme is often just a string ("dark"|"light"), not JSON
+    theme: getDataFromLocalStorage("theme"),
     quizState: getValidatedData(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY),
   };
 
@@ -106,6 +105,18 @@ export async function createBackup(password?: string) {
     backupFile.data = rawData;
     backupFile.isEncrypted = false;
   }
+
+  return backupFile;
+}
+
+/**
+ * Creates a JSON backup file of the user's data and triggers a download.
+ */
+export async function createBackup(password?: string) {
+  if (!browser) return;
+
+  const backupFile = await getBackupPayload(password);
+  if (!backupFile) return;
 
   const jsonString = JSON.stringify(backupFile, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
