@@ -4,7 +4,7 @@
 
 103 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 1 · ✅ done 58
+Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 1 · ✅ done 59
 
 ---
 
@@ -35,7 +35,7 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 1 · ✅ done 58
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | execution |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | execution |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | execution |
-| [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | execution |
+| [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | execution |
 | [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | ui |
 
 ### M2
@@ -198,7 +198,7 @@ Counts by status: 💡 idea 16 · 📋 specced 28 · 🟢 ready 1 · ✅ done 58
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
-| [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
+| [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |

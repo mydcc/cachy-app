@@ -28,6 +28,9 @@ export const CONSTANTS = {
   // FEAT-0012. Class A: simulated balances and positions are the user's
   // trading behaviour and stay on this device, like the journal.
   LOCAL_STORAGE_PAPER_KEY: "cachy_paper_trading",
+  // FEAT-0015. Class A, and credentials-adjacent even after redaction — it
+  // records what was sent to an exchange and when. Never uploaded.
+  LOCAL_STORAGE_ORDER_AUDIT_KEY: "cachy_order_audit",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
   LOCAL_STORAGE_QUIZ_KEY: "cachy_quiz_state",
   LOCAL_STORAGE_QUIZ_CATEGORY_KEY: "cachy_quiz_category",

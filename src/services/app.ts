@@ -45,6 +45,7 @@ import { logger } from "./logger";
 import { setupRealtimeUpdatesEffect } from "./appEffects.svelte";
 import { rmsService } from "./rmsService";
 import { paperTradingService } from "./paperTradingService";
+import { orderAuditService } from "./orderAuditService";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -85,6 +86,9 @@ export const app = {
       // FEAT-0012: points the simulator at the live feed and mirrors the
       // paper book into the shared stores. No-op while paper mode is off.
       paperTradingService.install();
+      // FEAT-0015: attaches the audit recorder to the gate. Until it runs
+      // nothing is recorded, so this is not optional wiring either.
+      orderAuditService.install();
       app.populatePresetLoader();
       app.setupMarketSync();
       tradeCalculator.init(() => app.calculateAndDisplay());

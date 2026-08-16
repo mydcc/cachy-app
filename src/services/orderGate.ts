@@ -234,6 +234,43 @@ export interface OrderIntent {
 // FEAT-0013 seam
 // ---------------------------------------------------------------------------
 
+/**
+ * One submission attempt, as it happened — the payload, the verdict, the
+ * outcome. FEAT-0015 records these; the gate does not care what happens to
+ * them, and passes the payload through unredacted because redaction is the
+ * recorder's job and doing it here would mean the gate handed the transport
+ * a payload it had modified.
+ */
+export interface OrderAttempt {
+    at: number;
+    completedAt: number;
+    outcome: "sent" | "refused" | "failed";
+    endpoint: string;
+    action: string;
+    kind: OrderIntentKind;
+    provider: string;
+    accountFingerprint: string;
+    paperMode: boolean;
+    payload: Record<string, unknown>;
+    checked: string[];
+    refusal?: OrderRefusal;
+    response?: unknown;
+    error?: { name: string; message: string };
+}
+
+export type AuditRecorder = (attempt: OrderAttempt) => void;
+
+let auditRecorder: AuditRecorder | null = null;
+
+/**
+ * FEAT-0015 attaches here. Every attempt that reaches `submit` is reported,
+ * refusals included — those are precisely the ones no console would have
+ * shown, because nothing was sent.
+ */
+export function registerAuditRecorder(fn: AuditRecorder | null): void {
+    auditRecorder = fn;
+}
+
 export type RiskLimitCheck = (intent: OrderIntent) => OrderRefusal | null;
 
 /**
@@ -712,8 +749,18 @@ class OrderGate {
         intent: OrderIntent,
         transport: (pass: GatePass) => Promise<T>,
     ): Promise<T> {
+        const at = Date.now();
+        const action = mutatingActionOf(intent.payload) ?? "";
         const verdict = this.verify(intent);
+
         if (!verdict.approved && verdict.refusal) {
+            this.audit(intent, {
+                at,
+                action,
+                outcome: "refused",
+                checked: verdict.checked,
+                refusal: verdict.refusal,
+            });
             throw new OrderRefusedError(verdict.refusal);
         }
 
@@ -722,12 +769,63 @@ class OrderGate {
             provider: intent.displayed.provider,
             accountFingerprint: intent.displayed.accountFingerprint,
             endpoint: intent.endpoint,
-            action: mutatingActionOf(intent.payload) ?? "",
+            action,
             symbol: typeof intent.payload.symbol === "string" ? intent.payload.symbol : undefined,
             paperMode: intent.displayed.paperMode === true,
         });
 
-        return await transport(pass);
+        try {
+            const response = await transport(pass);
+            this.audit(intent, {
+                at,
+                action,
+                outcome: "sent",
+                checked: verdict.checked,
+                response,
+            });
+            return response;
+        } catch (error) {
+            // A transport that threw is the most interesting case of all —
+            // the order may or may not have reached the exchange.
+            this.audit(intent, {
+                at,
+                action,
+                outcome: "failed",
+                checked: verdict.checked,
+                error: {
+                    name: error instanceof Error ? error.name : "Error",
+                    message: error instanceof Error ? error.message : String(error),
+                },
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Reports an attempt to the recorder. Never throws: an audit trail that
+     * can refuse an order is a second gate, and a broken recorder must not
+     * be able to stop a close.
+     */
+    private audit(
+        intent: OrderIntent,
+        part: Pick<OrderAttempt, "at" | "action" | "outcome" | "checked"> &
+            Partial<Pick<OrderAttempt, "refusal" | "response" | "error">>,
+    ): void {
+        if (!auditRecorder) return;
+        try {
+            auditRecorder({
+                ...part,
+                completedAt: Date.now(),
+                endpoint: intent.endpoint,
+                kind: intent.kind,
+                provider: intent.displayed.provider,
+                accountFingerprint: intent.displayed.accountFingerprint,
+                paperMode: intent.displayed.paperMode === true,
+                payload: intent.payload,
+            });
+        } catch {
+            // Deliberately swallowed. See above.
+        }
     }
 }
 
