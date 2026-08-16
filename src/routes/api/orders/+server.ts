@@ -128,7 +128,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         const orderPayload: BitunixOrderPayload = {
           symbol: payload.symbol,
           side: payload.side,
-          type: payload.orderType, // Correct field from schema
+          orderType: payload.orderType, // Bitunix docs/bitunix-api/07_trade.md:584
           qty: payload.qty,
           price: payload.price,
           reduceOnly: Boolean(payload.reduceOnly),
@@ -162,7 +162,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         const closeOrder: BitunixOrderPayload = {
           symbol: payload.symbol,
           side: payload.side,
-          type: "MARKET",
+          orderType: "MARKET",
           qty: safeAmount,
           reduceOnly: true,
         };
