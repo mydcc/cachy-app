@@ -120,6 +120,7 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
   // COOP: same-origin-allow-popups keeps TradingView popup compatibility
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  response.headers.set("Cross-Origin-Embedder-Policy", "credentialless");
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
