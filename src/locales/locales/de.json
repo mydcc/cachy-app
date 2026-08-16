@@ -67,7 +67,21 @@
     "refresh": "Aktualisieren",
     "launchApp": "App Starten",
     "academy": "Akademie",
-    "deepwiki": "DeepWiki"
+    "deepwiki": "DeepWiki",
+    "yes": "Ja",
+    "no": "Nein",
+    "autoBackup": {
+      "restoreTitle": "Lokale Daten wiederherstellen",
+      "restoreSubtitle": "Ein automatischer Sicherheits-Snapshot wurde auf diesem Gerät gefunden.",
+      "restoreDescription": "Es sieht so aus, als ob dein Browserspeicher kürzlich geleert oder zurückgesetzt wurde. Wir haben ein automatisches lokales Backup (OPFS) gefunden, das dein Trade-Journal, deine Presets und Einstellungen wiederherstellen kann.",
+      "snapshotDate": "Snapshot-Datum",
+      "journalTrades": "Journal-Trades",
+      "presets": "Presets",
+      "settingsSaved": "Einstellungen & Status",
+      "dismissButton": "Neu anfangen / Verwerfen",
+      "restoreButton": "Meine Daten wiederherstellen",
+      "restoring": "Wiederherstellen..."
+    }
   },
   "sidePanel": {
     "globalChat": "Globaler Chat",
@@ -1282,6 +1296,13 @@
       "reloadApp": "App neu laden",
       "cacheCleared": "Cache wurde geleert.",
       "dataMaintenance": "Daten & Backup",
+      "autoBackupTitle": "Automatisches OPFS-Backup",
+      "active": "Aktiv",
+      "unsupported": "Nicht unterstützt",
+      "autoBackupDesc": "Sichert alle lokalen Daten (Klasse A) geräuschlos im geschützten Dateisystem des Browsers.",
+      "lastSnapshot": "Letzter Snapshot",
+      "snapshotNow": "Jetzt sichern",
+      "snapshotCreated": "Sicherheits-Snapshot erstellt.",
       "backup": "Backup erstellen",
       "backupDesc": "Sichere deine Einstellungen & Daten als Datei.",
       "restore": "Backup laden",

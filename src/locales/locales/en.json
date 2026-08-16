@@ -67,7 +67,21 @@
     "refresh": "Refresh",
     "launchApp": "Launch App",
     "academy": "Academy",
-    "deepwiki": "DeepWiki"
+    "deepwiki": "DeepWiki",
+    "yes": "Yes",
+    "no": "No",
+    "autoBackup": {
+      "restoreTitle": "Recover Local Data",
+      "restoreSubtitle": "An automatic safety snapshot was found on this device.",
+      "restoreDescription": "It looks like your browser storage was recently cleared or reset. We found an automatic local backup (OPFS) that can restore your trade journal, presets, and settings.",
+      "snapshotDate": "Snapshot Date",
+      "journalTrades": "Journal Trades",
+      "presets": "Presets",
+      "settingsSaved": "Settings & State",
+      "dismissButton": "Start Fresh / Ignore",
+      "restoreButton": "Restore My Data",
+      "restoring": "Restoring..."
+    }
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -1483,6 +1497,13 @@
       "utilities": "Media Storage"
     },
     "system": {
+      "autoBackupTitle": "Automatic OPFS Backup",
+      "active": "Active",
+      "unsupported": "Not supported",
+      "autoBackupDesc": "Silently backs up all local data (Class A) to the browser's protected file system.",
+      "lastSnapshot": "Last snapshot",
+      "snapshotNow": "Snapshot Now",
+      "snapshotCreated": "Safety snapshot created.",
       "backup": "Create Backup",
       "backupDesc": "Backup your settings & data as a file.",
       "cacheCleared": "Cache cleared.",
