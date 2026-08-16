@@ -230,7 +230,6 @@
             step: 100,
             min: 0,
             rightOffset: "40px",
-            showSpinButtons: false,
           }}
           bind:value={localAccountSize}
           onfocus={() => (isAccountSizeFocused = true)}
@@ -278,7 +277,6 @@
             min: 0,
             max: 100,
             rightOffset: "40px",
-            showSpinButtons: false,
           }}
           bind:value={localRiskPercentage}
           onfocus={() => (isRiskPercentageFocused = true)}
@@ -310,7 +308,6 @@
             step: 10,
             min: 0,
             rightOffset: "40px",
-            showSpinButtons: false,
           }}
           bind:value={localRiskAmount}
           onfocus={() => (isRiskAmountFocused = true)}

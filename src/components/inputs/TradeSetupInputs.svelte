@@ -563,7 +563,6 @@
           step: priceStep,
           min: 0,
           rightOffset: "40px",
-          showSpinButtons: false,
         }}
         bind:value={localEntryPrice}
         onfocus={() => (isEntryPriceFocused = true)}
@@ -766,7 +765,6 @@
               use:enhancedInput={{
                 step: 0.1,
                 min: 0,
-                showSpinButtons: "hover",
               }}
               bind:value={localAtrValue}
               onfocus={() => (isAtrValueFocused = true)}
@@ -786,7 +784,6 @@
               use:enhancedInput={{
                 step: 0.1,
                 min: 0.1,
-                showSpinButtons: "hover",
               }}
               bind:value={localAtrMultiplier}
               onfocus={() => (isAtrMultiplierFocused = true)}
@@ -849,7 +846,6 @@
                   step: 0.1,
                   min: 0,
                   rightOffset: "40px",
-                  showSpinButtons: false,
                 }}
                 bind:value={localAtrValue}
                 onfocus={() => (isAtrValueFocused = true)}
