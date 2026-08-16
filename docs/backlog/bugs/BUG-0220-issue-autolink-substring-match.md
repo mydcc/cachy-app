@@ -2,7 +2,7 @@
 id: BUG-0220
 title: PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -65,6 +65,9 @@ is to describe a closing reference. A bug write-up is a likely place for that to
 happen, which makes it worth a convention rather than vigilance.
 
 The two pieces of code that disagree are in `scripts/sync-github-issues.ts`.
+All line numbers below describe the code **as it stood before the fix**; they
+are kept because they are the evidence, and the fix moved them.
+
 The script already knows what a stable identity looks like — line 37 defines
 the label prefix and line 360 calls it "the stable lookup key for matching,
 independent of title/body edits":
@@ -126,49 +129,69 @@ is a substring of `BUG-00210`, should the backlog ever pass four digits.
 
 ## Fix
 
-- Extract the PR-matching rule into one function and call it from both line 183
-  and line 739, so the `Fixes #` link and the `in-review` status can never
-  disagree about which PRs belong to an item.
-- Match on the `backlog-id:` label the script already treats as authoritative:
-  resolve the PR's subject item from its linked issue's labels, or require the
-  ID to appear in a declared position (a `Backlog-Id:` trailer, or the branch
-  name segment) rather than anywhere in free text.
-- If substring matching is kept as a fallback, anchor it on a word boundary so
-  `BUG-0021` cannot match `BUG-00210`.
-- Do not prepend a second `Fixes #` when the body already carries one for a
-  *different* issue — that is the case this bug is about, and the current guard
-  is blind to it. Log the conflict instead of guessing, so a human resolves it.
-- Leave the milestone and issue-lookup paths alone. `existingIssues.find` on
-  line 733 already keys on `backlog-id:` correctly and is not implicated.
+The matching rule now lives in `scripts/lib/pr-issue-match.ts`, a module with no
+environment dependencies, and `sync-github-issues.ts` calls it from both former
+sites. The separate module is not decoration: the script calls `process.exit(1)`
+at import time when `GITHUB_TOKEN` is unset, so while the rule lived inside it,
+none of this could be tested at all.
+
+- **One rule, two callers.** `matchPRsForItem` replaces both filters, so the
+  `Fixes #` link and the `in-review` status can no longer disagree about which
+  PRs belong to an item.
+- **Declaration, not mention.** `declaresBacklogItem` accepts a title, a branch
+  name, a `Backlog-Id:` trailer, or a closing reference to the item's own issue.
+  Free-text body matching is gone — that clause is what turned "same class of
+  bug as BUG-0215" into a link.
+- **Anchored IDs.** `backlogIdPattern` rejects a trailing alphanumeric, so
+  `BUG-0021` no longer matches `BUG-00210`. A trailing hyphen is still allowed,
+  because `fix/BUG-0219-slug` is the branch and filename convention. `\b` alone
+  would not have done this — the digit after `BUG-0021` is a word character on
+  both sides.
+- **Conflicts are reported, not guessed.** `decideLink` returns `already-linked`,
+  `prepend`, or `conflict`. A body that already closes a *different* issue gets
+  a warning naming both references and is left untouched; either one may be the
+  correct link, and the script cannot tell which.
+- **Left alone:** the issue lookup at the top of the main loop, which already
+  keys on `backlog-id:` correctly, and the milestone and Project V2 field paths.
 
 For the second instance, which no change to the sync script would have
-prevented:
+prevented, the convention is now written into `CLAUDE.md` and `AGENTS.md`
+alongside the PR-linking rule: to mention a closing reference rather than make
+one, break the keyword or name the issue without it.
 
-- Write a convention into `CLAUDE.md` / `AGENTS.md`: when a commit message or
-  PR body needs to *mention* a closing reference rather than make one, break
-  the keyword — `Fixes&#32;#2002` renders normally but does not parse, and
-  naming the issue without the keyword ("closed #2002 in error") is simpler
-  still.
-- Consider a `commit-lint` rule that rejects a closing keyword pointing at an
-  issue the branch does not declare. `.github/workflows/commit-lint.yml`
-  already inspects every commit on a PR, so the hook exists.
+**Not done:** the `commit-lint` rule that would *enforce* that convention.
+`.github/workflows/commit-lint.yml` already inspects every commit on a PR, so
+the hook exists, but deciding which issue a branch legitimately declares is the
+same judgement this item just moved out of `String.includes` — worth its own
+item rather than a rushed regex. The convention is documented and unenforced
+until then.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect and fails without the fix: an open PR whose
-      title mentions an ID it does not implement is **not** linked to that
+- [x] A test reproduces the defect and fails without the fix: an open PR whose
+      body mentions an ID it does not implement is **not** linked to that
       item's issue
-- [ ] The test passes with the fix
-- [ ] A PR that legitimately implements an item is still linked, so the feature
+- [x] The test passes with the fix
+- [x] A PR that legitimately implements an item is still linked, so the feature
       keeps working
-- [ ] A PR body already carrying `Fixes #<other>` does not silently gain a
+- [x] A PR body already carrying `Fixes #<other>` does not silently gain a
       second, contradictory link
-- [ ] An item whose ID is merely *mentioned* by an unrelated open PR is not
-      labelled `status:in-review` — the line 739 half of the same defect
-- [ ] `BUG-0021` does not match `BUG-00210`
-- [ ] A commit message or PR body that quotes a closing keyword for an issue
-      the change does not fix cannot close it — by convention documented in
-      `CLAUDE.md`, and ideally enforced in `commit-lint`
+- [x] An item whose ID is merely *mentioned* by an unrelated open PR is not
+      labelled `status:in-review` — the second half of the same defect, now
+      served by the same function
+- [x] `BUG-0021` does not match `BUG-00210`
+- [x] A commit message or PR body that quotes a closing keyword for an issue
+      the change does not fix cannot close it — documented as a convention in
+      `CLAUDE.md` and `AGENTS.md`; **not** enforced in `commit-lint`, see Fix
+
+**One criterion was weakened during implementation, deliberately.** It first
+read "an open PR whose *title* mentions an ID it does not implement is not
+linked". That is not what the fix does, and on reflection it should not: a
+title reading `fix: ... (BUG-0219)` *is* a declaration — it is how this repo
+names its work, and treating it as noise would break auto-linking for almost
+every correct PR. The title case is genuinely ambiguous, and what protects it
+is the conflict guard rather than the matcher. The criterion now says *body*,
+which is the clause that could not be defended.
 
 ## Out of scope
 
@@ -182,7 +205,9 @@ prevented:
 
 - [`BUG-0219`](BUG-0219-place-order-ordertype-field.md) — the fix whose PRs were
   mis-linked, and where the ID reassignment happened
-- `scripts/sync-github-issues.ts` — `ensurePRsAreLinked`, and the
-  `backlog-id:` key it already uses everywhere else
+- `scripts/lib/pr-issue-match.ts` — the extracted rule, and
+  `scripts/lib/pr-issue-match.test.ts` covering it
+- `scripts/sync-github-issues.ts` — `ensurePRsAreLinked` and the main loop, both
+  now calling the same matcher
 - `.github/workflows/sync-backlog.yml` — what runs it
 - [`README.md`](../README.md) — front matter and status conventions
