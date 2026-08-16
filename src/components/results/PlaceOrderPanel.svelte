@@ -48,6 +48,8 @@
     orderPlacementService,
     type PlacementResult,
   } from "../../services/orderPlacementService";
+  import { tradeService } from "../../services/tradeService";
+  import { translateRefusal, MAX_ACCOUNT_STATE_AGE_MS } from "../../services/orderGate";
   import type { TranslationKey } from "../../locales/schema";
 
   const exchange = $derived(settingsState.apiProvider);
@@ -70,6 +72,27 @@
 
   const typeLabel = (t: OrderEntryType) =>
     $_(`orderEntry.type.${t}` as TranslationKey);
+
+  /**
+   * How an outcome reads to the trader.
+   *
+   * A gate refusal has to go through `translateRefusal`: its messages name the
+   * field and the numbers that disagreed, so translating the bare key leaves
+   * literal `{field}` and `{age}` on screen.
+   */
+  function errorText(r: PlacementResult): string {
+    if (r.refusal) {
+      return translateRefusal(r.refusal, (key, options) =>
+        $_(key as TranslationKey, options),
+      );
+    }
+    return $_((r.errorKey ?? "orderEntry.errors.entryRejected") as TranslationKey);
+  }
+
+  function isAccountStateStale(): boolean {
+    const at = tradeState.remoteAccountStateAt;
+    return at === undefined || Date.now() - at > MAX_ACCOUNT_STATE_AGE_MS;
+  }
 
   async function submit() {
     if (!ready || !data || submitting) return;
@@ -99,6 +122,16 @@
     submitting = true;
     result = null;
     try {
+      // The gate refuses an entry whose leverage/margin-mode read is older
+      // than its limit, and nothing refreshes that read except a symbol
+      // change — so a panel left open for a minute refuses every order and
+      // tells the trader to refresh something they have no control over.
+      // Re-read it here instead. A failed read leaves the old timestamp to
+      // age out, so the gate still refuses rather than being talked round.
+      if (!isPaper && isAccountStateStale()) {
+        await tradeService.fetchLeverageMarginMode(data.symbol);
+      }
+
       result = await orderPlacementService.placeEntryGroup({
         exchange,
         symbol: data.symbol,
@@ -124,11 +157,7 @@
         // the next submission.
         toastService.error($_("orderEntry.errors.unprotected"));
       } else if (!result.entryPlaced) {
-        toastService.error(
-          result.errorKey
-            ? $_(result.errorKey as TranslationKey)
-            : $_("orderEntry.errors.entryRejected"),
-        );
+        toastService.error(errorText(result));
       } else {
         toastService.success($_("orderEntry.placed"));
       }
@@ -222,10 +251,10 @@
       </div>
     {:else}
       <div class="outcome danger" role="alert">
-        {result.errorKey
-          ? $_(result.errorKey as TranslationKey)
-          : $_("orderEntry.errors.entryRejected")}
-        {#if result.errorDetail}
+        {errorText(result)}
+        <!-- A refusal's `errorDetail` is the gate's English developer string,
+             which only repeats what the translated message already said. -->
+        {#if result.errorDetail && !result.refusal}
           <span class="detail">{result.errorDetail}</span>
         {/if}
       </div>
