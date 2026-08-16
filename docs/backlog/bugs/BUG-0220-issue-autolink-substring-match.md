@@ -74,14 +74,23 @@ instance was wrong for the same reason: it advised naming the issue "without
 the keyword" and gave `"closed #1770 in error"` as the example. Past tense
 reads as description and parses as an instruction.
 
-Two things follow, and they are why this item is worth more than its P2:
+### Fourth instance: correcting the third
+
+The corrected pull request description quoted the offending phrase in order to
+explain the third instance — and re-linked the same issue a second time. Caught
+again through the issue's linked-PR list, and rewritten with the escape form.
+
+Three things follow, and they are why this item is worth more than its P2:
 
 - The hand-rolled verification scan used `(Fixes|Closes|Resolves) #\d+` and so
-  passed cleanly over `closed #2002`. A check narrower than the thing it
-  checks is worse than no check, because it is believed.
-- Three instances in one day, from three different mechanisms, by an author
-  who had read the previous two. That is the argument for the `commit-lint`
-  rule under "Not done" rather than for more care.
+  read straight past the past tense. A check narrower than the thing it checks
+  is worse than no check, because it is believed.
+- Writing about this defect is itself the most reliable way to trigger it.
+  Instances two, three and four were all documentation of an earlier instance.
+- Four occurrences in one day, by an author who had read each previous one.
+  That is an argument for enforcement, not for more care — and specifically for
+  enforcement that rejects the keyword outright rather than trying to judge
+  whether a given use was meant.
 
 So the hazard is broader than the sync script: **any** text that reaches a
 commit message or PR body can close an issue, including text whose only purpose
@@ -210,6 +219,18 @@ Two details it gets right that a quick regex would not:
 
 Escapes pass: `Fixes #<!-- -->1770` does not match, because the keyword is not
 directly followed by a reference.
+
+**What the enforcement does not cover: pull request descriptions.** Instances
+three and four both happened there, and GitHub offers no pre-submit hook for a
+description — by the time a workflow could run, the link already exists. The
+escape form and the corrected convention are all that guard that surface, and
+the fourth instance is evidence that a convention alone is not sufficient.
+
+A follow-up worth its own item: a workflow step on `pull_request: [edited]`
+that fails when the description carries a closing reference to an issue other
+than the one the branch declares. It cannot prevent the link, only surface it
+before merge — which is exactly what the linked-PR list did by hand both times,
+and the reason both were caught.
 
 ## Acceptance criteria
 
