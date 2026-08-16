@@ -40,5 +40,5 @@ Implement automated, ephemeral PR preview deployments (e.g. via Cloudflare Pages
 
 ## Links
 
-- Deployment configuration: [`DEPLOYMENT.md`](../../DEPLOYMENT.md)
-- GitHub Actions workflows: [`.github/workflows/`](../../.github/workflows/)
+- Deployment configuration: [`DEPLOYMENT.md`](../../../DEPLOYMENT.md)
+- Backlog documentation: [`../README.md`](../README.md)
