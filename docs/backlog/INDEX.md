@@ -2,9 +2,9 @@
 
 # Backlog index
 
-108 items. How to read and add them: [README.md](README.md).
+109 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 68
+Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 69
 
 ---
 
@@ -73,6 +73,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 68
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | trade-panel |
 | [BUG-0061](bugs/BUG-0061-order-tooltip-metadata-dropped.md) | Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns | P2 | ✅ done | trade-panel |
 | [BUG-0066](bugs/BUG-0066-position-tooltip-mislabeled-pnl-row.md) | Position tooltip labels the live unrealized PnL row "Realized PnL | P2 | ✅ done | trade-panel |
+| [BUG-0216](bugs/BUG-0216-i18n-interpolation-values.md) | Three dialogs render raw {placeholder} because $_ was called without the values wrapper | P2 | ✅ done | ui |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | trade-panel |
 | [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | execution |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | 📋 specced | exchange |
@@ -241,6 +242,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 68
 | [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | none | community | none | none | — |
+| [BUG-0216](bugs/BUG-0216-i18n-interpolation-values.md) | Three dialogs render raw {placeholder} because $_ was called without the values wrapper | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -290,4 +292,4 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 68
 
 ---
 
-Next free number: **0216**
+Next free number: **0217**
