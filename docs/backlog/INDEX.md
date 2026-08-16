@@ -2,9 +2,9 @@
 
 # Backlog index
 
-105 items. How to read and add them: [README.md](README.md).
+106 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 2 · ✅ done 61
+Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 6 · ✅ done 61
 
 ---
 
@@ -135,7 +135,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 2 · ✅ done 61
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | core |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | services |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | ui |
-| [BUG-0212](bugs/BUG-0212-market-overview-loop.md) | Market Overview modal and favorite tiles reload in a loop | P1 | 📋 specced | ui |
+| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | ui |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -201,7 +201,7 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 2 · ✅ done 61
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) |
-| [BUG-0212](bugs/BUG-0212-market-overview-loop.md) | Market Overview modal and favorite tiles reload in a loop | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -286,4 +286,4 @@ Counts by status: 💡 idea 16 · 📋 specced 27 · 🟢 ready 2 · ✅ done 61
 
 ---
 
-Next free number: **0213**
+Next free number: **0214**
