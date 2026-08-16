@@ -235,6 +235,74 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- News Open Behavior -->
+                    <div class="toggle-card flex-col items-start gap-2 col-span-1 md:col-span-2">
+                        <div class="flex justify-between items-center w-full">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">{$_("settings.newsOpenBehavior")}</span>
+                                <span class="text-xs text-[var(--text-secondary)]">{$_("settings.newsOpenBehaviorDesc")}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 w-full mt-2">
+                            <button
+                                type="button"
+                                class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
+                                class:border-[var(--accent-color)]={settingsState.newsOpenBehavior === "smart"}
+                                class:bg-[var(--bg-tertiary)]={settingsState.newsOpenBehavior === "smart"}
+                                class:border-[var(--border-color)]={settingsState.newsOpenBehavior !== "smart"}
+                                class:bg-[var(--bg-secondary)]={settingsState.newsOpenBehavior !== "smart"}
+                                onclick={() => settingsState.newsOpenBehavior = "smart"}
+                            >
+                                <span class="font-medium text-[var(--text-primary)]">{$_("settings.newsOpenBehaviorSmart")}</span>
+                                {#if settingsState.newsOpenBehavior === "smart"}
+                                    <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
+                                {/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
+                                class:border-[var(--accent-color)]={settingsState.newsOpenBehavior === "reader"}
+                                class:bg-[var(--bg-tertiary)]={settingsState.newsOpenBehavior === "reader"}
+                                class:border-[var(--border-color)]={settingsState.newsOpenBehavior !== "reader"}
+                                class:bg-[var(--bg-secondary)]={settingsState.newsOpenBehavior !== "reader"}
+                                onclick={() => settingsState.newsOpenBehavior = "reader"}
+                            >
+                                <span class="font-medium text-[var(--text-primary)]">{$_("settings.newsOpenBehaviorReader")}</span>
+                                {#if settingsState.newsOpenBehavior === "reader"}
+                                    <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
+                                {/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
+                                class:border-[var(--accent-color)]={settingsState.newsOpenBehavior === "new_tab"}
+                                class:bg-[var(--bg-tertiary)]={settingsState.newsOpenBehavior === "new_tab"}
+                                class:border-[var(--border-color)]={settingsState.newsOpenBehavior !== "new_tab"}
+                                class:bg-[var(--bg-secondary)]={settingsState.newsOpenBehavior !== "new_tab"}
+                                onclick={() => settingsState.newsOpenBehavior = "new_tab"}
+                            >
+                                <span class="font-medium text-[var(--text-primary)]">{$_("settings.newsOpenBehaviorNewTab")}</span>
+                                {#if settingsState.newsOpenBehavior === "new_tab"}
+                                    <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
+                                {/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
+                                class:border-[var(--accent-color)]={settingsState.newsOpenBehavior === "window"}
+                                class:bg-[var(--bg-tertiary)]={settingsState.newsOpenBehavior === "window"}
+                                class:border-[var(--border-color)]={settingsState.newsOpenBehavior !== "window"}
+                                class:bg-[var(--bg-secondary)]={settingsState.newsOpenBehavior !== "window"}
+                                onclick={() => settingsState.newsOpenBehavior = "window"}
+                            >
+                                <span class="font-medium text-[var(--text-primary)]">{$_("settings.newsOpenBehaviorWindow")}</span>
+                                {#if settingsState.newsOpenBehavior === "window"}
+                                    <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
+                                {/if}
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Context Toggles -->
                     <label class="toggle-card">
                         <div class="flex flex-col">

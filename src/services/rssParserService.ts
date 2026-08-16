@@ -16,6 +16,7 @@ interface RawRssItem {
   url?: string;
   source: string;
   published_at: string;
+  description?: string;
 }
 
 export const rssParserService = {
@@ -47,6 +48,7 @@ export const rssParserService = {
         url: item.url || input, // Fallback to feed URL if item URL is missing
         source: item.source,
         published_at: item.published_at,
+        description: item.description,
         currencies: [],
       }));
     } catch (error) {

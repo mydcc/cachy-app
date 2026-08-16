@@ -2314,7 +2314,7 @@ input[type="number"] {
 
 .custom-spin-buttons {
   position: absolute;
-  right: 4px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -2324,7 +2324,11 @@ input[type="number"] {
   gap: 1px;
   pointer-events: none;
   z-index: 10;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.15s ease, right 0.15s ease;
+}
+
+.custom-spin-buttons.with-action {
+  right: 28px;
 }
 
 .custom-spin-buttons.hover-only {
@@ -2344,7 +2348,7 @@ input[type="number"] {
   justify-content: center;
   color: var(--text-secondary);
   opacity: 0.7;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   padding: 0;
   height: 10px;
   width: 12px;
@@ -2353,6 +2357,7 @@ input[type="number"] {
 .spin-btn:hover {
   color: var(--accent-color);
   opacity: 1;
+  transform: scale(1.15);
 }
 
 .spin-btn svg {

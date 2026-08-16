@@ -159,7 +159,7 @@
             min: 1,
             max: 125,
             noDecimals: true,
-            rightOffset: "24px",
+            hasAction: remoteLev !== undefined,
           }}
           value={format(leverage)}
           oninput={handleLeverageInput}
@@ -174,7 +174,7 @@
             class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
             style="background-color: {isLeverageSynced
               ? 'var(--success-color)'
-              : 'var(--warning-color)'}; margin-right: 14px;"
+              : 'var(--warning-color)'};"
             data-track-id="btn-sync-leverage"
             title={isLeverageSynced
               ? $_("dashboard.generalInputs.syncedWithApi")
@@ -200,7 +200,7 @@
           use:enhancedInput={{
             step: 0.01,
             min: 0,
-            rightOffset: "24px",
+            hasAction: targetRemoteFee !== undefined,
           }}
           value={format(fees)}
           oninput={handleFeesInput}
@@ -215,7 +215,7 @@
             class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
             style="background-color: {isFeeSynced
               ? 'var(--success-color)'
-              : 'var(--warning-color)'}; margin-right: 14px;"
+              : 'var(--warning-color)'};"
             data-track-id="btn-sync-fees"
             title={isFeeSynced
               ? $_("dashboard.generalInputs.syncedWithApi")

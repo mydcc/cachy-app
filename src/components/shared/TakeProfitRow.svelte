@@ -172,7 +172,7 @@
         name="tpPrice-{index}"
         type="text"
         use:numberInput={{ maxDecimalPlaces: 4 }}
-        use:enhancedInput={{ step: priceStep, min: 0, rightOffset: "2px" }}
+        use:enhancedInput={{ step: priceStep, min: 0 }}
         value={format(price)}
         oninput={handlePriceInput}
         class="tp-price input-field w-full px-2 py-1.5 rounded-md text-sm"
@@ -197,7 +197,6 @@
           min: 0,
           max: 100,
           noDecimals: true,
-          rightOffset: "2px",
         }}
         value={format(percent)}
         oninput={handlePercentInput}
