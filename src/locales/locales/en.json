@@ -48,10 +48,18 @@
       "marketBreadth": "Market Breadth (4h)",
       "topOpportunity": "Top Opportunity",
       "status": "Status",
+      "live": "Live",
+      "scanning": "Scanning...",
+      "noFavorites": "No favorites selected. Add symbols to your favorites list.",
+      "waitingAnalysis": "Waiting for analysis data...",
       "trendMatrix": {
         "trend": "Trend (15m - 1h - 4h - 1d)",
         "score": "Score",
-        "rsi": "RSI (1h)"
+        "rsi": "RSI (1h)",
+        "trend15m": "15m Trend",
+        "trend1h": "1h Trend",
+        "trend4h": "4h Trend (Major)",
+        "trend1d": "1d Trend"
       }
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
