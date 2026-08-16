@@ -2,7 +2,7 @@
 id: BUG-0206
 title: Quiz flashcard close button is misplaced
 type: bug
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community]

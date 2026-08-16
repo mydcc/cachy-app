@@ -2,7 +2,7 @@
 id: BUG-0209
 title: Inconsistent and poorly placed number input arrows (Leverage / Risk)
 type: bug
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 editions: [community]
