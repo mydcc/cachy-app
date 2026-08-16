@@ -18,6 +18,7 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { marketState } from "../../stores/market.svelte";
+  import { paperState } from "../../stores/paperTrading.svelte";
   import { fade } from "svelte/transition";
 
   // Derived state for connection status
@@ -57,6 +58,16 @@
   </div>
 
   <div class="flex items-center gap-4">
+    <!-- FEAT-0012: the answer to "which mode am I in" has to be on screen at
+         all times. The failure that matters is not placing a paper order by
+         mistake — it is believing you are simulating while live — so this is
+         a persistent badge, not a transient toast. -->
+    {#if paperState.enabled}
+      <div class="paper-mode-badge" title={$_("header.paperMode.tooltip")}>
+        {$_("header.paperMode.badge")}
+      </div>
+    {/if}
+
     <!-- Status Indicator (Compact) -->
     <div class="flex items-center gap-2 text-xs" title={$_("dashboard.connectionStatus") || "Connection Status"}>
       <div class="w-indicator h-indicator rounded-full"
@@ -70,3 +81,18 @@
     </div>
   </div>
 </header>
+
+<style>
+  .paper-mode-badge {
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--warning-color, var(--border-color));
+    border-radius: 0.35rem;
+    background: var(--warning-color, transparent);
+    color: var(--bg-primary);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+</style>

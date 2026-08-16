@@ -22,6 +22,7 @@
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
   import type { OMSPosition } from "../../services/omsTypes";
+  import { tpSlState } from "../../stores/tpsl.svelte";
 
   interface Props {
     positions?: OMSPosition[];
@@ -211,7 +212,19 @@
                   <span class="text-[var(--text-secondary)] text-[10px]"
                     >{$_("positionsList.size")}</span
                   >
-                  <span class="font-mono">{formatDynamicDecimal(pos.amount)}</span>
+                  <span class="font-mono">
+                    {formatDynamicDecimal(pos.amount)}
+                    <!-- Quote-equivalent size. Base quantity alone does not
+                         answer "how much am I actually risking" at a glance,
+                         which is the question this panel exists for. Mark
+                         price when there is one; entry otherwise, matching
+                         how the account summary derives its total. -->
+                    <span class="text-[10px] text-[var(--text-tertiary)]"
+                      >≈ {formatDynamicDecimal(
+                        pos.amount.mul(pos.markPrice || pos.entryPrice),
+                      )}</span
+                    >
+                  </span>
                 </div>
                 <div
                   class="flex items-center gap-1 text-[var(--text-tertiary)] text-[10px]"
@@ -248,6 +261,37 @@
                   >
                 {/if}
               </div>
+
+              <!-- Active TP/SL, from the shared plan cache. Absent when the
+                   position has none, and equally absent before the first
+                   fetch resolves: there is nothing to show in either case,
+                   so neither gets a row. -->
+              {#if tpSlState.hasPlansFor(pos.symbol)}
+                {@const plans = tpSlState.plansFor(pos.symbol)}
+                <div
+                  class="flex justify-between items-center text-[10px] py-1 border-t border-[var(--border-color)] border-opacity-30"
+                >
+                  <span class="text-[var(--text-tertiary)]"
+                    >{$_("positionsList.tpslActive")}</span
+                  >
+                  <span class="flex gap-2 font-mono">
+                    {#if plans.profit}
+                      <span class="text-[var(--success-color)]"
+                        >TP {formatDynamicDecimal(
+                          new Decimal(plans.profit.triggerPrice || 0),
+                        )}</span
+                      >
+                    {/if}
+                    {#if plans.loss}
+                      <span class="text-[var(--danger-color)]"
+                        >SL {formatDynamicDecimal(
+                          new Decimal(plans.loss.triggerPrice || 0),
+                        )}</span
+                      >
+                    {/if}
+                  </span>
+                </div>
+              {/if}
 
               <!-- Footer: Buttons -->
               <div class="flex gap-2 pt-1">

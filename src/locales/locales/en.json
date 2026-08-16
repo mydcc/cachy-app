@@ -665,6 +665,11 @@
       "fri": "Fri",
       "sat": "Sat",
       "sun": "Sun"
+    },
+    "paper": {
+      "badge": "Paper",
+      "tooltip": "Simulated fill — not real money, and excluded from every statistic.",
+      "showToggle": "Show paper ({count})"
     }
   },
   "marketOverview": {
@@ -1577,10 +1582,107 @@
       "autoTrading": "Auto Trading (Beta)",
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",
       "multiAccount": "Multi-Account Management",
-      "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
+      "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon).",
+      "journalPaperTrades": "Save paper trades to the journal",
+      "journalPaperTradesDesc": "Simulated fills are recorded so you can review them. They are always marked PAPER and never counted in your statistics or the daily loss limit."
     },
     "toggleMarketTiles": "Toggle Market Tiles",
-    "toggleMarketSentiment": "Toggle Market Sentiment"
+    "toggleMarketSentiment": "Toggle Market Sentiment",
+    "risk": {
+      "subTab": "Risk & Kill Switch",
+      "killSwitch": {
+        "title": "Kill switch",
+        "engaged": "Kill switch is ENGAGED — no new positions are being opened",
+        "disengaged": "Kill switch is off — orders are sent normally",
+        "description": "Blocks every order that would open or increase a position, immediately and until you clear it. Closing positions, cancelling orders and adjusting stops keep working — a panic button that also trapped you in your trades would turn a scare into a loss. It survives a reload.",
+        "engagedSince": "Engaged since {time}",
+        "engage": "Engage kill switch",
+        "release": "Release kill switch",
+        "confirmTitle": "Release the kill switch?",
+        "confirmMessage": "Orders that open or increase a position will be sent again from this moment on. Continue?"
+      },
+      "dailyStatusTitle": "Today",
+      "realizedToday": "Realised PnL today: {amount} USDT",
+      "resetBoundary": "The daily window runs 00:00–00:00 UTC. Next reset: {local} (your local time).",
+      "paperExcluded": "Paper trades are never counted towards the daily loss limit.",
+      "limitsTitle": "Limits",
+      "limitsDescription": "Leave a field empty to leave that limit off. Limits are checked where orders leave the app, not in the calculator form, so an order built any other way is checked too. They never block closing a position or cancelling an order.",
+      "notConfigured": "Off",
+      "invalidValue": "That value was not stored. A limit has to be a number of zero or more.",
+      "persistFailed": "This device could not save the setting, so it will NOT survive a reload. Check your browser storage.",
+      "maxPositionSize": "Max position size",
+      "maxPositionSizeHint": "Largest order value (quantity × entry price) allowed.",
+      "maxPositionSizePercent": "Max position size (% of account)",
+      "maxPositionSizePercentHint": "Same limit as a share of the account size shown in the calculator.",
+      "maxLeverage": "Max leverage",
+      "maxLeverageHint": "Refuses any order above this leverage.",
+      "maxLossPerTrade": "Max loss per trade",
+      "maxLossPerTradeHint": "Distance from entry to stop × quantity, before fees.",
+      "maxDailyLoss": "Max loss per day",
+      "maxDailyLossHint": "Measured against realised PnL for the current UTC day.",
+      "maxOpenPositions": "Max concurrent open positions",
+      "maxOpenPositionsHint": "Adding to a position you already hold does not count as a new one.",
+      "resetLimits": "Clear all limits",
+      "resetTitle": "Clear all limits?",
+      "resetMessage": "Every limit will be switched off. The kill switch is not affected. Continue?"
+    },
+    "paper": {
+      "subTab": "Paper Trading",
+      "modeTitle": "Mode",
+      "modePaper": "PAPER — orders are simulated, no money moves",
+      "modeLive": "LIVE — orders go to the exchange",
+      "modeDescription": "Paper mode swaps the exchange for a simulator at the very last step. Everything before it — sizing, order verification, risk limits, position tracking, the journal — runs exactly as it does live, which is what makes practising here mean something.",
+      "balance": "Simulated balance: {amount} USDT",
+      "switchToPaper": "Switch to paper",
+      "switchToLive": "Switch to live",
+      "confirmOnTitle": "Switch to paper trading?",
+      "confirmOnMessage": "Open positions and orders will be cleared from view and refetched when you switch back. No live position is closed or changed. Continue?",
+      "confirmOffTitle": "Switch to live trading?",
+      "confirmOffMessage": "From this moment orders go to the real exchange and move real money. Your simulated book is kept and will be there when you switch back. Continue?",
+      "resetBook": "Reset simulated book",
+      "resetTitle": "Reset the simulated book?",
+      "resetMessage": "Simulated positions, orders and balance are cleared and the balance returns to its starting value. Your journal is not touched. Continue?",
+      "simulationTitle": "Simulation",
+      "startingBalance": "Starting balance",
+      "startingBalanceHint": "What a reset returns the simulated balance to.",
+      "slippage": "Market-order slippage",
+      "slippageHint": "Applied against you on every market fill. The default is deliberately not zero — a simulator that fills at the mid price flatters every strategy that trades often.",
+      "takerFee": "Taker fee",
+      "makerFee": "Maker fee",
+      "feeHint": "Basis points. 6 bps = 0.06 %.",
+      "partialRatio": "Partial fill ratio",
+      "partialRatioHint": "Share of the requested quantity a partial fill delivers, when that failure mode is selected.",
+      "invalidValue": "That value was not stored. It has to be a number of zero or more.",
+      "failureTitle": "Simulated failures",
+      "failureDescription": "A simulator that only succeeds trains the interface for a world that does not exist. Pick a failure and place an order to see how the app handles it.",
+      "failure": {
+        "none": "None",
+        "reject": "Reject",
+        "timeout": "Timeout",
+        "partial": "Partial fill"
+      }
+    },
+    "audit": {
+      "subTab": "Order Log",
+      "title": "Order audit trail",
+      "description": "Every order this app tried to submit — what was sent, what came back, and which checks it passed. Refused orders are recorded too; those are the ones no console would ever have shown, because nothing was sent.",
+      "retention": "Kept on this device only, never uploaded. The most recent {max} attempts are retained; older ones are dropped. API keys, secrets and signatures are removed before anything is written.",
+      "export": "Export as JSON",
+      "refresh": "Refresh",
+      "clear": "Clear log",
+      "clearTitle": "Clear the order log?",
+      "clearMessage": "Every recorded submission attempt is deleted. This cannot be undone, and it does not affect your journal or any open position. Continue?",
+      "empty": "No order attempts recorded yet.",
+      "count": "{count} attempt(s) recorded, newest first.",
+      "refusedField": "Refused on: {field}",
+      "modeLive": "Live",
+      "modePaper": "Paper",
+      "outcome": {
+        "sent": "Sent",
+        "refused": "Refused",
+        "failed": "Failed"
+      }
+    }
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -1595,7 +1697,8 @@
     "unrealizedPnl": "Unrealized PnL",
     "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view.",
     "tierMmr": "Maint. Margin Rate (Tier)",
-    "nextTierAt": "Next Tier at"
+    "nextTierAt": "Next Tier at",
+    "tpslActive": "TP/SL"
   },
   "symbolPicker": {
     "title": "Select Symbol",
@@ -2274,6 +2377,43 @@
     "dataError": "Data Inconsistency Detected",
     "orderNotFound": "Order not found"
   },
+  "orderGate": {
+    "title": "Order refused",
+    "mismatch": "Order refused: {field} does not match what was displayed (expected {expected}, got {actual}). The order was not sent.",
+    "missing": "Order refused: {field} is missing from the order, so it could not be verified. The order was not sent.",
+    "sizeMismatch": "Order refused: the size does not match a fresh calculation (expected {expected}, got {actual}, tolerance {tolerance}). The order was not sent.",
+    "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
+    "killSwitch": "Order refused: the kill switch is engaged. No orders that open or increase a position are sent while it is on — closing positions, cancelling orders and adjusting stops still work.",
+    "riskLimit": "Order refused: {field} exceeds the configured limit (limit {limit}, this order {actual}). The order was not sent.",
+    "bypassed": "Order refused: an order of type {action} tried to reach the exchange without passing verification. This is a bug — please report it.",
+    "fields": {
+      "account": "the account",
+      "accountState": "leverage / margin mode",
+      "action": "the order action",
+      "endpoint": "the target endpoint",
+      "gate": "verification",
+      "killSwitch": "the kill switch",
+      "leverage": "leverage",
+      "marginMode": "margin mode",
+      "maxDailyLoss": "the daily loss limit",
+      "maxLeverage": "the leverage limit",
+      "maxLossPerTrade": "the loss-per-trade limit",
+      "maxOpenPositions": "the open-positions limit",
+      "maxPositionSize": "the position size limit",
+      "maxPositionSizePercent": "the position size limit (share of equity)",
+      "orderId": "the order ID",
+      "positionId": "the position ID",
+      "price": "the entry price",
+      "qty": "the position size",
+      "reduceOnly": "the reduce-only flag",
+      "side": "the direction",
+      "stopLoss": "the stop loss",
+      "symbol": "the symbol",
+      "takeProfit": "the take profit"
+    },
+    "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
+    "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent."
+  },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
     "closeAllFailed": "Flash Close Failed for: {failedSymbols}",
@@ -2360,6 +2500,12 @@
       "level_10_desc": "Reached Level 10 — rocking the crown.",
       "level_20_name": "Legendary Quacker",
       "level_20_desc": "Reached Level 20 — the cape flows."
+    }
+  },
+  "header": {
+    "paperMode": {
+      "badge": "Paper",
+      "tooltip": "Paper trading is on. Orders are simulated and no money moves."
     }
   }
 }

@@ -142,6 +142,14 @@ export interface Settings {
   showTechnicals: boolean;
   showIndicatorParams: boolean;
   hideUnfilledOrders: boolean;
+  /**
+   * Whether simulated fills from paper trading (FEAT-0012) are written to the
+   * journal. On by default: reviewing them afterwards is most of the point of
+   * paper trading. They are always marked `isPaper` and are excluded from
+   * every performance statistic and from the FEAT-0013 daily-loss counter,
+   * whichever way this is set.
+   */
+  journalPaperTrades: boolean;
   positionViewMode?: PositionViewMode;
   pnlViewMode?: PnlViewMode;
   isPro: boolean;
@@ -333,6 +341,7 @@ const defaultSettings: Settings = {
   showTechnicals: false,
   showIndicatorParams: false,
   hideUnfilledOrders: false,
+  journalPaperTrades: true,
   positionViewMode: "detailed",
   isPro: false,
   feePreference: "taker",
@@ -545,6 +554,7 @@ export class SettingsManager {
   showTechnicals = $state<boolean>(defaultSettings.showTechnicals);
   showIndicatorParams = $state<boolean>(defaultSettings.showIndicatorParams);
   hideUnfilledOrders = $state<boolean>(defaultSettings.hideUnfilledOrders);
+  journalPaperTrades = $state<boolean>(defaultSettings.journalPaperTrades);
   positionViewMode = $state<PositionViewMode | undefined>(
     defaultSettings.positionViewMode,
   );
@@ -1160,6 +1170,7 @@ export class SettingsManager {
     this.showTechnicals = merged.showTechnicals;
     this.showIndicatorParams = merged.showIndicatorParams;
     this.hideUnfilledOrders = merged.hideUnfilledOrders;
+    this.journalPaperTrades = merged.journalPaperTrades ?? defaultSettings.journalPaperTrades;
     this.positionViewMode = merged.positionViewMode;
     this.pnlViewMode = merged.pnlViewMode;
     this.entitlement.isPro = merged.isPro;
@@ -1430,6 +1441,7 @@ export class SettingsManager {
       showTechnicals: this.showTechnicals,
       showIndicatorParams: this.showIndicatorParams,
       hideUnfilledOrders: this.hideUnfilledOrders,
+      journalPaperTrades: this.journalPaperTrades,
       positionViewMode: this.positionViewMode,
       pnlViewMode: this.pnlViewMode,
       isPro: this.entitlement.isPro,

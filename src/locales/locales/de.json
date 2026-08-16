@@ -665,6 +665,11 @@
       "fri": "Fr",
       "sat": "Sa",
       "sun": "So"
+    },
+    "paper": {
+      "badge": "Paper",
+      "tooltip": "Simulierte Ausführung — kein echtes Geld, und aus jeder Statistik ausgeschlossen.",
+      "showToggle": "Paper anzeigen ({count})"
     }
   },
   "marketOverview": {
@@ -1412,7 +1417,9 @@
       "autoTrading": "Automatisierter Handel (Beta)",
       "autoTradingDesc": "Aktivieren Sie automatisierte Handelsfunktionen (Demnächst).",
       "multiAccount": "Multi-Account-Verwaltung",
-      "multiAccountDesc": "Verwalten Sie mehrere Börsenkonten gleichzeitig (Demnächst)."
+      "multiAccountDesc": "Verwalten Sie mehrere Börsenkonten gleichzeitig (Demnächst).",
+      "journalPaperTrades": "Paper Trades im Journal speichern",
+      "journalPaperTradesDesc": "Simulierte Ausführungen werden gespeichert, damit du sie auswerten kannst. Sie sind immer mit PAPER markiert und zählen nie in deine Statistiken oder das Tagesverlust-Limit."
     },
     "profile": {
       "appearanceTitle": "Erscheinungsbild & Identität",
@@ -1580,7 +1587,102 @@
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
     },
     "toggleMarketTiles": "Marktübersicht umschalten",
-    "toggleMarketSentiment": "Marktstimmung umschalten"
+    "toggleMarketSentiment": "Marktstimmung umschalten",
+    "risk": {
+      "subTab": "Risiko & Kill Switch",
+      "killSwitch": {
+        "title": "Kill Switch",
+        "engaged": "Kill Switch ist AKTIV — es werden keine neuen Positionen eröffnet",
+        "disengaged": "Kill Switch ist aus — Orders werden normal gesendet",
+        "description": "Blockiert sofort jede Order, die eine Position eröffnen oder vergrößern würde, bis du ihn wieder löst. Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin — ein Notaus, der dich zusätzlich in deinen Trades einsperrt, macht aus einem Schreck einen Verlust. Er überlebt einen Reload.",
+        "engagedSince": "Aktiv seit {time}",
+        "engage": "Kill Switch aktivieren",
+        "release": "Kill Switch lösen",
+        "confirmTitle": "Kill Switch lösen?",
+        "confirmMessage": "Ab sofort werden wieder Orders gesendet, die Positionen eröffnen oder vergrößern. Fortfahren?"
+      },
+      "dailyStatusTitle": "Heute",
+      "realizedToday": "Realisierter PnL heute: {amount} USDT",
+      "resetBoundary": "Das Tagesfenster läuft von 00:00 bis 00:00 UTC. Nächster Reset: {local} (deine lokale Zeit).",
+      "paperExcluded": "Paper Trades zählen nie auf das Tagesverlust-Limit ein.",
+      "limitsTitle": "Limits",
+      "limitsDescription": "Ein leeres Feld lässt das jeweilige Limit aus. Limits werden dort geprüft, wo Orders die App verlassen, nicht im Rechner-Formular — eine anders gebaute Order wird also ebenfalls geprüft. Sie blockieren nie das Schließen einer Position oder das Stornieren einer Order.",
+      "notConfigured": "Aus",
+      "invalidValue": "Dieser Wert wurde nicht gespeichert. Ein Limit muss eine Zahl ab null sein.",
+      "persistFailed": "Dieses Gerät konnte die Einstellung nicht speichern — sie überlebt einen Reload NICHT. Bitte den Browser-Speicher prüfen.",
+      "maxPositionSize": "Max. Positionsgröße",
+      "maxPositionSizeHint": "Größter erlaubter Orderwert (Menge × Einstiegskurs).",
+      "maxPositionSizePercent": "Max. Positionsgröße (% des Kontos)",
+      "maxPositionSizePercentHint": "Dasselbe Limit als Anteil der im Rechner angezeigten Kontogröße.",
+      "maxLeverage": "Max. Hebel",
+      "maxLeverageHint": "Lehnt jede Order über diesem Hebel ab.",
+      "maxLossPerTrade": "Max. Verlust pro Trade",
+      "maxLossPerTradeHint": "Abstand Einstieg zu Stop × Menge, vor Gebühren.",
+      "maxDailyLoss": "Max. Verlust pro Tag",
+      "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages.",
+      "maxOpenPositions": "Max. gleichzeitig offene Positionen",
+      "maxOpenPositionsHint": "Das Aufstocken einer bereits gehaltenen Position zählt nicht als neue.",
+      "resetLimits": "Alle Limits löschen",
+      "resetTitle": "Alle Limits löschen?",
+      "resetMessage": "Jedes Limit wird ausgeschaltet. Der Kill Switch ist davon nicht betroffen. Fortfahren?"
+    },
+    "paper": {
+      "subTab": "Paper Trading",
+      "modeTitle": "Modus",
+      "modePaper": "PAPER — Orders werden simuliert, es fließt kein Geld",
+      "modeLive": "LIVE — Orders gehen an die Börse",
+      "modeDescription": "Der Paper-Modus tauscht ganz zuletzt die Börse gegen einen Simulator. Alles davor — Positionsgröße, Order-Prüfung, Risiko-Limits, Positionsverwaltung, Journal — läuft exakt wie im Live-Betrieb. Genau das macht das Üben hier aussagekräftig.",
+      "balance": "Simuliertes Guthaben: {amount} USDT",
+      "switchToPaper": "Zu Paper wechseln",
+      "switchToLive": "Zu Live wechseln",
+      "confirmOnTitle": "Zum Paper Trading wechseln?",
+      "confirmOnMessage": "Offene Positionen und Orders werden aus der Ansicht entfernt und beim Zurückwechseln neu geladen. Keine Live-Position wird geschlossen oder verändert. Fortfahren?",
+      "confirmOffTitle": "Zum Live-Trading wechseln?",
+      "confirmOffMessage": "Ab sofort gehen Orders an die echte Börse und bewegen echtes Geld. Dein simuliertes Buch bleibt erhalten und ist beim Zurückwechseln wieder da. Fortfahren?",
+      "resetBook": "Simuliertes Buch zurücksetzen",
+      "resetTitle": "Simuliertes Buch zurücksetzen?",
+      "resetMessage": "Simulierte Positionen, Orders und das Guthaben werden gelöscht, das Guthaben kehrt auf den Startwert zurück. Dein Journal bleibt unberührt. Fortfahren?",
+      "simulationTitle": "Simulation",
+      "startingBalance": "Startguthaben",
+      "startingBalanceHint": "Wert, auf den ein Reset das simulierte Guthaben zurücksetzt.",
+      "slippage": "Slippage bei Market-Orders",
+      "slippageHint": "Wird bei jeder Market-Ausführung zu deinen Ungunsten angewendet. Der Standard ist bewusst nicht null — ein Simulator, der zum Mittelkurs ausführt, schmeichelt jeder Strategie, die viel handelt.",
+      "takerFee": "Taker-Gebühr",
+      "makerFee": "Maker-Gebühr",
+      "feeHint": "Basispunkte. 6 bps = 0,06 %.",
+      "partialRatio": "Teilausführungs-Anteil",
+      "partialRatioHint": "Anteil der angefragten Menge, den eine Teilausführung liefert, wenn dieser Fehlermodus gewählt ist.",
+      "invalidValue": "Dieser Wert wurde nicht gespeichert. Er muss eine Zahl ab null sein.",
+      "failureTitle": "Simulierte Fehler",
+      "failureDescription": "Ein Simulator, der nur gelingt, trainiert die Oberfläche für eine Welt, die es nicht gibt. Wähle einen Fehler und platziere eine Order, um zu sehen, wie die App damit umgeht.",
+      "failure": {
+        "none": "Keine",
+        "reject": "Ablehnung",
+        "timeout": "Timeout",
+        "partial": "Teilausführung"
+      }
+    },
+    "audit": {
+      "subTab": "Order-Log",
+      "title": "Order-Audit-Trail",
+      "description": "Jede Order, die diese App zu senden versucht hat — was gesendet wurde, was zurückkam und welche Prüfungen sie bestanden hat. Auch abgelehnte Orders werden erfasst; genau die hätte keine Konsole je gezeigt, weil nichts gesendet wurde.",
+      "retention": "Bleibt nur auf diesem Gerät und wird nie hochgeladen. Die letzten {max} Versuche werden aufbewahrt, ältere entfallen. API-Keys, Secrets und Signaturen werden entfernt, bevor etwas geschrieben wird.",
+      "export": "Als JSON exportieren",
+      "refresh": "Aktualisieren",
+      "clear": "Log leeren",
+      "clearTitle": "Order-Log leeren?",
+      "clearMessage": "Alle erfassten Sendeversuche werden gelöscht. Das lässt sich nicht rückgängig machen und betrifft weder dein Journal noch offene Positionen. Fortfahren?",
+      "empty": "Noch keine Order-Versuche erfasst.",
+      "count": "{count} Versuch(e) erfasst, neueste zuerst.",
+      "refusedField": "Abgelehnt wegen: {field}",
+      "modeLive": "Live",
+      "modePaper": "Paper",
+      "outcome": {
+        "sent": "Gesendet",
+        "refused": "Abgelehnt",
+        "failed": "Fehlgeschlagen"
+      }
+    }
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -2259,6 +2361,43 @@
     "dataError": "Dateninkonsistenz erkannt",
     "orderNotFound": "Order nicht gefunden"
   },
+  "orderGate": {
+    "title": "Order abgelehnt",
+    "mismatch": "Order abgelehnt: {field} stimmt nicht mit der Anzeige überein (erwartet {expected}, erhalten {actual}). Die Order wurde nicht gesendet.",
+    "missing": "Order abgelehnt: {field} fehlt in der Order und konnte deshalb nicht geprüft werden. Die Order wurde nicht gesendet.",
+    "sizeMismatch": "Order abgelehnt: Die Größe stimmt nicht mit einer frischen Berechnung überein (erwartet {expected}, erhalten {actual}, Toleranz {tolerance}). Die Order wurde nicht gesendet.",
+    "stale": "Order abgelehnt: Der Kontostand ({field}) ist {age}s alt und damit älter als das Limit von {max}s. Bitte aktualisieren und erneut versuchen.",
+    "killSwitch": "Order abgelehnt: Der Kill Switch ist aktiv. Solange er an ist, werden keine Orders gesendet, die eine Position eröffnen oder vergrößern — Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin.",
+    "riskLimit": "Order abgelehnt: {field} überschreitet das konfigurierte Limit (Limit {limit}, diese Order {actual}). Die Order wurde nicht gesendet.",
+    "bypassed": "Order abgelehnt: Eine Order vom Typ {action} hat versucht, die Börse ohne Prüfung zu erreichen. Das ist ein Fehler — bitte melden.",
+    "fields": {
+      "account": "das Konto",
+      "accountState": "Hebel / Margin-Modus",
+      "action": "die Order-Aktion",
+      "endpoint": "der Ziel-Endpunkt",
+      "gate": "die Prüfung",
+      "killSwitch": "der Kill Switch",
+      "leverage": "der Hebel",
+      "marginMode": "der Margin-Modus",
+      "maxDailyLoss": "das Tagesverlust-Limit",
+      "maxLeverage": "das Hebel-Limit",
+      "maxLossPerTrade": "das Verlust-pro-Trade-Limit",
+      "maxOpenPositions": "das Limit für offene Positionen",
+      "maxPositionSize": "das Positionsgrößen-Limit",
+      "maxPositionSizePercent": "das Positionsgrößen-Limit (Anteil am Kapital)",
+      "orderId": "die Order-ID",
+      "positionId": "die Positions-ID",
+      "price": "der Einstiegskurs",
+      "qty": "die Positionsgröße",
+      "reduceOnly": "das Reduce-Only-Flag",
+      "side": "die Richtung",
+      "stopLoss": "der Stop-Loss",
+      "symbol": "das Symbol",
+      "takeProfit": "der Take-Profit"
+    },
+    "riskLimitDailyLoss": "Order abgelehnt: Der heute realisierte Verlust beträgt {actual} und hat das Tageslimit von {limit} erreicht oder überschritten. Das Limit wird um 00:00 UTC zurückgesetzt. Positionen schließen und Orders stornieren ist weiterhin möglich.",
+    "riskLimitUnmeasurable": "Order abgelehnt: Für {field} ist ein Limit konfiguriert, aber diese Order enthält nichts, woran es geprüft werden könnte. Die Order wurde nicht gesendet."
+  },
   "workerErrors": {
     "eventError": "Worker Fehler Event",
     "notAvailable": "Worker nicht verfügbar",
@@ -2322,7 +2461,8 @@
     "unrealizedPnl": "Unrealisierter PnL",
     "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht.",
     "tierMmr": "Maint.-Margin-Rate (Stufe)",
-    "nextTierAt": "Nächste Stufe ab"
+    "nextTierAt": "Nächste Stufe ab",
+    "tpslActive": "TP/SL"
   },
   "trade": {
     "apiError": "API-Fehler: {error}",
@@ -2360,6 +2500,12 @@
       "level_10_desc": "Level 10 erreicht — die Krone sitzt.",
       "level_20_name": "Legendary Quacker",
       "level_20_desc": "Level 20 erreicht — das Cape weht."
+    }
+  },
+  "header": {
+    "paperMode": {
+      "badge": "Paper",
+      "tooltip": "Paper Trading ist aktiv. Orders werden simuliert, es fließt kein Geld."
     }
   }
 }

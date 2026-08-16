@@ -26,6 +26,10 @@
         filterDateStart?: string;
         filterDateEnd?: string;
         groupBySymbol?: boolean;
+        /** Whether simulated fills (FEAT-0012) appear in the list. */
+        showPaperTrades?: boolean;
+        /** How many stored entries are simulated; the toggle hides itself at 0. */
+        paperCount?: number;
         // Props - Additional Data
         totalTrades?: number;
         filteredCount?: number;
@@ -41,6 +45,8 @@
         filterDateStart = $bindable(""),
         filterDateEnd = $bindable(""),
         groupBySymbol = $bindable(false),
+        showPaperTrades = $bindable(true),
+        paperCount = 0,
         totalTrades = 0,
         filteredCount = 0,
         ontoggleSettings,
@@ -117,6 +123,19 @@
                 <span class="toggle-text">{$_("journal.labels.pivotMode")}</span
                 >
             </label>
+
+            <!-- Only worth showing once there is something to filter. -->
+            {#if paperCount > 0}
+                <label class="pivot-toggle">
+                    <input type="checkbox" bind:checked={showPaperTrades} />
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-text"
+                        >{$_("journal.paper.showToggle", {
+                            values: { count: String(paperCount) },
+                        })}</span
+                    >
+                </label>
+            {/if}
 
             <button
                 class="settings-btn"
