@@ -142,7 +142,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
 | [BUG-0185](bugs/BUG-0185-competitor-names-in-docs.md) | Competitor platform names appear in user-facing and planning documentation | P2 | ✅ done | docs |
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | repo |
-| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 🟡 in-progress | ui |
+| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | ✅ done | ui |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 🟡 in-progress | ui |
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
@@ -235,7 +235,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | M1 | community, pro, private | none | none | [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) |
 | [BUG-0185](bugs/BUG-0185-competitor-names-in-docs.md) | Competitor platform names appear in user-facing and planning documentation | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 🟡 in-progress | none | community | none | none | — |
+| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 🟡 in-progress | none | community | none | none | — |
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | none | community | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |

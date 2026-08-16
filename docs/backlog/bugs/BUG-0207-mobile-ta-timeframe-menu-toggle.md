@@ -2,7 +2,7 @@
 id: BUG-0207
 title: Mobile Technical Analysis timeframe menu fails to reopen
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community]
@@ -33,6 +33,6 @@ Likely a state management issue with the dropdown/menu component on touch device
 
 ## Acceptance criteria
 
-- [ ] On mobile, the TA timeframe menu can be opened, a selection made, and then immediately reopened without needing to tap outside first.
+- [x] On mobile, the TA timeframe menu can be opened, a selection made, and then immediately reopened without needing to tap outside first.
 
 ## Links
