@@ -92,25 +92,37 @@ export function closingReferences(body: string | null | undefined): number[] {
  * implementing it — the old rule could not tell those apart, because it tested
  * `pr.body.includes(item.id)` against the whole body.
  *
- * So a body only counts when the ID appears in a position that can only be a
- * declaration: a `Backlog-Id:` trailer, or a closing reference to the item's
- * own issue. Titles and branch names stay as declarations because that is how
- * this repo names its work, but both are anchored now.
+ * Signals are ranked, and the strongest one present wins outright rather than
+ * being OR-ed with the rest:
+ *
+ * 1. A `Backlog-Id:` trailer. Unambiguous, so nothing else is consulted.
+ * 2. A closing reference, when this item's issue number is known. The PR has
+ *    named the issue it closes; a title naming some *other* item cannot
+ *    override that.
+ * 3. Title and branch name, which is how this repo names its work.
+ *
+ * The ranking is what makes a stale title safe. #2003 was titled `(BUG-0217)`
+ * after that ID had been reassigned, while its body declared the issue for
+ * BUG-0219 — under a flat OR it matched both, and the merge closed the wrong
+ * bug. Under the ranking, its own declaration settles it.
  */
 export function declaresBacklogItem(
     pr: MatchablePR,
     itemId: string,
     existingIssueNumber?: number,
 ): boolean {
+    const trailer = pr.body?.match(/^\s*Backlog-Id:\s*(\S+)\s*$/im);
+    if (trailer) return backlogIdPattern(itemId).test(trailer[1]);
+
+    // Only authoritative when this item's issue is known; without it there is
+    // nothing to compare the reference against, so fall through to the name.
+    const closing = closingReferences(pr.body);
+    if (closing.length > 0 && existingIssueNumber) {
+        return closing.includes(existingIssueNumber);
+    }
+
     if (mentionsBacklogId(pr.title, itemId)) return true;
     if (mentionsBacklogId(pr.head?.ref, itemId)) return true;
-
-    const trailer = pr.body?.match(new RegExp(`^\\s*Backlog-Id:\\s*(\\S+)\\s*$`, "im"));
-    if (trailer && backlogIdPattern(itemId).test(trailer[1])) return true;
-
-    if (existingIssueNumber && closingReferences(pr.body).includes(existingIssueNumber)) {
-        return true;
-    }
 
     return false;
 }

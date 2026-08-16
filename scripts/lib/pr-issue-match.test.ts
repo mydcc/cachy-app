@@ -105,6 +105,34 @@ describe("declaresBacklogItem", () => {
     it("rejects a closing reference to a different issue", () => {
         expect(declaresBacklogItem(pr({ body: "Fixes #2008" }), "BUG-0217", 2002)).toBe(false);
     });
+
+    it("lets an explicit declaration override a stale title", () => {
+        // The original incident: the title still named the reassigned ID while
+        // the body declared the issue the PR actually closes.
+        const p = pr({
+            title: "fix: send orderType to Bitunix place_order (BUG-0217)",
+            body: "Fixes #2008\n\nA limit order returned 500.",
+        });
+        expect(declaresBacklogItem(p, "BUG-0217", 2002)).toBe(false);
+        expect(declaresBacklogItem(p, "BUG-0219", 2008)).toBe(true);
+    });
+
+    it("lets a Backlog-Id trailer override a stale title", () => {
+        const p = pr({ title: "fix: thing (BUG-0217)", body: "Backlog-Id: BUG-0219" });
+        expect(declaresBacklogItem(p, "BUG-0217", 2002)).toBe(false);
+        expect(declaresBacklogItem(p, "BUG-0219")).toBe(true);
+    });
+
+    it("still uses the title when the body declares nothing", () => {
+        const p = pr({ title: "fix: thing (BUG-0219)", body: "No references here." });
+        expect(declaresBacklogItem(p, "BUG-0219", 2008)).toBe(true);
+    });
+
+    it("falls back to the title when the item has no issue yet", () => {
+        // A closing reference cannot be compared without this item's number.
+        const p = pr({ title: "fix: thing (BUG-0219)", body: "Fixes #2008" });
+        expect(declaresBacklogItem(p, "BUG-0219")).toBe(true);
+    });
 });
 
 describe("matchPRsForItem", () => {
@@ -157,17 +185,18 @@ describe("decideLink", () => {
 describe("the two incidents on 2026-08-16", () => {
     it("does not link the orderType PRs to the tab-inactivity issue", () => {
         // Both PRs were titled "(BUG-0217)" while BUG-0217 had just been
-        // reassigned to the tab-inactivity bug tracked in #2002. The title is a
-        // declaration, so it still matches — but the conflict guard is what
-        // stops the merge from closing #2002, because #2003 had already
-        // declared Fixes #2008.
+        // reassigned to the tab-inactivity bug tracked in #2002. Two
+        // independent defences now stop this, and the test asserts both:
+        // the PR's own declaration outranks the stale title, and even if it
+        // had matched, the conflict guard would refuse to add a second link.
         const p = pr({
             number: 2003,
             title: "fix: send orderType to Bitunix place_order (BUG-0217)",
             body: "Fixes #2008\n\nA limit order returned 500.",
         });
 
-        expect(declaresBacklogItem(p, "BUG-0217", 2002)).toBe(true);
+        expect(declaresBacklogItem(p, "BUG-0217", 2002)).toBe(false);
+        expect(matchPRsForItem([p], "BUG-0217", 2002)).toEqual([]);
         expect(decideLink(p.body, 2002)).toEqual({
             action: "conflict",
             existing: [2008],

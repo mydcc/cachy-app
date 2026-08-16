@@ -162,10 +162,14 @@ none of this could be tested at all.
 - **One rule, two callers.** `matchPRsForItem` replaces both filters, so the
   `Fixes #` link and the `in-review` status can no longer disagree about which
   PRs belong to an item.
-- **Declaration, not mention.** `declaresBacklogItem` accepts a title, a branch
-  name, a `Backlog-Id:` trailer, or a closing reference to the item's own issue.
-  Free-text body matching is gone — that clause is what turned "same class of
-  bug as BUG-0215" into a link.
+- **Declaration, not mention, and ranked.** `declaresBacklogItem` no longer ORs
+  its signals: a `Backlog-Id:` trailer wins outright; failing that, a closing
+  reference decides whenever the item's issue number is known; only then do the
+  title and branch name apply. Free-text body matching is gone — that clause is
+  what turned "same class of bug as BUG-0215" into a link. The ranking is what
+  makes a stale title safe: #2003 declared the issue for BUG-0219 in its body
+  while its title still named the reassigned BUG-0217, and its own declaration
+  now settles that.
 - **Anchored IDs.** `backlogIdPattern` rejects a trailing alphanumeric, so
   `BUG-0021` no longer matches `BUG-00210`. A trailing hyphen is still allowed,
   because `fix/BUG-0219-slug` is the branch and filename convention. `\b` alone
@@ -183,18 +187,35 @@ prevented, the convention is now written into `CLAUDE.md` and `AGENTS.md`
 alongside the PR-linking rule: to mention a closing reference rather than make
 one, break the keyword or name the issue without it.
 
-**Not done:** the `commit-lint` rule that would *enforce* that convention.
-`.github/workflows/commit-lint.yml` already inspects every commit on a PR, so
-the hook exists, but deciding which issue a branch legitimately declares is the
-same judgement this item just moved out of `String.includes` — worth its own
-item rather than a rushed regex. The convention is documented and unenforced
-until then.
+The convention is also **enforced**, by `scripts/lint-commit-refs.mjs`, wired
+into `.github/workflows/commit-lint.yml`. The rule it applies is simpler than
+the one first sketched here, and stronger for it: a commit message may not carry
+a closing keyword at all. Deciding *which* issue a branch legitimately declares
+is the same judgement this item just moved out of `String.includes`, and it is
+not needed — `CLAUDE.md` already requires the link to live in the pull request
+description, where it closes the issue and moves the Kanban card on its own. A
+commit in this repo never needs one, so "none" is a rule with no false
+positives to litigate.
+
+Two details it gets right that a quick regex would not:
+
+- The full keyword set including the past tense, which is what the hand-rolled
+  scan missed.
+- The whole `base..head` range, not just the tip. GitHub's squash merge
+  concatenates every commit message in the PR into the merge body, so a keyword
+  anywhere in the range lands on `develop`. This is a deliberate departure from
+  the Conventional Commits step above it, which lints only the tip because an
+  early WIP commit's *format* cannot be fixed without a history rewrite. That
+  reasoning does not transfer: a wrongly closed issue is worth a rewrite.
+
+Escapes pass: `Fixes #<!-- -->1770` does not match, because the keyword is not
+directly followed by a reference.
 
 ## Acceptance criteria
 
 - [x] A test reproduces the defect and fails without the fix: an open PR whose
-      body mentions an ID it does not implement is **not** linked to that
-      item's issue
+      title or body mentions an ID it does not implement is **not** linked to
+      that item's issue
 - [x] The test passes with the fix
 - [x] A PR that legitimately implements an item is still linked, so the feature
       keeps working
@@ -205,17 +226,21 @@ until then.
       served by the same function
 - [x] `BUG-0021` does not match `BUG-00210`
 - [x] A commit message or PR body that quotes a closing keyword for an issue
-      the change does not fix cannot close it — documented as a convention in
-      `CLAUDE.md` and `AGENTS.md`; **not** enforced in `commit-lint`, see Fix
+      the change does not fix cannot close it — documented in `CLAUDE.md` and
+      `AGENTS.md`, and enforced for commits by `scripts/lint-commit-refs.mjs`
+      in the `commit-lint` workflow
+- [x] The enforcement recognises the past tense and scans the whole PR range,
+      verified against the commit that caused the second instance
 
-**One criterion was weakened during implementation, deliberately.** It first
-read "an open PR whose *title* mentions an ID it does not implement is not
-linked". That is not what the fix does, and on reflection it should not: a
-title reading `fix: ... (BUG-0219)` *is* a declaration — it is how this repo
-names its work, and treating it as noise would break auto-linking for almost
-every correct PR. The title case is genuinely ambiguous, and what protects it
-is the conflict guard rather than the matcher. The criterion now says *body*,
-which is the clause that could not be defended.
+A note on the title criterion, because it was briefly dropped and then met. The
+first implementation treated a title as an unconditional declaration, on the
+argument that `fix: ... (BUG-0219)` *is* how this repo names its work and that
+ignoring it would break auto-linking for nearly every correct PR. That argument
+is right about titles in general and wrong about this criterion: the answer is
+not to trust titles less, but to rank them below an explicit declaration. A PR
+that names the issue it closes has already said what it implements, and a stale
+title cannot outvote that. Ranking the signals satisfies both — auto-linking
+still works from a title alone, and the reassigned-ID case is closed.
 
 ## Out of scope
 
@@ -233,5 +258,7 @@ which is the clause that could not be defended.
   `scripts/lib/pr-issue-match.test.ts` covering it
 - `scripts/sync-github-issues.ts` — `ensurePRsAreLinked` and the main loop, both
   now calling the same matcher
-- `.github/workflows/sync-backlog.yml` — what runs it
+- `scripts/lint-commit-refs.mjs` — the enforcement, wired into
+  `.github/workflows/commit-lint.yml`
+- `.github/workflows/sync-backlog.yml` — what runs the sync
 - [`README.md`](../README.md) — front matter and status conventions
