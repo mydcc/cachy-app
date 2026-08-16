@@ -2,9 +2,9 @@
 
 # Backlog index
 
-109 items. How to read and add them: [README.md](README.md).
+111 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 69
+Counts by status: 💡 idea 16 · 📋 specced 24 · 🟢 ready 2 · ✅ done 69
 
 ---
 
@@ -137,7 +137,9 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 69
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | core |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | services |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | ui |
-| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | ui |
+| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 🟢 ready | ui |
+| [BUG-0217](bugs/BUG-0217-tab-inactivity-connection-loss.md) | Tab inactivity drops WebSocket connection without automatic recovery | P1 | 📋 specced | exchange |
+| [BUG-0218](bugs/BUG-0218-open-positions-price-sync-stall.md) | Open position live mark price updates unreliably or stalls until page reload | P1 | 📋 specced | trade-panel |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -204,8 +206,10 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 69
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) |
-| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0215](bugs/BUG-0215-order-refusal-placeholders.md) | Gate refusals render raw placeholders and refuse every paper order | P1 | ✅ done | M3 | community, pro, private | none | none | — |
+| [BUG-0217](bugs/BUG-0217-tab-inactivity-connection-loss.md) | Tab inactivity drops WebSocket connection without automatic recovery | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0218](bugs/BUG-0218-open-positions-price-sync-stall.md) | Open position live mark price updates unreliably or stalls until page reload | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -292,4 +296,4 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · ✅ done 69
 
 ---
 
-Next free number: **0217**
+Next free number: **0219**
