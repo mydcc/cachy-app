@@ -2,7 +2,7 @@
 id: BUG-0206
 title: Quiz flashcard close button is misplaced
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community]
@@ -34,7 +34,7 @@ Likely a CSS layout issue or suboptimal component structure in the Flashcard com
 
 ## Acceptance criteria
 
-- [ ] The close button on the Quiz Flashcard is intuitively placed.
-- [ ] The button is easily clickable on both desktop and mobile.
+- [x] The close button on the Quiz Flashcard is intuitively placed.
+- [x] The button is easily clickable on both desktop and mobile.
 
 ## Links
