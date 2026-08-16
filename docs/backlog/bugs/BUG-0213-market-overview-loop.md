@@ -2,7 +2,7 @@
 id: BUG-0213
 title: Market Overview Modal and Favorite Tiles Infinite Reload Loop
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
