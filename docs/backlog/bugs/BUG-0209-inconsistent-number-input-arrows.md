@@ -2,7 +2,7 @@
 id: BUG-0209
 title: Inconsistent and poorly placed number input arrows (Leverage / Risk)
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community]
@@ -36,8 +36,10 @@ The application relies on default browser styling for `<input type="number">` wi
 
 ## Acceptance criteria
 
-- [ ] Native browser up/down arrows are removed from numeric inputs.
-- [ ] A custom, professionally styled increment/decrement mechanism is implemented.
-- [ ] "Leverage" and "Risk per Trade" both use the new consistent stepper UI.
+- [x] Native browser up/down arrows are removed from numeric inputs.
+- [x] A custom, professionally styled increment/decrement mechanism is implemented.
+- [x] "Leverage" and "Risk per Trade" both use the new consistent stepper UI.
 
 ## Links
+
+- Issue: #1962
