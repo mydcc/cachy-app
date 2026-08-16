@@ -11,6 +11,61 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { checkClientToken } from '../../../lib/server/clientToken';
 
+interface SentimentOutput {
+    score: number;
+    regime: string;
+    summary: string;
+    keyFactors: string[];
+}
+
+function calculateHeuristicSentiment(headlines: string[]): SentimentOutput {
+    const positiveWords = [
+        'surge', 'soar', 'bull', 'gain', 'jump', 'rally', 'high', 'breakout',
+        'record', 'green', 'inflow', 'profit', 'boost', 'up', 'climb', 'accumulate', 'adoption'
+    ];
+    const negativeWords = [
+        'crash', 'plunge', 'bear', 'drop', 'dump', 'fall', 'hack', 'ban',
+        'lawsuit', 'sec', 'liquidation', 'outflow', 'loss', 'down', 'sink', 'fud', 'scam', 'drop'
+    ];
+
+    let posCount = 0;
+    let negCount = 0;
+
+    for (const h of headlines) {
+        const lower = h.toLowerCase();
+        for (const w of positiveWords) {
+            if (lower.includes(w)) posCount++;
+        }
+        for (const w of negativeWords) {
+            if (lower.includes(w)) negCount++;
+        }
+    }
+
+    const total = posCount + negCount;
+    let score = 0;
+    let regime: string;
+
+    if (total > 0) {
+        score = Math.round(((posCount - negCount) / (total + 2)) * 100) / 100;
+    }
+
+    if (score >= 0.25) regime = 'BULLISH';
+    else if (score <= -0.25) regime = 'BEARISH';
+    else if (total === 0) regime = 'UNCERTAIN';
+    else regime = 'NEUTRAL';
+
+    return {
+        score,
+        regime,
+        summary: `Heuristic market sentiment (${headlines.length} news items analyzed). AI service currently busy.`,
+        keyFactors: posCount > negCount
+            ? ['Positive market momentum', 'Headline keyword signals']
+            : negCount > posCount
+            ? ['Downward price pressure signals', 'Cautionary headline signals']
+            : ['Mixed market signals'],
+    };
+}
+
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const authError = checkClientToken(request, getClientAddress());
     if (authError) return authError;
@@ -31,27 +86,89 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
             const OpenAI = (await import('openai')).default;
             const openai = new OpenAI({ apiKey });
-            const completion = await openai.chat.completions.create({
-                messages: [
-                    { role: 'system', content: 'Analyze sentiment.' },
-                    { role: 'user', content: prompt },
-                ],
-                model: model || 'gpt-4o',
-                response_format: { type: 'json_object' },
-            });
-            resultText = completion.choices[0].message.content || '{}';
+
+            const openaiModels = Array.from(new Set([
+                model,
+                'gpt-4o-mini',
+                'gpt-4o'
+            ].filter(Boolean)));
+
+            let lastOpenAiErr: unknown = null;
+            for (const m of openaiModels) {
+                try {
+                    const completion = await openai.chat.completions.create({
+                        messages: [
+                            { role: 'system', content: 'Analyze sentiment.' },
+                            { role: 'user', content: prompt },
+                        ],
+                        model: m,
+                        response_format: { type: 'json_object' },
+                    });
+                    resultText = completion.choices[0].message.content || '';
+                    if (resultText) break;
+                } catch (err: unknown) {
+                    lastOpenAiErr = err;
+                    const msg = err instanceof Error ? err.message : String(err);
+                    if (msg.includes('401') || msg.includes('Incorrect API key')) {
+                        throw err;
+                    }
+                    console.warn(`[Sentiment API] OpenAI model ${m} failed (${msg.slice(0, 100)}), trying fallback...`);
+                }
+            }
+
+            if (!resultText && lastOpenAiErr) {
+                console.warn('[Sentiment API] All OpenAI models failed, falling back to heuristic sentiment.');
+                return json({ analysis: calculateHeuristicSentiment(headlines), isFallback: true });
+            }
         } else if (provider === 'gemini') {
             if (!apiKey) return json({ error: 'NO_GEMINI_KEY' }, { status: 401 });
 
             const { GoogleGenerativeAI } = await import('@google/generative-ai');
             const genAI = new GoogleGenerativeAI(apiKey);
-            const geminiModel = genAI.getGenerativeModel({ model: model || 'gemini-1.5-flash-latest' });
-            const result = await geminiModel.generateContent(prompt);
-            resultText = result.response.text();
+
+            const geminiModels = Array.from(new Set([
+                model,
+                'gemini-2.5-flash',
+                'gemini-2.0-flash',
+                'gemini-1.5-flash-latest',
+                'gemini-1.5-flash',
+                'gemini-1.5-pro'
+            ].filter(Boolean)));
+
+            let lastGeminiErr: unknown = null;
+            for (const m of geminiModels) {
+                try {
+                    const geminiModel = genAI.getGenerativeModel({ model: m });
+                    const result = await geminiModel.generateContent(prompt);
+                    resultText = result.response.text();
+                    if (resultText) break;
+                } catch (err: unknown) {
+                    lastGeminiErr = err;
+                    const msg = err instanceof Error ? err.message : String(err);
+                    if (msg.includes('API_KEY_INVALID') || msg.includes('401') || msg.includes('403')) {
+                        throw err;
+                    }
+                    console.warn(`[Sentiment API] Gemini model ${m} unavailable (${msg.slice(0, 120)}), trying fallback model...`);
+                }
+            }
+
+            if (!resultText && lastGeminiErr) {
+                console.warn('[Sentiment API] All Gemini models unavailable, falling back to heuristic sentiment.');
+                return json({ analysis: calculateHeuristicSentiment(headlines), isFallback: true });
+            }
         }
-        if (!resultText) return json({ error: 'NO_RESULT' }, { status: 500 });
-        const analysis = JSON.parse(resultText.replace(/```json/g, '').replace(/```/g, '').trim());
-        return json({ analysis });
+
+        if (!resultText) {
+            return json({ analysis: calculateHeuristicSentiment(headlines), isFallback: true });
+        }
+
+        try {
+            const cleaned = resultText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const analysis = JSON.parse(cleaned);
+            return json({ analysis });
+        } catch {
+            return json({ analysis: calculateHeuristicSentiment(headlines), isFallback: true });
+        }
     } catch (e: unknown) {
         console.error('Sentiment API Error:', e);
         let message = 'INTERNAL_ERROR';
