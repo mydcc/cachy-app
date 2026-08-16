@@ -218,6 +218,14 @@ class PaperExchange {
             ? this.applyClose(symbol, side, qty, price)
             : this.applyOpen(symbol, side, qty, price, toDecimal(payload.leverage, new Decimal(1))!);
 
+        // FEAT-0069: TP/SL attached to the entry become resting orders on the
+        // position the entry just created, which is what the exchange does
+        // with them. Simulating the atomic form as two separate steps would
+        // hide exactly the window this feature exists to close.
+        if (!closes) {
+            this.attachEntryPlans(symbol, side, fill.qty, payload, fill.price);
+        }
+
         return ok({
             orderId,
             clientOrderId,
@@ -229,6 +237,50 @@ class PaperExchange {
             requestedQty: requested.toString(),
             partial: fill.qty.lt(requested),
         });
+    }
+
+    /**
+     * Turns `tpPrice`/`slPrice` sent with an entry into resting reduce-only
+     * orders against the position that entry opened.
+     */
+    private attachEntryPlans(
+        symbol: string,
+        side: "BUY" | "SELL",
+        qty: Decimal,
+        payload: Record<string, unknown>,
+        entryPrice: Decimal,
+    ): void {
+        const attached: PaperOrder[] = [];
+        // Closing side, in the shape the close path expects: the position's
+        // own side, not the execution direction (see applyClose).
+        const closeSide: "BUY" | "SELL" = side;
+
+        for (const [priceKey, typeKey] of [
+            ["tpPrice", "tpOrderType"],
+            ["slPrice", "slOrderType"],
+        ] as const) {
+            const trigger = toDecimal(payload[priceKey]);
+            if (trigger === null || trigger.lte(0)) continue;
+            attached.push({
+                orderId: paperState.takeId("paper-plan"),
+                symbol,
+                side: closeSide,
+                orderType: String(payload[typeKey] ?? "MARKET").toUpperCase(),
+                qty: qty.toString(),
+                triggerPrice: trigger.toString(),
+                // Derived from where the level sits relative to the entry,
+                // not from the order side — both plans on a long are closing
+                // BUY orders, but the target fires above and the stop below.
+                triggerDirection: trigger.gt(entryPrice) ? "above" : "below",
+                reduceOnly: true,
+                tradeSide: "CLOSE",
+                createdAt: Date.now(),
+            });
+        }
+
+        if (attached.length > 0) {
+            paperState.setOrders([...paperState.orders, ...attached]);
+        }
     }
 
     /** Slippage always works against the trader, on both sides of the book. */
@@ -491,7 +543,16 @@ class PaperExchange {
     private hasCrossed(order: PaperOrder, price: Decimal): boolean {
         const level = toDecimal(order.price) ?? toDecimal(order.triggerPrice);
         if (level === null) return false;
-        // A buy fills at or below its level, a sell at or above it.
+        // An attached plan carries its own direction, because a take-profit
+        // and a stop-loss on the same position are the same side and fire
+        // opposite ways.
+        if (order.triggerDirection) {
+            return order.triggerDirection === "above"
+                ? price.gte(level)
+                : price.lte(level);
+        }
+        // A plain limit order: a buy fills at or below its level, a sell at
+        // or above it.
         return order.side === "BUY" ? price.lte(level) : price.gte(level);
     }
 }

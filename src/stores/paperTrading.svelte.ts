@@ -94,6 +94,14 @@ export interface PaperOrder {
     qty: string;
     price?: string;
     triggerPrice?: string;
+    /**
+     * Which way the feed has to move to trigger this. Recorded for attached
+     * TP/SL plans (FEAT-0069), where the direction cannot be derived from the
+     * order side: a take-profit and a stop-loss on the same long position are
+     * both closing BUY-side orders, but one fires above the entry and the
+     * other below it.
+     */
+    triggerDirection?: "above" | "below";
     reduceOnly: boolean;
     tradeSide?: "OPEN" | "CLOSE";
     positionId?: string;
@@ -133,6 +141,7 @@ const PaperOrderSchema = z.object({
     qty: decimalString,
     price: decimalString.optional(),
     triggerPrice: decimalString.optional(),
+    triggerDirection: z.enum(["above", "below"]).optional(),
     reduceOnly: z.boolean().catch(false),
     tradeSide: z.enum(["OPEN", "CLOSE"]).optional(),
     positionId: z.string().optional(),
