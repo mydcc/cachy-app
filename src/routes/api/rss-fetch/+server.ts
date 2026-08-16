@@ -20,6 +20,7 @@ import type { RequestHandler } from "./$types";
 import Parser from "rss-parser";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../lib/server/rateLimit";
+import { sanitizeHtmlToText } from "../../../lib/server/sanitizer";
 
 // checkClientToken already rate-limits per token/IP; this is defense in depth
 // on top of it (BUG-0052) — the real protection here is the domain allowlist
@@ -152,7 +153,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
           url: item.link || url,
           source: parsed.title || new URL(url).hostname,
           published_at: item.isoDate || item.pubDate || new Date().toISOString(),
-          description: item.contentSnippet || item.content || "",
+          description: sanitizeHtmlToText(item.contentSnippet || item.summary || item.content || ""),
         })),
         feedTitle: parsed.title,
       };

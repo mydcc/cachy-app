@@ -129,7 +129,7 @@ export abstract class WindowBase {
     /** Header Title Click Behavior */
     headerAction: 'toggle-mode' | 'none' = $state('none');
     /** Array of standard button groups to render in header. */
-    headerButtons: ('zoom' | 'export' | 'delete' | 'custom')[] = $state([]);
+    headerButtons: ('zoom' | 'export' | 'delete' | 'custom' | 'openInNewTab')[] = $state([]);
     /** Target side for pinning. */
     pinSide: 'left' | 'right' | 'top' | 'bottom' | 'none' = $state('none');
     doubleClickBehavior: 'maximize' | 'pin' = $state('maximize');
@@ -144,6 +144,8 @@ export abstract class WindowBase {
     closeOnBlur = $state(false);
     /** Renders a dimming backdrop behind this window while it's open. */
     showBackdrop = $state(false);
+    /** Custom storage key for shared persistence across instances. */
+    customStorageKey = $state<string | undefined>(undefined);
     /** Specifically for financial windows (Asset price). */
     symbol = $state("");
     showPriceInTitle = $state(false);
@@ -225,6 +227,8 @@ export abstract class WindowBase {
 
         if (options.x !== undefined) this.x = options.x;
         if (options.y !== undefined) this.y = options.y;
+        if (options.width !== undefined) this.width = options.width;
+        if (options.height !== undefined) this.height = options.height;
 
         // Id stability logic
         if (options.id) {
@@ -234,6 +238,8 @@ export abstract class WindowBase {
             this.id = this.windowType;
         }
 
+        if (options.storageKey) this.customStorageKey = options.storageKey;
+        if (options.allowZoom !== undefined) this.allowZoom = options.allowZoom;
         if (options.opacity !== undefined) this.opacity = options.opacity;
         this.closeOnBlur = options.closeOnBlur ?? this.closeOnBlur;
 
@@ -249,6 +255,10 @@ export abstract class WindowBase {
         // Ensure isMinimized flag is respected immediately after registration.
         if (this.isMinimized && !this.allowMinimize) {
             this.isMinimized = false; // Safety check
+        }
+
+        if (typeof window !== 'undefined' && this.hasRestoredPosition) {
+            this.updatePosition(this.x, this.y);
         }
 
         // Position Logic: Only apply staggering/cursor-vicinity if NO valid saved state exists.
@@ -334,7 +344,7 @@ export abstract class WindowBase {
     private hasRestoredPosition = false;
 
     private get storageKey() {
-        return `cachy_win_${this.id}`;
+        return `cachy_win_${this.customStorageKey || this.id}`;
     }
 
     /**
@@ -638,6 +648,8 @@ export abstract class WindowBase {
     onHeaderDelete() { }
     /** Triggered by the custom action button in the header. */
     onHeaderCustomAction() { }
+    /** Triggered by the open in new tab button in the header. */
+    onHeaderOpenInNewTab() { }
 
     /**
      * Returns a list of actions for the right-click settings menu.

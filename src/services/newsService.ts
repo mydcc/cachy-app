@@ -29,6 +29,7 @@ export interface NewsItem {
   url: string;
   source: string;
   published_at: string;
+  description?: string;
   currencies?: { code: string; title: string }[];
   id?: string; // Hash für Deduplizierung
 }
@@ -45,6 +46,7 @@ const NewsItemSchema = z.object({
   url: z.string().url().or(z.string().startsWith("http")), // Strict but with fallback for internal formats
   source: z.string().min(1),
   published_at: z.string(),
+  description: z.string().optional(),
   currencies: z.array(z.object({ code: z.string(), title: z.string() })).optional(),
   id: z.string().optional(),
 });

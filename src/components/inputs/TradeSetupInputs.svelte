@@ -358,6 +358,10 @@
     const value = target.value;
     localEntryPrice = value;
 
+    if (settingsState.autoUpdatePriceInput) {
+      settingsState.autoUpdatePriceInput = false;
+    }
+
     const validated = parseInputVal(value);
     // Only update store if value is valid AND different
     if (validated !== undefined && entryPrice !== validated) {
@@ -562,7 +566,7 @@
         use:enhancedInput={{
           step: priceStep,
           min: 0,
-          rightOffset: "40px",
+          rightOffset: "16px",
         }}
         bind:value={localEntryPrice}
         onfocus={() => (isEntryPriceFocused = true)}
@@ -845,13 +849,13 @@
                 use:enhancedInput={{
                   step: 0.1,
                   min: 0,
-                  rightOffset: "40px",
+                  hasAction: true,
                 }}
                 bind:value={localAtrValue}
                 onfocus={() => (isAtrValueFocused = true)}
                 onblur={() => (isAtrValueFocused = false)}
                 oninput={handleAtrValueInput}
-                class="input-field w-full px-4 py-2 rounded-md pr-10"
+                class="input-field w-full px-4 py-2 rounded-md"
                 placeholder={$_("dashboard.tradeSetupInputs.atrLabel")}
               />
               <button

@@ -232,6 +232,7 @@ export interface Settings {
     | "bearish"
     | "important"
     | "saved";
+  newsOpenBehavior: "smart" | "reader" | "new_tab" | "window";
   enableNewsAnalysis: boolean;
   cmcApiKey?: string;
   enableCmcContext: boolean;
@@ -398,6 +399,7 @@ const defaultSettings: Settings = {
   newsApiKey: "",
   cryptoPanicPlan: "developer",
   cryptoPanicFilter: "important",
+  newsOpenBehavior: "smart",
   enableNewsAnalysis: true,
   cmcApiKey: "",
   enableCmcContext: false,
@@ -656,6 +658,9 @@ export class SettingsManager {
   cryptoPanicFilter = $state<
     "all" | "rising" | "hot" | "bullish" | "bearish" | "important" | "saved"
   >(defaultSettings.cryptoPanicFilter);
+  newsOpenBehavior = $state<"smart" | "reader" | "new_tab" | "window">(
+    defaultSettings.newsOpenBehavior,
+  );
   enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
   cmcApiKey = $state<string | undefined>(defaultSettings.cmcApiKey);
   enableCmcContext = $state<boolean>(defaultSettings.enableCmcContext);
@@ -1219,6 +1224,8 @@ export class SettingsManager {
       merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
     this.cryptoPanicFilter =
       merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
+    this.newsOpenBehavior =
+      merged.newsOpenBehavior || defaultSettings.newsOpenBehavior;
     this.enableNewsAnalysis = merged.enableNewsAnalysis;
     this.cmcApiKey = merged.cmcApiKey;
     this.enableCmcContext = merged.enableCmcContext;
@@ -1521,6 +1528,7 @@ export class SettingsManager {
       newsApiKey: this.newsApiKey,
       cryptoPanicPlan: this.cryptoPanicPlan,
       cryptoPanicFilter: this.cryptoPanicFilter,
+      newsOpenBehavior: this.newsOpenBehavior,
       enableNewsAnalysis: this.enableNewsAnalysis,
       cmcApiKey: this.cmcApiKey,
       enableCmcContext: this.enableCmcContext,

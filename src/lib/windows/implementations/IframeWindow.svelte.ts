@@ -26,17 +26,44 @@ import IframeView from "./IframeView.svelte";
 
 export class IframeWindow extends WindowBase {
     url: string;
+    description?: string;
+    source?: string;
+    published_at?: string;
 
-    constructor(url: string, title: string, options: WindowOptions = {}) {
+    constructor(
+        url: string,
+        title: string,
+        options: WindowOptions & {
+            showOpenInNewTab?: boolean;
+            description?: string;
+            source?: string;
+            published_at?: string;
+        } = {}
+    ) {
         super({
             title,
             windowType: 'iframe',
             ...options
         });
         this.url = url;
+        this.description = options.description;
+        this.source = options.source;
+        this.published_at = options.published_at;
 
         if (options.closeOnBlur !== undefined) {
             this.closeOnBlur = options.closeOnBlur;
+        }
+
+        if (options.showOpenInNewTab) {
+            if (!this.headerButtons.includes("openInNewTab")) {
+                this.headerButtons = [...this.headerButtons, "openInNewTab"];
+            }
+        }
+    }
+
+    override onHeaderOpenInNewTab() {
+        if (this.url) {
+            window.open(this.url, "_blank", "noopener,noreferrer");
         }
     }
 
@@ -46,9 +73,13 @@ export class IframeWindow extends WindowBase {
 
     get componentProps() {
         return {
+            window: this,
             url: this.url,
-            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups",
-            allow: "fullscreen"
+            description: this.description,
+            source: this.source,
+            published_at: this.published_at,
+            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-downloads allow-modals",
+            allow: "fullscreen; clipboard-write; encrypted-media; picture-in-picture; web-share"
         };
     }
 

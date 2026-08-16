@@ -26,28 +26,53 @@ export function enhancedInput(
     max?: number;
     noDecimals?: boolean;
     showSpinButtons?: boolean | "hover";
+    hasAction?: boolean;
     rightOffset?: string;
   } = {},
 ) {
-  const step = options.step || 1;
+  let currentOptions = { ...options };
+  const step = () => currentOptions.step || 1;
 
   // Use option if provided, otherwise fallback to global setting
   const globalShow = settingsState.showSpinButtons;
   const showSpinButtons =
-    options.showSpinButtons !== undefined
-      ? options.showSpinButtons
+    currentOptions.showSpinButtons !== undefined
+      ? currentOptions.showSpinButtons
       : globalShow;
 
   // Set inputMode for mobile keyboards
-  if (options.noDecimals) {
+  if (currentOptions.noDecimals) {
     node.inputMode = "numeric";
   } else {
     node.inputMode = "decimal";
   }
 
   let wrapper: HTMLDivElement | null = null;
+  let container: HTMLDivElement | null = null;
   let upBtn: HTMLDivElement | null = null;
   let downBtn: HTMLDivElement | null = null;
+
+  function applyLayout() {
+    if (!container) return;
+
+    if (currentOptions.hasAction) {
+      container.classList.add("with-action");
+      node.style.paddingRight = "48px";
+    } else if (currentOptions.rightOffset) {
+      container.classList.remove("with-action");
+      const offsetNum = parseInt(currentOptions.rightOffset, 10) || 0;
+      node.style.paddingRight = `${offsetNum + 20}px`;
+    } else {
+      container.classList.remove("with-action");
+      node.style.paddingRight = "24px";
+    }
+
+    if (currentOptions.rightOffset) {
+      container.style.right = currentOptions.rightOffset;
+    } else if (!currentOptions.hasAction) {
+      container.style.right = "";
+    }
+  }
 
   if (showSpinButtons !== false) {
     // Create wrapper and container for custom spin buttons
@@ -71,15 +96,13 @@ export function enhancedInput(
       wrapper.appendChild(node);
     }
 
-    const container = document.createElement("div");
+    container = document.createElement("div");
     container.className = "custom-spin-buttons";
     if (showSpinButtons === "hover") {
       container.classList.add("hover-only");
     }
 
-    if (options.rightOffset) {
-      container.style.right = options.rightOffset;
-    }
+    applyLayout();
 
     // Helper to create safe SVG
     const createSvgIcon = (points: string) => {
@@ -110,9 +133,6 @@ export function enhancedInput(
     container.appendChild(upBtn);
     container.appendChild(downBtn);
     wrapper.appendChild(container);
-
-    // Add padding to input to avoid text overlap
-    node.style.paddingRight = "20px";
   }
 
   function triggerInput() {
@@ -124,7 +144,7 @@ export function enhancedInput(
     let valStr = node.value;
     // Handle empty or invalid input securely
     if (!valStr || isNaN(parseFloat(valStr))) {
-      valStr = String(options.min !== undefined ? options.min : 0);
+      valStr = String(currentOptions.min !== undefined ? currentOptions.min : 0);
     }
 
     try {
@@ -132,8 +152,8 @@ export function enhancedInput(
       const d = new Decimal(delta);
       let newVal = current.plus(d);
 
-      if (options.min !== undefined && newVal.lt(options.min)) newVal = new Decimal(options.min);
-      if (options.max !== undefined && newVal.gt(options.max)) newVal = new Decimal(options.max);
+      if (currentOptions.min !== undefined && newVal.lt(currentOptions.min)) newVal = new Decimal(currentOptions.min);
+      if (currentOptions.max !== undefined && newVal.gt(currentOptions.max)) newVal = new Decimal(currentOptions.max);
 
       node.value = newVal.toString();
       triggerInput();
@@ -145,8 +165,9 @@ export function enhancedInput(
   const handleWheel = (e: WheelEvent) => {
     // We remove preventDefault() to allow passive scrolling,
     // and rely on focus state to decide if we want to change value.
-    if (e.deltaY < 0) updateValue(step);
-    else updateValue(-step);
+    const s = step();
+    if (e.deltaY < 0) updateValue(s);
+    else updateValue(-s);
   };
 
   const onFocus = () => {
@@ -160,13 +181,13 @@ export function enhancedInput(
   const onUp = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    updateValue(step);
+    updateValue(step());
   };
 
   const onDown = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    updateValue(-step);
+    updateValue(-step());
   };
 
   node.addEventListener("focus", onFocus);
@@ -175,6 +196,15 @@ export function enhancedInput(
   if (downBtn) downBtn.addEventListener("click", onDown);
 
   return {
+    update(newOptions: typeof options) {
+      currentOptions = { ...newOptions };
+      if (currentOptions.noDecimals) {
+        node.inputMode = "numeric";
+      } else {
+        node.inputMode = "decimal";
+      }
+      applyLayout();
+    },
     destroy() {
       node.removeEventListener("focus", onFocus);
       node.removeEventListener("blur", onBlur);

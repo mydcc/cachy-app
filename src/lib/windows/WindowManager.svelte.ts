@@ -260,6 +260,7 @@ class WindowManager {
         }
 
         // 4. Registration and activation.
+        windowInstance.isMinimized = false;
         this._windows.push(windowInstance);
         this.bringToFront(windowInstance.id);
         this.saveSession();

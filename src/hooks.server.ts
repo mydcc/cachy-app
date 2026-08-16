@@ -120,9 +120,6 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
   // COOP: same-origin-allow-popups keeps TradingView popup compatibility
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-  // COEP: credentialless enables SharedArrayBuffer for WASM threads & WebGPU
-  // without breaking cross-origin resources (unlike require-corp)
-  // Supported: Chrome 96+, Firefox 100+, Safari 15.2+
   response.headers.set("Cross-Origin-Embedder-Policy", "credentialless");
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("X-Content-Type-Options", "nosniff");

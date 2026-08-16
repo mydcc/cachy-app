@@ -437,13 +437,7 @@
             <div
                 class="title-wrapper"
                 class:clickable={win.headerAction === "toggle-mode"}
-                onpointerdown={(e) => {
-                    // Do NOT stop propagation if minimized, so header handles restore
-                    if (!win.isMinimized) {
-                        e.stopPropagation();
-                    }
-                    handleTitlePointerDown(e);
-                }}
+                onpointerdown={handleTitlePointerDown}
                 onpointerup={handleTitlePointerUp}
                 role="button"
                 tabindex="0"
@@ -564,6 +558,29 @@
                             d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
                         /></svg
                     >
+                </button>
+            {/if}
+
+            {#if win.headerButtons.includes("openInNewTab")}
+                <button
+                    class="tool-btn"
+                    onclick={() => win.onHeaderOpenInNewTab()}
+                    ondblclick={(e) => e.stopPropagation()}
+                    title={$_("dashboard.openInNewTab")} aria-label={$_("dashboard.openInNewTab")}
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    ><path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    /></svg>
                 </button>
             {/if}
 
