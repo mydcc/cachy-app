@@ -2,7 +2,7 @@
 id: BUG-0217
 title: Tab inactivity drops WebSocket connection without automatic recovery
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -45,25 +45,97 @@ In `src/services/bitunixWs.ts`:
 
 ## Fix
 
-1. **Tab Visibility & Focus Listener**:
-   - In `connectionManager.ts` or `app.ts`, register a `visibilitychange` and `focus` listener.
-   - When `document.visibilityState === "visible"` or window gains focus:
-     - Check if `marketState.connectionStatus !== "connected"` or if the last received message is older than the stale threshold.
-     - Automatically attempt an immediate silent reconnect via `connectionManager.switchProvider(activeProvider, { force: true })` or provider `reconnect()`.
-     - Re-sync `marketWatcher` subscriptions and refresh active klines/tickers.
-2. **Grace Period for Offline Banner**:
-   - Give automatic reconnect a grace window (e.g. 3–5 seconds) when the tab becomes active before flashing the `OfflineBanner` if the reconnect succeeds immediately.
-3. **Web Worker Heartbeat (Optional/Hardening)**:
-   - For long-term background monitoring, consider offloading ping keepalives to a Web Worker (which is not throttled like main-thread timers) or handling reconnection gracefully upon wake.
+**Visibility and focus listeners, centralized in `ConnectionManager` rather than
+per provider.** `bitunixWs.ts` and `bitgetWs.ts` both already implement
+`ManagedService` (`connect(force?)`, `destroy()`) and both already write to the
+shared `marketState.connectionStatus`, so `ConnectionManager` — which already
+owns provider lifecycle via `switchProvider` — is the one place that can fix
+this for both providers at once instead of duplicating the logic twice. Placed
+in `connectionManager.ts`'s constructor, mirroring how `bitunixWs.ts` already
+registers its own `window.addEventListener("online"/"offline", ...)` there.
+
+Two DOM event pairs feed one method, `notifyVisibilityChange(visible: boolean)`,
+kept public and pure (no DOM access itself) so it can be tested without firing
+real browser events:
+
+- `document.visibilitychange`, the tab-level signal the symptom names directly.
+- `window.focus`/`blur`, because a Cachy tab that stays the *active* tab while
+  the whole browser *window* loses OS focus (e.g. working in another
+  application on a second monitor) never fires `visibilitychange` — some
+  browsers throttle background *windows* too, not only background tabs, so
+  relying on one event alone would miss that case.
+
+**Threshold instead of an unconditional reconnect on every glance away.** The
+issue's own fix note said to check `connectionStatus !== "connected"` before
+reconnecting, but that value is unreliable at the exact moment visibility
+changes: the same background-timer throttling this bug is about can mean the
+monitor loop hasn't run yet to update it, so it can still read `"connected"`
+long after the socket actually died. Instead, `notifyVisibilityChange` records
+when the tab/window was hidden and, on return, only forces a reconnect if it
+was hidden for at least `HIDDEN_RECONNECT_THRESHOLD_MS` (15s — the same
+threshold `bitunixWs`'s own monitor loop already uses for "how long is stale"
+while the tab is visible). Below that, an ordinary alt-tab is a no-op: no
+teardown, no resubscribe, nothing for the user to notice.
+
+**The reconnect itself is the existing, already-proven path.** Past the
+threshold, `notifyVisibilityChange` calls
+`switchProvider(activeProvider, { force: true })` — the identical call
+`appEffects.svelte.ts` and `app.ts` already make on an API-key change or first
+load. It tears down every registered provider (`killAll()`), restarts the
+polling bridge, and reconnects the active one; `onProviderConnected` then calls
+`pollingService.resync()`, which is what re-establishes subscriptions — nothing
+provider-specific needed adding for that, since `marketWatcher`'s registered
+interest already survives a provider's `destroy()`/`connect()` cycle by design
+(that's the whole reason `resync()` exists).
+
+**Grace period:** not built as a separate mechanism. `OfflineBanner` is already
+a `$derived` of `connectionStatus`, so the moment `switchProvider` completes and
+`onProviderConnected` fires, the banner disappears on its own — no polling, no
+timeout to tune. A brief flash while `killAll()` sets the status to
+`"disconnected"` before the reconnect completes is possible on a long-hidden
+tab (the same flash "Switch Provider" already causes today), which is a signal
+that something happened, not something lingering.
+
+**Web Worker heartbeat:** not built. The visibility/focus fix removes the need
+for it — the socket recovering within seconds of the user returning is the
+actual requirement, and nothing here depends on the ping keepalive itself
+surviving the background period.
 
 ## Acceptance criteria
 
-- [ ] When an inactive background tab is refocused, Cachy automatically detects disconnected or stale WebSocket state and initiates reconnection without requiring user intervention.
-- [ ] Active market data subscriptions (`ticker`, `price`, `klines`, `depth`) and private channels (`positions`, `orders`) resume streaming within seconds of tab refocus.
-- [ ] The `OfflineBanner` does not linger if auto-reconnection succeeds upon tab refocus.
-- [ ] Manual "Reconnect" button continues to work as expected.
+- [x] When an inactive background tab is refocused, Cachy automatically
+      detects disconnected or stale WebSocket state and initiates reconnection
+      without requiring user intervention — proven past the 15s threshold,
+      not on every refocus (see Fix)
+- [x] Active market data subscriptions and private channels resume streaming
+      within seconds of tab refocus — via the existing `resync()` path,
+      already exercised by every other `switchProvider` call
+- [x] The `OfflineBanner` does not linger if auto-reconnection succeeds upon
+      tab refocus — it is a `$derived` of `connectionStatus`, so it clears the
+      instant `onProviderConnected` fires
+- [x] Manual "Reconnect" button continues to work as expected — untouched;
+      `OfflineBanner.handleReconnect` still calls `app.setupRealtimeUpdates()`
+      independently
+
+## Tests
+
+`connectionManager.test.ts` gained an 11-test `notifyVisibilityChange` suite:
+a hidden period past the threshold forces a reconnect; a brief one does not;
+becoming visible without a prior hidden event is a no-op; no active provider
+is a no-op; a second `visible` signal without an intervening `hidden` does not
+double-reconnect; a `blur`/`focus` pair behaves identically to a
+`visibilitychange` pair; and one test dispatches real
+`visibilitychange`/`focus`/`blur` `Event`s against the actual singleton to
+prove the constructor's `addEventListener` calls stay wired, not just the
+exposed method.
+
+Verified against the pre-fix code: reverting `connectionManager.ts` to its
+prior state and re-running fails 7 of the 11 (`notifyVisibilityChange is not a
+function`, and the DOM-wiring test finding nothing registered). Restored
+before committing.
 
 ## Out of scope
 
-- Multi-provider parallel active streaming (only the active provider is connected).
+- Multi-provider parallel active streaming (only the active provider is
+  connected).
 - Push notifications when the tab is completely closed.
