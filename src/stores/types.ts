@@ -179,6 +179,13 @@ export interface JournalEntry {
   tradingFee?: Decimal;
   realizedPnl?: Decimal;
   isManual?: boolean;
+  /**
+   * True for a simulated fill from paper trading (FEAT-0012), which never
+   * moved real money. FEAT-0013's daily-loss counter filters on this flag
+   * explicitly rather than assuming paper trades never reach the journal —
+   * an incidental exclusion is one refactor away from being none at all.
+   */
+  isPaper?: boolean;
   tags?: string[];
   screenshot?: string;
   positionSize?: Decimal;

@@ -92,6 +92,7 @@ Code reviews (`/backlog-review` skill) enforce these rules automatically, but no
 
 - **Language:** Commits and PR descriptions MUST be in English. Never German in commits or PR comments.
 - **Conventional Commits:** `feat:` (Minor), `fix:` (Patch), `refactor:` (no release), `BREAKING CHANGE:` in footer for Major.
+- **No tool-attribution footers.** Do not append `Co-Authored-By: Claude ...`, `Claude-Session: ...`, or similar lines to commit messages — not part of Cachy's commit standard.
 - **Never push directly to `develop` or `main`.** Every change goes through a feature branch and PR; target is always `develop`, never `main`.
 - **Pull Request Linking:** Every PR MUST include `Fixes #<github_issue_number>` (e.g., `Fixes #1770`) at the start of its description so GitHub auto-links the PR with the issue and advances the Kanban card.
 - **Agent Isolation:** Before starting work, ensure you're on a clean `develop` branch (`git checkout develop`, `git status`). Use Git worktrees for parallel tasks to avoid conflicts with other agents in the same directory (see `AGENTS.md`).

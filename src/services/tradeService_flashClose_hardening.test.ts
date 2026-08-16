@@ -66,6 +66,12 @@ vi.mock('../stores/market.svelte', async () => {
 });
 
 
+// FEAT-0011: every state-mutating call carries an order-gate pass as its
+// fourth argument, and `signedRequest` refuses one that arrives without it.
+// That the pass is genuine, single-use and bound to this account is covered
+// in orderGate.test.ts; here it only has to be present.
+const GATE_PASS = expect.anything();
+
 describe('TradeService Flash Close Vulnerability', () => {
     beforeEach(() => {
         vi.resetAllMocks();
@@ -104,7 +110,8 @@ describe('TradeService Flash Close Vulnerability', () => {
         expect(requestSpy).toHaveBeenCalledWith(
             'POST',
             '/api/orders',
-            expect.objectContaining({ side: 'BUY', tradeSide: 'CLOSE', orderType: 'MARKET', reduceOnly: true })
+            expect.objectContaining({ side: 'BUY', tradeSide: 'CLOSE', orderType: 'MARKET', reduceOnly: true }),
+            GATE_PASS
         );
     });
 });

@@ -81,6 +81,42 @@ export const PlaceOrderSchema = BaseRequestSchema.extend({
   // say which one. Omitted entirely for ONE_WAY accounts — see BUG-0062.
   tradeSide: z.enum(["OPEN", "CLOSE"]).optional(),
   positionId: z.string().optional(),
+
+  // --- FEAT-0069 -----------------------------------------------------------
+  // Fields place_order accepts (docs/bitunix-api/07_trade.md:577-596) that
+  // Cachy did not send. Each closes a concrete gap rather than adding
+  // coverage for its own sake.
+
+  /**
+   * Time in force. Documented as required for LIMIT and meaningless for
+   * MARKET, so the route omits it on a market order rather than sending a
+   * value the exchange will ignore.
+   */
+  effect: z.enum(["IOC", "FOK", "GTC", "POST_ONLY"]).optional(),
+
+  /**
+   * Cachy-generated identifier for one submission attempt. Without it a
+   * retry after an ambiguous response can double an order, and there is no
+   * way to tie a WS confirmation back to the attempt that caused it.
+   */
+  clientId: z.string().min(1).max(64).optional(),
+
+  // TP/SL attached at entry. Sending these with the order is the difference
+  // between a position that is protected from its first tick and one that is
+  // unprotected until a second request succeeds.
+  tpPrice: PositiveNumericString.optional(),
+  tpStopType: z.enum(["MARK_PRICE", "LAST_PRICE"]).optional(),
+  tpOrderType: z.enum(["LIMIT", "MARKET"]).optional(),
+  tpOrderPrice: PositiveNumericString.optional(),
+  slPrice: PositiveNumericString.optional(),
+  slStopType: z.enum(["MARK_PRICE", "LAST_PRICE"]).optional(),
+  slOrderType: z.enum(["LIMIT", "MARKET"]).optional(),
+  slOrderPrice: PositiveNumericString.optional(),
+  // NOTE: the "LIMIT TP/SL needs its order price" rule is deliberately NOT a
+  // `.refine()` here. This schema is a member of OrderRequestSchema's
+  // discriminated union, and a refined object is a ZodEffects, which
+  // z.discriminatedUnion cannot take. The rule lives in placeBitunixOrder
+  // instead, next to the existing LIMIT-price validation it belongs with.
 });
 
 // --- Close Position ---

@@ -37,6 +37,7 @@
 
   // Sub-components
   import PositionsList from "./PositionsList.svelte";
+  import { tpSlState } from "../../stores/tpsl.svelte";
   import AccountSummary from "./AccountSummary.svelte";
   import OpenOrdersList from "./OpenOrdersList.svelte";
   import OrderHistoryList from "./OrderHistoryList.svelte";
@@ -500,6 +501,8 @@
         // instead of silently keeping the previous account's stale data.
         hasFetchedOrdersOnce = false;
         hasFetchedHistoryOnce = false;
+        // The position cards' TP/SL plans belong to the previous account.
+        tpSlState.reset();
         if (activeTab === "orders") fetchPendingOrders();
         if (activeTab === "history") fetchHistoryOrders();
       });
@@ -523,6 +526,19 @@
       callback();
     }
   }
+
+  // FEAT-0057: the position cards show each position's active TP/SL, so the
+  // plans have to be loaded when the cards are on screen — but only then, and
+  // only when there is a position to annotate. `ensureFresh` is a no-op
+  // inside its cache window and de-dupes concurrent callers, so this staying
+  // reactive costs one request per window at most.
+  $effect(() => {
+    const shouldLoad = activeTab === "positions" && mappedPositions.length > 0;
+    if (!shouldLoad) return;
+    untrack(() => {
+      tpSlState.ensureFresh();
+    });
+  });
 
   // Context Menu Handling
   function handleContextMenu(event: MouseEvent) {
@@ -562,6 +578,9 @@
           $_("dashboard.alerts.closePositionSuccess"),
           "success",
         );
+        // The exchange cancels a closed position's plans; leaving them cached
+        // would show a stop on a position that no longer exists.
+        tpSlState.invalidate();
         // Trigger refresh or wait for WS
       }
     } catch (e: unknown) {
@@ -570,7 +589,7 @@
       // account rejecting a close that's missing tradeSide/positionId, see
       // BUG-0062) was never visible to the user. Same pattern
       // handleCancelOrder already used correctly below.
-      const msg = getDisplayMessage(e);
+      const msg = getDisplayMessage(e, $_);
       uiState.showError(msg || $_("dashboard.alerts.failedClose"));
     }
   }
@@ -587,7 +606,7 @@
     } catch (e: unknown) {
         // Prefer rawMessage on BitunixApiError — `e.message` carries the i18n
         // key "apiErrors.generic" and would render as a literal string otherwise.
-        const msg = getDisplayMessage(e);
+        const msg = getDisplayMessage(e, $_);
         uiState.showError(msg || $_("dashboard.alerts.cancelOrderError"));
     }
   }

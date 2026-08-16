@@ -65,7 +65,7 @@
     } catch (e: unknown) {
       // Prefer rawMessage on BitunixApiError — `e.message` carries the i18n
       // key "apiErrors.generic" and would render as a literal string otherwise.
-      error = getDisplayMessage(e) || $_("errors.modifyFailed");
+      error = getDisplayMessage(e, $_) || $_("errors.modifyFailed");
     } finally {
       loading = false;
     }

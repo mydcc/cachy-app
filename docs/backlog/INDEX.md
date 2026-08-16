@@ -2,9 +2,9 @@
 
 # Backlog index
 
-103 items. How to read and add them: [README.md](README.md).
+106 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
+Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 6 · ✅ done 61
 
 ---
 
@@ -32,10 +32,10 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | 📋 specced | execution |
-| [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | execution |
-| [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | 📋 specced | execution |
-| [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | execution |
+| [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | execution |
+| [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | execution |
+| [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | execution |
+| [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | execution |
 | [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | ui |
 
 ### M2
@@ -63,10 +63,10 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | 📋 specced | trade-panel |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | trade-panel |
-| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | trade-panel |
+| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | trade-panel |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 📋 specced | exchange |
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | exchange |
-| [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | 📋 specced | execution |
+| [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | execution |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | execution |
 | [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | trade-panel |
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | trade-panel |
@@ -129,19 +129,21 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | 🟢 ready | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | core |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | services |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | ui |
+| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | ui |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
 | [BUG-0185](bugs/BUG-0185-competitor-names-in-docs.md) | Competitor platform names appear in user-facing and planning documentation | P2 | ✅ done | docs |
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | repo |
-| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 📋 specced | ui |
-| [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 📋 specced | ui |
+| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 🟢 ready | ui |
+| [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 🟢 ready | ui |
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
@@ -154,13 +156,14 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 | [FEAT-0197](features/FEAT-0197-split-settings-store.md) | Extract entitlement state and the settings load/persist path out of settings.svelte.ts | P2 | ✅ done | security |
 | [FEAT-0198](features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md) | Add characterisation tests for market.svelte.ts's buffer-pool acquire/release pairing | P2 | ✅ done | services |
 | [FEAT-0200](features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md) | Encrypt API keys and other secrets at rest in localStorage | P2 | 💡 idea | security |
+| [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | trade-panel |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
 | [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | ✅ done | i18n |
-| [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | 📋 specced | ui |
-| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | 📋 specced | ui |
-| [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | 📋 specced | ui |
+| [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | 🟢 ready | ui |
+| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | 🟢 ready | ui |
+| [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | 🟢 ready | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -182,9 +185,10 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) |
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
-| [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
-| [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
-| [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | 📋 specced | M1 | community, pro, private | A | none | — |
+| [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
+| [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
+| [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
+| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | M0 | community, pro, private | A | none | — |
@@ -197,8 +201,9 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) |
+| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
-| [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | 📋 specced | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
+| [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
@@ -210,10 +215,10 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | M4 | community, pro, private | A | none | — |
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | ✅ done | M0 | community, pro, private | none | ADR-0006 | — |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
-| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
+| [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | 📋 specced | M3 | community, pro, private | C | none | — |
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
-| [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
+| [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
@@ -230,8 +235,8 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 | [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | M1 | community, pro, private | none | none | [BUG-0053](bugs/BUG-0053-device-key-loss-orphans-secrets.md) |
 | [BUG-0185](bugs/BUG-0185-competitor-names-in-docs.md) | Competitor platform names appear in user-facing and planning documentation | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 📋 specced | none | community | none | none | — |
-| [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 📋 specced | none | community | none | none | — |
+| [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | 🟢 ready | none | community | none | none | — |
+| [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | 🟢 ready | none | community | none | none | — |
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | none | community | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
@@ -259,13 +264,14 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 | [FEAT-0197](features/FEAT-0197-split-settings-store.md) | Extract entitlement state and the settings load/persist path out of settings.svelte.ts | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [FEAT-0198](features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md) | Add characterisation tests for market.svelte.ts's buffer-pool acquire/release pairing | P2 | ✅ done | none | community, pro, private | C | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md), [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md), [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) |
 | [FEAT-0200](features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md) | Encrypt API keys and other secrets at rest in localStorage | P2 | 💡 idea | none | community, pro, private | A | ADR-0001 | — |
+| [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | 📋 specced | none | community | none | none | — |
-| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | 📋 specced | none | community | none | none | — |
-| [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | 📋 specced | none | community | none | none | — |
+| [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | 🟢 ready | none | community | none | none | — |
+| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | 🟢 ready | none | community | none | none | — |
+| [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | 🟢 ready | none | community | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -280,4 +286,4 @@ Counts by status: 💡 idea 16 · 📋 specced 32 · ✅ done 55
 
 ---
 
-Next free number: **0212**
+Next free number: **0214**

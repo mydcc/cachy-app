@@ -15,6 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { OrderRefusedError, translateRefusal } from "../services/orderGate";
+import type { TranslationKey } from "../locales/schema";
+
+/** The shape of svelte-i18n's `$_`, so call sites can pass it unchanged. */
+type Translate = (key: TranslationKey, vars?: Record<string, unknown>) => string;
+
 export function getErrorMessage(e: unknown): string {
     if (e instanceof Error) return e.message;
     if (typeof e === 'string') return e;
@@ -31,7 +37,20 @@ export function getErrorMessage(e: unknown): string {
  * user must prefer `rawMessage`, falling back to the Error message for
  * non-API errors (e.g. "tradeErrors.positionNotFound").
  */
-export function getDisplayMessage(e: unknown): string {
+export function getDisplayMessage(e: unknown, t?: Translate): string {
+    // FEAT-0011: a gate refusal already knows which field disagreed and by
+    // how much. Its `.message` is an English developer string; the
+    // translated form is the one the trader needs, so render it when a
+    // translate function is available.
+    if (t && e instanceof OrderRefusedError) {
+        // The `orderGate.*` message keys are all in the schema; the per-field
+        // ones (`orderGate.fields.<field>`) are assembled at runtime and
+        // deliberately allowed to miss — translateRefusal falls back to the
+        // raw field name. That is the only reason this cast exists.
+        return translateRefusal(e.refusal, (key, options) =>
+            t(key as TranslationKey, options),
+        );
+    }
     if (e && typeof e === 'object' && 'rawMessage' in e) {
         const raw = (e as { rawMessage?: unknown }).rawMessage;
         if (typeof raw === 'string' && raw.length > 0) return raw;

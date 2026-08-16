@@ -153,8 +153,8 @@
 
     // Direction Data
     let dirData = $derived(
-        journalState.entries
-            ? calculator.getDirectionData(journalState.entries)
+        journalState.analysisEntries
+            ? calculator.getDirectionData(journalState.analysisEntries)
             : {
                   longPnl: 0,
                   shortPnl: 0,
