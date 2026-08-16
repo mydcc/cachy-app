@@ -29,7 +29,7 @@
  * Usage: node scripts/backlog-promote-workflow.mjs
  */
 
-import { readFileSync, writeFileSync, appendFileSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -62,7 +62,14 @@ function getChangedBacklogFiles() {
   if (result.status !== 0) return [];
   return result.stdout
     .split("\n")
-    .filter((f) => f.startsWith("docs/backlog/") && f.endsWith(".md"));
+    .filter(
+      (f) =>
+        f.startsWith("docs/backlog/") &&
+        f.endsWith(".md") &&
+        !f.endsWith("INDEX.md") &&
+        !f.endsWith("README.md") &&
+        !f.includes("/templates/"),
+    );
 }
 
 function getFileAtRef(filePath, ref) {
@@ -80,13 +87,19 @@ function auditPromotionPR() {
   const byId = new Map(allItems.map((item) => [item.id, item]));
 
   for (const filePath of changedFiles) {
+    const fullPath = join(ROOT, filePath);
+    if (!existsSync(fullPath)) {
+      results.warnings.push(`File deleted (not a promotion): ${filePath}`);
+      continue;
+    }
+
     const oldContent = getFileAtRef(filePath, BASE_REF);
     if (oldContent === null) {
       results.warnings.push(`File created (not a promotion): ${filePath}`);
       continue;
     }
 
-    const newContent = readFileSync(join(ROOT, filePath), "utf8");
+    const newContent = readFileSync(fullPath, "utf8");
     const oldFM = parseFrontMatter(oldContent);
     const newFM = parseFrontMatter(newContent);
     if (!oldFM || !newFM) {
