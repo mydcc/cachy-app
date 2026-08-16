@@ -4,7 +4,7 @@
 
 106 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 6 · ✅ done 61
+Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 5 · ✅ done 62
 
 ---
 
@@ -162,7 +162,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 6 · ✅ done 61
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
 | [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | ✅ done | i18n |
 | [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | 🟢 ready | ui |
-| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | 🟢 ready | ui |
+| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | ui |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | 🟢 ready | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
@@ -270,7 +270,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 6 · ✅ done 61
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0076](bugs/BUG-0076-indicatorsettings-hardcoded-strings.md) | IndicatorSettings.svelte has extensive hardcoded English UI strings | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | 🟢 ready | none | community | none | none | — |
-| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | 🟢 ready | none | community | none | none | — |
+| [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | 🟢 ready | none | community | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
