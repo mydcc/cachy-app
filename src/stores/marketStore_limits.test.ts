@@ -39,13 +39,6 @@ describe("MarketStore Limits", () => {
     };
     vi.stubGlobal("localStorage", localStorageMock);
 
-    const windowMock = {
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      matchMedia: vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
-      location: { href: "" },
-    };
-    vi.stubGlobal("window", windowMock);
 
     // Dynamic imports
     const settingsModule = await import("./settings.svelte");
