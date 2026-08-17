@@ -4,7 +4,7 @@
 
 119 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 77
+Counts by status: 💡 idea 17 · 📋 specced 23 · 🟡 in-progress 1 · ✅ done 78
 
 ---
 
@@ -134,7 +134,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | 🟢 ready | core |
+| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | core |
@@ -201,7 +201,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
-| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | 🟢 ready | none | community, pro, private | A | none | — |
+| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | M0 | community, pro, private | A | none | — |
