@@ -2,9 +2,9 @@
 
 # Backlog index
 
-117 items. How to read and add them: [README.md](README.md).
+118 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · ✅ done 74
+Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · 🟡 in-progress 1 · ✅ done 74
 
 ---
 
@@ -154,6 +154,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · ✅ done 74
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | repo |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | repo |
+| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | 🟡 in-progress | repo |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -256,6 +257,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · ✅ done 74
 | [BUG-0216](bugs/BUG-0216-i18n-interpolation-values.md) | Three dialogs render raw {placeholder} because $_ was called without the values wrapper | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) |
+| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -308,4 +310,4 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · ✅ done 74
 
 ---
 
-Next free number: **0225**
+Next free number: **0226**
