@@ -9,6 +9,11 @@ on:
       - 'docs/backlog/**/*.md'
   workflow_dispatch: # Allow manual trigger
 
+# Prevent two sync jobs from racing each other and producing duplicate issues.
+concurrency:
+  group: sync-backlog
+  cancel-in-progress: false
+
 jobs:
   sync-issues:
     runs-on: ubuntu-latest
