@@ -24,6 +24,8 @@
  */
 
 export { activeExchange, getExchangeAdapter, exchangeAdapters } from "./registry";
+export { ExchangeUnsupportedError, isExchangeUnsupportedError } from "./errors";
+export type { UnsupportedFeature } from "./errors";
 
 /*
  * The venue-neutral payload shapes, re-exported so a component never has to

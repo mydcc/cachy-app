@@ -16,7 +16,11 @@
 -->
 
 <script lang="ts">
-  import { activeExchange, type TpSlOrder } from "../../services/exchange";
+  import {
+    activeExchange,
+    isExchangeUnsupportedError,
+    type TpSlOrder,
+  } from "../../services/exchange";
   import { _ } from "../../locales/i18n";
   import type { TranslationKey } from "../../locales/schema";
   import { formatDynamicDecimal } from "../../utils/utils";
@@ -84,9 +88,11 @@
       tpSlState.invalidate();
       fetchOrders(); // Refresh
     } catch (e) {
-      // A gate refusal (FEAT-0011) already names the field that disagreed;
-      // collapsing it into the generic "cancel failed" would throw that away.
-      if (e instanceof OrderRefusedError) {
+      // A gate refusal (FEAT-0011) already names the field that disagreed,
+      // and a venue refusal (FEAT-0229) already names what this exchange
+      // cannot do; collapsing either into the generic "cancel failed" would
+      // throw that away.
+      if (e instanceof OrderRefusedError || isExchangeUnsupportedError(e)) {
         toastService.error(getDisplayMessage(e, $_));
         return;
       }

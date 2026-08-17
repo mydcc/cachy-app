@@ -156,14 +156,19 @@ describe("FEAT-0016 — trading delegates, and adds no path of its own", () => {
         expect(tradeServiceMock.placeOrder).toHaveBeenCalledWith(params);
     });
 
-    it("routes TP/SL through the same transport on both venues", async () => {
+    it("routes TP/SL to the transport on the venue that has it", async () => {
         await activeExchange().trading.fetchTpSlOrders("pending");
+        expect(tradeServiceMock.fetchTpSlOrders).toHaveBeenCalledTimes(1);
+    });
+
+    it("stops short of the transport on a venue that does not", async () => {
+        // Until FEAT-0229 this delegated too, and Bitget's proxy route
+        // (routes/api/tpsl/+server.ts) did the refusing. The refusal now
+        // happens before a request is built — see unsupportedVerbs.test.ts
+        // for the read/write split that governs it.
         settings.apiProvider = "bitget";
         await activeExchange().trading.fetchTpSlOrders("pending");
-        // Bitget's proxy route refuses these itself (routes/api/tpsl); the
-        // adapter states the gap in `supports` rather than pre-empting it,
-        // which keeps behaviour identical to before FEAT-0016.
-        expect(tradeServiceMock.fetchTpSlOrders).toHaveBeenCalledTimes(2);
+        expect(tradeServiceMock.fetchTpSlOrders).not.toHaveBeenCalled();
     });
 });
 

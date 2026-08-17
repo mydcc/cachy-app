@@ -2565,6 +2565,14 @@
       "tooltip": "Paper trading is on. Orders are simulated and no money moves."
     }
   },
+  "exchange": {
+    "unsupported": {
+      "tpSl": "Take-profit and stop-loss orders are not available on {exchange}. Nothing was sent.",
+      "leverageMarginMode": "{exchange} does not report leverage and margin mode to Cachy, so the values shown are your local settings.",
+      "tradingPairInfo": "{exchange} does not provide contract details to Cachy, so precision and size limits fall back to defaults.",
+      "generic": "{exchange} cannot do that, so Cachy did not send the request."
+    }
+  },
   "orderEntry": {
     "title": "Place this position",
     "notReady": "Enter an entry price and a stop to size a position first.",

@@ -2,7 +2,8 @@
 id: FEAT-0229
 title: Refuse an order verb the venue cannot do before it leaves the client
 type: feature
-status: specced
+status: done
+branch: feat-0229-refuse-unsupported-verbs
 priority: P1
 milestone: M2
 editions: [community, pro, private]
@@ -62,15 +63,57 @@ New strings go into `src/locales/` in German and English.
 
 ## Acceptance criteria
 
-- [ ] With `supports.tpSl === false`, no write verb reaches `tradeService` —
+- [x] With `supports.tpSl === false`, no write verb reaches `tradeService` —
       proven by a test asserting the transport was never called
-- [ ] A read verb on the same venue resolves empty and raises no error
+      → `unsupportedVerbs.test.ts` asserts the *absence* of the call, not just
+      the presence of an error. The error is the symptom; the unsent request is
+      the point.
+- [x] A read verb on the same venue resolves empty and raises no error
+      → `fetchTpSlOrders` resolves `[]`; `fetchLeverageMarginMode` and
+      `fetchTradingPairInfo` resolve locally instead of sending a request that
+      `tradeService` would drop or a Bitunix-only route would reject. Nothing
+      was ever written by those on Bitget, so nothing observable changes.
 - [ ] `ExchangeUnsupportedError` renders through the existing toast path with a
       message naming the exchange and what it cannot do, in both locales
-- [ ] Bitunix behaviour is byte-identical — the guard is reachable only through
+      → **half proven.** The message itself is: `getDisplayMessage` translates
+      the error with the venue interpolated (`Bitget`, not `bitget`), and both
+      locale strings exist, differ, and carry the placeholder — all asserted.
+      That the `TpSlList` catch hands it to `toastService` is type-checked and
+      reviewed, not tested: this repo has no component-test harness, and adding
+      one is its own decision rather than a line item here.
+- [x] Bitunix behaviour is byte-identical — the guard is reachable only through
       a false `supports` flag
-- [ ] The refusal is independent of the UI: it holds when the verb is invoked
+      → asserted verb by verb: every TP/SL and account call still reaches
+      `tradeService` exactly once on Bitunix.
+- [x] The refusal is independent of the UI: it holds when the verb is invoked
       directly, not only when a hidden control would have prevented it
+      → the tests call the adapter directly, and through `activeExchange()`.
+
+## What was built
+
+- `src/services/exchange/errors.ts` — `ExchangeUnsupportedError` carrying the
+  venue, the missing feature and an i18n key. Free of runtime imports on
+  purpose: `errorUtils` translates it and is itself imported by `apiService`,
+  which the adapters import.
+- `bitgetAdapter.ts` — one `SUPPORTS` constant that the guards read, so the
+  declaration and the behaviour cannot drift. Reads resolve, writes `refuse()`.
+- `errorUtils.getDisplayMessage` translates the error, as it already did for
+  `OrderRefusedError`.
+- `exchange.unsupported.*` in `de.json` and `en.json`, types regenerated.
+- `TpSlList` shows the refusal instead of collapsing it into "cancel failed".
+
+One existing test changed: `exchangeAdapter.test.ts` asserted that TP/SL
+delegated on *both* venues, which was FEAT-0016's deliberate pass-through.
+That is exactly the behaviour this item removes, so the test now asserts the
+new contract and names what it used to assert.
+
+## Verification
+
+- `npm run check` — 2005 files, 0 errors, 0 warnings
+- `npm test` — 221 test files passed, 1 skipped; 1595 tests passed, 6 skipped,
+  0 failures
+- `scripts/check_translations.sh` — 0 missing, 0 empty, 0 one-sided keys
+- New: `unsupportedVerbs.test.ts` (11 tests)
 
 ## Out of scope
 
