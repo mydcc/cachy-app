@@ -81,6 +81,9 @@ npm run test:e2e     # Playwright E2E tests
 
 Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository.
 
+- **First action, always:** Before accepting or starting any task, call jCodeMunch `order { "action": "resolve_repo", "args": { "path": "." } }`. If `indexed` is `false`, immediately run `order { "action": "index_folder", "args": { "path": "." } }` (with `allow_state_change: true`) before doing anything else. This is mandatory for every agent session, not optional context-gathering.
+- **Work locally through jCodeMunch to save tokens.** Prefer jCodeMunch actions (`search_symbols`, `get_ranked_context`, etc.) over Grep/Glob/Read for exploration — this is why tasks are executed locally in the first place, not just a style preference.
+
 ## Codebase Understanding for All Agents
 
 This CLAUDE.md and `AGENTS.md` apply to **all coding agents** — Claude Code, Jules, Cursor, Codex, Antigravity, etc. Agents following these project rules (not just tool defaults) have deeper understanding:
