@@ -2,7 +2,7 @@
 id: BUG-0225
 title: Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -84,15 +84,16 @@ it exclusively CI-maintained, in one place:
       at all
 - [x] `npm run backlog:check` still fails on a duplicate id, a reused number,
       or a `depends_on` target that does not exist
-- [ ] Two backlog-item-only PRs (no shared file touched) merge into `develop`
+- [x] Two backlog-item-only PRs (no shared file touched) merge into `develop`
       back to back with zero manual conflict resolution, proven by observing
-      the next two real backlog PRs
-- [ ] `sync-backlog.yml`'s new commit step successfully publishes a
-      regenerated `INDEX.md` to `develop` after a real merge, verified once
-      live
-- [ ] The existing duplicate issues (#2018/#2020, #2021/#2023) are resolved
-      once the `cleanupDuplicateIssue` fix from PR #2026 also lands — tracked
-      there, not duplicated here
+      the next two real backlog PRs — verified live post-merge, no conflicts
+- [x] `sync-backlog.yml`'s commit step successfully publishes a regenerated
+      `INDEX.md` to `develop` after a real merge — verified live; first
+      attempt hit push race with semantic-release, retry logic added and
+      validated (PR #2034)
+- [x] The existing duplicate issues (#2018/#2020, #2021/#2023) are resolved
+      once the `cleanupDuplicateIssue` fix from PR #2026 also lands — completed
+      via PR #2026 cleanup logic
 
 ## Out of scope
 
