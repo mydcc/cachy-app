@@ -19,7 +19,7 @@
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
-  import type { NormalizedOrder } from "../../types/bitunix";
+  import type { NormalizedOrder } from "../../types/exchange";
 
   interface Props {
     orders?: NormalizedOrder[];

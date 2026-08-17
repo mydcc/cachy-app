@@ -6,7 +6,7 @@
     import { settingsState } from "../../stores/settings.svelte";
     import { browser } from "$app/environment";
     import { tradeState } from "../../stores/trade.svelte";
-    import { bitunixWs } from "../../services/bitunixWs";
+    import { activeExchange } from "../../services/exchange";
 
     const intensityMultiplier = $derived(
         settingsState.backgroundAnimationIntensity === "low"
@@ -50,7 +50,10 @@
     $effect(() => {
         if (!browser) return;
         const currentSymbol = tradeState.symbol || "BTCUSDT";
-        const cleanup = bitunixWs.subscribeTrade(currentSymbol, onTrade);
+        // Whichever exchange is active — on one without a trade stream this
+        // subscribes to nothing and the background stays neutral, which is
+        // what it already did there.
+        const cleanup = activeExchange().marketData.subscribeTrades(currentSymbol, onTrade);
         return () => cleanup();
     });
 

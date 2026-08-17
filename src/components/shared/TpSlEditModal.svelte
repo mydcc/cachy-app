@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { tradeService, type TpSlOrder } from "../../services/tradeService";
+  import { activeExchange, type TpSlOrder } from "../../services/exchange";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
@@ -54,7 +54,7 @@
     error = "";
 
     try {
-      await tradeService.modifyTpSlOrder({
+      await activeExchange().trading.modifyTpSlOrder({
         orderId: order.orderId || order.id || order.planId || "",
         symbol: order.symbol,
         planType: order.planType,

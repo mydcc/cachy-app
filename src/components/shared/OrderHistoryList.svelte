@@ -21,7 +21,7 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
   import { OrderType } from "../../types/orderTypes";
-  import type { NormalizedOrder } from "../../types/bitunix";
+  import type { NormalizedOrder } from "../../types/exchange";
   import { icons } from "../../lib/constants";
   import Decimal from "decimal.js";
 

@@ -74,7 +74,8 @@ The largest directory, ~50 modules with tests alongside. The groups that matter:
 
 | Group | Modules | Note |
 | --- | --- | --- |
-| **Exchange** | `bitunixWs.ts`, `bitgetWs.ts`, `tradeService.ts`, `syncService.ts`, `apiService.ts`, `connectionManager.ts` | Two parallel implementations. [FEAT-0016](backlog/features/FEAT-0016-exchange-adapter-interface.md) replaces this with one adapter interface |
+| **Exchange boundary** | `exchange/` (`types.ts`, `bitunixAdapter.ts`, `bitgetAdapter.ts`, `registry.ts`) | The one interface every venue sits behind. Components, stores and calculations import `services/exchange` and nothing venue-specific — enforced by `tests/architecture/exchange_boundary.test.ts`. [FEAT-0016](backlog/features/FEAT-0016-exchange-adapter-interface.md), [ADR-0007](adr/0007-exchange-adapter-boundary.md) |
+| **Exchange implementations** | `bitunixWs.ts`, `bitgetWs.ts`, `tradeService.ts`, `syncService.ts`, `apiService.ts`, `connectionManager.ts` | What the adapters delegate to. `connectionManager` keeps the connection lifecycle; moving each socket behind its own adapter is [FEAT-0227](backlog/features/FEAT-0227-adapter-owns-its-socket.md) |
 | **Order state** | `omsService.ts`, `rmsService.ts` | Order and risk management. `rmsService` holds the risk limits and the kill switch and reports them to the gate — [FEAT-0013](backlog/features/FEAT-0013-risk-limits-and-kill-switch.md) |
 | **Order audit** | `orderAuditService.ts` | Append-only local record of every submission attempt, refusals included. Class A, redacted before writing — [FEAT-0015](backlog/features/FEAT-0015-order-audit-trail.md) |
 | **Paper trading** | `paperExchange.ts`, `paperTradingService.ts` | A simulated exchange behind the transport. Live and paper differ at one call site in `tradeService.signedRequest` — [FEAT-0012](backlog/features/FEAT-0012-paper-trading-mode.md) |

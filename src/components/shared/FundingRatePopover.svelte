@@ -26,8 +26,7 @@
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { fundingRateService } from "../../services/fundingRateService.svelte";
-  import type { FundingRateHistoryItem } from "../../services/apiService";
-  import { normalizeSymbol } from "../../utils/symbolUtils";
+  import type { FundingRateHistoryItem } from "../../services/exchange";
   import { Decimal } from "decimal.js";
 
   interface Props {
@@ -51,7 +50,7 @@
   let arrowEl: HTMLElement | undefined = $state();
   let triggerEl: HTMLElement | undefined = $state();
 
-  let normSymbol = $derived(symbol ? normalizeSymbol(symbol, "bitunix") : "");
+  let normSymbol = $derived(fundingRateService.historyKey(symbol));
   let historyData = $derived(
     normSymbol ? fundingRateService.historyState[normSymbol] : undefined,
   );

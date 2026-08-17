@@ -26,13 +26,13 @@
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
-  import { tradeService } from "../../services/tradeService";
+  import { activeExchange } from "../../services/exchange";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { unwrapApiEnvelope } from "../../utils/utils";
   import { appFetch } from "../../lib/appAuth";
   import type { OMSPosition } from "../../services/omsTypes";
   import { calculateLiveUnrealizedPnl } from "../../services/mappers";
-  import type { NormalizedOrder, NormalizedPosition } from "../../types/bitunix";
+  import type { NormalizedOrder, NormalizedPosition } from "../../types/exchange";
   import type { TranslationKey } from "../../locales/schema";
 
   // Sub-components
@@ -561,7 +561,7 @@
   // Actions
   async function handleClosePosition(pos: OMSPosition) {
     try {
-      const res = (await tradeService.closePosition({
+      const res = (await activeExchange().trading.closePosition({
         symbol: pos.symbol,
         positionSide: pos.side,
         amount: pos.amount, // Use amount from OMSPosition
@@ -596,7 +596,7 @@
 
   async function handleCancelOrder(orderId: string, symbol: string) {
     try {
-        const res = (await tradeService.cancelOrder(symbol, orderId)) as { error?: string } | undefined;
+        const res = (await activeExchange().trading.cancelOrder(symbol, orderId)) as { error?: string } | undefined;
         if (res && res.error) {
             uiState.showError($_("dashboard.alerts.cancelOrderError", { values: { error: res.error } }) || `Cancel failed: ${res.error}`);
         } else {

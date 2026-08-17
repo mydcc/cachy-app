@@ -48,7 +48,7 @@
     orderPlacementService,
     type PlacementResult,
   } from "../../services/orderPlacementService";
-  import { tradeService } from "../../services/tradeService";
+  import { activeExchange } from "../../services/exchange";
   import { translateRefusal, MAX_ACCOUNT_STATE_AGE_MS } from "../../services/orderGate";
   import type { TranslationKey } from "../../locales/schema";
 
@@ -142,7 +142,7 @@
       // Re-read it here instead. A failed read leaves the old timestamp to
       // age out, so the gate still refuses rather than being talked round.
       if (!isPaper && isAccountStateStale()) {
-        await tradeService.fetchLeverageMarginMode(data.symbol);
+        await activeExchange().account.fetchLeverageMarginMode(data.symbol);
       }
 
       result = await orderPlacementService.placeEntryGroup({

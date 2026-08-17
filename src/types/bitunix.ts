@@ -58,57 +58,9 @@ export interface BitunixOrderListWrapper {
   [key: string]: unknown; // Allow other pagination fields
 }
 
-// Normalized Internal Order Interface
-export interface NormalizedOrder {
-  id: string;
-  orderId: string;
-  clientId?: string;
-  symbol: string;
-  type: string;
-  side: string;
-  price: string | null; // High-precision string or null
-  amount: string; // High-precision string
-  filled: string; // High-precision string
-  status: string;
-  time: number;
-  mtime?: number;
-  leverage?: string;
-  marginMode?: string;
-  positionMode?: string;
-  reduceOnly?: boolean;
-  fee: string; // High-precision string
-  realizedPNL: string; // High-precision string
-  tpPrice?: string;
-  tpStopType?: string;
-  tpOrderType?: string;
-  slPrice?: string;
-  slStopType?: string;
-  slOrderType?: string;
-  avgPrice?: string; // High-precision string
-  role?: string;
-}
-
-// Normalized Internal Position Interface — shared shape both exchanges'
-// /api/positions routes map their raw responses into.
-export interface NormalizedPosition {
-  positionId?: string;
-  symbol: string;
-  side: string;
-  size?: string;
-  entryPrice?: string;
-  liquidationPrice?: string;
-  markPrice?: string;
-  margin?: string;
-  unrealizedPnL?: string;
-  leverage?: string;
-  marginMode: string;
-  // Bitunix-only (`marginRate`/`realizedPNL` on Get Pending Positions,
-  // docs/bitunix-api/05_position.md:103-129). Not mapped for Bitget — no
-  // verified field name for either, and BUG-0001 is the standing reminder
-  // not to guess an exchange's wire format.
-  marginRate?: string;
-  realizedPnl?: string;
-}
+// `NormalizedOrder` and `NormalizedPosition` moved to `types/exchange.ts` in
+// FEAT-0016 — they are what both exchanges normalise *into*, so they no longer
+// live under one venue's name. This file keeps only Bitunix wire shapes.
 
 export interface BitunixOrderPayload {
   symbol: string;
