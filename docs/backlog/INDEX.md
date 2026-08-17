@@ -2,9 +2,9 @@
 
 # Backlog index
 
-114 items. How to read and add them: [README.md](README.md).
+115 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 73
+Counts by status: 💡 idea 16 · 📋 specced 24 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 73
 
 ---
 
@@ -27,6 +27,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0043](bugs/BUG-0043-responsive-window-remaximizes.md) | A responsive window restored by hand on mobile re-maximizes on the next resize event | P2 | ✅ done | ui |
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | ✅ done | ui |
 | [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | ✅ done | ui |
+| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Evaluate and apply major dependency updates | P2 | 📋 specced | tooling |
 
 ### M1
 
@@ -281,6 +282,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0200](features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md) | Encrypt API keys and other secrets at rest in localStorage | P2 | 💡 idea | none | community, pro, private | A | ADR-0001 | — |
 | [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0214](features/FEAT-0214-pr-preview-deployments.md) | Automated PR preview deployments for visual and mobile testing | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Evaluate and apply major dependency updates | P2 | 📋 specced | M0 | community, pro, private | none | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -302,4 +304,4 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0222**
+Next free number: **0223**
