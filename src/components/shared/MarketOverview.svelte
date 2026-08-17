@@ -283,8 +283,10 @@
   // Watch for symbol or provider changes (Ticker & Price)
   $effect(() => {
     if (symbol) {
-      marketWatcher.register(symbol, "price");
-      marketWatcher.register(symbol, "ticker");
+      untrack(() => {
+        marketWatcher.register(symbol, "price");
+        marketWatcher.register(symbol, "ticker");
+      });
       return () => {
         marketWatcher.unregister(symbol, "price");
         marketWatcher.unregister(symbol, "ticker");
