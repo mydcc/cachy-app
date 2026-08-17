@@ -1815,6 +1815,7 @@
     "ignore": "Ignorieren",
     "send": "Nachricht senden",
     "analyzing": "Analysiere...",
+    "retry": "Erneut versuchen",
     "aria": {
       "startQuiz": "Quiz starten",
       "toggleVideo": "Video umschalten",
