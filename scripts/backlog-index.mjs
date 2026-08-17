@@ -20,10 +20,17 @@
  * Validates the backlog's front matter and regenerates docs/backlog/INDEX.md.
  *
  *   npm run backlog:index        write INDEX.md, fail on invalid front matter
- *   npm run backlog:index -- --check   validate only, also fail if INDEX.md is stale
+ *   npm run backlog:index -- --check   validate only, do not touch INDEX.md
  *
- * The --check mode is what CI runs: it makes a hand-edited or forgotten index a
- * failed build rather than a document that quietly stops matching the files.
+ * The --check mode is what PR CI runs: front matter, id/filename agreement,
+ * duplicate ids, duplicate numbers, and depends_on targets that actually
+ * exist. It deliberately does NOT require a committed INDEX.md to be present
+ * or fresh — INDEX.md is regenerated and committed to develop/main by
+ * .github/workflows/sync-backlog.yml after merge, not by whoever opens the
+ * PR. Requiring every backlog-touching PR to carry a fresh INDEX.md diff is
+ * what caused near-constant merge conflicts on its two summary lines (item
+ * counts, next free number) when several PRs touched the backlog in
+ * parallel — see BUG-0225.
  *
  * The YAML parser here is deliberately minimal — it handles exactly the flat
  * scalar/inline-list schema documented in docs/backlog/README.md and rejects
@@ -256,18 +263,9 @@ lines.push("---", "", `Next free number: **${next}**`, "");
 const rendered = lines.join("\n");
 
 if (process.argv.includes("--check")) {
-  let current = "";
-  try {
-    current = readFileSync(INDEX, "utf8");
-  } catch {
-    console.error("docs/backlog/INDEX.md does not exist. Run: npm run backlog:index");
-    process.exit(1);
-  }
-  if (current !== rendered) {
-    console.error("docs/backlog/INDEX.md is stale. Run: npm run backlog:index");
-    process.exit(1);
-  }
-  console.log(`Backlog: ${items.length} items, front matter valid, index up to date.`);
+  // Validation only — see the module comment for why this does not compare
+  // against or require a committed INDEX.md.
+  console.log(`Backlog: ${items.length} items, front matter valid.`);
 } else {
   writeFileSync(INDEX, rendered);
   console.log(`Backlog: ${items.length} items, front matter valid. Wrote ${basename(INDEX)}.`);

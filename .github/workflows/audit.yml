@@ -71,11 +71,15 @@ jobs:
           node-version: "20"
 
       # Validates every backlog item's front matter (status, priority, edition,
-      # data class, id/filename agreement, dependencies that actually exist) and
-      # fails if INDEX.md is stale. Without this the index is a hand-maintained
-      # copy of the directory, which is exactly the drift docs/REPO-AUDIT.md is
-      # about. No dependencies needed — the script is plain Node.
-      - name: Validate backlog front matter and index
+      # data class, id/filename agreement, duplicate ids/numbers, dependencies
+      # that actually exist). Deliberately does NOT require docs/backlog/INDEX.md
+      # to be present or fresh in the PR branch — that file is regenerated and
+      # committed to develop/main by sync-backlog.yml after merge, not by every
+      # backlog-touching PR. Requiring a fresh INDEX.md diff per PR used to cause
+      # near-constant merge conflicts on its two summary lines (item counts,
+      # next free number) whenever two backlog PRs were in flight at once — see
+      # BUG-0225. No dependencies needed — the script is plain Node.
+      - name: Validate backlog front matter
         run: npm run backlog:check
 
       # A moved or renamed document silently breaks every pointer to it. That

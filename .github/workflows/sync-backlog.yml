@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      contents: read
+      contents: write
       repository-projects: write
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -42,3 +42,25 @@ jobs:
           PROJECT_SYNC_TOKEN: ${{ secrets.PROJECT_SYNC_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: npx tsx scripts/sync-github-issues.ts
+
+      # Regenerate the index and publish it directly to this branch — never as
+      # part of a feature PR. INDEX.md has two summary lines (item counts,
+      # next free number) that change on every single regeneration regardless
+      # of which item changed, so requiring every backlog PR to carry its own
+      # fresh copy was a guaranteed merge-conflict source once more than one
+      # such PR was in flight (see BUG-0225). This is the only place INDEX.md
+      # is ever committed.
+      - name: Regenerate backlog index
+        run: node scripts/backlog-index.mjs
+
+      - name: Commit index if changed
+        run: |
+          if git diff --quiet -- docs/backlog/INDEX.md; then
+            echo "INDEX.md unchanged, nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/backlog/INDEX.md
+          git commit -m "chore(backlog): regenerate INDEX.md [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
