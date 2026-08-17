@@ -2,7 +2,7 @@
 id: FEAT-0222
 title: Apply low-risk major dependency updates (OpenAI, JSDOM, Undici)
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: M0
 editions: [community, pro, private]
@@ -19,6 +19,7 @@ Jules skipped several major dependency updates during the weekly chore (#2016). 
 
 ## Proposal
 Manually update and test the major versions for `openai`, `@types/jsdom`, and `undici`.
+Client-initialization (`new OpenAI({ apiKey })`) and chat completion calls (`openai.chat.completions.create`) in `src/routes/api/sentiment/+server.ts` remain fully compatible in OpenAI SDK v7 without syntax changes.
 
 ## Acceptance criteria
 - [ ] `openai` updated to `^7.4.0`
@@ -32,5 +33,3 @@ Manually update and test the major versions for `openai`, `@types/jsdom`, and `u
 - TypeScript 7 update (see FEAT-0224)
 - SpacetimeDB 2.8.1 update (see FEAT-0223)
 
-## Open questions
-- Hat sich die Syntax der Client-Initialisierung für `openai` in v7 geändert?
