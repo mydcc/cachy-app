@@ -47,17 +47,32 @@ jobs:
           FORCE_FULL_SYNC: 'true'
         run: npx tsx scripts/sync-github-issues.ts
 
-      - name: Regenerate backlog index
-        run: node scripts/backlog-index.mjs
-
-      - name: Commit index if changed
+      # See sync-backlog.yml's matching step for why this retries: other
+      # automation (semantic-release, another sync run) also pushes straight
+      # to develop, so the tip can move between checkout and push. INDEX.md
+      # is fully regenerable, so on rejection it's safe to just re-sync to
+      # the new tip and regenerate again.
+      - name: Regenerate and commit index (retries on a moved base)
         run: |
-          if git diff --quiet -- docs/backlog/INDEX.md; then
-            echo "INDEX.md unchanged, nothing to commit."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/backlog/INDEX.md
-          git commit -m "chore(backlog): regenerate INDEX.md [skip ci]"
-          git push origin HEAD:develop
+          for attempt in 1 2 3 4 5; do
+            node scripts/backlog-index.mjs
+            if git diff --quiet -- docs/backlog/INDEX.md; then
+              echo "INDEX.md unchanged, nothing to commit."
+              exit 0
+            fi
+            git add docs/backlog/INDEX.md
+            git commit -m "chore(backlog): regenerate INDEX.md [skip ci]"
+            if git push origin HEAD:develop; then
+              echo "Pushed successfully on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt — develop moved. Re-syncing and retrying..."
+            git reset --hard HEAD~1
+            git fetch origin develop
+            git reset --hard origin/develop
+            sleep $((attempt * 3))
+          done
+          echo "Failed to push docs/backlog/INDEX.md after 5 attempts."
+          exit 1
