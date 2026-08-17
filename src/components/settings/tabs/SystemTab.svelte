@@ -27,6 +27,17 @@
     import DataMaintenance from "../DataMaintenance.svelte";
     import { toastService } from "../../../services/toastService.svelte";
     import { autoBackupState, triggerAutoBackup } from "../../../services/autoBackupService.svelte";
+    import {
+        fileTargetState,
+        isFileSystemAccessSupported,
+        pickFileTarget,
+        clearFileTarget,
+        setFileTargetInterval,
+        requestFileTargetPermission,
+        MIN_INTERVAL_MINUTES,
+        MAX_INTERVAL_MINUTES,
+        type FileTargetSlot,
+    } from "../../../services/fileTargetBackupService.svelte";
 
     let { onBackup, onRestore, onReset } = $props<{
         onBackup: () => void;
@@ -42,6 +53,33 @@
 
     function reloadApp() {
         window.location.reload();
+    }
+
+    const fsaSupported = isFileSystemAccessSupported();
+
+    async function handlePickFileTarget(slot: FileTargetSlot) {
+        const result = await pickFileTarget(slot, fileTargetState[slot].intervalMinutes);
+        if (result.success) {
+            toastService.success($_("settings.system.fileTargetConfigured"));
+        } else if (result.message === "pickFailed") {
+            toastService.error($_("settings.system.fileTargetPickFailed"));
+        }
+    }
+
+    async function handleReconnect(slot: FileTargetSlot) {
+        const ok = await requestFileTargetPermission(slot);
+        if (ok) {
+            toastService.success($_("settings.system.fileTargetReconnected"));
+        } else {
+            toastService.error($_("settings.system.fileTargetReconnectFailed"));
+        }
+    }
+
+    function handleIntervalChange(slot: FileTargetSlot, e: Event) {
+        const value = Number((e.target as HTMLInputElement).value);
+        if (!Number.isNaN(value)) {
+            setFileTargetInterval(slot, value);
+        }
     }
 
     const activeSubTab = $derived(uiState.settingsSystemSubTab);
@@ -270,6 +308,109 @@
                         >
                             {$_("settings.system.snapshotNow") || "Snapshot Now"}
                         </button>
+                    {/if}
+                </div>
+
+                <!-- Periodic Local File Write-Through (FEAT-0212 Phase 2) -->
+                <div class="mb-4 p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg">
+                    <div class="font-bold text-sm">
+                        {$_("settings.system.fileTargetTitle")}
+                    </div>
+                    <div class="text-[10px] text-[var(--text-secondary)] mt-0.5 mb-3">
+                        {$_("settings.system.fileTargetDesc")}
+                    </div>
+
+                    {#if !fsaSupported}
+                        <div class="text-[10px] text-[var(--warning-color)]">
+                            {$_("settings.system.fileTargetUnsupported")}
+                        </div>
+                    {:else}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {#each [1, 2] as slot (slot)}
+                                {@const info = fileTargetState[slot as FileTargetSlot]}
+                                <div class="p-3 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-semibold">
+                                            {$_("settings.system.fileTargetSlot", { values: { slot } })}
+                                        </span>
+                                        {#if info.isConfigured}
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {info.needsPermission ? 'bg-[var(--warning-color)]/10 text-[var(--warning-color)]' : 'bg-emerald-500/10 text-emerald-500'}">
+                                                <span class="w-1.5 h-1.5 rounded-full {info.needsPermission ? 'bg-[var(--warning-color)]' : 'bg-emerald-500'}"></span>
+                                                {info.needsPermission ? ($_("settings.system.unsupported") || "") : ($_("settings.system.active") || "Active")}
+                                            </span>
+                                        {/if}
+                                    </div>
+
+                                    {#if info.isConfigured}
+                                        <div class="text-[10px] text-[var(--text-secondary)] truncate" title={info.fileName ?? ""}>
+                                            {info.fileName}
+                                        </div>
+                                        <div class="text-[10px] text-[var(--text-secondary)] mt-1">
+                                            {$_("settings.system.fileTargetLastWrite")}:
+                                            {info.lastWriteTime ? new Date(info.lastWriteTime).toLocaleTimeString() : $_("settings.system.fileTargetNever")}
+                                        </div>
+
+                                        {#if info.needsPermission}
+                                            <div class="text-[10px] text-[var(--warning-color)] mt-1">
+                                                {$_("settings.system.fileTargetPermissionNeeded")}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="btn-secondary text-[10px] py-1 px-2 mt-2 w-full"
+                                                onclick={() => handleReconnect(slot as FileTargetSlot)}
+                                            >
+                                                {$_("settings.system.fileTargetReconnect")}
+                                            </button>
+                                        {:else if info.lastError}
+                                            <div class="text-[10px] text-[var(--danger-color)] mt-1">
+                                                {$_("settings.system.fileTargetWriteFailed")}
+                                            </div>
+                                        {/if}
+
+                                        <label class="flex items-center gap-2 mt-2 text-[10px] text-[var(--text-secondary)]">
+                                            {$_("settings.system.fileTargetInterval")}
+                                            <input
+                                                type="number"
+                                                min={MIN_INTERVAL_MINUTES}
+                                                max={MAX_INTERVAL_MINUTES}
+                                                value={info.intervalMinutes}
+                                                onchange={(e) => handleIntervalChange(slot as FileTargetSlot, e)}
+                                                class="w-14 px-1.5 py-0.5 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-[10px]"
+                                            />
+                                            {$_("settings.system.fileTargetIntervalMinutes")}
+                                        </label>
+
+                                        <div class="flex gap-2 mt-2">
+                                            <button
+                                                type="button"
+                                                class="btn-secondary text-[10px] py-1 px-2 flex-1"
+                                                onclick={() => handlePickFileTarget(slot as FileTargetSlot)}
+                                            >
+                                                {$_("settings.system.fileTargetReplace")}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="btn-secondary text-[10px] py-1 px-2 flex-1"
+                                                onclick={() => clearFileTarget(slot as FileTargetSlot)}
+                                            >
+                                                {$_("settings.system.fileTargetRemove")}
+                                            </button>
+                                        </div>
+                                    {:else}
+                                        <div class="text-[10px] text-[var(--text-secondary)] mb-2">
+                                            {$_("settings.system.fileTargetNotConfigured")}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="btn-secondary text-[10px] py-1 px-2 w-full"
+                                            onclick={() => handlePickFileTarget(slot as FileTargetSlot)}
+                                        >
+                                            {$_("settings.system.fileTargetChoose")}
+                                        </button>
+                                    {/if}
+                                </div>
+                            {/each}
+                        </div>
                     {/if}
                 </div>
 
