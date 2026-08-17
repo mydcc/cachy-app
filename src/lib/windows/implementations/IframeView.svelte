@@ -40,9 +40,16 @@
 
     import { frameSupportService } from "../../../services/frameSupportService";
 
+    // The reader-mode filter is a news-article feature only. IframeView is also reused by
+    // ChannelWindow (e.g. the space.cachy.app 3D channels), which must always render its
+    // embedded iframe regardless of the user's news display preference.
+    let isNewsWindow = $derived(win.windowType === "iframe");
+
     let isReaderMode = $derived(
-        settingsState.newsOpenBehavior === "reader" ||
-        (settingsState.newsOpenBehavior === "smart" && frameSupportService.isDomainFrameBlocked(win.url))
+        isNewsWindow && (
+            settingsState.newsOpenBehavior === "reader" ||
+            (settingsState.newsOpenBehavior === "smart" && frameSupportService.isDomainFrameBlocked(win.url))
+        )
     );
 
     const clientArticleCache = new Map<string, string[]>();
