@@ -22,7 +22,7 @@
 
 import { WindowBase, type WindowSerializedState } from "../WindowBase.svelte";
 import type { WindowOptions } from "../types";
-import IframeView from "./IframeView.svelte";
+import ChannelView from "./ChannelView.svelte";
 
 /**
  * ChannelWindow is a specialized window for rendering external content
@@ -91,7 +91,7 @@ export class ChannelWindow extends WindowBase {
 
     /** The UI component used to display the iframe. */
     get component() {
-        return IframeView;
+        return ChannelView;
     }
 
     /** Mapping of logic parameters to component props. */

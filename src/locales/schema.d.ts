@@ -1590,6 +1590,7 @@ export type TranslationKey =
   | "common.ignore"
   | "common.send"
   | "common.analyzing"
+  | "common.retry"
   | "common.aria.startQuiz"
   | "common.aria.toggleVideo"
   | "common.aria.removeTag"

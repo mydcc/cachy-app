@@ -1799,6 +1799,7 @@
     "ignore": "Ignore",
     "send": "Send message",
     "analyzing": "Analyzing...",
+    "retry": "Retry",
     "aria": {
       "startQuiz": "Start Quiz",
       "toggleVideo": "Toggle Video",
