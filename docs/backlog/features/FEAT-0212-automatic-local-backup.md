@@ -2,7 +2,7 @@
 id: FEAT-0212
 title: Automatically back up local data so a cleared browser cache can't destroy it
 type: feature
-status: ready
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -57,25 +57,25 @@ encryption format rather than inventing a second one:
 
 ## Acceptance criteria
 
-- [ ] An OPFS snapshot is written automatically on every meaningful data
+- [x] An OPFS snapshot is written automatically on every meaningful data
       change, debounced to at most once per 30s, no user interaction required
-- [ ] On app start, if the OPFS snapshot is newer than current `localStorage`
+- [x] On app start, if the OPFS snapshot is newer than current `localStorage`
       state, the user is offered a restore — never applied without
       confirmation
-- [ ] A user can pick a local file via the File System Access API; Cachy
+- [x] A user can pick a local file via the File System Access API; Cachy
       writes an updated snapshot to it on a configurable interval (default
       5 min)
-- [ ] A user can configure a second, independent local file target; a write
+- [x] A user can configure a second, independent local file target; a write
       failure on one target does not block the other
-- [ ] Both the file-target and OPFS snapshots reuse `backupService.ts`'s
+- [x] Both the file-target and OPFS snapshots reuse `backupService.ts`'s
       existing payload shape and optional password encryption, not a second
       format
-- [ ] On a browser without the File System Access API, the periodic-local-file
+- [x] On a browser without the File System Access API, the periodic-local-file
       control is hidden with an explanatory message; OPFS auto-snapshot and
       the existing manual "Create Backup" still work
-- [ ] A test against a mocked network asserts nothing added by this item
+- [x] A test against a mocked network asserts nothing added by this item
       makes any outbound request — the data never leaves the device
-- [ ] German and English strings
+- [x] German and English strings
 
 ## Out of scope
 
