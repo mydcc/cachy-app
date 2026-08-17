@@ -2,7 +2,7 @@
 id: FEAT-0222
 title: Apply low-risk major dependency updates (OpenAI, JSDOM, Undici)
 type: feature
-status: ready
+status: in-progress
 priority: P2
 milestone: M0
 editions: [community, pro, private]
@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 ---
+
 
 # FEAT-0222 — Apply low-risk major dependency updates (OpenAI, JSDOM, Undici)
 

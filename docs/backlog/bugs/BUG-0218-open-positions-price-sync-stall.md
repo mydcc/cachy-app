@@ -2,7 +2,7 @@
 id: BUG-0218
 title: Open position live mark price updates unreliably or stalls until page reload
 type: bug
-status: ready
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 ---
+
 
 # BUG-0218 — Open position live mark price updates unreliably or stalls until page reload
 
