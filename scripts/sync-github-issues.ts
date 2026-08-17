@@ -483,6 +483,36 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
     }
 }
 
+async function cleanupDuplicateIssue(dupIssue: GitHubIssue, canonicalNumber: number) {
+    try {
+        const remainingLabels = labelNamesOf(dupIssue).filter(
+            (name) => !name.startsWith(BACKLOG_ID_LABEL_PREFIX) && !name.startsWith(STATUS_LABEL_PREFIX)
+        );
+        const cleanedBody = (dupIssue.body || "")
+            .replace(/<!--\s*backlog-id:[^>]*-->/g, "")
+            .trim();
+        const payload = {
+            body: `${cleanedBody}\n\n> Note: Closed as duplicate of #${canonicalNumber}.`,
+            labels: remainingLabels,
+            state: "closed",
+            state_reason: "not_planned"
+        };
+        await fetch(dupIssue.url, {
+            method: "PATCH",
+            headers: {
+                "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                "Accept": "application/vnd.github+json",
+                "Content-Type": "application/json",
+                "X-GitHub-Api-Version": "2022-11-28"
+            },
+            body: JSON.stringify(payload)
+        });
+        console.log(`[Sync] Closed duplicate issue #${dupIssue.number} (canonical: #${canonicalNumber})`);
+    } catch (e) {
+        console.warn(`[Sync] Failed to cleanup duplicate issue #${dupIssue.number}:`, e);
+    }
+}
+
 function mapStatusToOptionName(status: string, hasOpenPR: boolean = false): string {
     if (hasOpenPR && status.toLowerCase() !== 'done' && status.toLowerCase() !== 'dropped') {
         return 'In review';
@@ -739,13 +769,19 @@ async function main() {
     const issueMap = new Map<string, string>(); // backlogId -> nodeId
 
     for (const item of localItems) {
-        // Match by backlog-id label first (survives title/body edits), then fall back to the
-        // hidden marker or title prefix for issues created before the label existed.
-        const existing = existingIssues.find(issue =>
+        const matching = existingIssues.filter(issue =>
             labelNamesOf(issue).includes(`${BACKLOG_ID_LABEL_PREFIX}${item.id}`) ||
             issue.body?.includes(`<!-- backlog-id: ${item.id} -->`) ||
             issue.title.startsWith(`[${item.id}]`)
         );
+        matching.sort((a, b) => a.number - b.number);
+        const existing = matching[0];
+
+        if (matching.length > 1 && existing) {
+            for (let i = 1; i < matching.length; i++) {
+                await cleanupDuplicateIssue(matching[i], existing.number);
+            }
+        }
         
         // Same rule as the auto-linker, from the same function on purpose: this
         // drives the `in-review` Kanban status, and when the two copies of the
