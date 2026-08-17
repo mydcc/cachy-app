@@ -97,8 +97,8 @@ way and documented in [`REPO-AUDIT.md`](REPO-AUDIT.md) and the
 
 - A new **decision** that constrains future work → an [ADR](adr/README.md).
   Copy `adr/template.md`, open it as `Proposed`.
-- A new **thing to build** → a [backlog item](backlog/README.md), then
-  `npm run backlog:index`.
+- A new **thing to build** → a [backlog item](backlog/README.md). Do not run
+  `npm run backlog:index` yourself — CI regenerates `INDEX.md` after merge.
 - A new **choice for a human** → [`TODO.md`](TODO.md), with the "why it is here"
   line intact.
 - Anything else: ask whether it belongs in a document that already exists. It
