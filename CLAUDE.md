@@ -77,10 +77,6 @@ npm run test:e2e     # Playwright E2E tests
 - **Keep debug logs:** Remove `console.log` statements only upon explicit instruction.
 - **Playwright:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
 
-## MCP Tools
-
-Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository.
-
 ## Codebase Understanding for All Agents
 
 This CLAUDE.md and `AGENTS.md` apply to **all coding agents** — Claude Code, Jules, Cursor, Codex, Antigravity, etc. Agents following these project rules (not just tool defaults) have deeper understanding:
