@@ -98,7 +98,6 @@
     "zod": "^4.4.3"
   },
   "overrides": {
-    "undici": "^8.10.0",
     "cookie": "1.1.1",
     "esbuild": "^0.25.0"
   }
