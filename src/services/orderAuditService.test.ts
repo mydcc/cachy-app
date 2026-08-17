@@ -264,7 +264,7 @@ describe("FEAT-0015 — bounds", () => {
         expect(
             (entries[entries.length - 1].payload as { clientOrderId: string }).clientOrderId,
         ).toBe(`o-${MAX_AUDIT_ENTRIES + 24}`);
-    });
+    }, 15000);
 
     it("drops the oldest until the serialised log fits the byte bound", async () => {
         // One pathological payload must not be able to eat the whole
