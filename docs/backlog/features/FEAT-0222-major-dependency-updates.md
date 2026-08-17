@@ -2,7 +2,7 @@
 id: FEAT-0222
 title: Apply low-risk major dependency updates (OpenAI, JSDOM, Undici)
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: M0
 editions: [community, pro, private]
@@ -23,12 +23,12 @@ Manually update and test the major versions for `openai`, `@types/jsdom`, and `u
 Client-initialization (`new OpenAI({ apiKey })`) and chat completion calls (`openai.chat.completions.create`) in `src/routes/api/sentiment/+server.ts` remain fully compatible in OpenAI SDK v7 without syntax changes.
 
 ## Acceptance criteria
-- [ ] `openai` updated to `^7.4.0`
-- [ ] `@types/jsdom` updated to `^30.0.0`
-- [ ] `undici` updated to `^8.10.0`
-- [ ] Sentiment API (`src/routes/api/sentiment/+server.ts`) successfully tested with the new OpenAI client version
-- [ ] `npm run check` passes without errors
-- [ ] `npm test` passes without errors
+- [x] `openai` updated to `^7.4.0`
+- [x] `@types/jsdom` updated to `^30.0.0`
+- [x] `undici` updated to `^8.10.0`
+- [x] Sentiment API (`src/routes/api/sentiment/+server.ts`) successfully tested with the new OpenAI client version
+- [x] `npm run check` passes without errors
+- [x] `npm test` passes without errors
 
 ## Out of scope
 - TypeScript 7 update (see FEAT-0224)

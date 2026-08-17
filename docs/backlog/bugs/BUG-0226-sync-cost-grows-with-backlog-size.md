@@ -2,7 +2,7 @@
 id: BUG-0226
 title: Backlog sync cost grows with total backlog size instead of what actually changed
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -66,11 +66,10 @@ paying that cost on every push.
 - [x] `sync-backlog-full.yml` runs weekly (Monday 05:00 UTC) and on
       `workflow_dispatch`, targeting `develop` explicitly, sharing the same
       `concurrency` group as `sync-backlog.yml` so the two never race
-- [ ] Live verification: a push-triggered run after this merges logs
-      `[Sync] Skipped ...` for the already-closed items and completes
-      noticeably faster than the pre-fix baseline observed in Evidence
-- [ ] Live verification: the first scheduled full-resync run completes
-      successfully with `FORCE_FULL_SYNC=true` and touches every item
+- [x] Live verification: push-triggered run after merge shows skipped items
+      and completes noticeably faster than pre-fix baseline (PR #2032)
+- [x] Live verification: weekly full-resync runs successfully with
+      `FORCE_FULL_SYNC=true` and processes every item
 
 ## Out of scope
 

@@ -42,6 +42,10 @@ The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts
 
 After every change: run `npm run check` and affected tests. A task is considered completed ONLY when type checks and tests pass — do not claim completion beforehand.
 
+## Tools & MCP
+
+When an MCP (Model Context Protocol) or specialized tool is installed and made available to this project, agents should prefer it for tasks it's designed to handle. Installation makes the tool available, but agent-specific instructions in tool-specific config files (e.g., `CLAUDE.md` for Claude Code) will direct consistent usage. Each agent type has its own config file documenting preferred tools for this repository.
+
 ## Commits & Branches
 
 - **Language:** Commits, Pull Request descriptions, and PR comments MUST ALWAYS be written in English. German is strictly forbidden in PR comments and commits.
