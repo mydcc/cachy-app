@@ -43,5 +43,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0005](0005-extension-model.md) | Extensions are tiered by capability, and isolation comes first | Proposed |
 | [0006](0006-one-window-stacking-authority.md) | Every overlay goes through the window manager, and there is one stacking authority | Proposed |
 | [0007](0007-exchange-adapter-boundary.md) | Every exchange sits behind one client-side adapter; session and gateway layers stay put | Proposed |
+| [0008](0008-refuse-unsupported-verbs-before-they-travel.md) | A verb the venue cannot perform is refused before it travels; reads resolve empty, writes throw | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._
