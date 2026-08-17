@@ -17,6 +17,7 @@
 
 <script lang="ts">
     import ModalFrame from "./ModalFrame.svelte";
+    import { untrack } from "svelte";
     import { uiState } from "../../stores/ui.svelte";
     import { analysisState } from "../../stores/analysis.svelte";
     import { settingsState } from "../../stores/settings.svelte";
@@ -77,35 +78,45 @@
     );
 
     $effect(() => {
-        if (uiState.showMarketDashboardModal) {
+        const isModalOpen = uiState.showMarketDashboardModal;
+
+        if (isModalOpen) {
+            // Keep dependency on sortedResults tracked so the effect re-runs when the list changes
             const currentSymbols = new Set(
                 sortedResults.map((item) => item.symbol),
             );
 
-            // 1. Unsubscribe symbols that are no longer present
-            for (const sym of previousSymbols) {
-                if (!currentSymbols.has(sym)) {
-                    marketWatcher.unregister(sym, "ticker");
-                }
-            }
+            untrack(() => {
 
-            // 2. Subscribe to new symbols
-            for (const sym of currentSymbols) {
-                if (!previousSymbols.has(sym)) {
-                    marketWatcher.register(sym, "ticker");
-                    marketWatcher.register(sym, "price");
-                }
-            }
-
-            previousSymbols = currentSymbols;
-        } else {
-            // Cleanup all when modal is closed
-            if (previousSymbols.size > 0) {
+                // 1. Unsubscribe symbols that are no longer present
                 for (const sym of previousSymbols) {
-                    marketWatcher.unregister(sym, "ticker");
+                    if (!currentSymbols.has(sym)) {
+                        marketWatcher.unregister(sym, "ticker");
+                        marketWatcher.unregister(sym, "price");
+                    }
                 }
-                previousSymbols.clear();
-            }
+
+                // 2. Subscribe to new symbols
+                for (const sym of currentSymbols) {
+                    if (!previousSymbols.has(sym)) {
+                        marketWatcher.register(sym, "ticker");
+                        marketWatcher.register(sym, "price");
+                    }
+                }
+
+                previousSymbols = currentSymbols;
+            });
+        } else {
+            untrack(() => {
+                // Cleanup all when modal is closed
+                if (previousSymbols.size > 0) {
+                    for (const sym of previousSymbols) {
+                        marketWatcher.unregister(sym, "ticker");
+                        marketWatcher.unregister(sym, "price");
+                    }
+                    previousSymbols.clear();
+                }
+            });
         }
     });
 
@@ -114,6 +125,7 @@
         return () => {
             for (const sym of previousSymbols) {
                 marketWatcher.unregister(sym, "ticker");
+                marketWatcher.unregister(sym, "price");
             }
             previousSymbols.clear();
         };

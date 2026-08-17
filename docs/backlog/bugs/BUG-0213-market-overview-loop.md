@@ -2,7 +2,7 @@
 id: BUG-0213
 title: Market Overview Modal and Favorite Tiles Infinite Reload Loop
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -26,10 +26,10 @@ The user suspected a naming conflict because the favorite tiles have the class `
 - **Svelte 5 `$effect` Loops**: `MarketDashboardModal.svelte` accesses `marketState.data` dynamically and sets `previousSymbols = currentSymbols` in an `$effect`. Although it seems stable, exceptions during the `$effect` or rendering snippet (`ModalFrame` untrack issue) could cause Svelte to catch errors and bubble them to `handleGlobalError`, which alters `uiState` and might trigger further layout shifts or reloads.
 
 ## Acceptance Criteria
-- [ ] Fix the subscription leak in `MarketDashboardModal.svelte` (ensure `price` is unregistered).
-- [ ] Investigate and resolve the root cause of the infinite reload loop triggered when the Market Overview modal is opened.
-- [ ] Ensure that `CandleChartView.svelte` does not continuously reload/flash when the modal is open.
-- [ ] Verify that opening the Market Overview window does not disrupt the favorite tiles in the sidebar.
+- [x] Fix the subscription leak in `MarketDashboardModal.svelte` (ensure `price` is unregistered).
+- [x] Investigate and resolve the root cause of the infinite reload loop triggered when the Market Overview modal is opened.
+- [x] Ensure that `CandleChartView.svelte` does not continuously reload/flash when the modal is open.
+- [x] Verify that opening the Market Overview window does not disrupt the favorite tiles in the sidebar.
 
 ## Out of Scope
 - Major architectural changes to `MarketWatcher` or `SubscriptionRegistry` (these should remain as they are unless fundamentally broken).
