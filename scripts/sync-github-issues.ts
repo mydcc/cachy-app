@@ -38,6 +38,16 @@ const STATUS_LABEL_PREFIX = "status:";
 const BACKLOG_ID_LABEL_PREFIX = "backlog-id:";
 const CLOSED_STATUSES = new Set(['done', 'dropped']);
 
+// Every push-triggered run re-walks the entire backlog, and most of it is
+// items that finished long ago and never change again — done/dropped items
+// only ever grow as a share of the total. Re-issuing a PATCH plus a Kanban
+// GraphQL round trip for each of those on every single run makes the sync
+// slower with every merge regardless of how small the actual diff was. Set
+// by the weekly full-resync workflow to force every item through in full,
+// as a safety net against drift this run-to-run skip can't see (e.g. a
+// board column edited by hand). See BUG-0226.
+const FORCE_FULL_SYNC = process.env.FORCE_FULL_SYNC === 'true';
+
 interface BacklogItem {
     id: string;
     title: string;
@@ -122,10 +132,18 @@ interface GitHubIssue {
     title: string;
     labels: (string | { name: string })[];
     pull_request?: unknown;
+    state?: string;
+    milestone?: { number: number } | null;
 }
 
 function labelNamesOf(issue: GitHubIssue): string[] {
     return (issue.labels ?? []).map((l) => (typeof l === 'string' ? l : l.name));
+}
+
+function sameLabelSet(a: string[], b: string[]): boolean {
+    if (a.length !== b.length) return false;
+    const sorted = (xs: string[]) => [...xs].sort();
+    return sorted(a).every((name, i) => name === sorted(b)[i]);
 }
 
 // Fetch all issues (handles pagination)
@@ -395,6 +413,30 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             (name) => !name.startsWith(STATUS_LABEL_PREFIX) && !name.startsWith(BACKLOG_ID_LABEL_PREFIX) && !name.startsWith("dataclass:") && !name.startsWith("adr:") && !name.startsWith("edition:")
         );
         const labels = Array.from(new Set([...preservedLabels, ...managedLabels]));
+
+        // Stable, already-synced closed items are the majority of the backlog
+        // and only ever grow — skip the PATCH and the Kanban GraphQL round
+        // trip entirely when nothing this script owns has actually changed.
+        // Comparing against data already in `existingIssue` (from the one
+        // bulk fetch in main()) costs nothing extra. `hasOpenPR` items are
+        // excluded because 'in-review' is a transient status this check
+        // isn't meant to catch mid-transition. FORCE_FULL_SYNC (the weekly
+        // resync workflow) bypasses this to catch anything that drifted
+        // without a matching backlog-file change — e.g. someone moving a
+        // card on the board by hand. See BUG-0226.
+        if (
+            !FORCE_FULL_SYNC &&
+            isClosed &&
+            !hasOpenPR &&
+            existingIssue.state === 'closed' &&
+            existingIssue.title === title &&
+            (existingIssue.body ?? '') === body &&
+            (existingIssue.milestone?.number ?? null) === milestoneNumber &&
+            sameLabelSet(labelNamesOf(existingIssue), labels)
+        ) {
+            console.log(`[Sync] Skipped ${item.id} (#${existingIssue.number}) — already synced and closed`);
+            return { number: existingIssue.number, nodeId: existingIssue.node_id };
+        }
 
         // Update existing issue
         const payload: Record<string, unknown> = {
