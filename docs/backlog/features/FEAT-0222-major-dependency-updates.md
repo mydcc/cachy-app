@@ -12,6 +12,7 @@ adr: none
 depends_on: []
 ---
 
+
 # FEAT-0222 — Apply low-risk major dependency updates (OpenAI, JSDOM, Undici)
 
 ## Problem

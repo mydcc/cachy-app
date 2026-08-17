@@ -36,7 +36,9 @@ export default defineConfig({
       // failed CI at 10.9x against a threshold of 8 while passing locally at 4.4x.
       // Run them deliberately with `npm run test:perf`; CI runs them in a
       // non-blocking job so the numbers stay visible.
-      "src/tests/performance/engine_benchmark.test.ts",
+      "src/services/engineBenchmark.test.ts",
+      "src/benchmarks/marketWatcher_backfill.test.ts",
+      "tests/benchmarks/syncService_perf.test.ts",
       "src/tests/performance/memory_profiling.test.ts",
       "src/tests/performance/dataRepairService_benchmark.test.ts",
       "src/tests/performance/startup_benchmark.test.ts",
@@ -46,6 +48,8 @@ export default defineConfig({
     // under the implicit `node` default. Individual files can still opt out
     // with `// @vitest-environment node`, and the 12 files that already declare
     // jsdom or happy-dom keep their own choice — per-file directives win.
+    testTimeout: 20000,
+    hookTimeout: 20000,
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
   },

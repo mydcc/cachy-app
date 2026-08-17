@@ -38,6 +38,16 @@ const STATUS_LABEL_PREFIX = "status:";
 const BACKLOG_ID_LABEL_PREFIX = "backlog-id:";
 const CLOSED_STATUSES = new Set(['done', 'dropped']);
 
+// Every push-triggered run re-walks the entire backlog, and most of it is
+// items that finished long ago and never change again — done/dropped items
+// only ever grow as a share of the total. Re-issuing a PATCH plus a Kanban
+// GraphQL round trip for each of those on every single run makes the sync
+// slower with every merge regardless of how small the actual diff was. Set
+// by the weekly full-resync workflow to force every item through in full,
+// as a safety net against drift this run-to-run skip can't see (e.g. a
+// board column edited by hand). See BUG-0226.
+const FORCE_FULL_SYNC = process.env.FORCE_FULL_SYNC === 'true';
+
 interface BacklogItem {
     id: string;
     title: string;
@@ -122,10 +132,18 @@ interface GitHubIssue {
     title: string;
     labels: (string | { name: string })[];
     pull_request?: unknown;
+    state?: string;
+    milestone?: { number: number } | null;
 }
 
 function labelNamesOf(issue: GitHubIssue): string[] {
     return (issue.labels ?? []).map((l) => (typeof l === 'string' ? l : l.name));
+}
+
+function sameLabelSet(a: string[], b: string[]): boolean {
+    if (a.length !== b.length) return false;
+    const sorted = (xs: string[]) => [...xs].sort();
+    return sorted(a).every((name, i) => name === sorted(b)[i]);
 }
 
 // Fetch all issues (handles pagination)
@@ -396,6 +414,30 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         );
         const labels = Array.from(new Set([...preservedLabels, ...managedLabels]));
 
+        // Stable, already-synced closed items are the majority of the backlog
+        // and only ever grow — skip the PATCH and the Kanban GraphQL round
+        // trip entirely when nothing this script owns has actually changed.
+        // Comparing against data already in `existingIssue` (from the one
+        // bulk fetch in main()) costs nothing extra. `hasOpenPR` items are
+        // excluded because 'in-review' is a transient status this check
+        // isn't meant to catch mid-transition. FORCE_FULL_SYNC (the weekly
+        // resync workflow) bypasses this to catch anything that drifted
+        // without a matching backlog-file change — e.g. someone moving a
+        // card on the board by hand. See BUG-0226.
+        if (
+            !FORCE_FULL_SYNC &&
+            isClosed &&
+            !hasOpenPR &&
+            existingIssue.state === 'closed' &&
+            existingIssue.title === title &&
+            (existingIssue.body ?? '') === body &&
+            (existingIssue.milestone?.number ?? null) === milestoneNumber &&
+            sameLabelSet(labelNamesOf(existingIssue), labels)
+        ) {
+            console.log(`[Sync] Skipped ${item.id} (#${existingIssue.number}) — already synced and closed`);
+            return { number: existingIssue.number, nodeId: existingIssue.node_id };
+        }
+
         // Update existing issue
         const payload: Record<string, unknown> = {
             title,
@@ -480,6 +522,52 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             await syncProjectKanbanStatus(data.number, item, hasOpenPR);
         }
         return { number: data.number, nodeId: data.node_id };
+    }
+}
+
+async function cleanupDuplicateIssue(dupIssue: GitHubIssue, canonicalNumber: number) {
+    try {
+        const remainingLabels = labelNamesOf(dupIssue).filter(
+            (name) => !name.startsWith(BACKLOG_ID_LABEL_PREFIX) && !name.startsWith(STATUS_LABEL_PREFIX)
+        );
+        const cleanedBody = (dupIssue.body || "")
+            .replace(/<!--\s*backlog-id:[^>]*-->/g, "")
+            .trim();
+        const payload = {
+            body: `${cleanedBody}\n\n> Note: Closed as duplicate of #${canonicalNumber}.`,
+            labels: remainingLabels,
+            state: "closed",
+            state_reason: "not_planned"
+        };
+        await fetch(dupIssue.url, {
+            method: "PATCH",
+            headers: {
+                "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                "Accept": "application/vnd.github+json",
+                "Content-Type": "application/json",
+                "X-GitHub-Api-Version": "2022-11-28"
+            },
+            body: JSON.stringify(payload)
+        });
+        console.log(`[Sync] Closed duplicate issue #${dupIssue.number} (canonical: #${canonicalNumber})`);
+
+        // Closing the issue does not by itself move it on the Kanban board —
+        // Projects v2's "Status" field is independent state, not derived from
+        // open/closed. Without this the duplicate stayed wherever it last was
+        // (e.g. "In progress") even though the issue itself was closed. Reuse
+        // the same sync path every other status transition goes through;
+        // 'dropped' maps to the "Done" column same as a real completion.
+        await syncProjectKanbanStatus(dupIssue.number, {
+            id: "duplicate",
+            title: dupIssue.title,
+            type: "bug",
+            status: "dropped",
+            area: "repo",
+            content: "",
+            filepath: "",
+        }, false);
+    } catch (e) {
+        console.warn(`[Sync] Failed to cleanup duplicate issue #${dupIssue.number}:`, e);
     }
 }
 
@@ -739,13 +827,19 @@ async function main() {
     const issueMap = new Map<string, string>(); // backlogId -> nodeId
 
     for (const item of localItems) {
-        // Match by backlog-id label first (survives title/body edits), then fall back to the
-        // hidden marker or title prefix for issues created before the label existed.
-        const existing = existingIssues.find(issue =>
+        const matching = existingIssues.filter(issue =>
             labelNamesOf(issue).includes(`${BACKLOG_ID_LABEL_PREFIX}${item.id}`) ||
             issue.body?.includes(`<!-- backlog-id: ${item.id} -->`) ||
             issue.title.startsWith(`[${item.id}]`)
         );
+        matching.sort((a, b) => a.number - b.number);
+        const existing = matching[0];
+
+        if (matching.length > 1 && existing) {
+            for (let i = 1; i < matching.length; i++) {
+                await cleanupDuplicateIssue(matching[i], existing.number);
+            }
+        }
         
         // Same rule as the auto-linker, from the same function on purpose: this
         // drives the `in-review` Kanban status, and when the two copies of the

@@ -1,0 +1,78 @@
+name: Sync Backlog to GitHub Issues (full resync)
+
+# sync-backlog.yml skips a backlog item entirely once it's closed and
+# already matches what GitHub has (see FORCE_FULL_SYNC in
+# scripts/sync-github-issues.ts, BUG-0226) — that's what keeps push-triggered
+# runs fast as the backlog grows. This is the safety net for what that skip
+# can't see: drift that happens without a matching backlog-file change, e.g.
+# a Kanban card moved by hand, or a label edited directly on the issue.
+# Runs weekly and forces every item through in full, no skip.
+
+on:
+  schedule:
+    - cron: '0 5 * * 1' # Monday 05:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: sync-backlog
+  cancel-in-progress: false
+
+jobs:
+  full-resync:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+      repository-projects: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci --omit=dev
+
+      - name: Run Sync Script (full resync)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_SYNC_TOKEN: ${{ secrets.PROJECT_SYNC_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          FORCE_FULL_SYNC: 'true'
+        run: npx tsx scripts/sync-github-issues.ts
+
+      # See sync-backlog.yml's matching step for why this retries: other
+      # automation (semantic-release, another sync run) also pushes straight
+      # to develop, so the tip can move between checkout and push. INDEX.md
+      # is fully regenerable, so on rejection it's safe to just re-sync to
+      # the new tip and regenerate again.
+      - name: Regenerate and commit index (retries on a moved base)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3 4 5; do
+            node scripts/backlog-index.mjs
+            if git diff --quiet -- docs/backlog/INDEX.md; then
+              echo "INDEX.md unchanged, nothing to commit."
+              exit 0
+            fi
+            git add docs/backlog/INDEX.md
+            git commit -m "chore(backlog): regenerate INDEX.md [skip ci]"
+            if git push origin HEAD:develop; then
+              echo "Pushed successfully on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt — develop moved. Re-syncing and retrying..."
+            git reset --hard HEAD~1
+            git fetch origin develop
+            git reset --hard origin/develop
+            sleep $((attempt * 3))
+          done
+          echo "Failed to push docs/backlog/INDEX.md after 5 attempts."
+          exit 1

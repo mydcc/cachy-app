@@ -78,6 +78,19 @@ it exclusively CI-maintained, in one place:
   already-tracked file, so the actual fix is the removed CI requirement and
   the updated instructions above, not the ignore rule.
 
+## Follow-up: the commit step itself raced with other automation
+
+Confirmed live, same day: the bot-commit step's plain `git push` was rejected
+once — `semantic-release`'s own `chore(release): ... [skip ci]` commit landed
+on `develop` between this job's checkout and its push, so `origin/develop`
+had moved and the push failed outright (job marked failed, nothing merged —
+no data loss, since the only local change was the regenerable `INDEX.md`).
+`sync-backlog.yml` and `sync-backlog-full.yml` now retry: on a rejected push,
+re-fetch `develop`, hard-reset to the new tip, regenerate `INDEX.md` again
+against the fresh tree, and retry (up to 5 attempts, short backoff). Nothing
+precious is ever at risk of being discarded — the working copy's only local
+change is always the one generated file.
+
 ## Acceptance criteria
 
 - [x] `npm run backlog:check` passes without a committed `INDEX.md` present
