@@ -4,7 +4,7 @@
 
 119 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-progress 4 · ✅ done 74
+Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 77
 
 ---
 
@@ -27,7 +27,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0043](bugs/BUG-0043-responsive-window-remaximizes.md) | A responsive window restored by hand on mobile re-maximizes on the next resize event | P2 | ✅ done | ui |
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | ✅ done | ui |
 | [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | ✅ done | ui |
-| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | 🟡 in-progress | tooling |
+| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | ✅ done | tooling |
 | [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | 📋 specced | tooling |
 
 ### M1
@@ -154,8 +154,8 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | repo |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | repo |
-| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | 🟡 in-progress | repo |
-| [BUG-0226](bugs/BUG-0226-sync-cost-grows-with-backlog-size.md) | Backlog sync cost grows with total backlog size instead of what actually changed | P2 | 🟡 in-progress | repo |
+| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | ✅ done | repo |
+| [BUG-0226](bugs/BUG-0226-sync-cost-grows-with-backlog-size.md) | Backlog sync cost grows with total backlog size instead of what actually changed | P2 | ✅ done | repo |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -258,8 +258,8 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0216](bugs/BUG-0216-i18n-interpolation-values.md) | Three dialogs render raw {placeholder} because $_ was called without the values wrapper | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) |
-| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
-| [BUG-0226](bugs/BUG-0226-sync-cost-grows-with-backlog-size.md) | Backlog sync cost grows with total backlog size instead of what actually changed | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0226](bugs/BUG-0226-sync-cost-grows-with-backlog-size.md) | Backlog sync cost grows with total backlog size instead of what actually changed | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -288,7 +288,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0200](features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md) | Encrypt API keys and other secrets at rest in localStorage | P2 | 💡 idea | none | community, pro, private | A | ADR-0001 | — |
 | [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0214](features/FEAT-0214-pr-preview-deployments.md) | Automated PR preview deployments for visual and mobile testing | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | 🟡 in-progress | M0 | community, pro, private | none | none | — |
+| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | 📋 specced | M0 | community, pro, private | none | none | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
