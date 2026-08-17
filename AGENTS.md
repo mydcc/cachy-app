@@ -15,6 +15,14 @@ npm test             # Vitest unit tests
 npm run test:e2e     # Playwright E2E
 ```
 
+**Component tests.** A test that mounts a Svelte component is named
+`*.component.test.ts` and runs in the `components` Vitest project, which is the
+only place `svelte` resolves to its browser build — `mount()` throws from the
+server entry. Do not set `resolve.conditions: ["browser"]` globally to avoid
+that: it also flips `$app/environment`'s `browser` to true, which sends
+`technicalsService` down its Worker path and fails two passing tests. `npm test`
+runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
+
 The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without this step, the build will fail — in cloud sandbox environments (e.g., Jules Environment Setup), this script must be part of the setup step.
 
 ## Non-Negotiable Rules
