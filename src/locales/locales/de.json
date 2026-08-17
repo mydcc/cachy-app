@@ -2565,6 +2565,14 @@
       "tooltip": "Paper Trading ist aktiv. Orders werden simuliert, es fließt kein Geld."
     }
   },
+  "exchange": {
+    "unsupported": {
+      "tpSl": "Take-Profit- und Stop-Loss-Aufträge sind auf {exchange} nicht verfügbar. Es wurde nichts gesendet.",
+      "leverageMarginMode": "{exchange} meldet Hebel und Margin-Modus nicht an Cachy — angezeigt werden deine lokalen Einstellungen.",
+      "tradingPairInfo": "{exchange} liefert keine Kontraktdetails an Cachy — Präzision und Größenlimits fallen auf Standardwerte zurück.",
+      "generic": "{exchange} kann das nicht, deshalb hat Cachy die Anfrage nicht gesendet."
+    }
+  },
   "orderEntry": {
     "title": "Diese Position platzieren",
     "notReady": "Erst Einstiegskurs und Stop eingeben, damit eine Positionsgröße berechnet werden kann.",

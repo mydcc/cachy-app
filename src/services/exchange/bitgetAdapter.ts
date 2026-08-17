@@ -23,14 +23,16 @@
  * (bitgetWs.ts) — a trade subscription here would be accepted and then
  * silently dropped, which is precisely the failure BUG-0001 was.
  *
- * The trading verbs still delegate to the same `tradeService` as Bitunix,
- * because `tradeService` is already provider-parameterised (`X-Provider`, plus
- * `exchange` in the body) and the proxy routes branch server-side. Verbs the
- * routes refuse for Bitget — TP/SL, see routes/api/tpsl/+server.ts — are
- * refused exactly as they were before FEAT-0016; `supports` states which those
- * are so FEAT-0017 can stop the UI from offering them at all. Turning
- * `supports` into a local guard would be a user-visible behaviour change,
- * which this item's last acceptance criterion rules out.
+ * Trading verbs the venue does have delegate to the same `tradeService` as
+ * Bitunix, which is already provider-parameterised (`X-Provider`, plus
+ * `exchange` in the body) with the proxy routes branching server-side.
+ *
+ * Verbs it does not have are refused here, before a request is built —
+ * FEAT-0229, pre-trade control. `SUPPORTS` is the one place that says which
+ * those are, and the guards read it, so the declaration cannot drift from the
+ * behaviour. Reads resolve empty; writes throw `ExchangeUnsupportedError`.
+ * The proxy route (routes/api/tpsl/+server.ts:58) stays as the last line of
+ * defence, and FEAT-0017 will add the first by not offering the control.
  */
 
 import { apiService } from "../apiService";
@@ -46,8 +48,10 @@ import type {
     MarketDataPort,
     AccountPort,
     TradingPort,
+    TradingSupport,
     RequestPriority,
 } from "./types";
+import { ExchangeUnsupportedError } from "./errors";
 import type { Decimal } from "decimal.js";
 
 const marketData: MarketDataPort = {
@@ -86,6 +90,26 @@ const marketData: MarketDataPort = {
     },
 };
 
+/**
+ * What this venue has a verified format for. The single source the guards
+ * below read, so a flag flipped here changes the refusals with it — a
+ * declaration and an implementation that can disagree is worth nothing.
+ */
+const SUPPORTS: TradingSupport = {
+    tpSl: false,
+    leverageMarginMode: false,
+    tradingPairInfo: false,
+};
+
+/**
+ * FEAT-0229 — pre-trade control. A write the venue cannot perform is refused
+ * here, before a request is built or signed, rather than being sent and
+ * refused at the far end. Reads never come through this; they resolve empty.
+ */
+function refuse(feature: keyof TradingSupport, verb: string): never {
+    throw new ExchangeUnsupportedError("bitget", feature, verb);
+}
+
 const account: AccountPort = {
     // Funding-rate history is sourced from Bitunix's batch endpoint only
     // (apiService.fetchBitunixFundingRateHistory). Resolving empty keeps the
@@ -93,24 +117,20 @@ const account: AccountPort = {
     // data source into an error dialog.
     fetchFundingRateHistory: (): Promise<FundingRateHistoryItem[]> => Promise.resolve([]),
 
-    // Delegated unchanged: tradeService returns early for a non-Bitunix
-    // provider (leverage/margin mode) or fails its Bitunix response schema
-    // and returns (trading pairs). Same outcome as before FEAT-0016.
-    fetchLeverageMarginMode: (symbol) => tradeService.fetchLeverageMarginMode(symbol),
-    fetchTradingPairInfo: (symbol) => tradeService.fetchTradingPairInfo(symbol),
+    // Reads, so they resolve rather than throw — but they resolve *here*.
+    // Both used to travel: `fetchLeverageMarginMode` to be dropped by
+    // tradeService's own provider check, `fetchTradingPairInfo` to hit a
+    // Bitunix-only route and fail its schema. Neither ever wrote anything on
+    // Bitget, so nothing observable changes; what goes is the pointless
+    // request.
+    fetchLeverageMarginMode: async (symbol) =>
+        SUPPORTS.leverageMarginMode
+            ? tradeService.fetchLeverageMarginMode(symbol)
+            : undefined,
+    fetchTradingPairInfo: async (symbol) =>
+        SUPPORTS.tradingPairInfo ? tradeService.fetchTradingPairInfo(symbol) : undefined,
 };
 
-/*
- * The fail-fast seam, deliberately left open (ADR-0007, last alternative).
- *
- * A verb this venue has no verified format for currently travels to the proxy
- * route and is refused there. Refusing it here instead — `if
- * (!bitgetAdapter.supports.tpSl) throw …` at the top of the TP/SL verbs — is
- * the stricter reading, and the one a trading system normally takes —
- * pre-trade control, in the MiFID II RTS 6 sense. It is not taken here because
- * it changes what the user sees, which FEAT-0016's last acceptance criterion
- * rules out. FEAT-0229 does it: reads resolve empty, writes throw.
- */
 const trading: TradingPort = {
     placeOrder: (params: PlaceOrderParams) => tradeService.placeOrder(params),
 
@@ -125,16 +145,25 @@ const trading: TradingPort = {
     cancelAllOrders: (symbol, throwOnError = false) => tradeService.cancelAllOrders(symbol, throwOnError),
     modifyOrder: (params: ModifyOrderParams) => tradeService.modifyOrder(params),
 
-    fetchTpSlOrders: (view = "pending") => tradeService.fetchTpSlOrders(view),
-    cancelTpSlOrder: (order: TpSlOrder) => tradeService.cancelTpSlOrder(order),
-    modifyTpSlOrder: (params) => tradeService.modifyTpSlOrder(params),
+    // A read: an unsupported venue has no plans to show, and saying so is
+    // true. It must not raise a dialog — the position cards call this on
+    // every refresh.
+    fetchTpSlOrders: async (view = "pending") =>
+        SUPPORTS.tpSl ? tradeService.fetchTpSlOrders(view) : [],
+
+    // Writes: these must fail loudly. A cancel or a modify that resolved
+    // quietly would leave the trader believing a stop had moved.
+    cancelTpSlOrder: async (order: TpSlOrder) =>
+        SUPPORTS.tpSl ? tradeService.cancelTpSlOrder(order) : refuse("tpSl", "cancelTpSlOrder"),
+    modifyTpSlOrder: async (params) =>
+        SUPPORTS.tpSl ? tradeService.modifyTpSlOrder(params) : refuse("tpSl", "modifyTpSlOrder"),
 };
 
 export const bitgetAdapter: ExchangeAdapter = {
     id: "bitget",
     capabilities: capabilitiesOf("bitget"),
     streams: { ticker: true, trades: false },
-    supports: { tpSl: false, leverageMarginMode: false, tradingPairInfo: false },
+    supports: SUPPORTS,
     marketData,
     account,
     trading,
