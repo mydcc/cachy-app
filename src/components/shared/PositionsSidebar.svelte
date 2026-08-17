@@ -156,9 +156,17 @@
   // structural `Decimal(0)` default (Bitunix: always; Bitget: only before
   // its first snapshot) as "no data" rather than a real zero price.
   function resolveMarkPrice(p: (typeof accountState.positions)[number]) {
-    const live = marketState.data[normalizeSymbol(p.symbol, "bitunix")]?.markPrice;
+    const symbolData = marketState.data[normalizeSymbol(p.symbol, "bitunix")];
+    const live = symbolData?.markPrice;
     if (live && live.gt(0)) return live;
     if (p.markPrice && p.markPrice.gt(0)) return p.markPrice;
+    // Neither source has a real mark price — happens during a WS `price`
+    // channel gap/reconnect on Bitunix, since its REST ticker fallback
+    // (historyFetcher.pollSymbolChannel) has no mark-price field at all,
+    // only `lastPrice` (BUG-0218). Falling back to it keeps the row live
+    // instead of showing "?" while market data for the symbol does exist.
+    const lastPrice = symbolData?.lastPrice;
+    if (lastPrice && lastPrice.gt(0)) return lastPrice;
     return undefined;
   }
 
