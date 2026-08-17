@@ -508,6 +508,22 @@ async function cleanupDuplicateIssue(dupIssue: GitHubIssue, canonicalNumber: num
             body: JSON.stringify(payload)
         });
         console.log(`[Sync] Closed duplicate issue #${dupIssue.number} (canonical: #${canonicalNumber})`);
+
+        // Closing the issue does not by itself move it on the Kanban board —
+        // Projects v2's "Status" field is independent state, not derived from
+        // open/closed. Without this the duplicate stayed wherever it last was
+        // (e.g. "In progress") even though the issue itself was closed. Reuse
+        // the same sync path every other status transition goes through;
+        // 'dropped' maps to the "Done" column same as a real completion.
+        await syncProjectKanbanStatus(dupIssue.number, {
+            id: "duplicate",
+            title: dupIssue.title,
+            type: "bug",
+            status: "dropped",
+            area: "repo",
+            content: "",
+            filepath: "",
+        }, false);
     } catch (e) {
         console.warn(`[Sync] Failed to cleanup duplicate issue #${dupIssue.number}:`, e);
     }
