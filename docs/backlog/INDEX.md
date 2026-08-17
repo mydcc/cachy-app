@@ -4,7 +4,7 @@
 
 117 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · 🟡 in-progress 1 · ✅ done 73
+Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · ✅ done 74
 
 ---
 
@@ -140,7 +140,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | core |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | services |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | ui |
-| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 🟡 in-progress | ui |
+| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | ✅ done | ui |
 | [BUG-0217](bugs/BUG-0217-tab-inactivity-connection-loss.md) | Tab inactivity drops WebSocket connection without automatic recovery | P1 | ✅ done | exchange |
 | [BUG-0218](bugs/BUG-0218-open-positions-price-sync-stall.md) | Open position live mark price updates unreliably or stalls until page reload | P1 | 🟢 ready | trade-panel |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -212,7 +212,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) | Epic: Migrate Core & Services logic to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) |
 | [BUG-0184](bugs/BUG-0184-epic-decimal-migration-ui.md) | Epic: Migrate Svelte UI components and Stores to decimal.js | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0183](bugs/BUG-0183-epic-decimal-migration-core.md) |
-| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0213](bugs/BUG-0213-market-overview-loop.md) | Market Overview Modal and Favorite Tiles Infinite Reload Loop | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0215](bugs/BUG-0215-order-refusal-placeholders.md) | Gate refusals render raw placeholders and refuse every paper order | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0217](bugs/BUG-0217-tab-inactivity-connection-loss.md) | Tab inactivity drops WebSocket connection without automatic recovery | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0218](bugs/BUG-0218-open-positions-price-sync-stall.md) | Open position live mark price updates unreliably or stalls until page reload | P1 | 🟢 ready | none | community, pro, private | none | none | — |
