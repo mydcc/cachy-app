@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { tradeService, type TpSlOrder } from "../../services/tradeService";
+  import { activeExchange, type TpSlOrder } from "../../services/exchange";
   import { _ } from "../../locales/i18n";
   import type { TranslationKey } from "../../locales/schema";
   import { formatDynamicDecimal } from "../../utils/utils";
@@ -58,7 +58,7 @@
     loading = true;
     error = "";
     try {
-      orders = await tradeService.fetchTpSlOrders(view);
+      orders = await activeExchange().trading.fetchTpSlOrders(view);
     } catch (e) {
       console.error("TP/SL Global Error:", e);
       // Map error message using i18n key if available
@@ -77,7 +77,7 @@
     if (!confirm($_("dashboard.alerts.confirmCancel"))) return;
 
     try {
-      await tradeService.cancelTpSlOrder(order);
+      await activeExchange().trading.cancelTpSlOrder(order);
       toastService.success($_("dashboard.alerts.orderCancelled"));
       // The position cards read the same cache; leaving it stale would show
       // a stop that no longer exists.

@@ -20,7 +20,7 @@
   import { browser } from "$app/environment";
   import { settingsState } from "../../../stores/settings.svelte";
   import { tradeState } from "../../../stores/trade.svelte";
-  import { bitunixWs } from "../../../services/bitunixWs";
+  import { activeExchange } from "../../../services/exchange";
   import { _ } from "../../../locales/i18n";
   import TradeFlowWorker from "./tradeFlow.worker?worker";
 
@@ -238,7 +238,7 @@
     
     const currentSymbol = tradeState.symbol || "BTCUSDT";
     // Use the returned cleanup function for guaranteed unsubscription
-    const cleanup = bitunixWs.subscribeTrade(currentSymbol, onTrade);
+    const cleanup = activeExchange().marketData.subscribeTrades(currentSymbol, onTrade);
     
     return () => {
       cleanup();

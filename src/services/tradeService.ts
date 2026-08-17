@@ -42,7 +42,7 @@ import {
     BitunixPositionTierResponseSchema,
 } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
-import type { NormalizedOrder } from "../types/bitunix";
+import type { NormalizedOrder } from "../types/exchange";
 import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
 import { paperExchange } from "./paperExchange";
@@ -88,6 +88,54 @@ export class BitunixApiError extends Error {
         this.name = "BitunixApiError";
         this.rawMessage = rawMessage || message || "";
     }
+}
+
+/**
+ * One entry submission. Extracted from `placeOrder`'s inline parameter object
+ * in FEAT-0016 so the adapter's `TradingPort` can name the same shape rather
+ * than restate it — two copies of an order payload's type is how the two
+ * drift.
+ */
+export interface PlaceOrderParams {
+    symbol: string;
+    side: "BUY" | "SELL";
+    orderType?: "LIMIT" | "MARKET";
+    qty: Decimal | string;
+    price?: Decimal | string;
+    /** Time in force. Ignored for market orders — see the route. */
+    effect?: "GTC" | "IOC" | "FOK" | "POST_ONLY";
+    /** Pass the previous attempt's id to retry it idempotently. */
+    clientId?: string;
+    reduceOnly?: boolean;
+    tradeSide?: "OPEN" | "CLOSE";
+    positionId?: string;
+    takeProfit?: {
+        price: Decimal | string;
+        stopType?: "MARK_PRICE" | "LAST_PRICE";
+        orderType?: "LIMIT" | "MARKET";
+        orderPrice?: Decimal | string;
+    };
+    stopLoss?: {
+        price: Decimal | string;
+        stopType?: "MARK_PRICE" | "LAST_PRICE";
+        orderType?: "LIMIT" | "MARKET";
+        orderPrice?: Decimal | string;
+    };
+    /**
+     * What the UI showed when the user confirmed. The gate compares the
+     * payload against this rather than against the values it was built
+     * from — see FEAT-0011.
+     */
+    displayed: {
+        accountSize: Decimal;
+        riskPercentage: Decimal;
+        entryPrice: Decimal;
+        stopLossPrice: Decimal;
+        takeProfits?: Decimal[];
+        leverage?: Decimal;
+        marginMode?: string;
+        accountStateAt?: number;
+    };
 }
 
 export interface ModifyOrderParams {
@@ -776,47 +824,7 @@ class TradeService {
      * size recomputation, leverage and margin-mode checks, and FEAT-0013's
      * risk limits and kill switch all actually apply.
      */
-    public async placeOrder(params: {
-        symbol: string;
-        side: "BUY" | "SELL";
-        orderType?: "LIMIT" | "MARKET";
-        qty: Decimal | string;
-        price?: Decimal | string;
-        /** Time in force. Ignored for market orders — see the route. */
-        effect?: "GTC" | "IOC" | "FOK" | "POST_ONLY";
-        /** Pass the previous attempt's id to retry it idempotently. */
-        clientId?: string;
-        reduceOnly?: boolean;
-        tradeSide?: "OPEN" | "CLOSE";
-        positionId?: string;
-        takeProfit?: {
-            price: Decimal | string;
-            stopType?: "MARK_PRICE" | "LAST_PRICE";
-            orderType?: "LIMIT" | "MARKET";
-            orderPrice?: Decimal | string;
-        };
-        stopLoss?: {
-            price: Decimal | string;
-            stopType?: "MARK_PRICE" | "LAST_PRICE";
-            orderType?: "LIMIT" | "MARKET";
-            orderPrice?: Decimal | string;
-        };
-        /**
-         * What the UI showed when the user confirmed. The gate compares the
-         * payload against this rather than against the values it was built
-         * from — see FEAT-0011.
-         */
-        displayed: {
-            accountSize: Decimal;
-            riskPercentage: Decimal;
-            entryPrice: Decimal;
-            stopLossPrice: Decimal;
-            takeProfits?: Decimal[];
-            leverage?: Decimal;
-            marginMode?: string;
-            accountStateAt?: number;
-        };
-    }) {
+    public async placeOrder(params: PlaceOrderParams) {
         const orderType = params.orderType ?? "MARKET";
         const clientId = params.clientId ?? this.newClientOrderId();
 
