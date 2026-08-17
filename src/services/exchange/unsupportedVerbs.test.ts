@@ -200,3 +200,137 @@ describe("FEAT-0229 — the refusal reaches the trader as language, not as a key
         expect(deText).not.toBe(enText);
     });
 });
+
+/*
+ * The invariant, rather than a list of cases.
+ *
+ * FEAT-0016 shipped a test asserting that TP/SL delegated on both venues.
+ * That was true then and false now, and it was only caught because this item
+ * happened to touch the same verb. What follows removes the need for that
+ * luck: every verb of every adapter is classified against its own `supports`
+ * declaration, and the table has to name every verb the port exposes — so a
+ * verb added later fails here until someone decides what it does on a venue
+ * that cannot perform it.
+ *
+ * This is also the shape FEAT-0018's conformance suite grows into: the same
+ * question asked of an adapter Cachy has not written yet.
+ */
+
+/** How a verb behaves when its venue cannot do it. */
+type Kind = "write" | "read";
+
+interface VerbSpec {
+    /** The `supports` flag that gates it, or null if it is never gated. */
+    gate: keyof import("./types").TradingSupport | null;
+    kind: Kind;
+    args: unknown[];
+    /** The transport method it must reach when the venue does support it. */
+    transport: keyof typeof tradeServiceMock | null;
+}
+
+const TRADING_VERBS: Record<string, VerbSpec> = {
+    placeOrder: { gate: null, kind: "write", args: [{ symbol: "BTCUSDT" }], transport: "placeOrder" },
+    closePosition: {
+        gate: null,
+        kind: "write",
+        args: [{ symbol: "BTCUSDT", positionSide: "long" }],
+        transport: "closePosition",
+    },
+    cancelOrder: { gate: null, kind: "write", args: ["BTCUSDT", "1"], transport: "cancelOrder" },
+    cancelAllOrders: { gate: null, kind: "write", args: ["BTCUSDT"], transport: "cancelAllOrders" },
+    modifyOrder: { gate: null, kind: "write", args: [{ orderId: "1" }], transport: "modifyOrder" },
+    fetchTpSlOrders: { gate: "tpSl", kind: "read", args: ["pending"], transport: "fetchTpSlOrders" },
+    cancelTpSlOrder: {
+        gate: "tpSl",
+        kind: "write",
+        args: [{ orderId: "1" }],
+        transport: "cancelTpSlOrder",
+    },
+    modifyTpSlOrder: {
+        gate: "tpSl",
+        kind: "write",
+        args: [{ orderId: "1", symbol: "BTCUSDT", planType: "LOSS", triggerPrice: "1" }],
+        transport: "modifyTpSlOrder",
+    },
+};
+
+const ACCOUNT_VERBS: Record<string, VerbSpec> = {
+    fetchLeverageMarginMode: {
+        gate: "leverageMarginMode",
+        kind: "read",
+        args: ["BTCUSDT"],
+        transport: "fetchLeverageMarginMode",
+    },
+    fetchTradingPairInfo: {
+        gate: "tradingPairInfo",
+        kind: "read",
+        args: ["BTCUSDT"],
+        transport: "fetchTradingPairInfo",
+    },
+    // Not gated by `supports`: funding-rate history is a data gap, not a
+    // trading capability. Bitunix serves it, Bitget resolves empty, and
+    // neither reaches a trading transport — so it is exempt from the
+    // delegation rule below and asserted on its own.
+    fetchFundingRateHistory: { gate: null, kind: "read", args: ["BTCUSDT"], transport: null },
+};
+
+function isEmpty(value: unknown): boolean {
+    return value === undefined || value === null || (Array.isArray(value) && value.length === 0);
+}
+
+describe("FEAT-0229 — every verb is either delegated or declared, on every adapter", () => {
+    for (const [portName, table] of [
+        ["trading", TRADING_VERBS],
+        ["account", ACCOUNT_VERBS],
+    ] as const) {
+        it(`the ${portName} table names every verb the port exposes`, () => {
+            for (const adapter of [bitunix(), bitget()]) {
+                // A verb added to the port without a decision about
+                // unsupported venues fails here, not in front of a trader.
+                expect(Object.keys(adapter[portName]).sort()).toEqual(Object.keys(table).sort());
+            }
+        });
+
+        for (const [verb, spec] of Object.entries(table)) {
+            for (const id of ["bitunix", "bitget"] as const) {
+                it(`${id}.${portName}.${verb} behaves as its supports flag says`, async () => {
+                    const adapter = getExchangeAdapter(id);
+                    const supported = spec.gate === null || adapter.supports[spec.gate];
+                    const port = adapter[portName] as Record<string, (...a: unknown[]) => unknown>;
+
+                    const outcome = await Promise.resolve(port[verb](...spec.args)).catch(
+                        (e: unknown) => e,
+                    );
+                    const transportCall = spec.transport ? tradeServiceMock[spec.transport] : null;
+
+                    if (supported && transportCall) {
+                        expect(outcome, `${verb} threw although ${id} supports it`).not.toBeInstanceOf(
+                            Error,
+                        );
+                        expect(transportCall).toHaveBeenCalledTimes(1);
+                        return;
+                    }
+
+                    if (transportCall) {
+                        expect(
+                            transportCall,
+                            `${verb} reached the transport although ${id} declares it unsupported`,
+                        ).not.toHaveBeenCalled();
+                    }
+
+                    if (!supported && spec.kind === "write") {
+                        // A write must fail loudly. Resolving would let a
+                        // trader believe something changed.
+                        expect(isExchangeUnsupportedError(outcome)).toBe(true);
+                        expect((outcome as ExchangeUnsupportedError).feature).toBe(spec.gate);
+                        return;
+                    }
+
+                    // A read: empty is a true answer, an exception is not.
+                    expect(outcome).not.toBeInstanceOf(Error);
+                    expect(isEmpty(outcome), `${verb} resolved with data it cannot have`).toBe(true);
+                });
+            }
+        }
+    }
+});

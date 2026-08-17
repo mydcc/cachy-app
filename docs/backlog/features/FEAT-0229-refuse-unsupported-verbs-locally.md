@@ -73,14 +73,15 @@ New strings go into `src/locales/` in German and English.
       `fetchTradingPairInfo` resolve locally instead of sending a request that
       `tradeService` would drop or a Bitunix-only route would reject. Nothing
       was ever written by those on Bitget, so nothing observable changes.
-- [ ] `ExchangeUnsupportedError` renders through the existing toast path with a
+- [x] `ExchangeUnsupportedError` renders through the existing toast path with a
       message naming the exchange and what it cannot do, in both locales
-      → **half proven.** The message itself is: `getDisplayMessage` translates
-      the error with the venue interpolated (`Bitget`, not `bitget`), and both
-      locale strings exist, differ, and carry the placeholder — all asserted.
-      That the `TpSlList` catch hands it to `toastService` is type-checked and
-      reviewed, not tested: this repo has no component-test harness, and adding
-      one is its own decision rather than a line item here.
+      → `TpSlList.refusal.component.test.ts` mounts the component, clicks
+      cancel, and asserts the toast carries the real English sentence with
+      `Bitget` in it — not the i18n key, and not the generic "cancel failed".
+      The real adapter, the real error and the real `getDisplayMessage` are in
+      the path; only the transport, the settings store, the socket and
+      `confirm()` are replaced. Verified by mutation: with `SUPPORTS.tpSl`
+      flipped to `true`, two of its three tests fail.
 - [x] Bitunix behaviour is byte-identical — the guard is reachable only through
       a false `supports` flag
       → asserted verb by verb: every TP/SL and account call still reaches
@@ -101,19 +102,39 @@ New strings go into `src/locales/` in German and English.
   `OrderRefusedError`.
 - `exchange.unsupported.*` in `de.json` and `en.json`, types regenerated.
 - `TpSlList` shows the refusal instead of collapsing it into "cancel failed".
+- A `components` Vitest project (`vite.config.ts`) for tests that mount a
+  component. It exists because `mount()` needs `svelte` resolved to its
+  browser build, and setting that condition globally is *not* free: it also
+  flips `$app/environment`'s `browser` to true, which sent `technicalsService`
+  down its Worker path and broke two previously passing tests. The condition
+  is therefore scoped to `src/**/*.component.test.ts`. `npm test` runs both
+  projects, so nothing needs a new CI step.
 
 One existing test changed: `exchangeAdapter.test.ts` asserted that TP/SL
 delegated on *both* venues, which was FEAT-0016's deliberate pass-through.
 That is exactly the behaviour this item removes, so the test now asserts the
 new contract and names what it used to assert.
 
+That test only caught the drift because this item happened to touch the same
+verb. `unsupportedVerbs.test.ts` closes that gap with an invariant instead of
+a case list: every verb of every adapter is classified against its own
+`supports` declaration — supported verbs must reach the transport, unsupported
+writes must throw, unsupported reads must resolve empty and reach nothing —
+and the table has to name every verb the port exposes, so a verb added later
+fails the test until someone decides what it does on a venue that cannot
+perform it. It is the shape `FEAT-0018` grows into.
+
 ## Verification
 
 - `npm run check` — 2005 files, 0 errors, 0 warnings
-- `npm test` — 221 test files passed, 1 skipped; 1595 tests passed, 6 skipped,
-  0 failures
+- `npm test` — 222 test files passed, 1 skipped; 1622 tests passed, 6 skipped,
+  0 failures, across both projects
 - `scripts/check_translations.sh` — 0 missing, 0 empty, 0 one-sided keys
-- New: `unsupportedVerbs.test.ts` (11 tests)
+- New: `unsupportedVerbs.test.ts` (35 tests, including the port-contract
+  invariant), `TpSlList.refusal.component.test.ts` (3 tests)
+- Mutation-checked rather than assumed: flipping `SUPPORTS.tpSl` to `true`
+  fails 6 tests in `unsupportedVerbs.test.ts` and 2 in the component test;
+  adding an unclassified verb to both adapters fails the contract test.
 
 ## Out of scope
 
