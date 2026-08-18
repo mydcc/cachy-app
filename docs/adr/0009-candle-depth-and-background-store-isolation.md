@@ -1,4 +1,4 @@
-# ADR-0009: Candle history is requested through the backfiller, never straight from the venue
+# ADR-0009: A candle request must deliver the depth it asks for, and background work stays out of the foreground's store
 
 - **Status:** Proposed
 - **Date:** 2026-08-18
@@ -42,19 +42,23 @@ why both survived for months.
 
 ## Decision
 
-**Any code path that needs more candles than a single venue response can carry
-requests them through the backfiller, not through a direct `apiService` kline
-call.**
+Two rules, and the second was learned the hard way — see the correction note
+below.
 
-Concretely:
+**1. A candle request delivers the depth it asks for, or says it did not.**
+`apiService.fetchBitunixKlines()` pages internally whenever base-candle demand
+exceeds `BITUNIX_MAX_ROWS_PER_REQUEST`. The whole walk runs inside one scheduled
+request, so it consumes one concurrency slot, not one per page. No caller has to
+know the venue's row cap exists.
 
-- `HistoryFetcher.ensureHistory(symbol, tf, targetLimit?)` takes an optional
-  target so a caller can state its own warm-up depth instead of inheriting the
-  chart's. Callers read the result from `marketState`, which is also the cache
-  the chart and technicals panel read — one fetch, shared.
-- `apiService.fetchBitunixKlines()` pages internally whenever base-candle demand
-  exceeds `BITUNIX_MAX_ROWS_PER_REQUEST`. The whole walk runs inside one
-  scheduled request, so it consumes one concurrency slot, not one per page.
+**2. Background work stays out of the store the foreground renders from.**
+A service that sweeps many symbols on a timer does not write into `marketState`
+and does not call through `HistoryFetcher.ensureHistory()`. It fetches, computes,
+and publishes its own result to its own store.
+
+`ensureHistory()` remains the right path for UI-driven history — the chart and
+the technicals panel — where the caller *is* the foreground and the forced
+recalculation at the end of it is exactly what the user is waiting for.
 - An indicator's required depth is stated as a constant with its reasoning.
   `ANALYST_HISTORY_TARGET = 600` is 3× the EMA 200 period, the point at which
   the seed value stops dominating an EMA.
@@ -76,8 +80,7 @@ that genuinely lacks history settles instead of spinning.
 
 - EMA 200 and other long-look-back indicators are computable on every timeframe
   the UI offers, including synthetic ones.
-- The analyst warms the same store the visible UI reads, so a symbol analysed in
-  the background costs the chart nothing when the user opens it.
+- Background analysis cannot degrade the visible UI, whatever its scope grows to.
 - Failures are visible. A capped fetch says what it delivered; an unmeasurable
   trend says it is unmeasurable rather than reporting "neutral".
 
@@ -87,18 +90,26 @@ that genuinely lacks history settles instead of spinning.
   per symbol/timeframe instead of one. The first fill of four favourites across
   four timeframes is ~48 requests where it used to be 16 — the difference is
   that it now happens once and stops, rather than every 8 seconds forever.
+- **Rule 2 costs deduplication.** A symbol the analyst covers and the chart
+  displays is fetched twice, beyond `RequestManager`'s 10s dedup window, and the
+  analyst gets no IndexedDB persistence. This is the price of the isolation and
+  it is worth paying: the attempt to avoid it is what BUG-0234 was.
 - Latency per analyst cycle rises: timeframes are fetched sequentially so the
-  page walk does not exceed the global concurrency budget. The analyst is a
-  background job; this is the correct side of that trade, but it does mean a
-  cold dashboard takes tens of seconds rather than seconds to fill.
+  page walk does not exceed the global concurrency budget. A cold dashboard
+  takes tens of seconds rather than seconds to fill.
 - `MAX_KLINE_PAGES` means very large multipliers still cannot reach an arbitrary
   depth. A 12m timeframe tops out around 333 candles. That is enough for EMA 200
   and is logged when it binds, but it is a ceiling, not an absence of one.
 
 ### What is now forbidden
 
-- Calling `apiService.fetchBitunixKlines()` / `fetchBitgetKlines()` with a limit
-  above the venue's per-response cap and treating the result as complete.
+- Treating any kline result as complete without the paging that makes it so.
+- **Writing into `marketState`, or calling `ensureHistory()`, from a service
+  that sweeps symbols on a timer.** `marketState` is what every visible tile
+  renders from; a write to it schedules work on the main thread, and
+  `ensureHistory()` additionally forces a full technicals recalculation. A
+  background sweep doing either at scale starves the `requestIdleCallback` path
+  every non-active tile depends on, and the whole UI blanks and refills.
 - Gating a retry, a cache skip, or a scheduling interval on whether an indicator
   produced a usable value.
 - Collapsing "not measurable" into a neutral or bearish reading — in a store, in
@@ -106,6 +117,18 @@ that genuinely lacks history settles instead of spinning.
   must survive to the surface. A user sizing a position may not be shown a
   fabricated signal where data is missing.
 - Capping, sampling or truncating a fetch without logging what was dropped.
+
+## Correction note (2026-08-18)
+
+This ADR first said the opposite of rule 2: that any deep-history caller should
+route through `ensureHistory()` so the analyst and the UI would share one cache.
+That shipped, and made the flicker permanent and global instead of fixing it
+(`BUG-0234`). The sharing was real; so was the coupling, and the coupling was
+worth more than the saved requests.
+
+Recorded rather than quietly rewritten, because the reasoning that produced it
+is the reasoning most likely to produce it again: "one cache is better than two"
+is true about data and false about reactivity.
 
 ## Alternatives considered
 

@@ -33,7 +33,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const ensureHistory = vi.fn(async () => true);
+const fetchKlines = vi.fn(async () => HISTORY);
 
 // Klines are plentiful, but the technicals never yield an EMA 200 -- the exact
 // shape that used to make the loop non-terminating.
@@ -41,17 +41,8 @@ const HISTORY = Array.from({ length: 600 }, (_, i) => ({
     open: 100, high: 101, low: 99, close: 100, volume: 1, time: i * 60_000,
 }));
 
-vi.mock("./marketWatcher", () => ({
-    marketWatcher: { ensureHistory: (...a: unknown[]) => ensureHistory(...(a as [])) },
-}));
-
 vi.mock("../stores/market.svelte", () => ({
-    marketState: {
-        data: new Proxy({}, {
-            get: () => ({ klines: new Proxy({}, { get: () => HISTORY }) }),
-        }),
-        updateTelemetry: vi.fn(),
-    },
+    marketState: { data: {}, updateTelemetry: vi.fn() },
 }));
 
 vi.mock("./technicalsService", () => ({
@@ -64,7 +55,12 @@ vi.mock("./technicalsService", () => ({
     },
 }));
 
-vi.mock("./apiService", () => ({ apiService: { fetchBitgetKlines: vi.fn(async () => []) } }));
+vi.mock("./apiService", () => ({
+    apiService: {
+        fetchBitunixKlines: (...a: unknown[]) => fetchKlines(...(a as [])),
+        fetchBitgetKlines: (...a: unknown[]) => fetchKlines(...(a as [])),
+    },
+}));
 // Mutable so individual tests can widen the favourites list or flip the
 // analyze-all toggle without re-declaring the module mock.
 const favourites = { items: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"] };
@@ -99,7 +95,7 @@ const TIMEFRAMES = 4; // 15m/1h/4h/1d after the required-timeframe union
  */
 async function freshAnalyst() {
     vi.resetModules();
-    ensureHistory.mockClear();
+    fetchKlines.mockClear();
     // Import BOTH from the fresh registry: after resetModules the analyst gets
     // its own analysis-store instance, so a store imported at file scope would
     // be a different object and always look empty.
@@ -148,15 +144,15 @@ describe("marketAnalyst scheduling (BUG-0230)", () => {
 
         // Phase 1: initial fill. 4 favourites x 4 timeframes = 16 backfills.
         await advance(30_000);
-        const initialFill = ensureHistory.mock.calls.length;
+        const initialFill = fetchKlines.mock.calls.length;
 
         // Phase 2: two quiet minutes. Under the quality-gated freshness check
         // this was a hot loop -- one full pass per 2s, ~60 passes, ~960 calls.
         // With age-gated freshness plus partial backoff (30s, then 60s, 120s...)
         // only a handful of symbols come due.
-        ensureHistory.mockClear();
+        fetchKlines.mockClear();
         await advance(120_000);
-        const duringQuiet = ensureHistory.mock.calls.length;
+        const duringQuiet = fetchKlines.mock.calls.length;
 
         analyst.stop();
 
@@ -173,13 +169,32 @@ describe("marketAnalyst scheduling (BUG-0230)", () => {
         await advance(10_000);
         analyst.stop();
 
-        expect(ensureHistory).toHaveBeenCalled();
-        for (const call of ensureHistory.mock.calls) {
-            const [, , targetLimit] = call as unknown as [string, string, number];
-            // 3x the EMA period. A plain 200-candle fetch -- which is all Bitunix
-            // returns per request -- is what kept the indicator from converging.
-            expect(targetLimit).toBeGreaterThanOrEqual(600);
+        expect(fetchKlines).toHaveBeenCalled();
+        for (const call of fetchKlines.mock.calls) {
+            const [, , limit] = call as unknown as [string, string, number];
+            // 3x the EMA period. apiService pages past the venue's 200-row cap
+            // to actually deliver this (BUG-0231); before that, asking for it
+            // silently returned 200 and the indicator could not converge.
+            expect(limit).toBeGreaterThanOrEqual(600);
         }
+    });
+
+    it("does not write history into the store the visible UI renders from", async () => {
+        const { analyst } = await freshAnalyst();
+        const { marketState } = await import("../stores/market.svelte");
+        analyst.start();
+        await advance(20_000);
+        analyst.stop();
+
+        expect(fetchKlines.mock.calls.length).toBeGreaterThan(0);
+
+        // Routing the analyst through marketWatcher.ensureHistory() was tried
+        // and reverted: sharing the store means sharing its reactivity, and a
+        // sweep over every favourite x every timeframe then fires the effects
+        // that every visible tile and the technicals panel recalculate from --
+        // continuously, without the Market Overview window even being open.
+        // Background work stays out of the foreground's store.
+        expect(Object.keys(marketState.data)).toHaveLength(0);
     });
 
     it("analyses only the top 4 favourites while analyzeAllFavorites is off", async () => {
@@ -223,9 +238,9 @@ describe("marketAnalyst scheduling (BUG-0230)", () => {
         analyst.start();
         await advance(40_000);
 
-        ensureHistory.mockClear();
+        fetchKlines.mockClear();
         await advance(120_000);
-        const duringQuiet = ensureHistory.mock.calls.length;
+        const duringQuiet = fetchKlines.mock.calls.length;
         analyst.stop();
 
         expect(duringQuiet / TIMEFRAMES).toBeLessThanOrEqual(FAVOURITES * 2);

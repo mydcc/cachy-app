@@ -26,7 +26,6 @@ import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
 import { logger } from "./logger";
 import { marketState } from "../stores/market.svelte";
-import { marketWatcher } from "./marketWatcher";
 import { analysisState, type SymbolAnalysis, type TrendState } from "../stores/analysis.svelte";
 import { favoritesState } from "../stores/favorites.svelte";
 import { settingsState } from "../stores/settings.svelte";
@@ -47,11 +46,9 @@ const DATA_FRESHNESS_TTL = 300 * 1000; // 5 minutes
  * 600 is that 3x, and it is what makes the trend readings trustworthy enough to
  * put in front of someone sizing a position.
  *
- * This is deliberately NOT requested as a single 600-candle call: Bitunix
- * hard-caps every kline response at 200 rows no matter what `limit` says, so a
- * direct request silently returns a third of what was asked for. Routing
- * through marketWatcher.ensureHistory() paginates over endTime windows to
- * actually reach the target (and caches the result in IndexedDB).
+ * Reaching this depth relies on apiService paging past the venue's 200-row
+ * response cap (BUG-0231). Before that fix a single request for 600 silently
+ * returned 200, which is exactly why the EMA could not converge.
  */
 const ANALYST_HISTORY_TARGET = 600;
 
@@ -127,33 +124,40 @@ class MarketAnalystService {
     /**
      * Load `ANALYST_HISTORY_TARGET` candles for one symbol/timeframe.
      *
-     * Bitunix path: delegate to the MarketWatcher's backfiller, which pages
-     * around the exchange's 200-row response cap, persists to IndexedDB and
-     * shares its result with the chart and technicals panel -- so the analyst
-     * warms the same cache the visible UI reads instead of duplicating fetches.
+     * Deliberately a plain fetch that does NOT touch marketState.
      *
-     * Bitget path: no backfiller exists for it yet, so keep the direct fetch.
-     * It will under-fetch the same way Bitunix used to; the analysis is then
-     * reported as `partial` rather than silently retried forever.
+     * The obvious-looking alternative -- route this through
+     * marketWatcher.ensureHistory() so the analyst warms the same cache the
+     * chart and technicals panel read -- was tried and reverted. Sharing the
+     * store means sharing its reactivity: the analyst sweeps every favourite
+     * across four timeframes, and each backfill batch it wrote fired the
+     * per-symbol effects that every visible tile and the technicals panel
+     * schedule their recalculations from. With a dozen favourites that is a
+     * continuous stream of forced work on the main thread, and the visible UI
+     * blanks and refills throughout -- the very symptom this service's fix was
+     * meant to remove, made permanent and no longer needing the Market Overview
+     * window to be open at all.
+     *
+     * Background work stays out of the store the foreground renders from.
+     *
+     * This costs the analyst its IndexedDB cache and means a symbol the UI is
+     * also showing gets fetched twice (modulo RequestManager's 10s dedup
+     * window). That is the correct price: the analyst already has its own
+     * freshness cache in analysisState, and correctness of the visible UI
+     * outranks request count.
+     *
+     * Depth is no longer a reason to go through the backfiller either --
+     * apiService pages past the venue's 200-row response cap on its own
+     * (BUG-0231), which is what made the direct call insufficient before.
      */
     private async loadHistory(
         symbol: string,
         tf: string,
         provider: string,
     ): Promise<Kline[]> {
-        if (provider === "bitget") {
-            return apiService.fetchBitgetKlines(symbol, tf, ANALYST_HISTORY_TARGET, undefined, undefined, "normal");
-        }
-
-        try {
-            await marketWatcher.ensureHistory(symbol, tf, ANALYST_HISTORY_TARGET);
-        } catch (e) {
-            // A backfill failure is not fatal: whatever is already in the store
-            // (or in IndexedDB from a previous session) may still be enough.
-            logger.warn("technicals", `Analyst: backfill failed for ${symbol}:${tf}`, e);
-        }
-
-        return marketState.data[symbol]?.klines?.[tf] ?? [];
+        return provider === "bitget"
+            ? apiService.fetchBitgetKlines(symbol, tf, ANALYST_HISTORY_TARGET, undefined, undefined, "normal")
+            : apiService.fetchBitunixKlines(symbol, tf, ANALYST_HISTORY_TARGET, undefined, undefined, "normal");
     }
 
     /**
