@@ -2,7 +2,7 @@
 id: BUG-0235
 title: Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
