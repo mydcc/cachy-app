@@ -4,7 +4,7 @@
 
 139 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
+Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 12 · ✅ done 87
 
 ---
 
@@ -125,7 +125,15 @@ Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0241](bugs/BUG-0241-custom-prompt-overwrites-safety.md) | customSystemPrompt completely overwrites baseRoleInstructions and safety rules | P1 | 🟢 ready | ai |
+| [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | 🟢 ready | execution |
+| [FEAT-0239](features/FEAT-0239-epic-ai-prompt-architecture.md) | Epic: AI Prompt Architecture & Safety Refactoring | P1 | 🟢 ready | ai |
+| [FEAT-0242](features/FEAT-0242-structured-function-calling.md) | Replace regex-based JSON action parsing with structured function calling | P1 | 🟢 ready | ai |
+| [FEAT-0245](features/FEAT-0245-prompt-templating-versioning.md) | Centralize prompt templating and versioning | P1 | 🟢 ready | ai |
+| [BUG-0244](bugs/BUG-0244-fragile-prompt-leak-workaround.md) | Gemini/Gemma prompt leak guard uses fragile chunk length heuristic | P2 | 🟢 ready | ai |
+| [BUG-0246](bugs/BUG-0246-implicit-analysis-mode-coupling.md) | Implicit coupling of empty string to standard behaviour in modeInstructions | P2 | 🟢 ready | ai |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | ai |
+| [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | 🟢 ready | ai |
 
 ### M9
 
@@ -150,8 +158,6 @@ Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
 | [BUG-0234](bugs/BUG-0234-analyst-store-coupling-regression.md) | Analyst backfill through the shared store makes the whole UI flicker continuously | P1 | ✅ done | market-data |
 | [BUG-0235](bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md) | Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability | P1 | 🟢 ready | security |
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | 🟢 ready | security |
-| [BUG-0241](bugs/BUG-0241-custom-prompt-overwrites-safety.md) | customSystemPrompt completely overwrites baseRoleInstructions and safety rules | P1 | 📋 specced | ai |
-| [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | 📋 specced | ai |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -169,8 +175,6 @@ Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
 | [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) | Favourites live in two stores that never agree, so Settings has no effect on what gets analysed | P2 | ✅ done | settings |
 | [BUG-0237](bugs/BUG-0237-stream-logs-timing-safe-comparison-hash.md) | Stream logs authentication leaks secret length before timing-safe comparison | P2 | 🟢 ready | security |
 | [BUG-0238](bugs/BUG-0238-gemini-proxy-model-param-sanitization.md) | Gemini AI proxy passes unvalidated model parameter into API path | P2 | 🟢 ready | security |
-| [BUG-0244](bugs/BUG-0244-fragile-prompt-leak-workaround.md) | Gemini/Gemma prompt leak guard uses fragile chunk length heuristic | P2 | 📋 specced | ai |
-| [BUG-0246](bugs/BUG-0246-implicit-analysis-mode-coupling.md) | Implicit coupling of empty string to standard behaviour in modeInstructions | P2 | 📋 specced | ai |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -185,10 +189,6 @@ Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
 | [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | trade-panel |
 | [FEAT-0214](features/FEAT-0214-pr-preview-deployments.md) | Automated PR preview deployments for visual and mobile testing | P2 | 📋 specced | repo |
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | ✅ done | ui |
-| [FEAT-0239](features/FEAT-0239-epic-ai-prompt-architecture.md) | Epic - AI Prompt Architecture & Safety Refactoring | P2 | 💡 idea | ai |
-| [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement Prompt Caching for baseRoleInstructions | P2 | 💡 idea | ai |
-| [FEAT-0242](features/FEAT-0242-structured-function-calling.md) | Replace regex-based JSON parsing with structured Function Calling | P2 | 💡 idea | ai |
-| [FEAT-0245](features/FEAT-0245-prompt-templating-versioning.md) | Centralize prompt templating and versioning | P2 | 💡 idea | ai |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -243,8 +243,8 @@ Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
 | [BUG-0234](bugs/BUG-0234-analyst-store-coupling-regression.md) | Analyst backfill through the shared store makes the whole UI flicker continuously | P1 | ✅ done | none | community, pro, private | none | ADR-0009 | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md) |
 | [BUG-0235](bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md) | Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0241](bugs/BUG-0241-custom-prompt-overwrites-safety.md) | customSystemPrompt completely overwrites baseRoleInstructions and safety rules | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0241](bugs/BUG-0241-custom-prompt-overwrites-safety.md) | customSystemPrompt completely overwrites baseRoleInstructions and safety rules | P1 | 🟢 ready | M8 | community, pro, private | none | none | — |
+| [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | 🟢 ready | M8 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -264,6 +264,9 @@ Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | M2 | community, pro, private | none | ADR-0008 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
+| [FEAT-0239](features/FEAT-0239-epic-ai-prompt-architecture.md) | Epic: AI Prompt Architecture & Safety Refactoring | P1 | 🟢 ready | M8 | community, pro, private | none | none | — |
+| [FEAT-0242](features/FEAT-0242-structured-function-calling.md) | Replace regex-based JSON action parsing with structured function calling | P1 | 🟢 ready | M8 | community, pro, private | none | none | — |
+| [FEAT-0245](features/FEAT-0245-prompt-templating-versioning.md) | Centralize prompt templating and versioning | P1 | 🟢 ready | M8 | community, pro, private | none | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -291,8 +294,8 @@ Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
 | [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) | Favourites live in two stores that never agree, so Settings has no effect on what gets analysed | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0237](bugs/BUG-0237-stream-logs-timing-safe-comparison-hash.md) | Stream logs authentication leaks secret length before timing-safe comparison | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0238](bugs/BUG-0238-gemini-proxy-model-param-sanitization.md) | Gemini AI proxy passes unvalidated model parameter into API path | P2 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0244](bugs/BUG-0244-fragile-prompt-leak-workaround.md) | Gemini/Gemma prompt leak guard uses fragile chunk length heuristic | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0246](bugs/BUG-0246-implicit-analysis-mode-coupling.md) | Implicit coupling of empty string to standard behaviour in modeInstructions | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0244](bugs/BUG-0244-fragile-prompt-leak-workaround.md) | Gemini/Gemma prompt leak guard uses fragile chunk length heuristic | P2 | 🟢 ready | M8 | community, pro, private | none | none | — |
+| [BUG-0246](bugs/BUG-0246-implicit-analysis-mode-coupling.md) | Implicit coupling of empty string to standard behaviour in modeInstructions | P2 | 🟢 ready | M8 | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -326,10 +329,7 @@ Counts by status: 💡 idea 21 · 📋 specced 27 · 🟢 ready 4 · ✅ done 87
 | [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) |
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | ✅ done | none | community, pro, private | C | none | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md), [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) |
-| [FEAT-0239](features/FEAT-0239-epic-ai-prompt-architecture.md) | Epic - AI Prompt Architecture & Safety Refactoring | P2 | 💡 idea | none | community, pro, private | none | none | — |
-| [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement Prompt Caching for baseRoleInstructions | P2 | 💡 idea | none | community, pro, private | none | none | — |
-| [FEAT-0242](features/FEAT-0242-structured-function-calling.md) | Replace regex-based JSON parsing with structured Function Calling | P2 | 💡 idea | none | community, pro, private | none | none | — |
-| [FEAT-0245](features/FEAT-0245-prompt-templating-versioning.md) | Centralize prompt templating and versioning | P2 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | 🟢 ready | M8 | community, pro, private | none | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
