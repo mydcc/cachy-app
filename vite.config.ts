@@ -26,6 +26,7 @@ const COMPONENT_TESTS = "src/**/*.component.test.ts";
 
 const VITEST_EXCLUDE = [
   ...configDefaults.exclude,
+  ".claude/**",
   // Playwright specs must only run via `npm run test:e2e`, not Vitest
   "tests/e2e/**",
   // Benchmarks that assert wall-clock time or heap growth. They are useful

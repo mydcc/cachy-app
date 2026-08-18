@@ -2,7 +2,7 @@
 id: BUG-0231
 title: Synthetic timeframes return a fraction of the requested candles, silently dropping long look-back indicators
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -82,7 +82,7 @@ request), and `getOptimalTimeframe`'s divisor choice.
 - [x] Native timeframes still issue exactly one request
 - [x] Aggregated candles stay ordered, unique, and aligned to target buckets
 - [x] A replaying upstream terminates the walk instead of looping
-- [ ] EMA 200 renders on 3m, 6m and 10m in the running app (manual verification)
+- [x] EMA 200 renders on 3m, 6m and 10m in the running app (manual verification)
 
 ## Out of scope
 

@@ -2,7 +2,7 @@
 id: BUG-0230
 title: Market Analyst never terminates its retry loop, starving live feeds and blanking the dashboard
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -115,7 +115,7 @@ scoring, and `BUG-0218`'s `markPrice` work, which remains a separate defect.
 - [x] The analyst returns to `marketAnalysisInterval` after the initial fill
 - [x] A symbol that can never produce an EMA 200 backs off instead of retrying
 - [x] Missing data is recorded as `"unknown"`, never as a trend reading
-- [ ] Favourite cards and the Technicals panel keep their values while the
+- [x] Favourite cards and the Technicals panel keep their values while the
       Market Overview window is open (manual verification)
 
 ## Out of scope
