@@ -95,11 +95,11 @@ describe('headersHandler (Server Hook)', () => {
 
     // Check security headers
     expect(result.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin-allow-popups');
-    expect(result.headers.get('Cross-Origin-Embedder-Policy')).toBe('credentialless');
+    expect(result.headers.get('Cross-Origin-Embedder-Policy')).toBeNull();
     expect(result.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(result.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(result.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-    expect(result.headers.get('Permissions-Policy')).toBe('camera=(), microphone=(), geolocation=()');
+    expect(result.headers.get('Permissions-Policy')).toBe('camera=(self "https://space.cachy.app"), microphone=(self "https://space.cachy.app"), geolocation=()');
   });
 });
 
@@ -154,7 +154,7 @@ describe('handle sequence (Integration)', () => {
 
     // 2. Check headersHandler behavior
     expect(result.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin-allow-popups');
-    expect(result.headers.get('Cross-Origin-Embedder-Policy')).toBe('credentialless');
+    expect(result.headers.get('Cross-Origin-Embedder-Policy')).toBeNull();
     expect(result.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
 
     // 3. Check themeHandler behavior (transformPageChunk application)
