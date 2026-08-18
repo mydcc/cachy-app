@@ -78,7 +78,17 @@ export class HistoryFetcher {
         }
     }
 
-    public async ensureHistory(symbol: string, tf: string): Promise<boolean> {
+    /**
+     * Backfill `symbol`:`tf` history into marketState, paginating around the
+     * exchange's per-request candle cap (Bitunix hard-caps at 200 regardless
+     * of the requested limit).
+     *
+     * @param targetLimit How many candles to aim for. Defaults to the user's
+     *   chart history setting. Callers that need a specific indicator warm-up
+     *   depth (e.g. the market analyst needs ~3x the EMA 200 period) pass their
+     *   own target so they neither under-fetch nor drag the full chart depth.
+     */
+    public async ensureHistory(symbol: string, tf: string, targetLimit?: number): Promise<boolean> {
         const provider = settingsState.apiProvider;
         if (provider !== "bitunix") return false;
         const lockKey = `${symbol}:${tf}`;
@@ -96,7 +106,7 @@ export class HistoryFetcher {
 
             // 2. Check current store state and exhaustion to avoid redundant backfills
             const currentData = marketState.data[symbol]?.klines[tf] || [];
-            const limit = settingsState.chartHistoryLimit || 1000;
+            const limit = targetLimit ?? (settingsState.chartHistoryLimit || 1000);
             const exhaustKey = `${symbol}:${tf}`;
 
             if (currentData.length >= limit || this.exhaustedHistory.has(exhaustKey)) {

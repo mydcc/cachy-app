@@ -330,6 +330,17 @@ export interface Settings {
   multiAccount: boolean;
 }
 
+/**
+ * Upper bound on favourite symbols. Each favourite costs a live subscription
+ * plus a slot in the analyst's rotation, so this is a load ceiling, not a
+ * cosmetic one.
+ *
+ * Single source of truth: favoritesState proxies this same list (BUG-0232 --
+ * the two used to be separate stores with different limits, which is why the
+ * dashboard showed symbols the analyst never touched).
+ */
+export const MAX_FAVORITE_SYMBOLS = 12;
+
 const defaultSettings: Settings = {
   apiProvider: "bitunix",
   appAccessToken: "",
@@ -1185,7 +1196,7 @@ export class SettingsManager {
     this.customHotkeys = merged.customHotkeys || {};
     this.favoriteTimeframes = merged.favoriteTimeframes;
     // Strict limit on favorites to prevent memory overflow (User Agreement: 12)
-    this.favoriteSymbols = (merged.favoriteSymbols || []).slice(0, 12);
+    this.favoriteSymbols = (merged.favoriteSymbols || []).slice(0, MAX_FAVORITE_SYMBOLS);
     this.syncRsiTimeframe = merged.syncRsiTimeframe;
     this.imgbbApiKey = merged.imgbbApiKey;
     this.imgbbExpiration = merged.imgbbExpiration;

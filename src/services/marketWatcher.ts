@@ -240,8 +240,8 @@ export class MarketWatcher {
         this.registry.unregister(symbol, channel, requirement);
     }
 
-    async ensureHistory(symbol: string, tf: string) {
-        return this.historyFetcher.ensureHistory(symbol, tf);
+    async ensureHistory(symbol: string, tf: string, targetLimit?: number) {
+        return this.historyFetcher.ensureHistory(symbol, tf, targetLimit);
     }
 
     async loadMoreHistory(symbol: string, tf: string): Promise<boolean> {
