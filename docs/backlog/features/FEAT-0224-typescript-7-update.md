@@ -2,7 +2,7 @@
 id: FEAT-0224
 title: Evaluate and migrate to TypeScript 7
 type: feature
-status: idea
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]
