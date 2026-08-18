@@ -160,6 +160,20 @@
       "noDate": "-",
       "liq": "Liq.",
       "refresh": "Historie aktualisieren",
+      "range": "Zeitraum",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "applyRange": "Anwenden",
+      "clearRange": "Zurücksetzen",
+      "loadMore": "Ältere Orders laden",
+      "loadingMore": "Lade ältere Orders...",
+      "presets": {
+        "all": "Alle",
+        "today": "Heute (UTC)",
+        "7d": "Letzte 7 Tage",
+        "30d": "Letzte 30 Tage",
+        "custom": "Benutzerdefiniert"
+      },
       "reduceOnly": "Nur Reduzierung",
       "reduceOnlyShort": "R/O",
       "side": {

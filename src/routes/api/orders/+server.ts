@@ -121,7 +121,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit), payload.queryCanceled);
+        const orders = await fetchBitunixHistoryOrders(
+          apiKey,
+          apiSecret,
+          Number(payload.limit),
+          payload.queryCanceled,
+          payload.startTime,
+          payload.endTime,
+          payload.symbol
+        );
         result = { orders };
       }
       else if (payload.type === "place-order") {
@@ -196,7 +204,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-         const orders = await fetchBitgetHistoryOrders(apiKey, apiSecret, passphrase, Number(payload.limit));
+         const orders = await fetchBitgetHistoryOrders(
+           apiKey,
+           apiSecret,
+           passphrase,
+           Number(payload.limit),
+           payload.startTime,
+           payload.endTime,
+           payload.symbol
+         );
          result = { orders };
       }
       else if (payload.type === "place-order") {
@@ -734,7 +750,15 @@ function cleanPayload<T extends object>(payload: T): T {
   return cleaned as T;
 }
 
-async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20, queryCanceled = false): Promise<NormalizedOrder[]> {
+async function fetchBitunixHistoryOrders(
+  apiKey: string,
+  apiSecret: string,
+  limit = 20,
+  queryCanceled = false,
+  startTime?: number,
+  endTime?: number,
+  symbol?: string
+): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
   // Bitunix's own split: queryCanceled=false returns everything except
@@ -742,6 +766,9 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
   // back). Neither call alone is a complete history.
   const params: Record<string, string> = { limit: String(limit) };
   if (queryCanceled) params.queryCanceled = "true";
+  if (symbol) params.symbol = symbol;
+  if (startTime !== undefined && !isNaN(startTime)) params.startTime = String(startTime);
+  if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
   const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
 
   const response = await fetch(`${baseUrl}${path}?${queryString}`, {
@@ -766,7 +793,7 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     else if ("orderList" in res.data) listData = res.data.orderList;
   }
 
-  return listData.map((o) => ({
+  let mapped: NormalizedOrder[] = listData.map((o) => ({
     id: o.orderId,
     orderId: o.orderId,
     clientId: o.clientId,
@@ -798,6 +825,15 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     slStopType: o.slStopType,
     slOrderType: o.slOrderType,
   }));
+
+  if (startTime !== undefined && !isNaN(startTime)) {
+    mapped = mapped.filter((o) => (o.time ?? 0) >= startTime);
+  }
+  if (endTime !== undefined && !isNaN(endTime)) {
+    mapped = mapped.filter((o) => (o.time ?? 0) <= endTime);
+  }
+
+  return mapped;
 }
 
 // --- Bitget Helpers ---
@@ -922,7 +958,10 @@ async function fetchBitgetHistoryOrders(
     apiKey: string,
     apiSecret: string,
     passphrase: string,
-    limit = 20
+    limit = 20,
+    startTime?: number,
+    endTime?: number,
+    symbol?: string
 ): Promise<NormalizedOrder[]> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/order/history";
@@ -930,8 +969,12 @@ async function fetchBitgetHistoryOrders(
     const params: Record<string, string> = {
         productType: "umcbl",
         pageSize: String(limit),
-        startTime: String(Date.now() - 7 * 24 * 3600 * 1000) // Last 7 days default
+        startTime: startTime !== undefined && !isNaN(startTime)
+            ? String(startTime)
+            : String(Date.now() - 7 * 24 * 3600 * 1000) // Last 7 days default
     };
+    if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
+    if (symbol) params.symbol = symbol;
 
     const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
 
@@ -951,7 +994,7 @@ async function fetchBitgetHistoryOrders(
     if (res.code !== "00000") return [];
 
     const orders = res.data || [];
-    return orders.map((o: BitgetRawOrder) => ({
+    let mapped: NormalizedOrder[] = orders.map((o: BitgetRawOrder) => ({
         id: o.orderId,
         orderId: o.orderId,
         symbol: o.symbol,
@@ -966,6 +1009,15 @@ async function fetchBitgetHistoryOrders(
         fee: formatApiNum(o.fee) || "0",
         realizedPNL: formatApiNum(o.totalProfits) || "0",
     }));
+
+    if (startTime !== undefined && !isNaN(startTime)) {
+        mapped = mapped.filter((o) => (o.time ?? 0) >= startTime);
+    }
+    if (endTime !== undefined && !isNaN(endTime)) {
+        mapped = mapped.filter((o) => (o.time ?? 0) <= endTime);
+    }
+
+    return mapped;
 }
 
 async function cancelBitgetOrder(

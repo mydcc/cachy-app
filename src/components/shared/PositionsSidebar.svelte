@@ -114,6 +114,10 @@
   let loadingPositions = $state(false);
   let loadingOrders = $state(false);
   let loadingHistory = $state(false);
+  let loadingMoreHistory = $state(false);
+  let historyHasMore = $state(false);
+  let historyStartTime: number | undefined = $state(undefined);
+  let historyEndTime: number | undefined = $state(undefined);
 
   // Error State
   let errorPositions = $state("");
@@ -331,13 +335,28 @@
     }
   }
 
-  async function fetchHistoryOrders() {
+  async function fetchHistoryOrders(options?: {
+    startTime?: number;
+    endTime?: number;
+    append?: boolean;
+    limit?: number;
+  }) {
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
 
-    loadingHistory = true;
+    const isAppend = options?.append ?? false;
+    if (isAppend) {
+      loadingMoreHistory = true;
+    } else {
+      loadingHistory = true;
+    }
     errorHistory = "";
+
+    const startTime = options?.startTime !== undefined ? options.startTime : historyStartTime;
+    const endTime = options?.endTime !== undefined ? options.endTime : historyEndTime;
+    const limit = options?.limit ?? 50;
+
     try {
       // Bitunix's get_history_orders splits FILLED/EXPIRED (queryCanceled
       // omitted) from CANCELED (queryCanceled: true) — one call never
@@ -345,8 +364,11 @@
       // Bitunix; Bitget's history endpoint has no such split.
       const requests =
         provider === "bitunix"
-          ? [{ queryCanceled: false }, { queryCanceled: true }]
-          : [{}];
+          ? [
+              { queryCanceled: false, startTime, endTime, limit },
+              { queryCanceled: true, startTime, endTime, limit },
+            ]
+          : [{ startTime, endTime, limit }];
 
       const responses = await Promise.all(
         requests.map((extra) =>
@@ -370,7 +392,10 @@
         return;
       }
 
-      const merged = new Map<string, NormalizedOrder>();
+      const merged = isAppend
+        ? new Map<string, NormalizedOrder>(historyOrders.map((o) => [o.id || o.orderId, o]))
+        : new Map<string, NormalizedOrder>();
+
       for (const data of responses) {
         for (const order of (data.orders || []) as NormalizedOrder[]) {
           merged.set(order.id || order.orderId, order);
@@ -379,11 +404,41 @@
       historyOrders = Array.from(merged.values()).sort(
         (a, b) => (b.time || 0) - (a.time || 0),
       );
+
+      historyHasMore = responses.some(
+        (r) => Array.isArray(r.orders) && r.orders.length >= limit,
+      );
     } catch {
       errorHistory = $_("apiErrors.failedToLoadOrders");
     } finally {
       loadingHistory = false;
+      loadingMoreHistory = false;
     }
+  }
+
+  function handleLoadMoreHistory() {
+    if (loadingHistory || loadingMoreHistory || historyOrders.length === 0) return;
+    const oldestTime = historyOrders.reduce(
+      (min, o) => (!o.time ? min : Math.min(min, o.time)),
+      Infinity,
+    );
+    if (oldestTime === Infinity || oldestTime <= 0) return;
+
+    fetchHistoryOrders({
+      startTime: historyStartTime,
+      endTime: oldestTime - 1,
+      append: true,
+    });
+  }
+
+  function handleHistoryRangeChange(range: { startTime?: number; endTime?: number }) {
+    historyStartTime = range.startTime;
+    historyEndTime = range.endTime;
+    fetchHistoryOrders({
+      startTime: range.startTime,
+      endTime: range.endTime,
+      append: false,
+    });
   }
 
   async function fetchAccount() {
@@ -769,8 +824,12 @@
         <OrderHistoryList
           orders={filteredHistoryOrders}
           loading={loadingHistory}
+          loadingMore={loadingMoreHistory}
+          hasMore={historyHasMore}
           error={errorHistory}
-          onrefresh={fetchHistoryOrders}
+          onrefresh={() => fetchHistoryOrders({ append: false })}
+          onloadmore={handleLoadMoreHistory}
+          onrangechange={handleHistoryRangeChange}
         />
       {/if}
     </div>

@@ -2,7 +2,7 @@
 id: FEAT-0201
 title: Filter and page order history by time range
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -48,18 +48,18 @@ Three pieces, in order:
 
 ## Acceptance criteria
 
-- [ ] History can be requested for an explicit time range, and the response
+- [x] History can be requested for an explicit time range, and the response
       contains only orders in it
-- [ ] A range with more orders than one response can carry is fully
+- [x] A range with more orders than one response can carry is fully
       retrievable by following the cursor, proven by a test
-- [ ] The existing default view still works with no range specified, and does
+- [x] The existing default view still works with no range specified, and does
       not become slower
-- [ ] Canceled and filled orders are both present across the range, as they
+- [x] Canceled and filled orders are both present across the range, as they
       are today
-- [ ] Timestamps are handled in UTC end to end, matching how the exchange
+- [x] Timestamps are handled in UTC end to end, matching how the exchange
       stamps them and how the daily-loss window in
       [`FEAT-0013`](FEAT-0013-risk-limits-and-kill-switch.md) is defined
-- [ ] German and English strings for the range picker
+- [x] German and English strings for the range picker
 
 ## Out of scope
 
