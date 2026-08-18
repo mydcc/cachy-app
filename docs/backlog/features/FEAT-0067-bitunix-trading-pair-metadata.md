@@ -2,7 +2,7 @@
 id: FEAT-0067
 title: Fetch Bitunix trading-pair metadata and validate orders against it
 type: feature
-status: specced
+status: done
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -15,15 +15,9 @@ size: M
 target_date: 2026-11-20
 ---
 
-Branch: `feat/bitunix-readonly-data-display`
+Branch: `feat/FEAT-0067-trading-pair-validation`
 
 # FEAT-0067 — Fetch Bitunix trading-pair metadata and validate orders against it
-
-**Progress note (this branch):** the read side is done — metadata is fetched
-per symbol into `marketState.symbolMeta` and shown in `TradeSetupInputs.svelte`
-(precision, min size, leverage range, status). The validation/rounding
-acceptance criteria below are execution-path work and stay open — there is no
-order-submit action yet to enable or refuse.
 
 ## Problem
 
@@ -47,13 +41,13 @@ uses it to round inputs and to disable trading when `symbolStatus` is not
 
 ## Acceptance criteria
 
-- [ ] Trading-pair metadata for the active symbol is available in a store
+- [x] Trading-pair metadata for the active symbol is available in a store
       before the trade panel enables its submit action.
-- [ ] Quantity and price inputs are rounded to `basePrecision` /
+- [x] Quantity and price inputs are rounded to `basePrecision` /
       `quotePrecision` using `decimal.js`, never native floats.
-- [ ] An order below `minTradeVolume` or above the max order volume is refused
+- [x] An order below `minTradeVolume` or above the max order volume is refused
       client-side with a message naming the violated limit.
-- [ ] A symbol with `symbolStatus != OPEN` or `isApiSupported == false` shows
+- [x] A symbol with `symbolStatus != OPEN` or `isApiSupported == false` shows
       trading as unavailable instead of failing at submission.
 
 ## Out of scope

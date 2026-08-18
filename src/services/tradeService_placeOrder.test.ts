@@ -356,3 +356,131 @@ describe("FEAT-0069 — the open path is gated", () => {
         ).resolves.toBeDefined();
     });
 });
+
+describe("FEAT-0067 — trading pair metadata rounding and limits in placeOrder", () => {
+    it("rounds quantity to basePrecision and price to quotePrecision", async () => {
+        marketState.setSymbolMeta("BTCUSDT", {
+            symbol: "BTCUSDT",
+            basePrecision: 2,
+            quotePrecision: 1,
+            minTradeVolume: null,
+            maxLimitOrderVolume: null,
+            maxMarketOrderVolume: null,
+            minLeverage: 1,
+            maxLeverage: 125,
+            defaultLeverage: 10,
+            priceProtectScope: null,
+            symbolStatus: "OPEN",
+            isApiSupported: true,
+        });
+
+        await tradeService.placeOrder({
+            ...baseParams(),
+            qty: new Decimal("0.02"),
+            price: new Decimal("50000.2"),
+            takeProfit: { price: new Decimal("51000.3") },
+            stopLoss: { price: new Decimal("49500.9") },
+            displayed: {
+                ...displayed(),
+                entryPrice: new Decimal("50000.2"),
+                stopLossPrice: new Decimal("49500.9"),
+                takeProfits: [new Decimal("51000.3")],
+                stepSize: new Decimal("0.01"),
+            },
+        });
+
+        expect(sent).toHaveLength(1);
+        expect(sent[0].qty).toBe("0.02");
+        expect(sent[0].price).toBe("50000.2");
+        expect(sent[0].tpPrice).toBe("51000.3");
+        expect(sent[0].slPrice).toBe("49500.9");
+    });
+
+    it("refuses an order below minTradeVolume with a limit message", async () => {
+        marketState.setSymbolMeta("BTCUSDT", {
+            symbol: "BTCUSDT",
+            basePrecision: 4,
+            quotePrecision: 2,
+            minTradeVolume: "0.1",
+            maxLimitOrderVolume: null,
+            maxMarketOrderVolume: null,
+            minLeverage: 1,
+            maxLeverage: 125,
+            defaultLeverage: 10,
+            priceProtectScope: null,
+            symbolStatus: "OPEN",
+            isApiSupported: true,
+        });
+
+        await expect(tradeService.placeOrder(baseParams())).rejects.toMatchObject({
+            refusal: { field: "minTradeVolume", values: { limit: "0.1", actual: "0.02" } },
+        });
+        expect(sent).toHaveLength(0);
+    });
+
+    it("refuses an order above maxLimitOrderVolume", async () => {
+        marketState.setSymbolMeta("BTCUSDT", {
+            symbol: "BTCUSDT",
+            basePrecision: 4,
+            quotePrecision: 2,
+            minTradeVolume: null,
+            maxLimitOrderVolume: "0.01",
+            maxMarketOrderVolume: null,
+            minLeverage: 1,
+            maxLeverage: 125,
+            defaultLeverage: 10,
+            priceProtectScope: null,
+            symbolStatus: "OPEN",
+            isApiSupported: true,
+        });
+
+        await expect(tradeService.placeOrder(baseParams())).rejects.toMatchObject({
+            refusal: { field: "maxLimitOrderVolume", values: { limit: "0.01", actual: "0.02" } },
+        });
+        expect(sent).toHaveLength(0);
+    });
+
+    it("refuses an order when symbolStatus is not OPEN", async () => {
+        marketState.setSymbolMeta("BTCUSDT", {
+            symbol: "BTCUSDT",
+            basePrecision: 4,
+            quotePrecision: 2,
+            minTradeVolume: null,
+            maxLimitOrderVolume: null,
+            maxMarketOrderVolume: null,
+            minLeverage: 1,
+            maxLeverage: 125,
+            defaultLeverage: 10,
+            priceProtectScope: null,
+            symbolStatus: "CANCEL_ONLY",
+            isApiSupported: true,
+        });
+
+        await expect(tradeService.placeOrder(baseParams())).rejects.toMatchObject({
+            refusal: { field: "symbolStatus", values: { status: "CANCEL_ONLY" } },
+        });
+        expect(sent).toHaveLength(0);
+    });
+
+    it("refuses an order when isApiSupported is false", async () => {
+        marketState.setSymbolMeta("BTCUSDT", {
+            symbol: "BTCUSDT",
+            basePrecision: 4,
+            quotePrecision: 2,
+            minTradeVolume: null,
+            maxLimitOrderVolume: null,
+            maxMarketOrderVolume: null,
+            minLeverage: 1,
+            maxLeverage: 125,
+            defaultLeverage: 10,
+            priceProtectScope: null,
+            symbolStatus: "OPEN",
+            isApiSupported: false,
+        });
+
+        await expect(tradeService.placeOrder(baseParams())).rejects.toMatchObject({
+            refusal: { field: "isApiSupported" },
+        });
+        expect(sent).toHaveLength(0);
+    });
+});

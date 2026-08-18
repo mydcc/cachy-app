@@ -412,8 +412,11 @@
     trackCustomEvent("ATR", "ChangeTimeframe", val);
   }
 
-  // Determine dynamic step based on price magnitude
+  // Determine dynamic step based on price magnitude or symbol quotePrecision
   let priceStep = $derived.by(() => {
+    if (symbolMeta?.quotePrecision !== undefined) {
+      return new Decimal(10).pow(-symbolMeta.quotePrecision).toNumber();
+    }
     if (!entryPrice) return 0.01;
     const price = parseFloat(String(entryPrice));
     if (isNaN(price) || price === 0) return 0.01;
@@ -562,7 +565,7 @@
         name="entryPrice"
         type="text"
         data-track-id="input-entry-price"
-        use:numberInput={{ maxDecimalPlaces: 20 }}
+        use:numberInput={{ maxDecimalPlaces: symbolMeta?.quotePrecision ?? 20 }}
         use:enhancedInput={{
           step: priceStep,
           min: 0,
@@ -741,7 +744,7 @@
           name="stopLossPrice"
           type="text"
           data-track-id="input-stop-loss"
-          use:numberInput={{ maxDecimalPlaces: 20 }}
+          use:numberInput={{ maxDecimalPlaces: symbolMeta?.quotePrecision ?? 20 }}
           use:enhancedInput={{
             step: priceStep,
             min: 0,

@@ -23,6 +23,7 @@
  */
 
 import { Decimal } from "decimal.js";
+import { normalizeSymbol } from "../utils/symbolUtils";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";
@@ -135,6 +136,7 @@ export interface PlaceOrderParams {
         leverage?: Decimal;
         marginMode?: string;
         accountStateAt?: number;
+        stepSize?: Decimal;
     };
 }
 
@@ -827,6 +829,10 @@ class TradeService {
     public async placeOrder(params: PlaceOrderParams) {
         const orderType = params.orderType ?? "MARKET";
         const clientId = params.clientId ?? this.newClientOrderId();
+        const meta = params.symbol
+            ? (marketState?.symbolMeta?.[params.symbol] ??
+               marketState?.symbolMeta?.[normalizeSymbol(params.symbol, "bitunix")])
+            : undefined;
 
         // formatApiNum everywhere: a price serialised as "1e-7" is rejected
         // by the exchange, and a native float here would undo the precision
@@ -865,11 +871,11 @@ class TradeService {
             }
         }
 
-        const meta = marketState.symbolMeta[params.symbol];
         const stepSize =
-            meta?.basePrecision !== undefined
+            params.displayed.stepSize ??
+            (meta?.basePrecision !== undefined
                 ? new Decimal(10).pow(-meta.basePrecision)
-                : undefined;
+                : undefined);
 
         const result = await this.gatedRequest({
             kind: "open",
@@ -880,6 +886,11 @@ class TradeService {
                 side: params.side,
                 ...params.displayed,
                 stepSize,
+                minTradeVolume: meta?.minTradeVolume ? new Decimal(meta.minTradeVolume) : undefined,
+                maxLimitOrderVolume: meta?.maxLimitOrderVolume ? new Decimal(meta.maxLimitOrderVolume) : undefined,
+                maxMarketOrderVolume: meta?.maxMarketOrderVolume ? new Decimal(meta.maxMarketOrderVolume) : undefined,
+                symbolStatus: meta?.symbolStatus,
+                isApiSupported: meta?.isApiSupported,
             },
         });
 
@@ -1007,9 +1018,10 @@ class TradeService {
             throw new Error(TRADE_ERRORS.ORDER_NOT_FOUND);
         }
 
+        const symbol = params.symbol || liveOrder.symbol;
+
         const qty = params.qty !== undefined ? formatApiNum(params.qty) : liveOrder.amount;
         const price = params.price !== undefined ? formatApiNum(params.price) : (liveOrder.price || undefined);
-        const symbol = params.symbol || liveOrder.symbol;
 
         const payload: Record<string, unknown> = {
             type: "modify-order",

@@ -21,6 +21,8 @@ import {
   resultsState,
   type ResultsState,
 } from "../stores/results.svelte";
+import { marketState } from "../stores/market.svelte";
+import { normalizeSymbol } from "../utils/symbolUtils";
 import { trackCustomEvent } from "./trackingService";
 import { onboardingService } from "./onboardingService";
 import { get } from "svelte/store";
@@ -258,8 +260,17 @@ export class CalculatorService {
       return;
     }
 
+    const normSymbol = normalizeSymbol(currentTradeState.symbol || "", "bitunix");
+    const meta = marketState.symbolMeta[normSymbol];
+    if (meta?.basePrecision !== undefined) {
+      baseMetrics.positionSize = baseMetrics.positionSize.toDecimalPlaces(
+        meta.basePrecision,
+        Decimal.ROUND_DOWN,
+      );
+    }
+
     // --- Fill Results ---
-    newResults.positionSize = formatDynamicDecimal(baseMetrics.positionSize, 4);
+    newResults.positionSize = formatDynamicDecimal(baseMetrics.positionSize, meta?.basePrecision ?? 4);
     newResults.requiredMargin = formatDynamicDecimal(
       baseMetrics.requiredMargin,
       2,

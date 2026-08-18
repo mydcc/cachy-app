@@ -2448,6 +2448,10 @@
     "stale": "Order abgelehnt: Der Kontostand ({field}) ist {age}s alt und damit älter als das Limit von {max}s. Bitte aktualisieren und erneut versuchen.",
     "killSwitch": "Order abgelehnt: Der Kill Switch ist aktiv. Solange er an ist, werden keine Orders gesendet, die eine Position eröffnen oder vergrößern — Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin.",
     "riskLimit": "Order abgelehnt: {field} überschreitet das konfigurierte Limit (Limit {limit}, diese Order {actual}). Die Order wurde nicht gesendet.",
+    "minTradeVolume": "Order abgelehnt: Die Positionsgröße {actual} liegt unter dem Mindesthandelsvolumen von {limit}. Die Order wurde nicht gesendet.",
+    "maxOrderVolume": "Order abgelehnt: Die Positionsgröße {actual} überschreitet das maximale Ordervolumen von {limit}. Die Order wurde nicht gesendet.",
+    "symbolStatus": "Order abgelehnt: Der Symbol-Status ist {status} (erwartet: OPEN). Der Handel ist derzeit nicht verfügbar.",
+    "apiUnsupported": "Order abgelehnt: API-Handel wird für dieses Symbol nicht unterstützt.",
     "bypassed": "Order abgelehnt: Eine Order vom Typ {action} hat versucht, die Börse ohne Prüfung zu erreichen. Das ist ein Fehler — bitte melden.",
     "fields": {
       "account": "das Konto",
@@ -2455,15 +2459,19 @@
       "action": "die Order-Aktion",
       "endpoint": "der Ziel-Endpunkt",
       "gate": "die Prüfung",
+      "isApiSupported": "die API-Unterstützung",
       "killSwitch": "der Kill Switch",
       "leverage": "der Hebel",
       "marginMode": "der Margin-Modus",
       "maxDailyLoss": "das Tagesverlust-Limit",
       "maxLeverage": "das Hebel-Limit",
+      "maxLimitOrderVolume": "das maximale Limit-Ordervolumen",
       "maxLossPerTrade": "das Verlust-pro-Trade-Limit",
+      "maxMarketOrderVolume": "das maximale Market-Ordervolumen",
       "maxOpenPositions": "das Limit für offene Positionen",
       "maxPositionSize": "das Positionsgrößen-Limit",
       "maxPositionSizePercent": "das Positionsgrößen-Limit (Anteil am Kapital)",
+      "minTradeVolume": "das Mindesthandelsvolumen",
       "orderId": "die Order-ID",
       "positionId": "die Positions-ID",
       "price": "der Einstiegskurs",
@@ -2472,6 +2480,7 @@
       "side": "die Richtung",
       "stopLoss": "der Stop-Loss",
       "symbol": "das Symbol",
+      "symbolStatus": "der Symbol-Status",
       "takeProfit": "der Take-Profit"
     },
     "riskLimitDailyLoss": "Order abgelehnt: Der heute realisierte Verlust beträgt {actual} und hat das Tageslimit von {limit} erreicht oder überschritten. Das Limit wird um 00:00 UTC zurückgesetzt. Positionen schließen und Orders stornieren ist weiterhin möglich.",
@@ -2644,7 +2653,11 @@
       "entryRejected": "Die Order wurde nicht platziert.",
       "unprotectedTitle": "Position ist ungeschützt",
       "unprotected": "Der Einstieg wurde platziert, aber sein Stop liegt nicht an der Börse. Die Position ist ohne Stop offen. Cachy schließt sie nicht von sich aus — setze jetzt einen Stop oder schließe die Position selbst.",
-      "targetMissing": "Einstieg und Stop liegen an, der Take-Profit jedoch nicht."
+      "targetMissing": "Einstieg und Stop liegen an, der Take-Profit jedoch nicht.",
+      "tradingUnavailable": "Handel ist für dieses Symbol nicht verfügbar.",
+      "metadataLoading": "Lade Handelspaar-Details...",
+      "belowMinTradeVolume": "Positionsgröße liegt unter dem Mindesthandelsvolumen ({min}).",
+      "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max})."
     }
   }
 }

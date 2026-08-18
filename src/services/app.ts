@@ -20,6 +20,8 @@ import { CalculatorService } from "./calculatorService";
 import { bitunixWs } from "./bitunixWs";
 import { bitgetWs } from "./bitgetWs"; // Import Bitget WS
 import { favoritesState } from "../stores/favorites.svelte";
+import { marketState } from "../stores/market.svelte";
+import { normalizeSymbol } from "../utils/symbolUtils";
 import { _ } from "../locales/i18n";
 import { syncService } from "./syncService";
 import { csvService } from "./csvService";
@@ -436,8 +438,14 @@ export const app = {
       logger.debug("api", `[handleFetchPrice] Fetched ticker:`, ticker);
       const priceVal = ticker.lastPrice;
 
-      app.currentMarketPrice = priceVal;
-      tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toString() }));
+      const meta = marketState.symbolMeta[normalizeSymbol(symbol, "bitunix")];
+      let decPrice = new Decimal(priceVal);
+      if (meta?.quotePrecision !== undefined) {
+        decPrice = decPrice.toDecimalPlaces(meta.quotePrecision, Decimal.ROUND_HALF_UP);
+      }
+
+      app.currentMarketPrice = decPrice;
+      tradeState.update((s) => ({ ...s, entryPrice: decPrice.toString() }));
       app.calculateAndDisplay();
     } catch {
       if (!isAuto) uiState.showError("errors.priceFetchFailed");
