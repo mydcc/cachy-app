@@ -2,7 +2,7 @@
 id: BUG-0236
 title: Sentiment route returns unsanitized error messages risking API key exposure
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
