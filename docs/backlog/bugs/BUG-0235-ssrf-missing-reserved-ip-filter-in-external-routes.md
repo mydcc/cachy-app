@@ -58,9 +58,9 @@ The URL validation functions in `article-content` and `check-frame-support` were
 
 ## Acceptance criteria
 
-- [ ] A test verifies that `POST /api/external/article-content` rejects `http://127.0.0.1`, `http://localhost`, `http://169.254.169.254`, and RFC1918 private addresses with status 403.
-- [ ] A test verifies that `GET /api/external/check-frame-support` rejects private and loopback addresses with status 403.
-- [ ] Valid public HTTP/HTTPS URLs continue to be fetched and processed correctly.
+- [x] A test verifies that `POST /api/external/article-content` rejects `http://127.0.0.1`, `http://localhost`, `http://169.254.169.254`, and RFC1918 private addresses with status 403.
+- [x] A test verifies that `GET /api/external/check-frame-support` rejects private and loopback addresses with status 403.
+- [x] Valid public HTTP/HTTPS URLs continue to be fetched and processed correctly.
 
 ## Links
 
