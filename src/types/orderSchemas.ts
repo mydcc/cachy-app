@@ -197,6 +197,14 @@ export const HistorySchema = BaseRequestSchema.extend({
   // true — and then it excludes everything else. There is no single call
   // that returns both, so the client fetches once per value and merges.
   queryCanceled: z.boolean().optional().default(false),
+  startTime: z.union([z.number(), z.string()])
+    .transform(val => Number(val))
+    .refine(val => !isNaN(val) && val >= 0, { message: "Invalid startTime" })
+    .optional(),
+  endTime: z.union([z.number(), z.string()])
+    .transform(val => Number(val))
+    .refine(val => !isNaN(val) && val >= 0, { message: "Invalid endTime" })
+    .optional(),
 });
 
 // --- Pending ---
