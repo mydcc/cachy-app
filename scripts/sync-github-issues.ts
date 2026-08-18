@@ -414,27 +414,27 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         );
         const labels = Array.from(new Set([...preservedLabels, ...managedLabels]));
 
-        // Stable, already-synced closed items are the majority of the backlog
-        // and only ever grow — skip the PATCH and the Kanban GraphQL round
-        // trip entirely when nothing this script owns has actually changed.
+        // Stable, already-synced items are the majority of the backlog.
+        // Skip the PATCH and the Kanban GraphQL round trip entirely when nothing
+        // this script owns has actually changed (both for closed and open items).
         // Comparing against data already in `existingIssue` (from the one
         // bulk fetch in main()) costs nothing extra. `hasOpenPR` items are
         // excluded because 'in-review' is a transient status this check
         // isn't meant to catch mid-transition. FORCE_FULL_SYNC (the weekly
         // resync workflow) bypasses this to catch anything that drifted
         // without a matching backlog-file change — e.g. someone moving a
-        // card on the board by hand. See BUG-0226.
+        // card on the board by hand.
+        const expectedState = isClosed ? 'closed' : 'open';
         if (
             !FORCE_FULL_SYNC &&
-            isClosed &&
             !hasOpenPR &&
-            existingIssue.state === 'closed' &&
+            existingIssue.state === expectedState &&
             existingIssue.title === title &&
             (existingIssue.body ?? '') === body &&
             (existingIssue.milestone?.number ?? null) === milestoneNumber &&
             sameLabelSet(labelNamesOf(existingIssue), labels)
         ) {
-            console.log(`[Sync] Skipped ${item.id} (#${existingIssue.number}) — already synced and closed`);
+            console.log(`[Sync] Skipped ${item.id} (#${existingIssue.number}) — already in sync`);
             return { number: existingIssue.number, nodeId: existingIssue.node_id };
         }
 
@@ -592,6 +592,86 @@ function mapStatusToOptionName(status: string, hasOpenPR: boolean = false): stri
     }
 }
 
+interface ProjectFieldDefinition {
+    id: string;
+    name: string;
+    dataType: string;
+    options?: { id: string; name: string }[];
+}
+
+interface ProjectMetadata {
+    id: string;
+    title: string;
+    fields: Map<string, ProjectFieldDefinition>;
+}
+
+const projectMetadataCache = new Map<string, ProjectMetadata>();
+
+async function getProjectMetadata(projectId: string): Promise<ProjectMetadata | null> {
+    if (projectMetadataCache.has(projectId)) {
+        return projectMetadataCache.get(projectId)!;
+    }
+    const query = `
+      query GetProjectFields($projectId: ID!) {
+        node(id: $projectId) {
+          ... on ProjectV2 {
+            id
+            title
+            fields(first: 50) {
+              nodes {
+                ... on ProjectV2Field {
+                  id
+                  name
+                  dataType
+                }
+                ... on ProjectV2SingleSelectField {
+                  id
+                  name
+                  dataType
+                  options { id name }
+                }
+                ... on ProjectV2IterationField {
+                  id
+                  name
+                  dataType
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+    try {
+        const res = await fetch("https://api.github.com/graphql", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${PROJECT_SYNC_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ query, variables: { projectId } })
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const proj = json?.data?.node;
+        if (!proj) return null;
+        const fieldsMap = new Map<string, ProjectFieldDefinition>();
+        for (const f of proj.fields?.nodes || []) {
+            if (f.name) {
+                fieldsMap.set(f.name.toLowerCase(), f);
+            }
+        }
+        const meta: ProjectMetadata = {
+            id: proj.id,
+            title: proj.title,
+            fields: fieldsMap
+        };
+        projectMetadataCache.set(projectId, meta);
+        return meta;
+    } catch {
+        return null;
+    }
+}
+
 async function updateSingleSelectField(projectId: string, itemId: string, fieldId: string, optionId: string) {
     const mutation = `
       mutation UpdateSingleSelect($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
@@ -668,7 +748,7 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem, h
     const targetOptionName = mapStatusToOptionName(item.status, hasOpenPR);
 
     const query = `
-      query GetIssueProjects($owner: String!, $repo: String!, $number: Int!) {
+      query GetIssueProjectItems($owner: String!, $repo: String!, $number: Int!) {
         repository(owner: $owner, name: $repo) {
           issue(number: $number) {
             projectItems(first: 5) {
@@ -677,24 +757,21 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem, h
                 project {
                   id
                   title
-                  fields(first: 30) {
-                    nodes {
-                      ... on ProjectV2Field {
-                        id
-                        name
-                        dataType
-                      }
-                      ... on ProjectV2SingleSelectField {
-                        id
-                        name
-                        dataType
-                        options { id name }
-                      }
-                      ... on ProjectV2IterationField {
-                        id
-                        name
-                        dataType
-                      }
+                }
+                fieldValues(first: 20) {
+                  nodes {
+                    ... on ProjectV2ItemFieldSingleSelectValue {
+                      field { ... on ProjectV2SingleSelectField { id name } }
+                      optionId
+                      name
+                    }
+                    ... on ProjectV2ItemFieldNumberValue {
+                      field { ... on ProjectV2Field { id name } }
+                      number
+                    }
+                    ... on ProjectV2ItemFieldDateValue {
+                      field { ... on ProjectV2Field { id name } }
+                      date
                     }
                   }
                 }
@@ -735,76 +812,122 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem, h
 
         for (const itemNode of projectItems) {
             const projectId = itemNode.project?.id;
-            const fields = itemNode.project?.fields?.nodes || [];
-            if (!projectId || fields.length === 0) continue;
+            if (!projectId) continue;
+
+            const projectMeta = await getProjectMetadata(projectId);
+            if (!projectMeta) continue;
+
+            const currentValues = new Map<string, { optionId?: string; name?: string; number?: number; date?: string }>();
+            for (const fv of itemNode.fieldValues?.nodes || []) {
+                const fieldName = fv.field?.name?.toLowerCase();
+                if (fieldName) {
+                    currentValues.set(fieldName, {
+                        optionId: fv.optionId,
+                        name: fv.name,
+                        number: fv.number,
+                        date: fv.date
+                    });
+                }
+            }
+
+            const mutations: Promise<void>[] = [];
 
             // 1. Status (SingleSelect)
-            const statusField = fields.find((f: { name?: string }) => f.name === 'Status');
+            const statusField = projectMeta.fields.get('status');
             if (statusField && statusField.options) {
                 const targetOption = statusField.options.find(
-                    (opt: { id: string; name: string }) =>
-                        opt.name.toLowerCase() === targetOptionName.toLowerCase()
+                    (opt) => opt.name.toLowerCase() === targetOptionName.toLowerCase()
                 );
-                if (targetOption) {
-                    await updateSingleSelectField(projectId, itemNode.id, statusField.id, targetOption.id);
-                    console.log(`[Kanban Sync] Synced Status '${targetOption.name}' for #${issueNumber}`);
+                const currentStatus = currentValues.get('status');
+                if (targetOption && currentStatus?.optionId !== targetOption.id) {
+                    mutations.push(updateSingleSelectField(projectId, itemNode.id, statusField.id, targetOption.id).then(() => {
+                        console.log(`[Kanban Sync] Synced Status '${targetOption.name}' for #${issueNumber}`);
+                    }));
                 }
             }
 
             // 2. Priority (SingleSelect)
             if (item.priority) {
-                const priorityField = fields.find((f: { name?: string }) => f.name === 'Priority');
+                const priorityField = projectMeta.fields.get('priority');
                 if (priorityField && priorityField.options) {
-                    const prioOpt = priorityField.options.find((o: { name: string }) => o.name.toLowerCase() === item.priority!.toLowerCase());
-                    if (prioOpt) {
-                        await updateSingleSelectField(projectId, itemNode.id, priorityField.id, prioOpt.id);
-                        console.log(`[Kanban Sync] Synced Priority '${prioOpt.name}' for #${issueNumber}`);
+                    const prioOpt = priorityField.options.find((o) => o.name.toLowerCase() === item.priority!.toLowerCase());
+                    const currentPrio = currentValues.get('priority');
+                    if (prioOpt && currentPrio?.optionId !== prioOpt.id) {
+                        mutations.push(updateSingleSelectField(projectId, itemNode.id, priorityField.id, prioOpt.id).then(() => {
+                            console.log(`[Kanban Sync] Synced Priority '${prioOpt.name}' for #${issueNumber}`);
+                        }));
                     }
                 }
             }
 
             // 3. Estimate (Number)
             if (item.estimate !== undefined) {
-                const estField = fields.find((f: { name?: string }) => f.name === 'Estimate');
-                if (estField?.id) {
-                    await updateNumberField(projectId, itemNode.id, estField.id, item.estimate);
-                    console.log(`[Kanban Sync] Synced Estimate '${item.estimate}' for #${issueNumber}`);
+                const estField = projectMeta.fields.get('estimate');
+                const currentEst = currentValues.get('estimate');
+                if (estField?.id && currentEst?.number !== item.estimate) {
+                    mutations.push(updateNumberField(projectId, itemNode.id, estField.id, item.estimate).then(() => {
+                        console.log(`[Kanban Sync] Synced Estimate '${item.estimate}' for #${issueNumber}`);
+                    }));
                 }
             }
 
             // 4. Size (SingleSelect)
             if (item.size) {
-                const sizeField = fields.find((f: { name?: string }) => f.name === 'Size');
+                const sizeField = projectMeta.fields.get('size');
                 if (sizeField && sizeField.options) {
-                    const sizeOpt = sizeField.options.find((o: { name: string }) => o.name.toLowerCase() === item.size!.toLowerCase());
-                    if (sizeOpt) {
-                        await updateSingleSelectField(projectId, itemNode.id, sizeField.id, sizeOpt.id);
-                        console.log(`[Kanban Sync] Synced Size '${sizeOpt.name}' for #${issueNumber}`);
+                    const sizeOpt = sizeField.options.find((o) => o.name.toLowerCase() === item.size!.toLowerCase());
+                    const currentSize = currentValues.get('size');
+                    if (sizeOpt && currentSize?.optionId !== sizeOpt.id) {
+                        mutations.push(updateSingleSelectField(projectId, itemNode.id, sizeField.id, sizeOpt.id).then(() => {
+                            console.log(`[Kanban Sync] Synced Size '${sizeOpt.name}' for #${issueNumber}`);
+                        }));
                     }
                 }
             }
 
             // 5. Start date (Date)
             if (item.start_date) {
-                const startDateField = fields.find((f: { name?: string }) => f.name === 'Start date');
-                if (startDateField?.id) {
-                    await updateDateField(projectId, itemNode.id, startDateField.id, item.start_date);
-                    console.log(`[Kanban Sync] Synced Start date '${item.start_date}' for #${issueNumber}`);
+                const startDateField = projectMeta.fields.get('start date');
+                const currentStartDate = currentValues.get('start date');
+                if (startDateField?.id && currentStartDate?.date !== item.start_date) {
+                    mutations.push(updateDateField(projectId, itemNode.id, startDateField.id, item.start_date).then(() => {
+                        console.log(`[Kanban Sync] Synced Start date '${item.start_date}' for #${issueNumber}`);
+                    }));
                 }
             }
 
             // 6. Target date (Date)
             if (item.target_date) {
-                const targetDateField = fields.find((f: { name?: string }) => f.name === 'Target date');
-                if (targetDateField?.id) {
-                    await updateDateField(projectId, itemNode.id, targetDateField.id, item.target_date);
-                    console.log(`[Kanban Sync] Synced Target date '${item.target_date}' for #${issueNumber}`);
+                const targetDateField = projectMeta.fields.get('target date');
+                const currentTargetDate = currentValues.get('target date');
+                if (targetDateField?.id && currentTargetDate?.date !== item.target_date) {
+                    mutations.push(updateDateField(projectId, itemNode.id, targetDateField.id, item.target_date).then(() => {
+                        console.log(`[Kanban Sync] Synced Target date '${item.target_date}' for #${issueNumber}`);
+                    }));
                 }
+            }
+
+            if (mutations.length > 0) {
+                await Promise.all(mutations);
             }
         }
     } catch (e) {
         console.warn(`Could not sync Project V2 field for issue #${issueNumber}:`, e);
     }
+}
+
+async function mapConcurrent<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let index = 0;
+    async function worker() {
+        while (index < items.length) {
+            const currentIndex = index++;
+            results[currentIndex] = await fn(items[currentIndex]);
+        }
+    }
+    const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+    await Promise.all(workers);
+    return results;
 }
 
 async function main() {
@@ -826,7 +949,8 @@ async function main() {
 
     const issueMap = new Map<string, string>(); // backlogId -> nodeId
 
-    for (const item of localItems) {
+    console.log("Syncing items...");
+    await mapConcurrent(localItems, 5, async (item) => {
         const matching = existingIssues.filter(issue =>
             labelNamesOf(issue).includes(`${BACKLOG_ID_LABEL_PREFIX}${item.id}`) ||
             issue.body?.includes(`<!-- backlog-id: ${item.id} -->`) ||
@@ -855,20 +979,17 @@ async function main() {
         if (existing?.number) {
             await ensurePRsAreLinked(item, existing.number, openPRs);
         }
-        // Small delay to avoid hitting GitHub API rate limits too aggressively
-        await new Promise(resolve => setTimeout(resolve, 300));
-    }
+    });
 
     console.log("Syncing native GitHub Relationships (Parents & Blocked-By)...");
-    for (const item of localItems) {
+    await mapConcurrent(localItems, 5, async (item) => {
         const currentNodeId = issueMap.get(item.id);
-        if (!currentNodeId) continue;
+        if (!currentNodeId) return;
 
         // 1. Parent relationship (Add parent / sub-issue)
         if (item.parent && item.parent !== 'none') {
             const parentNodeId = issueMap.get(item.parent);
             if (parentNodeId) {
-                console.log(`[Relationships] Linking ${item.id} as Sub-Issue of Parent ${item.parent}...`);
                 await addSubIssueNative(parentNodeId, currentNodeId);
             }
         }
@@ -878,12 +999,11 @@ async function main() {
             for (const blockerId of item.depends_on) {
                 const blockerNodeId = issueMap.get(blockerId);
                 if (blockerNodeId) {
-                    console.log(`[Relationships] Marking ${item.id} as Blocked By ${blockerId}...`);
                     await addBlockedByNative(currentNodeId, blockerNodeId);
                 }
             }
         }
-    }
+    });
     
     console.log("Sync complete.");
 }
@@ -892,3 +1012,4 @@ main().catch(err => {
     console.error("Fatal error during sync:", err);
     process.exit(1);
 });
+
