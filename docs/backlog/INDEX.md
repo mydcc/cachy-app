@@ -4,7 +4,7 @@
 
 139 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 22 · 🟢 ready 1 · ✅ done 100
+Counts by status: 💡 idea 16 · 📋 specced 22 · ✅ done 101
 
 ---
 
@@ -156,7 +156,7 @@ Counts by status: 💡 idea 16 · 📋 specced 22 · 🟢 ready 1 · ✅ done 10
 | [BUG-0218](bugs/BUG-0218-open-positions-price-sync-stall.md) | Open position live mark price updates unreliably or stalls until page reload | P1 | ✅ done | trade-panel |
 | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md) | Market Analyst never terminates its retry loop, starving live feeds and blanking the dashboard | P1 | ✅ done | market-data |
 | [BUG-0234](bugs/BUG-0234-analyst-store-coupling-regression.md) | Analyst backfill through the shared store makes the whole UI flicker continuously | P1 | ✅ done | market-data |
-| [BUG-0235](bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md) | Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability | P1 | 🟢 ready | security |
+| [BUG-0235](bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md) | Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability | P1 | ✅ done | security |
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | ✅ done | security |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
@@ -241,7 +241,7 @@ Counts by status: 💡 idea 16 · 📋 specced 22 · 🟢 ready 1 · ✅ done 10
 | [BUG-0219](bugs/BUG-0219-place-order-ordertype-field.md) | place_order never received an order type, so every limit order failed | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md) | Market Analyst never terminates its retry loop, starving live feeds and blanking the dashboard | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0234](bugs/BUG-0234-analyst-store-coupling-regression.md) | Analyst backfill through the shared store makes the whole UI flicker continuously | P1 | ✅ done | none | community, pro, private | none | ADR-0009 | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md) |
-| [BUG-0235](bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md) | Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0235](bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md) | Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0241](bugs/BUG-0241-custom-prompt-overwrites-safety.md) | customSystemPrompt completely overwrites baseRoleInstructions and safety rules | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | ✅ done | M8 | community, pro, private | none | none | — |
