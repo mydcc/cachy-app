@@ -2,9 +2,9 @@
 
 # Backlog index
 
-126 items. How to read and add them: [README.md](README.md).
+127 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 5 · ✅ done 80
+Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 6 · ✅ done 80
 
 ---
 
@@ -147,6 +147,7 @@ Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 5 · ✅ d
 | [BUG-0217](bugs/BUG-0217-tab-inactivity-connection-loss.md) | Tab inactivity drops WebSocket connection without automatic recovery | P1 | ✅ done | exchange |
 | [BUG-0218](bugs/BUG-0218-open-positions-price-sync-stall.md) | Open position live mark price updates unreliably or stalls until page reload | P1 | 🟡 in-progress | trade-panel |
 | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md) | Market Analyst never terminates its retry loop, starving live feeds and blanking the dashboard | P1 | 🟡 in-progress | market-data |
+| [BUG-0234](bugs/BUG-0234-analyst-store-coupling-regression.md) | Analyst backfill through the shared store makes the whole UI flicker continuously | P1 | 🟡 in-progress | market-data |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -227,6 +228,7 @@ Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 5 · ✅ d
 | [BUG-0218](bugs/BUG-0218-open-positions-price-sync-stall.md) | Open position live mark price updates unreliably or stalls until page reload | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0219](bugs/BUG-0219-place-order-ordertype-field.md) | place_order never received an order type, so every limit order failed | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md) | Market Analyst never terminates its retry loop, starving live feeds and blanking the dashboard | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0234](bugs/BUG-0234-analyst-store-coupling-regression.md) | Analyst backfill through the shared store makes the whole UI flicker continuously | P1 | 🟡 in-progress | none | community, pro, private | none | ADR-0009 | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -326,4 +328,4 @@ Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 5 · ✅ d
 
 ---
 
-Next free number: **0234**
+Next free number: **0235**
