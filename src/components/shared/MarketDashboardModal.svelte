@@ -201,10 +201,10 @@
         title={$_("app.marketDashboard.title") || "Global Market Overview"}
         onclose={() => uiState.toggleMarketDashboardModal(false)}
     >
-        <div class="space-y-6">
+        <div class="space-y-3 sm:space-y-6">
             <!-- Status strip: one line, so the space goes to data instead -->
             <div
-                class="flex items-center justify-between gap-3 text-xs px-3 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
+                class="flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
             >
                 <div class="flex items-center gap-2 min-w-0">
                     {#if analysisState.isAnalyzing}
@@ -231,7 +231,7 @@
                         >
                     {/if}
                 </div>
-                <span class="text-[var(--text-secondary)] truncate">
+                <span class="text-[var(--text-secondary)] truncate text-[11px] sm:text-xs">
                     {$_("app.marketDashboard.analysedOf", {
                         values: {
                             analysed: analysedRows.length,
@@ -242,36 +242,36 @@
             </div>
 
             <!-- Market Internals Header -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                 <div
-                    class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]"
+                    class="bg-[var(--bg-tertiary)] p-2.5 sm:p-4 rounded-xl border border-[var(--border-color)] flex flex-col justify-between"
                 >
                     <div
-                        class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-1 flex items-center gap-1"
+                        class="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1 truncate"
                     >
-                        {$_("app.marketDashboard.marketHeat")}
+                        <span class="truncate">{$_("app.marketDashboard.marketHeat")}</span>
                         <Tooltip text={$_("app.marketDashboard.marketHeatHint")}>
                             <span class="cursor-help opacity-60">?</span>
                         </Tooltip>
                     </div>
                     {#if avgRsi === null}
-                        <div class="text-2xl font-bold text-[var(--text-secondary)]">
+                        <div class="text-lg sm:text-2xl font-bold text-[var(--text-secondary)]">
                             —
                         </div>
-                        <div class="text-xs text-[var(--text-secondary)]">
+                        <div class="text-[10px] sm:text-xs text-[var(--text-secondary)] truncate">
                             {$_("app.marketDashboard.noData")}
                         </div>
                     {:else}
-                        <div class="flex items-end gap-2">
-                            <span class="text-2xl font-bold">
+                        <div class="flex items-baseline sm:items-end gap-1 sm:gap-2">
+                            <span class="text-lg sm:text-2xl font-bold">
                                 {avgRsi.toFixed(0)}
                             </span>
-                            <span class="text-xs text-[var(--text-secondary)] mb-1"
+                            <span class="text-[10px] sm:text-xs text-[var(--text-secondary)] truncate"
                                 >{$_("app.marketDashboard.avgRsi")}</span
                             >
                         </div>
                         <div
-                            class="h-1 bg-[var(--bg-primary)] rounded-full mt-2 overflow-hidden"
+                            class="h-1 bg-[var(--bg-primary)] rounded-full mt-1.5 sm:mt-2 overflow-hidden"
                         >
                             <div
                                 class="h-full bg-gradient-to-r from-[var(--success-color)] via-[var(--warning-color)] to-[var(--danger-color)]"
@@ -282,38 +282,38 @@
                 </div>
 
                 <div
-                    class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]"
+                    class="bg-[var(--bg-tertiary)] p-2.5 sm:p-4 rounded-xl border border-[var(--border-color)] flex flex-col justify-between"
                 >
                     <div
-                        class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-1 flex items-center gap-1"
+                        class="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1 truncate"
                     >
-                        {$_("app.marketDashboard.marketBreadth")}
+                        <span class="truncate">{$_("app.marketDashboard.marketBreadth")}</span>
                         <Tooltip text={$_("app.marketDashboard.marketBreadthHint")}>
                             <span class="cursor-help opacity-60">?</span>
                         </Tooltip>
                     </div>
                     {#if breadth === null}
-                        <div class="text-2xl font-bold text-[var(--text-secondary)]">
+                        <div class="text-lg sm:text-2xl font-bold text-[var(--text-secondary)]">
                             —
                         </div>
-                        <div class="text-xs text-[var(--text-secondary)]">
+                        <div class="text-[10px] sm:text-xs text-[var(--text-secondary)] truncate">
                             {$_("app.marketDashboard.noData")}
                         </div>
                     {:else}
-                        <div class="flex items-end gap-2">
+                        <div class="flex items-baseline sm:items-end gap-1 sm:gap-2">
                             <span
-                                class="text-2xl font-bold {breadth.percent > 50
+                                class="text-lg sm:text-2xl font-bold {breadth.percent > 50
                                     ? 'text-[var(--success-color)]'
                                     : 'text-[var(--danger-color)]'}"
                             >
                                 {breadth.percent.toFixed(0)}%
                             </span>
-                            <span class="text-xs text-[var(--text-secondary)] mb-1">
+                            <span class="text-[10px] sm:text-xs text-[var(--text-secondary)] truncate">
                                 {$_("app.marketDashboard.bullish")} · n={breadth.sample}
                             </span>
                         </div>
                         <div
-                            class="h-1 bg-[var(--bg-primary)] rounded-full mt-2 flex overflow-hidden"
+                            class="h-1 bg-[var(--bg-primary)] rounded-full mt-1.5 sm:mt-2 flex overflow-hidden"
                         >
                             <div
                                 class="h-full bg-[var(--success-color)]"
@@ -328,12 +328,12 @@
                 </div>
 
                 <div
-                    class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]"
+                    class="bg-[var(--bg-tertiary)] p-2.5 sm:p-4 rounded-xl border border-[var(--border-color)] flex flex-col justify-between"
                 >
                     <div
-                        class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-1 flex items-center gap-1"
+                        class="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1 truncate"
                     >
-                        {$_("app.marketDashboard.topOpportunity")}
+                        <span class="truncate">{$_("app.marketDashboard.topOpportunity")}</span>
                         <Tooltip text={$_("app.marketDashboard.topOpportunityHint")}>
                             <span class="cursor-help opacity-60">?</span>
                         </Tooltip>
@@ -341,19 +341,19 @@
                     {#if topPick}
                         {@const signal = signalOf(topPick.analysis)}
                         <div
-                            class="text-lg font-bold truncate text-[var(--accent-color)]"
+                            class="text-sm sm:text-lg font-bold truncate text-[var(--accent-color)]"
                         >
                             {topPick.symbol}
                         </div>
-                        <div class="text-xs font-semibold" style="color: {signal.color}">
+                        <div class="text-[10px] sm:text-xs font-semibold truncate" style="color: {signal.color}">
                             {signal.label}
-                            <span class="text-[var(--text-secondary)] font-normal">
+                            <span class="text-[var(--text-secondary)] font-normal hidden sm:inline">
                                 · {$_("app.marketDashboard.trendMatrix.score")}
                                 {topPick.analysis?.confluenceScore.toFixed(0)}/100
                             </span>
                         </div>
                     {:else}
-                        <div class="text-lg font-bold text-[var(--text-secondary)]">
+                        <div class="text-sm sm:text-lg font-bold text-[var(--text-secondary)] truncate">
                             {$_("app.marketDashboard.scanning")}
                         </div>
                     {/if}
@@ -364,9 +364,9 @@
             <div
                 class="bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-color)] overflow-hidden flex flex-col max-h-[60vh]"
             >
-                <!-- Table Header -->
+                <!-- Desktop Table Header (hidden on mobile < md) -->
                 <div
-                    class="grid grid-cols-12 gap-2 p-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs font-bold text-[var(--text-secondary)] uppercase sticky top-0 z-10"
+                    class="hidden md:grid grid-cols-12 gap-2 p-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs font-bold text-[var(--text-secondary)] uppercase sticky top-0 z-10"
                 >
                     <div class="col-span-2">{$_("journal.deepDive.charts.labels.topAsset")}</div>
                     <div class="col-span-2 text-right">{$_("dashboard.price")}</div>
@@ -382,7 +382,7 @@
                     </div>
                 </div>
 
-                <!-- Table Body -->
+                <!-- Table Body & Mobile Cards Container -->
                 <div class="overflow-y-auto custom-scrollbar flex-1">
                     {#each rows as row (row.symbol)}
                         {@const liveChange = getLiveChange(row)}
@@ -392,8 +392,9 @@
                         {@const signal = signalOf(row.analysis)}
                         {@const isPartial = row.analysis?.quality === "partial"}
 
+                        <!-- DESKTOP ROW (>= md: 768px) -->
                         <div
-                            class="grid grid-cols-12 gap-2 p-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors items-center text-sm group {row.analysed
+                            class="hidden md:grid grid-cols-12 gap-2 p-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors items-center text-sm group {row.analysed
                                 ? ''
                                 : 'opacity-60'}"
                         >
@@ -515,6 +516,125 @@
                                         </div>
                                     </Tooltip>
                                 {/if}
+                            </div>
+                        </div>
+
+                        <!-- MOBILE CARD ROW (< md: 768px) -->
+                        <div
+                            class="md:hidden p-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors flex flex-col gap-2.5 {row.analysed
+                                ? ''
+                                : 'opacity-60'}"
+                        >
+                            <!-- Top Tier: Symbol + Price/Change + Confluence Badge -->
+                            <div class="flex items-center justify-between gap-2">
+                                <!-- Symbol & scope badge -->
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="font-bold text-sm sm:text-base text-[var(--text-primary)] truncate">{row.symbol}</span>
+                                    {#if row.outOfScope}
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)] shrink-0">{$_("app.marketDashboard.noData")}</span>
+                                    {:else if isPartial}
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--warning-color)] shrink-0">{$_("app.marketDashboard.partial")}</span>
+                                    {/if}
+                                </div>
+
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <!-- Live Price & 24h Change -->
+                                    <div class="text-right flex flex-col items-end">
+                                        {#if livePrice === null}
+                                            <span class="font-mono text-xs sm:text-sm text-[var(--text-secondary)]">—</span>
+                                        {:else}
+                                            <span class="font-mono font-semibold text-xs sm:text-sm text-[var(--text-primary)]">${formatPrice(livePrice)}</span>
+                                        {/if}
+                                        {#if liveChange !== null}
+                                            <span
+                                                class="text-[11px] font-semibold {liveChange >= 0
+                                                    ? 'text-[var(--success-color)]'
+                                                    : 'text-[var(--danger-color)]'}"
+                                            >
+                                                {liveChange > 0 ? "+" : ""}{liveChange.toFixed(2)}%
+                                            </span>
+                                        {/if}
+                                    </div>
+
+                                    <!-- Confluence Signal & Score -->
+                                    {#if row.analysed}
+                                        <Tooltip text={scoreTooltip(row.analysis)}>
+                                            <div class="flex items-center gap-1.5 cursor-help">
+                                                <div class="flex flex-col items-end">
+                                                    <span class="text-[11px] font-bold whitespace-nowrap" style="color: {signal.color}">
+                                                        {signal.label}
+                                                    </span>
+                                                    {#if rsiNum !== null}
+                                                        <span
+                                                            class="text-[9px] font-mono {rsiNum > 70
+                                                                ? 'text-[var(--danger-color)]'
+                                                                : rsiNum < 30
+                                                                  ? 'text-[var(--success-color)]'
+                                                                  : 'text-[var(--text-secondary)]'}"
+                                                        >
+                                                            RSI {rsiNum.toFixed(1)}
+                                                        </span>
+                                                    {/if}
+                                                </div>
+                                                <div
+                                                    class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold border bg-[var(--bg-secondary)]"
+                                                    style="border-color: {signal.color}"
+                                                >
+                                                    {row.analysis?.confluenceScore.toFixed(0)}
+                                                </div>
+                                            </div>
+                                        </Tooltip>
+                                    {:else}
+                                        <span class="text-xs text-[var(--text-secondary)] italic">
+                                            {$_("app.marketDashboard.noData")}
+                                        </span>
+                                    {/if}
+                                </div>
+                            </div>
+
+                            <!-- Bottom Tier: Trend Matrix Pills + Funding & Volume -->
+                            <div class="flex items-center justify-between pt-1.5 border-t border-[var(--border-color)] border-opacity-40 text-xs text-[var(--text-secondary)]">
+                                <!-- Trend Matrix with timeframes -->
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] uppercase font-semibold text-[var(--text-secondary)]">{$_("app.marketDashboard.trendMatrix.trend")}:</span>
+                                    <div class="flex items-center gap-1">
+                                        <div
+                                            class="w-2 h-4 rounded-xs {trendCellClass(trends?.['15m'])}"
+                                            title={trends?.['15m'] === undefined || trends?.['15m'] === 'unknown'
+                                                ? $_("app.marketDashboard.trendUnknown")
+                                                : $_("app.marketDashboard.trendMatrix.trend15m")}
+                                        ></div>
+                                        <div
+                                            class="w-2 h-4 rounded-xs {trendCellClass(trends?.['1h'])}"
+                                            title={trends?.['1h'] === undefined || trends?.['1h'] === 'unknown'
+                                                ? $_("app.marketDashboard.trendUnknown")
+                                                : $_("app.marketDashboard.trendMatrix.trend1h")}
+                                        ></div>
+                                        <div
+                                            class="w-2.5 h-5 rounded-xs {trendCellClass(trends?.['4h'])} ring-1 ring-[var(--bg-tertiary)]"
+                                            title={trends?.['4h'] === undefined || trends?.['4h'] === 'unknown'
+                                                ? $_("app.marketDashboard.trendUnknown")
+                                                : $_("app.marketDashboard.trendMatrix.trend4h")}
+                                        ></div>
+                                        <div
+                                            class="w-2 h-4 rounded-xs {trendCellClass(trends?.['1d'])}"
+                                            title={trends?.['1d'] === undefined || trends?.['1d'] === 'unknown'
+                                                ? $_("app.marketDashboard.trendUnknown")
+                                                : $_("app.marketDashboard.trendMatrix.trend1d")}
+                                        ></div>
+                                    </div>
+                                    <span class="text-[9px] text-[var(--text-secondary)] opacity-80">(15m - 1d)</span>
+                                </div>
+
+                                <!-- Funding Rate & Quote Volume -->
+                                <div class="flex items-center gap-2 font-mono text-[11px]">
+                                    {#if fundingOf(row.symbol)}
+                                        <span>{$_("app.marketDashboard.funding")}: <strong class="text-[var(--text-primary)]">{fundingOf(row.symbol)}</strong></span>
+                                    {/if}
+                                    {#if volumeOf(row.symbol)}
+                                        <span class="hidden xs:inline">• Vol: <strong class="text-[var(--text-primary)]">{volumeOf(row.symbol)}</strong></span>
+                                    {/if}
+                                </div>
                             </div>
                         </div>
                     {:else}

@@ -82,8 +82,8 @@ if (import.meta.hot) {
 
 ## Acceptance criteria
 
-- [ ] Core stores (`journal`, `settings`, `indicator`) expose a `destroy()` method that halts all internal `$effect.root` instances and timers.
-- [ ] Core stores wire `destroy()` to `import.meta.hot.dispose`.
+- [x] Core stores (`journal`, `settings`, `indicator`) expose a `destroy()` method that halts all internal `$effect.root` instances and timers.
+- [x] Core stores wire `destroy()` to `import.meta.hot.dispose`.
 
 ## Out of scope
 
