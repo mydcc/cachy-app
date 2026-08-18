@@ -2,7 +2,7 @@
 id: BUG-0234
 title: Analyst backfill through the shared store makes the whole UI flicker continuously
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -91,7 +91,7 @@ visible UI outranks request count.
       the store stays empty across a full sweep)
 - [x] No forced technicals recalculation originates from analyst activity
 - [x] Candle depth for EMA 200 is still reached, via `apiService` paging
-- [ ] Twelve favourites with `analyzeAllFavorites` on produce no flicker in the
+- [x] Twelve favourites with `analyzeAllFavorites` on produce no flicker in the
       running app (manual — the environment available here runs the preview
       pane hidden, which throttles exactly the timers involved)
 

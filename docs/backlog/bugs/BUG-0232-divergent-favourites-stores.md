@@ -2,7 +2,7 @@
 id: BUG-0232
 title: Favourites live in two stores that never agree, so Settings has no effect on what gets analysed
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -75,7 +75,7 @@ ever reconciled them, and the analyst happened to read the smaller one.
 - [x] The legacy localStorage key survives migration
 - [x] `analyzeAllFavorites` off analyses the top 4; on analyses all
 - [x] Out-of-scope symbols do not keep the scheduler in its fast path
-- [ ] Adding a favourite in Settings produces a score in the dashboard (manual)
+- [x] Adding a favourite in Settings produces a score in the dashboard (manual)
 
 ## Out of scope
 

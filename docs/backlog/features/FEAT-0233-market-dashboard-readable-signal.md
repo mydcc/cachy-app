@@ -2,7 +2,7 @@
 id: FEAT-0233
 title: Make the Market Dashboard signal readable and distinguish missing data from a sell signal
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -78,7 +78,7 @@ among favourites, not a recommended trade.
 - [x] Breadth reports its sample size
 - [x] Status is one line; funding rate and 24h volume are shown per row
 - [x] All new strings exist in German and English
-- [ ] Verified against the running app with a mix of analysed and unanalysed
+- [x] Verified against the running app with a mix of analysed and unanalysed
       favourites
 
 ## Out of scope

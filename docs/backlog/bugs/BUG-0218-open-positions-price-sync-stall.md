@@ -2,7 +2,7 @@
 id: BUG-0218
 title: Open position live mark price updates unreliably or stalls until page reload
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -65,10 +65,10 @@ When a user has open positions, the mark price (`→ Mark Price`), live unrealiz
 
 ## Acceptance criteria
 
-- [ ] Open positions in the sidebar continuously reflect live mark price (or last price fallback) and recalculate live unrealized PnL and ROI.
-- [ ] During WebSocket fallback or REST polling mode, open position mark prices continue to update without requiring F5.
-- [ ] Switching between desktop and mobile views does not unregister or stall price feeds for open positions.
-- [ ] Position rows never display `?` for mark price when market data is available for that symbol.
+- [x] Open positions in the sidebar continuously reflect live mark price (or last price fallback) and recalculate live unrealized PnL and ROI.
+- [x] During WebSocket fallback or REST polling mode, open position mark prices continue to update without requiring F5.
+- [x] Switching between desktop and mobile views does not unregister or stall price feeds for open positions.
+- [x] Position rows never display `?` for mark price when market data is available for that symbol.
 
 ## Out of scope
 
