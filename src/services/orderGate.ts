@@ -196,6 +196,16 @@ export interface DisplayedState {
      * Undefined or older than MAX_ACCOUNT_STATE_AGE_MS refuses an `open`.
      */
     accountStateAt?: number;
+    /** Minimum opening amount (Base currency). */
+    minTradeVolume?: Decimal;
+    /** Maximum limit order volume (Base currency). */
+    maxLimitOrderVolume?: Decimal;
+    /** Maximum market order volume (Base currency). */
+    maxMarketOrderVolume?: Decimal;
+    /** Trading pair status ('OPEN' | 'CANCEL_ONLY' | 'STOP'). */
+    symbolStatus?: string;
+    /** Whether API trading is supported for the trading pair. */
+    isApiSupported?: boolean;
 }
 
 /**
@@ -442,6 +452,31 @@ class OrderGate {
             }
         }
 
+        // --- symbol status / api support (FEAT-0067) -----------------------
+        if (displayed.symbolStatus !== undefined) {
+            checked.push("symbolStatus");
+            if (displayed.symbolStatus !== "OPEN") {
+                return refuse({
+                    field: "symbolStatus",
+                    reason: "unsupported",
+                    messageKey: "orderGate.symbolStatus",
+                    values: { field: "symbolStatus", status: displayed.symbolStatus },
+                });
+            }
+        }
+
+        if (displayed.isApiSupported !== undefined) {
+            checked.push("isApiSupported");
+            if (displayed.isApiSupported === false) {
+                return refuse({
+                    field: "isApiSupported",
+                    reason: "unsupported",
+                    messageKey: "orderGate.apiUnsupported",
+                    values: { field: "isApiSupported" },
+                });
+            }
+        }
+
         // --- side ----------------------------------------------------------
         if (displayed.side !== undefined) {
             checked.push("side");
@@ -605,6 +640,43 @@ class OrderGate {
                 },
             };
         }
+
+        // --- volume limits (FEAT-0067) -------------------------------------
+        if (displayed.minTradeVolume !== undefined && displayed.minTradeVolume.gt(0)) {
+            checked.push("minTradeVolume");
+            if (payloadQty.lt(displayed.minTradeVolume)) {
+                return {
+                    field: "minTradeVolume",
+                    reason: "riskLimit",
+                    messageKey: "orderGate.minTradeVolume",
+                    values: {
+                        field: "minTradeVolume",
+                        limit: displayed.minTradeVolume.toString(),
+                        actual: payloadQty.toString(),
+                    },
+                };
+            }
+        }
+
+        const isMarket = payload.orderType === "MARKET";
+        const maxVolume = isMarket ? displayed.maxMarketOrderVolume : displayed.maxLimitOrderVolume;
+        const maxField = isMarket ? "maxMarketOrderVolume" : "maxLimitOrderVolume";
+        if (maxVolume !== undefined && maxVolume.gt(0)) {
+            checked.push(maxField);
+            if (payloadQty.gt(maxVolume)) {
+                return {
+                    field: maxField,
+                    reason: "riskLimit",
+                    messageKey: "orderGate.maxOrderVolume",
+                    values: {
+                        field: maxField,
+                        limit: maxVolume.toString(),
+                        actual: payloadQty.toString(),
+                    },
+                };
+            }
+        }
+
         return null;
     }
 

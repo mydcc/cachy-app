@@ -237,6 +237,42 @@ describe("orderGate — per-field mutation after construction", () => {
                     i.payload.orderId = "o-2";
                 },
             },
+            {
+                field: "symbolStatus",
+                mutate: (i) => {
+                    i.displayed.symbolStatus = "CANCEL_ONLY";
+                },
+            },
+            {
+                field: "isApiSupported",
+                mutate: (i) => {
+                    i.displayed.isApiSupported = false;
+                },
+            },
+            {
+                field: "minTradeVolume",
+                mutate: (i) => {
+                    i.displayed.minTradeVolume = new Decimal("0.05"); // higher than 0.02
+                },
+            },
+            {
+                field: "maxLimitOrderVolume",
+                mutate: (i) => {
+                    i.displayed.maxLimitOrderVolume = new Decimal("0.01"); // lower than 0.02
+                },
+            },
+            {
+                field: "maxMarketOrderVolume",
+                base: () => {
+                    const intent = openIntent();
+                    intent.payload.orderType = "MARKET";
+                    delete intent.payload.price;
+                    return intent;
+                },
+                mutate: (i) => {
+                    i.displayed.maxMarketOrderVolume = new Decimal("0.01"); // lower than 0.02
+                },
+            },
         ];
 
     for (const { field, mutate, base } of cases) {
@@ -836,5 +872,71 @@ describe("accountFingerprint", () => {
     it("has a defined answer for a missing key", () => {
         expect(accountFingerprint(undefined)).toBe("none");
         expect(accountFingerprint("")).toBe("none");
+    });
+});
+
+describe("FEAT-0067 — trading pair metadata validation", () => {
+    it("refuses an order below minTradeVolume", () => {
+        const intent = openIntent();
+        intent.displayed.minTradeVolume = new Decimal("0.05");
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("minTradeVolume");
+        expect(refusal?.values.limit).toBe("0.05");
+        expect(refusal?.values.actual).toBe("0.02");
+    });
+
+    it("refuses a limit order above maxLimitOrderVolume", () => {
+        const intent = openIntent();
+        intent.payload.orderType = "LIMIT";
+        intent.displayed.maxLimitOrderVolume = new Decimal("0.01");
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxLimitOrderVolume");
+        expect(refusal?.values.limit).toBe("0.01");
+        expect(refusal?.values.actual).toBe("0.02");
+    });
+
+    it("refuses a market order above maxMarketOrderVolume", () => {
+        const intent = openIntent();
+        intent.payload.orderType = "MARKET";
+        delete intent.payload.price;
+        intent.displayed.maxMarketOrderVolume = new Decimal("0.01");
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxMarketOrderVolume");
+        expect(refusal?.values.limit).toBe("0.01");
+        expect(refusal?.values.actual).toBe("0.02");
+    });
+
+    it("refuses when symbolStatus is CANCEL_ONLY", () => {
+        const intent = openIntent();
+        intent.displayed.symbolStatus = "CANCEL_ONLY";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("symbolStatus");
+        expect(refusal?.values.status).toBe("CANCEL_ONLY");
+    });
+
+    it("refuses when symbolStatus is STOP", () => {
+        const intent = openIntent();
+        intent.displayed.symbolStatus = "STOP";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("symbolStatus");
+        expect(refusal?.values.status).toBe("STOP");
+    });
+
+    it("refuses when isApiSupported is false", () => {
+        const intent = openIntent();
+        intent.displayed.isApiSupported = false;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("isApiSupported");
+    });
+
+    it("approves when all trading pair limits and statuses are satisfied", () => {
+        const intent = openIntent();
+        intent.displayed.minTradeVolume = new Decimal("0.001");
+        intent.displayed.maxLimitOrderVolume = new Decimal("100");
+        intent.displayed.symbolStatus = "OPEN";
+        intent.displayed.isApiSupported = true;
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(true);
+        expect(verdict.refusal).toBeNull();
     });
 });

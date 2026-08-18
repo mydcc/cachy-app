@@ -2464,6 +2464,10 @@
     "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
     "killSwitch": "Order refused: the kill switch is engaged. No orders that open or increase a position are sent while it is on — closing positions, cancelling orders and adjusting stops still work.",
     "riskLimit": "Order refused: {field} exceeds the configured limit (limit {limit}, this order {actual}). The order was not sent.",
+    "minTradeVolume": "Order refused: the order size {actual} is below the minimum trade volume of {limit}. The order was not sent.",
+    "maxOrderVolume": "Order refused: the order size {actual} exceeds the maximum order volume of {limit}. The order was not sent.",
+    "symbolStatus": "Order refused: symbol status is {status} (expected OPEN). Trading is currently unavailable.",
+    "apiUnsupported": "Order refused: API trading is not supported for this symbol.",
     "bypassed": "Order refused: an order of type {action} tried to reach the exchange without passing verification. This is a bug — please report it.",
     "fields": {
       "account": "the account",
@@ -2471,15 +2475,19 @@
       "action": "the order action",
       "endpoint": "the target endpoint",
       "gate": "verification",
+      "isApiSupported": "API support",
       "killSwitch": "the kill switch",
       "leverage": "leverage",
       "marginMode": "margin mode",
       "maxDailyLoss": "the daily loss limit",
       "maxLeverage": "the leverage limit",
+      "maxLimitOrderVolume": "the maximum limit order volume",
       "maxLossPerTrade": "the loss-per-trade limit",
+      "maxMarketOrderVolume": "the maximum market order volume",
       "maxOpenPositions": "the open-positions limit",
       "maxPositionSize": "the position size limit",
       "maxPositionSizePercent": "the position size limit (share of equity)",
+      "minTradeVolume": "the minimum trade volume",
       "orderId": "the order ID",
       "positionId": "the position ID",
       "price": "the entry price",
@@ -2488,6 +2496,7 @@
       "side": "the direction",
       "stopLoss": "the stop loss",
       "symbol": "the symbol",
+      "symbolStatus": "the symbol status",
       "takeProfit": "the take profit"
     },
     "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
@@ -2644,7 +2653,11 @@
       "entryRejected": "The order was not placed.",
       "unprotectedTitle": "Position is unprotected",
       "unprotected": "The entry was placed but its stop is not on the exchange. The position is open with no stop. Cachy will not close it for you — set a stop now, or close the position yourself.",
-      "targetMissing": "The entry and its stop are in place, but the take-profit is not."
+      "targetMissing": "The entry and its stop are in place, but the take-profit is not.",
+      "tradingUnavailable": "Trading is unavailable for this symbol.",
+      "metadataLoading": "Loading trading pair details...",
+      "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
+      "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
     }
   }
 }

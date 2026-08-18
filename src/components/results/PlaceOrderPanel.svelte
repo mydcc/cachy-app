@@ -50,6 +50,8 @@
   } from "../../services/orderPlacementService";
   import { activeExchange } from "../../services/exchange";
   import { translateRefusal, MAX_ACCOUNT_STATE_AGE_MS } from "../../services/orderGate";
+  import { marketState } from "../../stores/market.svelte";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import type { TranslationKey } from "../../locales/schema";
 
   const exchange = $derived(settingsState.apiProvider);
@@ -64,11 +66,50 @@
 
   const data = $derived(tradeState.currentTradeData);
 
-  // The calculator produces a size only when the inputs make one derivable.
-  // No size, nothing to place.
-  const ready = $derived(
-    data !== null && data.positionSize instanceof Decimal && data.positionSize.gt(0),
+  const meta = $derived(
+    data?.symbol ? marketState.symbolMeta[normalizeSymbol(data.symbol, "bitunix")] : undefined,
   );
+
+  const hasMeta = $derived(
+    exchange !== "bitunix" || meta !== undefined,
+  );
+
+  const tradingAvailable = $derived(
+    !meta || (meta.symbolStatus === "OPEN" && meta.isApiSupported !== false),
+  );
+
+  const isBelowMinVolume = $derived(
+    meta?.minTradeVolume && data?.positionSize instanceof Decimal
+      ? data.positionSize.lt(new Decimal(meta.minTradeVolume))
+      : false,
+  );
+
+  const isAboveMaxVolume = $derived.by(() => {
+    if (!meta || !(data?.positionSize instanceof Decimal)) return false;
+    const max = entryType === "market" ? meta.maxMarketOrderVolume : meta.maxLimitOrderVolume;
+    return max ? data.positionSize.gt(new Decimal(max)) : false;
+  });
+
+  const volumeValid = $derived(!isBelowMinVolume && !isAboveMaxVolume);
+
+  // The calculator produces a size only when the inputs make one derivable.
+  // AC 1: Trading-pair metadata is available in a store before submit action is enabled.
+  // AC 3: Below minTradeVolume or above max order volume disables submit action.
+  // AC 4: symbolStatus != OPEN or isApiSupported == false shows trading as unavailable.
+  const ready = $derived(
+    data !== null &&
+      data.positionSize instanceof Decimal &&
+      data.positionSize.gt(0) &&
+      hasMeta &&
+      tradingAvailable &&
+      volumeValid,
+  );
+
+  $effect(() => {
+    if (data?.symbol && exchange === "bitunix" && !meta) {
+      activeExchange().account.fetchTradingPairInfo(data.symbol);
+    }
+  });
 
   const typeLabel = (t: OrderEntryType) =>
     $_(`orderEntry.type.${t}` as TranslationKey);
@@ -220,7 +261,7 @@
   {/if}
 
   <!-- What will be sent, from the calculator -->
-  {#if ready && data}
+  {#if data && data.positionSize instanceof Decimal && data.positionSize.gt(0)}
     <dl class="summary">
       <div><dt>{$_("orderEntry.summary.size")}</dt><dd>{data.positionSize.toString()}</dd></div>
       <div><dt>{$_("orderEntry.summary.entry")}</dt><dd>{data.entryPrice.toString()}</dd></div>
@@ -232,6 +273,23 @@
     {:else if (data.targets ?? []).length > 1 && !caps.multipleTakeProfits}
       <!-- Saying which target is sent beats silently sending the first. -->
       <p class="note">{$_("orderEntry.notes.firstTargetOnly")}</p>
+    {/if}
+
+    {#if !hasMeta}
+      <p class="note">{$_("orderEntry.errors.metadataLoading")}</p>
+    {:else if meta && !tradingAvailable}
+      <div class="outcome danger" role="alert" style="margin-bottom: 0.75rem;">
+        <strong>{$_("orderEntry.errors.tradingUnavailable")}</strong>
+        {#if meta.symbolStatus && meta.symbolStatus !== "OPEN"}
+          <span class="detail">{$_("dashboard.symbolInfo.statusStop")}: {meta.symbolStatus}</span>
+        {:else if meta.isApiSupported === false}
+          <span class="detail">{$_("dashboard.symbolInfo.apiNotSupported")}</span>
+        {/if}
+      </div>
+    {:else if isBelowMinVolume}
+      <p class="note warn">{$_("orderEntry.errors.belowMinTradeVolume", { values: { min: meta?.minTradeVolume ?? "" } })}</p>
+    {:else if isAboveMaxVolume}
+      <p class="note warn">{$_("orderEntry.errors.exceedsMaxOrderVolume", { values: { max: (entryType === "market" ? meta?.maxMarketOrderVolume : meta?.maxLimitOrderVolume) ?? "" } })}</p>
     {/if}
   {:else}
     <p class="note">{$_("orderEntry.notReady")}</p>
