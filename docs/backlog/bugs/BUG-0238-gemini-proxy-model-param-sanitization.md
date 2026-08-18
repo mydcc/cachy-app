@@ -2,7 +2,7 @@
 id: BUG-0238
 title: Gemini AI proxy passes unvalidated model parameter into API path
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
