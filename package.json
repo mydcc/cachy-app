@@ -50,6 +50,7 @@
     "puppeteer": "^25.7.0",
     "semantic-release": "^25.0.9",
     "svelte-eslint-parser": "^1.8.1",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   },
   "dependencies": {
@@ -86,14 +87,13 @@
     "p-limit": "^7.3.1",
     "postcss": "^8.5.26",
     "rss-parser": "^3.13.0",
-    "spacetimedb": "^1.11.4",
+    "spacetimedb": "^2.8.1",
     "svelte": "^5.56.9",
     "svelte-check": "^4.7.6",
     "svelte-i18n": "^4.0.1",
     "tailwindcss": "^4.3.2",
     "three": "^0.185.1",
     "tsx": "^4.23.12",
-    "typescript": "^6.0.3",
     "undici": "^8.10.0",
     "vite": "^8.2.1",
     "ws": "^8.21.3",

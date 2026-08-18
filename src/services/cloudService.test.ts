@@ -52,12 +52,12 @@ vi.mock('../lib/spacetimedb', () => {
     })
   };
 
-  // Mirrors DbConnectionBuilder's fluent chain (withUri -> withModuleName ->
+  // Mirrors DbConnectionBuilder's fluent chain (withUri -> withDatabaseName ->
   // withToken -> onConnect -> onDisconnect -> build) closely enough for
   // cloudService.ts's own call chain to type-check against.
   interface MockDbBuilder {
     withUri: (...args: unknown[]) => MockDbBuilder;
-    withModuleName: (...args: unknown[]) => MockDbBuilder;
+    withDatabaseName: (...args: unknown[]) => MockDbBuilder;
     withToken: (...args: unknown[]) => MockDbBuilder;
     onConnect: (cb: (...args: unknown[]) => unknown) => MockDbBuilder;
     onDisconnect: (cb: (...args: unknown[]) => unknown) => MockDbBuilder;
@@ -66,7 +66,7 @@ vi.mock('../lib/spacetimedb', () => {
 
   const builder: MockDbBuilder = {
     withUri: vi.fn().mockReturnThis(),
-    withModuleName: vi.fn().mockReturnThis(),
+    withDatabaseName: vi.fn().mockReturnThis(),
     withToken: vi.fn().mockReturnThis(),
     onConnect: vi.fn(function (this: MockDbBuilder, cb: (...args: unknown[]) => unknown) {
       mockCallbacks.onConnect = cb;
