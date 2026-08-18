@@ -11,6 +11,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
+import { isUrlAllowed } from "../../../../lib/server/urlValidator";
 
 const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 60 });
 
@@ -20,6 +21,10 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 export const GET: RequestHandler = async ({ request, url, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
+
+  if (!_rateLimits.consume(getClientAddress())) {
+    return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
+  }
 
   const targetUrl = url.searchParams.get("url");
   if (!targetUrl) {
@@ -31,6 +36,10 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     hostname = new URL(targetUrl).hostname.toLowerCase();
   } catch {
     return json({ error: "Invalid URL" }, { status: 400 });
+  }
+
+  if (!isUrlAllowed(targetUrl)) {
+    return json({ error: "Invalid or prohibited URL" }, { status: 403 });
   }
 
   const cached = domainCache.get(hostname);

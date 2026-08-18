@@ -11,6 +11,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
+import { isUrlAllowed } from "../../../../lib/server/urlValidator";
 import { JSDOM } from "jsdom";
 
 const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 30 });
@@ -26,15 +27,6 @@ interface CachedArticle {
 const articleCache = new Map<string, CachedArticle>();
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 const MAX_CACHE_SIZE = 100;
-
-function isAllowedUrl(urlStr: string): boolean {
-  try {
-    const u = new URL(urlStr);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 async function extractArticleContent(targetUrl: string): Promise<{ title?: string; paragraphs: string[] }> {
   try {
@@ -126,12 +118,26 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
+  if (!_rateLimits.consume(getClientAddress())) {
+    return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const { url } = body;
 
-    if (!url || typeof url !== "string" || !isAllowedUrl(url)) {
+    if (!url || typeof url !== "string") {
       return json({ error: "Invalid URL" }, { status: 400 });
+    }
+
+    try {
+      new URL(url);
+    } catch {
+      return json({ error: "Invalid URL" }, { status: 400 });
+    }
+
+    if (!isUrlAllowed(url)) {
+      return json({ error: "Invalid or prohibited URL" }, { status: 403 });
     }
 
     const cached = articleCache.get(url);

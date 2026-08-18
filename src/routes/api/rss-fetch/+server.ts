@@ -21,6 +21,7 @@ import Parser from "rss-parser";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../lib/server/rateLimit";
 import { sanitizeHtmlToText } from "../../../lib/server/sanitizer";
+import { isUrlAllowed } from "../../../lib/server/urlValidator";
 
 // checkClientToken already rate-limits per token/IP; this is defense in depth
 // on top of it (BUG-0052)
@@ -44,83 +45,6 @@ interface CachedFeed {
 const feedCache = new Map<string, CachedFeed>();
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes for standard RSS
 const MAX_CACHE_SIZE = 100;
-
-function isPrivateOrReservedHost(hostname: string): boolean {
-  const lower = hostname.toLowerCase();
-
-  // Localhost, metadata and internal TLDs
-  if (
-    lower === "localhost" ||
-    lower.endsWith(".localhost") ||
-    lower.endsWith(".local") ||
-    lower.endsWith(".internal") ||
-    lower.endsWith(".lan") ||
-    lower.endsWith(".home") ||
-    lower.endsWith(".arpa")
-  ) {
-    return true;
-  }
-
-  // IPv6 loopback / private
-  if (
-    lower === "::1" ||
-    lower === "::" ||
-    lower.startsWith("fe80:") ||
-    lower.startsWith("fc00:") ||
-    lower.startsWith("fd00:") ||
-    lower.startsWith("::ffff:")
-  ) {
-    return true;
-  }
-
-  // Check IPv4 address
-  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  const match = lower.match(ipv4Regex);
-  if (match) {
-    const octets = match.slice(1).map(Number);
-    if (octets.some((o) => o > 255)) return true;
-
-    const [a, b] = octets;
-    // 0.0.0.0/8 (Current network)
-    if (a === 0) return true;
-    // 10.0.0.0/8 (Private)
-    if (a === 10) return true;
-    // 127.0.0.0/8 (Loopback)
-    if (a === 127) return true;
-    // 100.64.0.0/10 (Carrier-grade NAT)
-    if (a === 100 && b >= 64 && b <= 127) return true;
-    // 169.254.0.0/16 (Link-Local & Cloud Metadata / AWS IMDS)
-    if (a === 169 && b === 254) return true;
-    // 172.16.0.0/12 (Private Class B)
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    // 192.168.0.0/16 (Private Class C)
-    if (a === 192 && b === 168) return true;
-    // 198.18.0.0/15 (Benchmarking)
-    if (a === 198 && (b === 18 || b === 19)) return true;
-    // 224.0.0.0/4 (Multicast) & 240.0.0.0/4 (Reserved)
-    if (a >= 224) return true;
-  }
-
-  return false;
-}
-
-function isUrlAllowed(urlStr: string): boolean {
-  try {
-    const u = new URL(urlStr);
-    // 1. Only http and https
-    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
-
-    // 2. Reject private, loopback, or metadata addresses
-    if (isPrivateOrReservedHost(u.hostname)) return false;
-
-    // 3. Must have a valid dot in hostname (e.g. bitcoin-kurier.de)
-    if (!u.hostname.includes(".")) return false;
-
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
