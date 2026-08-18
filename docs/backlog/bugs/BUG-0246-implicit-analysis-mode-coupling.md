@@ -2,30 +2,63 @@
 id: BUG-0246
 title: Implicit coupling of empty string to standard behaviour in modeInstructions
 type: bug
-status: specced
+status: ready
 priority: P2
-milestone: none
+milestone: M8
 editions: [community, pro, private]
 area: ai
 data_class: none
 adr: none
 depends_on: []
 parent: FEAT-0239
+estimate: 1
+size: XS
 ---
 
 # BUG-0246 — Implicit coupling of empty string to standard behaviour in modeInstructions
 
 ## Symptom
-`modeInstructions.risk` uses an empty string to mean "Standard — baseRoleInstructions applies fully". This implicit coupling is poorly documented and error-prone.
+
+In `src/stores/ai.svelte.ts`, `modeInstructions.risk` is defined as `""` (empty string) to represent the default "Risk Manager" mode. This relies on truthy/falsy checks and empty strings as magic values, making mode handling implicit and error-prone when adding or validating new modes.
 
 ## Evidence
-**Derived**: `src/stores/ai.svelte.ts:209`.
+
+**Derived.** In `src/stores/ai.svelte.ts:208-209`:
+```typescript
+const modeInstructions: Record<string, string> = {
+  risk: "",  // Standard — baseRoleInstructions applies fully
+  coach: [ ... ].join("\n"),
+  scalper: [ ... ].join("\n"),
+  analyst: [ ... ].join("\n"),
+};
+const modeOverride = modeInstructions[mode] ? `\n\n${modeInstructions[mode]}` : "";
+```
 
 ## Cause
-Using an empty string as a magic value.
+
+Using empty strings as sentinel values for default mode configuration instead of explicit typed definitions.
 
 ## Fix
-Refactor to use explicit mode flags or well-defined constants instead of empty strings.
+
+1. Define a strict TypeScript union type `AiAnalysisMode = 'risk' | 'coach' | 'scalper' | 'analyst'`.
+2. Provide explicit instruction builder functions or structured records for all modes without relying on empty strings.
+3. Validate mode values against known modes with explicit fallback.
 
 ## Acceptance criteria
-- [ ] Mode instructions use explicit values instead of relying on empty strings for standard behaviour.
+
+- [ ] `AiAnalysisMode` type is strictly defined and exported.
+- [ ] All analysis modes have explicit instruction definitions without relying on magic empty strings.
+- [ ] Fallback behavior for invalid modes is explicit and unit tested.
+
+## Out of scope
+
+- Adding new user-selectable analysis modes.
+
+## Open questions
+
+- None.
+
+## Links
+
+- Epic: [`FEAT-0239`](../features/FEAT-0239-epic-ai-prompt-architecture.md)
+- GitHub Issue: #2073

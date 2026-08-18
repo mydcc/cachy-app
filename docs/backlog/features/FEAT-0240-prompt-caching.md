@@ -1,31 +1,52 @@
 ---
 id: FEAT-0240
-title: Implement Prompt Caching for baseRoleInstructions
+title: Implement prompt caching for base role instructions
 type: feature
-status: idea
+status: ready
 priority: P2
-milestone: none
+milestone: M8
 editions: [community, pro, private]
 area: ai
 data_class: none
 adr: none
 depends_on: []
 parent: FEAT-0239
+estimate: 3
+size: S
 ---
 
-# FEAT-0240 — Implement Prompt Caching for baseRoleInstructions
+# FEAT-0240 — Implement prompt caching for base role instructions
 
 ## Problem
-The `baseRoleInstructions` block is extremely long (>100 lines) and is sent completely with every message alongside the real-time context. This drives up token consumption and costs per request unnecessarily.
+
+The `baseRoleInstructions` block in `src/stores/ai.svelte.ts` is over 100 lines long and contains detailed expert knowledge, format specifications, and negative constraints. Currently, this entire static text is concatenated into the system prompt and transmitted in full on every message alongside real-time market data.
+
+This inflates token consumption, increases per-request latency, and causes unnecessary API expenses on every interaction.
 
 ## Proposal
-Implement caching mechanisms (e.g., Anthropic Prompt Caching) or extract static instructions so they do not need to be repeatedly sent in full.
+
+Structure the system prompt payload to maximize provider prompt caching:
+1. **Anthropic:** Mark the static system prompt block with cache breakpoints (`cache_control: { type: "ephemeral" }`).
+2. **OpenAI / Gemini:** Separate the static invariant prompt prefix (role, safety rules, action formatting) from the volatile real-time context JSON so provider prefix caching naturally hits.
+3. Ensure stable serialization order of static rules to prevent cache invalidation.
 
 ## Acceptance criteria
-- [ ] Base role instructions are cached or optimally structured to reduce token overhead.
+
+- [ ] Static base instructions are separated from dynamic context in request payloads.
+- [ ] Anthropic requests include ephemeral prompt cache control markers where appropriate.
+- [ ] Gemini/OpenAI payloads place static instructions before dynamic context to leverage automatic prefix caching.
+- [ ] No regression in model response quality or streaming behavior.
 
 ## Out of scope
-- Changing the content of the instructions.
+
+- Caching dynamic market data context across turns.
+- Client-side response caching (already handled where appropriate).
 
 ## Open questions
-- Which provider caching mechanism is best supported across our models?
+
+- None.
+
+## Links
+
+- Epic: [`FEAT-0239`](FEAT-0239-epic-ai-prompt-architecture.md)
+- GitHub Issue: #2075
