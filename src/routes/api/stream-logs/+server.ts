@@ -37,14 +37,12 @@ export const GET: RequestHandler = ({ request }) => {
     });
   }
 
-  // Use timingSafeEqual to prevent timing attacks
-  // Compare secret against provided token (or empty string if null)
-  const secretBuffer = Buffer.from(secret);
-  const tokenBuffer = Buffer.from(token || '');
+  // Use timingSafeEqual on SHA-256 hashes to prevent timing attacks and length leaks (BUG-0237).
+  const serverHash = crypto.createHash("sha256").update(secret).digest();
+  const clientHash = crypto.createHash("sha256").update(token || "").digest();
 
-  // timingSafeEqual throws if lengths differ, so we must check length first.
-  // Although checking length leaks length information, it's generally considered acceptable for API keys.
-  if (secretBuffer.length !== tokenBuffer.length || !crypto.timingSafeEqual(secretBuffer, tokenBuffer)) {
+  // crypto.timingSafeEqual throws if lengths differ, but SHA256 hashes are always 32 bytes.
+  if (!crypto.timingSafeEqual(clientHash, serverHash)) {
     return new Response("Unauthorized", { status: 401 });
   }
 
