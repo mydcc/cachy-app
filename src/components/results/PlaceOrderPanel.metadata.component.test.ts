@@ -20,6 +20,8 @@ import { mount, unmount, flushSync } from "svelte";
 import { Decimal } from "decimal.js";
 import en from "../../locales/locales/en.json";
 
+import type { TradingPairInfo } from "../../types/apiSchemas";
+
 vi.mock("../../services/logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
@@ -33,10 +35,10 @@ vi.mock("../../stores/paperTrading.svelte", () => ({ paperState: paperStateMock 
 const mockTradeData = vi.hoisted(() => ({
     symbol: "BTCUSDT",
     tradeType: "LONG" as const,
-    positionSize: null as any,
-    entryPrice: null as any,
-    stopLossPrice: null as any,
-    targets: [] as any[],
+    positionSize: null as Decimal | null,
+    entryPrice: null as Decimal | null,
+    stopLossPrice: null as Decimal | null,
+    targets: [] as Array<{ price: Decimal; percentage: number }>,
     remoteAccountStateAt: Date.now(),
 }));
 
@@ -52,7 +54,7 @@ vi.mock("../../stores/trade.svelte", () => ({
 }));
 
 const mockSymbolMetaStore = vi.hoisted(() => ({
-    symbolMeta: {} as Record<string, any>,
+    symbolMeta: {} as Record<string, TradingPairInfo>,
 }));
 
 vi.mock("../../stores/market.svelte", () => ({
@@ -60,7 +62,7 @@ vi.mock("../../stores/market.svelte", () => ({
         get symbolMeta() {
             return mockSymbolMetaStore.symbolMeta;
         },
-        setSymbolMeta: (symbol: string, meta: any) => {
+        setSymbolMeta: (symbol: string, meta: TradingPairInfo) => {
             mockSymbolMetaStore.symbolMeta[symbol] = meta;
         },
     },

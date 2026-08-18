@@ -2,7 +2,7 @@
 id: FEAT-0067
 title: Fetch Bitunix trading-pair metadata and validate orders against it
 type: feature
-status: completed
+status: done
 priority: P1
 milestone: M3
 editions: [community, pro, private]
