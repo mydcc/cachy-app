@@ -2,7 +2,7 @@
 id: FEAT-0240
 title: Implement prompt caching for base role instructions
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: M8
 editions: [community, pro, private]

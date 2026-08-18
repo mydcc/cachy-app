@@ -40,19 +40,40 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       );
     }
 
-    const { messages, model } = parseResult.data;
+    const { messages, model, tools } = parseResult.data;
     const apiKey = request.headers.get("x-api-key");
 
     if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 401 });
     }
 
-    let systemPrompt = "";
+    let systemBlocks = [];
     const anthropicMessages: AnthropicMessageParam[] = [];
 
     for (const m of messages) {
       if (m.role === "system") {
-        systemPrompt += m.content + "\n";
+        if (m.content) {
+            try {
+                // If it is our structured format { staticInstruction: ..., dynamicContext: ... }
+                // we can parse it and use block caching.
+                const parsed = JSON.parse(m.content);
+                if (parsed.staticInstruction && parsed.dynamicContext) {
+                   systemBlocks.push({
+                     type: "text",
+                     text: parsed.staticInstruction,
+                     cache_control: { type: "ephemeral" }
+                   });
+                   systemBlocks.push({
+                     type: "text",
+                     text: "\n\n" + parsed.dynamicContext
+                   });
+                } else {
+                   systemBlocks.push({ type: "text", text: m.content });
+                }
+            } catch {
+                systemBlocks.push({ type: "text", text: m.content });
+            }
+        }
       } else {
         anthropicMessages.push({
           role: m.role as "user" | "assistant",
@@ -74,8 +95,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         // somehow omits a model, which normal use through Settings never does.
         model: model || "claude-sonnet-5",
         max_tokens: 2000,
-        system: systemPrompt,
+        system: systemBlocks,
         messages: anthropicMessages,
+        tools: tools && tools.length > 0 ? tools.map(t => ({
+            name: t.function.name,
+            description: t.function.description,
+            input_schema: t.function.parameters
+        })) : undefined,
         stream: true,
       }),
     });

@@ -2,7 +2,7 @@
 id: BUG-0244
 title: Gemini/Gemma prompt leak guard uses fragile chunk length heuristic
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: M8
 editions: [community, pro, private]

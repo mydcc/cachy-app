@@ -2,7 +2,7 @@
 id: FEAT-0239
 title: "Epic: AI Prompt Architecture & Safety Refactoring"
 type: feature
-status: ready
+status: done
 priority: P1
 milestone: M8
 editions: [community, pro, private]

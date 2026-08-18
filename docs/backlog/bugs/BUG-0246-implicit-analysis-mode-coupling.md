@@ -2,7 +2,7 @@
 id: BUG-0246
 title: Implicit coupling of empty string to standard behaviour in modeInstructions
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: M8
 editions: [community, pro, private]

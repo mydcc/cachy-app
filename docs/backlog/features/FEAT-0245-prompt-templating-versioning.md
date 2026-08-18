@@ -2,7 +2,7 @@
 id: FEAT-0245
 title: Centralize prompt templating and versioning
 type: feature
-status: ready
+status: done
 priority: P1
 milestone: M8
 editions: [community, pro, private]

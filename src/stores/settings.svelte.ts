@@ -14,6 +14,7 @@ import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 import { EntitlementStore } from "./entitlement.svelte";
 import { SecretsLoader, SENSITIVE_KEYS } from "./settings/secretsLoader";
+import type { AiAnalysisMode } from "../types/ai";
 import {
   resolveApiProvider,
   resolveGeminiModel,
@@ -41,7 +42,6 @@ export type BackgroundAnimationPreset =
   | "aurora";
 export type AnimationIntensity = "low" | "medium" | "high";
 export type AnalysisDepth = "quick" | "standard" | "deep";
-export type AiAnalysisMode = "risk" | "coach" | "scalper" | "analyst";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
 export type TechnicalsUpdateMode =

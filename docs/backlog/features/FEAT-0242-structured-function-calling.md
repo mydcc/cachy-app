@@ -2,7 +2,7 @@
 id: FEAT-0242
 title: Replace regex-based JSON action parsing with structured function calling
 type: feature
-status: ready
+status: done
 priority: P1
 milestone: M8
 editions: [community, pro, private]
