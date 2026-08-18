@@ -2,7 +2,7 @@
 id: BUG-0237
 title: Stream logs authentication leaks secret length before timing-safe comparison
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
