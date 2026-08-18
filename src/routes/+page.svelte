@@ -250,9 +250,15 @@
       : "w-56",
   );
 
+  const MAX_FAVORITE_TILES = 4;
 
-
-
+  let displayedFavorites = $derived(
+    favoritesState.items
+      .filter(
+        (fav) => fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase(),
+      )
+      .slice(0, MAX_FAVORITE_TILES),
+  );
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -713,16 +719,14 @@
           <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
         {/if}
 
-        {#if favoritesState.items.length > 0 && settingsState.showMarketOverview}
+        {#if settingsState.showMarketOverview && displayedFavorites.length > 0}
           <div
             class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest px-1"
           >
             {$_("dashboard.favorites") || "Favorites"}
           </div>
-          {#each favoritesState.items as fav (fav)}
-            {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
-              <MarketOverview customSymbol={fav} isFavoriteTile={true} />
-            {/if}
+          {#each displayedFavorites as fav (fav)}
+            <MarketOverview customSymbol={fav} isFavoriteTile={true} />
           {/each}
         {/if}
       </div>
@@ -758,18 +762,14 @@
       {/if}
 
       <!-- Favorites list -->
-      {#if settingsState.showMarketOverview}
-        {#if favoritesState.items.length > 0}
-          <div
-            class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
-          >
-            {$_("dashboard.favorites") || "Favorites"}
-          </div>
-        {/if}
-        {#each favoritesState.items as fav (fav)}
-          {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
-            <MarketOverview customSymbol={fav} isFavoriteTile={true} />
-          {/if}
+      {#if settingsState.showMarketOverview && displayedFavorites.length > 0}
+        <div
+          class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
+        >
+          {$_("dashboard.favorites") || "Favorites"}
+        </div>
+        {#each displayedFavorites as fav (fav)}
+          <MarketOverview customSymbol={fav} isFavoriteTile={true} />
         {/each}
       {/if}
     </div>
