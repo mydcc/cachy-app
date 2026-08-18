@@ -120,16 +120,17 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
   // COOP: same-origin-allow-popups keeps TradingView popup compatibility
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-  response.headers.set("Cross-Origin-Embedder-Policy", "credentialless");
+  // DO NOT add Cross-Origin-Embedder-Policy (COEP). COEP breaks embedded channel iframes (e.g. space.cachy.app Unity Metaverse).
+  // DO NOT restrict camera/microphone completely to (); channel metaverse spaces require audio/video delegation.
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  response.headers.set("Permissions-Policy", "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), geolocation=()");
 
   // Security Headers from Production Monitor
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   // Note: Content-Security-Policy is managed by SvelteKit in svelte.config.js, but added here for the monitor
-  response.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https:; frame-ancestors 'self'; connect-src 'self' https://s.cachy.app https://bam.nr-data.net https://bam.eu01.nr-data.net wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://generativelanguage.googleapis.com https://api.openai.com");
+  response.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://s.cachy.app; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https://s.cachy.app https:; frame-ancestors 'self'; connect-src 'self' https://s.cachy.app https://bam.nr-data.net https://bam.eu01.nr-data.net wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://generativelanguage.googleapis.com https://api.openai.com");
   return response;
 };
 
