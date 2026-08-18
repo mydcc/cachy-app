@@ -26,7 +26,8 @@ import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
 import { logger } from "./logger";
 import { marketState } from "../stores/market.svelte";
-import { analysisState, type SymbolAnalysis } from "../stores/analysis.svelte";
+import { marketWatcher } from "./marketWatcher";
+import { analysisState, type SymbolAnalysis, type TrendState } from "../stores/analysis.svelte";
 import { favoritesState } from "../stores/favorites.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { indicatorState } from "../stores/indicator.svelte";
@@ -34,9 +35,41 @@ import { toastService } from "./toastService.svelte";
 import { _ } from "../locales/i18n";
 import { get } from "svelte/store";
 import { Decimal } from "decimal.js";
-import type { IndicatorResult } from "./technicalsTypes";
+import type { IndicatorResult, Kline } from "./technicalsTypes";
 
 const DATA_FRESHNESS_TTL = 300 * 1000; // 5 minutes
+
+/**
+ * Candle depth the analyst asks the history backfiller for.
+ *
+ * The dashboard's trend column is "price vs EMA 200", and an EMA needs roughly
+ * 3x its period of warm-up before the seed value stops dominating the output.
+ * 600 is that 3x, and it is what makes the trend readings trustworthy enough to
+ * put in front of someone sizing a position.
+ *
+ * This is deliberately NOT requested as a single 600-candle call: Bitunix
+ * hard-caps every kline response at 200 rows no matter what `limit` says, so a
+ * direct request silently returns a third of what was asked for. Routing
+ * through marketWatcher.ensureHistory() paginates over endTime windows to
+ * actually reach the target (and caches the result in IndexedDB).
+ */
+const ANALYST_HISTORY_TARGET = 600;
+
+/**
+ * Minimum candles required before a timeframe is considered analysable at all.
+ * Below this even the oscillators are noise.
+ */
+const MIN_CANDLES_PER_TF = 50;
+
+/**
+ * Favourites analysed when `analyzeAllFavorites` is off. Matches the number the
+ * Settings UI has always promised ("Top 4 Only" / "Nur Top 4").
+ */
+const TOP_FAVOURITES_COUNT = 4;
+
+/** Retry backoff for symbols that came back with incomplete data. */
+const PARTIAL_RETRY_BASE_MS = 30 * 1000;
+const PARTIAL_RETRY_MAX_MS = 10 * 60 * 1000;
 
 // Local Helpers for Safety
 const safeDiv = (a: Decimal, b: Decimal) => b.isZero() ? new Decimal(0) : a.div(b);
@@ -48,7 +81,7 @@ const safeSub = (a: Decimal, b: Decimal) => a.minus(b);
 interface AnalystTechEntry {
     movingAverages?: IndicatorResult[];
     oscillators?: IndicatorResult[];
-    confluence?: { score?: number };
+    confluence?: { score?: number; level?: string; contributing?: string[] };
     _maMap?: Map<string, IndicatorResult>;
     _oscMap?: Map<string, IndicatorResult>;
 }
@@ -91,13 +124,63 @@ class MarketAnalystService {
         };
     }
 
+    /**
+     * Load `ANALYST_HISTORY_TARGET` candles for one symbol/timeframe.
+     *
+     * Bitunix path: delegate to the MarketWatcher's backfiller, which pages
+     * around the exchange's 200-row response cap, persists to IndexedDB and
+     * shares its result with the chart and technicals panel -- so the analyst
+     * warms the same cache the visible UI reads instead of duplicating fetches.
+     *
+     * Bitget path: no backfiller exists for it yet, so keep the direct fetch.
+     * It will under-fetch the same way Bitunix used to; the analysis is then
+     * reported as `partial` rather than silently retried forever.
+     */
+    private async loadHistory(
+        symbol: string,
+        tf: string,
+        provider: string,
+    ): Promise<Kline[]> {
+        if (provider === "bitget") {
+            return apiService.fetchBitgetKlines(symbol, tf, ANALYST_HISTORY_TARGET, undefined, undefined, "normal");
+        }
+
+        try {
+            await marketWatcher.ensureHistory(symbol, tf, ANALYST_HISTORY_TARGET);
+        } catch (e) {
+            // A backfill failure is not fatal: whatever is already in the store
+            // (or in IndexedDB from a previous session) may still be enough.
+            logger.warn("technicals", `Analyst: backfill failed for ${symbol}:${tf}`, e);
+        }
+
+        return marketState.data[symbol]?.klines?.[tf] ?? [];
+    }
+
+    /**
+     * Symbols this cycle may analyse.
+     *
+     * Honours the `analyzeAllFavorites` setting, which the Settings UI has
+     * offered ("All Favorites" vs "Top 4 Only", with a CPU-impact warning)
+     * while nothing in the codebase read it -- so the toggle did nothing and
+     * the analyst silently covered only the first few symbols regardless
+     * (BUG-0232).
+     *
+     * Every caller that asks "is the dashboard filled yet?" must use this same
+     * scope. Comparing progress against symbols outside it would leave the
+     * scheduler permanently waiting on work it will never do.
+     */
+    private getAnalysisScope(): string[] {
+        const all = favoritesState.items;
+        return settingsState.analyzeAllFavorites ? all : all.slice(0, TOP_FAVOURITES_COUNT);
+    }
+
     private async processNext() {
         if (!this.isRunning) return;
 
         // Check visibility/focus (pause if tab hidden to save resources, unless forced)
         const isHidden = typeof document !== "undefined" && document.hidden;
 
-        const favorites = favoritesState.items;
+        const favorites = this.getAnalysisScope();
         if (favorites.length === 0) {
             this.scheduleNext(5000);
             return;
@@ -108,13 +191,29 @@ class MarketAnalystService {
 
         try {
             const existing = analysisState.results[symbol];
-            const freshnessThreshold = isHidden ? DATA_FRESHNESS_TTL * 2 : DATA_FRESHNESS_TTL;
 
-            // "Neutral" here implies missing data (EMA200 calculation failed), so we should retry
-            const isInvalid = !existing?.trends || existing?.trends["4h"] === "neutral";
+            // Freshness is decided by WHEN we last analysed, never by whether we
+            // liked the answer.
+            //
+            // The previous gate skipped only when the result was both fresh AND
+            // had a non-neutral 4h trend. Because "neutral" was also what a
+            // missing EMA 200 produced, and because the fetch path could not
+            // supply enough candles for EMA 200 to converge, that condition was
+            // unsatisfiable: every cycle re-fetched every timeframe of every
+            // favourite, forever, at the 2s fast-path interval (BUG-0230).
+            //
+            // A result that came back incomplete still gets retried -- just on an
+            // exponential backoff, so a symbol whose history genuinely is too
+            // short (a newly listed token) settles at one attempt per 10 minutes
+            // instead of pinning the request queue.
+            const freshnessThreshold = existing?.quality === "partial"
+                ? Math.min(
+                    PARTIAL_RETRY_BASE_MS * 2 ** (existing.partialAttempts ?? 0),
+                    PARTIAL_RETRY_MAX_MS,
+                  )
+                : (isHidden ? DATA_FRESHNESS_TTL * 2 : DATA_FRESHNESS_TTL);
 
-            // Check freshness - only skip if fresh AND valid
-            if (existing && !isInvalid && (Date.now() - existing.updatedAt < freshnessThreshold)) {
+            if (existing && (Date.now() - existing.updatedAt < freshnessThreshold)) {
                 throw new Error("SKIP_FRESH");
             }
 
@@ -126,30 +225,27 @@ class MarketAnalystService {
             const requiredTimeframes = ["15m", "1h", "4h", "1d"];
             const timeframes = Array.from(new Set([...settingsState.analysisTimeframes, ...requiredTimeframes]));
 
-            // Determine kline counts per timeframe
-            // Maximized to 1000 to ensure sufficient EMA warm-up (industry standard)
-            const klineCountMap: Record<string, number> = {
-                "5m": 1000,
-                "15m": 1000,
-                "1h": 1000,
-                "4h": 1000,
-                "1d": 1000
-            };
-
-            // PARALLEL: Fetch all timeframes at once
-            logger.log("technicals", `Analyst: ${symbol} Fetching ${timeframes.length} timeframes in parallel...`);
+            // SEQUENTIAL over timeframes, paginated within each.
+            //
+            // ensureHistory() already fans out up to 6 parallel range requests
+            // internally to page around the exchange's 200-candle response cap.
+            // Firing all four timeframes at once on top of that would put ~24
+            // requests into a queue whose global ceiling is 8
+            // (RequestManager.MAX_CONCURRENCY), starving the live ticker and
+            // technicals feeds that the visible cards depend on -- which is what
+            // made the favourite cards and the technicals panel flicker whenever
+            // the analyst was busy. The analyst is a background job; trading
+            // latency for a calm request queue is the right side of that trade.
+            logger.log("technicals", `Analyst: ${symbol} Loading ${timeframes.length} timeframes (target ${ANALYST_HISTORY_TARGET} candles each)...`);
             const startFetch = performance.now();
 
-            const klinesPromises = timeframes.map(tf => {
-                const count = klineCountMap[tf] || 1000;
-                return provider === "bitget"
-                    ? apiService.fetchBitgetKlines(symbol, tf, count, undefined, undefined, "normal")
-                    : apiService.fetchBitunixKlines(symbol, tf, count, undefined, undefined, "normal");
-            });
+            const klinesResults: Kline[][] = [];
+            for (const tf of timeframes) {
+                klinesResults.push(await this.loadHistory(symbol, tf, provider));
+            }
 
-            const klinesResults = await Promise.all(klinesPromises);
             const fetchTime = performance.now() - startFetch;
-            logger.log("technicals", `Analyst: ${symbol} All klines fetched in ${fetchTime.toFixed(0)}ms`);
+            logger.log("technicals", `Analyst: ${symbol} All klines loaded in ${fetchTime.toFixed(0)}ms`);
 
             // Build a map of timeframe -> klines
             const klinesMap: Record<string, typeof klinesResults[0]> = {};
@@ -166,7 +262,7 @@ class MarketAnalystService {
             // Validate minimum data
             const primaryTf = timeframes.includes("1h") ? "1h" : timeframes[0];
             const primaryKlines = klinesMap[primaryTf];
-            if (!primaryKlines || primaryKlines.length < 50) throw new Error("MIN_DATA_REQUIRED");
+            if (!primaryKlines || primaryKlines.length < MIN_CANDLES_PER_TF) throw new Error("MIN_DATA_REQUIRED");
 
             // PARALLEL: Calculate technicals for all timeframes
             logger.log("technicals", `Analyst: ${symbol} Calculating technicals for ${timeframes.length} timeframes...`);
@@ -239,12 +335,37 @@ class MarketAnalystService {
                     techMap
                 );
 
+                // A result is "partial" when any timeframe could not produce a
+                // real trend reading. That flag drives the retry backoff above
+                // and lets the dashboard distinguish "no data" from a signal --
+                // it must never render as a confident score.
+                const isPartial = Object.values(metrics.trends).some(t => t === "unknown");
+                const previousAttempts = existing?.partialAttempts ?? 0;
+
                 analysisState.updateAnalysis(symbol, {
                     symbol,
                     updatedAt: Date.now(),
                     confluenceScore: techPrimary.confluence?.score || 0,
+                    // Carried through so the dashboard can show WHAT the score
+                    // means and WHY. Both were computed already and discarded.
+                    confluenceLevel: techPrimary.confluence?.level as SymbolAnalysis["confluenceLevel"],
+                    confluenceReasons: techPrimary.confluence?.contributing,
+                    quality: isPartial ? "partial" : "complete",
+                    partialAttempts: isPartial ? previousAttempts + 1 : 0,
                     ...metrics
                 });
+
+                if (isPartial) {
+                    const missing = Object.entries(metrics.trends)
+                        .filter(([, t]) => t === "unknown")
+                        .map(([tf]) => tf)
+                        .join(", ");
+                    logger.warn(
+                        "technicals",
+                        `Analyst: ${symbol} PARTIAL - no EMA 200 for [${missing}] ` +
+                        `(attempt ${previousAttempts + 1}); retry backs off exponentially.`,
+                    );
+                }
 
                 // Update Performance Telemetry
                 marketState.updateTelemetry({ lastCalcDuration: calcTime });
@@ -267,6 +388,16 @@ class MarketAnalystService {
             // Log the actual error to understand what's failing
             logger.error("technicals", `Analyst: ERROR for ${symbol}:`, errorMsg);
 
+            // Record the failure as a partial result.
+            //
+            // Without this the symbol stays absent from analysisState, which
+            // keeps `anyNeedsUpdate` true and pins the scheduler to its 2s fast
+            // path forever -- the exact loop this fix exists to close, just
+            // entered through the error door instead. Writing a partial entry
+            // makes the failure visible to the UI and puts the symbol on the
+            // same exponential backoff as any other incomplete analysis.
+            this.recordFailure(symbol, errorMsg);
+
             // Toast for significant errors (ignore expected data shortage)
             if (errorMsg !== "MIN_DATA_REQUIRED") {
                 toastService.error(get(_)("marketAnalyst.analysisFailed", { values: { symbol, error: errorMsg } }));
@@ -276,14 +407,20 @@ class MarketAnalystService {
 
             if (this.isRunning && !this.timeoutId) {
                 // INTELLIGENT SCHEDULING
-                // Check if any favorite needs analysis (missing or neutral trends)
-                // If yes, run fast (2s) to fill the dashboard.
-                // If no, run at standard interval to maintain freshness.
-
-                const anyNeedsUpdate = favoritesState.items.some(sym => {
-                    const data = analysisState.results[sym];
-                    return !data || !data.trends || data.trends["4h"] === "neutral";
-                });
+                // Fast path (2s) exists to fill an empty dashboard on startup, so
+                // it keys off "never analysed" only. It used to also fire for any
+                // favourite whose 4h trend read "neutral" -- which, since a
+                // missing EMA 200 produced exactly that, meant the fast path
+                // latched on permanently and never returned to the user's
+                // configured interval (BUG-0230).
+                //
+                // Bounded by construction now: every pass writes a result for the
+                // symbol it visited (complete or partial), so after at most
+                // favourites.length cycles this is false and the loop settles at
+                // marketAnalysisInterval.
+                const anyNeedsUpdate = this.getAnalysisScope().some(
+                    sym => !analysisState.results[sym],
+                );
 
                 const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;
                 // If filling gaps, go fast (2s). If maintaining, use user setting.
@@ -292,6 +429,28 @@ class MarketAnalystService {
                 this.scheduleNext(delay);
             }
         }
+    }
+
+    /**
+     * Persist a failed analysis as a `partial` result so the scheduler treats
+     * the symbol as "visited" and backs off, instead of retrying it every cycle.
+     */
+    private recordFailure(symbol: string, reason: string) {
+        const existing = analysisState.results[symbol];
+        analysisState.updateAnalysis(symbol, {
+            symbol,
+            updatedAt: Date.now(),
+            price: existing?.price ?? "0",
+            change24h: existing?.change24h ?? "0",
+            trend4h: "unknown",
+            trends: { "15m": "unknown", "1h": "unknown", "4h": "unknown", "1d": "unknown" },
+            rsi1h: existing?.rsi1h ?? "50",
+            confluenceScore: 0,
+            condition: "neutral",
+            quality: "partial",
+            partialAttempts: (existing?.partialAttempts ?? 0) + 1,
+            lastError: reason,
+        });
     }
 
     private scheduleNext(delay: number) {
@@ -356,15 +515,19 @@ export function calculateAnalysisMetrics(
         }
     }
 
-    // Helper to determine trend for a timeframe
-    const getTrend = (tf: string): "bullish" | "bearish" | "neutral" => {
+    // Helper to determine trend for a timeframe.
+    //
+    // Returns "unknown" -- not "neutral" -- when the EMA 200 is missing. The two
+    // are different claims: "neutral" says the market has no direction, "unknown"
+    // says we could not measure it. Collapsing them is what let a data gap
+    // masquerade as a reading, both to the retry loop and to the user.
+    const getTrend = (tf: string): TrendState => {
         const tech = techMap[tf];
-        if (!tech) return "neutral";
+        if (!tech) return "unknown";
 
-        // Use confluence score if available for broad trend, or EMA check
-        // Ideally checking Price > EMA200
+        // Trend definition: price above/below the EMA 200.
         const ema = tech._maMap?.get("EMA_200")?.value;
-        if (ema === undefined || (typeof ema === "number" && isNaN(ema)) || ema === 0) return "neutral";
+        if (ema === undefined || (typeof ema === "number" && isNaN(ema)) || ema === 0) return "unknown";
 
         return priceDec.greaterThan(safeDec(ema)) ? "bullish" : "bearish";
     };
