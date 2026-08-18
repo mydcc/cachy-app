@@ -96,21 +96,27 @@ describe('GET /api/stream-logs', () => {
     expect(response.headers.get('Content-Type')).toBe('text/event-stream');
   });
 
-  it('should use timingSafeEqual for token comparison', async () => {
+  it('should use timingSafeEqual on SHA-256 digests for token comparison regardless of length (BUG-0237)', async () => {
     const timingSafeEqualSpy = vi.spyOn(crypto, 'timingSafeEqual');
     const envModule = await import('$env/dynamic/private');
     envModule.env.LOG_STREAM_KEY = 'secret-key';
 
-    // Use a token of same length to ensure timingSafeEqual is called (if length check is implemented)
+    // Different length token should still invoke timingSafeEqual on 32-byte hash digests
     const url = new URL('http://localhost/api/stream-logs');
     const request = new Request(url, {
       headers: new Headers({
-        'Authorization': 'Bearer wrong-key1'
+        'Authorization': 'Bearer a'
       })
     });
 
-    await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
+    const response = await GET({ request, url } as unknown as Parameters<typeof GET>[0]);
 
+    expect(response.status).toBe(401);
     expect(timingSafeEqualSpy).toHaveBeenCalled();
+    const [clientHash, serverHash] = timingSafeEqualSpy.mock.calls[0];
+    expect(clientHash).toBeInstanceOf(Buffer);
+    expect(serverHash).toBeInstanceOf(Buffer);
+    expect((clientHash as Buffer).length).toBe(32);
+    expect((serverHash as Buffer).length).toBe(32);
   });
 });

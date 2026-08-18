@@ -63,12 +63,18 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       }
     }
 
-    // Use the model provided by the client directly.
-    // This allows selecting any available Gemini model in settings.
-    let selectedModel = model || "gemini-3.5-flash"; // Default: Current stable generation
+    // Use the model provided by the client directly after validating format (BUG-0238).
+    // Validate model identifier against strict regex to avoid path traversal / query injection.
+    const rawModel = typeof model === "string" ? model.trim() : "";
+    if (rawModel && !/^[a-zA-Z0-9._-]+$/.test(rawModel)) {
+      return json({ error: "Invalid model identifier" }, { status: 400 });
+    }
+
+    let selectedModel = rawModel || "gemini-3.5-flash"; // Default: Current stable generation
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
+    const encodedModel = encodeURIComponent(selectedModel);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
     // Special handling for Gemma models which don't support systemInstruction
     if (selectedModel.includes("gemma") && systemInstruction) {

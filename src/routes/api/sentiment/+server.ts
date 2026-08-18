@@ -11,6 +11,8 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 import { checkClientToken } from '../../../lib/server/clientToken';
 
+import { sanitizeErrorMessage } from '../../../types/apiSchemas';
+
 interface SentimentOutput {
     score: number;
     regime: string;
@@ -70,8 +72,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const authError = checkClientToken(request, getClientAddress());
     if (authError) return authError;
 
+    let apiKey = '';
     try {
-        const { headlines, provider, model, apiKey } = await request.json();
+        const body = await request.json();
+        apiKey = body.apiKey;
+        const { headlines, provider, model } = body;
         if (!Array.isArray(headlines) || headlines.length === 0) {
             return json({ error: 'NO_HEADLINES' }, { status: 400 });
         }
@@ -108,10 +113,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
                     if (resultText) break;
                 } catch (err: unknown) {
                     lastOpenAiErr = err;
-                    const msg = err instanceof Error ? err.message : String(err);
+                    let msg = err instanceof Error ? err.message : String(err);
                     if (msg.includes('401') || msg.includes('Incorrect API key')) {
                         throw err;
                     }
+                    if (apiKey && apiKey.length > 4) {
+                        msg = msg.split(apiKey).join('***');
+                    }
+                    msg = sanitizeErrorMessage(msg);
                     console.warn(`[Sentiment API] OpenAI model ${m} failed (${msg.slice(0, 100)}), trying fallback...`);
                 }
             }
@@ -144,10 +153,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
                     if (resultText) break;
                 } catch (err: unknown) {
                     lastGeminiErr = err;
-                    const msg = err instanceof Error ? err.message : String(err);
+                    let msg = err instanceof Error ? err.message : String(err);
                     if (msg.includes('API_KEY_INVALID') || msg.includes('401') || msg.includes('403')) {
                         throw err;
                     }
+                    if (apiKey && apiKey.length > 4) {
+                        msg = msg.split(apiKey).join('***');
+                    }
+                    msg = sanitizeErrorMessage(msg);
                     console.warn(`[Sentiment API] Gemini model ${m} unavailable (${msg.slice(0, 120)}), trying fallback model...`);
                 }
             }
@@ -170,7 +183,6 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
             return json({ analysis: calculateHeuristicSentiment(headlines), isFallback: true });
         }
     } catch (e: unknown) {
-        console.error('Sentiment API Error:', e);
         let message = 'INTERNAL_ERROR';
         if (e instanceof Error) {
             message = e.message;
@@ -179,6 +191,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         } else if (typeof e === 'object' && e !== null && 'message' in e) {
             message = String((e as { message: unknown }).message);
         }
+
+        if (apiKey && apiKey.length > 4) {
+            message = message.split(apiKey).join('***');
+        }
+        message = sanitizeErrorMessage(message);
+
+        console.error('Sentiment API Error:', message);
         return json({ error: message }, { status: 500 });
     }
 };
