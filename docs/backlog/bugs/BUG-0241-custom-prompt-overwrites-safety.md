@@ -2,7 +2,7 @@
 id: BUG-0241
 title: customSystemPrompt completely overwrites baseRoleInstructions and safety rules
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: M8
 editions: [community, pro, private]

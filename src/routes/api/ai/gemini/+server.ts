@@ -35,6 +35,19 @@ interface GeminiSystemInstruction {
 interface GeminiPayload {
   contents: GeminiContent[];
   systemInstruction?: GeminiSystemInstruction;
+  tools?: GeminiTool[];
+}
+
+
+// Define basic tool types to avoid "any"
+interface GeminiFunctionDeclaration {
+  name: string;
+  description?: string;
+  parameters?: Record<string, unknown>;
+}
+
+interface GeminiTool {
+  functionDeclarations: GeminiFunctionDeclaration[];
 }
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
@@ -42,7 +55,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   if (authError) return authError;
 
   try {
-    const { messages, model } = await request.json();
+    const { messages, model, tools } = await request.json();
     const apiKey = request.headers.get("x-api-key");
 
     if (!apiKey) {
@@ -89,6 +102,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const payload: GeminiPayload = { contents };
     if (systemInstruction) {
       payload.systemInstruction = systemInstruction;
+    }
+    if (tools && tools.length > 0) {
+      payload.tools = [{
+          functionDeclarations: tools.map((t: { function: GeminiFunctionDeclaration }) => ({
+              name: t.function.name,
+              description: t.function.description,
+              parameters: t.function.parameters
+          }))
+      }];
     }
 
     const response = await fetch(url, {

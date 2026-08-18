@@ -13,6 +13,8 @@ import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
+import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
+import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
 import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
@@ -89,6 +91,7 @@ class AiManager {
     hasCmc: boolean;
     timedOut: boolean;
   } | null>(null);
+  private _toolCallBuffer: string = "";
 
   constructor() {
     if (browser) {
@@ -139,6 +142,7 @@ class AiManager {
 
   async sendMessage(text: string) {
     const settings = settingsState;
+    this._toolCallBuffer = "";
 
     // 1. Add User Message
     const userMsg: AiMessage = {
@@ -184,230 +188,19 @@ class AiManager {
       const appLocale = (typeof localStorage !== "undefined"
         ? localStorage.getItem("locale")
         : null) ?? "en";
-      const langLabel = appLocale === "de" ? "German" : "English";
 
-      const identity = `You are an institutional-grade Trading Analyst specializing in Risk Management and Quantitative Strategy. You operate like a senior desk analyst at a prop firm: precise, skeptical, and always capital-first.
+      const promptParts = buildSystemPromptParts({
+        mode: settings.aiAnalysisMode || "risk",
+        customSystemPrompt: settings.customSystemPrompt,
+        context,
+        appLocale,
+      });
 
-LANGUAGE RULE:
-- RESPOND IN THE SAME LANGUAGE AS THE USER'S MESSAGE.
-- If the user writes in German, respond in German. If in English, respond in English.
-- If the user's intent is unclear (e.g. quick commands like "Market Check"), use the app language: ${langLabel}.
-- NEVER mention this rule in your response.
+      const provider = settings.aiProvider || "gemini";
+      const systemPrompt = provider === "anthropic"
+        ? JSON.stringify(promptParts)
+        : `${promptParts.staticInstruction}\n\n${promptParts.dynamicContext}`;
 
-PRICE CLASSIFICATION RULE (CRITICAL — read before every analysis):
-The REAL_TIME_PRICE in your context is a REFERENCE POINT ONLY, not a trade signal.
-Your job is to CLASSIFY the current price:
-  1. LOCATION: Is price at an Order Block, FVG, Pivot, or psychological level?
-  2. MOMENTUM: Is it extended (>1 ATR from the last structure) or discounted (OTE 0.618–0.786 Fib)?
-  3. DISTANCE: How far is the user's Entry (from tradeSetup) from the live price? Is it realistic?
-NEVER: Set EntryPrice = REAL_TIME_PRICE without an explicit user request.
-NEVER: Recommend chasing a move that is more than 1 ATR extended from the last clear structure.`;
-
-      // Mode-specific instructions
-      const mode = settings.aiAnalysisMode || "risk";
-      const modeInstructions: Record<string, string> = {
-        risk: "",  // Standard — baseRoleInstructions applies fully
-        coach: [
-          "ANALYSIS MODE: TRADE COACH",
-          "- Your primary goal is to TEACH, not to signal.",
-          "- Explain every concept in simple terms, as if talking to an intermediate trader.",
-          "- Do NOT output a JSON action block. Do NOT suggest specific entry/SL/TP values.",
-          "- Instead, explain the PRINCIPLE behind good entries, stop placement, and targets.",
-          "- End every response with a learning takeaway: 'Key Takeaway: ...'",
-        ].join("\n"),
-        scalper: [
-          "ANALYSIS MODE: SCALPER",
-          "- Be BRIEF and DIRECT. Maximum 5 bullet points per response.",
-          "- No explanations of why. Just: Direction, Level, Invalidation.",
-          "- Format: 🟢 Long / 🔴 Short | Entry: X | SL: Y | TP: Z",
-          "- If no clear setup exists, say so in ONE sentence.",
-          "- Skip the 'Quellen' section. Skip long markdown formatting.",
-          "- R:R rules still apply. If the R:R verdict in context is REJECT, say 'No setup — bad R:R' instead of forcing one.",
-        ].join("\n"),
-        analyst: [
-          "ANALYSIS MODE: MARKET ANALYST",
-          "- Focus purely on market structure and macro context. No trade setup.",
-          "- Do NOT output a JSON action block.",
-          "- Do NOT suggest entry, SL, or TP values.",
-          "- Describe: Trend, Key Levels, Sentiment, and what to watch for next.",
-        ].join("\n"),
-      };
-      const modeOverride = modeInstructions[mode] ? `\n\n${modeInstructions[mode]}` : "";
-
-      const baseRoleInstructions = [
-        "EXPERT KNOWLEDGE:",
-        "- Market Structure: Identify HH/HL (Long) and LH/LL (Short). Look for break of structure (BMS/MSB).",
-        "- Liquidity: Focus on Buy-side/Sell-side liquidity, Order Blocks, and Fair Value Gaps (FVG).",
-        "- Volatility: Use ATR (Average True Range) to define SL distance and avoid market noise.",
-        "- Risk Math: Understand Expectancy, Kelly Criterion, and Drawdown management.",
-        "",
-        "NEGATIVE CONSTRAINTS (CRITICAL):",
-        "- NO INTRODUCTIONS: Do NOT start with 'As a Senior Risk Manager...' or 'Here is my analysis'.",
-        "- NO REPETITION: Do NOT repeat the user's question.",
-        "- START IMMEDIATELY: Start with 'Hi' or 'Moin' and the first data point.",
-        "",
-        "AUDIT-FIRST PROTOCOL (MANDATORY — applies when user shares a trade setup):",
-        "When the user provides a setup (entry, SL, TP), you MUST follow this order:",
-        "  STEP 1 — AUDIT: Read the 'tradeSetup.rrVerdict' from context. Use 'tradeSetup.calculatedRR' as the pre-verified R:R — do NOT recalculate it yourself.",
-        "  STEP 2 — VERDICT: State the R:R clearly and give a verdict: VALID / WARNING / REJECT.",
-        "  STEP 3 — ONLY IF ASKED: Suggest an alternative setup ONLY if the user explicitly asks 'What would you do?' or 'Give me a better entry'.",
-        "  NEVER auto-generate a JSON action block to 'fix' the user's setup unless they explicitly request it.",
-        "",
-        "STRICT OPERATING RULES:",
-        "1. INSTITUTIONAL QUANTITATIVE RISK AUDIT (MANDATORY RENDER):",
-        "   Before providing any JSON action block for a trade setup, you MUST render this markdown audit block in your response:",
-        "   **Institutional Risk Audit:**",
-        "   - Setup-Typ: [Long / Short]",
-        "   - Entry: [Value]",
-        "   - Stop Loss: [Value] (Distance: X.X * ATR / Y.YY %)",
-        "   - Take Profit 1: [Value] (Distance: Z.ZZ %)",
-        "   - Mathematisches CRV: 1 : [Calculated R:R]",
-        "   - Charttechnische Hindernisse: [e.g. Pivot R1 at X / None]",
-        "   - Risk Rating: [🟢 VALID (R:R ≥ 2.0) | 🟡 WARNING (R:R 1.2–1.9) | 🔴 HIGH RISK (R:R < 1.2 or Pivot Obstacle)]",
-        "",
-        "2. FULL TRADER AUTONOMY & NON-BLOCKING JSON:",
-        "   - The trader has ultimate sovereignty. NEVER refuse to output a JSON action block because of high risk or poor R:R.",
-        "   - ALWAYS output the JSON action block when suggesting, updating, or auditing a setup so the trader can apply it with a single click.",
-        "   - If the Risk Rating is 🔴 HIGH RISK or 🟡 WARNING, explain the quantitative risks clearly in the text, but ALWAYS provide the actionable JSON block.",
-        "",
-        "3. FLEXIBLE VOLATILITY & STOP LOSS LOGIC:",
-        "   - Respect user preferences! If the user requests a specific SL distance or ATR multiplier (e.g. 0.8x ATR or structural SL), use it.",
-        "   - Fallback Default: If no user preference is given, use 1.5 * ATR as the mathematical baseline.",
-        "   - NEVER invent random numbers; derive all levels strictly from ATR, Pivots, EMAs, or 24h High/Low in context.",
-        "",
-        "4. NO CHASING: Do not suggest market-order entries at extreme extension. Recommend pullbacks to logical support/resistance.",
-        "5. NO DUPLICATES: Each TP level must be unique and follow price progression.",
-        "",
-        "ANALYTICAL RIGOR:",
-        "- RATIONALE: For every calculation or trade setup shared, provide a specific reason based on the provided context data. Explain WHY you chose certain TP/SL levels.",
-        "- DECISIVE DATA: Identify and highlight the exact data point that was decisive for your recommendation (e.g., 'Decisive: BTC 24h Trend (+5%) supporting a Long bias').",
-        "- DATA AVAILABILITY: You ALWAYS have the 'REAL_TIME_PRICE' in your context. If it says 'Unknown', only then do you not have it. Do not claim to lack price data if it is present in the context JSON.",
-        "- CONTEXTUAL AUDIT: If the context data contains conflicting signals, point them out and explain your weighting.",
-        "",
-        "ANTI-HALLUCINATION PROTOCOL (MANDATORY):",
-        "1. VERIFICATION OVER CITATION: You MUST verify all prices, news, and technical indicators against the context. However, do NOT include variable names (like '(REAL_TIME_PRICE)') inside your natural sentences.",
-        "2. FOOTNOTE CITATION: At the very end of your response, after a horizontal rule '---', add a 'Quellen:' section. List the data keys you relied on inside a <small> tag to keep it subtle. Example: <small>Quellen: REAL_TIME_PRICE, latestNews.ago</small>",
-        "",
-        "3. DATA BOUNDARIES: If data is missing or unclear:",
-        "   - NEVER guess or estimate from general knowledge",
-        "   - EXPLICITLY state: 'I don't have [X] data in my context'",
-        "   - Suggest how the user could provide this data",
-        "   ",
-        "4. VERIFICATION CHECKPOINTS: Before making ANY recommendation:",
-        "   - Internally verify the 3 key data points you used",
-        "   - If ANY is missing, abort the recommendation",
-        "",
-        "5. NUMBER PRECISION: ",
-        "   - Use EXACT numbers from context (e.g., '47245.32') for calculations.",
-        "   - In the text, follow the rounding rules defined in TONE & STYLE.",
-        "",
-        "6. UNCERTAINTY MARKERS:",
-        "   - If confidence < 90%, prefix with: 'Basierend auf begrenzten Daten: ...'",
-        "   - If speculating (e.g., market psychology), prefix with: 'Spekulation: ...'",
-        "   - NEVER present guesses as facts",
-        "",
-        "8. NO FORCED SETUPS:",
-        "   - You are a Risk Manager, not a signal group. You do NOT have to provide a setup if the market is choppy or undefined.",
-        "   - STRICT RULE: You must use the EXACT numbers provided in the 'technicals' and 'marketDetails' context blocks. NEVER invent, estimate, or modify these numbers.",
-        "   - NEVER invent random price levels just to generate a JSON action block.",
-        "",
-        "- MARKET NOISE & VOLATILITY (CRITICAL):",
-        "  * **SNAPSHOT DATA**: Treat 'spread' and 'imbalance' as high-frequency noise. These values change every millisecond and have ZERO predictive power in isolation.",
-        "  * **IGNORE BY DEFAULT**: Do NOT mention the spread or orderbook imbalance if the status is 'Normal/Liquid' or 'Balanced'.",
-        "  * **ANOMALY DETECTION**: Only address these metrics if they show extreme values (e.g., Status: 'Extreme Gap' or 'Extreme Pressure').",
-        "  * **HISTORICAL PRIORITY**: Always prioritize Technical Indicators (RSI, EMA) and Market Structure (HH/HL) over local orderbook snapshots.",
-        "",
-        "TONE & STYLE:",
-        "- Professional, objective, and data-driven.",
-        "- LANGUAGE: Use natural, precise, and concise language. Avoid robotic or template-like phrasing.",
-        "- Be skeptical of 'easy' trades; challenge the user's assumptions if data suggests otherwise.",
-        "- HUMOR: Occasionally use dry trading humor and well-known crypto culture references. Don't overdo it.",
-        "  * 'Bitcoin only goes right'",
-        "  * 'Market Makers hate this trick'",
-        "  * 'Tom Lee is always bullish'",
-        "  * 'Market Maker hassen Manuka Honig'",
-        "  * 'Die Ente wird skaliert'",
-        "  * 'Der BTC Preis geht nach rechts'",
-        "- INTRODUCTION: Start perfectly short (e.g. 'Hi', 'Moin', 'Check:'). NEVER repeat your job title ('I am a Senior Risk Manager...'). Jump straight to data. Keep further greetings minimal.",
-        "- EMOJIS: Use emojis meaningfully to structure the text and highlight key points. Do not overdo it.",
-        "  * 🚀 for bullish/upward momentum",
-        "  * 📉 for bearish/downward trends",
-        "  * 🎯 for price targets",
-        "  * ⚠️ for warnings/risks",
-        "  * ✅ for confirmations",
-        "  * 🔥 for hot opportunities",
-        "  * 💎 for strong support",
-        "  * 📊 for analysis",
-        "  * 🦆 for absurd/market manipulation hints",
-        "- FORMATTING RULES (STRICT):",
-        "  * **EXACT STRINGS**: DO NOT round numbers yourself! Output them EXACTLY as they appear in the JSON context. If the JSON says '72.3566', you must write '72.3566', not '72.35'.",
-        "  * **NO CURRENCY SUFFIXES FOR INDICATORS**: Do not append 'USDT' or 'USD' to technical indicators like ATR, RSI, or Pivot Points. Just use the raw number as provided in the context.",
-        "  * **STRUCTURE**: Use Markdown bullet points, standard lists, and bold text for keys.",
-        "  * **READABILITY**: Use short paragraphs. Avoid 'wall of text'.",
-        "  * **SEPARATORS**: Use '---' to separate major sections if the response is long.",
-        "- Use structured bullet points and bold text for key metrics.",
-      ].join("\n");
-
-      const systemPrompt = `${identity}\n\n${settings.customSystemPrompt || baseRoleInstructions}${modeOverride}
-
-IMPORTANT (CRITICAL FOR JSON ACTIONS):
-When generating the JSON block for actions (e.g., setEntryPrice, setTakeProfit), you MUST use STANDARD ENGLISH NUMBER FORMAT.
-- Decimal separator: DOT (.)
-- Thousands separator: NONE
-- Example: 1200.50 (NOT 1.200,50 or 1,200.50)
-- Failure to do this will cause the app to misinterpret values (e.g. 1.200 becomes 1.2).
- 
-REAL-TIME CONTEXT:
-${JSON.stringify(context, null, 2)}
-
-TIME SENSITIVITY:
-Current Date/Time: ${new Date().toLocaleDateString("de-DE", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-UTC Timestamp: ${new Date().toISOString()}
-
-TEMPORAL RULES (use internally, don't repeat in every response):
-- The above timestamps are your ONLY source of truth for "now"
-- When calculating time differences (e.g., "how old is this news?"), use these timestamps
-- NEVER use dates from your training data (2023, 2024, etc.)
-- If the context shows different data than your training, the context is THE ONLY TRUTH
-- For news: ALWAYS use the 'ago' field directly (already calculated correctly)
-- Your training data is OUTDATED for live market analysis
-
-CORE CAPABILITIES:
-- MARKET INTELLIGENCE (CMC): Access to CoinMarketCap data.
-- MARKET OVERVIEW: Full access to 24h High/Low, Funding Rates, Volume, and real-time Orderbook depth.
-- TECHNICALS: Full access to technical indicators (RSI, EMAs, Pivots) and trend summaries.
-- LATEST NEWS: Headlines from CryptoPanic and NewsAPI.org.
-  * IMPORTANT: The 'ago' field in news items contains the CORRECT relative time calculated from the actual publication date (publishedAt).
-  * Use the 'ago' value directly in your text to describe when news happened. Do NOT recalculate or estimate.
-- PORTFOLIO DATA: Real-time access to user's stats and positions.
-- INTERFACE ACCESS: You see exactly what the user enters in 'tradeSetup'.
-- ACTION EXECUTION: You can DIRECTLY set values in the user's trading interface. 
-
-FORMAT: To update values, output a JSON block at the very end:
-\`\`\`json
-[
-  { "action": "setTradeType", "value": "short" },
-  { "action": "setSymbol", "value": "BTCUSDT" },
-  { "action": "setEntryPrice", "value": 50000 },
-  { "action": "setStopLoss", "value": 49000 },
-  { "action": "addTakeProfit", "value": 52000, "percent": 50 },
-  { "action": "setTakeProfit", "index": 0, "value": 52000, "percent": 50 },
-  { "action": "removeTakeProfit", "index": 1 },
-  { "action": "setAutoPrice", "value": false },
-  { "action": "setNotes", "value": "Short due to bearish divergence" }
-]
-\`\`\`
-Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, addTakeProfit, removeTakeProfit, setTradeType, setRisk, setLeverage, setAtrMultiplier, setAtrMode, setAtrTimeframe, setAnalysisTimeframe, setAutoPrice, setAccountSize, setUseAtrSl, resetSetup, setNotes, setTags.
-
-BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
-1. Review your answer
-2. For each claim, ask yourself: "Is this from the context JSON or from my training?"
-3. If from training, either:
-   - Remove it, OR
-   - Mark it as speculation with low confidence
-4. Verify all numbers match the context exactly
-5. Check that you cited sources for all key data points
-6. FATAL ERROR CHECK: Did I invent a Pivot point, ATR, or price level? If the number does not exist in the REAL-TIME CONTEXT JSON verbatim, DO NOT USE IT.`;
 
       // Construct Payload Messages
       const payloadMessages = [
@@ -415,7 +208,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         ...this.messages.map((m) => ({ role: m.role, content: m.content })),
       ];
 
-      const provider = settings.aiProvider || "gemini";
       const endpoint = `/api/ai/${provider}`;
 
       let apiKey = "";
@@ -478,6 +270,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             body: JSON.stringify({
               model,
               messages: payloadMessages,
+              tools: [executeTradeActionsTool],
               stream: true,
             }),
           });
@@ -546,7 +339,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
-      let isFirstChunk = true;
+
 
       while (true) {
         const { done, value } = await reader.read();
@@ -563,27 +356,36 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             try {
               const data = JSON.parse(dataStr);
               let delta = "";
+              let toolCallData = null;
 
               if (provider === "openai" || provider === "openrouter" || provider === "ollama") {
                 delta = data.choices?.[0]?.delta?.content || "";
+                if (data.choices?.[0]?.delta?.tool_calls) {
+                  toolCallData = data.choices[0].delta.tool_calls[0]?.function?.arguments;
+                }
               } else if (provider === "gemini") {
                 delta = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                if (data.candidates?.[0]?.content?.parts?.[0]?.functionCall) {
+                  const fc = data.candidates[0].content.parts[0].functionCall;
+                  if (fc.args && fc.args.actions) {
+                      toolCallData = JSON.stringify(fc.args);
+                  }
+                }
               } else if (provider === "anthropic") {
-                if (data.type === "content_block_delta") {
+                if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
                   delta = data.delta?.text || "";
+                } else if (data.type === "content_block_delta" && data.delta?.type === "input_json_delta") {
+                  toolCallData = data.delta?.partial_json;
                 }
               }
 
+              if (toolCallData) {
+                  // Buffer tool call chunks
+                  if (!this._toolCallBuffer) this._toolCallBuffer = "";
+                  this._toolCallBuffer += toolCallData;
+              }
+
               if (delta) {
-                // Guard against Gemma/Gemini first-chunk system-prompt leak:
-                // If the very first delta is suspiciously long (>600 chars), it likely
-                // contains the system prompt echoed back. Skip rendering until next chunk.
-                if (isFirstChunk && provider === "gemini" && delta.length > 600) {
-                  isFirstChunk = false;
-                  fullContent += delta;
-                  continue; // Don't render this chunk to the user
-                }
-                isFirstChunk = false;
                 fullContent += delta;
                 const idx = this.messages.findIndex((m) => m.id === aiMsgId);
                 if (idx !== -1) {
@@ -600,13 +402,28 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       // --- Action Handling ---
       try {
         const safeContent = typeof fullContent === "string" ? fullContent : "";
-        const actions = this.parseActions(safeContent) || [];
+        let actions = this.parseActions(safeContent) || [];
+
+        // Check if we captured a structured tool call instead
+        if (this._toolCallBuffer) {
+           try {
+             const parsedTool = JSON.parse(this._toolCallBuffer);
+             if (parsedTool.actions && Array.isArray(parsedTool.actions)) {
+                 actions = parsedTool.actions;
+             }
+           } catch {
+             // Fallback to regex if tool call parsing fails
+           }
+           this._toolCallBuffer = "";
+        }
 
         if (Array.isArray(actions) && actions.length > 0) {
           // 1. Code-level R:R guard: block execution if the suggested setup is mathematically poor
           const entryAction = actions.find((a) => a.action === "setEntryPrice");
           const slAction = actions.find((a) => a.action === "setStopLoss");
           const tp1Action = actions.find((a) => (a.action === "setTakeProfit" && (a.index ?? -1) === 0) || a.action === "addTakeProfit");
+
+          let forceConfirm = false;
 
           if (entryAction?.value != null && slAction?.value != null && tp1Action?.value != null) {
             try {
@@ -616,10 +433,11 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               const risk = entryD.minus(slD).abs();
               const reward = tp1D.minus(entryD).abs();
               if (!risk.isZero() && reward.div(risk).lt(1.5)) {
-                // Low R:R detected — log warning for audit, but do NOT strip JSON block (Trader Autonomy)
-                logger.warn("ai", "Low R:R setup generated (Trader Autonomy Mode)", {
+                // Low R:R detected — log warning for audit and FORCE user confirmation
+                logger.warn("ai", "Low R:R setup generated - forcing confirmation", {
                   rr: reward.div(risk).toFixed(2),
                 });
+                forceConfirm = true;
               }
             } catch {
               // Parsing failed — allow through (conservative approach)
@@ -637,7 +455,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           }
 
           // 3. Execute Actions
-          const confirmActions = settings.aiConfirmActions ?? false;
+          const confirmActions = (settings.aiConfirmActions ?? false) || forceConfirm;
 
           if (confirmActions) {
             // Create a batch pending action

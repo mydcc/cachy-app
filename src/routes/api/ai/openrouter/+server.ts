@@ -35,7 +35,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       );
     }
 
-    const { messages, model } = parseResult.data;
+    const { messages, model, tools } = parseResult.data;
     const apiKey = request.headers.get("x-api-key");
 
     if (!apiKey) {
@@ -53,6 +53,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       body: JSON.stringify({
         model: model || "openrouter/auto",
         messages,
+        tools: tools && tools.length > 0 ? tools : undefined,
         max_tokens: 2000,
         stream: true,
       }),

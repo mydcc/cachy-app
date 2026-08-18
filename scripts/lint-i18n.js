@@ -208,6 +208,11 @@ function scanDirectory(dirPath) {
             continue;
         }
 
+        // Skip AI prompts (backend only)
+        if (fullPath.includes(path.join('src', 'lib', 'ai', 'prompts'))) {
+            continue;
+        }
+
         if (entry.isDirectory()) {
             scanDirectory(fullPath);
         } else if (entry.isFile()) {

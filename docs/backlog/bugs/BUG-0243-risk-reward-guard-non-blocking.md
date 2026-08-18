@@ -2,7 +2,7 @@
 id: BUG-0243
 title: Risk:Reward Guard only logs but does not block execution
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: M8
 editions: [community, pro, private]
