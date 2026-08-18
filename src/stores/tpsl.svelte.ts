@@ -42,7 +42,7 @@
  * for it and caching it would buy nothing.
  */
 
-import { tradeService, type TpSlOrder } from "../services/tradeService";
+import { activeExchange, type TpSlOrder } from "../services/exchange";
 import { logger } from "../services/logger";
 
 /**
@@ -123,7 +123,7 @@ class TpSlManager {
         this.inFlight = (async () => {
             this._loading = true;
             try {
-                this._orders = await tradeService.fetchTpSlOrders("pending");
+                this._orders = await activeExchange().trading.fetchTpSlOrders("pending");
                 // Stamped with the caller's clock, not `Date.now()`, so the
                 // staleness check above and this always measure the same
                 // thing. Dating the window from the request rather than the

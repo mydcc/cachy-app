@@ -83,6 +83,20 @@ class FundingRateService {
   }
 
   /**
+   * The key `historyState` files a symbol under.
+   *
+   * Funding-rate history comes from Bitunix's batch endpoint whichever
+   * exchange is active (`bitgetAdapter.account.fetchFundingRateHistory`
+   * resolves empty), so the key is Bitunix-normalised — but that is this
+   * service's business, not its callers'. Before FEAT-0016 the popover
+   * re-derived the same key with the venue spelled into the component, which
+   * held only as long as both sides guessed alike.
+   */
+  historyKey(symbol: string): string {
+    return symbol ? apiService.normalizeSymbol(symbol, "bitunix") : "";
+  }
+
+  /**
    * Fetch 7-day funding rate history on-demand for `symbol`.
    * Caches results in memory for 5 minutes.
    */
@@ -99,7 +113,7 @@ class FundingRateService {
       };
     }
 
-    const normSymbol = apiService.normalizeSymbol(symbol, "bitunix");
+    const normSymbol = this.historyKey(symbol);
     const existing = this.historyState[normSymbol];
     const now = Date.now();
 

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-119 items. How to read and add them: [README.md](README.md).
+122 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-progress 4 · ✅ done 74
+Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 1 · ✅ done 80
 
 ---
 
@@ -27,7 +27,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0043](bugs/BUG-0043-responsive-window-remaximizes.md) | A responsive window restored by hand on mobile re-maximizes on the next resize event | P2 | ✅ done | ui |
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | ✅ done | ui |
 | [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | ✅ done | ui |
-| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | 🟡 in-progress | tooling |
+| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | ✅ done | tooling |
 | [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | 📋 specced | tooling |
 
 ### M1
@@ -44,9 +44,12 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | exchange |
+| [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | exchange |
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | 📋 specced | exchange |
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | 📋 specced | exchange |
+| [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | exchange |
+| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 📋 specced | exchange |
+| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 📋 specced | exchange |
 
 ### M3
 
@@ -134,7 +137,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | 🟢 ready | core |
+| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
 | [BUG-0182](bugs/BUG-0182-epic-decimal-migration-rust.md) | Epic: Migrate Rust/WASM backend to rust_decimal | P1 | ✅ done | core |
@@ -154,8 +157,8 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 📋 specced | ui |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | repo |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | repo |
-| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | 🟡 in-progress | repo |
-| [BUG-0226](bugs/BUG-0226-sync-cost-grows-with-backlog-size.md) | Backlog sync cost grows with total backlog size instead of what actually changed | P2 | 🟡 in-progress | repo |
+| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | ✅ done | repo |
+| [BUG-0226](bugs/BUG-0226-sync-cost-grows-with-backlog-size.md) | Backlog sync cost grows with total backlog size instead of what actually changed | P2 | ✅ done | repo |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -201,7 +204,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
-| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | 🟢 ready | none | community, pro, private | A | none | — |
+| [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0003](bugs/BUG-0003-oms-preserve-latest-unenforced.md) | OMS force-prune can evict an order it was written to protect | P1 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0004](bugs/BUG-0004-legacy-aes-cbc-blobs.md) | Legacy AES-CBC credential blobs may decrypt to silent garbage | P1 | ✅ done | M0 | community, pro, private | A | none | — |
 | [BUG-0042](bugs/BUG-0042-window-drag-jumps-on-touch.md) | Dragging a window on a touch device jumps and can leave the window stuck to the finger | P1 | ✅ done | M0 | community, pro, private | A | none | — |
@@ -221,7 +224,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0219](bugs/BUG-0219-place-order-ordertype-field.md) | place_order never received an order type, so every limit order failed | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
-| [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
+| [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | 📋 specced | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
@@ -237,6 +240,7 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
+| [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | M2 | community, pro, private | none | ADR-0008 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -258,8 +262,8 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0216](bugs/BUG-0216-i18n-interpolation-values.md) | Three dialogs render raw {placeholder} because $_ was called without the values wrapper | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) |
-| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
-| [BUG-0226](bugs/BUG-0226-sync-cost-grows-with-backlog-size.md) | Backlog sync cost grows with total backlog size instead of what actually changed | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0226](bugs/BUG-0226-sync-cost-grows-with-backlog-size.md) | Backlog sync cost grows with total backlog size instead of what actually changed | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -288,8 +292,10 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0200](features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md) | Encrypt API keys and other secrets at rest in localStorage | P2 | 💡 idea | none | community, pro, private | A | ADR-0001 | — |
 | [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0214](features/FEAT-0214-pr-preview-deployments.md) | Automated PR preview deployments for visual and mobile testing | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | 🟡 in-progress | M0 | community, pro, private | none | none | — |
+| [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | 📋 specced | M0 | community, pro, private | none | none | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) |
+| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) |
+| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -312,4 +318,4 @@ Counts by status: 💡 idea 17 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0227**
+Next free number: **0230**

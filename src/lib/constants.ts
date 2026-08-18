@@ -32,6 +32,11 @@ export const CONSTANTS = {
   // records what was sent to an exchange and when. Never uploaded.
   LOCAL_STORAGE_ORDER_AUDIT_KEY: "cachy_order_audit",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
+  // FEAT-0212 Phase 2. Class A: stores only the picked file's display name and
+  // the write interval, never the file contents or a path — the
+  // FileSystemFileHandle itself lives in IndexedDB (dbService, kv_store),
+  // not localStorage, since handles aren't JSON-serializable.
+  LOCAL_STORAGE_FILE_TARGET_CONFIG_PREFIX: "cachy_file_target_config_",
   LOCAL_STORAGE_QUIZ_KEY: "cachy_quiz_state",
   LOCAL_STORAGE_QUIZ_CATEGORY_KEY: "cachy_quiz_category",
   FLASHCARDS_CSV_PATH_DE: "/quiz/flashcards_tech_de.csv",

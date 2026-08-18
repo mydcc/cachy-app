@@ -22,9 +22,9 @@ import type {
   BitunixResponse,
   BitunixOrder,
   BitunixOrderListWrapper,
-  NormalizedOrder,
   BitunixOrderPayload,
 } from "../../../types/bitunix";
+import type { NormalizedOrder } from "../../../types/exchange";
 import type {
   BitgetOrderPayload
 } from "../../../types/bitget";

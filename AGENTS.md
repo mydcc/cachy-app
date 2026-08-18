@@ -15,6 +15,14 @@ npm test             # Vitest unit tests
 npm run test:e2e     # Playwright E2E
 ```
 
+**Component tests.** A test that mounts a Svelte component is named
+`*.component.test.ts` and runs in the `components` Vitest project, which is the
+only place `svelte` resolves to its browser build — `mount()` throws from the
+server entry. Do not set `resolve.conditions: ["browser"]` globally to avoid
+that: it also flips `$app/environment`'s `browser` to true, which sends
+`technicalsService` down its Worker path and fails two passing tests. `npm test`
+runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
+
 The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without this step, the build will fail — in cloud sandbox environments (e.g., Jules Environment Setup), this script must be part of the setup step.
 
 ## Non-Negotiable Rules
@@ -93,12 +101,13 @@ An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-gr
 
 ## Git Cleanliness and Parallel Agent Workspaces
 
-Since multiple agents (e.g., Claude, Antigravity, Cursor) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits) if agents work uncoordinatedly. Every agent **must** follow this startup routine before starting a new task or creating a feature branch:
-1. Ensure the working directory is clean (`git status`).
-2. Switch to the `develop` branch (`git checkout develop`).
-3. (Optional) Fetch latest changes (`git pull`).
+Since multiple agents (e.g., Claude, Antigravity, Cursor) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own Git worktree (or Antigravity subagent with `Workspace: "share"`) — never directly in the shared checkout — before starting any task, not only when agents happen to run in parallel:
+1. Create a dedicated worktree for the task (`git worktree add ...`, or the tool's built-in equivalent, e.g. Claude Code's `WorktreeCreate`).
+2. Ensure that worktree's working directory is clean (`git status`).
+3. Branch from `develop` inside the worktree.
+4. (Optional) Fetch latest changes (`git pull`).
 
-For true parallel work, Git Worktrees (or Antigravity subagents with `Workspace: "share"`) **must** be used so each agent gets its own isolated working directory and does not pull the branch out from under another agent.
+This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. code-indexing MCP servers that reindex on file edits) reacting to files it didn't touch. Remove the worktree (`git worktree remove`) once its branch is merged or abandoned.
 
 ## Scope Guidance for Autonomous/Asynchronous Agents (e.g., Jules)
 

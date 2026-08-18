@@ -40,10 +40,31 @@
 
     import { frameSupportService } from "../../../services/frameSupportService";
 
+    // IframeView renders news articles only (IframeWindow). Channel windows (space.cachy.app
+    // etc.) have their own ChannelView component and never go through this reader-mode logic.
     let isReaderMode = $derived(
         settingsState.newsOpenBehavior === "reader" ||
         (settingsState.newsOpenBehavior === "smart" && frameSupportService.isDomainFrameBlocked(win.url))
     );
+
+    // Tracks a real embed failure (e.g. the remote host refuses the connection or blocks
+    // framing) for the non-reader-mode branches below, so we show a recoverable fallback
+    // instead of the browser's raw network-error page inside the iframe.
+    let embedFailed = $state(false);
+
+    $effect(() => {
+        // Reset whenever the target URL changes so a new window/navigation gets a fresh attempt.
+        void win.url;
+        embedFailed = false;
+    });
+
+    function handleEmbedError() {
+        embedFailed = true;
+    }
+
+    function retryEmbed() {
+        embedFailed = false;
+    }
 
     const clientArticleCache = new Map<string, string[]>();
 
@@ -230,12 +251,35 @@
                 </button>
             </div>
         </div>
+    {:else if embedFailed}
+        <div class="embed-failed-container h-full w-full flex flex-col items-center justify-center gap-3 p-6 text-center bg-[var(--bg-primary)]">
+            <p class="text-sm text-[var(--text-secondary)] max-w-sm">
+                {$_("dashboard.iframeBlocked")}
+            </p>
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    onclick={retryEmbed}
+                    class="px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-medium cursor-pointer transition-colors"
+                >
+                    {$_("common.retry")}
+                </button>
+                <button
+                    type="button"
+                    onclick={openInNewTab}
+                    class="px-3 py-1.5 rounded-lg bg-[var(--accent-color)] text-black font-medium text-xs hover:opacity-90 transition-opacity cursor-pointer"
+                >
+                    {$_("dashboard.openInNewTab")}
+                </button>
+            </div>
+        </div>
     {:else if sandbox}
         <iframe
             src={win.url}
             title={win.title}
             {allow}
             {sandbox}
+            onerror={handleEmbedError}
             class="w-full h-full border-0 block"
         ></iframe>
     {:else}
@@ -243,6 +287,7 @@
             src={win.url}
             title={win.title}
             {allow}
+            onerror={handleEmbedError}
             class="w-full h-full border-0 block"
         ></iframe>
     {/if}

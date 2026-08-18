@@ -20,7 +20,7 @@ import { journalState } from "./journal.svelte";
 import { cmcService } from "../services/cmcService";
 import { indicatorState } from "./indicator.svelte";
 import { technicalsService } from "../services/technicalsService";
-import { apiService } from "../services/apiService";
+import { activeExchange } from "../services/exchange";
 import { newsService } from "../services/newsService";
 import { getRelativeTimeString } from "../lib/utils/timeUtils";
 import { parseAiValue } from "../utils/utils";
@@ -814,7 +814,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
         if (!data) {
           const limit = indicatorState.historyLimit || 750;
-          const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
+          const klines = await activeExchange().marketData.fetchKlines(symbol, timeframe, limit);
           if (klines && klines.length > 0) {
             data = await technicalsService.calculateTechnicals(klines, indicatorState);
           }
@@ -879,7 +879,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         if (technicalsContext && timeframe !== trendTimeframe) {
           let trendData = marketData?.technicals?.[trendTimeframe];
           if (!trendData) {
-            const trendKlines = await apiService.fetchBitunixKlines(symbol, trendTimeframe, 200);
+            const trendKlines = await activeExchange().marketData.fetchKlines(symbol, trendTimeframe, 200);
             if (trendKlines && trendKlines.length > 0) {
               trendData = await technicalsService.calculateTechnicals(trendKlines, indicatorState);
             }

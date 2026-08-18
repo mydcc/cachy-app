@@ -21,28 +21,32 @@ const { version: appVersion } = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
 ) as { version: string };
 
+/** Test files that mount a Svelte component. See the `components` project below. */
+const COMPONENT_TESTS = "src/**/*.component.test.ts";
+
+const VITEST_EXCLUDE = [
+  ...configDefaults.exclude,
+  // Playwright specs must only run via `npm run test:e2e`, not Vitest
+  "tests/e2e/**",
+  // Benchmarks that assert wall-clock time or heap growth. They are useful
+  // signals but cannot be pass/fail gates: on a shared CI runner a single GC
+  // pause moves the result more than any real regression would. The scaling
+  // check compares a ~5ms measurement against a ~24ms one, so ±3ms of noise
+  // swings the ratio by 60% — it measured the runner, not the algorithm, and
+  // failed CI at 10.9x against a threshold of 8 while passing locally at 4.4x.
+  // Run them deliberately with `npm run test:perf`; CI runs them in a
+  // non-blocking job so the numbers stay visible.
+  "src/services/engineBenchmark.test.ts",
+  "src/benchmarks/marketWatcher_backfill.test.ts",
+  "tests/benchmarks/syncService_perf.test.ts",
+  "src/tests/performance/memory_profiling.test.ts",
+  "src/tests/performance/dataRepairService_benchmark.test.ts",
+  "src/tests/performance/startup_benchmark.test.ts",
+];
+
 export default defineConfig({
   plugins: [sveltekit(), tailwindcss()],
   test: {
-    exclude: [
-      ...configDefaults.exclude,
-      // Playwright specs must only run via `npm run test:e2e`, not Vitest
-      "tests/e2e/**",
-      // Benchmarks that assert wall-clock time or heap growth. They are useful
-      // signals but cannot be pass/fail gates: on a shared CI runner a single GC
-      // pause moves the result more than any real regression would. The scaling
-      // check compares a ~5ms measurement against a ~24ms one, so ±3ms of noise
-      // swings the ratio by 60% — it measured the runner, not the algorithm, and
-      // failed CI at 10.9x against a threshold of 8 while passing locally at 4.4x.
-      // Run them deliberately with `npm run test:perf`; CI runs them in a
-      // non-blocking job so the numbers stay visible.
-      "src/services/engineBenchmark.test.ts",
-      "src/benchmarks/marketWatcher_backfill.test.ts",
-      "tests/benchmarks/syncService_perf.test.ts",
-      "src/tests/performance/memory_profiling.test.ts",
-      "src/tests/performance/dataRepairService_benchmark.test.ts",
-      "src/tests/performance/startup_benchmark.test.ts",
-    ],
     // Most of the suite exercises browser-facing code (localStorage, window),
     // but no default environment was configured, so those files failed to load
     // under the implicit `node` default. Individual files can still opt out
@@ -52,6 +56,31 @@ export default defineConfig({
     hookTimeout: 20000,
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
+    // Two projects, because component tests need one resolution rule the rest
+    // of the suite must not have. `npm test` runs both.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          exclude: [...VITEST_EXCLUDE, COMPONENT_TESTS],
+        },
+      },
+      {
+        // Mounting a component needs `svelte` resolved to its browser build;
+        // its server entry throws `lifecycle_function_unavailable` from
+        // `mount()`. Setting that condition globally is not free — it also
+        // flips `$app/environment`'s `browser` to true, which sent
+        // technicalsService down its Worker path and broke two passing tests.
+        // So it lives here, scoped to the files that need it.
+        extends: true,
+        resolve: { conditions: ["browser"] },
+        test: {
+          name: "components",
+          include: [COMPONENT_TESTS],
+        },
+      },
+    ],
   },
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),

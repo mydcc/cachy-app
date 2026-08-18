@@ -26,13 +26,13 @@
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
-  import { tradeService } from "../../services/tradeService";
+  import { activeExchange } from "../../services/exchange";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { unwrapApiEnvelope } from "../../utils/utils";
   import { appFetch } from "../../lib/appAuth";
   import type { OMSPosition } from "../../services/omsTypes";
   import { calculateLiveUnrealizedPnl } from "../../services/mappers";
-  import type { NormalizedOrder, NormalizedPosition } from "../../types/bitunix";
+  import type { NormalizedOrder, NormalizedPosition } from "../../types/exchange";
   import type { TranslationKey } from "../../locales/schema";
 
   // Sub-components
@@ -156,9 +156,17 @@
   // structural `Decimal(0)` default (Bitunix: always; Bitget: only before
   // its first snapshot) as "no data" rather than a real zero price.
   function resolveMarkPrice(p: (typeof accountState.positions)[number]) {
-    const live = marketState.data[normalizeSymbol(p.symbol, "bitunix")]?.markPrice;
+    const symbolData = marketState.data[normalizeSymbol(p.symbol, "bitunix")];
+    const live = symbolData?.markPrice;
     if (live && live.gt(0)) return live;
     if (p.markPrice && p.markPrice.gt(0)) return p.markPrice;
+    // Neither source has a real mark price — happens during a WS `price`
+    // channel gap/reconnect on Bitunix, since its REST ticker fallback
+    // (historyFetcher.pollSymbolChannel) has no mark-price field at all,
+    // only `lastPrice` (BUG-0218). Falling back to it keeps the row live
+    // instead of showing "?" while market data for the symbol does exist.
+    const lastPrice = symbolData?.lastPrice;
+    if (lastPrice && lastPrice.gt(0)) return lastPrice;
     return undefined;
   }
 
@@ -561,7 +569,7 @@
   // Actions
   async function handleClosePosition(pos: OMSPosition) {
     try {
-      const res = (await tradeService.closePosition({
+      const res = (await activeExchange().trading.closePosition({
         symbol: pos.symbol,
         positionSide: pos.side,
         amount: pos.amount, // Use amount from OMSPosition
@@ -596,7 +604,7 @@
 
   async function handleCancelOrder(orderId: string, symbol: string) {
     try {
-        const res = (await tradeService.cancelOrder(symbol, orderId)) as { error?: string } | undefined;
+        const res = (await activeExchange().trading.cancelOrder(symbol, orderId)) as { error?: string } | undefined;
         if (res && res.error) {
             uiState.showError($_("dashboard.alerts.cancelOrderError", { values: { error: res.error } }) || `Cancel failed: ${res.error}`);
         } else {

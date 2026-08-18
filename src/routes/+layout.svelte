@@ -27,6 +27,7 @@ import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.sv
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { onMount } from "svelte";
   import { initAutoBackup } from "../services/autoBackupService.svelte";
+  import { initFileTargets } from "../services/fileTargetBackupService.svelte";
 import { afterNavigate } from "$app/navigation";
   import { page } from "$app/stores";
   import { trackPageView } from "../services/trackingService";
@@ -53,10 +54,17 @@ import { afterNavigate } from "$app/navigation";
 
   let { children }: Props = $props();
 
-  // --- Automated OPFS Local Backup (FEAT-0212) ---
+  // --- Automated OPFS Local Backup (FEAT-0212 Phase 1) ---
   $effect(() => {
     if (!browser) return;
     const cleanup = initAutoBackup();
+    return cleanup;
+  });
+
+  // --- Periodic Local File Write-Through (FEAT-0212 Phase 2) ---
+  $effect(() => {
+    if (!browser) return;
+    const cleanup = initFileTargets();
     return cleanup;
   });
 

@@ -9,7 +9,7 @@
 
 import { Decimal } from "decimal.js";
 import { parseTimestamp, parseDecimal } from "../utils/utils";
-import type { NormalizedPosition, NormalizedOrder } from "../types/bitunix";
+import type { NormalizedPosition, NormalizedOrder } from "../types/exchange";
 
 export interface Position {
   positionId: string;

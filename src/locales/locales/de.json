@@ -1323,6 +1323,25 @@
       "lastSnapshot": "Letzter Snapshot",
       "snapshotNow": "Jetzt sichern",
       "snapshotCreated": "Sicherheits-Snapshot erstellt.",
+      "fileTargetTitle": "Lokales Datei-Backup",
+      "fileTargetDesc": "Schreibt zusätzlich zum OPFS-Sicherheitsnetz regelmäßig einen Backup-Snapshot in eine von dir gewählte Datei auf diesem Gerät.",
+      "fileTargetUnsupported": "In diesem Browser nicht verfügbar (benötigt die File System Access API, z. B. Chrome/Edge).",
+      "fileTargetSlot": "Ziel {slot}",
+      "fileTargetChoose": "Datei wählen…",
+      "fileTargetReplace": "Datei ändern",
+      "fileTargetRemove": "Entfernen",
+      "fileTargetNotConfigured": "Keine Datei ausgewählt.",
+      "fileTargetLastWrite": "Letzte Schreibung",
+      "fileTargetNever": "nie",
+      "fileTargetInterval": "Schreiben alle",
+      "fileTargetIntervalMinutes": "Min",
+      "fileTargetPermissionNeeded": "Berechtigung abgelaufen — erneut verbinden, um fortzufahren.",
+      "fileTargetReconnect": "Erneut verbinden",
+      "fileTargetWriteFailed": "Letzte Schreibung fehlgeschlagen.",
+      "fileTargetConfigured": "Datei-Ziel konfiguriert.",
+      "fileTargetPickFailed": "Datei konnte nicht ausgewählt werden.",
+      "fileTargetReconnected": "Erneut verbunden. Snapshot wird geschrieben.",
+      "fileTargetReconnectFailed": "Berechtigung wurde nicht erteilt.",
       "backup": "Backup erstellen",
       "backupDesc": "Sichere deine Einstellungen & Daten als Datei.",
       "restore": "Backup laden",
@@ -1816,6 +1835,7 @@
     "ignore": "Ignorieren",
     "send": "Nachricht senden",
     "analyzing": "Analysiere...",
+    "retry": "Erneut versuchen",
     "aria": {
       "startQuiz": "Quiz starten",
       "toggleVideo": "Video umschalten",
@@ -2564,6 +2584,14 @@
     "paperMode": {
       "badge": "Paper",
       "tooltip": "Paper Trading ist aktiv. Orders werden simuliert, es fließt kein Geld."
+    }
+  },
+  "exchange": {
+    "unsupported": {
+      "tpSl": "Take-Profit- und Stop-Loss-Aufträge sind auf {exchange} nicht verfügbar. Es wurde nichts gesendet.",
+      "leverageMarginMode": "{exchange} meldet Hebel und Margin-Modus nicht an Cachy — angezeigt werden deine lokalen Einstellungen.",
+      "tradingPairInfo": "{exchange} liefert keine Kontraktdetails an Cachy — Präzision und Größenlimits fallen auf Standardwerte zurück.",
+      "generic": "{exchange} kann das nicht, deshalb hat Cachy die Anfrage nicht gesendet."
     }
   },
   "orderEntry": {

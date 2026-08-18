@@ -16,7 +16,11 @@
 -->
 
 <script lang="ts">
-  import { tradeService, type TpSlOrder } from "../../services/tradeService";
+  import {
+    activeExchange,
+    isExchangeUnsupportedError,
+    type TpSlOrder,
+  } from "../../services/exchange";
   import { _ } from "../../locales/i18n";
   import type { TranslationKey } from "../../locales/schema";
   import { formatDynamicDecimal } from "../../utils/utils";
@@ -58,7 +62,7 @@
     loading = true;
     error = "";
     try {
-      orders = await tradeService.fetchTpSlOrders(view);
+      orders = await activeExchange().trading.fetchTpSlOrders(view);
     } catch (e) {
       console.error("TP/SL Global Error:", e);
       // Map error message using i18n key if available
@@ -77,16 +81,18 @@
     if (!confirm($_("dashboard.alerts.confirmCancel"))) return;
 
     try {
-      await tradeService.cancelTpSlOrder(order);
+      await activeExchange().trading.cancelTpSlOrder(order);
       toastService.success($_("dashboard.alerts.orderCancelled"));
       // The position cards read the same cache; leaving it stale would show
       // a stop that no longer exists.
       tpSlState.invalidate();
       fetchOrders(); // Refresh
     } catch (e) {
-      // A gate refusal (FEAT-0011) already names the field that disagreed;
-      // collapsing it into the generic "cancel failed" would throw that away.
-      if (e instanceof OrderRefusedError) {
+      // A gate refusal (FEAT-0011) already names the field that disagreed,
+      // and a venue refusal (FEAT-0229) already names what this exchange
+      // cannot do; collapsing either into the generic "cancel failed" would
+      // throw that away.
+      if (e instanceof OrderRefusedError || isExchangeUnsupportedError(e)) {
         toastService.error(getDisplayMessage(e, $_));
         return;
       }
