@@ -239,6 +239,7 @@
     "marketSentiment": "Market Sentiment",
     "analyzing": "Analyzing external world...",
     "noNews": "No news found.",
+    "refreshNews": "Refresh news",
     "connectNews": "Connect your news APIs to view sentiment analysis.",
     "article": "Article",
     "iframeBlocked": "This website blocks embedded viewing. You can open it in a new tab instead.",

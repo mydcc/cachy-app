@@ -184,17 +184,17 @@
                     {#if pattern.type.includes("Bullish")}
                         <span
                             class="w-indicator h-indicator rounded-full bg-success flex-shrink-0"
-                            title="Bullish"
+                            title={$_("analyst.trend.bullish")}
                         ></span>
                     {:else if pattern.type.includes("Bearish")}
                         <span
                             class="w-indicator h-indicator rounded-full bg-danger flex-shrink-0"
-                            title="Bearish"
+                            title={$_("analyst.trend.bearish")}
                         ></span>
                     {:else}
                         <span
                             class="w-indicator h-indicator rounded-full bg-[var(--text-tertiary)] flex-shrink-0"
-                            title="Neutral/Indecision"
+                            title={$_("analyst.trend.neutral")}
                         ></span>
                     {/if}
                 </button>

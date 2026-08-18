@@ -234,6 +234,7 @@ export type TranslationKey =
   | "dashboard.marketSentiment"
   | "dashboard.analyzing"
   | "dashboard.noNews"
+  | "dashboard.refreshNews"
   | "dashboard.connectNews"
   | "dashboard.article"
   | "dashboard.iframeBlocked"

@@ -239,6 +239,7 @@
     "marketSentiment": "Marktstimmung",
     "analyzing": "Analysiere externe Welt...",
     "noNews": "Keine Nachrichten gefunden.",
+    "refreshNews": "Nachrichten aktualisieren",
     "connectNews": "Verbinde deine News-APIs um die Stimmung zu sehen.",
     "article": "Artikel",
     "iframeBlocked": "Diese Website blockiert das Einbetten. Du kannst sie in einem neuen Tab öffnen.",
