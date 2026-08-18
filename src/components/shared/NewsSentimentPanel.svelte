@@ -180,8 +180,8 @@
           type="button"
           onclick={handleRefresh}
           class="p-1 hover:bg-[var(--bg-secondary)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer border-0 bg-transparent"
-          title="Refresh"
-          aria-label="Refresh news"
+          title={$_("dashboard.refreshNews")}
+          aria-label={$_("dashboard.refreshNews")}
         >
           <svg
             class="w-3.5 h-3.5"
