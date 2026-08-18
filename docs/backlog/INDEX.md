@@ -4,7 +4,7 @@
 
 127 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 6 · ✅ done 80
+Counts by status: 💡 idea 17 · 📋 specced 23 · 🟡 in-progress 6 · ✅ done 81
 
 ---
 
@@ -28,7 +28,7 @@ Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 6 · ✅ d
 | [BUG-0048](bugs/BUG-0048-glass-removes-academy-sidebar-background.md) | Glassmorphism leaves the Academy sidebar without a background and unreadable | P2 | ✅ done | ui |
 | [BUG-0049](bugs/BUG-0049-quiz-closes-after-every-answer.md) | The quiz closes after every answer, has no close button and opens behind other windows | P2 | ✅ done | ui |
 | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | ✅ done | tooling |
-| [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | 📋 specced | tooling |
+| [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | ✅ done | tooling |
 
 ### M1
 
@@ -302,7 +302,7 @@ Counts by status: 💡 idea 17 · 📋 specced 24 · 🟡 in-progress 6 · ✅ d
 | [FEAT-0201](features/FEAT-0201-order-history-time-range.md) | Filter and page order history by time range | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0214](features/FEAT-0214-pr-preview-deployments.md) | Automated PR preview deployments for visual and mobile testing | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | ✅ done | M0 | community, pro, private | none | none | — |
-| [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | 📋 specced | M0 | community, pro, private | none | none | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) |
+| [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | ✅ done | M0 | community, pro, private | none | none | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) |
 | [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) |
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | 🟡 in-progress | none | community, pro, private | C | none | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md), [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) |
