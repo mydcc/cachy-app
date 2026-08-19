@@ -31,7 +31,6 @@ import { logger } from "../logger";
 export interface DispatchContext {
   commitThrottle: (key: string) => void;
   safeString: (val: unknown, symbol: string, field: string) => string | undefined;
-  debugLogRawFundingRate: (symbol: string, fr: string) => void;
   shouldThrottle: (key: string) => boolean;
   tradeListeners: Map<string, Set<(trade: import('../bitunixWs').TradeData) => void>>;
   syntheticSubs: Map<string, number>;
@@ -43,8 +42,6 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
     const { symbol, data } = parsed;
     const ip = data.ip !== undefined ? context.safeString(data.ip, symbol, "indexPrice") : undefined;
     const mp = data.mp !== undefined ? context.safeString(data.mp, symbol, "markPrice") : undefined;
-    const fr = data.fr !== undefined ? context.safeString(data.fr, symbol, "fundingRate") : undefined;
-    if (fr !== undefined) context.debugLogRawFundingRate(symbol, fr);
     if (typeof data.lastPrice === "number" || typeof data.lp === "number") {
       context.safeString(data.lastPrice ?? data.lp, symbol, "lastPrice");
     }

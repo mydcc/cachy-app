@@ -317,9 +317,9 @@
 
         // Dependencies for reactivity
         const normalized = normalizeSymbol(symbol, "bitunix");
-        // Explicitly track the kline array reference to ensure reactivity
+        // Explicitly track the kline array reference and lastUpdated to ensure live tick reactivity
         const marketData = marketState.data[normalized];
-        // We need to access the property to register the dependency in Svelte 5 rune mode
+        const _lastUpdated = marketData?.lastUpdated;
         const klines = marketData?.klines?.[timeframe];
 
         const settings = indicatorState.ema;

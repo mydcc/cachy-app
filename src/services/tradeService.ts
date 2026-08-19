@@ -48,6 +48,7 @@ import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
 import { paperExchange } from "./paperExchange";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
+import { accountState } from "../stores/account.svelte";
 import {
     orderGate,
     assertGatePass,
@@ -442,9 +443,16 @@ class TradeService {
             ...intent,
             displayed: { ...this.displayedAccount(), ...intent.displayed },
         };
-        return await orderGate.submit<T>(full, (pass) =>
+        const result = await orderGate.submit<T>(full, (pass) =>
             this.signedRequest<T>(method, full.endpoint, full.payload, pass),
         );
+        // Eager post-action reconciliation: refresh account balance & positions
+        try {
+            accountState.requestSync();
+        } catch {
+            // non-blocking
+        }
+        return result;
     }
 
     // Hardening: Centralized Freshness Check
