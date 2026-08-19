@@ -394,11 +394,18 @@
                     try {
                         candleSeries.setData(unique);
 
+                        // Arm the fast path immediately after the series is
+                        // rendered. If any later slow-path step (indicator
+                        // computation, visibility) throws, live ticks must
+                        // keep flowing via candleSeries.update() instead of
+                        // permanently disarming the fast path and freezing the
+                        // chart after its initial render.
                         lastRenderedTime =
                             unique.length > 0
                                 ? unique[unique.length - 1].time
                                 : null;
                         lastRenderedCount = klines.length;
+                        isInitialLoad = false;
 
                         // Update Indicators if enabled
                         if (
@@ -460,10 +467,12 @@
                             ema2Series.applyOptions({ visible: false });
                             ema3Series.applyOptions({ visible: false });
                         }
-
-                        isInitialLoad = false;
                     } catch (e) {
                         console.error("[CandleChartView] Render error:", e);
+                        // Disarm so the next cycle retries the slow path
+                        // instead of silently skipping renders forever.
+                        lastRenderedTime = null;
+                        lastRenderedCount = 0;
                     }
                 }
             }
