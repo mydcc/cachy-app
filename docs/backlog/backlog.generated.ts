@@ -628,7 +628,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0235",
     "title": "Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -646,7 +646,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0236",
     "title": "Sentiment route returns unsanitized error messages risking API key exposure",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1496,7 +1496,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0211",
     "title": "Position details hidden behind tooltip delay",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -1641,7 +1641,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0237",
     "title": "Stream logs authentication leaks secret length before timing-safe comparison",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -1659,7 +1659,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0238",
     "title": "Gemini AI proxy passes unvalidated model parameter into API path",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -2289,7 +2289,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0201",
     "title": "Filter and page order history by time range",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
