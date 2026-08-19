@@ -42,7 +42,6 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
     const { symbol, data } = parsed;
     const ip = data.ip !== undefined ? context.safeString(data.ip, symbol, "indexPrice") : undefined;
     const mp = data.mp !== undefined ? context.safeString(data.mp, symbol, "markPrice") : undefined;
-    const fr = data.fr !== undefined ? context.safeString(data.fr, symbol, "fundingRate") : undefined;
     if (typeof data.lastPrice === "number" || typeof data.lp === "number") {
       context.safeString(data.lastPrice ?? data.lp, symbol, "lastPrice");
     }

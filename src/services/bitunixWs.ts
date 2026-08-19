@@ -31,7 +31,6 @@ import { logger } from "./logger";
 
 import { safeJsonParse } from "../utils/safeJson";
 import CryptoJS from "crypto-js";
-import { Decimal } from "decimal.js";
 
 
 export interface TradeData {
