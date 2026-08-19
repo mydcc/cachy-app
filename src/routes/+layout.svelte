@@ -21,8 +21,7 @@
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
   import AutoBackupRestoreModal from "../components/shared/AutoBackupRestoreModal.svelte";
   import MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
-import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
-  import PositionTooltip from "../components/shared/PositionTooltip.svelte";
+  import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { onMount } from "svelte";
@@ -460,9 +459,7 @@ import { afterNavigate } from "$app/navigation";
     onmouseleave={() => uiState.hideTooltip()}
     role="tooltip"
   >
-    {#if uiState.tooltip.type === "position"}
-      <PositionTooltip position={uiState.tooltip.data} />
-    {:else if uiState.tooltip.type === "order"}
+    {#if uiState.tooltip.type === "order"}
       <OrderDetailsTooltip order={uiState.tooltip.data} />
     {/if}
   </div>
