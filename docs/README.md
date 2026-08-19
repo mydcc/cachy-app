@@ -51,6 +51,7 @@ and this repository has already paid for that once — see
 | [`adr/`](adr/README.md) | Architecture Decision Records — the boundaries |
 | [`BRAND.md`](BRAND.md) | Palette, typography, logo. Verified against `src/themes.css` |
 | [`GLOBAL-CHAT.md`](GLOBAL-CHAT.md) | What the chat stores, how tokens are issued, retention and erasure |
+| [`wire-format.md`](wire-format.md) | GCX1 compact wire format referenced by the generated gortex skill docs |
 | [`calculation-engine.md`](calculation-engine.md), [`calculation-engine-dev.md`](calculation-engine-dev.md) | The risk/position maths |
 | [`bitunix-api/`](bitunix-api/README.md) | Bitunix API notes and quick reference |
 | [`feedback-system.md`](feedback-system.md) | The in-app feedback path |
