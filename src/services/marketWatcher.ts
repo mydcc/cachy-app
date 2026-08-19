@@ -126,16 +126,30 @@ export class MarketWatcher {
           const isStale = (now - lastUpdate) > 10000; // 10s Gap Threshold
           const isWsConnected = marketState.connectionStatus === "connected";
 
-          // If WS is connected AND data is fresh, we skip polling (Pure WebSocket Mode)
-          // If WS is disconnected OR data is stale (Gap), we Poll (REST Fallback)
-          if (isWsConnected && !isStale) {
-            return;
-          }
+          // [HYBRID] Non-kline stale detection (ticker, depth, etc.)
+          // isStale is still used for non-kline channels inside the forEach below.
 
           channels.forEach((_, channel) => {
             const lockKey = `${symbol}:${channel}`;
             // Skip if already in flight (Deduplication)
             if (this.historyFetcher.pendingRequests.has(lockKey)) return;
+
+            if (channel.startsWith("kline_")) {
+              // [HYBRID KLINE] Per-timeframe staleness check.
+              // Global lastUpdated is updated by ticker/price WS messages, so it cannot
+              // reliably indicate whether *kline* data for a specific timeframe is fresh.
+              // Instead we use klinesLastUpdated[tf] which is only written when klines are
+              // actually stored (WS tick or REST fetch). This ensures a timeframe whose
+              // history load failed (e.g. rate-limit) is retried on the next polling cycle.
+              const tf = channel.replace("kline_", "");
+              const klineLastUpdated = data?.klinesLastUpdated?.[tf] || 0;
+              const isKlineStale = (now - klineLastUpdated) > 10000; // 10s
+              if (isWsConnected && !isKlineStale) return;
+            } else {
+              // Non-kline channels (ticker, depth, etc): use the global staleness guard.
+              if (isWsConnected && !isStale) return;
+            }
+
             tasks.push({ symbol, channel, lockKey });
           });
         });
