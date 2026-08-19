@@ -44,6 +44,11 @@ export interface MarketData {
   klinesBuffers?: Map<string, KlineBuffers>;
   technicals?: Record<string, import("../../services/technicalsTypes").TechnicalsData>;
   lastUpdated?: number;
+  /** Per-timeframe freshness — set whenever klines for that tf are updated (WS or REST).
+   *  Used by the polling loop to detect stale kline channels independently of the
+   *  global lastUpdated (which is refreshed by ticker/price messages and would otherwise
+   *  mask un-loaded or rate-limited kline fetches). */
+  klinesLastUpdated?: Record<string, number>;
 }
 
 export interface TradingPairInfo {

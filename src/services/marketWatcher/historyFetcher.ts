@@ -206,7 +206,16 @@ export class HistoryFetcher {
             }
             return true;
         } catch (e) {
-            logger.error("market", `[History] Unexpected error in ensureHistory for ${symbol}:${tf}`, e);
+            const msg = e instanceof Error ? e.message : String(e);
+            // On rate-limit errors the exchange told us to back off, not that history is
+            // exhausted. Remove the exhausted marker so the polling loop retries on the
+            // next cycle rather than silently skipping this timeframe forever.
+            if (msg.includes("too frequently") || msg.includes("429") || msg.includes("klineError")) {
+                this.exhaustedHistory.delete(`${symbol}:${tf}`);
+                logger.warn("market", `[History] Rate-limited for ${symbol}:${tf}. Will retry next cycle.`);
+            } else {
+                logger.error("market", `[History] Unexpected error in ensureHistory for ${symbol}:${tf}`, e);
+            }
             return false;
         } finally {
             this.historyLocks.delete(lockKey);

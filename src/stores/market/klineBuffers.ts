@@ -156,6 +156,8 @@ export class KlineBufferManager {
                  backing.volumes[lastIdx] = getNum(newRaw.volume);
             }
             current.lastUpdated = Date.now();
+            if (!current.klinesLastUpdated) current.klinesLastUpdated = {};
+            current.klinesLastUpdated[timeframe] = Date.now();
             return;
         }
     }
@@ -230,6 +232,8 @@ export class KlineBufferManager {
     if (!current.klinesBuffers) current.klinesBuffers = new Map();
     current.klinesBuffers.set(timeframe, views);
     current.lastUpdated = Date.now();
+    if (!current.klinesLastUpdated) current.klinesLastUpdated = {};
+    current.klinesLastUpdated[timeframe] = Date.now();
   }
 
   private mergeKlines(history: Kline[], newKlines: Kline[], effectiveLimit: number) {
