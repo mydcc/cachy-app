@@ -64,12 +64,12 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           for attempt in 1 2 3 4 5; do
             node scripts/backlog-index.mjs
-            if git diff --quiet -- docs/backlog/INDEX.md; then
-              echo "INDEX.md unchanged, nothing to commit."
+            if git diff --quiet -- docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json; then
+              echo "Backlog generated artifacts unchanged, nothing to commit."
               exit 0
             fi
-            git add docs/backlog/INDEX.md
-            git commit -m "chore(backlog): regenerate INDEX.md [skip ci]"
+            git add docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json
+            git commit -m "chore(backlog): regenerate INDEX.md and backlog artifacts [skip ci]"
             if git push origin HEAD:${{ github.ref_name }}; then
               echo "Pushed successfully on attempt $attempt."
               exit 0
