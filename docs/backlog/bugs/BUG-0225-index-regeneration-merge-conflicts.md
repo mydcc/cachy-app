@@ -10,7 +10,12 @@ area: repo
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-17
+target_date: 2026-08-17
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0225 — Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs
 

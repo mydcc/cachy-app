@@ -10,7 +10,11 @@ area: security
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-18
+size: S
+estimate: 2
 ---
+
 
 # BUG-0235 — Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability
 

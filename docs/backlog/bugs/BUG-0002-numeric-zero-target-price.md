@@ -10,7 +10,12 @@ area: calculation
 data_class: A
 adr: none
 depends_on: []
+start_date: 2026-08-01
+target_date: 2026-08-13
+size: M
+estimate: 3
 ---
+
 
 # BUG-0002 — Trade state stores numbers where its type declares strings
 

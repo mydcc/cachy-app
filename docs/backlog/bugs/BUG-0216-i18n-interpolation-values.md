@@ -11,7 +11,12 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-16
+target_date: 2026-08-16
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0216 — Three dialogs render raw {placeholder} because `$_` was called without the values wrapper
 

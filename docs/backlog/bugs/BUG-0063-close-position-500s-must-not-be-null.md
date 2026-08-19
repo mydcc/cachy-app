@@ -10,7 +10,12 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [BUG-0062]
+start_date: 2026-08-08
+target_date: 2026-08-13
+size: M
+estimate: 3
 ---
+
 
 # BUG-0063 — Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account
 

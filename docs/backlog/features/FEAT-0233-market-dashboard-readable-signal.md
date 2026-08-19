@@ -10,7 +10,12 @@ area: ui
 data_class: C
 adr: none
 depends_on: [BUG-0230, BUG-0232]
+start_date: 2026-08-18
+target_date: 2026-08-18
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0233 — Readable Market Dashboard signal
 

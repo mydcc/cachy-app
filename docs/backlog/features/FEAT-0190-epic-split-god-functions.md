@@ -14,7 +14,9 @@ depends_on: [BUG-0182, BUG-0183, BUG-0184]
 estimate: 8
 size: XL
 target_date: 2026-09-28
+start_date: 2026-08-13
 ---
+
 
 # FEAT-0190 — Epic: Decompose the five oversized modules along the module boundary
 

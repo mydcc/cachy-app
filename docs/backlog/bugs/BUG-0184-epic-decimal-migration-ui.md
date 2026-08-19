@@ -13,7 +13,9 @@ depends_on: [BUG-0183]
 estimate: 5
 size: L
 target_date: 2026-09-14
+start_date: 2026-08-12
 ---
+
 
 # BUG-0184 — Epic: Migrate Svelte UI components and Stores to decimal.js
 

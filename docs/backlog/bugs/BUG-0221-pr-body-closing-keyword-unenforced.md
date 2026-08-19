@@ -10,7 +10,12 @@ area: repo
 data_class: none
 adr: none
 depends_on: [BUG-0220]
+start_date: 2026-08-16
+target_date: 2026-08-16
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0221 — A PR description can close the wrong issue and nothing catches it before merge
 

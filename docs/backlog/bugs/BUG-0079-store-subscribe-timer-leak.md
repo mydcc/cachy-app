@@ -10,7 +10,12 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-12
+target_date: 2026-08-13
+size: S
+estimate: 2
 ---
+
 
 # BUG-0079 — Legacy subscribe() causes memory leaks and race conditions via shared debounce timers
 

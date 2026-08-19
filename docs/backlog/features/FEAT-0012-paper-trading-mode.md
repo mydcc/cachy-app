@@ -14,7 +14,9 @@ depends_on: [FEAT-0011]
 estimate: 3
 size: M
 target_date: 2026-10-16
+start_date: 2026-08-01
 ---
+
 
 # FEAT-0012 — Add a paper-trading mode that shares the live execution path
 

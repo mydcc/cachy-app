@@ -14,7 +14,9 @@ depends_on: [FEAT-0011]
 estimate: 3
 size: M
 target_date: 2026-10-30
+start_date: 2026-08-01
 ---
+
 
 # FEAT-0016 — Put every exchange behind one adapter interface
 

@@ -13,7 +13,9 @@ depends_on: []
 estimate: 3
 size: M
 target_date: 2026-08-24
+start_date: 2026-08-12
 ---
+
 
 # BUG-0182 — Epic: Migrate Rust/WASM backend to rust_decimal
 

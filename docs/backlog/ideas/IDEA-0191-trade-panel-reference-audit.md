@@ -10,7 +10,12 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-13
+target_date: 2026-08-15
+size: S
+estimate: 2
 ---
+
 
 # IDEA-0191 — Derive the trade-panel UI gap list from the reference screenshots
 

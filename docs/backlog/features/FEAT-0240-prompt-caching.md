@@ -13,7 +13,10 @@ depends_on: []
 parent: FEAT-0239
 estimate: 3
 size: S
+start_date: 2026-08-18
+target_date: 2026-08-18
 ---
+
 
 # FEAT-0240 — Implement prompt caching for base role instructions
 

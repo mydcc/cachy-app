@@ -13,7 +13,10 @@ depends_on: []
 parent: FEAT-0239
 estimate: 5
 size: M
+start_date: 2026-08-18
+target_date: 2026-08-18
 ---
+
 
 # FEAT-0242 — Replace regex-based JSON action parsing with structured function calling
 

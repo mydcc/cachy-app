@@ -14,7 +14,9 @@ depends_on: [FEAT-0016]
 estimate: 2
 size: S
 target_date: 2026-11-19
+start_date: 2026-08-17
 ---
+
 
 # FEAT-0229 — Refuse an order verb the venue cannot do before it leaves the client
 

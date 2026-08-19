@@ -13,7 +13,9 @@ depends_on: [FEAT-0016, FEAT-0018]
 estimate: 5
 size: L
 target_date: 2026-12-10
+start_date: 2026-08-17
 ---
+
 
 # FEAT-0227 — Move each venue's socket and subscription ref-counting behind its adapter
 

@@ -10,7 +10,12 @@ area: indicators
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-01
+target_date: 2026-08-13
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0005 — GPU-accelerated Choppiness writes to a field nothing reads
 

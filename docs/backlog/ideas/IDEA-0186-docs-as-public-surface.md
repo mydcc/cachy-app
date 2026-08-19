@@ -10,7 +10,12 @@ area: docs
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-13
+target_date: 2027-04-30
+size: S
+estimate: 2
 ---
+
 
 # IDEA-0186 — Audit every public-facing document as a first-contact surface
 

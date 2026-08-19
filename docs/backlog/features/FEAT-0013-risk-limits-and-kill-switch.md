@@ -14,7 +14,9 @@ depends_on: []
 estimate: 2
 size: S
 target_date: 2026-10-09
+start_date: 2026-08-01
 ---
+
 
 # FEAT-0013 — Enforce hard risk limits and a kill switch at the execution boundary
 

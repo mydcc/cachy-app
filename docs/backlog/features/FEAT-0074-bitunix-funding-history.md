@@ -12,7 +12,10 @@ adr: none
 depends_on: []
 estimate: 5
 size: L
+start_date: 2026-08-12
+target_date: 2026-08-15
 ---
+
 
 # FEAT-0074 — Surface funding-rate history for a symbol
 

@@ -13,7 +13,9 @@ depends_on: []
 estimate: 2
 size: S
 target_date: 2026-09-04
+start_date: 2026-08-13
 ---
+
 
 # BUG-0185 — Competitor platform names appear in user-facing and planning documentation
 

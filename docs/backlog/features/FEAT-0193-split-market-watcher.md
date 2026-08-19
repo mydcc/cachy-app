@@ -15,7 +15,9 @@ size: M
 target_date: 2026-09-14
 branch: FEAT-0193-split-market-watcher
 done_version: 1.6.0-beta.18
+start_date: 2026-08-14
 ---
+
 
 # FEAT-0193 — Decompose `marketWatcher.ts` into subscription registry, polling loop and history fetching
 
