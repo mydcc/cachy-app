@@ -2,7 +2,7 @@
 id: BUG-0211
 title: Position details hidden behind tooltip delay
 type: bug
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 editions: [community]
@@ -14,6 +14,7 @@ start_date: 2026-08-15
 size: XS
 estimate: 1
 ---
+
 
 
 # BUG-0211 — Position details hidden behind tooltip delay

@@ -1708,7 +1708,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0211",
     "title": "Position details hidden behind tooltip delay",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "none",
     "editions": [

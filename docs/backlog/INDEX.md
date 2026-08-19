@@ -4,7 +4,7 @@
 
 139 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 21 · 🟢 ready 1 · ✅ done 101
+Counts by status: 💡 idea 16 · 📋 specced 21 · 🟡 in-progress 1 · ✅ done 101
 
 ---
 
@@ -166,7 +166,7 @@ Counts by status: 💡 idea 16 · 📋 specced 21 · 🟢 ready 1 · ✅ done 10
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | repo |
 | [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | ✅ done | ui |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | ✅ done | ui |
-| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 🟢 ready | ui |
+| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 🟡 in-progress | ui |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | repo |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | repo |
 | [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | ✅ done | repo |
@@ -284,7 +284,7 @@ Counts by status: 💡 idea 16 · 📋 specced 21 · 🟢 ready 1 · ✅ done 10
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | ✅ done | none | community | none | none | — |
-| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 🟢 ready | none | community | none | none | — |
+| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 🟡 in-progress | none | community | none | none | — |
 | [BUG-0216](bugs/BUG-0216-i18n-interpolation-values.md) | Three dialogs render raw {placeholder} because $_ was called without the values wrapper | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) |
