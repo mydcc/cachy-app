@@ -1,0 +1,13 @@
+{
+  "name": "Gortex: Post-Edit Check",
+  "version": "1.0.0",
+  "description": "Check impact and tests after a source edit.",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["**/*.go", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.py", "**/*.rs", "**/*.java", "**/*.kt", "**/*.scala", "**/*.swift", "**/*.rb", "**/*.cs", "**/*.php"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Call Gortex change with operation detect for unstaged changes. Use its affected symbol IDs with operations tests, guards, and contract; run the selected tests and report every result."
+  }
+}

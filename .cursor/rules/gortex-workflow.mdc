@@ -1,0 +1,18 @@
+---
+description: Gortex code intelligence — prefer graph tools over file reads
+alwaysApply: true
+---
+
+## Gortex in Cursor
+
+Use Gortex MCP tools for indexed code. This is mandatory.
+
+1. Start every coding task with **explore** using `operation: "task"` and the user's task text.
+2. Use **search**, **read**, **relations**, and **trace** instead of text search or whole-file source reads.
+3. Before mutation, call **change** with `operation: "impact"`; for a signature change, also call operation `verify` with the proposed signature.
+4. Mutate only with **edit** or **refactor**. After mutation, call **change** operations `detect`, `tests`, `guards`, and `contract`.
+5. Call **capabilities** with `domain`, `operation`, and `detail: "schema"` when exact arguments are not visible.
+
+If the configured Gortex tools are missing from the callable MCP tools, report a Gortex MCP integration failure and stop. Do not start a daemon or use a CLI/shell fallback.
+
+Use **recall** before editing known code and **remember** for durable decisions or invariants.
