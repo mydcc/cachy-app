@@ -2,9 +2,9 @@
 
 # Backlog index
 
-139 items. How to read and add them: [README.md](README.md).
+140 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 21 · 🟡 in-progress 1 · ✅ done 101
+Counts by status: 💡 idea 16 · 📋 specced 22 · 🟡 in-progress 1 · ✅ done 101
 
 ---
 
@@ -83,6 +83,7 @@ Counts by status: 💡 idea 16 · 📋 specced 21 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | trade-panel |
 | [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | execution |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | 📋 specced | exchange |
+| [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | 📋 specced | trade-panel |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
 
@@ -330,6 +331,7 @@ Counts by status: 💡 idea 16 · 📋 specced 21 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | ✅ done | none | community, pro, private | C | none | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md), [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) |
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | M8 | community, pro, private | none | none | — |
+| [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -352,4 +354,4 @@ Counts by status: 💡 idea 16 · 📋 specced 21 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0247**
+Next free number: **0248**

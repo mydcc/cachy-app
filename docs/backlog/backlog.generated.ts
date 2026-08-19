@@ -2788,6 +2788,31 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0240-prompt-caching.md"
   },
   {
+    "id": "FEAT-0247",
+    "title": "Interactive chart positions and draggable TP/SL lines",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0017",
+      "FEAT-0070"
+    ],
+    "estimate": "3",
+    "size": "M",
+    "target_date": "2026-11-25",
+    "start_date": "2026-08-19",
+    "file": "features/FEAT-0247-chart-position-tpsl-drag.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
