@@ -15,6 +15,7 @@ permanently.
   number) change on every regeneration regardless of which item you touched,
   which is a guaranteed merge conflict the moment a second backlog PR is in
   flight. See BUG-0225.
+- **Typed Backlog Registry (Code & AST Tools):** [`backlog.generated.ts`](backlog.generated.ts) and [`backlog.generated.json`](backlog.generated.json) — generated alongside `INDEX.md` for fast symbol indexing by tools like jCodeMunch or type-safe programmatic access.
 - **When things get built:** [`../ROADMAP.md`](../ROADMAP.md).
 - **Why in that order:** [`../MILESTONES.md`](../MILESTONES.md).
 

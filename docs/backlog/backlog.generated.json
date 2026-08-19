@@ -1,0 +1,2776 @@
+{
+  "items": [
+    {
+      "id": "BUG-0001",
+      "title": "Bitget WebSocket account sync sends field names the account store never reads",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0001-bitget-ws-field-mismatch.md"
+    },
+    {
+      "id": "BUG-0002",
+      "title": "Trade state stores numbers where its type declares strings",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0002-numeric-zero-target-price.md"
+    },
+    {
+      "id": "BUG-0053",
+      "title": "A lost or regenerated IndexedDB device key silently orphans every encrypted secret",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-08-24",
+      "file": "bugs/BUG-0053-device-key-loss-orphans-secrets.md"
+    },
+    {
+      "id": "BUG-0058",
+      "title": "A WS position push that omits qty silently closes a still-open position",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md"
+    },
+    {
+      "id": "BUG-0060",
+      "title": "PositionsSidebar reads /api/positions and /api/account through the wrong response envelope",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0060-positions-account-envelope-mismatch.md"
+    },
+    {
+      "id": "BUG-0062",
+      "title": "Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId)",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0062-hedge-mode-close-position-fails.md"
+    },
+    {
+      "id": "BUG-0063",
+      "title": "Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0062"
+      ],
+      "file": "bugs/BUG-0063-close-position-500s-must-not-be-null.md"
+    },
+    {
+      "id": "BUG-0064",
+      "title": "omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0062",
+        "BUG-0063"
+      ],
+      "file": "bugs/BUG-0064-oms-position-update-wipes-positionid.md"
+    },
+    {
+      "id": "FEAT-0011",
+      "title": "Verify every order against displayed state before it leaves the client",
+      "type": "feature",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P0",
+      "milestone": "M1",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-10-05",
+      "file": "features/FEAT-0011-preflight-order-verification.md"
+    },
+    {
+      "id": "FEAT-0012",
+      "title": "Add a paper-trading mode that shares the live execution path",
+      "type": "feature",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P0",
+      "milestone": "M1",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0011"
+      ],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-10-16",
+      "file": "features/FEAT-0012-paper-trading-mode.md"
+    },
+    {
+      "id": "FEAT-0013",
+      "title": "Enforce hard risk limits and a kill switch at the execution boundary",
+      "type": "feature",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P0",
+      "milestone": "M1",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-10-09",
+      "file": "features/FEAT-0013-risk-limits-and-kill-switch.md"
+    },
+    {
+      "id": "FEAT-0212",
+      "title": "Automatically back up local data so a cleared browser cache can't destroy it",
+      "type": "feature",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "core",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0212-automatic-local-backup.md"
+    },
+    {
+      "id": "BUG-0003",
+      "title": "OMS force-prune can evict an order it was written to protect",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0003-oms-preserve-latest-unenforced.md"
+    },
+    {
+      "id": "BUG-0004",
+      "title": "Legacy AES-CBC credential blobs may decrypt to silent garbage",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0004-legacy-aes-cbc-blobs.md"
+    },
+    {
+      "id": "BUG-0042",
+      "title": "Dragging a window on a touch device jumps and can leave the window stuck to the finger",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0042-window-drag-jumps-on-touch.md"
+    },
+    {
+      "id": "BUG-0047",
+      "title": "The Trading Academy content is unreachable on a phone because the pattern list fills the screen",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0047-academy-unusable-on-mobile.md"
+    },
+    {
+      "id": "BUG-0052",
+      "title": "APP_ACCESS_TOKEN blocks BYOK users who have no way to know it",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "api",
+      "data_class": "none",
+      "adr": "ADR-0002",
+      "depends_on": [],
+      "file": "bugs/BUG-0052-app-access-token-blocks-public-byok-users.md"
+    },
+    {
+      "id": "BUG-0055",
+      "title": "Position mark price always renders as \"0 → 0",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0055-position-mark-price-always-zero.md"
+    },
+    {
+      "id": "BUG-0059",
+      "title": "A failed account-balance fetch is silently swallowed, indistinguishable from a genuinely empty account",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0059-account-fetch-error-silently-swallowed.md"
+    },
+    {
+      "id": "BUG-0065",
+      "title": "A partial WS price push can erase a real markPrice buffered earlier in the same flush window",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0055"
+      ],
+      "file": "bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md"
+    },
+    {
+      "id": "BUG-0079",
+      "title": "Legacy subscribe() causes memory leaks and race conditions via shared debounce timers",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0079-store-subscribe-timer-leak.md"
+    },
+    {
+      "id": "BUG-0182",
+      "title": "Epic: Migrate Rust/WASM backend to rust_decimal",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "core",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-08-24",
+      "file": "bugs/BUG-0182-epic-decimal-migration-rust.md"
+    },
+    {
+      "id": "BUG-0183",
+      "title": "Epic: Migrate Core & Services logic to decimal.js",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0182"
+      ],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-09-04",
+      "file": "bugs/BUG-0183-epic-decimal-migration-core.md"
+    },
+    {
+      "id": "BUG-0184",
+      "title": "Epic: Migrate Svelte UI components and Stores to decimal.js",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0183"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-09-14",
+      "file": "bugs/BUG-0184-epic-decimal-migration-ui.md"
+    },
+    {
+      "id": "BUG-0213",
+      "title": "Market Overview Modal and Favorite Tiles Infinite Reload Loop",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0213-market-overview-loop.md"
+    },
+    {
+      "id": "BUG-0215",
+      "title": "Gate refusals render raw placeholders and refuse every paper order",
+      "type": "bug",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0215-order-refusal-placeholders.md"
+    },
+    {
+      "id": "BUG-0217",
+      "title": "Tab inactivity drops WebSocket connection without automatic recovery",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0217-tab-inactivity-connection-loss.md"
+    },
+    {
+      "id": "BUG-0218",
+      "title": "Open position live mark price updates unreliably or stalls until page reload",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0218-open-positions-price-sync-stall.md"
+    },
+    {
+      "id": "BUG-0219",
+      "title": "place_order never received an order type, so every limit order failed",
+      "type": "bug",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0219-place-order-ordertype-field.md"
+    },
+    {
+      "id": "BUG-0230",
+      "title": "Market Analyst never terminates its retry loop, starving live feeds and blanking the dashboard",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "market-data",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0230-market-analyst-fetch-storm.md"
+    },
+    {
+      "id": "BUG-0234",
+      "title": "Analyst backfill through the shared store makes the whole UI flicker continuously",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "market-data",
+      "data_class": "none",
+      "adr": "ADR-0009",
+      "depends_on": [
+        "BUG-0230"
+      ],
+      "file": "bugs/BUG-0234-analyst-store-coupling-regression.md"
+    },
+    {
+      "id": "BUG-0235",
+      "title": "Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md"
+    },
+    {
+      "id": "BUG-0236",
+      "title": "Sentiment route returns unsanitized error messages risking API key exposure",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0236-sentiment-route-error-redaction.md"
+    },
+    {
+      "id": "BUG-0241",
+      "title": "customSystemPrompt completely overwrites baseRoleInstructions and safety rules",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "parent": "FEAT-0239",
+      "estimate": "2",
+      "size": "XS",
+      "file": "bugs/BUG-0241-custom-prompt-overwrites-safety.md"
+    },
+    {
+      "id": "BUG-0243",
+      "title": "Risk:Reward Guard only logs but does not block execution",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "parent": "FEAT-0239",
+      "estimate": "2",
+      "size": "XS",
+      "file": "bugs/BUG-0243-risk-reward-guard-non-blocking.md"
+    },
+    {
+      "id": "FEAT-0014",
+      "title": "Produce Community, Pro and Private builds from one tree",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M5",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "build",
+      "data_class": "none",
+      "adr": "ADR-0003",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "file": "features/FEAT-0014-edition-build-targets.md"
+    },
+    {
+      "id": "FEAT-0015",
+      "title": "Record every order submission attempt locally",
+      "type": "feature",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P1",
+      "milestone": "M1",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0011"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-10-21",
+      "file": "features/FEAT-0015-order-audit-trail.md"
+    },
+    {
+      "id": "FEAT-0016",
+      "title": "Put every exchange behind one adapter interface",
+      "type": "feature",
+      "status": "done",
+      "branch": "worktree-exchange-adapter-interface-8f7cd2",
+      "priority": "P1",
+      "milestone": "M2",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "ADR-0007",
+      "depends_on": [
+        "FEAT-0011"
+      ],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-10-30",
+      "file": "features/FEAT-0016-exchange-adapter-interface.md"
+    },
+    {
+      "id": "FEAT-0017",
+      "title": "Describe what each exchange can do, and let the UI read it",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M2",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0016"
+      ],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-11-05",
+      "file": "features/FEAT-0017-exchange-capability-model.md"
+    },
+    {
+      "id": "FEAT-0018",
+      "title": "One conformance test suite every exchange adapter must pass",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M2",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0016"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-11-12",
+      "file": "features/FEAT-0018-adapter-conformance-suite.md"
+    },
+    {
+      "id": "FEAT-0020",
+      "title": "Show and change exchange account settings from Cachy",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0017"
+      ],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-11-18",
+      "file": "features/FEAT-0020-account-settings-panel.md"
+    },
+    {
+      "id": "FEAT-0021",
+      "title": "Support market, limit, trigger and fixed-risk orders with TP/SL attached",
+      "type": "feature",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0011",
+        "FEAT-0017"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-12-04",
+      "file": "features/FEAT-0021-order-types.md"
+    },
+    {
+      "id": "FEAT-0023",
+      "title": "Manage open positions without leaving Cachy",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0021"
+      ],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-12-14",
+      "file": "features/FEAT-0023-position-management.md"
+    },
+    {
+      "id": "FEAT-0024",
+      "title": "Let the user decide which actions need confirming",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0011"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-12-17",
+      "file": "features/FEAT-0024-confirmation-policy.md"
+    },
+    {
+      "id": "FEAT-0026",
+      "title": "Support several exchange accounts with an unmistakable active one",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0016"
+      ],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-12-21",
+      "file": "features/FEAT-0026-multi-account.md"
+    },
+    {
+      "id": "FEAT-0027",
+      "title": "A local alert engine with price alerts",
+      "type": "feature",
+      "status": "done",
+      "branch": "feat/0027-alert-engine",
+      "priority": "P1",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0027-alert-engine.md"
+    },
+    {
+      "id": "FEAT-0041",
+      "title": "Give every floating surface its z-index from one layer contract",
+      "type": "feature",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "ADR-0006",
+      "depends_on": [],
+      "file": "features/FEAT-0041-window-layer-contract.md"
+    },
+    {
+      "id": "FEAT-0050",
+      "title": "Put tests under the window manager before more surfaces depend on it",
+      "type": "feature",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "A",
+      "adr": "ADR-0006",
+      "depends_on": [],
+      "file": "features/FEAT-0050-window-manager-test-coverage.md"
+    },
+    {
+      "id": "FEAT-0057",
+      "title": "Show the full Bitunix position/order dataset in the Market Activity panel",
+      "type": "feature",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2027-01-08",
+      "file": "features/FEAT-0057-market-activity-panel-redesign.md"
+    },
+    {
+      "id": "FEAT-0067",
+      "title": "Fetch Bitunix trading-pair metadata and validate orders against it",
+      "type": "feature",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-11-20",
+      "file": "features/FEAT-0067-bitunix-trading-pair-metadata.md"
+    },
+    {
+      "id": "FEAT-0068",
+      "title": "Read and change leverage, margin mode and position margin from the trade panel",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-11-24",
+      "file": "features/FEAT-0068-bitunix-account-settings.md"
+    },
+    {
+      "id": "FEAT-0069",
+      "title": "Send TP/SL, time-in-force and a client order ID with Bitunix order placement",
+      "type": "feature",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-11-27",
+      "file": "features/FEAT-0069-bitunix-place-order-completion.md"
+    },
+    {
+      "id": "FEAT-0070",
+      "title": "Place new TP/SL orders on existing Bitunix positions",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-12-08",
+      "file": "features/FEAT-0070-bitunix-tpsl-placement.md"
+    },
+    {
+      "id": "FEAT-0229",
+      "title": "Refuse an order verb the venue cannot do before it leaves the client",
+      "type": "feature",
+      "status": "done",
+      "branch": "feat-0229-refuse-unsupported-verbs",
+      "priority": "P1",
+      "milestone": "M2",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "ADR-0008",
+      "depends_on": [
+        "FEAT-0016"
+      ],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-11-19",
+      "file": "features/FEAT-0229-refuse-unsupported-verbs-locally.md"
+    },
+    {
+      "id": "FEAT-0239",
+      "title": "Epic: AI Prompt Architecture & Safety Refactoring",
+      "type": "feature",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "8",
+      "size": "L",
+      "file": "features/FEAT-0239-epic-ai-prompt-architecture.md"
+    },
+    {
+      "id": "FEAT-0242",
+      "title": "Replace regex-based JSON action parsing with structured function calling",
+      "type": "feature",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "parent": "FEAT-0239",
+      "estimate": "5",
+      "size": "M",
+      "file": "features/FEAT-0242-structured-function-calling.md"
+    },
+    {
+      "id": "FEAT-0245",
+      "title": "Centralize prompt templating and versioning",
+      "type": "feature",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "parent": "FEAT-0239",
+      "estimate": "3",
+      "size": "S",
+      "file": "features/FEAT-0245-prompt-templating-versioning.md"
+    },
+    {
+      "id": "BUG-0005",
+      "title": "GPU-accelerated Choppiness writes to a field nothing reads",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "indicators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0005-gpu-chop-field-mismatch.md"
+    },
+    {
+      "id": "BUG-0006",
+      "title": "Sentiment cache and AI response are trusted without schema validation",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0006-sentiment-response-unvalidated.md"
+    },
+    {
+      "id": "BUG-0009",
+      "title": "SymbolPickerWindow resolves with null against a type that excludes it",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0009-symbolpicker-null-resolution.md"
+    },
+    {
+      "id": "BUG-0038",
+      "title": "PWA splash screen, screenshots and long-press shortcuts regressed on Android",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "pwa",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0038-android-manifest-regressions.md"
+    },
+    {
+      "id": "BUG-0043",
+      "title": "A responsive window restored by hand on mobile re-maximizes on the next resize event",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0043-responsive-window-remaximizes.md"
+    },
+    {
+      "id": "BUG-0048",
+      "title": "Glassmorphism leaves the Academy sidebar without a background and unreadable",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0048-glass-removes-academy-sidebar-background.md"
+    },
+    {
+      "id": "BUG-0049",
+      "title": "The quiz closes after every answer, has no close button and opens behind other windows",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0049-quiz-closes-after-every-answer.md"
+    },
+    {
+      "id": "BUG-0051",
+      "title": "SidePanel.svelte is never rendered, so the \"Enable Side Panel\" setting does nothing",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "ADR-0006",
+      "depends_on": [],
+      "file": "bugs/BUG-0051-sidepanel-never-rendered.md"
+    },
+    {
+      "id": "BUG-0054",
+      "title": "Orders-tab loading indicator is broken in both directions",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0054-orders-tab-loading-indicator-broken.md"
+    },
+    {
+      "id": "BUG-0056",
+      "title": "Order history tab shows stale trades",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0056-order-history-tab-stale.md"
+    },
+    {
+      "id": "BUG-0061",
+      "title": "Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0061-order-tooltip-metadata-dropped.md"
+    },
+    {
+      "id": "BUG-0066",
+      "title": "Position tooltip labels the live unrealized PnL row \"Realized PnL",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0066-position-tooltip-mislabeled-pnl-row.md"
+    },
+    {
+      "id": "BUG-0078",
+      "title": "Core stores leak auto-save $effect.root closures and timers during HMR",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M1",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0053"
+      ],
+      "parent": "FEAT-0067",
+      "start_date": "2026-08-13",
+      "file": "bugs/BUG-0078-stores-missing-hmr-cleanup.md"
+    },
+    {
+      "id": "BUG-0185",
+      "title": "Competitor platform names appear in user-facing and planning documentation",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "docs",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-09-04",
+      "file": "bugs/BUG-0185-competitor-names-in-docs.md"
+    },
+    {
+      "id": "BUG-0192",
+      "title": "Third-party content and temporary planning assets are tracked in the public repository",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "repo",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "1",
+      "size": "XS",
+      "file": "bugs/BUG-0192-third-party-assets-in-repo.md"
+    },
+    {
+      "id": "BUG-0207",
+      "title": "Mobile Technical Analysis timeframe menu fails to reopen",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md"
+    },
+    {
+      "id": "BUG-0209",
+      "title": "Inconsistent and poorly placed number input arrows (Leverage / Risk)",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0209-inconsistent-number-input-arrows.md"
+    },
+    {
+      "id": "BUG-0211",
+      "title": "Position details hidden behind tooltip delay",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0211-position-tooltip-delay.md"
+    },
+    {
+      "id": "BUG-0216",
+      "title": "Three dialogs render raw {placeholder} because $_ was called without the values wrapper",
+      "type": "bug",
+      "status": "done",
+      "branch": "claude/feat-0011-erledigen-k3fht2",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0216-i18n-interpolation-values.md"
+    },
+    {
+      "id": "BUG-0220",
+      "title": "PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "repo",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0220-issue-autolink-substring-match.md"
+    },
+    {
+      "id": "BUG-0221",
+      "title": "A PR description can close the wrong issue and nothing catches it before merge",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "repo",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0220"
+      ],
+      "file": "bugs/BUG-0221-pr-body-closing-keyword-unenforced.md"
+    },
+    {
+      "id": "BUG-0225",
+      "title": "Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "repo",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0225-index-regeneration-merge-conflicts.md"
+    },
+    {
+      "id": "BUG-0226",
+      "title": "Backlog sync cost grows with total backlog size instead of what actually changed",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "repo",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0226-sync-cost-grows-with-backlog-size.md"
+    },
+    {
+      "id": "BUG-0231",
+      "title": "Synthetic timeframes return a fraction of the requested candles, silently dropping long look-back indicators",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "market-data",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0231-synthetic-timeframe-underfetch.md"
+    },
+    {
+      "id": "BUG-0232",
+      "title": "Favourites live in two stores that never agree, so Settings has no effect on what gets analysed",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "settings",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0232-divergent-favourites-stores.md"
+    },
+    {
+      "id": "BUG-0237",
+      "title": "Stream logs authentication leaks secret length before timing-safe comparison",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0237-stream-logs-timing-safe-comparison-hash.md"
+    },
+    {
+      "id": "BUG-0238",
+      "title": "Gemini AI proxy passes unvalidated model parameter into API path",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0238-gemini-proxy-model-param-sanitization.md"
+    },
+    {
+      "id": "BUG-0244",
+      "title": "Gemini/Gemma prompt leak guard uses fragile chunk length heuristic",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "parent": "FEAT-0239",
+      "estimate": "2",
+      "size": "XS",
+      "file": "bugs/BUG-0244-fragile-prompt-leak-workaround.md"
+    },
+    {
+      "id": "BUG-0246",
+      "title": "Implicit coupling of empty string to standard behaviour in modeInstructions",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "parent": "FEAT-0239",
+      "estimate": "1",
+      "size": "XS",
+      "file": "bugs/BUG-0246-implicit-analysis-mode-coupling.md"
+    },
+    {
+      "id": "FEAT-0019",
+      "title": "Let the assistant research the web when it needs to",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M8",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0016"
+      ],
+      "file": "features/FEAT-0019-agentic-web-search.md"
+    },
+    {
+      "id": "FEAT-0025",
+      "title": "Notify on fills, margin thresholds and connection loss",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2027-01-15",
+      "file": "features/FEAT-0025-trading-notifications.md"
+    },
+    {
+      "id": "FEAT-0028",
+      "title": "Alerts on indicator conditions",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0027"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2027-01-29",
+      "file": "features/FEAT-0028-indicator-alerts.md"
+    },
+    {
+      "id": "FEAT-0029",
+      "title": "Alerts on chart drawings",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0027"
+      ],
+      "file": "features/FEAT-0029-drawing-alerts.md"
+    },
+    {
+      "id": "FEAT-0030",
+      "title": "Combine several conditions into one alert",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0028"
+      ],
+      "file": "features/FEAT-0030-combined-alerts.md"
+    },
+    {
+      "id": "FEAT-0031",
+      "title": "Rebrand a build without editing source",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M5",
+      "editions": [
+        "community"
+      ],
+      "area": "build",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0014"
+      ],
+      "file": "features/FEAT-0031-whitelabel-theming.md"
+    },
+    {
+      "id": "FEAT-0032",
+      "title": "A plugin contract for paid modules",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M6",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "extensions",
+      "data_class": "none",
+      "adr": "ADR-0005",
+      "depends_on": [
+        "FEAT-0014",
+        "FEAT-0040"
+      ],
+      "file": "features/FEAT-0032-plugin-contract.md"
+    },
+    {
+      "id": "FEAT-0033",
+      "title": "Harden Global Chat and add peer-signal reputation",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M7",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "collaboration",
+      "data_class": "B",
+      "adr": "ADR-0004",
+      "depends_on": [
+        "FEAT-0014"
+      ],
+      "estimate": "8",
+      "size": "XL",
+      "file": "features/FEAT-0033-chat-hardening-and-reputation.md"
+    },
+    {
+      "id": "FEAT-0034",
+      "title": "Share a trade setup live, as price levels only",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M7",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "collaboration",
+      "data_class": "B",
+      "adr": "ADR-0004",
+      "depends_on": [
+        "FEAT-0014"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "file": "features/FEAT-0034-copy-trading.md"
+    },
+    {
+      "id": "FEAT-0035",
+      "title": "Let an agent trade inside limits it cannot exceed",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M9",
+      "editions": [
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "A",
+      "adr": "required",
+      "depends_on": [
+        "FEAT-0011",
+        "FEAT-0012",
+        "FEAT-0013",
+        "FEAT-0015"
+      ],
+      "file": "features/FEAT-0035-autonomous-execution-agent.md"
+    },
+    {
+      "id": "FEAT-0039",
+      "title": "Let users add prompts, presets and themes as data files",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M5",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "extensions",
+      "data_class": "A",
+      "adr": "ADR-0005",
+      "depends_on": [],
+      "file": "features/FEAT-0039-data-extensions.md"
+    },
+    {
+      "id": "FEAT-0040",
+      "title": "Run user-written indicators in an isolated worker",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M6",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "extensions",
+      "data_class": "none",
+      "adr": "ADR-0005",
+      "depends_on": [
+        "FEAT-0039",
+        "FEAT-0011"
+      ],
+      "file": "features/FEAT-0040-computation-extensions.md"
+    },
+    {
+      "id": "FEAT-0044",
+      "title": "Make ModalFrame an adapter over WindowFrame instead of a second implementation",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "A",
+      "adr": "ADR-0006",
+      "depends_on": [
+        "FEAT-0041"
+      ],
+      "file": "features/FEAT-0044-modalframe-through-window-manager.md"
+    },
+    {
+      "id": "FEAT-0045",
+      "title": "Register the Trading Academy as its own window type",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "A",
+      "adr": "ADR-0006",
+      "depends_on": [
+        "FEAT-0044"
+      ],
+      "file": "features/FEAT-0045-academy-as-window-type.md"
+    },
+    {
+      "id": "FEAT-0046",
+      "title": "Move the SidePanel onto the window manager and drop interactjs",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "A",
+      "adr": "ADR-0006",
+      "depends_on": [
+        "FEAT-0041"
+      ],
+      "file": "features/FEAT-0046-sidepanel-onto-window-manager.md"
+    },
+    {
+      "id": "FEAT-0071",
+      "title": "Replace client-side cancel and close loops with native Bitunix endpoints",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-12-10",
+      "file": "features/FEAT-0071-bitunix-native-bulk-endpoints.md"
+    },
+    {
+      "id": "FEAT-0072",
+      "title": "Subscribe the private Bitunix TP/SL WebSocket channel",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2027-01-12",
+      "file": "features/FEAT-0072-bitunix-tpsl-ws-channel.md"
+    },
+    {
+      "id": "FEAT-0187",
+      "title": "Replace the cheat code with a verifiable local entitlement",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M5",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "build",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0014"
+      ],
+      "estimate": "3",
+      "size": "M",
+      "file": "features/FEAT-0187-edition-entitlement-switch.md"
+    },
+    {
+      "id": "FEAT-0190",
+      "title": "Epic: Decompose the five oversized modules along the module boundary",
+      "type": "feature",
+      "status": "done",
+      "done_version": "1.6.0-beta.19",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "core",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0182",
+        "BUG-0183",
+        "BUG-0184"
+      ],
+      "estimate": "8",
+      "size": "XL",
+      "target_date": "2026-09-28",
+      "file": "features/FEAT-0190-epic-split-god-functions.md"
+    },
+    {
+      "id": "FEAT-0193",
+      "title": "Decompose marketWatcher.ts into subscription registry, polling loop and history fetching",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0182",
+        "BUG-0183",
+        "BUG-0184"
+      ],
+      "estimate": "2",
+      "size": "M",
+      "target_date": "2026-09-14",
+      "branch": "FEAT-0193-split-market-watcher",
+      "done_version": "1.6.0-beta.18",
+      "file": "features/FEAT-0193-split-market-watcher.md"
+    },
+    {
+      "id": "FEAT-0194",
+      "title": "Split bitunixWs.ts handleMessage into parsing, validation and channel dispatch",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0182",
+        "BUG-0183",
+        "BUG-0184",
+        "FEAT-0193"
+      ],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-09-14",
+      "file": "features/FEAT-0194-split-bitunix-ws-handle-message.md"
+    },
+    {
+      "id": "FEAT-0195",
+      "title": "Decompose market.svelte.ts into cache management, update batching and kline buffers",
+      "type": "feature",
+      "status": "done",
+      "branch": "feat/0195-split-market-store",
+      "done_version": "1.6.0-beta.19",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0182",
+        "BUG-0183",
+        "BUG-0184",
+        "FEAT-0198"
+      ],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-09-21",
+      "file": "features/FEAT-0195-split-market-store.md"
+    },
+    {
+      "id": "FEAT-0196",
+      "title": "Cover activeTechnicalsManager with characterisation tests, then split it",
+      "type": "feature",
+      "status": "done",
+      "done_version": "1.6.0-beta.19",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0182",
+        "BUG-0183",
+        "BUG-0184"
+      ],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-09-21",
+      "file": "features/FEAT-0196-split-active-technicals-manager.md"
+    },
+    {
+      "id": "FEAT-0197",
+      "title": "Extract entitlement state and the settings load/persist path out of settings.svelte.ts",
+      "type": "feature",
+      "status": "done",
+      "done_version": "1.6.0-beta.19",
+      "branch": "feat-0197-settings-characterisation-tests, feat-0197-extract-entitlement-store, feat-0197-split-load-save",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0182",
+        "BUG-0183",
+        "BUG-0184"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-09-28",
+      "file": "features/FEAT-0197-split-settings-store.md"
+    },
+    {
+      "id": "FEAT-0198",
+      "title": "Add characterisation tests for market.svelte.ts's buffer-pool acquire/release pairing",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0182",
+        "BUG-0183",
+        "BUG-0184"
+      ],
+      "estimate": "1",
+      "size": "S",
+      "target_date": "2026-09-18",
+      "file": "features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md"
+    },
+    {
+      "id": "FEAT-0200",
+      "title": "Encrypt API keys and other secrets at rest in localStorage",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "ADR-0001",
+      "depends_on": [],
+      "file": "features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md"
+    },
+    {
+      "id": "FEAT-0201",
+      "title": "Filter and page order history by time range",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "3",
+      "size": "M",
+      "file": "features/FEAT-0201-order-history-time-range.md"
+    },
+    {
+      "id": "FEAT-0214",
+      "title": "Automated PR preview deployments for visual and mobile testing",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "repo",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0214-pr-preview-deployments.md"
+    },
+    {
+      "id": "FEAT-0222",
+      "title": "Apply low-risk major dependency updates (OpenAI, JSDOM, Undici)",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "tooling",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0222-major-dependency-updates.md"
+    },
+    {
+      "id": "FEAT-0223",
+      "title": "SpacetimeDB SDK major version update",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M0",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "tooling",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0222"
+      ],
+      "file": "features/FEAT-0223-spacetimedb-major-update.md"
+    },
+    {
+      "id": "FEAT-0227",
+      "title": "Move each venue's socket and subscription ref-counting behind its adapter",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M2",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "ADR-0007",
+      "depends_on": [
+        "FEAT-0016",
+        "FEAT-0018"
+      ],
+      "estimate": "5",
+      "size": "L",
+      "target_date": "2026-12-10",
+      "file": "features/FEAT-0227-adapter-owns-its-socket.md"
+    },
+    {
+      "id": "FEAT-0228",
+      "title": "Move the venue branches out of the proxy routes into per-venue modules",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M2",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "ADR-0007",
+      "depends_on": [
+        "FEAT-0016"
+      ],
+      "estimate": "3",
+      "size": "M",
+      "target_date": "2026-12-03",
+      "file": "features/FEAT-0228-venue-modules-in-proxy-routes.md"
+    },
+    {
+      "id": "FEAT-0233",
+      "title": "Make the Market Dashboard signal readable and distinguish missing data from a sell signal",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0230",
+        "BUG-0232"
+      ],
+      "file": "features/FEAT-0233-market-dashboard-readable-signal.md"
+    },
+    {
+      "id": "FEAT-0240",
+      "title": "Implement prompt caching for base role instructions",
+      "type": "feature",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "parent": "FEAT-0239",
+      "estimate": "3",
+      "size": "S",
+      "file": "features/FEAT-0240-prompt-caching.md"
+    },
+    {
+      "id": "BUG-0007",
+      "title": "Several UI strings are hardcoded instead of translated",
+      "type": "bug",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "i18n",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0007-hardcoded-ui-strings.md"
+    },
+    {
+      "id": "BUG-0008",
+      "title": "The toast array grows without a bound",
+      "type": "bug",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0008-toast-array-unbounded.md"
+    },
+    {
+      "id": "BUG-0010",
+      "title": "modalState.show() accepts extraClasses and never applies it",
+      "type": "bug",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0010-modal-extraclasses-ignored.md"
+    },
+    {
+      "id": "BUG-0076",
+      "title": "IndicatorSettings.svelte has extensive hardcoded English UI strings",
+      "type": "bug",
+      "status": "done",
+      "branch": "jules-4456775863240942894-f4c6e19b",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "i18n",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0076-indicatorsettings-hardcoded-strings.md"
+    },
+    {
+      "id": "BUG-0206",
+      "title": "Quiz flashcard close button is misplaced",
+      "type": "bug",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0206-quiz-flashcard-close-button.md"
+    },
+    {
+      "id": "BUG-0208",
+      "title": "RSS Market Sentiment news open in new tab instead of modal iframe",
+      "type": "bug",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0208-rss-news-modal-iframe.md"
+    },
+    {
+      "id": "BUG-0210",
+      "title": "Security Warning in settings is too prominent and misplaced",
+      "type": "bug",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0210-settings-security-warning-prominence.md"
+    },
+    {
+      "id": "FEAT-0022",
+      "title": "Make settings findable with a search box",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0022-settings-search.md"
+    },
+    {
+      "id": "FEAT-0074",
+      "title": "Surface funding-rate history for a symbol",
+      "type": "feature",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "5",
+      "size": "L",
+      "file": "features/FEAT-0074-bitunix-funding-history.md"
+    },
+    {
+      "id": "FEAT-0075",
+      "title": "Show maintenance-margin tier context next to an open position",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "3",
+      "size": "M",
+      "file": "features/FEAT-0075-bitunix-position-tiers.md"
+    },
+    {
+      "id": "FEAT-0224",
+      "title": "Evaluate and migrate to TypeScript 7",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "tooling",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0224-typescript-7-update.md"
+    },
+    {
+      "id": "IDEA-0036",
+      "title": "A gamified fork built on SpacetimeDB and the 3D layer",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community"
+      ],
+      "area": "experiment",
+      "data_class": "none",
+      "adr": "required",
+      "depends_on": [],
+      "file": "ideas/IDEA-0036-gamification-fork.md"
+    },
+    {
+      "id": "IDEA-0037",
+      "title": "A native Android companion that runs only the alert engine",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0027"
+      ],
+      "file": "ideas/IDEA-0037-android-alert-companion.md"
+    },
+    {
+      "id": "IDEA-0073",
+      "title": "Show best bid/ask and spread from the Bitunix tickers batch channel",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [],
+      "file": "ideas/IDEA-0073-bitunix-best-bid-ask.md"
+    },
+    {
+      "id": "IDEA-0186",
+      "title": "Audit every public-facing document as a first-contact surface",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "M5",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "docs",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "ideas/IDEA-0186-docs-as-public-surface.md"
+    },
+    {
+      "id": "IDEA-0188",
+      "title": "Payment rails that issue entitlements — BTCPayServer, Stripe, or token-gated",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "M6",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "extensions",
+      "data_class": "none",
+      "adr": "required",
+      "depends_on": [
+        "FEAT-0187",
+        "FEAT-0032"
+      ],
+      "file": "ideas/IDEA-0188-payment-rails-licensing.md"
+    },
+    {
+      "id": "IDEA-0189",
+      "title": "Multi-device sync of settings and presets via a user-operated instance",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "sync",
+      "data_class": "A",
+      "adr": "required",
+      "depends_on": [
+        "FEAT-0014"
+      ],
+      "file": "ideas/IDEA-0189-user-operated-sync.md"
+    },
+    {
+      "id": "IDEA-0191",
+      "title": "Derive the trade-panel UI gap list from the reference screenshots",
+      "type": "idea",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "ideas/IDEA-0191-trade-panel-reference-audit.md"
+    },
+    {
+      "id": "IDEA-0199",
+      "title": "Bitunix UI-Analyse & Umfangs-Beschreibung",
+      "type": "idea",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "IDEA-0191"
+      ],
+      "file": "ideas/IDEA-0199-bitunix-ui-analysis.md"
+    }
+  ],
+  "count": 139
+}
