@@ -21,6 +21,9 @@ export interface BacklogItem {
   size?: string;
   start_date?: string;
   target_date?: string;
+  iteration?: string;
+  sprint?: string;
+  agent_eligible?: boolean | string;
   file: string;
 }
 

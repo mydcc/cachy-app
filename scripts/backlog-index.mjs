@@ -166,6 +166,28 @@ for (const [dir, type] of Object.entries(DIRS)) {
       errors.push(`${file}: adr is "${item.adr}", expected none, required or ADR-NNNN`);
     }
 
+    // Strict format validations for extended metadata (Roadmap, Sprints & Governance)
+    const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+    if (item.start_date && !DATE_REGEX.test(item.start_date)) {
+      errors.push(`${file}: start_date "${item.start_date}" must be in YYYY-MM-DD format`);
+    }
+    if (item.target_date && !DATE_REGEX.test(item.target_date)) {
+      errors.push(`${file}: target_date "${item.target_date}" must be in YYYY-MM-DD format`);
+    }
+
+    const SIZES = ["XS", "S", "M", "L", "XL"];
+    if (item.size && !SIZES.includes(item.size)) {
+      errors.push(`${file}: size "${item.size}" must be one of ${SIZES.join(", ")}`);
+    }
+
+    if (item.estimate !== undefined && (isNaN(Number(item.estimate)) || Number(item.estimate) < 0)) {
+      errors.push(`${file}: estimate "${item.estimate}" must be a non-negative number`);
+    }
+
+    if (item.agent_eligible !== undefined && item.agent_eligible !== "true" && item.agent_eligible !== "false" && typeof item.agent_eligible !== "boolean") {
+      errors.push(`${file}: agent_eligible must be boolean (true or false)`);
+    }
+
     items.push({ ...item, file: `${dir}/${filename}` });
   }
 }
@@ -192,6 +214,9 @@ for (const item of items) {
 for (const item of items) {
   for (const dep of item.depends_on ?? []) {
     if (!byId.has(dep)) errors.push(`${item.file}: depends_on "${dep}" does not exist`);
+  }
+  if (item.parent && !byId.has(item.parent)) {
+    errors.push(`${item.file}: parent "${item.parent}" does not exist in backlog`);
   }
 }
 
@@ -288,6 +313,9 @@ export interface BacklogItem {
   size?: string;
   start_date?: string;
   target_date?: string;
+  iteration?: string;
+  sprint?: string;
+  agent_eligible?: boolean | string;
   file: string;
 }
 
