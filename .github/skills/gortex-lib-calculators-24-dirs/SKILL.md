@@ -215,4 +215,4 @@ explore(operation:"context", task:"understand lib/calculators +24 dirs", format:
 relations(operation:"usages", target:{symbol:"src/services/dataRepairService.ts::dataRepairService.repairMfeMae@365"}, format:"gcx")
 ```
 
-_`format: "gcx"` returns the [GCX1 compact wire format](../../docs/wire-format.md) — round-trippable, ~27% fewer tokens than JSON. Drop it for JSON output; agents using `@gortex/wire` or the Go `github.com/gortexhq/gcx-go` package decode either._
+_`format: "gcx"` returns the [GCX1 compact wire format](../../../docs/wire-format.md) — round-trippable, ~27% fewer tokens than JSON. Drop it for JSON output; agents using `@gortex/wire` or the Go `github.com/gortexhq/gcx-go` package decode either._
