@@ -171,6 +171,12 @@ class AccountManager {
     this.syncCallback = fn;
   }
 
+  requestSync() {
+    if (this.syncCallback) {
+      this.syncCallback();
+    }
+  }
+
   registerOrderCloseCallback(fn: (() => void) | null) {
     this.orderCloseCallback = fn;
   }

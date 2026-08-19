@@ -515,7 +515,9 @@
   // is accountState's signal to go get the real values from REST.
   $effect(() => {
     accountState.registerSyncCallback(() => {
+      fetchAccount();
       fetchPositions();
+      if (activeTab === "orders") fetchPendingOrders();
     });
     return () => accountState.registerSyncCallback(null);
   });
