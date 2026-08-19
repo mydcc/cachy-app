@@ -12,7 +12,10 @@ adr: none
 depends_on: [FEAT-0014]
 estimate: 3
 size: M
+start_date: 2026-08-13
+target_date: 2027-04-30
 ---
+
 
 # FEAT-0187 — Replace the cheat code with a verifiable local entitlement
 

@@ -13,7 +13,9 @@ depends_on: [BUG-0182, BUG-0183, BUG-0184]
 estimate: 1
 size: S
 target_date: 2026-09-18
+start_date: 2026-08-15
 ---
+
 
 # FEAT-0198 — Add characterisation tests for `market.svelte.ts`'s buffer-pool acquire/release pairing
 

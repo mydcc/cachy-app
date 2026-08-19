@@ -10,7 +10,12 @@ area: extensions
 data_class: A
 adr: ADR-0005
 depends_on: []
+start_date: 2026-08-02
+target_date: 2027-04-30
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0039 — Let users add prompts, presets and themes as data files
 

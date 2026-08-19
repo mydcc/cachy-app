@@ -10,7 +10,12 @@ area: ai
 data_class: C
 adr: none
 depends_on: [FEAT-0016]
+start_date: 2026-08-01
+target_date: 2027-10-31
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0019 — Let the assistant research the web when it needs to
 

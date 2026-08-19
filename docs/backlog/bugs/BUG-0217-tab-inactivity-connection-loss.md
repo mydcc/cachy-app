@@ -10,7 +10,12 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-16
+target_date: 2026-08-16
+size: S
+estimate: 2
 ---
+
 
 # BUG-0217 — Tab inactivity drops WebSocket connection without automatic recovery
 

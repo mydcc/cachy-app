@@ -10,7 +10,11 @@ area: repo
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-16
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0214 — Automated PR preview deployments for visual and mobile testing
 

@@ -10,7 +10,12 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-15
+target_date: 2026-08-16
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0209 — Inconsistent and poorly placed number input arrows (Leverage / Risk)
 

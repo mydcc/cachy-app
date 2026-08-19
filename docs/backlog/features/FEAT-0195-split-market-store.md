@@ -15,7 +15,9 @@ depends_on: [BUG-0182, BUG-0183, BUG-0184, FEAT-0198]
 estimate: 3
 size: M
 target_date: 2026-09-21
+start_date: 2026-08-14
 ---
+
 
 # FEAT-0195 — Decompose `market.svelte.ts` into cache management, update batching and kline buffers
 

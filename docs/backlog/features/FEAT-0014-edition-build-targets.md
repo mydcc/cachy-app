@@ -12,7 +12,10 @@ adr: ADR-0003
 depends_on: []
 estimate: 2
 size: S
+start_date: 2026-08-01
+target_date: 2027-04-30
 ---
+
 
 # FEAT-0014 — Produce Community, Pro and Private builds from one tree
 

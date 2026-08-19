@@ -10,7 +10,12 @@ area: market-data
 data_class: none
 adr: ADR-0009
 depends_on: [BUG-0230]
+start_date: 2026-08-18
+target_date: 2026-08-18
+size: S
+estimate: 2
 ---
+
 
 # BUG-0234 — Analyst backfill through the shared store makes the UI flicker
 

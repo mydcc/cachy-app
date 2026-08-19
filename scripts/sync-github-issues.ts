@@ -66,6 +66,8 @@ interface BacklogItem {
     size?: string;
     start_date?: string;
     target_date?: string;
+    iteration?: string;
+    agent_eligible?: boolean;
     content: string;
     filepath: string;
 }
@@ -337,6 +339,9 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     const size = frontmatter.match(/^size:\s*(.+)$/m)?.[1]?.trim() || undefined;
     let start_date = frontmatter.match(/^start_date:\s*(.+)$/m)?.[1]?.trim() || undefined;
     const target_date = frontmatter.match(/^target_date:\s*(.+)$/m)?.[1]?.trim() || undefined;
+    const iteration = frontmatter.match(/^(?:iteration|sprint):\s*(.+)$/m)?.[1]?.trim() || undefined;
+    const agentEligibleRaw = frontmatter.match(/^agent_eligible:\s*(.+)$/m)?.[1]?.trim();
+    const agent_eligible = agentEligibleRaw !== undefined ? agentEligibleRaw === 'true' : undefined;
 
     // Auto-trigger: If item is ready, in-progress, or done, but has no explicit start_date set, default to today's date
     if (!start_date && (status === 'ready' || status === 'in-progress' || status === 'done')) {
@@ -346,7 +351,7 @@ function parseMarkdownFile(filepath: string, rawContent: string): BacklogItem | 
     if (!id) return null;
 
     return {
-        id, title, type, status, area, priority, assignees, editions, data_class, adr, milestone, parent, depends_on, estimate, size, start_date, target_date, content: body, filepath
+        id, title, type, status, area, priority, assignees, editions, data_class, adr, milestone, parent, depends_on, estimate, size, start_date, target_date, iteration, agent_eligible, content: body, filepath
     };
 }
 
@@ -387,6 +392,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
     // `status:*` is what lets a GitHub Projects board bucket cards by backlog stage
     // (idea/specced/ready/in-progress), not just the two-state open/closed the Issues API offers.
     // `backlog-id:*` is the stable lookup key for matching, independent of title/body edits.
+    const isSensitiveArea = item.area === 'execution' || item.area === 'security' || item.area === 'exchange' || item.priority === 'P0';
     const effectiveStatus = hasOpenPR && !isClosed ? 'in-review' : item.status;
     const managedLabels = [
         item.type,
@@ -396,6 +402,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         item.data_class && item.data_class !== 'none' ? `dataclass:${item.data_class}` : '',
         item.adr && item.adr !== 'none' ? `adr:${item.adr}` : '',
         ...(item.editions || []).map(e => `edition:${e}`),
+        isSensitiveArea ? 'review:human-required' : (item.agent_eligible !== false ? 'agent:eligible' : ''),
         `${BACKLOG_ID_LABEL_PREFIX}${item.id}`
     ].filter(Boolean);
 
@@ -904,6 +911,35 @@ async function syncProjectKanbanStatus(issueNumber: number, item: BacklogItem, h
                     mutations.push(updateDateField(projectId, itemNode.id, targetDateField.id, item.target_date).then(() => {
                         console.log(`[Kanban Sync] Synced Target date '${item.target_date}' for #${issueNumber}`);
                     }));
+                }
+            }
+
+            // 7. Area (SingleSelect)
+            if (item.area) {
+                const areaField = projectMeta.fields.get('area');
+                if (areaField && areaField.options) {
+                    const areaOpt = areaField.options.find((o) => o.name.toLowerCase() === item.area.toLowerCase());
+                    const currentArea = currentValues.get('area');
+                    if (areaOpt && currentArea?.optionId !== areaOpt.id) {
+                        mutations.push(updateSingleSelectField(projectId, itemNode.id, areaField.id, areaOpt.id).then(() => {
+                            console.log(`[Kanban Sync] Synced Area '${areaOpt.name}' for #${issueNumber}`);
+                        }));
+                    }
+                }
+            }
+
+            // 8. Edition (SingleSelect or Primary Edition)
+            if (item.editions && item.editions.length > 0) {
+                const editionField = projectMeta.fields.get('edition');
+                if (editionField && editionField.options) {
+                    const primaryEdition = item.editions[0];
+                    const editionOpt = editionField.options.find((o) => o.name.toLowerCase() === primaryEdition.toLowerCase());
+                    const currentEdition = currentValues.get('edition');
+                    if (editionOpt && currentEdition?.optionId !== editionOpt.id) {
+                        mutations.push(updateSingleSelectField(projectId, itemNode.id, editionField.id, editionOpt.id).then(() => {
+                            console.log(`[Kanban Sync] Synced Edition '${editionOpt.name}' for #${issueNumber}`);
+                        }));
+                    }
                 }
             }
 

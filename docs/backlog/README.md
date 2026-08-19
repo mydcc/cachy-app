@@ -100,6 +100,8 @@ depends_on: []
 | `size` | `XS`, `S`, `M`, `L`, `XL` | Optional size classification for GitHub Projects |
 | `start_date` | `YYYY-MM-DD` | Optional start date for GitHub Projects Roadmap |
 | `target_date` | `YYYY-MM-DD` | Optional target deadline date for GitHub Projects Roadmap |
+| `iteration` | `string` | Optional sprint / iteration tag (e.g. `2026-W34` or `Sprint 1`) |
+| `agent_eligible` | `true`, `false` | Optional override for AI agent eligibility (defaults to true unless sensitive area) |
 
 ### Status
 

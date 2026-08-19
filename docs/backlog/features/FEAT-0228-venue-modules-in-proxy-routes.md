@@ -13,7 +13,9 @@ depends_on: [FEAT-0016]
 estimate: 3
 size: M
 target_date: 2026-12-03
+start_date: 2026-08-17
 ---
+
 
 # FEAT-0228 — Move the venue branches out of the proxy routes into per-venue modules
 

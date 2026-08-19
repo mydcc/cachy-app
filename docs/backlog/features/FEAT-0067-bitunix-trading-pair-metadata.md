@@ -13,7 +13,9 @@ depends_on: []
 estimate: 3
 size: M
 target_date: 2026-11-20
+start_date: 2026-08-09
 ---
+
 
 Branch: `feat/FEAT-0067-trading-pair-validation`
 

@@ -12,7 +12,10 @@ adr: none
 depends_on: []
 estimate: 8
 size: L
+start_date: 2026-08-18
+target_date: 2026-08-18
 ---
+
 
 # FEAT-0239 — Epic: AI Prompt Architecture & Safety Refactoring
 

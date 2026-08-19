@@ -10,7 +10,12 @@ area: market-data
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-18
+target_date: 2026-08-18
+size: S
+estimate: 2
 ---
+
 
 # BUG-0230 — Market Analyst never terminates its retry loop
 

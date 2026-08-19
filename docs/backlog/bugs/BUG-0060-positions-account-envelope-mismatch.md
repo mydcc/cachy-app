@@ -10,7 +10,12 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-08
+target_date: 2026-08-13
+size: M
+estimate: 3
 ---
+
 
 # BUG-0060 — PositionsSidebar reads `/api/positions` and `/api/account` through the wrong response envelope
 

@@ -10,7 +10,11 @@ area: security
 data_class: A
 adr: ADR-0001
 depends_on: []
+start_date: 2026-08-15
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0200 — Encrypt API keys and other secrets at rest in localStorage
 

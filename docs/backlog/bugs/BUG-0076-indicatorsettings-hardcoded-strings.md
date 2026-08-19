@@ -11,7 +11,12 @@ area: i18n
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-10
+target_date: 2026-08-13
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0076 — IndicatorSettings.svelte has extensive hardcoded English UI strings
 

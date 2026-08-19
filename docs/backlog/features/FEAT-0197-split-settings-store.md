@@ -15,7 +15,9 @@ depends_on: [BUG-0182, BUG-0183, BUG-0184]
 estimate: 5
 size: L
 target_date: 2026-09-28
+start_date: 2026-08-14
 ---
+
 
 # FEAT-0197 — Extract entitlement state and the settings load/persist path out of `settings.svelte.ts`
 

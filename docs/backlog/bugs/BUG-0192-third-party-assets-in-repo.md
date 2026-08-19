@@ -12,7 +12,9 @@ adr: none
 depends_on: []
 estimate: 1
 size: XS
+start_date: 2026-08-13
 ---
+
 
 # BUG-0192 — Third-party content and temporary planning assets are tracked in the public repository
 

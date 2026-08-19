@@ -10,7 +10,12 @@ area: alerts
 data_class: A
 adr: none
 depends_on: [FEAT-0028]
+start_date: 2026-08-01
+target_date: 2027-03-15
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0030 — Combine several conditions into one alert
 

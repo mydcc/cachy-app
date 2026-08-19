@@ -10,7 +10,12 @@ area: extensions
 data_class: none
 adr: required
 depends_on: [FEAT-0187, FEAT-0032]
+start_date: 2026-08-13
+target_date: 2027-06-30
+size: S
+estimate: 2
 ---
+
 
 # IDEA-0188 — Payment rails that issue entitlements — BTCPayServer, Stripe, or token-gated
 

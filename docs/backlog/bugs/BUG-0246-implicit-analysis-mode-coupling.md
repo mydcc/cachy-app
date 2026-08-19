@@ -13,7 +13,10 @@ depends_on: []
 parent: FEAT-0239
 estimate: 1
 size: XS
+start_date: 2026-08-18
+target_date: 2026-08-18
 ---
+
 
 # BUG-0246 — Implicit coupling of empty string to standard behaviour in modeInstructions
 

@@ -10,7 +10,11 @@ area: sync
 data_class: A
 adr: required
 depends_on: [FEAT-0014]
+start_date: 2026-08-13
+size: S
+estimate: 2
 ---
+
 
 # IDEA-0189 — Multi-device sync of settings and presets via a user-operated instance
 

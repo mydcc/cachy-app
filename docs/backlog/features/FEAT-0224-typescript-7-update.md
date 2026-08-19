@@ -10,7 +10,11 @@ area: tooling
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-17
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0224 — Evaluate and migrate to TypeScript 7
 

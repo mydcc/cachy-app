@@ -13,7 +13,9 @@ depends_on: [FEAT-0021]
 estimate: 2
 size: S
 target_date: 2026-12-14
+start_date: 2026-08-01
 ---
+
 
 # FEAT-0023 — Manage open positions without leaving Cachy
 

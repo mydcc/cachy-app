@@ -14,7 +14,9 @@ depends_on: [FEAT-0011]
 estimate: 5
 size: L
 target_date: 2026-10-21
+start_date: 2026-08-01
 ---
+
 
 # FEAT-0015 — Record every order submission attempt locally
 

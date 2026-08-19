@@ -10,7 +10,12 @@ area: tooling
 data_class: none
 adr: none
 depends_on: [FEAT-0222]
+start_date: 2026-08-17
+target_date: 2026-08-18
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0223 — SpacetimeDB SDK major version update
 

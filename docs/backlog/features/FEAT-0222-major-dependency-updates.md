@@ -10,7 +10,12 @@ area: tooling
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-17
+target_date: 2026-08-17
+size: S
+estimate: 2
 ---
+
 
 
 # FEAT-0222 — Apply low-risk major dependency updates (OpenAI, JSDOM, Undici)

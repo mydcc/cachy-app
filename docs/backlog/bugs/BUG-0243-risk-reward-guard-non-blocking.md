@@ -13,7 +13,10 @@ depends_on: []
 parent: FEAT-0239
 estimate: 2
 size: XS
+start_date: 2026-08-18
+target_date: 2026-08-18
 ---
+
 
 # BUG-0243 — Risk:Reward Guard only logs but does not block execution
 

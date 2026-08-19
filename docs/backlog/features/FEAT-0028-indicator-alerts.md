@@ -13,7 +13,9 @@ depends_on: [FEAT-0027]
 estimate: 5
 size: L
 target_date: 2027-01-29
+start_date: 2026-08-01
 ---
+
 
 # FEAT-0028 — Alerts on indicator conditions
 

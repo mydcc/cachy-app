@@ -10,7 +10,12 @@ area: market-data
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-18
+target_date: 2026-08-18
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0231 — Synthetic timeframes under-fetch their base candles
 

@@ -10,7 +10,12 @@ area: core
 data_class: A
 adr: none
 depends_on: []
+start_date: 2026-08-16
+target_date: 2026-08-17
+size: L
+estimate: 5
 ---
+
 
 # FEAT-0212 — Automatically back up local data so a cleared browser cache can't destroy it
 

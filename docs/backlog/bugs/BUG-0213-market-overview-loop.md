@@ -10,7 +10,12 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-16
+target_date: 2026-08-17
+size: S
+estimate: 2
 ---
+
 
 
 # BUG-0213: Market Overview Modal and Favorite Tiles Infinite Reload Loop

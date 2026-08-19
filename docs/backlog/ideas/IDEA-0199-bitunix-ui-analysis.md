@@ -10,7 +10,12 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [IDEA-0191]
+start_date: 2026-08-15
+target_date: 2026-08-15
+size: S
+estimate: 2
 ---
+
 
 # Bitunix UI-Analyse & Umfangs-Beschreibung
 

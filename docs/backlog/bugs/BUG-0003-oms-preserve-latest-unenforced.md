@@ -10,7 +10,12 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-01
+target_date: 2026-08-13
+size: S
+estimate: 2
 ---
+
 
 # BUG-0003 — OMS force-prune can evict an order it was written to protect
 

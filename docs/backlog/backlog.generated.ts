@@ -21,6 +21,9 @@ export interface BacklogItem {
   size?: string;
   start_date?: string;
   target_date?: string;
+  iteration?: string;
+  sprint?: string;
+  agent_eligible?: boolean | string;
   file: string;
 }
 
@@ -41,6 +44,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "bugs/BUG-0001-bitget-ws-field-mismatch.md"
   },
   {
@@ -59,6 +66,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "bugs/BUG-0002-numeric-zero-target-price.md"
   },
   {
@@ -80,6 +91,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-08-24",
+    "start_date": "2026-08-07",
     "file": "bugs/BUG-0053-device-key-loss-orphans-secrets.md"
   },
   {
@@ -98,6 +110,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "bugs/BUG-0058-ws-position-update-missing-qty-closes-position.md"
   },
   {
@@ -116,6 +132,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "bugs/BUG-0060-positions-account-envelope-mismatch.md"
   },
   {
@@ -134,6 +154,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "bugs/BUG-0062-hedge-mode-close-position-fails.md"
   },
   {
@@ -154,6 +178,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0062"
     ],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "bugs/BUG-0063-close-position-500s-must-not-be-null.md"
   },
   {
@@ -175,6 +203,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0062",
       "BUG-0063"
     ],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "bugs/BUG-0064-oms-position-update-wipes-positionid.md"
   },
   {
@@ -197,6 +229,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-10-05",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0011-preflight-order-verification.md"
   },
   {
@@ -221,6 +254,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-10-16",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0012-paper-trading-mode.md"
   },
   {
@@ -243,6 +277,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-10-09",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0013-risk-limits-and-kill-switch.md"
   },
   {
@@ -261,6 +296,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-17",
+    "size": "L",
+    "estimate": "5",
     "file": "features/FEAT-0212-automatic-local-backup.md"
   },
   {
@@ -279,6 +318,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0003-oms-preserve-latest-unenforced.md"
   },
   {
@@ -297,6 +340,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0004-legacy-aes-cbc-blobs.md"
   },
   {
@@ -315,6 +362,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0042-window-drag-jumps-on-touch.md"
   },
   {
@@ -333,6 +384,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0047-academy-unusable-on-mobile.md"
   },
   {
@@ -351,6 +406,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "ADR-0002",
     "depends_on": [],
+    "start_date": "2026-08-07",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0052-app-access-token-blocks-public-byok-users.md"
   },
   {
@@ -369,6 +428,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0055-position-mark-price-always-zero.md"
   },
   {
@@ -387,6 +450,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0059-account-fetch-error-silently-swallowed.md"
   },
   {
@@ -407,6 +474,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0055"
     ],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md"
   },
   {
@@ -425,6 +496,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-12",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0079-store-subscribe-timer-leak.md"
   },
   {
@@ -446,6 +521,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-08-24",
+    "start_date": "2026-08-12",
     "file": "bugs/BUG-0182-epic-decimal-migration-rust.md"
   },
   {
@@ -469,6 +545,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-09-04",
+    "start_date": "2026-08-12",
     "file": "bugs/BUG-0183-epic-decimal-migration-core.md"
   },
   {
@@ -492,6 +569,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-09-14",
+    "start_date": "2026-08-12",
     "file": "bugs/BUG-0184-epic-decimal-migration-ui.md"
   },
   {
@@ -510,6 +588,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-17",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0213-market-overview-loop.md"
   },
   {
@@ -529,6 +611,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-16",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0215-order-refusal-placeholders.md"
   },
   {
@@ -547,6 +633,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-16",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0217-tab-inactivity-connection-loss.md"
   },
   {
@@ -565,6 +655,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-18",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0218-open-positions-price-sync-stall.md"
   },
   {
@@ -584,6 +678,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-16",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0219-place-order-ordertype-field.md"
   },
   {
@@ -602,6 +700,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0230-market-analyst-fetch-storm.md"
   },
   {
@@ -622,6 +724,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0230"
     ],
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0234-analyst-store-coupling-regression.md"
   },
   {
@@ -640,6 +746,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-18",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md"
   },
   {
@@ -658,6 +767,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-18",
+    "size": "S",
+    "estimate": "2",
     "file": "bugs/BUG-0236-sentiment-route-error-redaction.md"
   },
   {
@@ -679,6 +791,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "parent": "FEAT-0239",
     "estimate": "2",
     "size": "XS",
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
     "file": "bugs/BUG-0241-custom-prompt-overwrites-safety.md"
   },
   {
@@ -700,6 +814,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "parent": "FEAT-0239",
     "estimate": "2",
     "size": "XS",
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
     "file": "bugs/BUG-0243-risk-reward-guard-non-blocking.md"
   },
   {
@@ -720,6 +836,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "estimate": "2",
     "size": "S",
+    "start_date": "2026-08-01",
+    "target_date": "2027-04-30",
     "file": "features/FEAT-0014-edition-build-targets.md"
   },
   {
@@ -744,6 +862,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-10-21",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0015-order-audit-trail.md"
   },
   {
@@ -768,6 +887,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-10-30",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0016-exchange-adapter-interface.md"
   },
   {
@@ -791,6 +911,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-11-05",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0017-exchange-capability-model.md"
   },
   {
@@ -814,6 +935,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-11-12",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0018-adapter-conformance-suite.md"
   },
   {
@@ -837,6 +959,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-11-18",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0020-account-settings-panel.md"
   },
   {
@@ -862,6 +985,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-12-04",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0021-order-types.md"
   },
   {
@@ -885,6 +1009,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-12-14",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0023-position-management.md"
   },
   {
@@ -908,6 +1033,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-12-17",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0024-confirmation-policy.md"
   },
   {
@@ -931,6 +1057,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-12-21",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0026-multi-account.md"
   },
   {
@@ -950,6 +1077,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "features/FEAT-0027-alert-engine.md"
   },
   {
@@ -968,6 +1099,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "ADR-0006",
     "depends_on": [],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "features/FEAT-0041-window-layer-contract.md"
   },
   {
@@ -986,6 +1121,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "ADR-0006",
     "depends_on": [],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "M",
+    "estimate": "3",
     "file": "features/FEAT-0050-window-manager-test-coverage.md"
   },
   {
@@ -1008,6 +1147,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2027-01-08",
+    "start_date": "2026-08-08",
     "file": "features/FEAT-0057-market-activity-panel-redesign.md"
   },
   {
@@ -1029,6 +1169,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-11-20",
+    "start_date": "2026-08-09",
     "file": "features/FEAT-0067-bitunix-trading-pair-metadata.md"
   },
   {
@@ -1050,6 +1191,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-11-24",
+    "start_date": "2026-08-09",
     "file": "features/FEAT-0068-bitunix-account-settings.md"
   },
   {
@@ -1072,6 +1214,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-11-27",
+    "start_date": "2026-08-09",
     "file": "features/FEAT-0069-bitunix-place-order-completion.md"
   },
   {
@@ -1093,6 +1236,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-12-08",
+    "start_date": "2026-08-09",
     "file": "features/FEAT-0070-bitunix-tpsl-placement.md"
   },
   {
@@ -1117,6 +1261,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-11-19",
+    "start_date": "2026-08-17",
     "file": "features/FEAT-0229-refuse-unsupported-verbs-locally.md"
   },
   {
@@ -1137,6 +1282,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "estimate": "8",
     "size": "L",
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
     "file": "features/FEAT-0239-epic-ai-prompt-architecture.md"
   },
   {
@@ -1158,6 +1305,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "parent": "FEAT-0239",
     "estimate": "5",
     "size": "M",
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
     "file": "features/FEAT-0242-structured-function-calling.md"
   },
   {
@@ -1179,6 +1328,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "parent": "FEAT-0239",
     "estimate": "3",
     "size": "S",
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
     "file": "features/FEAT-0245-prompt-templating-versioning.md"
   },
   {
@@ -1197,6 +1348,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0005-gpu-chop-field-mismatch.md"
   },
   {
@@ -1215,6 +1370,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0006-sentiment-response-unvalidated.md"
   },
   {
@@ -1233,6 +1392,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0009-symbolpicker-null-resolution.md"
   },
   {
@@ -1251,6 +1414,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-02",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0038-android-manifest-regressions.md"
   },
   {
@@ -1269,6 +1436,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0043-responsive-window-remaximizes.md"
   },
   {
@@ -1287,6 +1458,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0048-glass-removes-academy-sidebar-background.md"
   },
   {
@@ -1305,6 +1480,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0049-quiz-closes-after-every-answer.md"
   },
   {
@@ -1323,6 +1502,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "ADR-0006",
     "depends_on": [],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0051-sidepanel-never-rendered.md"
   },
   {
@@ -1341,6 +1524,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0054-orders-tab-loading-indicator-broken.md"
   },
   {
@@ -1359,6 +1546,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0056-order-history-tab-stale.md"
   },
   {
@@ -1377,6 +1568,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0061-order-tooltip-metadata-dropped.md"
   },
   {
@@ -1395,6 +1590,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-08",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0066-position-tooltip-mislabeled-pnl-row.md"
   },
   {
@@ -1417,6 +1616,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "parent": "FEAT-0067",
     "start_date": "2026-08-13",
+    "target_date": "2026-08-18",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0078-stores-missing-hmr-cleanup.md"
   },
   {
@@ -1438,6 +1640,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "target_date": "2026-09-04",
+    "start_date": "2026-08-13",
     "file": "bugs/BUG-0185-competitor-names-in-docs.md"
   },
   {
@@ -1458,6 +1661,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "estimate": "1",
     "size": "XS",
+    "start_date": "2026-08-13",
     "file": "bugs/BUG-0192-third-party-assets-in-repo.md"
   },
   {
@@ -1474,6 +1678,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-15",
+    "target_date": "2026-08-16",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md"
   },
   {
@@ -1490,6 +1698,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-15",
+    "target_date": "2026-08-16",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0209-inconsistent-number-input-arrows.md"
   },
   {
@@ -1506,6 +1718,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-15",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0211-position-tooltip-delay.md"
   },
   {
@@ -1525,6 +1740,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-16",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0216-i18n-interpolation-values.md"
   },
   {
@@ -1543,6 +1762,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-16",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0220-issue-autolink-substring-match.md"
   },
   {
@@ -1563,6 +1786,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0220"
     ],
+    "start_date": "2026-08-16",
+    "target_date": "2026-08-16",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0221-pr-body-closing-keyword-unenforced.md"
   },
   {
@@ -1581,6 +1808,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-17",
+    "target_date": "2026-08-17",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0225-index-regeneration-merge-conflicts.md"
   },
   {
@@ -1599,6 +1830,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-17",
+    "target_date": "2026-08-17",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0226-sync-cost-grows-with-backlog-size.md"
   },
   {
@@ -1617,6 +1852,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0231-synthetic-timeframe-underfetch.md"
   },
   {
@@ -1635,6 +1874,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0232-divergent-favourites-stores.md"
   },
   {
@@ -1653,6 +1896,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-18",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0237-stream-logs-timing-safe-comparison-hash.md"
   },
   {
@@ -1671,6 +1917,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-18",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0238-gemini-proxy-model-param-sanitization.md"
   },
   {
@@ -1692,6 +1941,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "parent": "FEAT-0239",
     "estimate": "2",
     "size": "XS",
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
     "file": "bugs/BUG-0244-fragile-prompt-leak-workaround.md"
   },
   {
@@ -1713,6 +1964,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "parent": "FEAT-0239",
     "estimate": "1",
     "size": "XS",
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
     "file": "bugs/BUG-0246-implicit-analysis-mode-coupling.md"
   },
   {
@@ -1732,6 +1985,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0016"
     ],
+    "start_date": "2026-08-01",
+    "target_date": "2027-10-31",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0019-agentic-web-search.md"
   },
   {
@@ -1753,6 +2010,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2027-01-15",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0025-trading-notifications.md"
   },
   {
@@ -1776,6 +2034,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2027-01-29",
+    "start_date": "2026-08-01",
     "file": "features/FEAT-0028-indicator-alerts.md"
   },
   {
@@ -1796,6 +2055,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0027"
     ],
+    "start_date": "2026-08-01",
+    "target_date": "2027-03-15",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0029-drawing-alerts.md"
   },
   {
@@ -1816,6 +2079,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0028"
     ],
+    "start_date": "2026-08-01",
+    "target_date": "2027-03-15",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0030-combined-alerts.md"
   },
   {
@@ -1834,6 +2101,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0014"
     ],
+    "start_date": "2026-08-01",
+    "target_date": "2027-04-30",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0031-whitelabel-theming.md"
   },
   {
@@ -1854,6 +2125,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0014",
       "FEAT-0040"
     ],
+    "start_date": "2026-08-01",
+    "target_date": "2027-06-30",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0032-plugin-contract.md"
   },
   {
@@ -1875,6 +2150,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "estimate": "8",
     "size": "XL",
+    "start_date": "2026-08-01",
+    "target_date": "2027-08-31",
     "file": "features/FEAT-0033-chat-hardening-and-reputation.md"
   },
   {
@@ -1896,6 +2173,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "estimate": "5",
     "size": "L",
+    "start_date": "2026-08-01",
+    "target_date": "2027-08-31",
     "file": "features/FEAT-0034-copy-trading.md"
   },
   {
@@ -1917,6 +2196,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0013",
       "FEAT-0015"
     ],
+    "start_date": "2026-08-01",
+    "target_date": "2027-12-31",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0035-autonomous-execution-agent.md"
   },
   {
@@ -1935,6 +2218,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "ADR-0005",
     "depends_on": [],
+    "start_date": "2026-08-02",
+    "target_date": "2027-04-30",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0039-data-extensions.md"
   },
   {
@@ -1956,6 +2243,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0039",
       "FEAT-0011"
     ],
+    "start_date": "2026-08-02",
+    "target_date": "2027-06-30",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0040-computation-extensions.md"
   },
   {
@@ -1976,6 +2267,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0041"
     ],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0044-modalframe-through-window-manager.md"
   },
   {
@@ -1996,6 +2291,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0044"
     ],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0045-academy-as-window-type.md"
   },
   {
@@ -2016,6 +2315,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0041"
     ],
+    "start_date": "2026-08-04",
+    "target_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0046-sidepanel-onto-window-manager.md"
   },
   {
@@ -2037,6 +2340,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-12-10",
+    "start_date": "2026-08-09",
     "file": "features/FEAT-0071-bitunix-native-bulk-endpoints.md"
   },
   {
@@ -2058,6 +2362,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2027-01-12",
+    "start_date": "2026-08-09",
     "file": "features/FEAT-0072-bitunix-tpsl-ws-channel.md"
   },
   {
@@ -2080,6 +2385,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "estimate": "3",
     "size": "M",
+    "start_date": "2026-08-13",
+    "target_date": "2027-04-30",
     "file": "features/FEAT-0187-edition-entitlement-switch.md"
   },
   {
@@ -2106,6 +2413,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "8",
     "size": "XL",
     "target_date": "2026-09-28",
+    "start_date": "2026-08-13",
     "file": "features/FEAT-0190-epic-split-god-functions.md"
   },
   {
@@ -2133,6 +2441,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "target_date": "2026-09-14",
     "branch": "FEAT-0193-split-market-watcher",
     "done_version": "1.6.0-beta.18",
+    "start_date": "2026-08-14",
     "file": "features/FEAT-0193-split-market-watcher.md"
   },
   {
@@ -2159,6 +2468,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-09-14",
+    "start_date": "2026-08-14",
     "file": "features/FEAT-0194-split-bitunix-ws-handle-message.md"
   },
   {
@@ -2187,6 +2497,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-09-21",
+    "start_date": "2026-08-14",
     "file": "features/FEAT-0195-split-market-store.md"
   },
   {
@@ -2213,6 +2524,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-09-21",
+    "start_date": "2026-08-14",
     "file": "features/FEAT-0196-split-active-technicals-manager.md"
   },
   {
@@ -2240,6 +2552,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-09-28",
+    "start_date": "2026-08-14",
     "file": "features/FEAT-0197-split-settings-store.md"
   },
   {
@@ -2265,6 +2578,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "1",
     "size": "S",
     "target_date": "2026-09-18",
+    "start_date": "2026-08-15",
     "file": "features/FEAT-0198-market-store-buffer-pool-characterisation-tests.md"
   },
   {
@@ -2283,6 +2597,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "ADR-0001",
     "depends_on": [],
+    "start_date": "2026-08-15",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md"
   },
   {
@@ -2303,6 +2620,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "estimate": "3",
     "size": "M",
+    "start_date": "2026-08-16",
     "file": "features/FEAT-0201-order-history-time-range.md"
   },
   {
@@ -2321,6 +2639,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-16",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0214-pr-preview-deployments.md"
   },
   {
@@ -2339,6 +2660,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-17",
+    "target_date": "2026-08-17",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0222-major-dependency-updates.md"
   },
   {
@@ -2359,6 +2684,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0222"
     ],
+    "start_date": "2026-08-17",
+    "target_date": "2026-08-18",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0223-spacetimedb-major-update.md"
   },
   {
@@ -2383,6 +2712,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "5",
     "size": "L",
     "target_date": "2026-12-10",
+    "start_date": "2026-08-17",
     "file": "features/FEAT-0227-adapter-owns-its-socket.md"
   },
   {
@@ -2406,6 +2736,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "3",
     "size": "M",
     "target_date": "2026-12-03",
+    "start_date": "2026-08-17",
     "file": "features/FEAT-0228-venue-modules-in-proxy-routes.md"
   },
   {
@@ -2427,6 +2758,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0230",
       "BUG-0232"
     ],
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0233-market-dashboard-readable-signal.md"
   },
   {
@@ -2448,6 +2783,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "parent": "FEAT-0239",
     "estimate": "3",
     "size": "S",
+    "start_date": "2026-08-18",
+    "target_date": "2026-08-18",
     "file": "features/FEAT-0240-prompt-caching.md"
   },
   {
@@ -2466,6 +2803,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0007-hardcoded-ui-strings.md"
   },
   {
@@ -2484,6 +2825,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0008-toast-array-unbounded.md"
   },
   {
@@ -2502,6 +2847,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0010-modal-extraclasses-ignored.md"
   },
   {
@@ -2521,6 +2870,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-10",
+    "target_date": "2026-08-13",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0076-indicatorsettings-hardcoded-strings.md"
   },
   {
@@ -2537,6 +2890,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-15",
+    "target_date": "2026-08-16",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0206-quiz-flashcard-close-button.md"
   },
   {
@@ -2553,6 +2910,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-15",
+    "target_date": "2026-08-16",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0208-rss-news-modal-iframe.md"
   },
   {
@@ -2569,6 +2930,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-15",
+    "target_date": "2026-08-16",
+    "size": "XS",
+    "estimate": "1",
     "file": "bugs/BUG-0210-settings-security-warning-prominence.md"
   },
   {
@@ -2587,6 +2952,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0022-settings-search.md"
   },
   {
@@ -2607,6 +2975,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "estimate": "5",
     "size": "L",
+    "start_date": "2026-08-12",
+    "target_date": "2026-08-15",
     "file": "features/FEAT-0074-bitunix-funding-history.md"
   },
   {
@@ -2627,6 +2997,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "estimate": "3",
     "size": "M",
+    "start_date": "2026-08-09",
     "file": "features/FEAT-0075-bitunix-position-tiers.md"
   },
   {
@@ -2645,6 +3016,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-17",
+    "size": "S",
+    "estimate": "2",
     "file": "features/FEAT-0224-typescript-7-update.md"
   },
   {
@@ -2661,6 +3035,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "required",
     "depends_on": [],
+    "start_date": "2026-08-01",
+    "size": "S",
+    "estimate": "2",
     "file": "ideas/IDEA-0036-gamification-fork.md"
   },
   {
@@ -2681,6 +3058,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0027"
     ],
+    "start_date": "2026-08-01",
+    "target_date": "2027-03-15",
+    "size": "S",
+    "estimate": "2",
     "file": "ideas/IDEA-0037-android-alert-companion.md"
   },
   {
@@ -2699,6 +3080,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "C",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-09",
+    "size": "S",
+    "estimate": "2",
     "file": "ideas/IDEA-0073-bitunix-best-bid-ask.md"
   },
   {
@@ -2717,6 +3101,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-13",
+    "target_date": "2027-04-30",
+    "size": "S",
+    "estimate": "2",
     "file": "ideas/IDEA-0186-docs-as-public-surface.md"
   },
   {
@@ -2737,6 +3125,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0187",
       "FEAT-0032"
     ],
+    "start_date": "2026-08-13",
+    "target_date": "2027-06-30",
+    "size": "S",
+    "estimate": "2",
     "file": "ideas/IDEA-0188-payment-rails-licensing.md"
   },
   {
@@ -2756,6 +3148,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0014"
     ],
+    "start_date": "2026-08-13",
+    "size": "S",
+    "estimate": "2",
     "file": "ideas/IDEA-0189-user-operated-sync.md"
   },
   {
@@ -2774,6 +3169,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "start_date": "2026-08-13",
+    "target_date": "2026-08-15",
+    "size": "S",
+    "estimate": "2",
     "file": "ideas/IDEA-0191-trade-panel-reference-audit.md"
   },
   {
@@ -2794,6 +3193,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "IDEA-0191"
     ],
+    "start_date": "2026-08-15",
+    "target_date": "2026-08-15",
+    "size": "S",
+    "estimate": "2",
     "file": "ideas/IDEA-0199-bitunix-ui-analysis.md"
   }
 ] as const;

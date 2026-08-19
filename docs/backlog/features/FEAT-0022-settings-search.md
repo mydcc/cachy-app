@@ -10,7 +10,11 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-01
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0022 — Make settings findable with a search box
 
