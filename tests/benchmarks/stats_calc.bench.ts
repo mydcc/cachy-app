@@ -28,14 +28,14 @@ describe("calculatePerformanceStats", () => {
   bench("Current (O(N log N) date parse)", () => {
     // Re-implementation of original sorting logic to measure exactly the slow part
     const closedTrades = journalData.filter((t) => t.status === "Won" || t.status === "Lost");
-    const sorted = [...closedTrades].sort(
+    const _sorted = [...closedTrades].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
   });
 
   bench("Optimized (Schwartzian transform)", () => {
     const closedTrades = journalData.filter((t) => t.status === "Won" || t.status === "Lost");
-    const sorted = closedTrades
+    const _sorted = closedTrades
         .map((t) => ({ t, ts: new Date(t.date).getTime() }))
         .sort((a, b) => a.ts - b.ts)
         .map(({ t }) => t);
