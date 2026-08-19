@@ -791,6 +791,50 @@
       "file": "bugs/BUG-0243-risk-reward-guard-non-blocking.md"
     },
     {
+      "id": "BUG-0248",
+      "title": "Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-11-05",
+      "start_date": "2026-08-19",
+      "file": "bugs/BUG-0248-chart-candle-price-reactivity-freeze.md"
+    },
+    {
+      "id": "BUG-0249",
+      "title": "Account balance and margin do not reconcile after closing positions and stale funding rate log",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-11-05",
+      "start_date": "2026-08-19",
+      "file": "bugs/BUG-0249-account-balance-reconciliation-stale-margin.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -3197,5 +3241,5 @@
       "file": "ideas/IDEA-0199-bitunix-ui-analysis.md"
     }
   ],
-  "count": 140
+  "count": 142
 }

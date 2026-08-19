@@ -2,9 +2,9 @@
 
 # Backlog index
 
-140 items. How to read and add them: [README.md](README.md).
+142 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 22 · 🟡 in-progress 1 · ✅ done 101
+Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ done 101
 
 ---
 
@@ -65,6 +65,8 @@ Counts by status: 💡 idea 16 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 | [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | trade-panel |
 | [BUG-0215](bugs/BUG-0215-order-refusal-placeholders.md) | Gate refusals render raw placeholders and refuse every paper order | P1 | ✅ done | trade-panel |
 | [BUG-0219](bugs/BUG-0219-place-order-ordertype-field.md) | place_order never received an order type, so every limit order failed | P1 | ✅ done | execution |
+| [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | 📋 specced | ui |
+| [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | 📋 specced | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
@@ -246,6 +248,8 @@ Counts by status: 💡 idea 16 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0241](bugs/BUG-0241-custom-prompt-overwrites-safety.md) | customSystemPrompt completely overwrites baseRoleInstructions and safety rules | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | ✅ done | M8 | community, pro, private | none | none | — |
+| [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
+| [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -354,4 +358,4 @@ Counts by status: 💡 idea 16 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0248**
+Next free number: **0250**
