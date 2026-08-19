@@ -2,7 +2,7 @@
 id: BUG-0211
 title: Position details hidden behind tooltip delay
 type: bug
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community]
@@ -28,13 +28,20 @@ Crucial information was moved into a tooltip to save space in the list view, but
 
 ## Fix
 
-- Evaluate if the `PositionTooltip` can be removed entirely (as suggested by user).
-- Either display the most critical information directly in the position row, or use an accordion/expandable row design for details.
-- If a tooltip/popover remains necessary, it should use proper intent delays and click-to-pin functionality (as discussed in UI/UX polishing).
+- Remove hover-triggered `PositionTooltip` in `PositionsList.svelte` entirely.
+- Display all critical position details inline directly within the `detailed` position card:
+  - Add `liquidationPrice` (with warning styling if present) and `marginMode` (e.g. cross/isolated badge) inline alongside existing margin and size details.
+- Clean up or deprecate `PositionTooltip.svelte` if it has no other consumers.
 
 ## Acceptance criteria
 
-- [ ] Core financial details of a position are accessible without relying on a hover delay.
-- [ ] The position list UX is stable on both mobile and desktop (no flickering tooltips).
+- [ ] Core financial details of a position (size, entry, mark, margin, liquidation price, margin mode, realized/unrealized PnL) are accessible directly in the card without relying on a hover delay.
+- [ ] Hover-triggered tooltip for position items in `PositionsList.svelte` is removed.
+- [ ] The position list UX renders stably and responsively on both mobile and desktop (no flickering tooltips or mouse coordinate popovers).
+
+## Out of scope
+
+- Popover or modal sheets for positions (inline layout per Option A suffices).
+- Changes to order tooltips (`OrderDetailsTooltip`) or chart tooltips.
 
 ## Links
