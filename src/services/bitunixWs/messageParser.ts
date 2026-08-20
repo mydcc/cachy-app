@@ -31,7 +31,7 @@ export type ParseOutcome =
   | { type: "fast_price"; symbol: string; data: z.infer<typeof StrictPriceDataSchema>; rawSymbol: string }
   | { type: "fast_ticker"; symbol: string; data: z.infer<typeof StrictTickerDataSchema>; rawSymbol: string; normalized: ReturnType<typeof mdaService.normalizeTicker> }
   | { type: "fast_depth"; symbol: string; data: z.infer<typeof StrictDepthDataSchema>; rawSymbol: string }
-  | { type: "fast_kline"; symbol: string; timeframe: string; data: unknown; rawSymbol: string }
+  | { type: "fast_kline"; symbol: string; timeframe: string; data: unknown; rawSymbol: string; ts?: number }
   | { type: "validated"; message: BitunixWSMessage }
   | { type: "critical_error"; issues: z.ZodIssue[] }
   | { type: "ignore"; reason?: string };
@@ -94,7 +94,7 @@ export function parseMessage(message: Record<string, unknown>, context: ParserCo
                       timeframe = revMap[bitunixTf] || bitunixTf;
                     }
                   }
-                  return { type: "fast_kline", symbol, timeframe, data, rawSymbol };
+                  return { type: "fast_kline", symbol, timeframe, data, rawSymbol, ts: typeof message.ts === "number" ? message.ts : undefined };
                 }
               } catch (fastPathError) {
                 if (import.meta.env.DEV) console.warn("[BitunixWS] FastPath error (kline):", fastPathError);
