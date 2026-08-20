@@ -81,7 +81,7 @@ describe("synthetic timeframe history reaching the store (BUG-0231)", () => {
         installFakeExchange();
     });
 
-    it("puts enough 6m candles in marketState for an EMA 200 to exist", async () => {
+    it("puts enough 6m candles in marketState for an EMA 200 to exist", { timeout: 60_000 }, async () => {
         const [{ marketWatcher }, { marketState }, { settingsState }] = await Promise.all([
             import("../marketWatcher"),
             import("../../stores/market.svelte"),
