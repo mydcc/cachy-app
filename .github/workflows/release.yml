@@ -39,6 +39,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Sync moving deploy tags
+        # deploy-build.yml force-recreates the rolling tags deploy-beta and
+        # deploy-stable on every build. Those moving tags make the plain
+        # `git fetch --tags` that semantic-release performs fail with
+        # "would clobber existing tag". Force-fetch all tags to update the
+        # local tags first so semantic-release's own fetch is a no-op.
+        run: git fetch --tags --force
+
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
