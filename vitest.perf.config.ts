@@ -24,6 +24,7 @@ const config = mergeConfig(
   baseConfig,
   defineConfig({
     test: {
+      pool: "forks",
       include: [
         "src/tests/performance/engine_benchmark.test.ts",
         "src/tests/performance/memory_profiling.test.ts",

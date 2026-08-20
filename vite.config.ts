@@ -57,6 +57,7 @@ export default defineConfig({
     hookTimeout: 20000,
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
+    pool: "threads",
     // Two projects, because component tests need one resolution rule the rest
     // of the suite must not have. `npm test` runs both.
     projects: [

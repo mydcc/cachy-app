@@ -1,3 +1,4 @@
+// @vitest-environment node
 /*
  * Copyright (C) 2026 MYDCT
  *

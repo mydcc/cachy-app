@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { JSDOM } from 'jsdom';
 import type { Config } from 'dompurify';
 
