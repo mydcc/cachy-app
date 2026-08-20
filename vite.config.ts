@@ -7,7 +7,9 @@
  * (at your option) any later version.
  */
 
+import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
@@ -55,7 +57,28 @@ export default defineConfig({
   // and reads `vitePreprocess` from svelte.config.js) is used instead, and the
   // `$app/*` / `$env/*` virtual modules it normally provides are aliased to
   // small stand-ins in `src/tests/helpers/`. Dev/build/check keep `sveltekit()`.
-  plugins: [process.env.VITEST === "true" ? svelte() : sveltekit(), tailwindcss()],
+  //
+  // One thing `sveltekit()` did for free was run `svelte-kit sync` on startup,
+  // generating `.svelte-kit/tsconfig.json`, which `tsconfig.json` extends.
+  // Without it, rolldown's resolver (used during dependency optimization) fails
+  // on a fresh checkout/CI with "Tsconfig not found" — so the test branch syncs
+  // once, only when the generated config is missing.
+  plugins: [
+    process.env.VITEST === "true"
+      ? [
+          {
+            name: "cachy-ensure-svelte-kit-sync",
+            config() {
+              if (!existsSync(".svelte-kit/tsconfig.json")) {
+                execSync("svelte-kit sync", { stdio: "inherit" });
+              }
+            },
+          },
+          svelte(),
+        ]
+      : sveltekit(),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       "$app/environment": fileURLToPath(new URL("./src/tests/helpers/app-environment.ts", import.meta.url)),
