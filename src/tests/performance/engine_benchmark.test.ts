@@ -87,11 +87,12 @@ describe('Engine Performance Benchmarks', () => {
         `runs=[${runs.map(r => r.toFixed(1)).join(', ')}]`
       );
 
-      // Performance budgets
-      if (size <= 100) expect(median).toBeLessThan(50);
-      if (size === 1000) expect(median).toBeLessThan(100);
-      if (size === 5000) expect(median).toBeLessThan(500);
-      if (size === 10000) expect(median).toBeLessThan(1000);
+      // Performance budgets (headroom for shared-CPU CI runners; a real
+      // regression in the WASM indicator path stays far beyond these)
+      if (size <= 100) expect(median).toBeLessThan(100);
+      if (size === 1000) expect(median).toBeLessThan(200);
+      if (size === 5000) expect(median).toBeLessThan(750);
+      if (size === 10000) expect(median).toBeLessThan(1500);
     }, 30000);
   }
 

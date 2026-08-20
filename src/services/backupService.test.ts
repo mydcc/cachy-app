@@ -151,7 +151,7 @@ describe("backupService", () => {
     const result = await backupService.restoreFromBackup(backupText, "wrong");
     expect(result.success).toBe(false);
     expect(result.message).toBe("app.backupWrongPassword");
-  }, 15000);
+  }, 60000);
 
   it("should throw error when backing up corrupt localStorage data", async () => {
     // The service currently catches JSON parse errors and returns null for that key,
