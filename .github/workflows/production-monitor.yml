@@ -11,15 +11,22 @@ on:
     - cron: '0 6 * * *'   # 06:00 UTC täglich
   workflow_dispatch:
 
+# Least-privilege default: this only checks out the repo to run scripts and
+# uploads a report artifact. It never writes to the repo or the GitHub API
+# (the Jules dispatch and Discord notification go through their own APIs,
+# not GITHUB_TOKEN).
+permissions:
+  contents: read
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
 

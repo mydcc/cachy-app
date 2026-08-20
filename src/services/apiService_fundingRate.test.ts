@@ -117,3 +117,64 @@ describe("apiService.fetchBitunixFundingRates", () => {
     await expect(apiService.fetchBitunixFundingRates()).rejects.toThrow();
   });
 });
+
+describe("apiService.fetchBitunixFundingRateHistory", () => {
+  beforeEach(() => {
+    global.fetch = vi.fn();
+    requestManager.clearCache();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("passes fundingRate through as-is (already a fraction) and sorts chronologically", async () => {
+    const mockResponse = {
+      code: 0,
+      data: [
+        {
+          symbol: "BTCUSDT",
+          markPrice: "66000",
+          fundingRate: "-0.005776",
+          fundingTime: "1770720000000",
+        },
+        {
+          symbol: "BTCUSDT",
+          markPrice: "65000",
+          fundingRate: "0.001000",
+          fundingTime: "1770710000000",
+        },
+      ],
+      msg: "Success",
+    };
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify(mockResponse),
+      headers: new Headers({ "content-type": "application/json" }),
+    } as unknown as Response);
+
+    const result = await apiService.fetchBitunixFundingRateHistory("BTCUSDT", 10);
+
+    expect(result).toHaveLength(2);
+    // Oldest first
+    expect(result[0].fundingTime).toBe(1770710000000);
+    expect(result[0].fundingRate).toEqual(new Decimal("0.001000"));
+    expect(result[1].fundingTime).toBe(1770720000000);
+    expect(result[1].fundingRate).toEqual(new Decimal("-0.005776"));
+  });
+
+  it("throws when API returns invalid payload", async () => {
+    const mockResponse = {
+      code: 0,
+      data: [{ symbol: "BTCUSDT" }], // missing fundingRate and fundingTime
+      msg: "Success",
+    };
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify(mockResponse),
+      headers: new Headers({ "content-type": "application/json" }),
+    } as unknown as Response);
+
+    await expect(apiService.fetchBitunixFundingRateHistory("BTCUSDT")).rejects.toThrow();
+  });
+});

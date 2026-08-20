@@ -134,12 +134,63 @@ There is **one** script, and it defaults to production:
 ```bash
 ./deploy.sh            # production — cachy.app, branch main, port 3001
 ./deploy.sh --beta     # staging    — dev.cachy.app, branch develop, port 3002
+./deploy.sh --ci       # same as above, but deploys a CI-built artifact (see below)
+./deploy.sh --beta --ci
 ```
 
-`--beta` is the only argument it recognises. Anything else is ignored and the
-script deploys **production**. Before doing so it prints the target environment,
-offers to switch you to the required branch, and asks for an explicit `y` — so a
-mistyped argument is caught, but do not rely on that: read the banner.
+`--beta` selects the staging environment and `--ci` switches the build step from
+"compile on this host" to "download the artifact GitHub Actions already built".
+Both can be combined. Any other argument is ignored and the script deploys
+**production**. Before doing so it prints the target environment, offers to
+switch you to the required branch, and asks for an explicit `y` — so a mistyped
+argument is caught, but do not rely on that: read the banner.
+
+### Deploying a CI-built artifact (`--ci`)
+
+Small servers can run out of memory compiling this app — `npm ci` plus the WASM
+and Vite builds peaked past 8 GB on the staging box and the kernel OOM-killed
+the build (`Killed` in the deploy log, with the build log showing the compile
+had actually finished). The fix is to stop compiling on the server entirely:
+
+1. `.github/workflows/deploy-build.yml` builds the artifact in GitHub Actions on
+   every push to `develop`/`main` and publishes it as `cachy-build.tar.gz` on a
+   per-branch moving release tag (`deploy-beta` for `develop`, `deploy-stable`
+   for `main`). The download URL is fixed.
+2. `./deploy.sh --beta --ci` then downloads that URL, extracts `build/` into the
+   shadow directory, refreshes production dependencies with
+   `npm ci --omit=dev` (cheap on memory, unlike a full build), and runs the same
+   backup → swap → restart → health-check sequence as a local deploy.
+
+Everything else — concurrency lock, backup, atomic swap, graceful shutdown,
+health check — is shared with the local-build path. A failed download aborts
+before the live deployment is touched, exactly like a failed local build.
+
+The URL is `https://github.com/<CI_REPO>/releases/download/<tag>/cachy-build.tar.gz`
+with `<CI_REPO>` and the tags coming from `.deploy.conf` (defaults
+`mydcc/cachy-app`, `deploy-stable`, `deploy-beta` — existing configs need no
+edits). If the workflow has not run yet for the pushed commit, the download
+fails fast and the deploy reports a build failure.
+
+**Rolling back a bad CI build.** Before the moving tag is overwritten, the
+workflow preserves the current artifact as `<tag>-previous`
+(`deploy-beta-previous` / `deploy-stable-previous`). To redeploy the last
+known-good build after a bad deploy, point the config at the preserved tag and
+re-run the same deploy — no rebuild needed:
+
+```bash
+# .deploy.conf
+CI_ARTIFACT_TAG_BETA="deploy-beta-previous"
+
+./deploy.sh --beta --ci
+```
+
+The preserved tag is replaced on the next successful build, so only the most
+recent previous artifact is kept.
+
+> ⚠️ `--ci` still runs `git pull` first and refreshes `node_modules` with
+> `npm ci --omit=dev` at the project root. After a failed deploy, a subsequent
+> local build (`./deploy.sh` without `--ci`) re-installs the dev dependencies
+> automatically.
 
 Which domain, branch and port each mode uses comes from `.deploy.conf`
 (`STABLE_*` / `BETA_*`). Copy `.deploy.conf.example` and adjust it before the

@@ -28,20 +28,23 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { marketState } from "../../stores/market.svelte";
+  import { resultsState } from "../../stores/results.svelte";
+  import { fundingRateService } from "../../services/fundingRateService.svelte";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { SymbolPickerWindow } from "../../lib/windows/implementations/SymbolPickerWindow.svelte";
   import { app } from "../../services/app";
   import { Decimal } from "decimal.js";
+  import Tooltip from "../shared/Tooltip.svelte";
 
   const dispatch = createEventDispatcher();
 
   interface Props {
     symbol: string;
-    entryPrice: string | number | null;
+    entryPrice: string | null;
     useAtrSl: boolean;
-    atrValue: string | number | null;
-    atrMultiplier: string | number | null;
-    stopLossPrice: string | number | null;
+    atrValue: string | null;
+    atrMultiplier: string | null;
+    stopLossPrice: string | null;
     atrMode: "manual" | "auto";
     atrTimeframe: string;
     atrFormulaDisplay: string;
@@ -81,7 +84,7 @@
   let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
 
-  const format = (val: string | number | null) =>
+  const format = (val: string | null) =>
     val === null || val === undefined ? "" : String(val);
 
   // Local state for numeric inputs (Buffer to prevent "vanishing decimal" bug)
@@ -115,6 +118,49 @@
       return dev > 1000 ? 0 : dev; // Ignore extreme values during sync
     } catch {
       return 0;
+    }
+  });
+
+  // Calculate 24h holding cost based on 7D average funding rate and position size
+  let estimatedHoldingCost24h = $derived.by(() => {
+    if (!symbol) return null;
+    const norm = normalizeSymbol(symbol, "bitunix");
+    const history = fundingRateService.historyState[norm];
+    if (!history || !history.avg7d || history.avg7d.isZero()) return null;
+
+    try {
+      // Get position size (either from resultsState or locked position)
+      let posSizeDecimal: Decimal | null = null;
+      if (tradeState.isPositionSizeLocked && tradeState.lockedPositionSize && tradeState.lockedPositionSize.gt(0)) {
+        posSizeDecimal = tradeState.lockedPositionSize;
+      } else if (resultsState.positionSize && resultsState.positionSize !== "-") {
+        posSizeDecimal = new Decimal(resultsState.positionSize.replace(/,/g, ""));
+      }
+
+      if (!posSizeDecimal || posSizeDecimal.lte(0)) return null;
+
+      const entryPriceVal = entryPrice || localEntryPrice;
+      if (!entryPriceVal) return null;
+      const entryDecimal = new Decimal(entryPriceVal.replace(/,/g, ""));
+      if (entryDecimal.lte(0)) return null;
+
+      const notional = posSizeDecimal.times(entryDecimal);
+      const fundingInterval = marketState.data[norm]?.fundingInterval ?? 8;
+      const settlementsPerDay = new Decimal(24).dividedBy(fundingInterval);
+      
+      // Cost = Notional * avg7d_rate * (24 / interval)
+      const cost24h = notional.times(history.avg7d).times(settlementsPerDay);
+      return cost24h;
+    } catch {
+      return null;
+    }
+  });
+
+  // On symbol change, fetch funding history on demand if not cached
+  $effect(() => {
+    if (symbol) {
+      const norm = normalizeSymbol(symbol, "bitunix");
+      fundingRateService.fetchHistory(norm);
     }
   });
 
@@ -312,6 +358,10 @@
     const value = target.value;
     localEntryPrice = value;
 
+    if (settingsState.autoUpdatePriceInput) {
+      settingsState.autoUpdatePriceInput = false;
+    }
+
     const validated = parseInputVal(value);
     // Only update store if value is valid AND different
     if (validated !== undefined && entryPrice !== validated) {
@@ -362,8 +412,11 @@
     trackCustomEvent("ATR", "ChangeTimeframe", val);
   }
 
-  // Determine dynamic step based on price magnitude
+  // Determine dynamic step based on price magnitude or symbol quotePrecision
   let priceStep = $derived.by(() => {
+    if (symbolMeta?.quotePrecision !== undefined) {
+      return new Decimal(10).pow(-symbolMeta.quotePrecision).toNumber();
+    }
     if (!entryPrice) return 0.01;
     const price = parseFloat(String(entryPrice));
     if (isNaN(price) || price === 0) return 0.01;
@@ -512,12 +565,11 @@
         name="entryPrice"
         type="text"
         data-track-id="input-entry-price"
-        use:numberInput={{ maxDecimalPlaces: 20 }}
+        use:numberInput={{ maxDecimalPlaces: symbolMeta?.quotePrecision ?? 20 }}
         use:enhancedInput={{
           step: priceStep,
           min: 0,
-          rightOffset: "40px",
-          showSpinButtons: false,
+          rightOffset: "16px",
         }}
         bind:value={localEntryPrice}
         onfocus={() => (isEntryPriceFocused = true)}
@@ -608,6 +660,35 @@
           >{$_("dashboard.symbolInfo.apiNotSupported")}</span
         >
       {/if}
+      {#if estimatedHoldingCost24h !== null}
+        <span class="flex items-center gap-1">
+          <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+          <span
+            class="font-medium"
+            class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
+            class:text-[var(--success-color)]={estimatedHoldingCost24h.lt(0)}
+          >
+            {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
+          </span>
+          <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")} />
+        </span>
+      {/if}
+    </div>
+  {:else if estimatedHoldingCost24h !== null}
+    <div
+      class="flex flex-wrap items-center gap-x-3 gap-y-1 -mt-2 mb-4 text-[10px] text-[var(--text-secondary)]"
+    >
+      <span class="flex items-center gap-1">
+        <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+        <span
+          class="font-medium"
+          class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
+          class:text-[var(--success-color)]={estimatedHoldingCost24h.lt(0)}
+        >
+          {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
+        </span>
+        <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")} />
+      </span>
     </div>
   {/if}
 
@@ -663,7 +744,7 @@
           name="stopLossPrice"
           type="text"
           data-track-id="input-stop-loss"
-          use:numberInput={{ maxDecimalPlaces: 20 }}
+          use:numberInput={{ maxDecimalPlaces: symbolMeta?.quotePrecision ?? 20 }}
           use:enhancedInput={{
             step: priceStep,
             min: 0,
@@ -691,7 +772,6 @@
               use:enhancedInput={{
                 step: 0.1,
                 min: 0,
-                showSpinButtons: "hover",
               }}
               bind:value={localAtrValue}
               onfocus={() => (isAtrValueFocused = true)}
@@ -711,7 +791,6 @@
               use:enhancedInput={{
                 step: 0.1,
                 min: 0.1,
-                showSpinButtons: "hover",
               }}
               bind:value={localAtrMultiplier}
               onfocus={() => (isAtrMultiplierFocused = true)}
@@ -773,14 +852,13 @@
                 use:enhancedInput={{
                   step: 0.1,
                   min: 0,
-                  rightOffset: "40px",
-                  showSpinButtons: false,
+                  hasAction: true,
                 }}
                 bind:value={localAtrValue}
                 onfocus={() => (isAtrValueFocused = true)}
                 onblur={() => (isAtrValueFocused = false)}
                 oninput={handleAtrValueInput}
-                class="input-field w-full px-4 py-2 rounded-md pr-10"
+                class="input-field w-full px-4 py-2 rounded-md"
                 placeholder={$_("dashboard.tradeSetupInputs.atrLabel")}
               />
               <button

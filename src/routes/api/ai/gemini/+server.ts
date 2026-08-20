@@ -35,6 +35,19 @@ interface GeminiSystemInstruction {
 interface GeminiPayload {
   contents: GeminiContent[];
   systemInstruction?: GeminiSystemInstruction;
+  tools?: GeminiTool[];
+}
+
+
+// Define basic tool types to avoid "any"
+interface GeminiFunctionDeclaration {
+  name: string;
+  description?: string;
+  parameters?: Record<string, unknown>;
+}
+
+interface GeminiTool {
+  functionDeclarations: GeminiFunctionDeclaration[];
 }
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
@@ -42,7 +55,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   if (authError) return authError;
 
   try {
-    const { messages, model } = await request.json();
+    const { messages, model, tools } = await request.json();
     const apiKey = request.headers.get("x-api-key");
 
     if (!apiKey) {
@@ -63,12 +76,18 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       }
     }
 
-    // Use the model provided by the client directly.
-    // This allows selecting any available Gemini model in settings.
-    let selectedModel = model || "gemini-3.5-flash"; // Default: Current stable generation
+    // Use the model provided by the client directly after validating format (BUG-0238).
+    // Validate model identifier against strict regex to avoid path traversal / query injection.
+    const rawModel = typeof model === "string" ? model.trim() : "";
+    if (rawModel && !/^[a-zA-Z0-9._-]+$/.test(rawModel)) {
+      return json({ error: "Invalid model identifier" }, { status: 400 });
+    }
+
+    let selectedModel = rawModel || "gemini-3.5-flash"; // Default: Current stable generation
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
+    const encodedModel = encodeURIComponent(selectedModel);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
     // Special handling for Gemma models which don't support systemInstruction
     if (selectedModel.includes("gemma") && systemInstruction) {
@@ -89,6 +108,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const payload: GeminiPayload = { contents };
     if (systemInstruction) {
       payload.systemInstruction = systemInstruction;
+    }
+    if (tools && tools.length > 0) {
+      payload.tools = [{
+          functionDeclarations: tools.map((t: { function: GeminiFunctionDeclaration }) => ({
+              name: t.function.name,
+              description: t.function.description,
+              parameters: t.function.parameters
+          }))
+      }];
     }
 
     const response = await fetch(url, {

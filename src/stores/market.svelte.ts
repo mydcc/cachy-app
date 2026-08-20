@@ -1,6 +1,3 @@
-import { _ } from "../locales/i18n";
-import { get } from "svelte/store";
-import { alertEngine } from "../services/alertEngine/alertEngine";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -18,151 +15,46 @@ import { alertEngine } from "../services/alertEngine/alertEngine";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Decimal } from "decimal.js";
+import { _ } from "../locales/i18n";
+import { get } from "svelte/store";
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
-import { BufferPool } from "../utils/bufferPool";
-import type { Kline, KlineBuffers } from "../services/technicalsTypes";
+import { isUnsafeObjectKey } from "../utils/utils";
+import { SymbolCache } from "./market/symbolCache";
+import { KlineBufferManager } from "./market/klineBuffers";
+import { MarketTelemetry } from "./market/telemetry.svelte";
+import { applyUpdate } from "./market/applyUpdate";
+import { updatePrice, updateTicker, updateDepth, updateKline } from "./market/legacyUpdates";
+import type {
+  MarketData,
+  TradingPairInfo,
+  PositionTier,
+  WSStatus,
+  MarketUpdatePayload,
+  RawKline,
+  RawPriceUpdate,
+  RawTickerUpdate,
+  RawDepthUpdate,
+  RawKlineWsMessage,
+  RawNumeric
+} from "./market/types";
 
-export interface MarketData {
-  symbol: string;
-  lastPrice: Decimal | null;
-  indexPrice: Decimal | null;
-  // Bitunix's position endpoints (REST and WS) never carry a mark price —
-  // this is the only place it's actually available, sourced from the public
-  // WS `price` channel's `mp` field (see BUG-0055). Consumers rendering a
-  // position must read it from here, keyed by symbol, not from any
-  // position-shaped object.
-  markPrice: Decimal | null;
-  fundingRate: Decimal | null;
-  nextFundingTime: number | null; // Unix timestamp in ms
-  fundingInterval?: number | null; // Settlement interval in hours (varies per symbol)
-  depth?: {
-    bids: [string, string][]; // [price, qty]
-    asks: [string, string][];
-  };
-  highPrice?: Decimal | null;
-  lowPrice?: Decimal | null;
-  volume?: Decimal | null;
-  quoteVolume?: Decimal | null;
-  priceChangePercent?: Decimal | null;
-  klines: Record<string, Kline[]>;
-  klinesBuffers?: Record<string, KlineBuffers>; // SoA Buffers for performance
-  technicals?: Record<string, import("../services/technicalsTypes").TechnicalsData>;
-  lastUpdated?: number; // Optimization: only snapshot fresh data
-}
-
-// Static-ish per-symbol metadata from market/trading_pairs (precision, order
-// limits, leverage range, status). Kept separate from MarketData since it
-// doesn't arrive on every price tick and shouldn't be overwritten by one.
-export interface TradingPairInfo {
-  symbol: string;
-  basePrecision?: number;
-  quotePrecision?: number;
-  minTradeVolume?: Decimal | null;
-  maxLimitOrderVolume?: Decimal | null;
-  maxMarketOrderVolume?: Decimal | null;
-  minLeverage?: number;
-  maxLeverage?: number;
-  defaultLeverage?: number;
-  priceProtectScope?: Decimal | null;
-  symbolStatus?: string;
-  isApiSupported?: boolean;
-}
-
-// One maintenance-margin bracket from position/get_position_tiers.
-export interface PositionTier {
-  level: number;
-  startValue: Decimal | null;
-  endValue: Decimal | null;
-  leverage?: number;
-  maintenanceMarginRate: Decimal | null;
-}
-
-// Permissive update type for WebSocket data (allows strings/numbers for Decimals)
-export type MarketUpdatePayload = {
-  [K in keyof MarketData]?: MarketData[K] | string | number | null;
+export type {
+  MarketData,
+  TradingPairInfo,
+  PositionTier,
+  WSStatus,
+  MarketUpdatePayload,
+  RawKline,
+  RawPriceUpdate,
+  RawTickerUpdate,
+  RawDepthUpdate,
+  RawKlineWsMessage,
+  RawNumeric
 };
 
-export type WSStatus =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "error"
-  | "reconnecting";
-
-// LRU Cache Configuration
-// Configurable via settingsState.marketCacheSize (default: 20)
-// Increased cache improves performance for power users tracking many symbols
-const DEFAULT_CACHE_SIZE = 20;
-const TTL_MS = 5 * 60 * 1000; // 5 minutes
 const KLINE_BUFFER_HARD_LIMIT = 2000; // Hard cap for pending kline updates
-
-function getMaxCacheSize(): number {
-  return settingsState.marketCacheSize || DEFAULT_CACHE_SIZE;
-}
-
-interface CacheMetadata {
-  lastAccessed: number;
-  createdAt: number;
-}
-
-/**
- * A numeric field as it arrives from an exchange, before conversion.
- *
- * `safeJsonParse` quotes literals of 15+ characters to preserve precision, so a
- * price can be a string or a number depending on its length alone. Values that
- * have already been converted arrive as `Decimal`. This union is the honest
- * input type for anything coercing exchange data — `any` merely hid that the
- * three cases exist.
- */
-type RawNumeric = string | number | Decimal | null | undefined;
-
-// Raw kline as buffered/received before Decimal normalization — see the
-// RawNumeric doc comment above for why fields aren't just `Decimal`.
-export interface RawKline {
-  time: number;
-  open: RawNumeric;
-  high: RawNumeric;
-  low: RawNumeric;
-  close: RawNumeric;
-  volume: RawNumeric;
-}
-
-interface RawPriceUpdate {
-  price?: RawNumeric;
-  indexPrice?: RawNumeric;
-  markPrice?: RawNumeric;
-  fundingRate?: RawNumeric;
-  nextFundingTime?: number | string | null;
-}
-
-interface RawTickerUpdate {
-  lastPrice?: RawNumeric;
-  high?: RawNumeric;
-  low?: RawNumeric;
-  vol?: RawNumeric;
-  quoteVol?: RawNumeric;
-  fundingRate?: RawNumeric;
-  nextFundingTime?: number | string | null;
-  open?: RawNumeric;
-  change?: RawNumeric;
-}
-
-interface RawDepthUpdate {
-  bids: [string, string][];
-  asks: [string, string][];
-}
-
-interface RawKlineWsMessage {
-  o: RawNumeric;
-  h: RawNumeric;
-  l: RawNumeric;
-  c: RawNumeric;
-  b: RawNumeric;
-  t: number;
-}
 
 export class MarketManager {
   data = $state<Record<string, MarketData>>({});
@@ -182,30 +74,36 @@ export class MarketManager {
     this.positionTiers[symbol] = tiers;
   }
 
-  // Telemetry Metrics
-  telemetry = $state({
-    apiLatency: 0,
-    wsLatency: 0,
-    activeConnections: 0,
-    apiCallsLastMinute: 0,
-    lastCalcDuration: 0,
-    cacheHitRate: 100
-  });
+  private symbolCache: SymbolCache;
+  private klineBufferManager: KlineBufferManager;
+  private marketTelemetry: MarketTelemetry;
 
-  private cacheMetadata = new Map<string, CacheMetadata>();
+  // Test visibility getters
+  get cacheMetadata() { return this.symbolCache.metadata; }
+  get backingBuffers() { return this.klineBufferManager.backingBuffers; }
+  get bufferPool() { return this.klineBufferManager.bufferPool; }
+
+  // Delegate for public telemetry access
+  get telemetry() {
+    return this.marketTelemetry.metrics;
+  }
+
   private pendingUpdates = new Map<string, MarketUpdatePayload>();
-  // Buffer for raw kline updates: Key = `${symbol}:${timeframe}`
-  private backingBuffers = new Map<string, KlineBuffers>();
   private pendingKlineUpdates = new Map<string, RawKline[]>();
-  private bufferPool = new BufferPool();
   // `ReturnType<typeof ...>` rather than `number`: the handle is a number in the
   // browser and a Timeout object under Node, and these run in both.
   private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
   private flushIntervalId: ReturnType<typeof setInterval> | null = null;
   private lastFlushTime: number = 0;
-  private telemetryIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
+    this.klineBufferManager = new KlineBufferManager();
+    this.symbolCache = new SymbolCache((symbol: string) => {
+      this.klineBufferManager.releaseSymbol(symbol);
+      delete this.data[symbol];
+    });
+    this.marketTelemetry = new MarketTelemetry();
+
     if (browser) {
       this.cleanupIntervalId = setInterval(() => {
         this.cleanup();
@@ -215,11 +113,6 @@ export class MarketManager {
       this.flushIntervalId = setInterval(() => {
         this.flushUpdates();
       }, 250);
-
-      // Reset API calls counter every minute
-      this.telemetryIntervalId = setInterval(() => {
-        this.telemetry.apiCallsLastMinute = 0;
-      }, 60000);
     }
   }
 
@@ -236,17 +129,17 @@ export class MarketManager {
       clearInterval(this.flushIntervalId);
       this.flushIntervalId = null;
     }
-    if (this.telemetryIntervalId) {
-      clearInterval(this.telemetryIntervalId);
-      this.telemetryIntervalId = null;
-    }
-    this.cacheMetadata.clear();
+    this.marketTelemetry.destroy();
+    this.symbolCache.clear();
     this.pendingUpdates.clear();
-    this.backingBuffers.clear();
+    this.klineBufferManager.clear();
     this.data = {};
   }
 
-  private getOrCreateSymbol(symbol: string): MarketData {
+  public getOrCreateSymbol(symbol: string): MarketData {
+    if (isUnsafeObjectKey(symbol)) {
+      throw new Error(`Unsafe symbol key: ${symbol}`);
+    }
     if (!this.data[symbol]) {
       this.data[symbol] = {
         symbol,
@@ -256,80 +149,19 @@ export class MarketManager {
         fundingRate: null,
         nextFundingTime: null,
         klines: {},
-        klinesBuffers: {},
+        klinesBuffers: new Map(),
       };
     }
     return this.data[symbol];
   }
 
   // Helper: Touch symbol to update LRU
-  private touchSymbol(symbol: string) {
-    const now = Date.now();
-    const existing = this.cacheMetadata.get(symbol);
-    this.cacheMetadata.set(symbol, {
-      lastAccessed: now,
-      createdAt: existing?.createdAt || now,
-    });
-  }
-
-  // Helper: Evict LRU symbol
-  private evictLRU(): string | null {
-    if (this.cacheMetadata.size === 0) return null;
-
-    let oldest: string | null = null;
-    let oldestTime = Infinity;
-
-    this.cacheMetadata.forEach((meta, symbol) => {
-      if (meta.lastAccessed < oldestTime) {
-        oldestTime = meta.lastAccessed;
-        oldest = symbol;
-      }
-    });
-
-    if (oldest) {
-      this.cacheMetadata.delete(oldest);
-      return oldest;
-    }
-    return null;
-  }
-
-  /** Release all backing buffers for a given symbol back to the pool */
-  private releaseSymbolBackingBuffers(symbol: string) {
-    const keysToDelete: string[] = [];
-    const prefix = `${symbol}:`;
-    this.backingBuffers.forEach((backing, key) => {
-      if (key.startsWith(prefix)) {
-        this.bufferPool.release(backing.times);
-        this.bufferPool.release(backing.opens);
-        this.bufferPool.release(backing.highs);
-        this.bufferPool.release(backing.lows);
-        this.bufferPool.release(backing.closes);
-        this.bufferPool.release(backing.volumes);
-        keysToDelete.push(key);
-      }
-    });
-    for (const key of keysToDelete) {
-      this.backingBuffers.delete(key);
-    }
+  public touchSymbol(symbol: string) {
+    this.symbolCache.touch(symbol);
   }
 
   private enforceCacheLimit() {
-    // Dynamically respect settingsState.marketCacheSize
-    const maxSize = getMaxCacheSize();
-    while (Object.keys(this.data).length > maxSize) {
-      const toEvict = this.evictLRU();
-      if (!toEvict) {
-        // Fallback: If metadata is out of sync, delete arbitrary key
-        const key = Object.keys(this.data)[0];
-        if (key) {
-          this.releaseSymbolBackingBuffers(key);
-          delete this.data[key];
-        }
-        break;
-      }
-      this.releaseSymbolBackingBuffers(toEvict);
-      delete this.data[toEvict];
-    }
+    this.symbolCache.enforceLimit(this.symbolCache.metadata.size, () => Array.from(this.symbolCache.metadata.keys()));
   }
 
   updateSymbol(symbol: string, partial: MarketUpdatePayload) {
@@ -421,139 +253,15 @@ export class MarketManager {
   }
 
   private applyUpdate(symbol: string, partial: MarketUpdatePayload) {
-    try {
-      this.touchSymbol(symbol);
-      const current = this.getOrCreateSymbol(symbol);
-      current.lastUpdated = Date.now();
-
-      // Optimization: Check for equality before creating new Decimal
-      // Re-use Decimal instances if string value hasn't changed.
-      const toDecimal = (val: RawNumeric, currentVal: Decimal | null | undefined): Decimal | undefined | null => {
-        try {
-          if (val === undefined) return undefined;
-
-          // HARDENING: Warn on explicit nulls for critical data, but allow if intended
-          if (val === null) return null;
-
-          // HARDENING: Reject NaN strictly
-          if (typeof val === 'number' && isNaN(val)) {
-              return undefined;
-          }
-
-          // Fast check: If it's the exact same object, return it.
-          if (currentVal === val) return currentVal;
-
-          const valStr = String(val);
-          // Optimization: .toString() on Decimal is fast (cached).
-          if (currentVal && currentVal.toString() === valStr) {
-             return currentVal; // Reuse existing object
-          }
-          return new Decimal(val);
-        } catch {
-          return undefined;
-        }
-      };
-
-      if (partial.lastPrice !== undefined) {
-          const newVal = toDecimal(partial.lastPrice, current.lastPrice);
-          if (newVal !== undefined) {
-              if (newVal === null && import.meta.env.DEV) {
-                  console.warn(`[Market] Received null lastPrice for ${symbol}`);
-              }
-              current.lastPrice = newVal;
-
-              if (newVal !== null) {
-                  try {
-                      // Pass to alert engine
-                      alertEngine.evaluate(symbol, newVal.toString(), Date.now());
-                  } catch (e) { import("../services/logger").then(m => m.logger.error("alerts", `[Market] Alert evaluation failed for ${symbol}`, e)).catch(() => {}); }
-              }
-          }
-      }
-      if (partial.indexPrice !== undefined) {
-          const newVal = toDecimal(partial.indexPrice, current.indexPrice);
-          if (newVal !== undefined) current.indexPrice = newVal;
-      }
-      if (partial.markPrice !== undefined) {
-          const newVal = toDecimal(partial.markPrice, current.markPrice);
-          if (newVal !== undefined) current.markPrice = newVal;
-      }
-      if (partial.highPrice !== undefined) {
-          const newVal = toDecimal(partial.highPrice, current.highPrice);
-          if (newVal !== undefined) current.highPrice = newVal;
-      }
-      if (partial.lowPrice !== undefined) {
-          const newVal = toDecimal(partial.lowPrice, current.lowPrice);
-          if (newVal !== undefined) current.lowPrice = newVal;
-      }
-      if (partial.volume !== undefined) {
-          const newVal = toDecimal(partial.volume, current.volume);
-          if (newVal !== undefined) current.volume = newVal;
-      }
-      if (partial.quoteVolume !== undefined) {
-          const newVal = toDecimal(partial.quoteVolume, current.quoteVolume);
-          if (newVal !== undefined) current.quoteVolume = newVal;
-      }
-      if (partial.priceChangePercent !== undefined) {
-          const newVal = toDecimal(partial.priceChangePercent, current.priceChangePercent);
-          if (newVal !== undefined) current.priceChangePercent = newVal;
-      }
-      if (partial.fundingRate !== undefined) {
-          const newVal = toDecimal(partial.fundingRate, current.fundingRate);
-          if (newVal !== undefined) current.fundingRate = newVal;
-      }
-      if (partial.fundingInterval !== undefined) {
-          const raw = partial.fundingInterval;
-          const n = raw === null ? null : Number(raw);
-          if (n === null || !isNaN(n)) current.fundingInterval = n;
-      }
-
-      if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {
-        let nft: number = 0;
-        const raw = partial.nextFundingTime;
-
-        if (typeof raw === "number") {
-          nft = raw;
-        } else if (typeof raw === "string") {
-          if (/^\d+$/.test(raw)) {
-            nft = parseInt(raw, 10);
-          } else {
-            // Falls es ein ISO-String oder ein anderes Datumsformat ist
-            const parsed = new Date(raw).getTime();
-            if (!isNaN(parsed)) {
-              nft = parsed;
-            }
-          }
-        }
-
-        // Heuristik: Sekunden in Millisekunden umrechnen (~1.7*10^9 vs ~1.7*10^12)
-        if (nft > 0 && nft < 10000000000) {
-          nft *= 1000;
-        }
-        current.nextFundingTime = nft > 0 ? nft : null;
-      }
-
-      // depth/technicals are object-shaped fields; MarketUpdatePayload's
-      // mapped type also allows string/number (for the Decimal fields),
-      // which doesn't apply here — narrow to object before assigning.
-      if (partial.depth && typeof partial.depth === "object") current.depth = partial.depth;
-      if (partial.technicals && typeof partial.technicals === "object") {
-        // Merge technicals map (keyed by timeframe)
-        current.technicals = { ...(current.technicals || {}), ...partial.technicals };
-      }
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.error(`[Market] Critical error applying update for ${symbol}`, e);
-      }
-    }
+    applyUpdate(this, symbol, partial);
   }
 
   updateTelemetry(partial: Partial<typeof this.telemetry>) {
-    this.telemetry = { ...this.telemetry, ...partial };
+    this.marketTelemetry.update(partial);
   }
 
   recordApiCall() {
-    this.telemetry.apiCallsLastMinute++;
+    this.marketTelemetry.recordApiCall();
   }
 
   updateSymbolKlines(
@@ -580,9 +288,15 @@ export class MarketManager {
           this.pendingKlineUpdates.set(key, pending);
       }
 
-      // Optimization: Just append. Logic to merge is handled in flush.
-      // This saves Decimal creation and merge logic overhead for rapidly overwritten candles.
-      for (const k of klines) pending.push(k);
+      // Optimization: In-place deduplication for the same candle.
+      // High-frequency WS updates often overwrite the exact same candle timestamp repeatedly.
+      for (const k of klines) {
+        if (pending.length > 0 && pending[pending.length - 1].time === k.time) {
+          pending[pending.length - 1] = k;
+        } else {
+          pending.push(k);
+        }
+      }
       if (pending.length > KLINE_BUFFER_HARD_LIMIT) pending.splice(0, pending.length - KLINE_BUFFER_HARD_LIMIT);
 
       // Safety check: force flush if too many SYMBOLS are pending updates
@@ -598,7 +312,7 @@ export class MarketManager {
   }
 
   // Internal method: Applies updates (previously updateSymbolKlines)
-  private applySymbolKlines(
+  public applySymbolKlines(
     symbol: string,
     timeframe: string,
     klines: RawKline[],
@@ -607,383 +321,35 @@ export class MarketManager {
   ) {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
-
-    // [OPTIMIZATION] Deduplicate raw updates
-    if (klines.length > 1 && (source === "ws" || klines[0]?.open instanceof Decimal === false)) {
-        klines.sort((a, b) => a.time - b.time);
-        const dedupedRaw: RawKline[] = [];
-        let lastTime = -1;
-        for (const k of klines) {
-             if (k.time === lastTime) {
-                 dedupedRaw[dedupedRaw.length - 1] = k;
-             } else {
-                 dedupedRaw.push(k);
-                 lastTime = k.time;
-             }
-        }
-        klines = dedupedRaw;
-    }
-
-    // [OPTIMIZATION] Fast Path for Single Tail Update (Common Case)
-    // This avoids mapping, slicing, and full buffer writes for frequent price updates
-    const existingHistory = current.klines[timeframe];
-    if (klines.length === 1 && existingHistory && existingHistory.length > 0) {
-        const lastIdx = existingHistory.length - 1;
-        const lastKline = existingHistory[lastIdx];
-        const newRaw = klines[0];
-
-        if (newRaw.time === lastKline.time) {
-            // 1. Update History In-Place (Minimizing Decimal Allocations)
-            // We use a helper to only create new Decimals if value changed
-            const updateDecimal = (oldVal: Decimal, newVal: RawNumeric): Decimal => {
-                // Required once the parameter is typed honestly: RawNumeric
-                // includes null/undefined, which `new Decimal(...)` rejects.
-                // Keeping the previous value is what a missing field means.
-                //
-                // Defensive rather than a demonstrated fix — no call path was
-                // found that actually reaches here with a missing field, so do
-                // not read this as a crash that was occurring in production.
-                if (newVal === null || newVal === undefined) return oldVal;
-                if (typeof newVal === "number") {
-                     return new Decimal(newVal);
-                }
-                if (typeof newVal === "string" && oldVal.toString() === newVal) return oldVal;
-                return new Decimal(newVal);
-            };
-
-            const updatedKline: Kline = {
-                open: updateDecimal(lastKline.open, newRaw.open),
-                high: updateDecimal(lastKline.high, newRaw.high),
-                low: updateDecimal(lastKline.low, newRaw.low),
-                close: updateDecimal(lastKline.close, newRaw.close),
-                volume: updateDecimal(lastKline.volume, newRaw.volume),
-                time: newRaw.time
-            };
-
-            existingHistory[lastIdx] = updatedKline;
-
-            // 2. Update Buffer Directly (Skip Decimal.toNumber() overhead)
-            const bufferKey = `${symbol}:${timeframe}`;
-            const backing = this.backingBuffers.get(bufferKey);
-            if (backing && backing.times.length > lastIdx) {
-                 // Raw exchange values reach here as strings (safeJsonParse
-                 // quotes long literals), as numbers, or already as Decimal.
-                 const getNum = (val: RawNumeric): number => {
-                    if (typeof val === "number") return val;
-                    if (typeof val === "string") return parseFloat(val);
-                    return val instanceof Decimal ? val.toNumber() : Number(val);
-                 };
-
-                 backing.opens[lastIdx] = getNum(newRaw.open);
-                 backing.highs[lastIdx] = getNum(newRaw.high);
-                 backing.lows[lastIdx] = getNum(newRaw.low);
-                 backing.closes[lastIdx] = getNum(newRaw.close);
-                 backing.volumes[lastIdx] = getNum(newRaw.volume);
-            }
-
-            current.lastUpdated = Date.now();
-            return;
-        }
-    }
-    // Normalize
-    //
-    // RawNumeric includes null/undefined; the `as Decimal.Value` casts below
-    // preserve the prior (pre-typing) behavior of passing the raw value
-    // straight to `new Decimal(...)` unchecked, rather than adding a new
-    // runtime guard here — see the RawNumeric doc comment.
-    let newKlines: Kline[] = klines.map(k => ({
-      open: k.open instanceof Decimal ? k.open : new Decimal(k.open as Decimal.Value),
-      high: k.high instanceof Decimal ? k.high : new Decimal(k.high as Decimal.Value),
-      low: k.low instanceof Decimal ? k.low : new Decimal(k.low as Decimal.Value),
-      close: k.close instanceof Decimal ? k.close : new Decimal(k.close as Decimal.Value),
-      volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume as Decimal.Value),
-      time: k.time
-    }));
-
-    // Deduplicate normalized
-    if (newKlines.length > 1) {
-      newKlines.sort((a, b) => a.time - b.time);
-      const deduped: Kline[] = [];
-      let lastTime = -1;
-      for (const k of newKlines) {
-        if (k.time === lastTime) {
-          deduped[deduped.length - 1] = k;
-        } else {
-          deduped.push(k);
-          lastTime = k.time;
-        }
-      }
-      newKlines = deduped;
-    }
-    let history = current.klines[timeframe] || [];
-    if (!current.klines[timeframe]) current.klines[timeframe] = history;
-
-    // Calculate Limit
-    const userLimit = settingsState.chartHistoryLimit || 2000;
-    const safetyLimit = 50000;
-    let effectiveLimit: number;
-    if (!enforceLimit) {
-      effectiveLimit = safetyLimit;
-    } else {
-      const previousLength = Math.max(0, history.length);
-      effectiveLimit = Math.min(Math.max(previousLength, userLimit), safetyLimit);
-    }
-
-    // [MEMORY FIX] Backing Buffer Management
-    const bufferKey = `${symbol}:${timeframe}`;
-    let backing = this.backingBuffers.get(bufferKey);
-    let offset = 0; // Where to start writing in backing buffer
-    let isAppend = false;
-
-    // Apply updates to history
-    if (newKlines.length > 0) {
-        if (history.length === 0) {
-            newKlines.sort((a, b) => a.time - b.time);
-            if (newKlines.length > effectiveLimit) newKlines = newKlines.slice(-effectiveLimit);
-            history = newKlines;
-            current.klines[timeframe] = history;
-            // Full rebuild implies offset 0
-        } else {
-            newKlines.sort((a, b) => a.time - b.time);
-            const lastHistTime = history[history.length - 1].time;
-            const firstNewTime = newKlines[0].time;
-
-            if (firstNewTime > lastHistTime) {
-                // Append
-                offset = history.length;
-                history.push(...newKlines);
-                isAppend = true;
-            } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
-                // Update Tail
-                offset = history.length - 1;
-                history[history.length - 1] = newKlines[0];
-                isAppend = true;
-            } else if (firstNewTime >= lastHistTime) {
-                // Overlap Append (Simplified: fall back to full rewrite for safety)
-                for (const k of newKlines) {
-                    if (k.time === lastHistTime) {
-                        history[history.length - 1] = k;
-                    } else if (k.time > lastHistTime) {
-                        history.push(k);
-                    }
-                }
-                isAppend = false;
-            } else {
-                // Merge/Sort/Slice
-                const merged: Kline[] = [];
-                let i = 0, j = 0;
-                while (i < history.length && j < newKlines.length) {
-                    if (history[i].time < newKlines[j].time) merged.push(history[i++]);
-                    else if (history[i].time > newKlines[j].time) merged.push(newKlines[j++]);
-                    else { merged.push(newKlines[j++]); i++; }
-                }
-                while (i < history.length) merged.push(history[i++]);
-                while (j < newKlines.length) merged.push(newKlines[j++]);
-                history = merged;
-                current.klines[timeframe] = history;
-                isAppend = false;
-            }
-
-            // Slice if needed
-            if (history.length > effectiveLimit) {
-                history = history.slice(-effectiveLimit);
-                current.klines[timeframe] = history;
-                isAppend = false; // Shifted/Sliced means we need full write
-            }
-        }
-    }
-
-    const neededLen = history.length;
-    if (neededLen === 0) return;
-
-    // Check Backing Buffer Capacity
-    if (!backing || backing.times.length < neededLen) {
-        // Allocate with 1.5x growth
-        const newCap = Math.ceil(Math.max(neededLen * 1.5, 1000));
-
-        // Release old if exists
-        if (backing) {
-            this.bufferPool.release(backing.times);
-            this.bufferPool.release(backing.opens);
-            this.bufferPool.release(backing.highs);
-            this.bufferPool.release(backing.lows);
-            this.bufferPool.release(backing.closes);
-            this.bufferPool.release(backing.volumes);
-        }
-
-        backing = {
-            times: this.bufferPool.acquire(newCap),
-            opens: this.bufferPool.acquire(newCap),
-            highs: this.bufferPool.acquire(newCap),
-            lows: this.bufferPool.acquire(newCap),
-            closes: this.bufferPool.acquire(newCap),
-            volumes: this.bufferPool.acquire(newCap)
-        };
-        this.backingBuffers.set(bufferKey, backing);
-        isAppend = false; // New buffer needs full write
-    }
-
-    // Write to Buffer
-    if (isAppend) {
-        // Only write the new/updated part
-        for (let i = offset; i < neededLen; i++) {
-            const k = history[i];
-            backing.times[i] = k.time;
-            backing.opens[i] = k.open.toNumber();
-            backing.highs[i] = k.high.toNumber();
-            backing.lows[i] = k.low.toNumber();
-            backing.closes[i] = k.close.toNumber();
-            backing.volumes[i] = k.volume.toNumber();
-        }
-    } else {
-        // Full Write
-        for (let i = 0; i < neededLen; i++) {
-            const k = history[i];
-            backing.times[i] = k.time;
-            backing.opens[i] = k.open.toNumber();
-            backing.highs[i] = k.high.toNumber();
-            backing.lows[i] = k.low.toNumber();
-            backing.closes[i] = k.close.toNumber();
-            backing.volumes[i] = k.volume.toNumber();
-        }
-    }
-
-    // Create Views for MarketData
-    // subarray creates a lightweight view. Consumers see correct length.
-    const views: KlineBuffers = {
-        times: backing.times.subarray(0, neededLen),
-        opens: backing.opens.subarray(0, neededLen),
-        highs: backing.highs.subarray(0, neededLen),
-        lows: backing.lows.subarray(0, neededLen),
-        closes: backing.closes.subarray(0, neededLen),
-        volumes: backing.volumes.subarray(0, neededLen)
-    };
-
-    if (!current.klinesBuffers) current.klinesBuffers = {};
-    current.klinesBuffers[timeframe] = views;
-    current.lastUpdated = Date.now();
+    this.klineBufferManager.applySymbolKlines(symbol, timeframe, klines, source, enforceLimit, current);
     this.data[symbol] = current;
   }
 
   // Legacy update methods refactored to use updateSymbol
   updatePrice(symbol: string, data: RawPriceUpdate) {
-    try {
-      const update: MarketUpdatePayload = {
-        nextFundingTime: data.nextFundingTime,
-      };
-
-      // Just pass raw values, applyUpdate handles Decimal conversion efficiently
-      if (data.price) update.lastPrice = data.price;
-      if (data.indexPrice) update.indexPrice = data.indexPrice;
-      if (data.markPrice) update.markPrice = data.markPrice;
-      if (data.fundingRate) update.fundingRate = data.fundingRate;
-
-      this.updateSymbol(symbol, update);
-    } catch {
-        // ...
-    }
+    updatePrice(this, symbol, data);
   }
 
   updateTicker(symbol: string, data: RawTickerUpdate) {
-    try {
-      const update: MarketUpdatePayload = {};
-
-      if (data.lastPrice !== undefined) update.lastPrice = data.lastPrice;
-      if (data.high !== undefined) update.highPrice = data.high;
-      if (data.low !== undefined) update.lowPrice = data.low;
-      if (data.vol !== undefined) update.volume = data.vol;
-      if (data.quoteVol !== undefined) update.quoteVolume = data.quoteVol;
-      if (data.fundingRate !== undefined) update.fundingRate = data.fundingRate;
-      if (data.nextFundingTime !== undefined) update.nextFundingTime = data.nextFundingTime;
-
-
-      // Calculate price change percent from open and last price if available
-      let calculatedChange = false;
-      if (data.open) {
-        const open = new Decimal(data.open);
-        const last = update.lastPrice ? new Decimal(update.lastPrice) : this.data[symbol]?.lastPrice;
-
-        if (!open.isZero() && last) {
-          update.priceChangePercent = last
-            .minus(open)
-            .div(open)
-            .times(100);
-          calculatedChange = true;
-        }
-      }
-
-      if (!calculatedChange && data.change !== undefined) {
-        // Cast preserves prior (pre-typing) behavior — see the RawNumeric
-        // doc comment; not a new guard against null.
-        update.priceChangePercent = new Decimal(data.change as Decimal.Value).times(100);
-      }
-
-      this.updateSymbol(symbol, update);
-    } catch {
-       // ...
-    }
+    updateTicker(this, symbol, data);
   }
 
   updateDepth(symbol: string, data: RawDepthUpdate) {
-    try {
-      this.updateSymbol(symbol, {
-        depth: { bids: data.bids, asks: data.asks },
-      });
-    } catch {
-       // ...
-    }
+    updateDepth(this, symbol, data);
   }
 
   updateKline(symbol: string, timeframe: string, data: RawKlineWsMessage) {
-    try {
-      // Pass raw values (no Decimal creation here) to allow buffering
-      // applySymbolKlines handles the conversion to Decimal lazily
-      this.updateSymbolKlines(
-        symbol,
-        timeframe,
-        [
-          {
-            open: data.o,
-            high: data.h,
-            low: data.l,
-            close: data.c,
-            volume: data.b,
-            time: data.t,
-          },
-        ],
-        "ws"
-      );
-    } catch {
-       // ...
-    }
+    updateKline(this, symbol, timeframe, data);
   }
 
   reset() {
-    // Release all backing buffers back to pool before clearing
-    this.backingBuffers.forEach((backing) => {
-      this.bufferPool.release(backing.times);
-      this.bufferPool.release(backing.opens);
-      this.bufferPool.release(backing.highs);
-      this.bufferPool.release(backing.lows);
-      this.bufferPool.release(backing.closes);
-      this.bufferPool.release(backing.volumes);
-    });
-    this.backingBuffers.clear();
-    this.cacheMetadata.clear();
+    this.klineBufferManager.clear();
+    this.symbolCache.clear();
     this.data = {};
   }
 
   cleanup() {
-    const now = Date.now();
-    const stale: string[] = [];
-    this.cacheMetadata.forEach((meta, symbol) => {
-      if (now - meta.lastAccessed > TTL_MS) stale.push(symbol);
-    });
-    stale.forEach((symbol) => {
-      this.releaseSymbolBackingBuffers(symbol);
-      this.cacheMetadata.delete(symbol);
-      delete this.data[symbol];
-    });
+    this.symbolCache.cleanupStale();
     this.enforceCacheLimit();
   }
 

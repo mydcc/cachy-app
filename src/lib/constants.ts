@@ -21,7 +21,22 @@ export const CONSTANTS = {
   LOCAL_STORAGE_TRADE_KEY: "cachy_trade_store",
   LOCAL_STORAGE_JOURNAL_KEY: "tradeJournal",
   LOCAL_STORAGE_PRESETS_KEY: "cryptoCalculatorPresets",
+  // FEAT-0013. Class A, and deliberately its own key rather than a corner of
+  // the settings blob: the kill switch is written synchronously on every
+  // change, and it must not share a debounced save with anything else.
+  LOCAL_STORAGE_RISK_KEY: "cachy_risk_limits",
+  // FEAT-0012. Class A: simulated balances and positions are the user's
+  // trading behaviour and stay on this device, like the journal.
+  LOCAL_STORAGE_PAPER_KEY: "cachy_paper_trading",
+  // FEAT-0015. Class A, and credentials-adjacent even after redaction — it
+  // records what was sent to an exchange and when. Never uploaded.
+  LOCAL_STORAGE_ORDER_AUDIT_KEY: "cachy_order_audit",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
+  // FEAT-0212 Phase 2. Class A: stores only the picked file's display name and
+  // the write interval, never the file contents or a path — the
+  // FileSystemFileHandle itself lives in IndexedDB (dbService, kv_store),
+  // not localStorage, since handles aren't JSON-serializable.
+  LOCAL_STORAGE_FILE_TARGET_CONFIG_PREFIX: "cachy_file_target_config_",
   LOCAL_STORAGE_QUIZ_KEY: "cachy_quiz_state",
   LOCAL_STORAGE_QUIZ_CATEGORY_KEY: "cachy_quiz_category",
   FLASHCARDS_CSV_PATH_DE: "/quiz/flashcards_tech_de.csv",

@@ -10,7 +10,12 @@ area: trade-panel
 data_class: A
 adr: none
 depends_on: []
+estimate: 5
+size: L
+target_date: 2027-01-15
+start_date: 2026-08-01
 ---
+
 
 # FEAT-0025 — Notify on fills, margin thresholds and connection loss
 

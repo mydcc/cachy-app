@@ -99,10 +99,10 @@ class CloudService {
     try {
       this.conn = DbConnection.builder()
         .withUri(uri)
-        .withModuleName(moduleName)
+        .withDatabaseName(moduleName)
         .withToken(token) // Enforce token
-        .onConnect((ctx, identity) => {
-          logger.log('network', 'Connected to SpacetimeDB!', ctx);
+        .onConnect((connection, identity) => {
+          logger.log('network', 'Connected to SpacetimeDB!', connection);
           this.connected = true;
           this.lastError = null;
           this.mySenderId = identity ? senderIdOf(identity) : null;

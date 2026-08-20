@@ -42,6 +42,7 @@
   import type { TranslationKey } from "../locales/schema";
 
   import SummaryResults from "../components/results/SummaryResults.svelte";
+  import PlaceOrderPanel from "../components/results/PlaceOrderPanel.svelte";
   import LanguageSwitcher from "../components/shared/LanguageSwitcher.svelte";
   import Tooltip from "../components/shared/Tooltip.svelte";
   import CachyIcon from "../components/shared/CachyIcon.svelte";
@@ -66,6 +67,7 @@
   // Initialisierung der App-Logik, sobald die Komponente gemountet ist
   onMount(() => {
     app.init();
+    effectsState.triggerDuckEvent({ type: "daily_login" });
 
     // Global listener for markdown anchor links
     const handleAnchorClick = (e: MouseEvent) => {
@@ -248,9 +250,15 @@
       : "w-56",
   );
 
+  const MAX_FAVORITE_TILES = 4;
 
-
-
+  let displayedFavorites = $derived(
+    favoritesState.items
+      .filter(
+        (fav) => fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase(),
+      )
+      .slice(0, MAX_FAVORITE_TILES),
+  );
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -456,6 +464,9 @@
           on:toggleLock={() => app.togglePositionSizeLock()}
           on:copy={() => uiState.showFeedback("copy")}
         />
+        <!-- FEAT-0021: places the position the summary above just described,
+             from the same calculator output. -->
+        <PlaceOrderPanel />
         {#if resultsState.showTotalMetricsGroup}
           <div id="total-metrics-group" class="result-group">
             <h2 class="section-header">
@@ -621,9 +632,9 @@
           <button
             id="save-journal-btn"
             class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action"
-            class:pro-execute={settingsState.capabilities.tradeExecution}
+            class:pro-execute={settingsState.entitlement.capabilities.tradeExecution}
             onclick={async () => {
-              if (settingsState.capabilities.tradeExecution) {
+              if (settingsState.entitlement.capabilities.tradeExecution) {
                 // Pro: Execute Trade
                 uiState.showError("app.tradeExecutionDev");
               } else {
@@ -633,15 +644,15 @@
             }}
             disabled={resultsState.positionSize === "-"}
             use:trackClick={{
-              category: settingsState.capabilities.tradeExecution
+              category: settingsState.entitlement.capabilities.tradeExecution
                 ? "Trading"
                 : "Journal",
               action: "Click",
-              name: settingsState.capabilities.tradeExecution
+              name: settingsState.entitlement.capabilities.tradeExecution
                 ? "ExecuteTrade"
                 : "SaveTrade",
             }}
-            >{settingsState.capabilities.tradeExecution
+            >{settingsState.entitlement.capabilities.tradeExecution
               ? $_("dashboard.executeTrade")
               : $_("dashboard.addTradeToJournal")}</button
           >
@@ -708,16 +719,14 @@
           <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
         {/if}
 
-        {#if favoritesState.items.length > 0 && settingsState.showMarketOverview}
+        {#if settingsState.showMarketOverview && displayedFavorites.length > 0}
           <div
             class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest px-1"
           >
             {$_("dashboard.favorites") || "Favorites"}
           </div>
-          {#each favoritesState.items as fav (fav)}
-            {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
-              <MarketOverview customSymbol={fav} isFavoriteTile={true} />
-            {/if}
+          {#each displayedFavorites as fav (fav)}
+            <MarketOverview customSymbol={fav} isFavoriteTile={true} />
           {/each}
         {/if}
       </div>
@@ -753,18 +762,14 @@
       {/if}
 
       <!-- Favorites list -->
-      {#if settingsState.showMarketOverview}
-        {#if favoritesState.items.length > 0}
-          <div
-            class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
-          >
-            {$_("dashboard.favorites") || "Favorites"}
-          </div>
-        {/if}
-        {#each favoritesState.items as fav (fav)}
-          {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
-            <MarketOverview customSymbol={fav} isFavoriteTile={true} />
-          {/if}
+      {#if settingsState.showMarketOverview && displayedFavorites.length > 0}
+        <div
+          class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
+        >
+          {$_("dashboard.favorites") || "Favorites"}
+        </div>
+        {#each displayedFavorites as fav (fav)}
+          <MarketOverview customSymbol={fav} isFavoriteTile={true} />
         {/each}
       {/if}
     </div>

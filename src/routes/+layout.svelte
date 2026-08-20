@@ -19,12 +19,14 @@
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
+  import AutoBackupRestoreModal from "../components/shared/AutoBackupRestoreModal.svelte";
   import MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
-import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
-  import PositionTooltip from "../components/shared/PositionTooltip.svelte";
+  import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { onMount } from "svelte";
+  import { initAutoBackup } from "../services/autoBackupService.svelte";
+  import { initFileTargets } from "../services/fileTargetBackupService.svelte";
 import { afterNavigate } from "$app/navigation";
   import { page } from "$app/stores";
   import { trackPageView } from "../services/trackingService";
@@ -50,6 +52,20 @@ import { afterNavigate } from "$app/navigation";
   }
 
   let { children }: Props = $props();
+
+  // --- Automated OPFS Local Backup (FEAT-0212 Phase 1) ---
+  $effect(() => {
+    if (!browser) return;
+    const cleanup = initAutoBackup();
+    return cleanup;
+  });
+
+  // --- Periodic Local File Write-Through (FEAT-0212 Phase 2) ---
+  $effect(() => {
+    if (!browser) return;
+    const cleanup = initFileTargets();
+    return cleanup;
+  });
 
   // --- CachyLog Integration (Developer & Manual Opt-in) ---
   // Connect to Server-Sent Events stream for real-time server logs
@@ -428,6 +444,8 @@ import { afterNavigate } from "$app/navigation";
   <DisclaimerModal />
 {/if}
 
+<AutoBackupRestoreModal />
+
 <WindowContainer />
 <ToastContainer />
 <GlobalTracker />
@@ -441,9 +459,7 @@ import { afterNavigate } from "$app/navigation";
     onmouseleave={() => uiState.hideTooltip()}
     role="tooltip"
   >
-    {#if uiState.tooltip.type === "position"}
-      <PositionTooltip position={uiState.tooltip.data} />
-    {:else if uiState.tooltip.type === "order"}
+    {#if uiState.tooltip.type === "order"}
       <OrderDetailsTooltip order={uiState.tooltip.data} />
     {/if}
   </div>

@@ -66,7 +66,7 @@ export const INITIAL_RESULTS_STATE: ResultsState = {
 };
 
 class ResultsManager {
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+
   // We use a single state object to allow easy resetting/bulk updates
   // or we can use individual fields. Individual fields are cleaner for fine-grained reactivity.
   // Given the calculator updates almost everything at once, a single object or spread might be fine.
@@ -94,10 +94,6 @@ class ResultsManager {
   isMarginExceeded = $state(false);
 
   reset() {
-    if (this.notifyTimer) {
-      clearTimeout(this.notifyTimer);
-      this.notifyTimer = null;
-    }
     Object.assign(this, { ...INITIAL_RESULTS_STATE, calculatedTpDetails: [] });
   }
 
@@ -113,6 +109,7 @@ class ResultsManager {
 
   // Legacy subscribe
   subscribe(fn: (value: ResultsState) => void) {
+    let localTimer: ReturnType<typeof setTimeout> | null = null;
     // Construct object to match legacy shape
     const getSnapshot = () => ({
       positionSize: this.positionSize,
@@ -136,18 +133,22 @@ class ResultsManager {
     });
 
     fn(getSnapshot());
-    return $effect.root(() => {
+    const cleanup = $effect.root(() => {
       $effect(() => {
         const snap = getSnapshot(); // track dependencies
         untrack(() => {
-          if (this.notifyTimer) clearTimeout(this.notifyTimer);
-          this.notifyTimer = setTimeout(() => {
+          if (localTimer) clearTimeout(localTimer);
+          localTimer = setTimeout(() => {
             fn(snap);
-            this.notifyTimer = null;
+            localTimer = null;
           }, 10);
         });
       });
     });
+    return () => {
+      cleanup();
+      if (localTimer) clearTimeout(localTimer);
+    };
   }
 }
 

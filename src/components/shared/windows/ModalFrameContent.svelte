@@ -48,4 +48,9 @@
         min-height: 0;
         padding: 1.5rem;
     }
+    @media (max-width: 640px) {
+        .modal-frame-body {
+            padding: 0.75rem;
+        }
+    }
 </style>

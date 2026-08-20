@@ -14,22 +14,36 @@ import type { JournalEntry } from "./types";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
+import { settingsState } from "./settings.svelte";
 import { untrack } from "svelte";
 import { safeJsonParse } from "../utils/safeJson";
 
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
+  private effectCleanup: (() => void) | null = null;
+  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (browser) {
       this.load();
 
       // Auto-save effect
-      $effect.root(() => {
+      this.effectCleanup = $effect.root(() => {
         $effect(() => {
           this.save();
         });
       });
+    }
+  }
+
+  destroy() {
+    if (this.effectCleanup) {
+      this.effectCleanup();
+      this.effectCleanup = null;
+    }
+    if (this.notifyTimer) {
+      clearTimeout(this.notifyTimer);
+      this.notifyTimer = null;
     }
   }
 
@@ -106,11 +120,26 @@ class JournalManager {
 
   // -- Actions --
 
-  addEntry(entry: JournalEntry) {
+  /**
+   * The single write path for a new journal entry.
+   *
+   * A simulated fill (FEAT-0012) is written only when the user has asked for
+   * it — reviewing paper trades afterwards is most of the point of paper
+   * trading, so the setting defaults to on, but someone who wants a journal
+   * of real trades only can say so and this drops the entry at the door
+   * rather than filtering it back out everywhere downstream.
+   *
+   * Returns false when the entry was deliberately not recorded.
+   */
+  addEntry(entry: JournalEntry): boolean {
+    if (entry.isPaper === true && !settingsState.journalPaperTrades) {
+      return false;
+    }
     this.entries.push(entry);
     if (this.entries.length > 1000) {
       this.entries.shift();
     }
+    return true;
   }
 
   updateEntry(updatedEntry: JournalEntry) {
@@ -139,52 +168,78 @@ class JournalManager {
 
   // -- Derived Metrics ($derived) --
 
-  private analysisContext = $derived(calculator.getJournalContext(this.entries));
+  /**
+   * Real trades only. Every statistic below is computed from this rather than
+   * from `entries`, because a simulated fill in the win rate, the expectancy
+   * or the equity curve makes the number a lie — and paper trades are in the
+   * journal precisely so they can be reviewed, which is only useful if the
+   * headline figures still describe real money.
+   *
+   * The journal *list* still shows them, badged; see JournalContent.
+   */
+  analysisEntries = $derived(this.entries.filter((e) => e.isPaper !== true));
 
-  performanceMetrics = $derived(calculator.getPerformanceData(this.entries, this.analysisContext));
-  qualityMetrics = $derived(calculator.getQualityData(this.entries, this.analysisContext));
-  directionMetrics = $derived(calculator.getDirectionData(this.entries, this.analysisContext));
-  tagMetrics = $derived(calculator.getTagData(this.entries, this.analysisContext));
-  calendarMetrics = $derived(calculator.getCalendarData(this.entries, this.analysisContext));
-  disciplineMetrics = $derived(calculator.getDisciplineData(this.entries, this.analysisContext));
-  costMetrics = $derived(calculator.getCostData(this.entries, this.analysisContext));
+  /** How many stored entries are simulated. Drives the list's paper filter. */
+  paperEntryCount = $derived(
+    this.entries.length - this.analysisEntries.length,
+  );
+
+  private analysisContext = $derived(calculator.getJournalContext(this.analysisEntries));
+
+  performanceMetrics = $derived(calculator.getPerformanceData(this.analysisEntries, this.analysisContext));
+  qualityMetrics = $derived(calculator.getQualityData(this.analysisEntries, this.analysisContext));
+  directionMetrics = $derived(calculator.getDirectionData(this.analysisEntries, this.analysisContext));
+  tagMetrics = $derived(calculator.getTagData(this.analysisEntries, this.analysisContext));
+  calendarMetrics = $derived(calculator.getCalendarData(this.analysisEntries, this.analysisContext));
+  disciplineMetrics = $derived(calculator.getDisciplineData(this.analysisEntries, this.analysisContext));
+  costMetrics = $derived(calculator.getCostData(this.analysisEntries, this.analysisContext));
 
   // Deep Dive
-  timingMetrics = $derived(calculator.getTimingData(this.entries, this.analysisContext));
-  confluenceMetrics = $derived(calculator.getConfluenceData(this.entries, this.analysisContext));
-  durationStatsMetrics = $derived(calculator.getDurationStats(this.entries, this.analysisContext));
-  durationDataMetrics = $derived(calculator.getDurationData(this.entries, this.analysisContext));
-  tagEvolutionMetrics = $derived(calculator.getTagEvolution(this.entries, this.analysisContext));
-  assetMetrics = $derived(calculator.getAssetData(this.entries, this.analysisContext));
-  riskMetrics = $derived(calculator.getRiskData(this.entries, this.analysisContext));
-  marketMetrics = $derived(calculator.getMarketData(this.entries, this.analysisContext));
-  psychologyMetrics = $derived(calculator.getPsychologyData(this.entries, this.analysisContext));
+  timingMetrics = $derived(calculator.getTimingData(this.analysisEntries, this.analysisContext));
+  confluenceMetrics = $derived(calculator.getConfluenceData(this.analysisEntries, this.analysisContext));
+  durationStatsMetrics = $derived(calculator.getDurationStats(this.analysisEntries, this.analysisContext));
+  durationDataMetrics = $derived(calculator.getDurationData(this.analysisEntries, this.analysisContext));
+  tagEvolutionMetrics = $derived(calculator.getTagEvolution(this.analysisEntries, this.analysisContext));
+  assetMetrics = $derived(calculator.getAssetData(this.analysisEntries, this.analysisContext));
+  riskMetrics = $derived(calculator.getRiskData(this.analysisEntries, this.analysisContext));
+  marketMetrics = $derived(calculator.getMarketData(this.analysisEntries, this.analysisContext));
+  psychologyMetrics = $derived(calculator.getPsychologyData(this.analysisEntries, this.analysisContext));
 
   // 6-Pillars
-  executionMetrics = $derived(calculator.getExecutionEfficiencyData(this.entries, this.analysisContext));
-  riskRadarMetrics = $derived(calculator.getVisualRiskRadarData(this.entries, this.analysisContext));
-  marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.entries, this.analysisContext));
-  systemQualityMetrics = $derived(calculator.getSystemQualityData(this.entries, this.analysisContext));
-
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  executionMetrics = $derived(calculator.getExecutionEfficiencyData(this.analysisEntries, this.analysisContext));
+  riskRadarMetrics = $derived(calculator.getVisualRiskRadarData(this.analysisEntries, this.analysisContext));
+  marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.analysisEntries, this.analysisContext));
+  systemQualityMetrics = $derived(calculator.getSystemQualityData(this.analysisEntries, this.analysisContext));
 
   // Legacy subscribe for backward compatibility
   subscribe(fn: (value: JournalEntry[]) => void) {
+    let localTimer: ReturnType<typeof setTimeout> | null = null;
     fn(this.entries);
-    return $effect.root(() => {
+    const cleanup = $effect.root(() => {
       $effect(() => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the $effect dependency
         this.entries; // Track
         untrack(() => {
-          if (this.notifyTimer) clearTimeout(this.notifyTimer);
-          this.notifyTimer = setTimeout(() => {
+          if (localTimer) clearTimeout(localTimer);
+          localTimer = setTimeout(() => {
             fn(this.entries);
-            this.notifyTimer = null;
+            localTimer = null;
           }, 20);
         });
       });
     });
+    return () => {
+      cleanup();
+      if (localTimer) clearTimeout(localTimer);
+    };
   }
 }
 
 export const journalState = new JournalManager();
+
+// HMR: Cleanup on module disposal to prevent timers and effect leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    journalState.destroy();
+  });
+}

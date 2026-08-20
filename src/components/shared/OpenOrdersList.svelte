@@ -19,7 +19,7 @@
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
-  import type { NormalizedOrder } from "../../types/bitunix";
+  import type { NormalizedOrder } from "../../types/exchange";
 
   interface Props {
     orders?: NormalizedOrder[];
@@ -186,7 +186,7 @@
                   <button
                     class="w-5 h-5 flex items-center justify-center bg-[var(--danger-color)] bg-opacity-10 text-[var(--danger-color)] rounded hover:bg-opacity-20 transition-colors"
                     onclick={() => handleCancel(order)}
-                    title="Cancel Order"
+                    title={$_("dashboard.cancelOrder") || "Cancel Order"}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

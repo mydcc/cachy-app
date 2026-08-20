@@ -10,7 +10,12 @@ area: collaboration
 data_class: B
 adr: ADR-0004
 depends_on: [FEAT-0014]
+estimate: 8
+size: XL
+start_date: 2026-08-01
+target_date: 2027-08-31
 ---
+
 
 # FEAT-0033 — Harden Global Chat and add peer-signal reputation
 

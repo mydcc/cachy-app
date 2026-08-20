@@ -10,7 +10,12 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-08
+target_date: 2026-08-13
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0061 — Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns
 

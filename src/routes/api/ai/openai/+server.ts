@@ -25,7 +25,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   if (authError) return authError;
 
   try {
-    const { messages, model } = await request.json();
+    const { messages, model, tools } = await request.json();
     const apiKey = request.headers.get("x-api-key");
 
     if (!apiKey) {
@@ -41,6 +41,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       body: JSON.stringify({
         model: model || "gpt-4o",
         messages: messages,
+        tools: tools && tools.length > 0 ? tools : undefined,
         max_tokens: 2000,
         stream: true, // Enable streaming
       }),

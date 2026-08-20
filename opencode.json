@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "OPENCODE.md",
+    "AGENTS.md",
+    ".agents/skills/backlog-groom/SKILL.md",
+    ".agents/skills/backlog-review/SKILL.md"
+  ],
+  "mcp": {
+    "gortex": {
+      "command": [
+        "gortex",
+        "mcp"
+      ],
+      "enabled": true,
+      "environment": {
+        "GORTEX_INDEX_WORKERS": "8"
+      },
+      "type": "local"
+    }
+  }
+}

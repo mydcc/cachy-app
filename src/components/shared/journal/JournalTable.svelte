@@ -685,9 +685,19 @@
                                     </td>
                                 {/if}
                                 {#if visibility.symbol}
-                                    <td class="font-medium col-symbol"
-                                        >{item.symbol}</td
-                                    >
+                                    <td class="font-medium col-symbol">
+                                        {item.symbol}
+                                        <!-- A simulated fill sitting unmarked
+                                             next to real ones would be read as
+                                             real money. FEAT-0012. -->
+                                        {#if item.isPaper}
+                                            <span
+                                                class="paper-badge"
+                                                title={$_("journal.paper.tooltip")}
+                                                >{$_("journal.paper.badge")}</span
+                                            >
+                                        {/if}
+                                    </td>
                                 {/if}
                                 {#if visibility.type}
                                     <td
@@ -1139,6 +1149,19 @@
         white-space: nowrap;
     }
 
+    .paper-badge {
+        display: inline-block;
+        margin-left: 0.35rem;
+        padding: 0 0.3rem;
+        border: 1px solid var(--warning-color, var(--border-color));
+        border-radius: 0.25rem;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--warning-color, var(--text-secondary));
+        vertical-align: middle;
+    }
     .col-symbol {
         min-width: 110px;
         padding-right: 1rem !important;

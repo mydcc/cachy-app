@@ -36,6 +36,7 @@ export class ApiStatusError extends Error {
 import {
   BitunixTickerResponseSchema,
   BitunixFundingRateBatchResponseSchema,
+  BitunixFundingRateHistoryResponseSchema,
   BitunixKlineSchema,
   BitgetKlineSchema,
   validateResponseSize,
@@ -59,6 +60,12 @@ export interface FundingRateEntry {
   fundingRate: Decimal; // normalized fraction, e.g. 0.0005 = 0.05% (see fetchBitunixFundingRates)
   nextFundingTime: number | string; // ms epoch
   fundingInterval?: number | string; // settlement interval in hours, varies per symbol
+}
+
+export interface FundingRateHistoryItem {
+  fundingRate: Decimal; // normalized fraction, e.g. 0.0001 = 0.01%
+  fundingTime: number; // epoch ms
+  markPrice?: Decimal | null;
 }
 
 // Raw Bitget kline shape when the endpoint returns objects instead of
@@ -102,6 +109,27 @@ interface BitgetRawTicker {
   usdtVolume?: string | number;
   priceChangePercent?: string | number;
 }
+
+/**
+ * Hard cap on rows Bitunix returns per kline request. The API accepts any
+ * `limit` and silently truncates, so this -- not the requested limit -- is the
+ * real ceiling. Confirmed against the live proxy log: `requested 1000 ... Got 200`.
+ */
+const BITUNIX_MAX_ROWS_PER_REQUEST = 200;
+
+/**
+ * Ceiling on sequential pages per kline request.
+ *
+ * A synthetic timeframe with a large multiplier can demand absurd base-candle
+ * counts -- 600 twelve-minute candles is 7200 one-minute candles, 36 pages. The
+ * cap keeps a single request from monopolising its concurrency slot. 20 pages
+ * (4000 base candles) still clears EMA 200 for every timeframe the UI offers:
+ * 3m needs 9 pages, 6m 18, 10m 6, and 12m lands at ~333 target candles.
+ *
+ * When the cap binds, we log it. A truncated fetch that reports full success is
+ * how the original defect stayed invisible for so long.
+ */
+const MAX_KLINE_PAGES = 20;
 
 // --- Rate Limiter (Token Bucket) ---
 export class RateLimiter {
@@ -652,97 +680,173 @@ export const apiService = {
     const { base: fetchInterval, multiplier, isSynthetic, intervalMs } = resolution;
     const fetchLimit = limit * multiplier;
 
+    // Bitunix truncates every kline response at BITUNIX_MAX_ROWS_PER_REQUEST
+    // rows regardless of the `limit` we send. For a native timeframe that just
+    // means "you get 200". For a synthetic one it is worse: those 200 BASE
+    // candles collapse into 200/multiplier target candles, so a 6m request
+    // funded by 1m candles yields 33. That is why indicators with long
+    // look-backs (EMA 200 above all) silently vanished on 3m/6m/10m/12m while
+    // short ones like RSI still rendered (BUG-0231).
+    //
+    // When the base-candle demand exceeds one response, walk backwards in
+    // pages. The whole walk happens inside a single scheduled request, so it
+    // costs one concurrency slot rather than one per page.
+    const pagesWanted = Math.max(1, Math.ceil(fetchLimit / BITUNIX_MAX_ROWS_PER_REQUEST));
+    const pagesNeeded = Math.min(pagesWanted, MAX_KLINE_PAGES);
+    const needsPaging = pagesNeeded > 1;
+
+    if (pagesWanted > pagesNeeded) {
+      logger.warn(
+        "network",
+        `[Bitunix] ${symbol}:${interval} wants ${pagesWanted} pages for ${limit} candles; ` +
+          `capped at ${MAX_KLINE_PAGES} (~${(pagesNeeded * BITUNIX_MAX_ROWS_PER_REQUEST) / multiplier} candles). ` +
+          `Long look-back indicators may be unavailable on this timeframe.`,
+      );
+    }
+
     const safeStart = startTime ?? "0";
     const safeEnd = endTime ?? "0";
     const key = `BITUNIX:${symbol}:${interval}:${limit}:${safeStart}:${safeEnd}`; // Keep original key
-    
+
+    // Paging turns one round trip into up to `pagesNeeded` sequential ones, so
+    // the caller's single-request timeout would abort the walk part way.
+    const MAX_PAGED_TIMEOUT_MS = 60_000;
+    const effectiveTimeout = needsPaging
+      ? Math.min(timeout * pagesNeeded, MAX_PAGED_TIMEOUT_MS)
+      : timeout;
+
     return requestManager.schedule(
       key,
       async (signal) => {
         try {
           const normalized = apiService.normalizeSymbol(symbol, "bitunix");
-          const params = new URLSearchParams({
-            provider: "bitunix",
-            symbol: normalized,
-            interval: fetchInterval, // Use mapped base
-            limit: fetchLimit.toString(),
-          });
-          if (startTime) params.append("startTime", startTime.toString());
-          if (endTime) params.append("endTime", endTime.toString());
 
-          const response = await fetch(`/api/klines?${params.toString()}`, {
-            signal,
-          });
-          if (response.status === 404) {
-            throw new ApiStatusError("apiErrors.symbolNotFound", 404);
-          }
-          if (!response.ok) {
-            // Try to parse error details
-            let errData: { error?: string } = {};
-            try {
-              errData = await response.json();
-            } catch {
-              /* ignore parsing error */
+          /** Fetch, validate and map ONE page of base candles. */
+          const fetchPage = async (pageEndTime?: number): Promise<Kline[]> => {
+            const params = new URLSearchParams({
+              provider: "bitunix",
+              symbol: normalized,
+              interval: fetchInterval, // Use mapped base
+              limit: Math.min(fetchLimit, BITUNIX_MAX_ROWS_PER_REQUEST).toString(),
+            });
+            if (startTime) params.append("startTime", startTime.toString());
+            if (pageEndTime) params.append("endTime", pageEndTime.toString());
+
+            const response = await fetch(`/api/klines?${params.toString()}`, {
+              signal,
+            });
+            if (response.status === 404) {
+              throw new ApiStatusError("apiErrors.symbolNotFound", 404);
             }
-
-            if (errData.error) {
-              const lowerErr = String(errData.error).toLowerCase();
-              if (
-                lowerErr.includes("symbol not found") ||
-                lowerErr.includes("system error")
-              ) {
-                throw new ApiStatusError("apiErrors.symbolNotFound", 404);
+            if (!response.ok) {
+              // Try to parse error details
+              let errData: { error?: string } = {};
+              try {
+                errData = await response.json();
+              } catch {
+                /* ignore parsing error */
               }
 
-              // Log to proper logger
-              logger.warn(
+              if (errData.error) {
+                const lowerErr = String(errData.error).toLowerCase();
+                if (
+                  lowerErr.includes("symbol not found") ||
+                  lowerErr.includes("system error")
+                ) {
+                  throw new ApiStatusError("apiErrors.symbolNotFound", 404);
+                }
+
+                // Log to proper logger
+                logger.warn(
+                  "network",
+                  `[Bitunix] Kline fetch failed (${response.status}): ${errData.error || "Unknown"}`,
+                );
+              }
+
+              throw new Error("apiErrors.klineError");
+            }
+            const res = await apiService.safeJson(response);
+
+            // Backend returns the mapped array directly
+            if (!Array.isArray(res)) {
+              if (res && res.error) throw new Error("apiErrors.klineError");
+              logger.error("network", `[Bitunix] Invalid kline response type: ${typeof res}`, res);
+              throw new Error("apiErrors.invalidResponse");
+            }
+
+            // Map the response data to the required Kline interface
+            const mapped = res
+              .map((kline: unknown) => {
+                const validation = BitunixKlineSchema.safeParse(kline);
+                if (!validation.success) {
+                  logger.warn("network", "Skipping invalid kline", { kline, error: validation.error.issues });
+                  return null;
+                }
+                const d = validation.data;
+                const time = parseTimestamp(d.timestamp || d.time || d.ts);
+                if (time === 0) {
+                    logger.warn("network", "[Bitunix] Dropping invalid kline (Time=0)", d);
+                    return null;
+                }
+
+                // HARDENING: Check for missing or zero prices
+                if (!d.open || !d.close || d.open.isZero() || d.close.isZero()) {
+                    return null;
+                }
+
+                return {
+                  open: d.open,
+                  high: d.high,
+                  low: d.low,
+                  close: d.close,
+                  volume: d.volume || d.vol || new Decimal(0),
+                  time
+                };
+              })
+              .filter((k): k is Kline => k !== null);
+
+          return mapped;
+          };
+
+          // --- Page walk ---------------------------------------------------
+          // Page 1 uses the caller's endTime; each further page ends just
+          // before the oldest candle seen so far, so the windows abut instead
+          // of overlapping or leaving holes.
+          let mapped = await fetchPage(endTime);
+
+          if (needsPaging && mapped.length > 0) {
+            const seenTimes = new Set(mapped.map((k) => k.time));
+            // Computed, not read off index 0: page ordering is the upstream's
+            // choice and the proxy only normalises it best-effort. Anchoring
+            // the next window on a wrong "oldest" would re-request the same
+            // range and quietly stall the walk.
+            let oldest = Math.min(...mapped.map((k) => k.time));
+
+            for (let page = 1; page < pagesNeeded; page++) {
+              const older = await fetchPage(oldest - 1);
+              if (older.length === 0) break; // exchange has no more history
+
+              const fresh = older.filter((k) => !seenTimes.has(k.time));
+              // Upstream ignored endTime and replayed the same window. Stop
+              // rather than spin -- an unbounded page walk is the failure mode
+              // this whole fix exists to remove, not one to reintroduce.
+              if (fresh.length === 0) break;
+
+              for (const k of fresh) seenTimes.add(k.time);
+              mapped = fresh.concat(mapped);
+              oldest = Math.min(oldest, ...fresh.map((k) => k.time));
+            }
+
+            mapped.sort((a, b) => a.time - b.time);
+
+            if (import.meta.env.DEV) {
+              logger.debug(
                 "network",
-                `[Bitunix] Kline fetch failed (${response.status}): ${errData.error || "Unknown"}`,
+                `[Bitunix] ${symbol}:${interval} paged ${pagesNeeded}x -> ${mapped.length} ${fetchInterval} candles`,
               );
             }
-
-            throw new Error("apiErrors.klineError");
-          }
-          const res = await apiService.safeJson(response);
-
-          // Backend returns the mapped array directly
-          if (!Array.isArray(res)) {
-            if (res && res.error) throw new Error("apiErrors.klineError");
-            logger.error("network", `[Bitunix] Invalid kline response type: ${typeof res}`, res);
-            throw new Error("apiErrors.invalidResponse");
           }
 
-          // Map the response data to the required Kline interface
-          const mapped = res
-            .map((kline: unknown) => {
-              const validation = BitunixKlineSchema.safeParse(kline);
-              if (!validation.success) {
-                logger.warn("network", "Skipping invalid kline", { kline, error: validation.error.issues });
-                return null;
-              }
-              const d = validation.data;
-              const time = parseTimestamp(d.timestamp || d.time || d.ts);
-              if (time === 0) {
-                  logger.warn("network", "[Bitunix] Dropping invalid kline (Time=0)", d);
-                  return null;
-              }
-
-              // HARDENING: Check for missing or zero prices
-              if (!d.open || !d.close || d.open.isZero() || d.close.isZero()) {
-                  return null;
-              }
-
-              return {
-                open: d.open,
-                high: d.high,
-                low: d.low,
-                close: d.close,
-                volume: d.volume || d.vol || new Decimal(0),
-                time
-              };
-            })
-            .filter((k): k is Kline => k !== null);
-            
            // [SYNTHETIC] Generic Aggregation
            if (isSynthetic && intervalMs > 0) {
                // Use resolved intervalMs (target)
@@ -807,7 +911,7 @@ export const apiService = {
       },
       priority,
       1,
-      timeout,
+      effectiveTimeout,
     );
   },
 
@@ -1035,6 +1139,76 @@ export const apiService = {
             });
           }
           return result;
+        } catch (e: unknown) {
+          if (e instanceof Error && e.name === "AbortError") throw e;
+          if (
+            e instanceof Error &&
+            (e.message.startsWith("apiErrors.") ||
+              e.message.startsWith("bitunixErrors."))
+          ) {
+            throw e;
+          }
+          throw new Error("apiErrors.generic", { cause: e });
+        }
+      },
+      priority,
+      1,
+      timeout,
+    );
+  },
+
+  async fetchBitunixFundingRateHistory(
+    symbol: string,
+    limit = 30,
+    priority: "high" | "normal" = "normal",
+    timeout = 10000,
+  ): Promise<FundingRateHistoryItem[]> {
+    const rawSymbol = apiService.normalizeSymbol(symbol, "bitunix");
+    const key = `FUNDING_RATE_HISTORY:bitunix:${rawSymbol}:${limit}`;
+    return requestManager.schedule(
+      key,
+      async (signal) => {
+        try {
+          const response = await fetch(
+            `/api/funding-rate?provider=bitunix&symbol=${encodeURIComponent(rawSymbol)}&limit=${limit}`,
+            { signal },
+          );
+          if (!response.ok) throw new Error("apiErrors.generic");
+          const data = await apiService.safeJson(response);
+
+          const validation = BitunixFundingRateHistoryResponseSchema.safeParse(data);
+          if (!validation.success) {
+            logger.error("network", "[API] Invalid funding rate history response", validation.error.issues);
+            throw new Error("apiErrors.invalidResponse");
+          }
+          const validatedRes = validation.data;
+          if (validatedRes.code !== undefined && validatedRes.code !== 0) {
+            throw new Error(getBitunixErrorKey(validatedRes.code));
+          }
+          if (!validatedRes.data) {
+            throw new Error("apiErrors.invalidResponse");
+          }
+
+          const items: FundingRateHistoryItem[] = validatedRes.data.map((entry) => {
+            // Unlike funding_rate/batch (percent, needs /100 — see
+            // fetchBitunixFundingRates), get_funding_rate_history already
+            // returns the rate as a fraction, e.g. "-0.00001191" (see
+            // docs/bitunix-api/04_market.md response example).
+            const fundingRate = entry.fundingRate;
+            const fundingTime =
+              typeof entry.fundingTime === "string"
+                ? parseInt(entry.fundingTime, 10)
+                : entry.fundingTime;
+            return {
+              fundingRate,
+              fundingTime: isNaN(fundingTime) ? 0 : fundingTime,
+              markPrice: entry.markPrice ?? null,
+            };
+          });
+
+          // Sort chronologically ascending (oldest first, newest last)
+          items.sort((a, b) => a.fundingTime - b.fundingTime);
+          return items;
         } catch (e: unknown) {
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (

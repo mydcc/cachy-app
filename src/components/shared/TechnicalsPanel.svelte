@@ -65,7 +65,8 @@
     }
   });
 
-  function handleDropdownLeave() {
+  function handleDropdownLeave(e?: PointerEvent) {
+    if (e?.pointerType === "touch") return;
     if (hoverTimeout) clearTimeout(hoverTimeout);
     hoverTimeout = window.setTimeout(() => {
       showTimeframePopup = false;
@@ -104,7 +105,8 @@
   }
 
   // --- UI Event Handlers ---
-  function handleDropdownEnter() {
+  function handleDropdownEnter(e?: PointerEvent) {
+    if (e?.pointerType === "touch") return;
     if (hoverTimeout) clearTimeout(hoverTimeout);
     showTimeframePopup = true;
   }
@@ -162,12 +164,13 @@
         <div
           class="relative timeframe-selector-container"
           role="group"
-          onmouseenter={handleDropdownEnter}
-          onmouseleave={handleDropdownLeave}
+          onpointerenter={handleDropdownEnter}
+          onpointerleave={handleDropdownLeave}
         >
           <button
             type="button"
             class="text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] cursor-pointer hover:bg-[var(--accent-color)] hover:text-[var(--text-on-accent)] border-none outline-none font-mono flex items-center justify-center"
+            onclick={() => (showTimeframePopup = !showTimeframePopup)}
           >
             {timeframe}
           </button>

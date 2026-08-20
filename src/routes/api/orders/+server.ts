@@ -22,9 +22,9 @@ import type {
   BitunixResponse,
   BitunixOrder,
   BitunixOrderListWrapper,
-  NormalizedOrder,
   BitunixOrderPayload,
 } from "../../../types/bitunix";
+import type { NormalizedOrder } from "../../../types/exchange";
 import type {
   BitgetOrderPayload
 } from "../../../types/bitget";
@@ -121,14 +121,22 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit), payload.queryCanceled);
+        const orders = await fetchBitunixHistoryOrders(
+          apiKey,
+          apiSecret,
+          Number(payload.limit),
+          payload.queryCanceled,
+          payload.startTime,
+          payload.endTime,
+          payload.symbol
+        );
         result = { orders };
       }
       else if (payload.type === "place-order") {
         const orderPayload: BitunixOrderPayload = {
           symbol: payload.symbol,
           side: payload.side,
-          type: payload.orderType, // Correct field from schema
+          orderType: payload.orderType,
           qty: payload.qty,
           price: payload.price,
           reduceOnly: Boolean(payload.reduceOnly),
@@ -136,6 +144,19 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
           // HEDGE-mode close (BUG-0062) — see PlaceOrderSchema's comment.
           tradeSide: payload.tradeSide,
           positionId: payload.positionId,
+          // FEAT-0069. `effect` is documented as required for LIMIT and
+          // meaningless otherwise, so a market order sends none rather than a
+          // value the exchange ignores.
+          effect: payload.orderType === "MARKET" ? undefined : payload.effect,
+          clientId: payload.clientId,
+          tpPrice: payload.tpPrice,
+          tpStopType: payload.tpStopType,
+          tpOrderType: payload.tpOrderType,
+          tpOrderPrice: payload.tpOrderPrice,
+          slPrice: payload.slPrice,
+          slStopType: payload.slStopType,
+          slOrderType: payload.slOrderType,
+          slOrderPrice: payload.slOrderPrice,
         };
         // Remove undefined safe
         const cleanedPayload = cleanPayload(orderPayload);
@@ -149,31 +170,29 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         const closeOrder: BitunixOrderPayload = {
           symbol: payload.symbol,
           side: payload.side,
-          type: "MARKET",
+          orderType: "MARKET",
           qty: safeAmount,
           reduceOnly: true,
         };
         result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
       }
+      else if (payload.type === "close-all-positions") {
+        result = await closeAllBitunixPositions(apiKey, apiSecret, payload.symbol);
+      }
+      else if (payload.type === "flash-close-position") {
+        result = await flashCloseBitunixPosition(apiKey, apiSecret, payload.positionId);
+      }
       else if (payload.type === "cancel-all") {
-        // Implementation for Cancel All (Pending + Loop)
-        const pending = await fetchBitunixPendingOrders(apiKey, apiSecret);
-        const symbol = payload.symbol; // Optional filter
-
-        const toCancel = symbol
-            ? pending.filter(o => o.symbol === symbol)
-            : pending;
-
-        const promises = toCancel.map(order =>
-             cancelBitunixOrder(apiKey, apiSecret, order.symbol, order.id)
-                .catch(err => ({ status: 'rejected', error: err, id: order.id }))
-        );
-
-        await Promise.all(promises);
-        result = { success: true, count: toCancel.length };
+        result = await cancelAllBitunixOrders(apiKey, apiSecret, payload.symbol);
       }
       else if (payload.type === "cancel-order") {
         result = await cancelBitunixOrder(apiKey, apiSecret, payload.symbol, payload.orderId);
+      }
+      else if (payload.type === "order-detail") {
+        result = await fetchBitunixOrderDetail(apiKey, apiSecret, payload.orderId, payload.clientId);
+      }
+      else if (payload.type === "modify-order") {
+        result = await modifyBitunixOrder(apiKey, apiSecret, payload);
       }
     }
     // --- BITGET ---
@@ -185,7 +204,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-         const orders = await fetchBitgetHistoryOrders(apiKey, apiSecret, passphrase, Number(payload.limit));
+         const orders = await fetchBitgetHistoryOrders(
+           apiKey,
+           apiSecret,
+           passphrase,
+           Number(payload.limit),
+           payload.startTime,
+           payload.endTime,
+           payload.symbol
+         );
          result = { orders };
       }
       else if (payload.type === "place-order") {
@@ -301,6 +328,237 @@ async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: str
     return res.data;
 }
 
+async function cancelAllBitunixOrders(apiKey: string, apiSecret: string, symbol?: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/cancel_all_orders";
+
+    const payload: Record<string, string> = {};
+    if (symbol) payload.symbol = symbol;
+
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Cancel all failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    // Surface partial failures from failureList if any
+    const failure = res.data?.failureList?.[0];
+    if (failure) {
+        throw new Error(failure.errorMsg || `Cancel failed: ${failure.errorCode}`);
+    }
+
+    return res.data;
+}
+
+async function closeAllBitunixPositions(apiKey: string, apiSecret: string, symbol?: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/close_all_position";
+
+    const payload: Record<string, string> = {};
+    if (symbol) payload.symbol = symbol;
+
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Close all positions failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    return res.data ?? { success: true };
+}
+
+async function flashCloseBitunixPosition(apiKey: string, apiSecret: string, positionId: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/flash_close_position";
+
+    const payload = { positionId };
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Flash close failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    return res.data;
+}
+
+async function fetchBitunixOrderDetail(
+    apiKey: string,
+    apiSecret: string,
+    orderId?: string,
+    clientId?: string,
+): Promise<NormalizedOrder> {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/get_order_detail";
+
+    const params: Record<string, string> = {};
+    if (orderId) params.orderId = orderId;
+    if (clientId) params.clientId = clientId;
+
+    const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
+
+    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+        method: "GET",
+        headers: {
+            "api-key": apiKey,
+            timestamp: timestamp,
+            nonce: nonce,
+            sign: signature,
+            "Content-Type": "application/json",
+        },
+    });
+
+    if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
+    const text = await response.text();
+    const res = safeJsonParse(text) as BitunixResponse<BitunixOrder>;
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    const o = res.data;
+    if (!o) throw new Error("Order not found");
+
+    return {
+        id: o.orderId,
+        orderId: o.orderId,
+        clientId: o.clientId,
+        symbol: o.symbol,
+        type: o.type,
+        side: o.side,
+        price: formatApiNum(o.price) || null,
+        amount: formatApiNum(o.qty) || "0",
+        filled: formatApiNum(o.tradeQty) || "0",
+        avgPrice: formatApiNum(o.avgPrice ?? o.averagePrice) || "0",
+        realizedPNL: formatApiNum(o.realizedPNL) || "0",
+        fee: formatApiNum(o.fee) || "0",
+        reduceOnly: Boolean(o.reduceOnly),
+        status: o.status || "UNKNOWN",
+        time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+        mtime: o.mtime,
+        leverage: o.leverage,
+        marginMode: o.marginMode,
+        positionMode: o.positionMode,
+        tpPrice: o.tpPrice,
+        tpStopType: o.tpStopType,
+        tpOrderType: o.tpOrderType,
+        slPrice: o.slPrice,
+        slStopType: o.slStopType,
+        slOrderType: o.slOrderType,
+    };
+}
+
+async function modifyBitunixOrder(
+    apiKey: string,
+    apiSecret: string,
+    modifyData: {
+        orderId?: string;
+        clientId?: string;
+        symbol?: string;
+        qty: string;
+        price?: string;
+        tpPrice?: string;
+        tpStopType?: string;
+        tpOrderType?: string;
+        tpOrderPrice?: string;
+        slPrice?: string;
+        slStopType?: string;
+        slOrderType?: string;
+        slOrderPrice?: string;
+    },
+) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/modify_order";
+
+    const body: Record<string, unknown> = {
+        orderId: modifyData.orderId,
+        clientId: modifyData.clientId,
+        symbol: modifyData.symbol,
+        qty: modifyData.qty,
+        price: modifyData.price,
+        tpPrice: modifyData.tpPrice,
+        tpStopType: modifyData.tpStopType,
+        tpOrderType: modifyData.tpOrderType,
+        tpOrderPrice: modifyData.tpOrderPrice,
+        slPrice: modifyData.slPrice,
+        slStopType: modifyData.slStopType,
+        slOrderType: modifyData.slOrderType,
+        slOrderPrice: modifyData.slOrderPrice,
+    };
+
+    const finalPayload = cleanPayload(body);
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
+
+    const response = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            timestamp: timestamp,
+            nonce: nonce,
+            sign: signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Modify failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    return res.data;
+}
+
 async function placeBitunixOrder(
   apiKey: string,
   apiSecret: string,
@@ -317,7 +575,7 @@ async function placeBitunixOrder(
     qty: safeQty,
   };
 
-  const type = payload.type;
+  const type = payload.orderType;
   if (type === "LIMIT" || type === "STOP_LIMIT" || type === "TAKE_PROFIT_LIMIT") {
     const safePrice = formatApiNum(orderData.price);
     if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
@@ -328,6 +586,32 @@ async function placeBitunixOrder(
     const safeTrigger = formatApiNum(orderData.triggerPrice as string | number | undefined);
     if (!safeTrigger) throw new Error(ORDER_ERRORS.INVALID_TRIGGER);
     payload.triggerPrice = safeTrigger;
+  }
+
+  // FEAT-0069: attached TP/SL levels go through the same Decimal formatting
+  // as every other price. `formatApiNum` is what keeps a low-priced asset
+  // from being serialised as "1e-7", which the exchange rejects.
+  for (const field of [
+    "tpPrice",
+    "tpOrderPrice",
+    "slPrice",
+    "slOrderPrice",
+  ] as const) {
+    const raw = orderData[field] as string | number | undefined;
+    if (raw === undefined) continue;
+    const safe = formatApiNum(raw);
+    if (!safe || new Decimal(safe).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    payload[field] = safe;
+  }
+
+  // A LIMIT take-profit or stop needs the price it will be placed at.
+  // Catching it here costs nothing; learning it from a rejection costs a
+  // round trip with a position already open behind it.
+  if (payload.tpOrderType === "LIMIT" && payload.tpOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+  }
+  if (payload.slOrderType === "LIMIT" && payload.slOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
   }
 
   const finalPayload = cleanPayload(payload);
@@ -466,7 +750,15 @@ function cleanPayload<T extends object>(payload: T): T {
   return cleaned as T;
 }
 
-async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20, queryCanceled = false): Promise<NormalizedOrder[]> {
+async function fetchBitunixHistoryOrders(
+  apiKey: string,
+  apiSecret: string,
+  limit = 20,
+  queryCanceled = false,
+  startTime?: number,
+  endTime?: number,
+  symbol?: string
+): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
   // Bitunix's own split: queryCanceled=false returns everything except
@@ -474,6 +766,9 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
   // back). Neither call alone is a complete history.
   const params: Record<string, string> = { limit: String(limit) };
   if (queryCanceled) params.queryCanceled = "true";
+  if (symbol) params.symbol = symbol;
+  if (startTime !== undefined && !isNaN(startTime)) params.startTime = String(startTime);
+  if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
   const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
 
   const response = await fetch(`${baseUrl}${path}?${queryString}`, {
@@ -498,7 +793,7 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     else if ("orderList" in res.data) listData = res.data.orderList;
   }
 
-  return listData.map((o) => ({
+  let mapped: NormalizedOrder[] = listData.map((o) => ({
     id: o.orderId,
     orderId: o.orderId,
     clientId: o.clientId,
@@ -530,6 +825,15 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     slStopType: o.slStopType,
     slOrderType: o.slOrderType,
   }));
+
+  if (startTime !== undefined && !isNaN(startTime)) {
+    mapped = mapped.filter((o) => (o.time ?? 0) >= startTime);
+  }
+  if (endTime !== undefined && !isNaN(endTime)) {
+    mapped = mapped.filter((o) => (o.time ?? 0) <= endTime);
+  }
+
+  return mapped;
 }
 
 // --- Bitget Helpers ---
@@ -654,7 +958,10 @@ async function fetchBitgetHistoryOrders(
     apiKey: string,
     apiSecret: string,
     passphrase: string,
-    limit = 20
+    limit = 20,
+    startTime?: number,
+    endTime?: number,
+    symbol?: string
 ): Promise<NormalizedOrder[]> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/order/history";
@@ -662,8 +969,12 @@ async function fetchBitgetHistoryOrders(
     const params: Record<string, string> = {
         productType: "umcbl",
         pageSize: String(limit),
-        startTime: String(Date.now() - 7 * 24 * 3600 * 1000) // Last 7 days default
+        startTime: startTime !== undefined && !isNaN(startTime)
+            ? String(startTime)
+            : String(Date.now() - 7 * 24 * 3600 * 1000) // Last 7 days default
     };
+    if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
+    if (symbol) params.symbol = symbol;
 
     const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
 
@@ -683,7 +994,7 @@ async function fetchBitgetHistoryOrders(
     if (res.code !== "00000") return [];
 
     const orders = res.data || [];
-    return orders.map((o: BitgetRawOrder) => ({
+    let mapped: NormalizedOrder[] = orders.map((o: BitgetRawOrder) => ({
         id: o.orderId,
         orderId: o.orderId,
         symbol: o.symbol,
@@ -698,6 +1009,15 @@ async function fetchBitgetHistoryOrders(
         fee: formatApiNum(o.fee) || "0",
         realizedPNL: formatApiNum(o.totalProfits) || "0",
     }));
+
+    if (startTime !== undefined && !isNaN(startTime)) {
+        mapped = mapped.filter((o) => (o.time ?? 0) >= startTime);
+    }
+    if (endTime !== undefined && !isNaN(endTime)) {
+        mapped = mapped.filter((o) => (o.time ?? 0) <= endTime);
+    }
+
+    return mapped;
 }
 
 async function cancelBitgetOrder(

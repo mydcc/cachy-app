@@ -61,6 +61,30 @@ fallback are each decided and enforced, with tests.
 
 ---
 
+## Interlude — decimal correctness and structural refactoring
+
+**No milestone; scheduled between 1.0 and 1.1 by explicit decision (August
+2026):** the decimal migration runs before any new feature work, and the
+structural refactoring runs directly after it, because both rewrite the same
+files M1 would otherwise build on top of.
+
+| Item | Prio | What |
+| --- | --- | --- |
+| [BUG-0182](backlog/bugs/BUG-0182-epic-decimal-migration-rust.md) | P1 | Epic: Rust/WASM backend to `rust_decimal` |
+| [BUG-0183](backlog/bugs/BUG-0183-epic-decimal-migration-core.md) | P1 | Epic: core & services to `decimal.js` |
+| [BUG-0184](backlog/bugs/BUG-0184-epic-decimal-migration-ui.md) | P1 | Epic: UI components & stores to `decimal.js` |
+| [FEAT-0190](backlog/features/FEAT-0190-epic-split-god-functions.md) | P2 | Epic: split the five oversized functions along the module boundary |
+
+**Strictly in that order** — the epics are `depends_on`-chained, and
+[FEAT-0190](backlog/features/FEAT-0190-epic-split-god-functions.md) waits for
+all three because refactoring a file while its arithmetic is being migrated
+guarantees conflicts. The cost, stated honestly: M1 (and with it paper
+trading) starts roughly six weeks later than it otherwise would. The
+alternative — parallel work in `settings.svelte.ts`, `market.svelte.ts` and
+`bitunixWs.ts` — was rejected as a merge-conflict generator.
+
+---
+
 ## Release 1.1 — safe execution
 
 **Milestone [M1](MILESTONES.md#m1--safe-execution-foundation).** The floor
@@ -178,6 +202,7 @@ safety layer to exist first.
 | Item | Prio | What |
 | --- | --- | --- |
 | [FEAT-0014](backlog/features/FEAT-0014-edition-build-targets.md) | P1 | Community/Pro/Private build targets from one tree |
+| [FEAT-0187](backlog/features/FEAT-0187-edition-entitlement-switch.md) | P2 | Offline-verifiable entitlement replaces the cheat code |
 | [FEAT-0031](backlog/features/FEAT-0031-whitelabel-theming.md) | P2 | Branding as configuration |
 | [FEAT-0039](backlog/features/FEAT-0039-data-extensions.md) | P2 | User-supplied prompts, presets and themes as data files |
 

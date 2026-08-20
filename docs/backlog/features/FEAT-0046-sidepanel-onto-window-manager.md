@@ -10,7 +10,12 @@ area: ui
 data_class: A
 adr: ADR-0006
 depends_on: [FEAT-0041]
+start_date: 2026-08-04
+target_date: 2026-08-13
+size: S
+estimate: 2
 ---
+
 
 # FEAT-0046 — Move the SidePanel onto the window manager and drop interactjs
 

@@ -86,13 +86,13 @@
             const bufferStr = inputBuffer.join("");
 
             if (bufferStr.endsWith(CODE_UNLOCK)) {
-                if (settingsState.isPro && uiState.currentTheme === "VIP") {
+                if (settingsState.entitlement.isPro && uiState.currentTheme === "VIP") {
                     unlockDeepDive();
                 }
             } else if (bufferStr.endsWith(CODE_LOCK)) {
                 lockDeepDive();
             } else if (bufferStr.endsWith(CODE_SPACE)) {
-                if (settingsState.isPro && uiState.currentTheme === "VIP") {
+                if (settingsState.entitlement.isPro && uiState.currentTheme === "VIP") {
                     activateVipSpace();
                 }
             }
@@ -256,6 +256,7 @@
         });
     }
 
+    let showPaperTrades = $state(true);
     let journalSearchQuery = $derived(tradeState.journalSearchQuery);
     let journalFilterStatus = $derived(tradeState.journalFilterStatus);
 
@@ -272,6 +273,11 @@
                 journalFilterStatus === "all" ||
                 trade.status === journalFilterStatus;
 
+            // Simulated fills are stored in the journal so they can be
+            // reviewed, but they never reach the statistics above — see
+            // journalState.analysisEntries.
+            const matchesPaper = showPaperTrades || trade.isPaper !== true;
+
             let matchesDate = true;
             const tradeDate = new Date(trade.date);
             if (filterDateStart)
@@ -283,7 +289,7 @@
                 matchesDate = matchesDate && tradeDate <= endDate;
             }
 
-            return matchesSearch && matchesStatus && matchesDate;
+            return matchesSearch && matchesStatus && matchesDate && matchesPaper;
         }),
     );
 
@@ -344,6 +350,7 @@
         void [
             journalSearchQuery,
             journalFilterStatus,
+            showPaperTrades,
             filterDateStart,
             filterDateEnd,
             groupBySymbol,
@@ -462,16 +469,18 @@
         bind:filterDateStart
         bind:filterDateEnd
         bind:groupBySymbol
+        bind:showPaperTrades
+        paperCount={journalState.paperEntryCount}
         totalTrades={journalState.entries.length}
         filteredCount={processedTrades.length}
         ontoggleSettings={() => (showColumnSettings = !showColumnSettings)}
     >
         {#snippet actions()}
-            {#if settingsState.isPro}
+            {#if settingsState.entitlement.isPro}
                 {#if uiState.syncProgress}
                     <div
                         class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)]"
-                        title="Synchronizing History..."
+                        title={$_("dashboard.synchronizingHistory") || "Synchronizing History..."}
                     >
                         <span
                             class="font-mono text-[10px] text-[var(--text-primary)] font-bold"

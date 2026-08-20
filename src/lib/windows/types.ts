@@ -47,7 +47,7 @@ export interface WindowFlags {
     /** Definies the action when clicking the title text in the header. */
     headerAction?: 'toggle-mode' | 'none';
     /** List of standard action buttons to show in the header. */
-    headerButtons?: ('zoom' | 'export' | 'delete' | 'custom')[];
+    headerButtons?: ('zoom' | 'export' | 'delete' | 'custom' | 'openInNewTab')[];
     /** Which side of the screen the window should pin to when dragged to an edge. */
     pinSide?: 'left' | 'right' | 'top' | 'bottom' | 'none';
     /** Behavior when double-clicking the title bar. */
@@ -87,6 +87,8 @@ export interface WindowFlags {
     showRightScale?: boolean;
     /** Renders a dimming backdrop behind this window while it's open. */
     showBackdrop?: boolean;
+    /** Optional custom storage key name for shared persistence across instances (e.g. 'news_article'). */
+    storageKey?: string;
 }
 
 /**
@@ -176,6 +178,10 @@ export interface WindowOptions {
     closeOnBlur?: boolean;
     /** The type of window, used to lookup defaults in registry. */
     windowType?: WindowType;
+    /** Optional custom storage key name for shared persistence across instances (e.g. 'news_article'). */
+    storageKey?: string;
+    /** Whether the user can zoom the content via header buttons. */
+    allowZoom?: boolean;
 }
 
 /**

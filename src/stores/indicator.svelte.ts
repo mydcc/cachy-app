@@ -228,6 +228,7 @@ class IndicatorManager {
   private listeners: Set<(value: IndicatorSettings) => void> = new Set();
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private effectCleanup: (() => void) | null = null;
 
   // Cache the snapshot using $derived to avoid expensive re-cloning on every access
   private _snapshot = $derived({
@@ -273,7 +274,7 @@ class IndicatorManager {
   constructor() {
     if (browser) {
       this.load();
-      $effect.root(() => {
+      this.effectCleanup = $effect.root(() => {
         $effect(() => {
           // Track ALL properties by calling toJSON()
           this.toJSON();
@@ -291,6 +292,21 @@ class IndicatorManager {
           });
         });
       });
+    }
+  }
+
+  destroy() {
+    if (this.effectCleanup) {
+      this.effectCleanup();
+      this.effectCleanup = null;
+    }
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    if (this.notifyTimer) {
+      clearTimeout(this.notifyTimer);
+      this.notifyTimer = null;
     }
   }
 
@@ -490,3 +506,10 @@ class IndicatorManager {
 }
 
 export const indicatorState = new IndicatorManager();
+
+// HMR: Cleanup on module disposal to prevent timers and effect leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    indicatorState.destroy();
+  });
+}

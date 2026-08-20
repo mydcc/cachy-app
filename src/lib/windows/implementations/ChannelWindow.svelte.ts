@@ -22,7 +22,7 @@
 
 import { WindowBase, type WindowSerializedState } from "../WindowBase.svelte";
 import type { WindowOptions } from "../types";
-import IframeView from "./IframeView.svelte";
+import ChannelView from "./ChannelView.svelte";
 
 /**
  * ChannelWindow is a specialized window for rendering external content
@@ -91,15 +91,14 @@ export class ChannelWindow extends WindowBase {
 
     /** The UI component used to display the iframe. */
     get component() {
-        return IframeView;
+        return ChannelView;
     }
 
     /** Mapping of logic parameters to component props. */
     get componentProps() {
         return {
             url: this.url,
-            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock",
-            allow: "xr-spatial-tracking; camera; microphone; fullscreen; display-capture"
+            allow: "xr-spatial-tracking; camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; web-share"
         };
     }
 

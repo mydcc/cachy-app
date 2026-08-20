@@ -10,7 +10,12 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
+start_date: 2026-08-04
+target_date: 2026-08-13
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0049 — The quiz closes after every answer, has no close button and opens behind other windows
 

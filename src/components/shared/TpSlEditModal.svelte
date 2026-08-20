@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { tradeService, type TpSlOrder } from "../../services/tradeService";
+  import { activeExchange, type TpSlOrder } from "../../services/exchange";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
@@ -54,7 +54,7 @@
     error = "";
 
     try {
-      await tradeService.modifyTpSlOrder({
+      await activeExchange().trading.modifyTpSlOrder({
         orderId: order.orderId || order.id || order.planId || "",
         symbol: order.symbol,
         planType: order.planType,
@@ -65,7 +65,7 @@
     } catch (e: unknown) {
       // Prefer rawMessage on BitunixApiError — `e.message` carries the i18n
       // key "apiErrors.generic" and would render as a literal string otherwise.
-      error = getDisplayMessage(e) || $_("errors.modifyFailed");
+      error = getDisplayMessage(e, $_) || $_("errors.modifyFailed");
     } finally {
       loading = false;
     }

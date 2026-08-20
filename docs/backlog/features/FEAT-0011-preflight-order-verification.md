@@ -2,7 +2,8 @@
 id: FEAT-0011
 title: Verify every order against displayed state before it leaves the client
 type: feature
-status: specced
+status: done
+branch: claude/feat-0011-erledigen-k3fht2
 priority: P0
 milestone: M1
 editions: [community, pro, private]
@@ -10,7 +11,12 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
+estimate: 5
+size: L
+target_date: 2026-10-05
+start_date: 2026-08-01
 ---
+
 
 # FEAT-0011 — Verify every order against displayed state before it leaves the client
 
@@ -67,17 +73,17 @@ explicitly. The remote four-eyes variant is a separate, much later feature.
 
 ## Acceptance criteria
 
-- [ ] Every order-placing path in the codebase reaches the exchange only
+- [x] Every order-placing path in the codebase reaches the exchange only
       through the gate — proven by a test that adds a call site bypassing it
       and fails
-- [ ] Each checked field has a test that mutates it after construction and
+- [x] Each checked field has a test that mutates it after construction and
       asserts refusal, with the field named in the error
-- [ ] A refusal produces no network call at all — asserted against a mocked
+- [x] A refusal produces no network call at all — asserted against a mocked
       transport
-- [ ] Comparisons use `Decimal`; a test with values that differ only in float
+- [x] Comparisons use `Decimal`; a test with values that differ only in float
       representation passes rather than falsely refusing
-- [ ] The gate runs with the network down
-- [ ] Refusal messages exist in German and English
+- [x] The gate runs with the network down
+- [x] Refusal messages exist in German and English
 
 ## Out of scope
 
@@ -88,20 +94,69 @@ explicitly. The remote four-eyes variant is a separate, much later feature.
 - Remote or four-eyes approval. ADR-0004 §3 splits it off deliberately.
 - Reworking how orders are constructed. The gate wraps what exists.
 
-## Open questions
+## Resolved questions
 
-- **Size tolerance.** Exchange step sizes force rounding, so an exact match will
-  reject valid orders. The tolerance has to be derived from the instrument's
-  step size rather than picked as a constant — and it must be tight enough that
-  a 10x sizing error cannot pass.
-- **Where does "displayed state" come from?** If the gate reads the same store
-  the payload was built from, a corrupted store passes both. Deriving from the
-  rendered DOM is the strongest form and the most brittle; deriving from a
-  separately maintained snapshot is weaker and practical. Decide before
-  building — it determines what this item is actually worth.
-- **Account state freshness.** Leverage and margin mode must be checked against
-  the exchange's truth, which may be stale. Fail closed on stale state, or block
-  until refreshed?
+- **Size tolerance** → `max(stepSize, expected × 0.1 %)`, derived per
+  instrument from `marketState.symbolMeta`, never a constant. The relative
+  floor covers instruments whose step is coarser than the position itself.
+  A 10x sizing error is three orders of magnitude outside either bound;
+  `orderGate.test.ts` asserts both directions — one step of rounding passes,
+  10x refuses.
+- **Where does "displayed state" come from?** → A snapshot passed explicitly
+  by the call site, never a store read by the gate. The gate imports no
+  store at all: `verify()` is pure, takes `{ payload, displayed }` and
+  compares them.
+
+  The DOM variant was rejected. It is the strongest form on paper, but it
+  makes execution depend on render timing and on markup that changes for
+  cosmetic reasons — a refactor of a results panel would start refusing
+  orders. What the snapshot buys instead: a store that is corrupt in one
+  place has to be corrupt in the same way, at the same instant, in both the
+  payload and the snapshot to get through. Two independent derivations
+  strengthen that further:
+  - size for an open is re-derived from account size, risk and stop
+    distance rather than read back out of the calculator's result;
+  - the account (exchange + key) is re-read inside the transport at
+    transmit time and compared against what the gate approved, so switching
+    accounts between the click and the send refuses.
+- **Account state freshness** → Fail closed. The gate is local by
+  construction, so it cannot refresh; blocking-until-refreshed would put
+  network I/O inside it and break the offline requirement. Leverage and
+  margin mode older than 60 s refuse an `open` and name the staleness.
+  Closes are deliberately exempt: a close inherits the position's own
+  leverage, and refusing one because a cached read went stale would fail in
+  the situation where closing matters most.
+
+## What shipped
+
+- `src/services/orderGate.ts` — `verify()` (pure), `submit()`,
+  `assertGatePass()`, and the `registerRiskLimitCheck` /
+  `registerKillSwitch` seam FEAT-0013 plugs into. The gate calls the limits;
+  it does not define them, and "unregistered" means "none configured", not
+  "passed".
+- `src/services/tradeService.ts` — `signedRequest` refuses any
+  state-mutating action without a pass, and every mutating call site
+  (`flashClosePosition`, `closePosition`, `closeAllPositions`, `cancelOrder`,
+  `cancelAllOrders`, `modifyOrder`, `cancelTpSlOrder`, `modifyTpSlOrder`)
+  goes through `gatedRequest`. Read-only calls are untouched.
+- `src/tests/architecture/order_gate_bypass.test.ts` — scans every shipped
+  file under `src/` for a mutating call that skips the gate, and verifies
+  the scanner against a synthetic bypassing call site in the same run so it
+  cannot pass vacuously.
+- `orderGate.*` refusal messages in `de.json` and `en.json`, including
+  translated field names.
+
+Passes are single-use and bound to endpoint, action, symbol and account, so
+an approval cannot be replayed against a different order.
+
+## Follow-ups
+
+- No opening-order path exists in the client yet, so the `open` checks
+  (size recomputation, leverage, margin mode, take-profit levels) are
+  covered by tests but not yet exercised by a call site. FEAT-0069 is where
+  they get wired up; the gate is the seam it attaches to.
+- FEAT-0013 supplies the limits and the kill switch. Until it lands, both
+  hooks are unregistered and the gate approves on those two checks.
 
 ## Links
 

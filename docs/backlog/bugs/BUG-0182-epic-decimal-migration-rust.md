@@ -2,7 +2,7 @@
 id: BUG-0182
 title: "Epic: Migrate Rust/WASM backend to rust_decimal"
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,12 @@ area: core
 data_class: none
 adr: none
 depends_on: []
+estimate: 3
+size: M
+target_date: 2026-08-24
+start_date: 2026-08-12
 ---
+
 
 # BUG-0182 — Epic: Migrate Rust/WASM backend to rust_decimal
 
@@ -32,7 +37,9 @@ When passing `Decimal` values across the WASM boundary (to or from TypeScript), 
 
 ## Acceptance criteria
 
-- [ ] `lib.rs` and `alert_exports.rs` use `rust_decimal` instead of `f64` for financial values.
-- [ ] Financial values cross the WASM boundary as Strings.
-- [ ] `npm run check` and `npm run test` pass.
-- [ ] E2E tests still pass.
+- [x] `lib.rs` and `alert_exports.rs` use `rust_decimal` instead of `f64` for financial values.
+- [x] Financial values cross the WASM boundary as Strings — `initialize` takes
+      `string[]` for closes/highs/lows/volumes, `update` takes decimal strings,
+      and results serialize back as strings (`serde-with-str`).
+- [x] `npm run check` and `npm run test` pass.
+- [x] E2E tests still pass.

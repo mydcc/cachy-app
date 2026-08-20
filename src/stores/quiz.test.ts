@@ -19,6 +19,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CONSTANTS } from "../lib/constants";
+import { effectsState } from "./effects.svelte";
 
 // Mock dependencies
 vi.mock("$app/environment", () => ({
@@ -303,6 +304,10 @@ describe("QuizStore", () => {
 
       expect(quizState.knownQuestionIds.has("testId")).toBe(true);
       expect(saveProgressSpy).toHaveBeenCalled();
+      expect(effectsState.duckEvent).toEqual({
+        type: "academy_complete",
+        lessonId: "testId",
+      });
       expect(quizState.isQuizActive).toBe(true);
       expect(quizState.activeQuestion).not.toBeNull();
       expect(closeQuizSpy).not.toHaveBeenCalled();

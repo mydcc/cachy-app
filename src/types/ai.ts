@@ -33,6 +33,7 @@ export const AiMessageSchema = z.object({
 export const AiRequestSchema = z.object({
   messages: z.array(AiMessageSchema),
   model: z.string().optional(),
+  tools: z.array(z.any()).optional(),
   // Only used by the Ollama proxy — the user's own local (or self-hosted)
   // Ollama instance, never a Cachy-operated server.
   baseUrl: z.string().optional(),
@@ -41,6 +42,8 @@ export const AiRequestSchema = z.object({
 export type AiRole = z.infer<typeof AiRoleSchema>;
 export type AiMessage = z.infer<typeof AiMessageSchema>;
 export type AiRequest = z.infer<typeof AiRequestSchema>;
+
+export type AiAnalysisMode = 'risk' | 'coach' | 'scalper' | 'analyst';
 
 /**
  * Normalized model info returned by the `/api/ai/<provider>/models` routes.

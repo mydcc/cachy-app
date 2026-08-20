@@ -58,62 +58,20 @@ export interface BitunixOrderListWrapper {
   [key: string]: unknown; // Allow other pagination fields
 }
 
-// Normalized Internal Order Interface
-export interface NormalizedOrder {
-  id: string;
-  orderId: string;
-  clientId?: string;
-  symbol: string;
-  type: string;
-  side: string;
-  price: string | null; // High-precision string or null
-  amount: string; // High-precision string
-  filled: string; // High-precision string
-  status: string;
-  time: number;
-  mtime?: number;
-  leverage?: string;
-  marginMode?: string;
-  positionMode?: string;
-  reduceOnly?: boolean;
-  fee: string; // High-precision string
-  realizedPNL: string; // High-precision string
-  tpPrice?: string;
-  tpStopType?: string;
-  tpOrderType?: string;
-  slPrice?: string;
-  slStopType?: string;
-  slOrderType?: string;
-  avgPrice?: string; // High-precision string
-  role?: string;
-}
-
-// Normalized Internal Position Interface — shared shape both exchanges'
-// /api/positions routes map their raw responses into.
-export interface NormalizedPosition {
-  positionId?: string;
-  symbol: string;
-  side: string;
-  size?: string;
-  entryPrice?: string;
-  liquidationPrice?: string;
-  markPrice?: string;
-  margin?: string;
-  unrealizedPnL?: string;
-  leverage?: string;
-  marginMode: string;
-  // Bitunix-only (`marginRate`/`realizedPNL` on Get Pending Positions,
-  // docs/bitunix-api/05_position.md:103-129). Not mapped for Bitget — no
-  // verified field name for either, and BUG-0001 is the standing reminder
-  // not to guess an exchange's wire format.
-  marginRate?: string;
-  realizedPnl?: string;
-}
+// `NormalizedOrder` and `NormalizedPosition` moved to `types/exchange.ts` in
+// FEAT-0016 — they are what both exchanges normalise *into*, so they no longer
+// live under one venue's name. This file keeps only Bitunix wire shapes.
 
 export interface BitunixOrderPayload {
   symbol: string;
   side: string;
-  type: string;
+  /**
+   * `orderType`, not `type` — this object is serialised straight onto the
+   * wire, and place_order documents the field as `orderType` and requires it
+   * (docs/bitunix-api/07_trade.md:584). Sending `type` meant no order type
+   * reached the exchange at all; see BUG-0219.
+   */
+  orderType: string;
   qty: string | number;
   price?: string | number;
   reduceOnly?: boolean;
@@ -121,6 +79,17 @@ export interface BitunixOrderPayload {
   // HEDGE-mode-only (docs/bitunix-api/07_trade.md:583-584) — see BUG-0062.
   tradeSide?: "OPEN" | "CLOSE";
   positionId?: string;
+  // FEAT-0069 — 07_trade.md:586-596.
+  effect?: "IOC" | "FOK" | "GTC" | "POST_ONLY";
+  clientId?: string;
+  tpPrice?: string | number;
+  tpStopType?: "MARK_PRICE" | "LAST_PRICE";
+  tpOrderType?: "LIMIT" | "MARKET";
+  tpOrderPrice?: string | number;
+  slPrice?: string | number;
+  slStopType?: "MARK_PRICE" | "LAST_PRICE";
+  slOrderType?: "LIMIT" | "MARKET";
+  slOrderPrice?: string | number;
   [key: string]: unknown;
 }
 

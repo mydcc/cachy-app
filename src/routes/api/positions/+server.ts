@@ -25,7 +25,7 @@ import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
-import type { NormalizedPosition } from "../../../types/bitunix";
+import type { NormalizedPosition } from "../../../types/exchange";
 
 // Raw Bitunix position fields — names vary across API versions/endpoints,
 // hence the fallback chains at each read site below.

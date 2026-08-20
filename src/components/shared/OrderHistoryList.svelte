@@ -21,18 +21,87 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
   import { OrderType } from "../../types/orderTypes";
-  import type { NormalizedOrder } from "../../types/bitunix";
+  import type { NormalizedOrder } from "../../types/exchange";
   import { icons } from "../../lib/constants";
   import Decimal from "decimal.js";
 
   interface Props {
     orders?: NormalizedOrder[];
     loading?: boolean;
+    loadingMore?: boolean;
+    hasMore?: boolean;
     error?: string;
     onrefresh?: () => void;
+    onloadmore?: () => void;
+    onrangechange?: (range: { startTime?: number; endTime?: number; preset: string }) => void;
   }
 
-  let { orders = [], loading = false, error = "", onrefresh }: Props = $props();
+  let {
+    orders = [],
+    loading = false,
+    loadingMore = false,
+    hasMore = false,
+    error = "",
+    onrefresh,
+    onloadmore,
+    onrangechange,
+  }: Props = $props();
+
+  // Time Range Presets
+  type RangePreset = "all" | "today" | "7d" | "30d" | "custom";
+  let activePreset: RangePreset = $state("all");
+  let customStartDate = $state("");
+  let customEndDate = $state("");
+
+  function selectPreset(preset: RangePreset) {
+    activePreset = preset;
+    if (preset === "custom") return;
+    applyPresetRange(preset);
+  }
+
+  function applyPresetRange(preset: RangePreset) {
+    let startTime: number | undefined;
+    let endTime: number | undefined;
+    const now = new Date();
+
+    if (preset === "today") {
+      startTime = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0);
+      endTime = Date.now();
+    } else if (preset === "7d") {
+      endTime = Date.now();
+      startTime = endTime - 7 * 24 * 3600 * 1000;
+    } else if (preset === "30d") {
+      endTime = Date.now();
+      startTime = endTime - 30 * 24 * 3600 * 1000;
+    }
+
+    onrangechange?.({ startTime, endTime, preset });
+  }
+
+  function applyCustomRange() {
+    let startTime: number | undefined;
+    let endTime: number | undefined;
+    if (customStartDate) {
+      const [sy, sm, sd] = customStartDate.split("-").map(Number);
+      if (!isNaN(sy) && !isNaN(sm) && !isNaN(sd)) {
+        startTime = Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0);
+      }
+    }
+    if (customEndDate) {
+      const [ey, em, ed] = customEndDate.split("-").map(Number);
+      if (!isNaN(ey) && !isNaN(em) && !isNaN(ed)) {
+        endTime = Date.UTC(ey, em - 1, ed, 23, 59, 59, 999);
+      }
+    }
+    onrangechange?.({ startTime, endTime, preset: "custom" });
+  }
+
+  function resetRange() {
+    activePreset = "all";
+    customStartDate = "";
+    customEndDate = "";
+    onrangechange?.({ startTime: undefined, endTime: undefined, preset: "all" });
+  }
 
   // Pagination / Virtualization Lite
   let pageSize = 50;
@@ -46,10 +115,14 @@
   });
 
   let visibleOrders = $derived(orders.slice(0, page * pageSize));
-  let hasMore = $derived(visibleOrders.length < orders.length);
+  let hasLocalMore = $derived(visibleOrders.length < orders.length);
 
-  function loadMore() {
+  function handleLoadMore() {
+    if (hasLocalMore) {
       page++;
+    } else if (hasMore && onloadmore) {
+      onloadmore();
+    }
   }
 
   // Removed local tooltip state in favor of uiStore
@@ -148,21 +221,87 @@
 </script>
 
 <div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
-  {#if onrefresh}
-    <div class="flex justify-end mb-1">
-      <button
-        class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-        title={$_("dashboard.orderHistory.refresh") || "Refresh"}
-        disabled={loading}
-        onclick={() => onrefresh?.()}
-      >
-        <span class:animate-spin={loading}>
-          {@html icons.refresh ||
-            '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
-        </span>
-      </button>
+  <!-- Time Range Filter Toolbar -->
+  <div class="mb-2 bg-[var(--bg-tertiary)] p-1.5 rounded-lg border border-[var(--border-color)] flex flex-col gap-1.5">
+    <div class="flex items-center justify-between gap-1">
+      <!-- Preset Buttons -->
+      <div class="flex flex-wrap items-center gap-1">
+        {#each [
+          { id: "all", label: $_("dashboard.orderHistory.presets.all") || "All" },
+          { id: "today", label: $_("dashboard.orderHistory.presets.today") || "Today" },
+          { id: "7d", label: $_("dashboard.orderHistory.presets.7d") || "7D" },
+          { id: "30d", label: $_("dashboard.orderHistory.presets.30d") || "30D" },
+          { id: "custom", label: $_("dashboard.orderHistory.presets.custom") || "Custom" }
+        ] as preset}
+          <button
+            type="button"
+            class="px-2 py-0.5 text-[11px] font-medium rounded transition-colors"
+            class:bg-[var(--accent-color)]={activePreset === preset.id}
+            class:text-white={activePreset === preset.id}
+            class:bg-[var(--bg-secondary)]={activePreset !== preset.id}
+            class:text-[var(--text-secondary)]={activePreset !== preset.id}
+            class:hover:text-[var(--text-primary)]={activePreset !== preset.id}
+            onclick={() => selectPreset(preset.id as RangePreset)}
+          >
+            {preset.label}
+          </button>
+        {/each}
+      </div>
+
+      <!-- Refresh Button -->
+      {#if onrefresh}
+        <button
+          type="button"
+          class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded hover:bg-[var(--bg-secondary)] disabled:opacity-50"
+          title={$_("dashboard.orderHistory.refresh") || "Refresh"}
+          disabled={loading || loadingMore}
+          onclick={() => onrefresh?.()}
+        >
+          <span class:animate-spin={loading}>
+            {@html icons.refresh ||
+              '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
+          </span>
+        </button>
+      {/if}
     </div>
-  {/if}
+
+    <!-- Custom Date Range Row -->
+    {#if activePreset === "custom"}
+      <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[var(--border-color)]">
+        <label class="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
+          <span>{$_("dashboard.orderHistory.startDate") || "From"}:</span>
+          <input
+            type="date"
+            class="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
+            bind:value={customStartDate}
+          />
+        </label>
+        <label class="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
+          <span>{$_("dashboard.orderHistory.endDate") || "To"}:</span>
+          <input
+            type="date"
+            class="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
+            bind:value={customEndDate}
+          />
+        </label>
+        <button
+          type="button"
+          class="px-2 py-0.5 text-[11px] font-semibold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity"
+          onclick={applyCustomRange}
+        >
+          {$_("dashboard.orderHistory.applyRange") || "Apply"}
+        </button>
+        <button
+          type="button"
+          class="px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          onclick={resetRange}
+        >
+          {$_("dashboard.orderHistory.clearRange") || "Reset"}
+        </button>
+      </div>
+    {/if}
+  </div>
+
   {#if loading && orders.length === 0}
     <div class="flex justify-center p-4">
       <div
@@ -271,12 +410,19 @@
           </div>
         </div>
       {/each}
-      {#if hasMore}
+      {#if hasLocalMore || hasMore}
         <button
-            class="w-full py-2 text-xs font-bold text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] rounded mt-2 transition-colors"
-            onclick={loadMore}
+          type="button"
+          class="w-full py-2 text-xs font-bold text-[var(--accent-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] rounded mt-2 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+          onclick={handleLoadMore}
+          disabled={loading || loadingMore}
         >
-            {$_("journal.pagination.next")}
+          {#if loadingMore}
+            <span class="animate-spin">⌛</span>
+            {$_("dashboard.orderHistory.loadingMore") || "Loading older orders..."}
+          {:else}
+            {$_("dashboard.orderHistory.loadMore") || "Load older orders"}
+          {/if}
         </button>
       {/if}
     </div>

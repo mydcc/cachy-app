@@ -4,7 +4,8 @@
     "smash": "Smash Window",
     "opacity": "Opacity",
     "glass": "Glass",
-    "burn": "Burn"
+    "burn": "Burn",
+    "feedDuck": "Feed Duck"
   },
   "app": {
     "title": "Cachy",
@@ -47,18 +48,60 @@
       "marketBreadth": "Market Breadth (4h)",
       "topOpportunity": "Top Opportunity",
       "status": "Status",
+      "live": "Live",
+      "scanning": "Scanning...",
+      "noFavorites": "No favorites selected. Add symbols to your favorites list.",
+      "waitingAnalysis": "Waiting for analysis data...",
       "trendMatrix": {
         "trend": "Trend (15m - 1h - 4h - 1d)",
         "score": "Score",
-        "rsi": "RSI (1h)"
-      }
+        "rsi": "RSI (1h)",
+        "trend15m": "15m Trend",
+        "trend1h": "1h Trend",
+        "trend4h": "4h Trend (Major)",
+        "trend1d": "1d Trend"
+      },
+      "signal": "Signal",
+      "signalStrongBuy": "Strong Long",
+      "signalBuy": "Long Bias",
+      "signalNeutral": "No Bias",
+      "signalSell": "Short Bias",
+      "signalStrongSell": "Strong Short",
+      "noData": "No data",
+      "noDataHint": "Not analysed yet — not a signal, and not a sell signal.",
+      "partial": "Incomplete",
+      "partialHint": "Not every timeframe could be calculated. This symbol is missing history.",
+      "scoreExplainer": "Confluence score 0-100. 50 is neutral. It measures agreement between trend (EMA), momentum (oscillators), Ichimoku, divergences and VWAP on the 1h timeframe. It is a directional bias, not a trade signal and not a position recommendation.",
+      "scoreBasis": "What the score is built from",
+      "topOpportunityHint": "The favourite with the strongest directional bias — not necessarily the best trade. Check the trend and signal yourself.",
+      "marketHeatHint": "Average 1h RSI across analysed favourites. Above 70 is overbought, below 30 oversold.",
+      "marketBreadthHint": "Share of analysed favourites trading above their 4h EMA 200.",
+      "funding": "Funding",
+      "volume24h": "Vol 24h",
+      "analysedOf": "{analysed} of {total} analysed",
+      "trendUnknown": "Not measurable - too little history for the EMA 200",
+      "notAnalysedHint": "Not analysed. Enable \"Analyze All Favorites\" in Settings."
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
     "refresh": "Refresh",
     "launchApp": "Launch App",
     "academy": "Academy",
-    "deepwiki": "DeepWiki"
+    "deepwiki": "DeepWiki",
+    "yes": "Yes",
+    "no": "No",
+    "autoBackup": {
+      "restoreTitle": "Recover Local Data",
+      "restoreSubtitle": "An automatic safety snapshot was found on this device.",
+      "restoreDescription": "It looks like your browser storage was recently cleared or reset. We found an automatic local backup (OPFS) that can restore your trade journal, presets, and settings.",
+      "snapshotDate": "Snapshot Date",
+      "journalTrades": "Journal Trades",
+      "presets": "Presets",
+      "settingsSaved": "Settings & State",
+      "dismissButton": "Start Fresh / Ignore",
+      "restoreButton": "Restore My Data",
+      "restoring": "Restoring..."
+    }
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -117,6 +160,20 @@
       "noDate": "-",
       "liq": "Liq.",
       "refresh": "Refresh history",
+      "range": "Time Range",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "applyRange": "Apply",
+      "clearRange": "Clear",
+      "loadMore": "Load older orders",
+      "loadingMore": "Loading older orders...",
+      "presets": {
+        "all": "All",
+        "today": "Today (UTC)",
+        "7d": "Last 7 Days",
+        "30d": "Last 30 Days",
+        "custom": "Custom"
+      },
       "reduceOnly": "Reduce Only",
       "reduceOnlyShort": "R/O",
       "side": {
@@ -196,7 +253,11 @@
     "marketSentiment": "Market Sentiment",
     "analyzing": "Analyzing external world...",
     "noNews": "No news found.",
+    "refreshNews": "Refresh news",
     "connectNews": "Connect your news APIs to view sentiment analysis.",
+    "article": "Article",
+    "iframeBlocked": "This website blocks embedded viewing. You can open it in a new tab instead.",
+    "openInNewTab": "Open in New Tab",
     "configure": "Configure",
     "tpsl": "TP/SL",
     "tpslManager": {
@@ -232,6 +293,7 @@
       "priceLimit": "Price",
       "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
       "createSuccess": "Alert created successfully.",
+      "deleteAlert": "Delete Alert",
       "noHistory": "No history",
       "crossesUp": "Crosses Up",
       "crossesDown": "Crosses Down",
@@ -289,6 +351,8 @@
       "atrValuePlaceholder": "ATR Value",
       "multiplierPlaceholder": "Multiplier",
       "multiplierExample": "1.2",
+      "holdingCost24h": "Est. 24h Holding Cost",
+      "holdingCost24hTooltip": "Estimated funding fee for 24h holding duration based on the 7-day average funding rate.",
       "tagsPlaceholder": "Add tags... (e.g. #trend)",
       "tagsLabel": "Tags"
     },
@@ -373,7 +437,10 @@
     "positionsAria": {
       "positionDetails": "Position Details",
       "symbolDetails": "Symbol Details"
-    }
+    },
+    "synchronizingHistory": "Synchronizing History...",
+    "cancelOrder": "Cancel Order",
+    "connectionStatus": "Connection Status"
   },
   "journal": {
     "title": "Trade Journal",
@@ -658,6 +725,11 @@
       "fri": "Fri",
       "sat": "Sat",
       "sun": "Sun"
+    },
+    "paper": {
+      "badge": "Paper",
+      "tooltip": "Simulated fill — not real money, and excluded from every statistic.",
+      "showToggle": "Show paper ({count})"
     }
   },
   "marketOverview": {
@@ -671,6 +743,16 @@
     "rsiTitle": "RSI",
     "rsiSettings": "RSI Settings",
     "fundingRate": "Funding Rate",
+    "fundingRateHistory": "Funding Rate History",
+    "fundingRate7dAvg": "7D Average",
+    "fundingRateNextSettlement": "Next Settlement",
+    "fundingRateInterval": "Interval",
+    "fundingRateLoading": "Loading history...",
+    "fundingRateError": "Failed to load history",
+    "fundingRateEmpty": "No history available",
+    "fundingRatePredictedHint": "Predicted rate for the upcoming settlement",
+    "fundingRateSparklineStart": "7d ago",
+    "fundingRateSparklineEnd": "Now",
     "countdown": "Countdown",
     "bid": "Bid",
     "ask": "Ask",
@@ -703,6 +785,8 @@
     "en": "English"
   },
   "settings": {
+    "decryptionWarningTitle": "Security Warning",
+    "decryptionWarningMessage": "saved key(s) could not be read due to device storage reset and need to be re-entered to restore connection.",
     "calculation": {
       "analyzeFavorites": "Analyze All Favorites",
       "analyzeFavoritesBadgeAll": "All Favorites",
@@ -1187,7 +1271,8 @@
       "activePreset": "Active Preset:",
       "mode1Desc": "⚡ Direct Mode - Press \"L\" for Long, \"S\" for Short (fastest)",
       "mode2Desc": "🛡️ Safety Mode - Press \"Alt+L\" for Long, \"Alt+S\" for Short (prevents accidents)",
-      "switchToCustom": "Switch to Custom Configuration"
+      "switchToCustom": "Switch to Custom Configuration",
+      "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?"
     },
     "tabs": {
       "general": "General",
@@ -1263,6 +1348,12 @@
     "enableCmcContext": "Enable CMC Context",
     "enableGlassmorphism": "Enable Glassmorphism",
     "enableNewsAnalysis": "Enable News Analysis",
+    "newsOpenBehavior": "Open News Articles",
+    "newsOpenBehaviorDesc": "Choose how news articles are opened when clicked.",
+    "newsOpenBehaviorSmart": "Smart (Iframe + Reader Mode)",
+    "newsOpenBehaviorReader": "Reader Mode only",
+    "newsOpenBehaviorNewTab": "Open in a new tab",
+    "newsOpenBehaviorWindow": "In-App Window",
     "glassmorphismDesc": "Enable glass effect for cards and panels",
     "maxPrivateNotes": "Max Private Notes",
     "pnlViewMode": "PnL Display Mode",
@@ -1447,6 +1538,32 @@
       "utilities": "Media Storage"
     },
     "system": {
+      "autoBackupTitle": "Automatic OPFS Backup",
+      "active": "Active",
+      "unsupported": "Not supported",
+      "autoBackupDesc": "Silently backs up all local data (Class A) to the browser's protected file system.",
+      "lastSnapshot": "Last snapshot",
+      "snapshotNow": "Snapshot Now",
+      "snapshotCreated": "Safety snapshot created.",
+      "fileTargetTitle": "Local File Backup",
+      "fileTargetDesc": "Periodically write a backup snapshot to a file you choose on this device, in addition to the OPFS safety net.",
+      "fileTargetUnsupported": "Not available in this browser (needs the File System Access API, e.g. Chrome/Edge).",
+      "fileTargetSlot": "Target {slot}",
+      "fileTargetChoose": "Choose File…",
+      "fileTargetReplace": "Change File",
+      "fileTargetRemove": "Remove",
+      "fileTargetNotConfigured": "No file selected.",
+      "fileTargetLastWrite": "Last write",
+      "fileTargetNever": "never",
+      "fileTargetInterval": "Write every",
+      "fileTargetIntervalMinutes": "min",
+      "fileTargetPermissionNeeded": "Permission expired — reconnect to resume writes.",
+      "fileTargetReconnect": "Reconnect",
+      "fileTargetWriteFailed": "Last write failed.",
+      "fileTargetConfigured": "File target configured.",
+      "fileTargetPickFailed": "Could not select a file.",
+      "fileTargetReconnected": "Reconnected. Writing snapshot.",
+      "fileTargetReconnectFailed": "Permission was not granted.",
       "backup": "Create Backup",
       "backupDesc": "Backup your settings & data as a file.",
       "cacheCleared": "Cache cleared.",
@@ -1557,7 +1674,106 @@
       "autoTrading": "Auto Trading (Beta)",
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",
       "multiAccount": "Multi-Account Management",
-      "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon)."
+      "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon).",
+      "journalPaperTrades": "Save paper trades to the journal",
+      "journalPaperTradesDesc": "Simulated fills are recorded so you can review them. They are always marked PAPER and never counted in your statistics or the daily loss limit."
+    },
+    "toggleMarketTiles": "Toggle Market Tiles",
+    "toggleMarketSentiment": "Toggle Market Sentiment",
+    "risk": {
+      "subTab": "Risk & Kill Switch",
+      "killSwitch": {
+        "title": "Kill switch",
+        "engaged": "Kill switch is ENGAGED — no new positions are being opened",
+        "disengaged": "Kill switch is off — orders are sent normally",
+        "description": "Blocks every order that would open or increase a position, immediately and until you clear it. Closing positions, cancelling orders and adjusting stops keep working — a panic button that also trapped you in your trades would turn a scare into a loss. It survives a reload.",
+        "engagedSince": "Engaged since {time}",
+        "engage": "Engage kill switch",
+        "release": "Release kill switch",
+        "confirmTitle": "Release the kill switch?",
+        "confirmMessage": "Orders that open or increase a position will be sent again from this moment on. Continue?"
+      },
+      "dailyStatusTitle": "Today",
+      "realizedToday": "Realised PnL today: {amount} USDT",
+      "resetBoundary": "The daily window runs 00:00–00:00 UTC. Next reset: {local} (your local time).",
+      "paperExcluded": "Paper trades are never counted towards the daily loss limit.",
+      "limitsTitle": "Limits",
+      "limitsDescription": "Leave a field empty to leave that limit off. Limits are checked where orders leave the app, not in the calculator form, so an order built any other way is checked too. They never block closing a position or cancelling an order.",
+      "notConfigured": "Off",
+      "invalidValue": "That value was not stored. A limit has to be a number of zero or more.",
+      "persistFailed": "This device could not save the setting, so it will NOT survive a reload. Check your browser storage.",
+      "maxPositionSize": "Max position size",
+      "maxPositionSizeHint": "Largest order value (quantity × entry price) allowed.",
+      "maxPositionSizePercent": "Max position size (% of account)",
+      "maxPositionSizePercentHint": "Same limit as a share of the account size shown in the calculator.",
+      "maxLeverage": "Max leverage",
+      "maxLeverageHint": "Refuses any order above this leverage.",
+      "maxLossPerTrade": "Max loss per trade",
+      "maxLossPerTradeHint": "Distance from entry to stop × quantity, before fees.",
+      "maxDailyLoss": "Max loss per day",
+      "maxDailyLossHint": "Measured against realised PnL for the current UTC day.",
+      "maxOpenPositions": "Max concurrent open positions",
+      "maxOpenPositionsHint": "Adding to a position you already hold does not count as a new one.",
+      "resetLimits": "Clear all limits",
+      "resetTitle": "Clear all limits?",
+      "resetMessage": "Every limit will be switched off. The kill switch is not affected. Continue?"
+    },
+    "paper": {
+      "subTab": "Paper Trading",
+      "modeTitle": "Mode",
+      "modePaper": "PAPER — orders are simulated, no money moves",
+      "modeLive": "LIVE — orders go to the exchange",
+      "modeDescription": "Paper mode swaps the exchange for a simulator at the very last step. Everything before it — sizing, order verification, risk limits, position tracking, the journal — runs exactly as it does live, which is what makes practising here mean something.",
+      "balance": "Simulated balance: {amount} USDT",
+      "switchToPaper": "Switch to paper",
+      "switchToLive": "Switch to live",
+      "confirmOnTitle": "Switch to paper trading?",
+      "confirmOnMessage": "Open positions and orders will be cleared from view and refetched when you switch back. No live position is closed or changed. Continue?",
+      "confirmOffTitle": "Switch to live trading?",
+      "confirmOffMessage": "From this moment orders go to the real exchange and move real money. Your simulated book is kept and will be there when you switch back. Continue?",
+      "resetBook": "Reset simulated book",
+      "resetTitle": "Reset the simulated book?",
+      "resetMessage": "Simulated positions, orders and balance are cleared and the balance returns to its starting value. Your journal is not touched. Continue?",
+      "simulationTitle": "Simulation",
+      "startingBalance": "Starting balance",
+      "startingBalanceHint": "What a reset returns the simulated balance to.",
+      "slippage": "Market-order slippage",
+      "slippageHint": "Applied against you on every market fill. The default is deliberately not zero — a simulator that fills at the mid price flatters every strategy that trades often.",
+      "takerFee": "Taker fee",
+      "makerFee": "Maker fee",
+      "feeHint": "Basis points. 6 bps = 0.06 %.",
+      "partialRatio": "Partial fill ratio",
+      "partialRatioHint": "Share of the requested quantity a partial fill delivers, when that failure mode is selected.",
+      "invalidValue": "That value was not stored. It has to be a number of zero or more.",
+      "failureTitle": "Simulated failures",
+      "failureDescription": "A simulator that only succeeds trains the interface for a world that does not exist. Pick a failure and place an order to see how the app handles it.",
+      "failure": {
+        "none": "None",
+        "reject": "Reject",
+        "timeout": "Timeout",
+        "partial": "Partial fill"
+      }
+    },
+    "audit": {
+      "subTab": "Order Log",
+      "title": "Order audit trail",
+      "description": "Every order this app tried to submit — what was sent, what came back, and which checks it passed. Refused orders are recorded too; those are the ones no console would ever have shown, because nothing was sent.",
+      "retention": "Kept on this device only, never uploaded. The most recent {max} attempts are retained; older ones are dropped. API keys, secrets and signatures are removed before anything is written.",
+      "export": "Export as JSON",
+      "refresh": "Refresh",
+      "clear": "Clear log",
+      "clearTitle": "Clear the order log?",
+      "clearMessage": "Every recorded submission attempt is deleted. This cannot be undone, and it does not affect your journal or any open position. Continue?",
+      "empty": "No order attempts recorded yet.",
+      "count": "{count} attempt(s) recorded, newest first.",
+      "refusedField": "Refused on: {field}",
+      "modeLive": "Live",
+      "modePaper": "Paper",
+      "outcome": {
+        "sent": "Sent",
+        "refused": "Refused",
+        "failed": "Failed"
+      }
     }
   },
   "positionsList": {
@@ -1573,7 +1789,8 @@
     "unrealizedPnl": "Unrealized PnL",
     "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view.",
     "tierMmr": "Maint. Margin Rate (Tier)",
-    "nextTierAt": "Next Tier at"
+    "nextTierAt": "Next Tier at",
+    "tpslActive": "TP/SL"
   },
   "symbolPicker": {
     "title": "Select Symbol",
@@ -1617,6 +1834,7 @@
     "ignore": "Ignore",
     "send": "Send message",
     "analyzing": "Analyzing...",
+    "retry": "Retry",
     "aria": {
       "startQuiz": "Start Quiz",
       "toggleVideo": "Toggle Video",
@@ -2249,13 +2467,61 @@
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}",
     "positionMismatch": "Position side mismatch (expected {expected}, got {actual})",
-    "dataError": "Data Inconsistency Detected"
+    "dataError": "Data Inconsistency Detected",
+    "orderNotFound": "Order not found"
+  },
+  "orderGate": {
+    "title": "Order refused",
+    "mismatch": "Order refused: {field} does not match what was displayed (expected {expected}, got {actual}). The order was not sent.",
+    "missing": "Order refused: {field} is missing from the order, so it could not be verified. The order was not sent.",
+    "sizeMismatch": "Order refused: the size does not match a fresh calculation (expected {expected}, got {actual}, tolerance {tolerance}). The order was not sent.",
+    "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
+    "killSwitch": "Order refused: the kill switch is engaged. No orders that open or increase a position are sent while it is on — closing positions, cancelling orders and adjusting stops still work.",
+    "riskLimit": "Order refused: {field} exceeds the configured limit (limit {limit}, this order {actual}). The order was not sent.",
+    "minTradeVolume": "Order refused: the order size {actual} is below the minimum trade volume of {limit}. The order was not sent.",
+    "maxOrderVolume": "Order refused: the order size {actual} exceeds the maximum order volume of {limit}. The order was not sent.",
+    "symbolStatus": "Order refused: symbol status is {status} (expected OPEN). Trading is currently unavailable.",
+    "apiUnsupported": "Order refused: API trading is not supported for this symbol.",
+    "bypassed": "Order refused: an order of type {action} tried to reach the exchange without passing verification. This is a bug — please report it.",
+    "fields": {
+      "account": "the account",
+      "accountState": "leverage / margin mode",
+      "action": "the order action",
+      "endpoint": "the target endpoint",
+      "gate": "verification",
+      "isApiSupported": "API support",
+      "killSwitch": "the kill switch",
+      "leverage": "leverage",
+      "marginMode": "margin mode",
+      "maxDailyLoss": "the daily loss limit",
+      "maxLeverage": "the leverage limit",
+      "maxLimitOrderVolume": "the maximum limit order volume",
+      "maxLossPerTrade": "the loss-per-trade limit",
+      "maxMarketOrderVolume": "the maximum market order volume",
+      "maxOpenPositions": "the open-positions limit",
+      "maxPositionSize": "the position size limit",
+      "maxPositionSizePercent": "the position size limit (share of equity)",
+      "minTradeVolume": "the minimum trade volume",
+      "orderId": "the order ID",
+      "positionId": "the position ID",
+      "price": "the entry price",
+      "qty": "the position size",
+      "reduceOnly": "the reduce-only flag",
+      "side": "the direction",
+      "stopLoss": "the stop loss",
+      "symbol": "the symbol",
+      "symbolStatus": "the symbol status",
+      "takeProfit": "the take profit"
+    },
+    "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
+    "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent."
   },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
-    "closeAllFailed": "Failed to close all positions",
+    "closeAllFailed": "Flash Close Failed for: {failedSymbols}",
     "apiError": "API Error: {error}",
-    "fetchFailed": "Fetch failed"
+    "fetchFailed": "Fetch failed",
+    "flashCloseFailed": "Flash Close Failed: {msg}"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",
@@ -2277,7 +2543,8 @@
     "categoryLabel": "Category",
     "categoryTrading": "Trading & Strategies",
     "categoryTech": "Cachy App Knowledge",
-    "notReady": "Quiz questions are still loading, try again in a moment."
+    "notReady": "Quiz questions are still loading, try again in a moment.",
+    "quickQuiz": "Quick Quiz"
   },
   "cloud": {
     "title": "Community Cloud (Beta)",
@@ -2305,5 +2572,106 @@
     "eraseDone": "Deletion requested. Your messages will disappear as the change propagates.",
     "eraseNeedsConnection": "Connect first — erasure runs against the server.",
     "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild."
+  },
+  "marketAnalyst": {
+    "analysisFailed": "Analysis failed for {symbol}: {error}"
+  },
+  "calculationStrategy": {
+    "criticalLag": "Critical Lag: {engine} took {duration}ms",
+    "slowCalc": "Slow Calc: {engine} ({duration}ms)"
+  },
+  "duck": {
+    "full": "Quack! The duck is stuffed and needs a break.",
+    "annoyed": "Quack! Too much clicking, give me a break!",
+    "achievements": {
+      "first_feed_name": "First Bread",
+      "first_feed_desc": "Fed the duck for the first time.",
+      "ten_feeds_name": "Regular",
+      "ten_feeds_desc": "Fed the duck 10 times.",
+      "hundred_feeds_name": "Master Baker",
+      "hundred_feeds_desc": "Fed the duck 100 times.",
+      "streak_3_name": "Routine",
+      "streak_3_desc": "Active 3 days in a row.",
+      "streak_7_name": "Week Streaker",
+      "streak_7_desc": "Active 7 days in a row.",
+      "streak_30_name": "Iron Discipline",
+      "streak_30_desc": "Active 30 days in a row.",
+      "level_5_name": "Stylish",
+      "level_5_desc": "Reached Level 5 — the duck now wears a hat.",
+      "level_10_name": "Duck Master",
+      "level_10_desc": "Reached Level 10 — rocking the crown.",
+      "level_20_name": "Legendary Quacker",
+      "level_20_desc": "Reached Level 20 — the cape flows."
+    }
+  },
+  "header": {
+    "paperMode": {
+      "badge": "Paper",
+      "tooltip": "Paper trading is on. Orders are simulated and no money moves."
+    }
+  },
+  "exchange": {
+    "unsupported": {
+      "tpSl": "Take-profit and stop-loss orders are not available on {exchange}. Nothing was sent.",
+      "leverageMarginMode": "{exchange} does not report leverage and margin mode to Cachy, so the values shown are your local settings.",
+      "tradingPairInfo": "{exchange} does not provide contract details to Cachy, so precision and size limits fall back to defaults.",
+      "generic": "{exchange} cannot do that, so Cachy did not send the request."
+    }
+  },
+  "orderEntry": {
+    "title": "Place this position",
+    "notReady": "Enter an entry price and a stop to size a position first.",
+    "submitLive": "Place order",
+    "submitPaper": "Place paper order",
+    "submitting": "Placing…",
+    "placed": "Order placed",
+    "timeInForce": "Time in force",
+    "type": {
+      "market": "Market",
+      "limit": "Limit",
+      "trigger": "Trigger"
+    },
+    "side": {
+      "long": "long",
+      "short": "short"
+    },
+    "summary": {
+      "size": "Size",
+      "entry": "Entry",
+      "stop": "Stop"
+    },
+    "unsupported": {
+      "trigger": "Trigger orders are not integrated for this exchange yet — Cachy has no verified request format for one.",
+      "generic": "This exchange does not support that order type.",
+      "unknownExchange": "Cachy does not know what this exchange supports, so it will not offer order types it cannot verify."
+    },
+    "notes": {
+      "noAttachedProtection": "This exchange cannot attach a stop to the entry. The stop is placed as a second request, so the position is briefly unprotected — you will be told if it does not arrive.",
+      "firstTargetOnly": "This exchange accepts one take-profit per order, so only your first target is attached. The rest stay in the calculator."
+    },
+    "confirm": {
+      "titleLive": "Place this order?",
+      "titlePaper": "Place this paper order?",
+      "message": "{side} {qty} {symbol} as a {type} order, with a stop at {stop}. Continue?"
+    },
+    "protection": {
+      "attached": "attached to the entry",
+      "placed": "placed separately",
+      "none": "not requested",
+      "failed": "NOT PRESENT"
+    },
+    "result": {
+      "placed": "Entry placed. Stop: {stop}. Target: {target}."
+    },
+    "errors": {
+      "entryRejected": "The order was not placed.",
+      "unprotectedTitle": "Position is unprotected",
+      "unprotected": "The entry was placed but its stop is not on the exchange. The position is open with no stop. Cachy will not close it for you — set a stop now, or close the position yourself.",
+      "targetMissing": "The entry and its stop are in place, but the take-profit is not.",
+      "tradingUnavailable": "Trading is unavailable for this symbol.",
+      "metadataLoading": "Loading trading pair details...",
+      "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
+      "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
+    }
   }
 }

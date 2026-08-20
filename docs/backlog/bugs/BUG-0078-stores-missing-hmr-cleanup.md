@@ -2,15 +2,21 @@
 id: BUG-0078
 title: Core stores leak auto-save $effect.root closures and timers during HMR
 type: bug
-status: ready
+status: done
 priority: P2
-milestone: none
+milestone: M1
 editions: [community, pro, private]
 area: ui
 data_class: none
 adr: none
-depends_on: []
+depends_on: [BUG-0053]
+parent: FEAT-0067
+start_date: 2026-08-13
+target_date: 2026-08-18
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0078 — Core stores leak auto-save $effect.root closures and timers during HMR
 
@@ -80,8 +86,8 @@ if (import.meta.hot) {
 
 ## Acceptance criteria
 
-- [ ] Core stores (`journal`, `settings`, `indicator`) expose a `destroy()` method that halts all internal `$effect.root` instances and timers.
-- [ ] Core stores wire `destroy()` to `import.meta.hot.dispose`.
+- [x] Core stores (`journal`, `settings`, `indicator`) expose a `destroy()` method that halts all internal `$effect.root` instances and timers.
+- [x] Core stores wire `destroy()` to `import.meta.hot.dispose`.
 
 ## Out of scope
 

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -164,6 +165,33 @@ describe("WindowManager capacity limit (FEAT-0050)", () => {
         expect(windowManager.isOpen(w21.id)).toBe(true);
         openedIds.splice(openedIds.indexOf(wins[0].id), 1);
         windowManager.close(wins[0].id);
+    });
+});
+
+describe("WindowManager news window limit (max 6 simultaneously)", () => {
+    function openTestNewsWindow() {
+        const win = new TestWindow({
+            id: `news-test-window-${nextTestId++}`,
+            windowType: "iframe",
+            storageKey: "news_article",
+        });
+        win.allowMultipleInstances = true;
+        windowManager.open(win);
+        openedIds.push(win.id);
+        return win;
+    }
+
+    it("evicts the oldest/bottom news window when a 7th news window is opened", () => {
+        const newsWins = Array.from({ length: 6 }, () => openTestNewsWindow());
+        expect(newsWins.every(w => windowManager.isOpen(w.id))).toBe(true);
+
+        const seventhNews = openTestNewsWindow();
+
+        // Oldest news window (newsWins[0]) should have been closed
+        expect(windowManager.isOpen(newsWins[0].id)).toBe(false);
+        expect(windowManager.isOpen(seventhNews.id)).toBe(true);
+        const openNews = windowManager.windows.filter(w => w.windowType === "iframe");
+        expect(openNews.length).toBe(6);
     });
 });
 

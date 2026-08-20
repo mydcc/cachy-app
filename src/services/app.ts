@@ -20,6 +20,8 @@ import { CalculatorService } from "./calculatorService";
 import { bitunixWs } from "./bitunixWs";
 import { bitgetWs } from "./bitgetWs"; // Import Bitget WS
 import { favoritesState } from "../stores/favorites.svelte";
+import { marketState } from "../stores/market.svelte";
+import { normalizeSymbol } from "../utils/symbolUtils";
 import { _ } from "../locales/i18n";
 import { syncService } from "./syncService";
 import { csvService } from "./csvService";
@@ -43,6 +45,9 @@ import { marketAnalyst } from "./marketAnalyst";
 import { serializationService } from "./serializationService";
 import { logger } from "./logger";
 import { setupRealtimeUpdatesEffect } from "./appEffects.svelte";
+import { rmsService } from "./rmsService";
+import { paperTradingService } from "./paperTradingService";
+import { orderAuditService } from "./orderAuditService";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -76,6 +81,16 @@ export const app = {
       });
 
       // 1. Initialise core logic
+      // Risk limits and the kill switch (FEAT-0013) must be attached to the
+      // order gate before anything can place an order — unregistered hooks
+      // mean the gate approves on those two checks.
+      rmsService.installGateHooks();
+      // FEAT-0012: points the simulator at the live feed and mirrors the
+      // paper book into the shared stores. No-op while paper mode is off.
+      paperTradingService.install();
+      // FEAT-0015: attaches the audit recorder to the gate. Until it runs
+      // nothing is recorded, so this is not optional wiring either.
+      orderAuditService.install();
       app.populatePresetLoader();
       app.setupMarketSync();
       tradeCalculator.init(() => app.calculateAndDisplay());
@@ -120,9 +135,9 @@ export const app = {
         useAtrSl: true,
         atrMode: "auto",
         targets: [
-          { price: 120000, percent: 50, isLocked: false },
-          { price: 122000, percent: 25, isLocked: false },
-          { price: 124000, percent: 25, isLocked: false },
+          { price: "120000", percent: "50", isLocked: false },
+          { price: "122000", percent: "25", isLocked: false },
+          { price: "124000", percent: "25", isLocked: false },
         ],
       }));
 
@@ -322,10 +337,28 @@ export const app = {
     );
     const p = presets[name];
     if (p) {
-      // Ensure strings for legacy presets
-      if (typeof p.entryPrice === 'number') p.entryPrice = String(p.entryPrice);
-      if (typeof p.stopLossPrice === 'number') p.stopLossPrice = String(p.stopLossPrice);
-      if (typeof p.riskAmount === 'number') p.riskAmount = String(p.riskAmount);
+      // Ensure strings for legacy presets — the trade state holds these as
+      // strings only, and presets written by earlier versions may carry numbers.
+      const legacyNumericFields = [
+        "accountSize",
+        "riskPercentage",
+        "entryPrice",
+        "stopLossPrice",
+        "leverage",
+        "fees",
+        "atrValue",
+        "atrMultiplier",
+        "riskAmount",
+      ] as const;
+      for (const field of legacyNumericFields) {
+        if (typeof p[field] === "number") p[field] = String(p[field]);
+      }
+      if (Array.isArray(p.targets)) {
+        for (const t of p.targets) {
+          if (typeof t?.price === "number") t.price = String(t.price);
+          if (typeof t?.percent === "number") t.percent = String(t.percent);
+        }
+      }
 
       tradeState.update((s) => ({
         ...s,
@@ -405,8 +438,14 @@ export const app = {
       logger.debug("api", `[handleFetchPrice] Fetched ticker:`, ticker);
       const priceVal = ticker.lastPrice;
 
-      app.currentMarketPrice = priceVal;
-      tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toString() }));
+      const meta = marketState.symbolMeta[normalizeSymbol(symbol, "bitunix")];
+      let decPrice = new Decimal(priceVal);
+      if (meta?.quotePrecision !== undefined) {
+        decPrice = decPrice.toDecimalPlaces(meta.quotePrecision, Decimal.ROUND_HALF_UP);
+      }
+
+      app.currentMarketPrice = decPrice;
+      tradeState.update((s) => ({ ...s, entryPrice: decPrice.toString() }));
       app.calculateAndDisplay();
     } catch {
       if (!isAuto) uiState.showError("errors.priceFetchFailed");

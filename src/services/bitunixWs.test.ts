@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -15,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Decimal } from 'decimal.js';
 import { bitunixWs, type TradeData } from '../../src/services/bitunixWs';
 import { marketState } from '../../src/stores/market.svelte';
@@ -182,10 +183,11 @@ describe('BitunixWS Fast Path Fallback', () => {
         wsService.handleMessage(msg, 'public');
 
         // Verification:
-        // 1. Fast Path called normalizeTicker -> Threw Error
-        // 2. Catch block caught it
-        // 3. Fallback logic (Zod) ran -> Called normalizeTicker AGAIN (success)
-        // 4. updateSymbol called with success result
+        // 1. Fast Path called shouldThrottle with read-only
+        // 2. Fast Path called normalizeTicker -> Threw Error
+        // 3. Catch block caught it
+        // 4. Fallback (slow path) ran, successfully calling normalizeTicker again
+        // 5. marketState was updated
 
         expect(normalizeMock).toHaveBeenCalledTimes(2);
         expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT', expect.any(Object));
@@ -221,6 +223,13 @@ describe('BitunixWS Fast Path Fallback', () => {
             if (wsService.publicMessageTimer) clearTimeout(wsService.publicMessageTimer);
             wsService.publicMessageTimer = null;
             wsService.lastPublicSendTime = 0;
+        });
+
+        // Fake timers are only switched back at the end of each test body, so
+        // an assertion failure leaks them into the next test. Reset them after
+        // every test instead; beforeEach then clears timers with the real API.
+        afterEach(() => {
+            vi.useRealTimers();
         });
 
         it('should batch multiple subscribe calls in the same tick', async () => {

@@ -29,7 +29,7 @@ const marketWatcherInternals = marketWatcher as unknown as {
 // Mock dependencies
 vi.mock('./bitunixWs', () => ({ bitunixWs: { subscribe: vi.fn(), unsubscribe: vi.fn(), pendingSubscriptions: new Map() } }));
 vi.mock('./apiService', () => ({ apiService: { fetchBitunixKlines: vi.fn() } }));
-vi.mock('../stores/settings.svelte', () => ({ settingsState: { apiProvider: 'bitunix', capabilities: { marketData: true } } }));
+vi.mock('../stores/settings.svelte', () => ({ settingsState: { apiProvider: 'bitunix', entitlement: { capabilities: { marketData: true } } } }));
 vi.mock('../stores/market.svelte', () => ({
     marketState: {
         data: {},

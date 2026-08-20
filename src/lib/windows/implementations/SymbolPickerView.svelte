@@ -22,12 +22,11 @@
     import { _ } from "../../../locales/i18n";
     import { tradeState } from "../../../stores/trade.svelte";
     import { app } from "../../../services/app";
-    import { bitunixWs } from "../../../services/bitunixWs";
+    import { activeExchange } from "../../../services/exchange";
     import { uiState } from "../../../stores/ui.svelte";
     import { marketState } from "../../../stores/market.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
-    import { apiService } from "../../../services/apiService";
-    import type { Ticker24h } from "../../../services/apiService";
+    import type { Ticker24h } from "../../../services/exchange";
     import { windowManager } from "../WindowManager.svelte";
     import type { SymbolPickerWindow } from "./SymbolPickerWindow.svelte";
 
@@ -56,8 +55,8 @@
 
     // Load Snapshot
     onMount(() => {
-        apiService
-            .fetchMarketSnapshot("bitunix")
+        activeExchange()
+            .marketData.fetchSnapshot()
             .then((data) => {
                 const map: Record<string, Ticker24h> = {};
                 data.forEach((t) => (map[t.symbol] = t));
@@ -147,18 +146,21 @@
         const visible = sortedAndFilteredSymbols.slice(0, 50);
         const newSubs = new Set(visible);
 
-        // Diffing
+        // Diffing. Resolve the adapter once per run: an exchange switch
+        // between subscribe and cleanup would otherwise unsubscribe on the
+        // wrong venue and leak the subscription on the old one.
+        const { marketData } = activeExchange();
         previousSubs.forEach((s) => {
-            if (!newSubs.has(s)) bitunixWs.unsubscribe(s, "ticker");
+            if (!newSubs.has(s)) marketData.unsubscribe(s, "ticker");
         });
         newSubs.forEach((s) => {
-            if (!previousSubs.has(s)) bitunixWs.subscribe(s, "ticker");
+            if (!previousSubs.has(s)) marketData.subscribe(s, "ticker");
         });
 
         previousSubs = newSubs;
 
         return () => {
-            previousSubs.forEach((s) => bitunixWs.unsubscribe(s, "ticker"));
+            previousSubs.forEach((s) => marketData.unsubscribe(s, "ticker"));
         };
     });
 

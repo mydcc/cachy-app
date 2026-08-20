@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -32,7 +33,7 @@ vi.mock("./logger", () => ({
 vi.mock("../stores/settings.svelte", () => ({
   settingsState: {
     apiKeys: { bitunix: { key: "test-key", secret: "test-secret" } },
-    capabilities: { marketData: true },
+    entitlement: { capabilities: { marketData: true } },
     enableNetworkLogs: false,
   },
 }));

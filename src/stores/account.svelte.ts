@@ -9,7 +9,7 @@
 
 import { Decimal } from "decimal.js";
 import { parseTimestamp, parseDecimal } from "../utils/utils";
-import type { NormalizedPosition, NormalizedOrder } from "../types/bitunix";
+import type { NormalizedPosition, NormalizedOrder } from "../types/exchange";
 
 export interface Position {
   positionId: string;
@@ -169,6 +169,12 @@ class AccountManager {
 
   registerSyncCallback(fn: (() => void) | null) {
     this.syncCallback = fn;
+  }
+
+  requestSync() {
+    if (this.syncCallback) {
+      this.syncCallback();
+    }
   }
 
   registerOrderCloseCallback(fn: (() => void) | null) {

@@ -10,7 +10,12 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: [BUG-0055]
+start_date: 2026-08-08
+target_date: 2026-08-13
+size: S
+estimate: 2
 ---
+
 
 # BUG-0065 — A partial WS price push can erase a real markPrice buffered earlier in the same flush window
 

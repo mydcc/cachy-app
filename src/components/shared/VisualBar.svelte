@@ -23,11 +23,11 @@
   import { parseDecimal } from "../../utils/utils";
 
   interface Props {
-    entryPrice: string | number | null;
-    stopLossPrice: string | number | null;
+    entryPrice: string | null;
+    stopLossPrice: string | null;
     targets: Array<{
-      price: string | number | null;
-      percent: string | number | null;
+      price: string | null;
+      percent: string | null;
       isLocked: boolean;
     }>;
     calculatedTpDetails: IndividualTpResult[];

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -15,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("../stores/market.svelte", () => ({
   marketState: {
@@ -119,5 +120,139 @@ describe("ConnectionManager", () => {
     connectionManager.onProviderDisconnected("bitunix");
 
     expect(polling.resumePolling).toHaveBeenCalledTimes(1);
+  });
+
+  describe("notifyVisibilityChange (BUG-0217)", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("forces a reconnect when the tab was hidden past the threshold", async () => {
+      const bitunix = makeProvider();
+      connectionManager.registerProvider("bitunix", bitunix);
+      await connectionManager.switchProvider("bitunix", { force: true });
+      vi.mocked(bitunix.connect).mockClear();
+      vi.mocked(bitunix.destroy).mockClear();
+
+      connectionManager.notifyVisibilityChange(false);
+      vi.advanceTimersByTime(20_000); // past the 15s threshold
+      connectionManager.notifyVisibilityChange(true);
+      await vi.advanceTimersByTimeAsync(0); // let the async switchProvider settle
+
+      expect(bitunix.destroy).toHaveBeenCalledTimes(1);
+      expect(bitunix.connect).toHaveBeenCalledWith(true);
+    });
+
+    it("does nothing for an ordinary, brief tab switch", async () => {
+      const bitunix = makeProvider();
+      connectionManager.registerProvider("bitunix", bitunix);
+      await connectionManager.switchProvider("bitunix", { force: true });
+      vi.mocked(bitunix.connect).mockClear();
+      vi.mocked(bitunix.destroy).mockClear();
+
+      connectionManager.notifyVisibilityChange(false);
+      vi.advanceTimersByTime(3_000); // well under the threshold
+      connectionManager.notifyVisibilityChange(true);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(bitunix.destroy).not.toHaveBeenCalled();
+      expect(bitunix.connect).not.toHaveBeenCalled();
+    });
+
+    it("does nothing when the tab becomes visible without having been hidden first", async () => {
+      const bitunix = makeProvider();
+      connectionManager.registerProvider("bitunix", bitunix);
+      await connectionManager.switchProvider("bitunix", { force: true });
+      vi.mocked(bitunix.connect).mockClear();
+      vi.mocked(bitunix.destroy).mockClear();
+
+      connectionManager.notifyVisibilityChange(true);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(bitunix.destroy).not.toHaveBeenCalled();
+      expect(bitunix.connect).not.toHaveBeenCalled();
+    });
+
+    it("does nothing if there is no active provider", async () => {
+      // No registerProvider/switchProvider call: activeProvider is still "".
+      connectionManager.notifyVisibilityChange(false);
+      vi.advanceTimersByTime(20_000);
+      // Must not throw despite there being nothing to reconnect.
+      expect(() => connectionManager.notifyVisibilityChange(true)).not.toThrow();
+    });
+
+    it("only reconnects once per hidden period, not on a second visible event", async () => {
+      const bitunix = makeProvider();
+      connectionManager.registerProvider("bitunix", bitunix);
+      await connectionManager.switchProvider("bitunix", { force: true });
+      vi.mocked(bitunix.connect).mockClear();
+      vi.mocked(bitunix.destroy).mockClear();
+
+      connectionManager.notifyVisibilityChange(false);
+      vi.advanceTimersByTime(20_000);
+      connectionManager.notifyVisibilityChange(true);
+      await vi.advanceTimersByTimeAsync(0);
+      vi.mocked(bitunix.connect).mockClear();
+      vi.mocked(bitunix.destroy).mockClear();
+
+      // A second "visible" event with no intervening "hidden" — e.g. a
+      // duplicate browser event — must not trigger a second reconnect.
+      connectionManager.notifyVisibilityChange(true);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(bitunix.destroy).not.toHaveBeenCalled();
+      expect(bitunix.connect).not.toHaveBeenCalled();
+    });
+
+    it("treats a blur/focus pair the same as a hidden/visible pair", async () => {
+      // Covers the window-loses-OS-focus case visibilitychange alone misses
+      // (e.g. Cachy stays the active tab but the browser window itself is
+      // backgrounded on a second monitor).
+      const bitunix = makeProvider();
+      connectionManager.registerProvider("bitunix", bitunix);
+      await connectionManager.switchProvider("bitunix", { force: true });
+      vi.mocked(bitunix.connect).mockClear();
+      vi.mocked(bitunix.destroy).mockClear();
+
+      connectionManager.notifyVisibilityChange(false); // simulates `blur`
+      vi.advanceTimersByTime(20_000);
+      connectionManager.notifyVisibilityChange(true); // simulates `focus`
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(bitunix.destroy).toHaveBeenCalledTimes(1);
+      expect(bitunix.connect).toHaveBeenCalledWith(true);
+    });
+
+    it("is actually wired to real visibilitychange/focus/blur DOM events", async () => {
+      // The tests above call notifyVisibilityChange() directly; this one
+      // proves the constructor's addEventListener calls are still in place,
+      // so a refactor can't silently detach the whole feature while every
+      // other test here keeps passing.
+      const bitunix = makeProvider();
+      connectionManager.registerProvider("bitunix", bitunix);
+      await connectionManager.switchProvider("bitunix", { force: true });
+      vi.mocked(bitunix.connect).mockClear();
+      vi.mocked(bitunix.destroy).mockClear();
+
+      Object.defineProperty(document, "visibilityState", {
+        value: "hidden",
+        configurable: true,
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+      vi.advanceTimersByTime(20_000);
+      Object.defineProperty(document, "visibilityState", {
+        value: "visible",
+        configurable: true,
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(bitunix.destroy).toHaveBeenCalledTimes(1);
+      expect(bitunix.connect).toHaveBeenCalledWith(true);
+    });
   });
 });

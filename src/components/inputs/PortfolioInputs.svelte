@@ -213,11 +213,12 @@
   <h2 class="section-header !mt-6">
     {$_("dashboard.portfolioInputs.header")}
   </h2>
-  <div class="flex flex-nowrap items-end gap-3 justify-start w-full">
-    <div class="flex-1 min-w-0">
+  <div class="flex flex-nowrap items-end gap-2 justify-start w-full">
+    <div class="flex-[1.5] min-w-0">
       <label
         for="account-size"
-        class="input-label text-xs whitespace-nowrap overflow-visible"
+        class="input-label text-xs whitespace-nowrap truncate block"
+        title={$_("dashboard.portfolioInputs.accountSizeLabel")}
         >{$_("dashboard.portfolioInputs.accountSizeLabel")}</label
       >
       <div class="relative mt-1">
@@ -229,8 +230,7 @@
           use:enhancedInput={{
             step: 100,
             min: 0,
-            rightOffset: "40px",
-            showSpinButtons: false,
+            hasAction: true,
           }}
           bind:value={localAccountSize}
           onfocus={() => (isAccountSizeFocused = true)}
@@ -239,7 +239,7 @@
             handleAccountSizeInput,
             onboardingService.trackFirstInput,
           )}
-          class="input-field w-full px-4 py-2 rounded-md pr-10"
+          class="input-field w-full px-2.5 py-2 rounded-md"
           placeholder={$_("dashboard.portfolioInputs.accountSizePlaceholder")}
         />
         <button
@@ -256,10 +256,11 @@
       </div>
     </div>
 
-    <div class="flex-1 min-w-0">
+    <div class="flex-[0.75] min-w-0">
       <label
         for="risk-percentage"
-        class="input-label text-xs whitespace-nowrap overflow-visible"
+        class="input-label text-xs whitespace-nowrap truncate block"
+        title={$_("dashboard.portfolioInputs.riskPerTradeLabel")}
         >{$_("dashboard.portfolioInputs.riskPerTradeLabel")}</label
       >
       <div class="relative mt-1">
@@ -277,8 +278,6 @@
             step: 0.5,
             min: 0,
             max: 100,
-            rightOffset: "40px",
-            showSpinButtons: false,
           }}
           bind:value={localRiskPercentage}
           onfocus={() => (isRiskPercentageFocused = true)}
@@ -287,17 +286,18 @@
             handleRiskPercentageInput,
             onboardingService.trackFirstInput,
           )}
-          class="input-field w-full px-4 py-2 rounded-md"
+          class="input-field w-full px-2.5 py-2 rounded-md"
           placeholder={$_("dashboard.portfolioInputs.riskPerTradePlaceholder")}
           disabled={isRiskAmountLocked || isPositionSizeLocked}
         />
       </div>
     </div>
 
-    <div class="flex-1 min-w-0">
+    <div class="flex-[1.0] min-w-0">
       <label
         for="risk-amount"
-        class="input-label text-xs whitespace-nowrap overflow-visible"
+        class="input-label text-xs whitespace-nowrap truncate block"
+        title={$_("dashboard.portfolioInputs.riskAmountLabel")}
         >{$_("dashboard.portfolioInputs.riskAmountLabel")}</label
       >
       <div class="relative mt-1">
@@ -309,14 +309,13 @@
           use:enhancedInput={{
             step: 10,
             min: 0,
-            rightOffset: "40px",
-            showSpinButtons: false,
+            hasAction: true,
           }}
           bind:value={localRiskAmount}
           onfocus={() => (isRiskAmountFocused = true)}
           onblur={() => (isRiskAmountFocused = false)}
           oninput={handleRiskAmountInput}
-          class="input-field w-full px-4 py-2 rounded-md pr-10"
+          class="input-field w-full px-2.5 py-2 rounded-md"
           placeholder={$_("dashboard.portfolioInputs.riskAmountPlaceholder")}
           disabled={isPositionSizeLocked}
         />

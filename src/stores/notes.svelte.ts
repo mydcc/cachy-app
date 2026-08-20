@@ -91,23 +91,26 @@ class NotesManager {
     this.save();
   }
 
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
-
   // Compatibility for easier migration if needed, though direct property access is preferred
   subscribe(fn: (value: { messages: NoteMessage[] }) => void) {
+    let localTimer: ReturnType<typeof setTimeout> | null = null;
     fn({ messages: this.messages });
-    return $effect.root(() => {
+    const cleanup = $effect.root(() => {
       $effect(() => {
         const snap = { messages: this.messages }; // Track
         untrack(() => {
-          if (this.notifyTimer) clearTimeout(this.notifyTimer);
-          this.notifyTimer = setTimeout(() => {
+          if (localTimer) clearTimeout(localTimer);
+          localTimer = setTimeout(() => {
             fn(snap);
-            this.notifyTimer = null;
+            localTimer = null;
           }, 100); // UI updates for notes can be slow
         });
       });
     });
+    return () => {
+      cleanup();
+      if (localTimer) clearTimeout(localTimer);
+    };
   }
 }
 

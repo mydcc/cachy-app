@@ -10,7 +10,12 @@ area: ui
 data_class: A
 adr: ADR-0006
 depends_on: []
+start_date: 2026-08-04
+target_date: 2026-08-13
+size: M
+estimate: 3
 ---
+
 
 # FEAT-0050 — Put tests under the window manager before more surfaces depend on it
 

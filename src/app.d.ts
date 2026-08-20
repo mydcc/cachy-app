@@ -29,6 +29,18 @@ declare global {
   }
   interface Window {
     _mtm: unknown[];
+    // File System Access API (Chromium-only, FEAT-0212 Phase 2). Not yet
+    // part of TS's default DOM lib, so declared minimally here rather than
+    // pulling in a full @types/wicg-file-system-access dependency.
+    showSaveFilePicker?: (options?: {
+      suggestedName?: string;
+      types?: { description?: string; accept: Record<string, string[]> }[];
+    }) => Promise<FileSystemFileHandle>;
+  }
+
+  interface FileSystemFileHandle {
+    queryPermission(descriptor?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
+    requestPermission(descriptor?: { mode?: "read" | "readwrite" }): Promise<PermissionState>;
   }
 }
 

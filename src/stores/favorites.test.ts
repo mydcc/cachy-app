@@ -10,8 +10,20 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { MAX_FAVORITE_SYMBOLS } from './settings.svelte';
 
 vi.mock('$app/environment', () => ({ browser: true }));
+
+/**
+ * Since BUG-0232 this store no longer owns a `cachy_favorites` key; it is a
+ * view over `settingsState.favoriteSymbols`. So the thing worth asserting is
+ * that a write lands in the settings store -- writing it through to
+ * localStorage is the settings store's debounced job, covered by its own tests.
+ */
+async function settingsFavourites(): Promise<string[]> {
+  const { settingsState } = await import('./settings.svelte');
+  return settingsState.favoriteSymbols;
+}
 
 describe('favoritesState', () => {
   beforeEach(() => {
@@ -28,7 +40,7 @@ describe('favoritesState', () => {
     expect(favoritesState.items).toEqual(["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"]);
   });
 
-  it('should load items from localStorage if available', async () => {
+  it('should migrate a legacy cachy_favorites list on first load', async () => {
     localStorage.setItem("cachy_favorites", JSON.stringify(["DOGEUSDT", "ADAUSDT"]));
     const { favoritesState } = await import('./favorites.svelte');
     expect(favoritesState.items).toEqual(["DOGEUSDT", "ADAUSDT"]);
@@ -41,7 +53,7 @@ describe('favoritesState', () => {
     favoritesState.toggleFavorite('xrpusdt');
 
     expect(favoritesState.items).toEqual(['XRPUSDT']);
-    expect(JSON.parse(localStorage.getItem("cachy_favorites")!)).toEqual(['XRPUSDT']);
+    expect(await settingsFavourites()).toEqual(['XRPUSDT']);
   });
 
   it('should remove a symbol if already present', async () => {
@@ -51,16 +63,17 @@ describe('favoritesState', () => {
     favoritesState.toggleFavorite('ethusdt');
 
     expect(favoritesState.items).toEqual(['BTCUSDT']);
-    expect(JSON.parse(localStorage.getItem("cachy_favorites")!)).toEqual(['BTCUSDT']);
+    expect(await settingsFavourites()).toEqual(['BTCUSDT']);
   });
 
-  it('should not add a symbol if MAX_FAVORITES (4) is reached', async () => {
+  it('should not add a symbol once MAX_FAVORITE_SYMBOLS is reached', async () => {
     const { favoritesState } = await import('./favorites.svelte');
-    favoritesState.items = ['A', 'B', 'C', 'D'];
+    const full = Array.from({ length: MAX_FAVORITE_SYMBOLS }, (_, i) => `SYM${i}`);
+    favoritesState.items = full;
 
-    favoritesState.toggleFavorite('E');
+    favoritesState.toggleFavorite('ONE_TOO_MANY');
 
-    expect(favoritesState.items).toEqual(['A', 'B', 'C', 'D']);
+    expect(favoritesState.items).toEqual(full);
   });
 
   it('should not add or remove if symbol is empty', async () => {
@@ -72,12 +85,12 @@ describe('favoritesState', () => {
     expect(favoritesState.items).toEqual(['A', 'B']);
   });
 
-  it('should handle broken localStorage gracefully during load', async () => {
+  it('should handle a broken legacy list gracefully during migration', async () => {
     localStorage.setItem("cachy_favorites", "{ broken json");
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const { favoritesState } = await import('./favorites.svelte');
-    // Should fallback to default because it fails to parse
+    // Falls back to the defaults rather than throwing at module import time.
     expect(favoritesState.items).toEqual(["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"]);
     expect(consoleSpy).toHaveBeenCalled();
 

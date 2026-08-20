@@ -10,7 +10,12 @@ area: exchange
 data_class: A
 adr: none
 depends_on: []
+estimate: 2
+size: S
+target_date: 2026-11-24
+start_date: 2026-08-09
 ---
+
 
 Branch: `feat/bitunix-readonly-data-display`
 

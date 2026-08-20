@@ -10,7 +10,12 @@ area: pwa
 data_class: none
 adr: none
 depends_on: []
+start_date: 2026-08-02
+target_date: 2026-08-13
+size: XS
+estimate: 1
 ---
+
 
 # BUG-0038 — PWA splash screen, screenshots and long-press shortcuts regressed on Android
 

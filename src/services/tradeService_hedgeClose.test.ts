@@ -177,7 +177,7 @@ describe("TradeService close-order fields (BUG-0062/BUG-0063)", () => {
   });
 
   describe("flashClosePosition", () => {
-    it("sends tradeSide=CLOSE and positionId in HEDGE mode", async () => {
+    it("sends native flash-close-position and positionId in HEDGE mode", async () => {
       vi.mocked(omsService.getPositions).mockReturnValue([
         {
           symbol: "XRPUSDT",
@@ -192,12 +192,12 @@ describe("TradeService close-order fields (BUG-0062/BUG-0063)", () => {
       await tradeService.flashClosePosition("XRPUSDT", "long");
 
       const body = lastBody();
-      expect(body.side).toBe("BUY");
-      expect(body.tradeSide).toBe("CLOSE");
+      expect(body.type).toBe("flash-close-position");
+      expect(body.symbol).toBe("XRPUSDT");
       expect(body.positionId).toBe("662491704776252252");
     });
 
-    it("sends tradeSide=CLOSE and positionId in ONE_WAY mode too", async () => {
+    it("sends native flash-close-position and positionId in ONE_WAY mode too", async () => {
       vi.mocked(omsService.getPositions).mockReturnValue([
         {
           symbol: "XRPUSDT",
@@ -212,8 +212,8 @@ describe("TradeService close-order fields (BUG-0062/BUG-0063)", () => {
       await tradeService.flashClosePosition("XRPUSDT", "long");
 
       const body = lastBody();
-      expect(body.side).toBe("BUY");
-      expect(body.tradeSide).toBe("CLOSE");
+      expect(body.type).toBe("flash-close-position");
+      expect(body.symbol).toBe("XRPUSDT");
       expect(body.positionId).toBe("662491704776252252");
     });
   });

@@ -1,0 +1,194 @@
+name: opencode
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  # Weekly maintenance scan (needs its own prompt job, see "scheduled").
+  schedule:
+    - cron: "0 9 * * 1"
+  # Manual run from the Actions tab (see "manual" job).
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Task for OpenCode to execute
+        required: true
+        type: string
+
+jobs:
+  # Interactive: mention /oc or /opencode in an issue or PR comment to trigger a
+  # task (e.g. "/oc explain this issue", "/oc fix this", "/oc <change>" on a PR).
+  # Write permissions let OpenCode create branches, commit and open pull
+  # requests. The action authenticates via the installed OpenCode GitHub App
+  # (OIDC); the write scopes also cover the GITHUB_TOKEN fallback path.
+  #
+  # Only the repo owner (mydcc) may trigger it. On a public repo anyone can
+  # comment on issues/PRs, so without an author allowlist an external user could
+  # drive this write-capable agent. Extend the list if more users should get
+  # interactive access:
+  #   contains(fromJSON('["mydcc","someone-else"]'), github.event.comment.user.login)
+  opencode:
+    if: |
+      github.event_name != 'pull_request' &&
+      contains(fromJSON('["mydcc"]'), github.event.comment.user.login) &&
+      (contains(github.event.comment.body, ' /oc') ||
+       startsWith(github.event.comment.body, '/oc') ||
+       contains(github.event.comment.body, ' /opencode') ||
+       startsWith(github.event.comment.body, '/opencode'))
+    runs-on: ubuntu-latest
+    # Serialize interactive runs: two parallel /oc calls would push to the same
+    # branches. Queued, never cancelled.
+    concurrency:
+      group: opencode-interactive
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run opencode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          # Swap for a stronger model here once a provider key is configured.
+          model: opencode/deepseek-v4-flash-free
+          # Keep the session private even on this public repo.
+          share: false
+
+  # Automated review of every non-draft PR against the Cachy checklist
+  # (AGENTS.md -> Code Review Standard). Read-only towards the codebase: it only
+  # posts a comment when it has findings, marked "Code Review for <sha>" so
+  # re-runs are recognizable.
+  #
+  # Only PRs from branches in this repo are reviewed. Fork PRs are skipped:
+  # GitHub does not pass secrets to fork-triggered workflows, so the opencode
+  # action would fail without OPENCODE_API_KEY, and external PRs should not
+  # drive the agent.
+  review:
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.draft != true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # Per-PR group: rapid push sequences cancel the stale review instead of
+    # spending tokens/minutes on an outdated diff.
+    concurrency:
+      group: opencode-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run opencode review
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/deepseek-v4-flash-free
+          # Keep the session private even on this public repo.
+          share: false
+          prompt: |
+            Review this pull request using the Cachy review checklist:
+            - If the PR links a backlog item (Fixes #NNN), read docs/backlog/ and
+              check whether the diff satisfies the Acceptance Criteria and stays
+              within Out of Scope.
+            - Non-negotiable rules: Svelte 5 runes only (no export let, no $:, no
+              createEventDispatcher, no <slot>); every $effect that registers
+              listeners or subscriptions returns a cleanup function; decimal.js
+              for ALL prices, amounts and balances (native number is forbidden for
+              financial values); no hardcoded colors (CSS variables or paired
+              classes from src/themes.css only); Local-First boundary (Class A
+              data never leaves the device; core code must not import from
+              src/lib/spacetimedb/ or src/services/cloudService.ts).
+            - Do not repeat failures CI already reports.
+            - Check plain correctness: logic errors, silent failures, unhandled
+              edge cases.
+            - If the PR touches area: execution, security, exchange, or priority
+              P0, add a gentle note that human review is recommended before merge
+              (no alarms, no uppercase shouting).
+            - Only post a comment when you have findings. Start it with
+              "Code Review for <short-sha>" so it is recognized on re-runs.
+
+  # Weekly maintenance scan (schedule event): read-only — scans for TODOs and
+  # backlog hygiene, only opens issues to track worthwhile findings. Never
+  # modifies code.
+  scheduled:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: opencode-scheduled
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run opencode weekly maintenance
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/deepseek-v4-flash-free
+          # Keep the session private even on this public repo.
+          share: false
+          prompt: |
+            Weekly maintenance scan:
+            - Scan the codebase for TODO/FIXME/HACK comments and summarize the
+              findings.
+            - Check docs/backlog for items with incomplete acceptance criteria
+              or unresolved open questions and list which ones block promotion
+              to ready.
+            - If you find issues worth addressing, open an issue to track them.
+            - Do not modify code.
+
+  # Manual run from the Actions tab (workflow_dispatch): the task text entered
+  # in the UI is used verbatim as the prompt.
+  manual:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: opencode-manual
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run opencode manual task
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/deepseek-v4-flash-free
+          # Keep the session private even on this public repo.
+          share: false
+          prompt: ${{ inputs.task }}

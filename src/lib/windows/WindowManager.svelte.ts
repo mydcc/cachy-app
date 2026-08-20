@@ -248,7 +248,26 @@ class WindowManager {
         }
 
         // 3. Global Capacity Management: Prevent excessive memory/DOM usage.
-        // Dialogs/Modals are excluded from this limit.
+        // 3a. News/Article Window Limit: Maximum 6 news windows open simultaneously.
+        const isNewsWindow = (w: WindowBase) => w.windowType === 'iframe';
+        if (isNewsWindow(windowInstance)) {
+            const openNewsWindows = this._windows.filter(isNewsWindow);
+            if (openNewsWindows.length >= 6) {
+                // Close the oldest / bottom (lowest z-index) inactive news window
+                const candidates = [...openNewsWindows].sort((a, b) => {
+                    if (a.isFocused !== b.isFocused) {
+                        return a.isFocused ? 1 : -1;
+                    }
+                    return (a.zIndex ?? 0) - (b.zIndex ?? 0);
+                });
+                const oldestNews = candidates[0];
+                if (oldestNews) {
+                    this.close(oldestNews.id);
+                }
+            }
+        }
+
+        // 3b. Global window limit across all windows (Dialogs/Modals excluded)
         const activeWindows = this._windows.filter(w => w.windowType !== 'dialog');
         if (activeWindows.length >= 20) {
             // FIFO strategy: close the oldest window, skipping the
@@ -260,6 +279,7 @@ class WindowManager {
         }
 
         // 4. Registration and activation.
+        windowInstance.isMinimized = false;
         this._windows.push(windowInstance);
         this.bringToFront(windowInstance.id);
         this.saveSession();

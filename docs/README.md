@@ -51,6 +51,7 @@ and this repository has already paid for that once — see
 | [`adr/`](adr/README.md) | Architecture Decision Records — the boundaries |
 | [`BRAND.md`](BRAND.md) | Palette, typography, logo. Verified against `src/themes.css` |
 | [`GLOBAL-CHAT.md`](GLOBAL-CHAT.md) | What the chat stores, how tokens are issued, retention and erasure |
+| [`wire-format.md`](wire-format.md) | GCX1 compact wire format referenced by the generated gortex skill docs |
 | [`calculation-engine.md`](calculation-engine.md), [`calculation-engine-dev.md`](calculation-engine-dev.md) | The risk/position maths |
 | [`bitunix-api/`](bitunix-api/README.md) | Bitunix API notes and quick reference |
 | [`feedback-system.md`](feedback-system.md) | The in-app feedback path |
@@ -97,8 +98,8 @@ way and documented in [`REPO-AUDIT.md`](REPO-AUDIT.md) and the
 
 - A new **decision** that constrains future work → an [ADR](adr/README.md).
   Copy `adr/template.md`, open it as `Proposed`.
-- A new **thing to build** → a [backlog item](backlog/README.md), then
-  `npm run backlog:index`.
+- A new **thing to build** → a [backlog item](backlog/README.md). Do not run
+  `npm run backlog:index` yourself — CI regenerates `INDEX.md` after merge.
 - A new **choice for a human** → [`TODO.md`](TODO.md), with the "why it is here"
   line intact.
 - Anything else: ask whether it belongs in a document that already exists. It

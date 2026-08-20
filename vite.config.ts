@@ -7,8 +7,12 @@
  * (at your option) any later version.
  */
 
+import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { sveltekit } from "@sveltejs/kit/vite";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -21,33 +25,105 @@ const { version: appVersion } = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
 ) as { version: string };
 
+/** Test files that mount a Svelte component. See the `components` project below. */
+const COMPONENT_TESTS = "src/**/*.component.test.ts";
+
+const VITEST_EXCLUDE = [
+  ...configDefaults.exclude,
+  ".claude/**",
+  // Playwright specs must only run via `npm run test:e2e`, not Vitest
+  "tests/e2e/**",
+  // Benchmarks that assert wall-clock time or heap growth. They are useful
+  // signals but cannot be pass/fail gates: on a shared CI runner a single GC
+  // pause moves the result more than any real regression would. The scaling
+  // check compares a ~5ms measurement against a ~24ms one, so ±3ms of noise
+  // swings the ratio by 60% — it measured the runner, not the algorithm, and
+  // failed CI at 10.9x against a threshold of 8 while passing locally at 4.4x.
+  // Run them deliberately with `npm run test:perf`; CI runs them in a
+  // non-blocking job so the numbers stay visible.
+  "src/services/engineBenchmark.test.ts",
+  "src/benchmarks/marketWatcher_backfill.test.ts",
+  "tests/benchmarks/syncService_perf.test.ts",
+  "src/tests/performance/memory_profiling.test.ts",
+  "src/tests/performance/dataRepairService_benchmark.test.ts",
+  "src/tests/performance/startup_benchmark.test.ts",
+];
+
 export default defineConfig({
-  plugins: [sveltekit(), tailwindcss()],
+  // Tests do not need the full SvelteKit plugin: it generates the route
+  // manifest and resolves hooks, which unit tests never touch, and its SSR
+  // machinery dominates Vitest's transform/import time. Under Vitest the
+  // lightweight `svelte()` plugin (which still compiles `.svelte` / `.svelte.ts`
+  // and reads `vitePreprocess` from svelte.config.js) is used instead, and the
+  // `$app/*` / `$env/*` virtual modules it normally provides are aliased to
+  // small stand-ins in `src/tests/helpers/`. Dev/build/check keep `sveltekit()`.
+  //
+  // One thing `sveltekit()` did for free was run `svelte-kit sync` on startup,
+  // generating `.svelte-kit/tsconfig.json`, which `tsconfig.json` extends.
+  // Without it, rolldown's resolver (used during dependency optimization) fails
+  // on a fresh checkout/CI with "Tsconfig not found" — so the test branch syncs
+  // once, only when the generated config is missing.
+  plugins: [
+    process.env.VITEST === "true"
+      ? [
+          {
+            name: "cachy-ensure-svelte-kit-sync",
+            config() {
+              if (!existsSync(".svelte-kit/tsconfig.json")) {
+                execSync("svelte-kit sync", { stdio: "inherit" });
+              }
+            },
+          },
+          svelte(),
+        ]
+      : sveltekit(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      "$app/environment": fileURLToPath(new URL("./src/tests/helpers/app-environment.ts", import.meta.url)),
+      "$env/dynamic/private": fileURLToPath(new URL("./src/tests/helpers/dynamic-private-env.ts", import.meta.url)),
+      $lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+    },
+  },
   test: {
-    exclude: [
-      ...configDefaults.exclude,
-      // Playwright specs must only run via `npm run test:e2e`, not Vitest
-      "tests/e2e/**",
-      // Benchmarks that assert wall-clock time or heap growth. They are useful
-      // signals but cannot be pass/fail gates: on a shared CI runner a single GC
-      // pause moves the result more than any real regression would. The scaling
-      // check compares a ~5ms measurement against a ~24ms one, so ±3ms of noise
-      // swings the ratio by 60% — it measured the runner, not the algorithm, and
-      // failed CI at 10.9x against a threshold of 8 while passing locally at 4.4x.
-      // Run them deliberately with `npm run test:perf`; CI runs them in a
-      // non-blocking job so the numbers stay visible.
-      "src/tests/performance/engine_benchmark.test.ts",
-      "src/tests/performance/memory_profiling.test.ts",
-      "src/tests/performance/dataRepairService_benchmark.test.ts",
-      "src/tests/performance/startup_benchmark.test.ts",
-    ],
-    // Most of the suite exercises browser-facing code (localStorage, window),
-    // but no default environment was configured, so those files failed to load
-    // under the implicit `node` default. Individual files can still opt out
-    // with `// @vitest-environment node`, and the 12 files that already declare
-    // jsdom or happy-dom keep their own choice — per-file directives win.
-    environment: "happy-dom",
+    // The suite runs pure-logic tests by default. Spinning up a DOM per file
+    // was the dominant cost (environment + setup accounted for ~400s of CPU on
+    // a full run). Files that genuinely need a DOM opt in per-file with
+    // `// @vitest-environment happy-dom` (or jsdom); per-file directives win
+    // over this default. Pure-logic files already annotated `node` stay as-is.
+    testTimeout: 20000,
+    hookTimeout: 20000,
+    environment: "node",
     setupFiles: ["./vitest.setup.ts"],
+    pool: "threads",
+    // Two projects, because component tests need one resolution rule the rest
+    // of the suite must not have. `npm test` runs both.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          env: { VITEST_BROWSER: "false" },
+          exclude: [...VITEST_EXCLUDE, COMPONENT_TESTS],
+        },
+      },
+      {
+        // Mounting a component needs `svelte` resolved to its browser build;
+        // its server entry throws `lifecycle_function_unavailable` from
+        // `mount()`. Setting that condition globally is not free — it also
+        // flips `$app/environment`'s `browser` to true, which sent
+        // technicalsService down its Worker path and broke two passing tests.
+        // So it lives here, scoped to the files that need it.
+        extends: true,
+        resolve: { conditions: ["browser"] },
+        test: {
+          name: "components",
+          env: { VITEST_BROWSER: "true" },
+          include: [COMPONENT_TESTS],
+        },
+      },
+    ],
   },
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),

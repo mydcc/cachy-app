@@ -6,15 +6,21 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Least-privilege default: every job here only checks out the repo to lint,
+# type-check, test or benchmark — none of them write to the repo or the
+# GitHub API.
+permissions:
+  contents: read
+
 jobs:
   i18n-lint:
     name: i18n String Compliance
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
 
@@ -25,7 +31,7 @@ jobs:
     name: Decimal.js Enforcement
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Check for unsafe number arithmetic in critical files
         run: |
@@ -34,7 +40,7 @@ jobs:
 
           VIOLATIONS=0
 
-          for file in src/services/tradeService.ts src/services/apiService.ts src/lib/calculator.ts; do
+          for file in src/services/tradeService.ts src/services/apiService.ts src/services/orderGate.ts src/lib/calculator.ts; do
             if [ -f "$file" ]; then
               MATCHES=$(grep -n -E '(Number\(|parseFloat\(|parseFloat |toFixed\()' "$file" || true)
               if [ ! -z "$MATCHES" ]; then
@@ -57,19 +63,23 @@ jobs:
     name: Backlog & Documentation Links
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       # Validates every backlog item's front matter (status, priority, edition,
-      # data class, id/filename agreement, dependencies that actually exist) and
-      # fails if INDEX.md is stale. Without this the index is a hand-maintained
-      # copy of the directory, which is exactly the drift docs/REPO-AUDIT.md is
-      # about. No dependencies needed — the script is plain Node.
-      - name: Validate backlog front matter and index
+      # data class, id/filename agreement, duplicate ids/numbers, dependencies
+      # that actually exist). Deliberately does NOT require docs/backlog/INDEX.md
+      # to be present or fresh in the PR branch — that file is regenerated and
+      # committed to develop/main by sync-backlog.yml after merge, not by every
+      # backlog-touching PR. Requiring a fresh INDEX.md diff per PR used to cause
+      # near-constant merge conflicts on its two summary lines (item counts,
+      # next free number) whenever two backlog PRs were in flight at once — see
+      # BUG-0225. No dependencies needed — the script is plain Node.
+      - name: Validate backlog front matter
         run: npm run backlog:check
 
       # A moved or renamed document silently breaks every pointer to it. That
@@ -81,10 +91,10 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -108,10 +118,10 @@ jobs:
     # reason to block a pull request.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -126,10 +136,10 @@ jobs:
     name: TypeScript Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -144,10 +154,10 @@ jobs:
     name: ESLint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"

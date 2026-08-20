@@ -26,17 +26,18 @@
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
-  import { tradeService } from "../../services/tradeService";
+  import { activeExchange } from "../../services/exchange";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { unwrapApiEnvelope } from "../../utils/utils";
   import { appFetch } from "../../lib/appAuth";
   import type { OMSPosition } from "../../services/omsTypes";
   import { calculateLiveUnrealizedPnl } from "../../services/mappers";
-  import type { NormalizedOrder, NormalizedPosition } from "../../types/bitunix";
+  import type { NormalizedOrder, NormalizedPosition } from "../../types/exchange";
   import type { TranslationKey } from "../../locales/schema";
 
   // Sub-components
   import PositionsList from "./PositionsList.svelte";
+  import { tpSlState } from "../../stores/tpsl.svelte";
   import AccountSummary from "./AccountSummary.svelte";
   import OpenOrdersList from "./OpenOrdersList.svelte";
   import OrderHistoryList from "./OrderHistoryList.svelte";
@@ -113,6 +114,10 @@
   let loadingPositions = $state(false);
   let loadingOrders = $state(false);
   let loadingHistory = $state(false);
+  let loadingMoreHistory = $state(false);
+  let historyHasMore = $state(false);
+  let historyStartTime: number | undefined = $state(undefined);
+  let historyEndTime: number | undefined = $state(undefined);
 
   // Error State
   let errorPositions = $state("");
@@ -155,9 +160,17 @@
   // structural `Decimal(0)` default (Bitunix: always; Bitget: only before
   // its first snapshot) as "no data" rather than a real zero price.
   function resolveMarkPrice(p: (typeof accountState.positions)[number]) {
-    const live = marketState.data[normalizeSymbol(p.symbol, "bitunix")]?.markPrice;
+    const symbolData = marketState.data[normalizeSymbol(p.symbol, "bitunix")];
+    const live = symbolData?.markPrice;
     if (live && live.gt(0)) return live;
     if (p.markPrice && p.markPrice.gt(0)) return p.markPrice;
+    // Neither source has a real mark price — happens during a WS `price`
+    // channel gap/reconnect on Bitunix, since its REST ticker fallback
+    // (historyFetcher.pollSymbolChannel) has no mark-price field at all,
+    // only `lastPrice` (BUG-0218). Falling back to it keeps the row live
+    // instead of showing "?" while market data for the symbol does exist.
+    const lastPrice = symbolData?.lastPrice;
+    if (lastPrice && lastPrice.gt(0)) return lastPrice;
     return undefined;
   }
 
@@ -322,13 +335,28 @@
     }
   }
 
-  async function fetchHistoryOrders() {
+  async function fetchHistoryOrders(options?: {
+    startTime?: number;
+    endTime?: number;
+    append?: boolean;
+    limit?: number;
+  }) {
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
 
-    loadingHistory = true;
+    const isAppend = options?.append ?? false;
+    if (isAppend) {
+      loadingMoreHistory = true;
+    } else {
+      loadingHistory = true;
+    }
     errorHistory = "";
+
+    const startTime = options?.startTime !== undefined ? options.startTime : historyStartTime;
+    const endTime = options?.endTime !== undefined ? options.endTime : historyEndTime;
+    const limit = options?.limit ?? 50;
+
     try {
       // Bitunix's get_history_orders splits FILLED/EXPIRED (queryCanceled
       // omitted) from CANCELED (queryCanceled: true) — one call never
@@ -336,8 +364,11 @@
       // Bitunix; Bitget's history endpoint has no such split.
       const requests =
         provider === "bitunix"
-          ? [{ queryCanceled: false }, { queryCanceled: true }]
-          : [{}];
+          ? [
+              { queryCanceled: false, startTime, endTime, limit },
+              { queryCanceled: true, startTime, endTime, limit },
+            ]
+          : [{ startTime, endTime, limit }];
 
       const responses = await Promise.all(
         requests.map((extra) =>
@@ -361,7 +392,10 @@
         return;
       }
 
-      const merged = new Map<string, NormalizedOrder>();
+      const merged = isAppend
+        ? new Map<string, NormalizedOrder>(historyOrders.map((o) => [o.id || o.orderId, o]))
+        : new Map<string, NormalizedOrder>();
+
       for (const data of responses) {
         for (const order of (data.orders || []) as NormalizedOrder[]) {
           merged.set(order.id || order.orderId, order);
@@ -370,11 +404,41 @@
       historyOrders = Array.from(merged.values()).sort(
         (a, b) => (b.time || 0) - (a.time || 0),
       );
+
+      historyHasMore = responses.some(
+        (r) => Array.isArray(r.orders) && r.orders.length >= limit,
+      );
     } catch {
       errorHistory = $_("apiErrors.failedToLoadOrders");
     } finally {
       loadingHistory = false;
+      loadingMoreHistory = false;
     }
+  }
+
+  function handleLoadMoreHistory() {
+    if (loadingHistory || loadingMoreHistory || historyOrders.length === 0) return;
+    const oldestTime = historyOrders.reduce(
+      (min, o) => (!o.time ? min : Math.min(min, o.time)),
+      Infinity,
+    );
+    if (oldestTime === Infinity || oldestTime <= 0) return;
+
+    fetchHistoryOrders({
+      startTime: historyStartTime,
+      endTime: oldestTime - 1,
+      append: true,
+    });
+  }
+
+  function handleHistoryRangeChange(range: { startTime?: number; endTime?: number }) {
+    historyStartTime = range.startTime;
+    historyEndTime = range.endTime;
+    fetchHistoryOrders({
+      startTime: range.startTime,
+      endTime: range.endTime,
+      append: false,
+    });
   }
 
   async function fetchAccount() {
@@ -451,7 +515,9 @@
   // is accountState's signal to go get the real values from REST.
   $effect(() => {
     accountState.registerSyncCallback(() => {
+      fetchAccount();
       fetchPositions();
+      if (activeTab === "orders") fetchPendingOrders();
     });
     return () => accountState.registerSyncCallback(null);
   });
@@ -500,6 +566,8 @@
         // instead of silently keeping the previous account's stale data.
         hasFetchedOrdersOnce = false;
         hasFetchedHistoryOnce = false;
+        // The position cards' TP/SL plans belong to the previous account.
+        tpSlState.reset();
         if (activeTab === "orders") fetchPendingOrders();
         if (activeTab === "history") fetchHistoryOrders();
       });
@@ -524,6 +592,19 @@
     }
   }
 
+  // FEAT-0057: the position cards show each position's active TP/SL, so the
+  // plans have to be loaded when the cards are on screen — but only then, and
+  // only when there is a position to annotate. `ensureFresh` is a no-op
+  // inside its cache window and de-dupes concurrent callers, so this staying
+  // reactive costs one request per window at most.
+  $effect(() => {
+    const shouldLoad = activeTab === "positions" && mappedPositions.length > 0;
+    if (!shouldLoad) return;
+    untrack(() => {
+      tpSlState.ensureFresh();
+    });
+  });
+
   // Context Menu Handling
   function handleContextMenu(event: MouseEvent) {
     if (activeTab !== "positions") return;
@@ -545,7 +626,7 @@
   // Actions
   async function handleClosePosition(pos: OMSPosition) {
     try {
-      const res = (await tradeService.closePosition({
+      const res = (await activeExchange().trading.closePosition({
         symbol: pos.symbol,
         positionSide: pos.side,
         amount: pos.amount, // Use amount from OMSPosition
@@ -562,6 +643,9 @@
           $_("dashboard.alerts.closePositionSuccess"),
           "success",
         );
+        // The exchange cancels a closed position's plans; leaving them cached
+        // would show a stop on a position that no longer exists.
+        tpSlState.invalidate();
         // Trigger refresh or wait for WS
       }
     } catch (e: unknown) {
@@ -570,14 +654,14 @@
       // account rejecting a close that's missing tradeSide/positionId, see
       // BUG-0062) was never visible to the user. Same pattern
       // handleCancelOrder already used correctly below.
-      const msg = getDisplayMessage(e);
+      const msg = getDisplayMessage(e, $_);
       uiState.showError(msg || $_("dashboard.alerts.failedClose"));
     }
   }
 
   async function handleCancelOrder(orderId: string, symbol: string) {
     try {
-        const res = (await tradeService.cancelOrder(symbol, orderId)) as { error?: string } | undefined;
+        const res = (await activeExchange().trading.cancelOrder(symbol, orderId)) as { error?: string } | undefined;
         if (res && res.error) {
             uiState.showError($_("dashboard.alerts.cancelOrderError", { values: { error: res.error } }) || `Cancel failed: ${res.error}`);
         } else {
@@ -587,7 +671,7 @@
     } catch (e: unknown) {
         // Prefer rawMessage on BitunixApiError — `e.message` carries the i18n
         // key "apiErrors.generic" and would render as a literal string otherwise.
-        const msg = getDisplayMessage(e);
+        const msg = getDisplayMessage(e, $_);
         uiState.showError(msg || $_("dashboard.alerts.cancelOrderError"));
     }
   }
@@ -742,8 +826,12 @@
         <OrderHistoryList
           orders={filteredHistoryOrders}
           loading={loadingHistory}
+          loadingMore={loadingMoreHistory}
+          hasMore={historyHasMore}
           error={errorHistory}
-          onrefresh={fetchHistoryOrders}
+          onrefresh={() => fetchHistoryOrders({ append: false })}
+          onloadmore={handleLoadMoreHistory}
+          onrangechange={handleHistoryRangeChange}
         />
       {/if}
     </div>

@@ -4,18 +4,23 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Least-privilege default: this workflow only reads the PR's commits to lint
+# them, it never writes to the repo or the GitHub API.
+permissions:
+  contents: read
+
 jobs:
   commitlint:
     name: Conventional Commits
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           # Need the PR commits plus the base branch to diff against.
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
@@ -31,8 +36,39 @@ jobs:
         # linting the whole range meant one non-conforming early commit could
         # never be fixed short of a history rewrite, permanently blocking the
         # PR even after later commits were clean.
+        #
+        # Message extracted directly via `git log -1 --format=%B` and piped
+        # to stdin, rather than `commitlint --from SHA~1 --to SHA`, for two
+        # reasons:
+        # - The default checkout for a pull_request event is the synthetic
+        #   refs/pull/N/merge ref, not head.sha, so `commitlint --last` would
+        #   lint GitHub's auto-generated merge-ref message instead of the
+        #   PR's actual tip commit.
+        # - "$SHA~1" is only the tip's *first* parent. When the tip is itself
+        #   a merge commit (e.g. base merged into the PR branch to resolve a
+        #   conflict), `commitlint --from $SHA~1 --to $SHA` walks every
+        #   commit reachable through the *second* parent too — the PR's
+        #   entire "what's new since I branched" range from the base, not
+        #   just the tip's own message. `--git-log-args "--first-parent"`
+        #   looks like the fix but isn't: @commitlint/read's underlying git
+        #   client silently ignores arbitrary git-log-args (see its own
+        #   source comment), so it has no effect. Reading the one commit's
+        #   message directly sidesteps range/parent logic entirely.
         run: |
-          npx commitlint \
-            --from "${{ github.event.pull_request.head.sha }}~1" \
-            --to "${{ github.event.pull_request.head.sha }}" \
-            --verbose
+          git log -1 --format=%B "${{ github.event.pull_request.head.sha }}" | npx commitlint --verbose
+
+      - name: Reject closing keywords in commit messages
+        # Unlike the Conventional Commits check above, this one *does* scan the
+        # whole base..head range, and deliberately so: GitHub's squash merge
+        # folds every commit message in the PR into the merge body, so a
+        # keyword in any commit closes the issue it names — not just one in the
+        # tip. The reason the check above lints only the tip (an early WIP
+        # commit's format can never be fixed without a history rewrite) does not
+        # transfer, because this rule is about an issue being wrongly closed on
+        # merge, which a rewrite is a proportionate price to avoid.
+        #
+        # BUG-0220: a commit body that quoted a mis-linked reference in order to
+        # document it closed an unrelated, unfixed P1 on merge.
+        run: |
+          node scripts/lint-commit-refs.mjs \
+            "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"

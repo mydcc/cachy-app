@@ -24,21 +24,63 @@
 
 import { settingsState } from "./settings.svelte";
 
+/**
+ * Trend state per timeframe.
+ *
+ * "unknown" is NOT a market reading -- it means the trend could not be
+ * determined because the required indicator (EMA 200) had no value, which in
+ * practice means too few candles arrived. Keeping it distinct from "neutral"
+ * matters twice over:
+ *  - the analyst must not treat missing data as a result worth re-fetching
+ *    forever (BUG-0230: that loop never terminated), and
+ *  - the dashboard must not paint "no data" the same as a real signal.
+ */
+export type TrendState = "bullish" | "bearish" | "neutral" | "unknown";
+
+/** Whether every timeframe of an analysis produced a real reading. */
+export type AnalysisQuality = "complete" | "partial";
+
 export interface SymbolAnalysis {
     symbol: string;
     updatedAt: number;
     price: string;
     change24h: string;
-    trend4h: "bullish" | "bearish" | "neutral";
+    trend4h: TrendState;
     rsi1h: string;
     confluenceScore: number; // Score is abstract (0-100), safe as number
     condition: "overbought" | "oversold" | "neutral" | "trending";
     trends?: {
-        "15m": "bullish" | "bearish" | "neutral";
-        "1h": "bullish" | "bearish" | "neutral";
-        "4h": "bullish" | "bearish" | "neutral";
-        "1d": "bullish" | "bearish" | "neutral";
+        "15m": TrendState;
+        "1h": TrendState;
+        "4h": TrendState;
+        "1d": TrendState;
     };
+    /**
+     * "partial" when at least one timeframe came back "unknown". Drives the
+     * analyst's retry backoff and lets the UI mark the row as incomplete
+     * instead of showing a fabricated score.
+     */
+    quality?: AnalysisQuality;
+    /**
+     * Consecutive "partial" results for this symbol. Feeds the exponential
+     * backoff so a symbol that simply lacks history (newly listed token)
+     * stops being re-fetched every cycle. Reset to 0 on a complete result.
+     */
+    partialAttempts?: number;
+    /** Last failure reason, when `quality` is "partial" because of an error. */
+    lastError?: string;
+    /**
+     * Human-readable bias for `confluenceScore`, as produced by
+     * ConfluenceAnalyzer. The score alone is not interpretable -- 50 is
+     * neutral, not "half good" -- so the level is what the UI should lead with.
+     */
+    confluenceLevel?: "Strong Sell" | "Sell" | "Neutral" | "Buy" | "Strong Buy";
+    /**
+     * Signed reasons behind the score, e.g. `["+15 MA Trend Bullish",
+     * "-5 RSI Bearish"]`. Already computed by the analyzer; surfaced so the
+     * dashboard can explain a score instead of asserting one.
+     */
+    confluenceReasons?: string[];
 }
 
 class AnalysisManager {

@@ -29,6 +29,7 @@ export interface NewsItem {
   url: string;
   source: string;
   published_at: string;
+  description?: string;
   currencies?: { code: string; title: string }[];
   id?: string; // Hash für Deduplizierung
 }
@@ -45,6 +46,7 @@ const NewsItemSchema = z.object({
   url: z.string().url().or(z.string().startsWith("http")), // Strict but with fallback for internal formats
   source: z.string().min(1),
   published_at: z.string(),
+  description: z.string().optional(),
   currencies: z.array(z.object({ code: z.string(), title: z.string() })).optional(),
   id: z.string().optional(),
 });
@@ -488,7 +490,11 @@ export const newsService = {
             logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
             throw new Error("NO_API_KEY");
           }
-          logger.error("ai", `Sentiment API failed (${response.status}): ${errText}`);
+          if (response.status === 503 || errText.includes("503") || errText.includes("high demand")) {
+            logger.warn("ai", `Sentiment API temporary overload (${response.status}): ${errText.slice(0, 150)}`);
+          } else {
+            logger.error("ai", `Sentiment API failed (${response.status}): ${errText}`);
+          }
           throw new Error("apiErrors.generic");
         }
 
@@ -500,7 +506,11 @@ export const newsService = {
             logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
             throw new Error("NO_API_KEY");
           }
-          logger.error("ai", `Sentiment API returned error: ${data.error}`);
+          if (String(data.error).includes("503") || String(data.error).includes("high demand")) {
+            logger.warn("ai", `Sentiment API temporary overload: ${String(data.error).slice(0, 150)}`);
+          } else {
+            logger.error("ai", `Sentiment API returned error: ${data.error}`);
+          }
           throw new Error("apiErrors.generic");
         }
 
@@ -524,7 +534,7 @@ export const newsService = {
         if (msg.includes("NO_GEMINI_KEY") || msg.includes("NO_OPENAI_KEY") || msg.includes("NO_API_KEY")) {
           logger.warn("ai", "Sentiment analysis skipped: Missing API Key");
         } else {
-          logger.error("ai", "Sentiment Analysis Failed", e);
+          logger.warn("ai", `Sentiment Analysis unavailable: ${msg}`);
         }
         return {
           score: 0,

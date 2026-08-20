@@ -41,12 +41,12 @@ describe('Security Headers', () => {
 
     // Existing header
     expect(headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin-allow-popups');
-    expect(headers.get('Cross-Origin-Embedder-Policy')).toBe('credentialless');
+    expect(headers.get('Cross-Origin-Embedder-Policy')).toBeNull();
 
-    // Missing headers (these should fail initially)
+    // Security headers
     expect(headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-    expect(headers.get('Permissions-Policy')).toBe('camera=(), microphone=(), geolocation=()');
+    expect(headers.get('Permissions-Policy')).toBe('camera=(self "https://space.cachy.app"), microphone=(self "https://space.cachy.app"), geolocation=()');
   });
 });

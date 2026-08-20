@@ -74,6 +74,26 @@ HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
 MAX_BACKUPS=5
 
 # ---------------------------------------------------------------------------
+# CI artifact deployment  —  ./deploy.sh --ci   (optional)
+# ---------------------------------------------------------------------------
+# With --ci, deploy.sh skips the local compile and deploys the build/ artifact
+# that .github/workflows/deploy-build.yml published for this branch. It
+# downloads a fixed URL, so these defaults only need changing if the repo or
+# the per-branch release tags move:
+#
+#   https://github.com/<CI_REPO>/releases/download/<tag>/cachy-build.tar.gz
+#
+# deploy.sh falls back to these defaults when a key is absent, so existing
+# .deploy.conf files keep working without edits.
+
+# Owner/repo the artifact is published under (default: mydcc/cachy-app).
+CI_REPO="mydcc/cachy-app"
+
+# Per-branch release tag that carries the cachy-build.tar.gz asset.
+CI_ARTIFACT_TAG_STABLE="deploy-stable"
+CI_ARTIFACT_TAG_BETA="deploy-beta"
+
+# ---------------------------------------------------------------------------
 # Discord notifications (optional)
 # ---------------------------------------------------------------------------
 # deploy.sh sources scripts/discord-notify.sh if present. Without a webhook the

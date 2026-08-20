@@ -87,4 +87,35 @@ describe('GET /api/funding-rate', () => {
 
     expect(response.status).toBe(502);
   });
+
+  it('proxies the Bitunix get_funding_rate_history endpoint when symbol is specified', async () => {
+    const mockResponse = {
+      code: 0,
+      data: [
+        {
+          symbol: 'BTCUSDT',
+          markPrice: '66000',
+          fundingRate: '0.0001',
+          fundingTime: '1770710400000',
+        },
+      ],
+      msg: 'Success',
+    };
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify(mockResponse),
+    } as unknown as Response);
+
+    const url = new URL('http://localhost/api/funding-rate?provider=bitunix&symbol=BTCUSDT&limit=20');
+    const response = await GET({
+      url,
+      fetch: mockFetch,
+    } as unknown as Parameters<typeof GET>[0]);
+    const json = await response.json();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=BTCUSDT&limit=20',
+    );
+    expect(json).toEqual(mockResponse);
+  });
 });

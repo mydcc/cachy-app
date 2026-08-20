@@ -48,6 +48,7 @@
   import { ChartWindow } from "../../lib/windows/implementations/ChartWindow.svelte";
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
+  import FundingRatePopover from "./FundingRatePopover.svelte";
   import { burn } from "../../actions/burn";
 
   interface Props {
@@ -282,8 +283,10 @@
   // Watch for symbol or provider changes (Ticker & Price)
   $effect(() => {
     if (symbol) {
-      marketWatcher.register(symbol, "price");
-      marketWatcher.register(symbol, "ticker");
+      untrack(() => {
+        marketWatcher.register(symbol, "price");
+        marketWatcher.register(symbol, "ticker");
+      });
       return () => {
         marketWatcher.unregister(symbol, "price");
         marketWatcher.unregister(symbol, "ticker");
@@ -341,7 +344,7 @@
           atrMode: "auto" as "auto" | "manual",
         };
         if (currentPrice) {
-          newState.entryPrice = new Decimal(currentPrice).toNumber();
+          newState.entryPrice = new Decimal(currentPrice).toString();
         }
         return newState;
       });
@@ -709,30 +712,40 @@
         </div>
 
         {#if fundingRate}
-          <div
-            class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
+          <FundingRatePopover
+            {symbol}
+            currentFundingRate={fundingRate}
+            {countdownText}
+            fundingInterval={wsData?.fundingInterval ?? 8}
           >
-            <div class="flex flex-col">
-              <span class="text-[var(--text-secondary)]"
-                >{$_("marketOverview.fundingRate")}</span
+            {#snippet children()}
+              <div
+                class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs w-full hover:bg-[var(--bg-secondary)] rounded transition-colors px-1 cursor-pointer"
+                title={$_("marketOverview.fundingRateHistory")}
               >
-              <span
-                class="font-medium"
-                class:text-[var(--success-color)]={fundingRate.gt(0)}
-                class:text-[var(--danger-color)]={fundingRate.lt(0)}
-              >
-                {formatValue(fundingRate.times(100), 4)}%
-              </span>
-            </div>
-            <div class="flex flex-col text-right">
-              <span class="text-[var(--text-secondary)]"
-                >{$_("marketOverview.countdown")}</span
-              >
-              <span class="font-mono text-[var(--text-primary)]"
-                >{countdownText}</span
-              >
-            </div>
-          </div>
+                <div class="flex flex-col text-left">
+                  <span class="text-[var(--text-secondary)]"
+                    >{$_("marketOverview.fundingRate")}</span
+                  >
+                  <span
+                    class="font-medium"
+                    class:text-[var(--success-color)]={fundingRate.gt(0)}
+                    class:text-[var(--danger-color)]={fundingRate.lt(0)}
+                  >
+                    {formatValue(fundingRate.times(100), 4)}%
+                  </span>
+                </div>
+                <div class="flex flex-col text-right">
+                  <span class="text-[var(--text-secondary)]"
+                    >{$_("marketOverview.countdown")}</span
+                  >
+                  <span class="font-mono text-[var(--text-primary)]"
+                    >{countdownText}</span
+                  >
+                </div>
+              </div>
+            {/snippet}
+          </FundingRatePopover>
         {/if}
       {/if}
 
@@ -779,7 +792,7 @@
           </div>
 
           <div class="flex items-center gap-0.5">
-            {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
+            {#if CHANNEL_CONFIG[baseAsset] && settingsState.entitlement.isPro}
               {@const windowId = `channel-${baseAsset}`}
               {@const isOpen = windowManager.windows.some(
                 (w) => w.id === windowId,

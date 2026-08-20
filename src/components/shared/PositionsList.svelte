@@ -19,9 +19,9 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
-  import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
   import type { OMSPosition } from "../../services/omsTypes";
+  import { tpSlState } from "../../stores/tpsl.svelte";
 
   interface Props {
     positions?: OMSPosition[];
@@ -39,31 +39,6 @@
     onclose,
     ontpSl,
   }: Props = $props();
-
-
-  function handleMouseEnter(event: MouseEvent, pos: OMSPosition) {
-    const coords = getTooltipPosition(event);
-    uiState.showTooltip("position", pos, coords.x, coords.y);
-  }
-
-  function handleMouseLeave() {
-    uiState.hideTooltip();
-  }
-
-  function getTooltipPosition(event: MouseEvent) {
-    const tooltipWidth = 320;
-    const tooltipHeight = 250;
-    const padding = 10;
-    let x = event.clientX + padding;
-    let y = event.clientY + padding;
-
-    if (x + tooltipWidth > window.innerWidth)
-      x = event.clientX - tooltipWidth - padding;
-    if (y + tooltipHeight > window.innerHeight)
-      y = event.clientY - tooltipHeight - padding;
-
-    return { x: Math.max(padding, x), y: Math.max(padding, y) };
-  }
 
   // PnL Logic
   function getPnlDisplay(pos: OMSPosition, mode: "value" | "percent" | "bar") {
@@ -87,7 +62,9 @@
   }
 
   function handleClose(pos: OMSPosition) {
-    if (confirm($_("positionsList.confirmClose", { symbol: pos.symbol }))) {
+    // svelte-i18n takes interpolation under `values`; a bare object is ignored
+    // and the trader is asked to close a position for literal "{symbol}".
+    if (confirm($_("positionsList.confirmClose", { values: { symbol: pos.symbol } }))) {
       onclose?.(pos);
     }
   }
@@ -132,17 +109,11 @@
           {#if viewMode === "detailed"}
             <!-- MODE 1: DETAILED / COMPACT UNIFIED -->
             <div class="p-2 grid grid-cols-1 gap-1">
-              <!-- Header: Symbol | PnL -->
+              <!-- Header: Symbol + Side/Lev + MarginMode | PnL -->
               <div
                 class="flex justify-between items-center pb-1 border-b border-[var(--border-color)] border-opacity-30"
               >
-                <div
-                  class="flex items-center gap-2 cursor-help"
-                  role="group"
-                  aria-label={$_("dashboard.positionsAria.positionDetails")}
-                  onmouseenter={(e) => handleMouseEnter(e, pos)}
-                  onmouseleave={handleMouseLeave}
-                >
+                <div class="flex items-center gap-1.5">
                   <span class="font-bold text-sm text-[var(--text-primary)]"
                     >{pos.symbol}</span
                   >
@@ -155,6 +126,13 @@
                   >
                     {pos.leverage}x
                   </span>
+                  {#if pos.marginMode}
+                    <span
+                      class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-color)]"
+                    >
+                      {pos.marginMode}
+                    </span>
+                  {/if}
                 </div>
 
                 <!-- PnL Toggle -->
@@ -205,49 +183,119 @@
                 </div>
               </div>
 
-              <!-- Middle: Size @ Entry -> Mark -->
-              <div class="flex justify-between items-center text-xs py-1">
+              <!-- Row 1: Size & Notional Value | Entry -> Mark -->
+              <div class="grid grid-cols-2 gap-2 text-xs py-1">
                 <div class="flex flex-col">
                   <span class="text-[var(--text-secondary)] text-[10px]"
                     >{$_("positionsList.size")}</span
                   >
-                  <span class="font-mono">{formatDynamicDecimal(pos.amount)}</span>
+                  <span class="font-mono">
+                    {formatDynamicDecimal(pos.amount)}
+                    <!-- Quote-equivalent size. Base quantity alone does not
+                         answer "how much am I actually risking" at a glance,
+                         which is the question this panel exists for. Mark
+                         price when there is one; entry otherwise, matching
+                         how the account summary derives its total. -->
+                    <span class="text-[10px] text-[var(--text-tertiary)]"
+                      >≈ {formatDynamicDecimal(
+                        pos.amount.mul(pos.markPrice || pos.entryPrice),
+                      )}</span
+                    >
+                  </span>
                 </div>
-                <div
-                  class="flex items-center gap-1 text-[var(--text-tertiary)] text-[10px]"
-                >
-                  <span class="font-mono text-[var(--text-primary)]"
-                    >{formatDynamicDecimal(pos.entryPrice)}</span
+                <div class="flex flex-col items-end">
+                  <span class="text-[var(--text-secondary)] text-[10px]"
+                    >{$_("dashboard.orderHistory.details.entry")} → {$_("dashboard.orderHistory.details.mark")}</span
                   >
-                  <span>→</span>
-                  <span class="font-mono text-[var(--text-primary)]"
-                    >{pos.markPrice ? formatDynamicDecimal(pos.markPrice) : "?"}</span
-                  >
+                  <div class="flex items-center gap-1 text-[10px] font-mono">
+                    <span class="text-[var(--text-primary)]"
+                      >{formatDynamicDecimal(pos.entryPrice)}</span
+                    >
+                    <span class="text-[var(--text-tertiary)]">→</span>
+                    <span class="text-[var(--text-primary)]"
+                      >{pos.markPrice ? formatDynamicDecimal(pos.markPrice) : "?"}</span
+                    >
+                  </div>
                 </div>
               </div>
 
-              <!-- Margin | Margin Rate, Realized PnL -->
-              <div class="flex justify-between items-center text-[10px] text-[var(--text-tertiary)] py-1 border-t border-[var(--border-color)] border-opacity-30">
-                <span
-                  >{$_("positionsList.margin")}: <span class="font-mono text-[var(--text-secondary)]">{formatDynamicDecimal(pos.margin)}</span></span
-                >
-                {#if pos.marginRate}
-                  <span
-                    >{$_("positionsList.marginRate")}: <span class="font-mono text-[var(--text-secondary)]">{formatDynamicDecimal(pos.marginRate.mul(100))}%</span></span
-                  >
-                {/if}
-                {#if pos.realizedPnl}
-                  <span
-                    >{$_("positionsList.realizedPnl")}: <span
-                      class="font-mono"
-                      class:text-[var(--success-color)]={pos.realizedPnl.gt(0)}
-                      class:text-[var(--danger-color)]={pos.realizedPnl.lt(0)}
-                      class:text-[var(--text-secondary)]={pos.realizedPnl.isZero()}
-                      >{pos.realizedPnl.gt(0) ? "+" : ""}{formatDynamicDecimal(pos.realizedPnl)}</span
-                    ></span
-                  >
-                {/if}
+              <!-- Row 2: Margin | Liquidation Price -->
+              <div class="grid grid-cols-2 gap-2 text-[10px] py-1 border-t border-[var(--border-color)] border-opacity-30">
+                <div class="flex justify-between items-center pr-2 border-r border-[var(--border-color)] border-opacity-30">
+                  <span class="text-[var(--text-secondary)]">{$_("positionsList.margin")}:</span>
+                  <span class="font-mono text-[var(--text-primary)]">{formatDynamicDecimal(pos.margin)}</span>
+                </div>
+                <div class="flex justify-between items-center pl-1">
+                  <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.liq")}:</span>
+                  {#if pos.liquidationPrice && pos.liquidationPrice.gt(0)}
+                    <span class="font-mono text-[var(--warning-color)] font-medium">
+                      {formatDynamicDecimal(pos.liquidationPrice)}
+                    </span>
+                  {:else}
+                    <span class="font-mono text-[var(--text-tertiary)]">-</span>
+                  {/if}
+                </div>
               </div>
+
+              <!-- Row 3: Margin Rate & Realized PnL (if available) -->
+              {#if pos.marginRate || (pos.realizedPnl !== undefined && pos.realizedPnl !== null)}
+                <div class="grid grid-cols-2 gap-2 text-[10px] py-1 border-t border-[var(--border-color)] border-opacity-30">
+                  {#if pos.marginRate}
+                    <div class="flex justify-between items-center pr-2 border-r border-[var(--border-color)] border-opacity-30">
+                      <span class="text-[var(--text-secondary)]">{$_("positionsList.marginRate")}:</span>
+                      <span class="font-mono text-[var(--text-secondary)]">{formatDynamicDecimal(pos.marginRate.mul(100))}%</span>
+                    </div>
+                  {:else}
+                    <div></div>
+                  {/if}
+                  {#if pos.realizedPnl !== undefined && pos.realizedPnl !== null}
+                    <div class="flex justify-between items-center pl-1">
+                      <span class="text-[var(--text-secondary)]">{$_("positionsList.realizedPnl")}:</span>
+                      <span
+                        class="font-mono"
+                        class:text-[var(--success-color)]={pos.realizedPnl.gt(0)}
+                        class:text-[var(--danger-color)]={pos.realizedPnl.lt(0)}
+                        class:text-[var(--text-secondary)]={pos.realizedPnl.isZero()}
+                      >
+                        {pos.realizedPnl.gt(0) ? "+" : ""}{formatDynamicDecimal(pos.realizedPnl)}
+                      </span>
+                    </div>
+                  {:else}
+                    <div></div>
+                  {/if}
+                </div>
+              {/if}
+
+              <!-- Active TP/SL, from the shared plan cache. Absent when the
+                   position has none, and equally absent before the first
+                   fetch resolves: there is nothing to show in either case,
+                   so neither gets a row. -->
+              {#if tpSlState.hasPlansFor(pos.symbol)}
+                {@const plans = tpSlState.plansFor(pos.symbol)}
+                <div
+                  class="flex justify-between items-center text-[10px] py-1 border-t border-[var(--border-color)] border-opacity-30"
+                >
+                  <span class="text-[var(--text-tertiary)]"
+                    >{$_("positionsList.tpslActive")}</span
+                  >
+                  <span class="flex gap-2 font-mono">
+                    {#if plans.profit}
+                      <span class="text-[var(--success-color)]"
+                        >TP {formatDynamicDecimal(
+                          new Decimal(plans.profit.triggerPrice || 0),
+                        )}</span
+                      >
+                    {/if}
+                    {#if plans.loss}
+                      <span class="text-[var(--danger-color)]"
+                        >SL {formatDynamicDecimal(
+                          new Decimal(plans.loss.triggerPrice || 0),
+                        )}</span
+                      >
+                    {/if}
+                  </span>
+                </div>
+              {/if}
 
               <!-- Footer: Buttons -->
               <div class="flex gap-2 pt-1">
@@ -292,13 +340,7 @@
               </div>
 
               <!-- Symbol -->
-              <div
-                class="flex flex-col items-center px-2 cursor-help"
-                role="group"
-                aria-label={$_("dashboard.positionsAria.symbolDetails")}
-                onmouseenter={(e) => handleMouseEnter(e, pos)}
-                onmouseleave={handleMouseLeave}
-              >
+              <div class="flex flex-col items-center px-2">
                 <span class="font-bold text-xs">{pos.symbol}</span>
                 <span class="text-[9px] opacity-60"
                   >{pos.side.toUpperCase()}</span
@@ -333,5 +375,3 @@
     </div>
   {/if}
 </div>
-
-<!-- Global Tooltip handled in +layout.svelte -->

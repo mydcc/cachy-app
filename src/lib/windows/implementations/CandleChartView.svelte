@@ -305,7 +305,7 @@
     $effect(() => {
         if (!symbol || !timeframe) return;
         const channel = `kline_${timeframe}`;
-        marketWatcher.register(symbol, channel, "chart");
+        untrack(() => marketWatcher.register(symbol, channel, "chart"));
         return () => {
             marketWatcher.unregister(symbol, channel, "chart");
         };
@@ -317,9 +317,9 @@
 
         // Dependencies for reactivity
         const normalized = normalizeSymbol(symbol, "bitunix");
-        // Explicitly track the kline array reference to ensure reactivity
+        // Explicitly track the kline array reference and lastUpdated to ensure live tick reactivity
         const marketData = marketState.data[normalized];
-        // We need to access the property to register the dependency in Svelte 5 rune mode
+        const _lastUpdated = marketData?.lastUpdated;
         const klines = marketData?.klines?.[timeframe];
 
         const settings = indicatorState.ema;
@@ -394,11 +394,18 @@
                     try {
                         candleSeries.setData(unique);
 
+                        // Arm the fast path immediately after the series is
+                        // rendered. If any later slow-path step (indicator
+                        // computation, visibility) throws, live ticks must
+                        // keep flowing via candleSeries.update() instead of
+                        // permanently disarming the fast path and freezing the
+                        // chart after its initial render.
                         lastRenderedTime =
                             unique.length > 0
                                 ? unique[unique.length - 1].time
                                 : null;
                         lastRenderedCount = klines.length;
+                        isInitialLoad = false;
 
                         // Update Indicators if enabled
                         if (
@@ -460,10 +467,12 @@
                             ema2Series.applyOptions({ visible: false });
                             ema3Series.applyOptions({ visible: false });
                         }
-
-                        isInitialLoad = false;
                     } catch (e) {
                         console.error("[CandleChartView] Render error:", e);
+                        // Disarm so the next cycle retries the slow path
+                        // instead of silently skipping renders forever.
+                        lastRenderedTime = null;
+                        lastRenderedCount = 0;
                     }
                 }
             }
