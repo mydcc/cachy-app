@@ -822,7 +822,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0248",
     "title": "Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
