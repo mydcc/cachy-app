@@ -240,7 +240,7 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
     });
 
     it("keeps live updates flowing when the slow-path indicator step throws", async () => {
-        vi.mocked(JSIndicators.ema).mockImplementation((closes: number[]) => {
+        vi.mocked(JSIndicators.ema).mockImplementation((_closes: number[]) => {
             throw new Error("simulated indicator failure");
         });
 
