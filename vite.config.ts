@@ -7,8 +7,12 @@
  * (at your option) any later version.
  */
 
+import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { sveltekit } from "@sveltejs/kit/vite";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -46,16 +50,51 @@ const VITEST_EXCLUDE = [
 ];
 
 export default defineConfig({
-  plugins: [sveltekit(), tailwindcss()],
+  // Tests do not need the full SvelteKit plugin: it generates the route
+  // manifest and resolves hooks, which unit tests never touch, and its SSR
+  // machinery dominates Vitest's transform/import time. Under Vitest the
+  // lightweight `svelte()` plugin (which still compiles `.svelte` / `.svelte.ts`
+  // and reads `vitePreprocess` from svelte.config.js) is used instead, and the
+  // `$app/*` / `$env/*` virtual modules it normally provides are aliased to
+  // small stand-ins in `src/tests/helpers/`. Dev/build/check keep `sveltekit()`.
+  //
+  // One thing `sveltekit()` did for free was run `svelte-kit sync` on startup,
+  // generating `.svelte-kit/tsconfig.json`, which `tsconfig.json` extends.
+  // Without it, rolldown's resolver (used during dependency optimization) fails
+  // on a fresh checkout/CI with "Tsconfig not found" — so the test branch syncs
+  // once, only when the generated config is missing.
+  plugins: [
+    process.env.VITEST === "true"
+      ? [
+          {
+            name: "cachy-ensure-svelte-kit-sync",
+            config() {
+              if (!existsSync(".svelte-kit/tsconfig.json")) {
+                execSync("svelte-kit sync", { stdio: "inherit" });
+              }
+            },
+          },
+          svelte(),
+        ]
+      : sveltekit(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      "$app/environment": fileURLToPath(new URL("./src/tests/helpers/app-environment.ts", import.meta.url)),
+      "$env/dynamic/private": fileURLToPath(new URL("./src/tests/helpers/dynamic-private-env.ts", import.meta.url)),
+      $lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+    },
+  },
   test: {
-    // Most of the suite exercises browser-facing code (localStorage, window),
-    // but no default environment was configured, so those files failed to load
-    // under the implicit `node` default. Individual files can still opt out
-    // with `// @vitest-environment node`, and the 12 files that already declare
-    // jsdom or happy-dom keep their own choice — per-file directives win.
+    // The suite runs pure-logic tests by default. Spinning up a DOM per file
+    // was the dominant cost (environment + setup accounted for ~400s of CPU on
+    // a full run). Files that genuinely need a DOM opt in per-file with
+    // `// @vitest-environment happy-dom` (or jsdom); per-file directives win
+    // over this default. Pure-logic files already annotated `node` stay as-is.
     testTimeout: 20000,
     hookTimeout: 20000,
-    environment: "happy-dom",
+    environment: "node",
     setupFiles: ["./vitest.setup.ts"],
     pool: "threads",
     // Two projects, because component tests need one resolution rule the rest
@@ -65,6 +104,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: "unit",
+          env: { VITEST_BROWSER: "false" },
           exclude: [...VITEST_EXCLUDE, COMPONENT_TESTS],
         },
       },
@@ -79,6 +119,7 @@ export default defineConfig({
         resolve: { conditions: ["browser"] },
         test: {
           name: "components",
+          env: { VITEST_BROWSER: "true" },
           include: [COMPONENT_TESTS],
         },
       },

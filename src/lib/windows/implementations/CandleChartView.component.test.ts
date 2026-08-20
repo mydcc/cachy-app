@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -204,7 +205,11 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
         await settle();
         vi.clearAllMocks();
 
-        marketState.data["BTCUSDT"].lastUpdated = Date.now();
+        // `seedHistory` also used Date.now(); on fast runners both land in the
+        // same millisecond, so the value would not change and the effect could
+        // not re-run. Bump by one instead of re-reading the clock.
+        const stored = marketState.data["BTCUSDT"];
+        stored.lastUpdated = stored.lastUpdated + 1;
         await settle();
 
         expect(chart.candleSeries.update).toHaveBeenCalledTimes(1);
