@@ -14,3 +14,7 @@ Checking `pending[pending.length - 1].time === k.time` and replacing the last el
 ## Vitest Environment Overhead
 
 Configuring `environment: "happy-dom"` globally causes happy-dom window/DOM context instantiation overhead for all tests, including pure logic/math unit tests. Annotating pure-logic test files with `// @vitest-environment node` and using lazy polyfills for IndexedDB in `vitest.setup.ts` reduced Vitest environment setup duration from 102.65s to 89.80s across the test suite.
+
+## Vitest Pool Constraint
+
+`vite.config.ts` runs the suite on the `threads` pool, but worker threads reject `--expose-gc` (`ERR_WORKER_INVALID_EXEC_ARGV`). `vitest.perf.config.ts` therefore pins `pool: "forks"` — it must keep that override or the performance benchmarks fail to start.
