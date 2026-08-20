@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Decimal } from 'decimal.js';
 import { bitunixWs, type TradeData } from '../../src/services/bitunixWs';
 import { marketState } from '../../src/stores/market.svelte';
@@ -222,6 +222,13 @@ describe('BitunixWS Fast Path Fallback', () => {
             if (wsService.publicMessageTimer) clearTimeout(wsService.publicMessageTimer);
             wsService.publicMessageTimer = null;
             wsService.lastPublicSendTime = 0;
+        });
+
+        // Fake timers are only switched back at the end of each test body, so
+        // an assertion failure leaks them into the next test. Reset them after
+        // every test instead; beforeEach then clears timers with the real API.
+        afterEach(() => {
+            vi.useRealTimers();
         });
 
         it('should batch multiple subscribe calls in the same tick', async () => {
