@@ -1,0 +1,74 @@
+name: Deploy Build
+
+# Builds the production artifact in GitHub Actions and publishes it to a
+# per-branch moving release tag, so small servers can deploy without compiling
+# on the box itself (deploy.sh --ci). develop -> deploy-beta, main -> deploy-stable.
+#
+# The server then downloads the artifact from a fixed URL:
+#   https://github.com/<owner>/<repo>/releases/download/<tag>/cachy-build.tar.gz
+# and only swaps it in + restarts — no npm ci + build, which is what OOM-killed
+# the old 8 GB host builds.
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+# One in-flight build per branch; never cancel it mid-upload, or the moving
+# release tag could be left without its asset. A queued run overwrites after.
+concurrency:
+  group: deploy-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build artifact
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    permissions:
+      contents: write # create tags, releases and upload the build asset
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      # scripts/build_wasm.sh only rebuilds the WASM module when a Rust toolchain
+      # with the wasm32 target is present; otherwise it silently uses the
+      # committed binary. Installing it here keeps the CI artifact equivalent to
+      # what a server-side `npm run build` would have produced.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: technicals-wasm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package artifact
+        run: tar -czf cachy-build.tar.gz build
+
+      - name: Publish artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TAG="deploy-stable"
+          else
+            TAG="deploy-beta"
+          fi
+          # Force-recreate the moving tag + release; idempotent per build.
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" \
+            --target "${{ github.sha }}" \
+            --title "Deploy artifact ($TAG)" \
+            --notes "Automated build artifact for ${{ github.ref }} @ ${{ github.sha }}." \
+            cachy-build.tar.gz
