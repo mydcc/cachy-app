@@ -2,7 +2,7 @@
 id: BUG-0248
 title: Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap
 type: bug
-status: specced
+status: in-progress
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -42,10 +42,17 @@ Traders report that candlestick charts in Cachy stop updating after a short time
 
 ## Acceptance criteria
 
-- [ ] Live candle ticks for the currently forming candle update the chart in real-time without requiring timeframe switches or page reloads.
-- [ ] In-place updates to `marketState.data[symbol].klines` trigger the fast path `candleSeries.update()` on every flush.
-- [ ] Initial history load and timeframe switching continue to perform full series rendering cleanly.
-- [ ] Regression test proves that updating a candle in `marketState` triggers the chart series update.
+- [ ] Live candle ticks for the currently forming candle update the chart in real-time without requiring timeframe switches or page reloads. *(needs live confirmation after hard reload — covered by component tests below)*
+- [x] In-place updates to `marketState.data[symbol].klines` trigger the fast path `candleSeries.update()` on every flush. *(proven by `CandleChartView.component.test.ts`)*
+- [x] Initial history load and timeframe switching continue to perform full series rendering cleanly. *(proven by `CandleChartView.component.test.ts`)*
+- [x] Regression test proves that updating a candle in `marketState` triggers the chart series update.
+
+## Fix
+
+Branch `fix/BUG-0248-chart-fast-path-arm` (PR on top of #2096/#2100):
+
+1. **Fast-path arming hardened** (`CandleChartView.svelte`): `isInitialLoad = false`, `lastRenderedTime` and `lastRenderedCount` are now set immediately after `candleSeries.setData(unique)` succeeds, before the indicator step. Previously they were armed at the end of the `try` block, so any slow-path failure (e.g. EMA computation, visibility options) permanently disarmed the fast path — the chart rendered once and then froze, which matches the reported symptom. The `catch` block now also resets `lastRenderedTime`/`lastRenderedCount` so a failed render is retried on the next cycle.
+2. **Regression tests** (`CandleChartView.component.test.ts`, `marketState.helper.svelte.ts`): mount the real component against a real Svelte 5 `$state` store proxy and prove the fast path fires on in-place kline updates, on a bare `lastUpdated` bump (reactivity binding from #2096), on new candles, and stays armed even when the slow-path indicator step throws.
 
 ## Verification Strategy
 
