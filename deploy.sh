@@ -56,6 +56,9 @@ LOG_DIR="/var/log/cachy"
 BACKUP_DIR="/backups/cachy"
 MAX_BACKUPS=5
 HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
+CI_REPO="mydcc/cachy-app"
+CI_ARTIFACT_TAG_STABLE="deploy-stable"
+CI_ARTIFACT_TAG_BETA="deploy-beta"
 EOF
     fi
     echo "Please check .deploy.conf and run again."
@@ -257,10 +260,19 @@ health_check() {
 }
 
 # --- 5. Environment & Mode Selection ---
+# --beta selects the staging environment (dev.cachy.app / develop).
+# --ci skips the local compile and deploys the artifact that deploy-build.yml
+#   published for this branch — the fix for OOM-killed builds on small servers.
+# Anything else is ignored (kept from the original contract: a mistyped argument
+# defaults to the stable deployment, so read the banner).
 ENV_TYPE="stable"
-if [[ "$1" == "--beta" ]]; then
-    ENV_TYPE="beta"
-fi
+CI_MODE=0
+for arg in "$@"; do
+    case "$arg" in
+        --beta) ENV_TYPE="beta" ;;
+        --ci)   CI_MODE=1 ;;
+    esac
+done
 
 if [[ "$ENV_TYPE" == "stable" ]]; then
     ENVIRONMENT="$STABLE_ENVIRONMENT"
@@ -335,6 +347,11 @@ echo ""
 CURRENT_BRANCH=$(git branch --show-current)
 log "Target Environment: ${LIME}$ENVIRONMENT${NC}"
 log "Current Branch: ${YELLOW}$CURRENT_BRANCH${NC}"
+if [[ "$CI_MODE" == "1" ]]; then
+    log "Deployment Mode: ${LIME}CI artifact (build happens in GitHub Actions)${NC}"
+else
+    log "Deployment Mode: ${LIME}local build (npm ci + npm run build on this host)${NC}"
+fi
 
 # ... (rest of pre-flight)
 
@@ -386,7 +403,11 @@ log "${CYAN}[BACKUP]${NC} Securing current state..."
 create_backup "$ENV_TYPE"
 
 # 3. Atomic Build
-log "${CYAN}[BUILD]${NC} Building in shadow directory (Atomic)..."
+if [[ "$CI_MODE" == "1" ]]; then
+    log "${CYAN}[BUILD]${NC} Fetching CI build artifact (no local compile)..."
+else
+    log "${CYAN}[BUILD]${NC} Building in shadow directory (Atomic)..."
+fi
 notify_build_start 2>/dev/null || true
 BUILD_START_TIME=$(date +%s)
 WORK_DIR_TMP="$SCRIPT_DIR/.deploy_work"
@@ -400,22 +421,72 @@ ESTIMATE=60
 
 rm -rf "$WORK_DIR_TMP"
 mkdir -p "$WORK_DIR_TMP"
-rsync -aq --exclude '.deploy_work' --exclude 'node_modules' --exclude 'build' --exclude '.git' ./ "$WORK_DIR_TMP/"
 
-# Run build in background and show eater
-(cd "$WORK_DIR_TMP" && npm ci --legacy-peer-deps && npm run build) > "$BUILD_LOG" 2>&1 &
-BUILD_PID=$!
-show_cachy_eater $BUILD_PID $ESTIMATE
+if [[ "$CI_MODE" == "1" ]]; then
+    # --ci mode: the compile already happened in GitHub Actions
+    # (.github/workflows/deploy-build.yml). Download the packaged build/ from
+    # the per-branch moving release tag instead of compiling on this host —
+    # this is what avoids OOM-killed builds on small servers. The URL is fixed,
+    # so the server does not need to know the exact commit.
+    if [[ "$ENV_TYPE" == "stable" ]]; then
+        CI_ARTIFACT_TAG="${CI_ARTIFACT_TAG_STABLE:-deploy-stable}"
+    else
+        CI_ARTIFACT_TAG="${CI_ARTIFACT_TAG_BETA:-deploy-beta}"
+    fi
+    CI_REPO="${CI_REPO:-mydcc/cachy-app}"
+    CI_ARTIFACT_URL="https://github.com/${CI_REPO}/releases/download/${CI_ARTIFACT_TAG}/cachy-build.tar.gz"
+    log "CI artifact: ${LIME}$CI_ARTIFACT_URL${NC}"
 
-if ! wait $BUILD_PID; then
-    notify_build_failure "Build process failed" 2>/dev/null || true
-    echo -e "${RED}❌ BUILD FAILED!${NC}"
-    echo -e "${YELLOW}--- Last 15 lines of build log ---${NC}"
-    tail -n 15 "$BUILD_LOG"
-    echo -e "${YELLOW}----------------------------------${NC}"
-    log "Full build log available at: $BUILD_LOG"
-    rm -rf "$WORK_DIR_TMP"
-    error_exit "Build failed. Production was not affected."
+    # Download + extract the artifact, then refresh production dependencies.
+    # `npm ci --omit=dev` is cheap on memory (unlike a full build) and keeps
+    # node_modules in sync with the lockfile. Runs at the project root, where
+    # node_modules lives — the extracted build/ lands in $WORK_DIR_TMP.
+    (
+        set -e
+        echo "Downloading $CI_ARTIFACT_URL ..."
+        curl -fL --retry 3 --connect-timeout 20 --max-time 600 \
+            -o "$WORK_DIR_TMP/cachy-build.tar.gz" "$CI_ARTIFACT_URL"
+        echo "Extracting artifact ..."
+        tar -xzf "$WORK_DIR_TMP/cachy-build.tar.gz" -C "$WORK_DIR_TMP"
+        echo "Refreshing production dependencies (npm ci --omit=dev) ..."
+        npm ci --omit=dev --legacy-peer-deps
+        echo "Done."
+    ) > "$BUILD_LOG" 2>&1 &
+    BUILD_PID=$!
+    show_cachy_eater $BUILD_PID $ESTIMATE
+
+    if ! wait $BUILD_PID; then
+        notify_build_failure "CI artifact download/fetch failed" 2>/dev/null || true
+        echo -e "${RED}❌ BUILD FAILED!${NC}"
+        echo -e "${YELLOW}--- Last 15 lines of build log ---${NC}"
+        tail -n 15 "$BUILD_LOG"
+        echo -e "${YELLOW}----------------------------------${NC}"
+        log "Full build log available at: $BUILD_LOG"
+        log "Tip: make sure the Deploy Build workflow ran for the pushed commit"
+        log "    and published the '$CI_ARTIFACT_TAG' release asset."
+        rm -rf "$WORK_DIR_TMP"
+        error_exit "Build failed. Production was not affected."
+    fi
+else
+    # Local build path (unchanged): compile in a shadow copy so a failure never
+    # touches the live deployment.
+    rsync -aq --exclude '.deploy_work' --exclude 'node_modules' --exclude 'build' --exclude '.git' ./ "$WORK_DIR_TMP/"
+
+    # Run build in background and show eater
+    (cd "$WORK_DIR_TMP" && npm ci --legacy-peer-deps && npm run build) > "$BUILD_LOG" 2>&1 &
+    BUILD_PID=$!
+    show_cachy_eater $BUILD_PID $ESTIMATE
+
+    if ! wait $BUILD_PID; then
+        notify_build_failure "Build process failed" 2>/dev/null || true
+        echo -e "${RED}❌ BUILD FAILED!${NC}"
+        echo -e "${YELLOW}--- Last 15 lines of build log ---${NC}"
+        tail -n 15 "$BUILD_LOG"
+        echo -e "${YELLOW}----------------------------------${NC}"
+        log "Full build log available at: $BUILD_LOG"
+        rm -rf "$WORK_DIR_TMP"
+        error_exit "Build failed. Production was not affected."
+    fi
 fi
 
 if [[ ! -f "$WORK_DIR_TMP/build/index.js" ]]; then
