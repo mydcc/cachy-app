@@ -65,8 +65,23 @@ jobs:
           else
             TAG="deploy-beta"
           fi
+          PREV="${TAG}-previous"
+          # Preserve the current artifact as <tag>-previous before overwriting,
+          # so a failing deploy can roll back to the last known-good build
+          # without a rebuild. Idempotent: only the newest previous is kept.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            rm -rf .deploy_prev && mkdir -p .deploy_prev
+            gh release download "$TAG" \
+              --pattern "cachy-build.tar.gz" \
+              --dir .deploy_prev --clobber
+            gh release delete "$PREV" --yes --cleanup-tag >/dev/null 2>&1 || true
+            gh release create "$PREV" \
+              --title "Deploy artifact ($PREV)" \
+              --notes "Previous $TAG artifact, preserved before the build at ${{ github.sha }}." \
+              .deploy_prev/cachy-build.tar.gz
+          fi
           # Force-recreate the moving tag + release; idempotent per build.
-          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release delete "$TAG" --yes --cleanup-tag >/dev/null 2>&1 || true
           gh release create "$TAG" \
             --target "${{ github.sha }}" \
             --title "Deploy artifact ($TAG)" \
