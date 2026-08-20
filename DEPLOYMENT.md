@@ -171,6 +171,22 @@ with `<CI_REPO>` and the tags coming from `.deploy.conf` (defaults
 edits). If the workflow has not run yet for the pushed commit, the download
 fails fast and the deploy reports a build failure.
 
+**Rolling back a bad CI build.** Before the moving tag is overwritten, the
+workflow preserves the current artifact as `<tag>-previous`
+(`deploy-beta-previous` / `deploy-stable-previous`). To redeploy the last
+known-good build after a bad deploy, point the config at the preserved tag and
+re-run the same deploy — no rebuild needed:
+
+```bash
+# .deploy.conf
+CI_ARTIFACT_TAG_BETA="deploy-beta-previous"
+
+./deploy.sh --beta --ci
+```
+
+The preserved tag is replaced on the next successful build, so only the most
+recent previous artifact is kept.
+
 > ⚠️ `--ci` still runs `git pull` first and refreshes `node_modules` with
 > `npm ci --omit=dev` at the project root. After a failed deploy, a subsequent
 > local build (`./deploy.sh` without `--ci`) re-installs the dev dependencies
