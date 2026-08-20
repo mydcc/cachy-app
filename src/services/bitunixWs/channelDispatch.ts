@@ -23,6 +23,7 @@ import { omsService } from "../omsService";
 import { mdaService } from "../mdaService";
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import { isAllowedChannel } from "../../types/bitunixValidation";
+import { safeTfToMs } from "../../utils/timeUtils";
 import { mapToOMSPosition, mapToOMSOrder } from "../mappers";
 import { BitunixPriceDataSchema } from "../../types/bitunixValidation";
 import { logger } from "../logger";
@@ -34,6 +35,27 @@ export interface DispatchContext {
   shouldThrottle: (key: string) => boolean;
   tradeListeners: Map<string, Set<(trade: import('../bitunixWs').TradeData) => void>>;
   syntheticSubs: Map<string, number>;
+}
+
+/**
+ * Bitunix WS kline pushes do not carry a timestamp inside `data` — the candle
+ * open time has to be derived from the message-level `ts` aligned to the
+ * timeframe interval (otherwise normalizeKlines produces time: NaN, the kline
+ * is dropped by the chart's NaN-time filter, and only REST polling moves the
+ * chart — BUG-0248).
+ */
+function withKlineTime(data: unknown, ts: number | undefined, timeframe: string): Record<string, unknown> {
+  const raw = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
+  if (raw.time !== undefined || raw.t !== undefined || raw.ts !== undefined || raw.timestamp !== undefined) {
+    return raw;
+  }
+  if (typeof ts === "number" && Number.isFinite(ts) && ts > 0) {
+    const intervalMs = safeTfToMs(timeframe);
+    if (intervalMs > 0) {
+      raw.time = Math.floor(ts / intervalMs) * intervalMs;
+    }
+  }
+  return raw;
 }
 
 export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) {
@@ -75,8 +97,8 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
     return;
   }
   if (parsed.type === "fast_kline") {
-    const { symbol, timeframe, data } = parsed;
-    const kline = mdaService.normalizeKlines([data], 'bitunix');
+    const { symbol, timeframe, data, ts } = parsed;
+    const kline = mdaService.normalizeKlines([withKlineTime(data, ts, timeframe)], 'bitunix');
     if (kline) marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
     return;
   }
@@ -142,7 +164,7 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
           timeframe = revMap[bitunixTf] || bitunixTf;
         }
       }
-      const kline = mdaService.normalizeKlines([(validatedMessage as Record<string, unknown>).data], 'bitunix');
+      const kline = mdaService.normalizeKlines([withKlineTime((validatedMessage as Record<string, unknown>).data, typeof (validatedMessage as Record<string, unknown>).ts === "number" ? (validatedMessage as Record<string, unknown>).ts as number : undefined, timeframe)], 'bitunix');
       if (kline) marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
     } else if (validatedChannel === "trade") {
       const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";
