@@ -24,7 +24,7 @@
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:unit": "vitest run --project unit",
+    "test:unit": "vitest run --project=unit",
     "test:changed": "vitest --changed",
     "test:e2e": "playwright test tests/e2e",
     "test:perf": "vitest run --config vitest.perf.config.ts",

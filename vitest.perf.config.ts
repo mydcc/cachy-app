@@ -24,10 +24,6 @@ const config = mergeConfig(
   baseConfig,
   defineConfig({
     test: {
-      // The main suite runs on the `threads` pool (see vite.config.ts), but
-      // worker threads reject `--expose-gc` (ERR_WORKER_INVALID_EXEC_ARGV) —
-      // it is a process-level V8 flag only the forks pool accepts. Force forks
-      // here so the heap-growth benchmark can still force collections.
       pool: "forks",
       include: [
         "src/tests/performance/engine_benchmark.test.ts",

@@ -14,18 +14,12 @@ if (typeof window !== 'undefined' && (!window.crypto || !window.crypto.subtle)) 
   });
 }
 
-// The IndexedDB factory is expensive to instantiate, so it is created lazily —
-// pure-logic tests running under the node environment never touch it. The
-// classes themselves are cheap references and must stay available immediately:
-// `fake-indexeddb/auto` used to register them all eagerly, and code that reads
-// `IDBKeyRange` directly (e.g. storageService) would hit a ReferenceError in a
-// node test that happens to use it before the getter has ever run.
-globalThis.IDBKeyRange = IDBKeyRange;
-
+// Lazy polyfill indexedDB when accessed
 if (typeof globalThis.indexedDB === 'undefined') {
   Object.defineProperty(globalThis, 'indexedDB', {
     get() {
       const idb = new IDBFactory();
+      globalThis.IDBKeyRange = IDBKeyRange;
       Object.defineProperty(globalThis, 'indexedDB', {
         value: idb,
         writable: true,
