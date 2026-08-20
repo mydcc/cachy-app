@@ -14,9 +14,17 @@ jobs:
   # Write permissions let OpenCode create branches, commit and open pull
   # requests. The action authenticates via the installed OpenCode GitHub App
   # (OIDC); the write scopes also cover the GITHUB_TOKEN fallback path.
+  #
+  # Only users with repo access may trigger it. On a public repo anyone can
+  # comment on issues/PRs, so without an author filter an external user could
+  # drive this write-capable agent. author_association is OWNER/MEMBER/
+  # COLLABORATOR for users with access and CONTRIBUTOR/NONE for everyone else.
+  # For a stricter per-user allowlist, replace the association check with:
+  #   contains(fromJSON('["alice","bob"]'), github.event.comment.user.login)
   opencode:
     if: |
       github.event_name != 'pull_request' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
       (contains(github.event.comment.body, ' /oc') ||
        startsWith(github.event.comment.body, '/oc') ||
        contains(github.event.comment.body, ' /opencode') ||
