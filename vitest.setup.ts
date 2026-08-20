@@ -1,4 +1,4 @@
-import 'fake-indexeddb/auto';
+import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 
@@ -11,6 +11,24 @@ if (typeof window !== 'undefined' && (!window.crypto || !window.crypto.subtle)) 
     value: webcrypto,
     writable: true,
     configurable: true
+  });
+}
+
+// Lazy polyfill indexedDB when accessed
+if (typeof globalThis.indexedDB === 'undefined') {
+  Object.defineProperty(globalThis, 'indexedDB', {
+    get() {
+      const idb = new IDBFactory();
+      globalThis.IDBKeyRange = IDBKeyRange;
+      Object.defineProperty(globalThis, 'indexedDB', {
+        value: idb,
+        writable: true,
+        configurable: true
+      });
+      return idb;
+    },
+    configurable: true,
+    enumerable: true
   });
 }
 
