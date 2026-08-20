@@ -15,16 +15,15 @@ jobs:
   # requests. The action authenticates via the installed OpenCode GitHub App
   # (OIDC); the write scopes also cover the GITHUB_TOKEN fallback path.
   #
-  # Only users with repo access may trigger it. On a public repo anyone can
-  # comment on issues/PRs, so without an author filter an external user could
-  # drive this write-capable agent. author_association is OWNER/MEMBER/
-  # COLLABORATOR for users with access and CONTRIBUTOR/NONE for everyone else.
-  # For a stricter per-user allowlist, replace the association check with:
-  #   contains(fromJSON('["alice","bob"]'), github.event.comment.user.login)
+  # Only the repo owner (mydcc) may trigger it. On a public repo anyone can
+  # comment on issues/PRs, so without an author allowlist an external user could
+  # drive this write-capable agent. Extend the list if more users should get
+  # interactive access:
+  #   contains(fromJSON('["mydcc","someone-else"]'), github.event.comment.user.login)
   opencode:
     if: |
       github.event_name != 'pull_request' &&
-      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+      contains(fromJSON('["mydcc"]'), github.event.comment.user.login) &&
       (contains(github.event.comment.body, ' /oc') ||
        startsWith(github.event.comment.body, '/oc') ||
        contains(github.event.comment.body, ' /opencode') ||
@@ -53,10 +52,16 @@ jobs:
   # (AGENTS.md -> Code Review Standard). Read-only towards the codebase: it only
   # posts a comment when it has findings, marked "Code Review for <sha>" so
   # re-runs are recognizable.
+  #
+  # Only PRs from branches in this repo are reviewed. Fork PRs are skipped:
+  # GitHub does not pass secrets to fork-triggered workflows, so the opencode
+  # action would fail without OPENCODE_API_KEY, and external PRs should not
+  # drive the agent.
   review:
     if: |
       github.event_name == 'pull_request' &&
-      github.event.pull_request.draft != true
+      github.event.pull_request.draft != true &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       id-token: write
