@@ -50,9 +50,26 @@ The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts
 
 After every change: run `npm run check` and affected tests. A task is considered completed ONLY when type checks and tests pass — do not claim completion beforehand.
 
-## Tools & MCP
+## Tools & MCP — Mandatory for All Agents
 
-When an MCP (Model Context Protocol) or specialized tool is installed and made available to this project, agents should prefer it for tasks it's designed to handle. Installation makes the tool available, but agent-specific instructions in tool-specific config files (e.g., `CLAUDE.md` for Claude Code) will direct consistent usage. Each agent type has its own config file documenting preferred tools for this repository.
+Two MCP servers are configured for this project. **Both are required, not optional.** Every agent must use them before falling back to generic file-reading or grep.
+
+### Gortex
+Use for all code navigation, exploration, impact analysis, and graph queries.
+- **Session start:** call `gortex__onboarding` (or `/gortex-guide`) to orient to the indexed codebase.
+- Use `gortex__explore`, `gortex__search`, `gortex__impact`, `gortex__trace`, `gortex__safe-edit` for any non-trivial task.
+- Available as slash commands: `/gortex-explore`, `/gortex-debug`, `/gortex-impact`, `/gortex-refactor`, `/gortex-safe-edit`, `/gortex-pr-review`, `/gortex-add-test`, etc.
+
+### jCodeMunch
+Use for code analysis, action routing, and semantic understanding.
+- **Session start:** `order { "action": "resolve_repo", "args": { "path": "." } }` — confirm the project is indexed.
+- `route { "query": "your task in a sentence" }` — picks the right action automatically.
+- `menu { "query": "…" }` — discover available actions.
+- `jcodemunch_guide` — full catalogue and rules.
+- **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search when jCodeMunch can answer the question.
+
+Agent-specific config files (`CLAUDE.md`, `OPENCODE.md`) contain tool-specific startup sequences for their respective runtimes.
+
 
 ## Commits & Branches
 
@@ -101,13 +118,22 @@ An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-gr
 
 ## Git Cleanliness and Parallel Agent Workspaces
 
-Since multiple agents (e.g., Claude, Antigravity, Cursor) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own Git worktree (or Antigravity subagent with `Workspace: "share"`) — never directly in the shared checkout — before starting any task, not only when agents happen to run in parallel:
+Since multiple agents (e.g., Claude, Antigravity, Cursor, OpenCode) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own Git worktree (or Antigravity subagent with `Workspace: "share"`) — never directly in the shared checkout — before starting any task, not only when agents happen to run in parallel:
+
+**Required sequence before any coding task:**
+```bash
+git fetch origin develop                              # get latest
+git worktree add .worktrees/<branch> -b <branch> origin/develop
+# then work exclusively in .worktrees/<branch>/
+```
+
 1. Create a dedicated worktree for the task (`git worktree add ...`, or the tool's built-in equivalent, e.g. Claude Code's `WorktreeCreate`).
 2. Ensure that worktree's working directory is clean (`git status`).
 3. Branch from `develop` inside the worktree.
 4. (Optional) Fetch latest changes (`git pull`).
 
-This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. code-indexing MCP servers that reindex on file edits) reacting to files it didn't touch. Remove the worktree (`git worktree remove`) once its branch is merged or abandoned.
+This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. Gortex/jCodeMunch reindex-on-edit hooks) reacting to files it didn't touch. Remove the worktree (`git worktree remove .worktrees/<branch>`) once its branch is merged or abandoned.
+
 
 ## Scope Guidance for Autonomous/Asynchronous Agents (e.g., Jules)
 
