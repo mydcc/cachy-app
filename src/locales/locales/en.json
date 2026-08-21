@@ -5,7 +5,13 @@
     "opacity": "Opacity",
     "glass": "Glass",
     "burn": "Burn",
-    "feedDuck": "Feed Duck"
+    "feedDuck": "Feed Duck",
+    "aria": {
+      "zoomOut": "Zoom Out",
+      "zoomIn": "Zoom In",
+      "decreaseFont": "Decrease Font Size",
+      "increaseFont": "Increase Font Size"
+    }
   },
   "app": {
     "title": "Cachy",
