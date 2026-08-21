@@ -48,7 +48,7 @@
     function clearAppCache() {
         localStorage.removeItem("cachy_news_cache");
         localStorage.removeItem("cachy_market_cache"); // Hypothetical
-        toastService.success($_("settings.system.cacheCleared") || "Cache cleared.");
+        toastService.success($_("settings.system.cacheCleared"));
     }
 
     function reloadApp() {
@@ -302,7 +302,7 @@
                             type="button"
                             onclick={() => {
                                 triggerAutoBackup(0);
-                                toastService.success($_("settings.system.snapshotCreated") || "Safety snapshot created.");
+                                toastService.success($_("settings.system.snapshotCreated"));
                             }}
                             class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] transition-colors self-start sm:self-center"
                         >

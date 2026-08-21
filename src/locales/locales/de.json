@@ -1355,7 +1355,7 @@
       "fileTargetWriteFailed": "Letzte Schreibung fehlgeschlagen.",
       "fileTargetConfigured": "Datei-Ziel konfiguriert.",
       "fileTargetPickFailed": "Datei konnte nicht ausgewählt werden.",
-      "fileTargetReconnected": "Erneut verbunden. Snapshot wird geschrieben.",
+      "fileTargetReconnected": "Wiederverbunden. Snapshot wird geschrieben.",
       "fileTargetReconnectFailed": "Berechtigung wurde nicht erteilt.",
       "backup": "Backup erstellen",
       "backupDesc": "Sichere deine Einstellungen & Daten als Datei.",
