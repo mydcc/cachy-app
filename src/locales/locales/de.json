@@ -5,7 +5,13 @@
     "opacity": "Deckkraft",
     "glass": "Glas",
     "burn": "Verbrennen",
-    "feedDuck": "Ente füttern"
+    "feedDuck": "Ente füttern",
+    "aria": {
+      "zoomOut": "Verkleinern",
+      "zoomIn": "Vergrößern",
+      "decreaseFont": "Schriftgröße verkleinern",
+      "increaseFont": "Schriftgröße vergrößern"
+    }
   },
   "app": {
     "title": "Cachy",
