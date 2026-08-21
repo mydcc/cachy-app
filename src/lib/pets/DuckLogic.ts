@@ -152,8 +152,8 @@ export class DuckLogic {
             for (const id of newlyUnlocked) {
                 const ach = DUCK_ACHIEVEMENTS.find((a) => a.id === id);
                 if (ach) {
-                    const name = get(_)(ach.nameKey as TranslationKey) || ach.id;
-                    const desc = get(_)(ach.descriptionKey as TranslationKey) || "";
+                    const name = get(_)(ach.nameKey as TranslationKey);
+                    const desc = get(_)(ach.descriptionKey as TranslationKey);
                     toastService.success(`🏆 ${name}: ${desc}`);
                 }
             }
@@ -187,7 +187,7 @@ export class DuckLogic {
             case "feed": {
                 if (this.fullness >= 100) {
                     this.transitionTo(DuckState.ANNOYED, 2.5);
-                    const msg = get(_)(("duck.full") as TranslationKey) || "Quack! Die Ente ist pappsatt und braucht eine Pause.";
+                    const msg = get(_)(("duck.full") as TranslationKey);
                     toastService.warning(msg);
                     return;
                 }
@@ -246,7 +246,7 @@ export class DuckLogic {
                 this.recentPetTimestamps.push(now);
                 if (this.recentPetTimestamps.length >= 5) {
                     this.transitionTo(DuckState.ANNOYED, 2.5);
-                    const msg = get(_)(("duck.annoyed") as TranslationKey) || "Quack! Zu viel Geklicke, lass mich kurz in Ruhe!";
+                    const msg = get(_)(("duck.annoyed") as TranslationKey);
                     toastService.warning(msg);
                 } else {
                     this.transitionTo(DuckState.PETTING, 1.5);
