@@ -23,7 +23,8 @@ import { omsService } from "../omsService";
 import { mdaService } from "../mdaService";
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import { isAllowedChannel } from "../../types/bitunixValidation";
-import { safeTfToMs } from "../../utils/timeUtils";
+import { safeTfToMs, getOptimalTimeframe } from "../../utils/timeUtils";
+import { aggregateIntoSyntheticBucket, type SyntheticCandle } from "../../utils/syntheticKlines";
 import { mapToOMSPosition, mapToOMSOrder } from "../mappers";
 import { BitunixPriceDataSchema } from "../../types/bitunixValidation";
 import { logger } from "../logger";
@@ -56,6 +57,43 @@ function withKlineTime(data: unknown, ts: number | undefined, timeframe: string)
     }
   }
   return raw;
+}
+
+// Native intervals Bitunix streams over WebSocket. Synthetic timeframes
+// (2m, 3m, 9m, ...) are derived from these by bitunixWs.resolveTimeframe —
+// the same list must be used here to fan pushes back out to them.
+const BITUNIX_NATIVE_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"];
+
+/**
+ * A market_kline_* push only updates its native timeframe, but charts may be
+ * listening on synthetic timeframes derived from that base (3m, 9m, ... are
+ * subscribed via the base feed in bitunixWs.subscribe and tracked in
+ * context.syntheticSubs). Fan the normalized base candle out to every active
+ * synthetic subscription of this symbol whose base matches, so those charts
+ * receive live aggregated candles too.
+ */
+function fanOutToSyntheticSubscribers(
+  context: DispatchContext,
+  symbol: string,
+  baseTimeframe: string,
+  kline: SyntheticCandle,
+): void {
+  if (context.syntheticSubs.size === 0) return;
+
+  for (const [key, refs] of context.syntheticSubs) {
+    if (!refs || refs <= 0) continue;
+    const sep = key.lastIndexOf(":");
+    if (sep <= 0) continue;
+    const subSymbol = key.slice(0, sep);
+    const tf = key.slice(sep + 1);
+    if (subSymbol !== symbol || !tf) continue;
+
+    const resolved = getOptimalTimeframe(tf, BITUNIX_NATIVE_TIMEFRAMES);
+    if (!resolved.isSynthetic || resolved.base !== baseTimeframe) continue;
+
+    const merged = aggregateIntoSyntheticBucket(symbol, tf, kline);
+    if (merged) marketState.updateSymbolKlines(symbol, tf, [merged], 'ws');
+  }
 }
 
 export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) {
@@ -99,7 +137,10 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
   if (parsed.type === "fast_kline") {
     const { symbol, timeframe, data, ts } = parsed;
     const kline = mdaService.normalizeKlines([withKlineTime(data, ts, timeframe)], 'bitunix');
-    if (kline) marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
+    if (kline && kline.length > 0) {
+      marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
+      fanOutToSyntheticSubscribers(context, symbol, timeframe, kline[kline.length - 1]);
+    }
     return;
   }
   if (parsed.type === "validated") {
@@ -165,7 +206,14 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
         }
       }
       const kline = mdaService.normalizeKlines([withKlineTime((validatedMessage as Record<string, unknown>).data, typeof (validatedMessage as Record<string, unknown>).ts === "number" ? (validatedMessage as Record<string, unknown>).ts as number : undefined, timeframe)], 'bitunix');
-      if (kline) marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
+      if (kline && kline.length > 0) {
+        marketState.updateSymbolKlines(symbol, timeframe, kline, 'ws');
+        // Only market-price klines feed synthetic charts; mark_kline_1day is
+        // a mark-price stream with no synthetic derivatives.
+        if (validatedChannel?.startsWith("market_kline_")) {
+          fanOutToSyntheticSubscribers(context, symbol, timeframe, kline[kline.length - 1]);
+        }
+      }
     } else if (validatedChannel === "trade") {
       const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";
       const symbol = normalizeSymbol(rawSymbol, "bitunix");
