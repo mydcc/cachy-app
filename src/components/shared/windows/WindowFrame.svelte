@@ -499,7 +499,9 @@
                     <button
                         class="tool-btn"
                         onclick={() => win.zoomOut()}
-                        ondblclick={(e) => e.stopPropagation()}>－</button
+                        ondblclick={(e) => e.stopPropagation()}
+                        title={$_("windows.aria.zoomOut")}
+                        aria-label={$_("windows.aria.zoomOut")}>－</button
                     >
                     <span class="zoom-text"
                         >{Math.round(win.zoomLevel * 100)}%</span
@@ -507,7 +509,9 @@
                     <button
                         class="tool-btn"
                         onclick={() => win.zoomIn()}
-                        ondblclick={(e) => e.stopPropagation()}>＋</button
+                        ondblclick={(e) => e.stopPropagation()}
+                        title={$_("windows.aria.zoomIn")}
+                        aria-label={$_("windows.aria.zoomIn")}>＋</button
                     >
                 </div>
             {/if}
@@ -589,12 +593,16 @@
                     <button
                         class="tool-btn"
                         onclick={() => win.setFontSize(win.fontSize - 1)}
-                        ondblclick={(e) => e.stopPropagation()}>A-</button
+                        ondblclick={(e) => e.stopPropagation()}
+                        title={$_("windows.aria.decreaseFont")}
+                        aria-label={$_("windows.aria.decreaseFont")}>A-</button
                     >
                     <button
                         class="tool-btn"
                         onclick={() => win.setFontSize(win.fontSize + 1)}
-                        ondblclick={(e) => e.stopPropagation()}>A+</button
+                        ondblclick={(e) => e.stopPropagation()}
+                        title={$_("windows.aria.increaseFont")}
+                        aria-label={$_("windows.aria.increaseFont")}>A+</button
                     >
                 </div>
             {/if}

@@ -5,7 +5,13 @@
     "opacity": "Deckkraft",
     "glass": "Glas",
     "burn": "Verbrennen",
-    "feedDuck": "Ente füttern"
+    "feedDuck": "Ente füttern",
+    "aria": {
+      "zoomOut": "Verkleinern",
+      "zoomIn": "Vergrößern",
+      "decreaseFont": "Schriftgröße verkleinern",
+      "increaseFont": "Schriftgröße vergrößern"
+    }
   },
   "app": {
     "title": "Cachy",
@@ -1499,6 +1505,9 @@
       "showTechnicalAnalysis": "Technische Analyse-Panel anzeigen",
       "historyLength": "Historienlänge (Kerzen)",
       "moreHistoryDesc": "Mehr Historie = langsameres Laden. (Max: 2000)",
+      "selectPeriod": "Zeitraum auswählen",
+      "chartUpdateInterval": "Kerzenchart Aktualisierungsrate",
+      "chartUpdateIntervalDesc": "Steuert wie oft Kerzen-Echtzeitkurse neu gezeichnet werden.",
       "automationTitle": "Automatisierung & Erweitert",
       "autoTrading": "Automatisierter Handel (Beta)",
       "autoTradingDesc": "Aktivieren Sie automatisierte Handelsfunktionen (Demnächst).",
@@ -1835,6 +1844,8 @@
     "maxFavorites": "Maximale Anzahl an Favoriten erreicht (12)."
   },
   "common": {
+    "toggleVideoTooltip": "Linksklick: Genesis umschalten | Rechtsklick: Weitere Kanäle",
+    "channels": "Kanäle",
     "save": "Speichern",
     "cancel": "Abbrechen",
     "ok": "OK",

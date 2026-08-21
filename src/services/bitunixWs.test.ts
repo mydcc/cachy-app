@@ -205,6 +205,26 @@ describe('BitunixWS Fast Path Fallback', () => {
         expect(true).toBe(true);
     });
 
+    it('should resolve synthetic timeframe kline_3m to base kline_1m subscription', () => {
+        vi.useFakeTimers();
+        const mockWs = {
+            readyState: 1,
+            send: vi.fn()
+        };
+        wsService.wsPublic = mockWs as unknown as WebSocket;
+        wsService.pendingSubscribes = [];
+
+        wsService.subscribe('BTCUSDT', 'kline_3m');
+        vi.advanceTimersByTime(50);
+
+        expect(mockWs.send).toHaveBeenCalledTimes(1);
+        const payload = JSON.parse(mockWs.send.mock.calls[0][0]);
+        expect(payload.op).toBe('subscribe');
+        expect(payload.args).toContainEqual({ symbol: 'BTCUSDT', ch: 'market_kline_1min' });
+
+        vi.useRealTimers();
+    });
+
     describe('Batching and Rate Limiting Queue', () => {
         let mockWs: { readyState: number; send: ReturnType<typeof vi.fn> };
 
