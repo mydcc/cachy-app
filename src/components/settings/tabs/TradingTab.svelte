@@ -276,6 +276,28 @@
                             {$_("settings.trading.moreHistoryDesc")}
                         </p>
                     </div>
+
+                    <!-- Chart Render Update Interval -->
+                    <div class="field-group">
+                        <label for="render-interval">
+                            {$_("settings.trading.chartUpdateInterval") || "Kerzenchart Aktualisierungsrate"}
+                        </label>
+                        <select
+                            id="render-interval"
+                            bind:value={settingsState.chartRenderIntervalMs}
+                            class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
+                        >
+                            <option value={0}>0 ms (Echtzeit / Maximum)</option>
+                            <option value={20}>20 ms (Ultra / ~50 FPS)</option>
+                            <option value={50}>50 ms (Sehr schnell / ~20 FPS)</option>
+                            <option value={100}>100 ms (Schnell / ~10 FPS - Standard)</option>
+                            <option value={200}>200 ms (Normal / ~5 FPS)</option>
+                            <option value={500}>500 ms (Energiesparend / ~2 FPS)</option>
+                        </select>
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                            {$_("settings.trading.chartUpdateIntervalDesc") || "Steuert wie oft Kerzen-Echtzeitkurse neu gezeichnet werden."}
+                        </p>
+                    </div>
                 </div>
 
                 <div class="mt-0">

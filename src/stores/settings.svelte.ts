@@ -319,6 +319,7 @@ export interface Settings {
   maxTechnicalsHistory: number; // Max klines to keep in memory
   enableIndicatorOptimization: boolean; // Only calculate enabled indicators
   chartHistoryLimit: number; // Max candles to load on chart (200-20000)
+  chartRenderIntervalMs: number; // Candle chart render update interval in ms (20-500)
   repairTimeframe: string; // Timeframe used for ATR/MFE/MAE repair (default: 15m)
 
   // Individual Indicator Toggles
@@ -530,6 +531,7 @@ const defaultSettings: Settings = {
   maxTechnicalsHistory: 750,
   enableIndicatorOptimization: true,
   chartHistoryLimit: 2000,
+  chartRenderIntervalMs: 0,
   repairTimeframe: "15m",
 
   // Core indicators enabled by default
@@ -813,6 +815,7 @@ export class SettingsManager {
     defaultSettings.enableIndicatorOptimization,
   );
   chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
+  chartRenderIntervalMs = $state<number>(defaultSettings.chartRenderIntervalMs);
   repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
   autoTrading = $state<boolean>(defaultSettings.autoTrading);
   multiAccount = $state<boolean>(defaultSettings.multiAccount);
@@ -1261,6 +1264,8 @@ export class SettingsManager {
       defaultSettings.enableIndicatorOptimization;
     this.chartHistoryLimit =
       merged.chartHistoryLimit ?? defaultSettings.chartHistoryLimit;
+    this.chartRenderIntervalMs =
+      merged.chartRenderIntervalMs ?? defaultSettings.chartRenderIntervalMs;
     this.repairTimeframe =
       merged.repairTimeframe || defaultSettings.repairTimeframe;
   }
@@ -1592,6 +1597,7 @@ export class SettingsManager {
       multiAccount: this.multiAccount,
       enableIndicatorOptimization: this.enableIndicatorOptimization,
       chartHistoryLimit: this.chartHistoryLimit,
+      chartRenderIntervalMs: this.chartRenderIntervalMs,
       repairTimeframe: this.repairTimeframe,
       enableDockingCentered: this.enableDockingCentered,
       dockingPosition: this.dockingPosition,
