@@ -38,6 +38,12 @@ export type OrderEntryType = "market" | "limit" | "trigger";
 
 export type TimeInForce = "GTC" | "IOC" | "FOK" | "POST_ONLY";
 
+export interface TimeframeOption {
+    label: string;
+    value: string;
+    isNative: boolean;
+}
+
 export interface ExchangeCapabilities {
     /** Entry types the UI may offer. */
     orderTypes: readonly OrderEntryType[];
@@ -51,26 +57,50 @@ export interface ExchangeCapabilities {
     timeInForce: readonly TimeInForce[];
     /** Whether more than one take-profit level can be attached at entry. */
     multipleTakeProfits: boolean;
+    /** Timeframes supported by the broker (native and synthetic). */
+    supportedTimeframes: readonly TimeframeOption[];
 }
+
+export const ALL_AVAILABLE_TIMEFRAMES: readonly TimeframeOption[] = [
+    { label: "1m", value: "1m", isNative: true },
+    { label: "2m", value: "2m", isNative: false },
+    { label: "3m", value: "3m", isNative: false },
+    { label: "5m", value: "5m", isNative: true },
+    { label: "6m", value: "6m", isNative: false },
+    { label: "9m", value: "9m", isNative: false },
+    { label: "10m", value: "10m", isNative: false },
+    { label: "12m", value: "12m", isNative: false },
+    { label: "15m", value: "15m", isNative: true },
+    { label: "24m", value: "24m", isNative: false },
+    { label: "27m", value: "27m", isNative: false },
+    { label: "30m", value: "30m", isNative: true },
+    { label: "45m", value: "45m", isNative: false },
+    { label: "1h", value: "1h", isNative: true },
+    { label: "2h", value: "2h", isNative: true },
+    { label: "4h", value: "4h", isNative: true },
+    { label: "6h", value: "6h", isNative: true },
+    { label: "8h", value: "8h", isNative: true },
+    { label: "12h", value: "12h", isNative: true },
+    { label: "1D", value: "1d", isNative: true },
+    { label: "3D", value: "3d", isNative: true },
+    { label: "1W", value: "1w", isNative: true },
+    { label: "1M", value: "1M", isNative: true },
+];
 
 const CAPABILITIES: Record<string, ExchangeCapabilities> = {
     bitunix: {
-        // Trigger orders are absent on purpose: the plan-order endpoint family
-        // is missing from the doc crawl (see INTEGRATION_STATUS.md's TODO), so
-        // Cachy has no verified request shape for one. It goes in when the
-        // crawl covers it, not before.
         orderTypes: ["market", "limit"],
         tpSlAtEntry: true,
         timeInForce: ["GTC", "IOC", "FOK", "POST_ONLY"],
-        // place_order carries exactly one tpPrice/slPrice pair. A ladder of
-        // targets needs batch_order or the tpsl endpoints (FEAT-0070/0071).
         multipleTakeProfits: false,
+        supportedTimeframes: ALL_AVAILABLE_TIMEFRAMES,
     },
     bitget: {
         orderTypes: ["market", "limit"],
         tpSlAtEntry: false,
         timeInForce: [],
         multipleTakeProfits: false,
+        supportedTimeframes: ALL_AVAILABLE_TIMEFRAMES,
     },
 };
 
@@ -79,6 +109,7 @@ const UNKNOWN_EXCHANGE: ExchangeCapabilities = {
     tpSlAtEntry: false,
     timeInForce: [],
     multipleTakeProfits: false,
+    supportedTimeframes: [],
 };
 
 /**

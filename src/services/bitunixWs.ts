@@ -20,7 +20,7 @@ import { dispatchMessage } from "./bitunixWs/channelDispatch";
 import { marketState } from "../stores/market.svelte";
 
 
-import { settingsState } from "../stores/settings.svelte";
+import { settingsState, TECHNICALS_UPDATE_PRESETS } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { getIntervalMs } from "../utils/utils";
@@ -170,8 +170,19 @@ class BitunixWebSocketService {
 
   // Throttling for UI Blocking Updates
   private throttleMap = new Map<string, number>();
-  private readonly UPDATE_INTERVAL = 200; // 200ms throttle (5fps)
   private readonly THROTTLE_TTL = 5000;
+
+  /**
+   * Dynamically resolves the update throttle interval based on user performance settings.
+   */
+  private get updateInterval(): number {
+    if (settingsState.technicalsUpdateInterval !== undefined) {
+      return settingsState.technicalsUpdateInterval;
+    }
+    const mode = settingsState.technicalsUpdateMode || "balanced";
+    const preset = TECHNICALS_UPDATE_PRESETS[mode];
+    return preset ? preset.interval : 200;
+  }
 
   private pruneThrottleMap() {
     const now = Date.now();
@@ -285,7 +296,7 @@ class BitunixWebSocketService {
       this.throttleMap.clear();
     }
     const last = this.throttleMap.get(key) || 0;
-    const shouldBlock = now - last < this.UPDATE_INTERVAL;
+    const shouldBlock = now - last < this.updateInterval;
     
     if (shouldBlock) {
       return true;

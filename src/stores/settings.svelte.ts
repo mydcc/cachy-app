@@ -363,7 +363,7 @@ const defaultSettings: Settings = {
     bitunix: { key: "", secret: "" },
     bitget: { key: "", secret: "", passphrase: "" },
   },
-  favoriteTimeframes: ["5m", "15m", "1h", "4h"],
+  favoriteTimeframes: ["1m", "5m", "15m", "1h", "4h", "1d", "1w"],
   favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
   syncRsiTimeframe: true,
   imgbbApiKey: "25e953ac23d0704c1adc548c9a61b382",
@@ -594,7 +594,7 @@ export class SettingsManager {
 
   apiKeys = $state(defaultSettings.apiKeys);
   customHotkeys = $state(defaultSettings.customHotkeys);
-  favoriteTimeframes = $state(defaultSettings.favoriteTimeframes);
+  favoriteTimeframes = $state<string[]>(defaultSettings.favoriteTimeframes);
   favoriteSymbols = $state(defaultSettings.favoriteSymbols);
 
   syncRsiTimeframe = $state<boolean>(defaultSettings.syncRsiTimeframe);
@@ -1194,7 +1194,7 @@ export class SettingsManager {
     this.hotkeyMode = merged.hotkeyMode;
 
     this.customHotkeys = merged.customHotkeys || {};
-    this.favoriteTimeframes = merged.favoriteTimeframes;
+    this.favoriteTimeframes = merged.favoriteTimeframes || defaultSettings.favoriteTimeframes;
     // Strict limit on favorites to prevent memory overflow (User Agreement: 12)
     this.favoriteSymbols = (merged.favoriteSymbols || []).slice(0, MAX_FAVORITE_SYMBOLS);
     this.syncRsiTimeframe = merged.syncRsiTimeframe;

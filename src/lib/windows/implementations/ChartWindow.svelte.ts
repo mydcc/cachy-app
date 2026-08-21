@@ -23,6 +23,7 @@
 import { WindowBase, type WindowSerializedState } from "../WindowBase.svelte";
 import { windowManager } from "../WindowManager.svelte";
 import { tradeState } from "../../../stores/trade.svelte";
+import { settingsState } from "../../../stores/settings.svelte";
 import CandleChartView from "./CandleChartView.svelte";
 import type { WindowOptions, ContextMenuAction } from "../types";
 
@@ -31,7 +32,7 @@ import type { WindowOptions, ContextMenuAction } from "../types";
  * a financial chart using CandleChartView.
  * 
  * Features:
- * - Timeframe selection in the header.
+ * - Timeframe selection in the header using favorite timeframes.
  * - Integration with tradeState (syncing symbol selection).
  * - Price-in-title display toggle via context menu.
  */
@@ -60,27 +61,35 @@ export class ChartWindow extends WindowBase {
 
     /**
      * Generates the timeframe buttons displayed in the window header.
-     * Updates whenever the active timeframe changes.
+     * Reads favorites directly from `settingsState.favoriteTimeframes`.
      */
     updateHeaderControls() {
-        const tfs = [
-            { label: "3m", value: "3m" },
-            { label: "5m", value: "5m" },
-            { label: "15m", value: "15m" },
-            { label: "1h", value: "1h" },
-            { label: "4h", value: "4h" },
-            { label: "1D", value: "1d" },
-            { label: "1W", value: "1w" },
-            { label: "1M", value: "1M" }
-        ];
-        this.headerControls = tfs.map(tf => ({
-            label: tf.label,
-            active: this.timeframe === tf.value,
+        const favorites = settingsState.favoriteTimeframes || ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
+
+        // Favorite quick-access buttons
+        const controls = favorites.map(tf => ({
+            label: tf,
+            active: this.timeframe === tf,
             action: () => {
-                this.timeframe = tf.value;
+                this.timeframe = tf;
                 this.updateHeaderControls();
             }
         }));
+
+        // Dropdown toggle button for selecting all timeframes
+        controls.push({
+            label: "▼",
+            icon: "",
+            active: false,
+            title: "Select Timeframe",
+            action: () => {
+                // Dispatches custom event / popup toggle in CandleChartView or Window
+                const event = new CustomEvent("toggle-timeframe-dropdown", { detail: { windowId: this.id } });
+                window.dispatchEvent(event);
+            }
+        });
+
+        this.headerControls = controls;
     }
 
     /** The Svelte component used to render the chart content. */

@@ -31,6 +31,8 @@
     import { JSIndicators } from "../../../utils/indicators";
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
+    import { settingsState } from "../../../stores/settings.svelte";
+    import { capabilitiesOf } from "../../../services/exchangeCapabilities";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { marketWatcher } from "../../../services/marketWatcher";
     import type { WindowBase } from "../WindowBase.svelte";
@@ -39,12 +41,14 @@
         symbol: string;
         window: WindowBase;
         timeframe: string;
+        setTimeframe?: (tf: string) => void;
     }
 
     let {
         symbol,
         window: win,
         timeframe,
+        setTimeframe,
     }: Props = $props();
 
     let chartContainer: HTMLElement | null = $state(null);
@@ -61,6 +65,9 @@
     let allHistoryLoaded = $state(false);
     let lastRenderedTime: Time | null = $state(null);
     let lastRenderedCount = $state(0);
+
+    // Timeframe selector popup state
+    let showTimeframeDropdown = $state(false);
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
@@ -79,9 +86,19 @@
             attributeFilter: ["style", "class", "data-theme"],
         });
 
+        const handleDropdownToggle = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail?.windowId === win.id) {
+                showTimeframeDropdown = !showTimeframeDropdown;
+            }
+        };
+
+        window.addEventListener("toggle-timeframe-dropdown", handleDropdownToggle);
+
         return () => {
             observer.disconnect();
             cancelAnimationFrame(frameId);
+            window.removeEventListener("toggle-timeframe-dropdown", handleDropdownToggle);
         };
     });
 
@@ -301,6 +318,37 @@
         if (ema3Series) ema3Series.applyOptions({ color: warning });
     }
 
+    // Toggle favorite timeframe status
+    function toggleFavorite(tfValue: string, e: MouseEvent) {
+        e.stopPropagation();
+        const currentFavs = [...settingsState.favoriteTimeframes];
+        const index = currentFavs.indexOf(tfValue);
+        if (index > -1) {
+            currentFavs.splice(index, 1);
+        } else {
+            currentFavs.push(tfValue);
+        }
+        settingsState.favoriteTimeframes = currentFavs;
+        if (typeof (win as unknown as { updateHeaderControls?: () => void }).updateHeaderControls === "function") {
+            (win as unknown as { updateHeaderControls: () => void }).updateHeaderControls();
+        }
+    }
+
+    function selectTimeframe(tfValue: string) {
+        if (setTimeframe) {
+            setTimeframe(tfValue);
+        } else {
+            (win as unknown as { timeframe: string }).timeframe = tfValue;
+            if (typeof (win as unknown as { updateHeaderControls?: () => void }).updateHeaderControls === "function") {
+                (win as unknown as { updateHeaderControls: () => void }).updateHeaderControls();
+            }
+        }
+        showTimeframeDropdown = false;
+    }
+
+    // Available timeframes from capability model
+    let availableTimeframes = $derived(capabilitiesOf(settingsState.apiProvider).supportedTimeframes);
+
     // Registration for real-time data
     $effect(() => {
         if (!symbol || !timeframe) return;
@@ -485,8 +533,53 @@
 </script>
 
 <div
-    class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[rgba(255,255,255,0.05)]"
+    class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[rgba(255,255,255,0.05)] relative"
 >
+    {#if showTimeframeDropdown}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+            class="tf-dropdown-backdrop fixed inset-0 z-30"
+            onclick={() => (showTimeframeDropdown = false)}
+        ></div>
+        <div
+            class="tf-dropdown-menu absolute top-2 left-2 z-40 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-3 shadow-2xl grid grid-cols-4 gap-2 min-w-[280px]"
+        >
+            <div class="col-span-4 text-xs font-semibold text-[var(--text-secondary)] mb-1 flex justify-between items-center">
+                <span>Select Period</span>
+                <span class="text-[10px] opacity-70">{settingsState.favoriteTimeframes.length} Favoriten</span>
+            </div>
+            {#each availableTimeframes as tf}
+                {@const isFav = settingsState.favoriteTimeframes.includes(tf.value)}
+                {@const isActive = timeframe === tf.value}
+                <div
+                    class="tf-grid-btn flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all border cursor-pointer"
+                    class:active={isActive}
+                    class:border-[var(--accent-color)]={isActive}
+                    class:border-transparent={!isActive}
+                    onclick={() => selectTimeframe(tf.value)}
+                    role="button"
+                    tabindex="0"
+                    onkeydown={(e) => e.key === "Enter" && selectTimeframe(tf.value)}
+                >
+                    <span class="font-bold">{tf.label}</span>
+                    <span
+                        class="star-icon cursor-pointer ml-1 text-xs"
+                        class:text-amber-400={isFav}
+                        class:opacity-30={!isFav}
+                        onclick={(e) => toggleFavorite(tf.value, e)}
+                        title={isFav ? "Remove from favorites" : "Add to favorites"}
+                        role="button"
+                        tabindex="0"
+                        onkeydown={(e) => e.key === "Enter" && toggleFavorite(tf.value, e)}
+                    >
+                        ★
+                    </span>
+                </div>
+            {/each}
+        </div>
+    {/if}
+
     <div
         bind:this={chartContainer}
         class="chart-container flex-1 min-h-0 w-full relative"
@@ -542,5 +635,20 @@
 
     .loading-spinner {
         filter: drop-shadow(0 0 8px var(--accent-color));
+    }
+
+    .tf-grid-btn {
+        background: color-mix(in srgb, var(--text-primary), transparent 95%);
+        color: var(--text-secondary);
+    }
+
+    .tf-grid-btn:hover {
+        background: color-mix(in srgb, var(--text-primary), transparent 88%);
+        color: var(--text-primary);
+    }
+
+    .tf-grid-btn.active {
+        background: color-mix(in srgb, var(--accent-color), transparent 80%);
+        color: var(--accent-color);
     }
 </style>

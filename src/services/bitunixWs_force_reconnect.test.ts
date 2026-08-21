@@ -31,10 +31,14 @@ vi.mock("./logger", () => ({
 // connectPrivate returns early without credentials, before it ever looks at the
 // socket — so the force path is only reachable with keys configured.
 vi.mock("../stores/settings.svelte", () => ({
+  TECHNICALS_UPDATE_PRESETS: {
+    balanced: { interval: 200, cacheSize: 15, cacheTTL: 60, historyLimit: 750, description: "Balanced" }
+  },
   settingsState: {
     apiKeys: { bitunix: { key: "test-key", secret: "test-secret" } },
     entitlement: { capabilities: { marketData: true } },
     enableNetworkLogs: false,
+    technicalsUpdateMode: "balanced",
   },
 }));
 
