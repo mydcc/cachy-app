@@ -101,7 +101,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/big-pickle
+          model: oc/big-pickle
           # Keep the session private even on this public repo.
           share: false
           prompt: |
@@ -151,7 +151,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/big-pickle
+          model: oc/big-pickle
           # Keep the session private even on this public repo.
           share: false
           prompt: |
@@ -188,7 +188,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/big-pickle
+          model: oc/big-pickle
           # Keep the session private even on this public repo.
           share: false
           prompt: ${{ inputs.task }}
