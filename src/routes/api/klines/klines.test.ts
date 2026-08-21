@@ -130,7 +130,9 @@ describe('GET /api/klines', () => {
     const url = new URL('http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix');
     const responsePromise = GET({ url } as unknown as Parameters<typeof GET>[0]);
 
-    await vi.advanceTimersByTimeAsync(8000);
+    // All three retry attempts must run their full 8s upstream timeout
+    // (plus backoff waits) before the route gives up.
+    await vi.advanceTimersByTimeAsync(30000);
 
     const response = await responsePromise;
     const json = await response.json();
@@ -156,5 +158,48 @@ describe('GET /api/klines', () => {
     expect(json).toHaveLength(2);
     expect(json[0].open).toBe("100.5");
     expect(json[0].timestamp).toBe(1600000000000);
+  });
+
+  it('retries a transient upstream 5xx and succeeds on the next attempt', async () => {
+    vi.useFakeTimers();
+    const mockKlines = {
+      code: 0,
+      msg: "success",
+      data: [{ id: 1600000000, open: "100.5", high: "101.0", low: "99.0", close: "100.0", vol: "1000" }]
+    };
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce({ ok: false, status: 502, text: async () => 'bad gateway' } as unknown as Response)
+      .mockResolvedValueOnce({ ok: true, text: async () => JSON.stringify(mockKlines) } as unknown as Response);
+
+    const url = new URL('http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix');
+    const responsePromise = GET({ url } as unknown as Parameters<typeof GET>[0]);
+    // Backoff between attempts (250ms) runs under fake timers.
+    await vi.advanceTimersByTimeAsync(1000);
+    const response = await responsePromise;
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json).toHaveLength(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it('surfaces the upstream error after the final retry attempt', async () => {
+    vi.useFakeTimers();
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      status: 502,
+      text: async () => 'bad gateway',
+    } as unknown as Response);
+
+    const url = new URL('http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix');
+    const responsePromise = GET({ url } as unknown as Parameters<typeof GET>[0]);
+    // 3 attempts with 250ms + 500ms backoff in between.
+    await vi.advanceTimersByTimeAsync(3000);
+    const response = await responsePromise;
+
+    expect(response.status).toBe(502);
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
   });
 });

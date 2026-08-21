@@ -50,6 +50,20 @@ type BitgetCandleTuple = [string | number, string | number, string | number, str
 
 const UPSTREAM_TIMEOUT_MS = 8000;
 
+// Bitunix occasionally answers a perfectly valid request with a transient
+// 5xx or lets the connection hang. One bounded retry turns those blips into
+// success instead of surfacing a 5xx (and an error toast) to the chart.
+const UPSTREAM_RETRY_ATTEMPTS = 3;
+const UPSTREAM_RETRY_BACKOFF_MS = 250;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableUpstreamStatus(status: number): boolean {
+  return status >= 500;
+}
+
 // Bounds the exchange fetch so a slow/unreachable upstream fails fast with a
 // proper JSON error instead of letting the reverse proxy in front of this
 // server time out first and return a raw 502 to the client.
@@ -150,13 +164,32 @@ async function fetchBitunixKlines(
   const queryString = new URLSearchParams(params).toString();
   const fullUrl = `${baseUrl}${path}?${queryString}`;
 
-  const response = await fetchWithTimeout(fullUrl, {
+  const requestInit: RequestInit = {
     headers: {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       Accept: "application/json, text/plain, */*",
       "Accept-Language": "en-US,en;q=0.9",
     },
-  }, UPSTREAM_TIMEOUT_MS);
+  };
+
+  let response!: Response;
+  for (let attempt = 1; attempt <= UPSTREAM_RETRY_ATTEMPTS; attempt++) {
+    try {
+      response = await fetchWithTimeout(fullUrl, requestInit, UPSTREAM_TIMEOUT_MS);
+    } catch (e) {
+      // Timeouts (surfaced as 504) are transient — retry them. Everything
+      // else propagates immediately.
+      if ((e as ApiError)?.status === 504 && attempt < UPSTREAM_RETRY_ATTEMPTS) {
+        await sleep(UPSTREAM_RETRY_BACKOFF_MS * attempt);
+        continue;
+      }
+      throw e;
+    }
+    if (response.ok || !isRetryableUpstreamStatus(response.status) || attempt === UPSTREAM_RETRY_ATTEMPTS) {
+      break;
+    }
+    await sleep(UPSTREAM_RETRY_BACKOFF_MS * attempt);
+  }
 
   if (!response.ok) {
     const text = await response.text();
