@@ -24,6 +24,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { getIntervalMs } from "../utils/utils";
+import { resetSyntheticCandles } from "../utils/syntheticKlines";
 import { connectionManager } from "./connectionManager";
 
 
@@ -996,6 +997,9 @@ class BitunixWebSocketService {
             const newCount = count - 1;
             if (newCount === 0) {
                 this.syntheticSubs.delete(synthKey);
+                // Drop the aggregated bucket so a later re-subscription starts
+                // from the next incoming base candle instead of stale state.
+                resetSyntheticCandles(normalizedSymbol, channel.replace("kline_", ""));
                 if (import.meta.env.DEV) {
                     logger.log("network", `[BitunixWS] Synthetic Unsubscribe ${synthKey}. Removed.`);
                 }
@@ -1040,6 +1044,7 @@ class BitunixWebSocketService {
             targetChannel = `kline_${resolved.base}`;
             const synthKey = `${normalizedSymbol}:${channel.replace("kline_", "")}`;
             this.syntheticSubs.delete(synthKey);
+            resetSyntheticCandles(normalizedSymbol, channel.replace("kline_", ""));
         }
         channel = targetChannel; // update for main removal
     }

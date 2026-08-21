@@ -55,6 +55,81 @@ function makeContext(): DispatchContext {
   };
 }
 
+describe("dispatchMessage synthetic kline fan-out", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const base1mPush = (ts: number) =>
+    ({
+      type: "fast_kline",
+      symbol: "BTCUSDT",
+      timeframe: "1m",
+      rawSymbol: "BTCUSDT",
+      ts,
+      data: { o: "100", h: "102", l: "99", c: "101", b: "1", q: "2" },
+    }) as const;
+
+  it("fans a 1m push out to an active synthetic 3m subscription", () => {
+    const ctx = makeContext();
+    ctx.syntheticSubs.set("BTCUSDT:3m", 1);
+
+    dispatchMessage(base1mPush(1775541000000), ctx);
+
+    expect(marketState.updateSymbolKlines).toHaveBeenCalledTimes(2);
+    const [synthSymbol, synthTimeframe, synthKlines] = vi.mocked(marketState.updateSymbolKlines).mock
+      .calls[1] as [string, string, { time: number; open: number }[], string];
+    expect(synthSymbol).toBe("BTCUSDT");
+    expect(synthTimeframe).toBe("3m");
+    // 1775541000000 is exactly on a 3m boundary.
+    expect(synthKlines[0].time).toBe(Math.floor(1775541000000 / 180000) * 180000);
+    expect(Number(synthKlines[0].close)).toBe(101);
+  });
+
+  it("does not fan out when no synthetic subscription exists", () => {
+    const ctx = makeContext();
+    dispatchMessage(base1mPush(1775541000000), ctx);
+    expect(marketState.updateSymbolKlines).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not fan out when the synthetic base differs from the pushed timeframe", () => {
+    // 2h derives from the 1h feed — a 1m push must not touch it.
+    const ctx = makeContext();
+    ctx.syntheticSubs.set("BTCUSDT:2h", 1);
+
+    dispatchMessage(base1mPush(1775541000000), ctx);
+
+    expect(marketState.updateSymbolKlines).toHaveBeenCalledTimes(1);
+  });
+
+  it("fans a validated market_kline_60min push out to a synthetic 2h subscription", () => {
+    const ctx = makeContext();
+    ctx.syntheticSubs.set("BTCUSDT:2h", 1);
+    const ts = 1775541412718;
+
+    dispatchMessage(
+      {
+        type: "validated",
+        message: {
+          ch: "market_kline_60min",
+          symbol: "BTCUSDT",
+          ts,
+          data: { o: "68581.4", h: "68590", l: "68579.5", c: "68583.4", b: "5.2395", q: "359348.14078" },
+        },
+      },
+      ctx,
+    );
+
+    expect(marketState.updateSymbolKlines).toHaveBeenCalledTimes(2);
+    const [synthSymbol, synthTimeframe] = vi.mocked(marketState.updateSymbolKlines).mock.calls[1] as [
+      string,
+      string,
+    ];
+    expect(synthSymbol).toBe("BTCUSDT");
+    expect(synthTimeframe).toBe("2h");
+  });
+});
+
 describe("dispatchMessage fast_kline (BUG-0248)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
