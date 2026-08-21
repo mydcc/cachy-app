@@ -319,9 +319,9 @@
     }
 
     // Toggle favorite timeframe status
-    function toggleFavorite(tfValue: string, e: MouseEvent) {
+    function toggleFavorite(tfValue: string, e: Event) {
         e.stopPropagation();
-        const currentFavs = [...settingsState.favoriteTimeframes];
+        const currentFavs = [...(settingsState.favoriteTimeframes ?? [])];
         const index = currentFavs.indexOf(tfValue);
         if (index > -1) {
             currentFavs.splice(index, 1);
@@ -547,10 +547,10 @@
         >
             <div class="col-span-4 text-xs font-semibold text-[var(--text-secondary)] mb-1 flex justify-between items-center">
                 <span>Select Period</span>
-                <span class="text-[10px] opacity-70">{settingsState.favoriteTimeframes.length} Favoriten</span>
+                <span class="text-[10px] opacity-70">{(settingsState.favoriteTimeframes ?? []).length} Favoriten</span>
             </div>
             {#each availableTimeframes as tf}
-                {@const isFav = settingsState.favoriteTimeframes.includes(tf.value)}
+                {@const isFav = (settingsState.favoriteTimeframes ?? []).includes(tf.value)}
                 {@const isActive = timeframe === tf.value}
                 <div
                     class="tf-grid-btn flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all border cursor-pointer"

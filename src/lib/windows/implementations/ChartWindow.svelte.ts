@@ -20,7 +20,7 @@
   Chart Window Implementation using Lightweight Charts
 */
 
-import { WindowBase, type WindowSerializedState } from "../WindowBase.svelte";
+import { WindowBase, type WindowSerializedState, type HeaderControl } from "../WindowBase.svelte";
 import { windowManager } from "../WindowManager.svelte";
 import { tradeState } from "../../../stores/trade.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
@@ -64,10 +64,10 @@ export class ChartWindow extends WindowBase {
      * Reads favorites directly from `settingsState.favoriteTimeframes`.
      */
     updateHeaderControls() {
-        const favorites = settingsState.favoriteTimeframes || ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
+        const favorites = settingsState.favoriteTimeframes ?? ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 
         // Favorite quick-access buttons
-        const controls = favorites.map(tf => ({
+        const controls: HeaderControl[] = favorites.map(tf => ({
             label: tf,
             active: this.timeframe === tf,
             action: () => {
@@ -79,7 +79,6 @@ export class ChartWindow extends WindowBase {
         // Dropdown toggle button for selecting all timeframes
         controls.push({
             label: "▼",
-            icon: "",
             active: false,
             title: "Select Timeframe",
             action: () => {
