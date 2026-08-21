@@ -22,7 +22,7 @@ on:
 # OpenCode Zen model with a zero-retention policy (code is not used for
 # training); the free lineup rotates, so swap the value here when needed.
 env:
-  OPENCODE_MODEL: oc/x-preview-f-free
+  OPENCODE_MODEL: opencode/x-preview-f-free
 
 jobs:
   # Interactive: mention /oc or /opencode in an issue or PR comment to trigger a
