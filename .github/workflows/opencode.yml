@@ -7,6 +7,12 @@ on:
     types: [created]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    # Doc-only PRs (backlog audits, markdown edits) get no automated agent
+    # review — it burns tokens without any code to check. Human reviewers can
+    # still read those diffs themselves.
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
   # Weekly maintenance scan (needs its own prompt job, see "scheduled").
   schedule:
     - cron: "0 9 * * 1"
@@ -161,6 +167,34 @@ jobs:
               (no alarms, no uppercase shouting).
             - Only post a comment when you have findings. Start it with
               "Code Review for <short-sha>" so it is recognized on re-runs.
+
+      # One review run leaves two comments: the full review (posted as
+      # github-actions[bot] via GITHUB_TOKEN) plus an opencode-agent[bot]
+      # "Review posted:" pointer that only repeats the findings. Every push
+      # would add another pair, so collapse the noise: drop all pointer
+      # comments and keep just the newest full review.
+      - name: Prune duplicate bot review comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          comments_url="repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments?per_page=100"
+
+          gh api "$comments_url" --jq '.[]
+            | select(.user.login == "opencode-agent[bot]"
+                     and (.body | startswith("Review posted:")))
+            | .id' | while read -r id; do
+            gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id"
+          done
+
+          ids=$(gh api "$comments_url" --jq '[
+            .[]
+            | select(.user.login == "github-actions[bot]"
+                     and (.body | startswith("Code Review for")))
+            | .id
+          ] | reverse | .[1:][]')
+          for id in $ids; do
+            gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id"
+          done
 
   # Weekly maintenance scan (schedule event): read-only — scans for TODOs and
   # backlog hygiene, only opens issues to track worthwhile findings. Never

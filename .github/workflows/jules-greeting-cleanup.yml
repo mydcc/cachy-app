@@ -1,0 +1,28 @@
+# Removes the automatic "👋 Jules, reporting for duty!" greeting that the
+# Jules GitHub App posts on every pull request it is assigned to. Only this
+# known greeting template is matched — real Jules content (review verdicts,
+# acknowledgments) is never touched. Fail-safe by design: if Google changes
+# the wording, comments simply stay instead of something else being deleted.
+name: jules-greeting-cleanup
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  remove-greeting:
+    if: |-
+      github.event.comment.user.login == 'google-labs-jules[bot]' &&
+      startsWith(github.event.comment.body, '👋 Jules, reporting for duty!')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove Jules greeting comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X DELETE \
+            "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}"
