@@ -822,7 +822,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0248",
     "title": "Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -2855,6 +2855,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "target_date": "2026-11-25",
     "start_date": "2026-08-19",
     "file": "features/FEAT-0247-chart-position-tpsl-drag.md"
+  },
+  {
+    "id": "IDEA-0250",
+    "title": "Measure Server-Side Rendering (SSR) performance impact versus Client-Side Rendering (CSR)",
+    "type": "idea",
+    "status": "idea",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "ideas/IDEA-0250-ssr-performance-measurement.md"
   },
   {
     "id": "BUG-0007",

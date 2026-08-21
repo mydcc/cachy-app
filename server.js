@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 // Let SvelteKit handle everything else, including static files
 app.use(handler);
 
-const port = process.env.PORT || "3001";
+const port = process.env.PORT || "3000";
 app.listen(port, () => {
   console.log(`Starting server on port ${port}...`);
 });
