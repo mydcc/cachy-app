@@ -151,7 +151,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/deepseek-v4-flash-free
+          model: opencode/big-pickle
           # Keep the session private even on this public repo.
           share: false
           prompt: |
