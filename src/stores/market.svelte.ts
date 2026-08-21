@@ -295,22 +295,11 @@ export class MarketManager {
 
       // Optimization: In-place deduplication for the same candle.
       // High-frequency WS updates often overwrite the exact same candle timestamp repeatedly.
-      const pLen = pending.length;
-      if (pLen > 0) {
-        let lastPending = pending[pLen - 1];
-        for (let i = 0; i < klines.length; i++) {
-          const k = klines[i];
-          if (lastPending.time === k.time) {
-            pending[pending.length - 1] = k;
-            lastPending = k;
-          } else {
-            pending.push(k);
-            lastPending = k;
-          }
-        }
-      } else {
-        for (let i = 0; i < klines.length; i++) {
-          pending.push(klines[i]);
+      for (const k of klines) {
+        if (pending.length > 0 && pending[pending.length - 1].time === k.time) {
+          pending[pending.length - 1] = k;
+        } else {
+          pending.push(k);
         }
       }
       if (pending.length > KLINE_BUFFER_HARD_LIMIT) pending.splice(0, pending.length - KLINE_BUFFER_HARD_LIMIT);
