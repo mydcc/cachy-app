@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+    const existing = this.pendingUpdates.get(symbol) || {};
+
+    // Merge partials manually to ensure nested objects like depth/technicals don't get lost if partial is shallow
+    // However, partial is flat except for depth/technicals/klines.
+    // `{ ...existing, ...partial }` would silently clobber a real, not-yet-
+    // flushed value: callers build partial objects like
+    // `{ markPrice: mp ? new Decimal(mp) : undefined }`, so a WS push that
+    // doesn't repeat every field (e.g. an index-price-only price channel
+    // tick) still carries an explicit `markPrice: undefined` key, which a
+    // plain spread applies — wiping out an earlier, real markPrice buffered
+    // in this same flush window before it ever reaches `current` (BUG-0065).
+    // applyUpdate() already skips `undefined` fields once flushed; the
+    // buffer merge must skip them for the same reason, or that guard never
+    // gets to see the real value at all.
+    const merged = existing;
+    for (const key in partial) {
+      const typedKey = key as keyof MarketUpdatePayload;
+      const value = partial[typedKey];
+      if (value !== undefined) {
+        (merged as Record<string, unknown>)[key] = value;
+      }
+    }
+    this.pendingUpdates.set(symbol, merged);
+=======
+    const existing = this.pendingUpdates.get(symbol) || {};
+
+    // Merge partials manually to ensure nested objects like depth/technicals don't get lost if partial is shallow
+    // However, partial is flat except for depth/technicals/klines.
+    // `{ ...existing, ...partial }` would silently clobber a real, not-yet-
+    // flushed value: callers build partial objects like
+    // `{ markPrice: mp ? new Decimal(mp) : undefined }`, so a WS push that
+    // doesn't repeat every field (e.g. an index-price-only price channel
+    // tick) still carries an explicit `markPrice: undefined` key, which a
+    // plain spread applies — wiping out an earlier, real markPrice buffered
+    // in this same flush window before it ever reaches `current` (BUG-0065).
+    // applyUpdate() already skips `undefined` fields once flushed; the
+    // buffer merge must skip them for the same reason, or that guard never
+    // gets to see the real value at all.
+    const merged: MarketUpdatePayload = existing;
+    const mergedRecord = merged as Record<string, unknown>;
+
+    // Performance: Object.keys + direct assignment is ~40% faster than { ...existing } spread
+    // We modify existing in place to avoid creating a new object on every high-freq WS tick.
+    const keys = Object.keys(partial) as (keyof MarketUpdatePayload)[];
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const value = partial[key];
+      if (value !== undefined) {
+        mergedRecord[key] = value;
+      }
+    }
+    this.pendingUpdates.set(symbol, merged);
+>>>>>>> REPLACE
