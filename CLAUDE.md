@@ -22,6 +22,16 @@ that: it also flips `$app/environment`'s `browser` to true, which sends
 `technicalsService` down its Worker path and fails two passing tests. `npm test`
 runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
 
+**Run targeted tests, not the whole suite.** `npm test` runs the full suite — both the `unit` and the `components` project — and is slow: the component tests mount every `.svelte` file with a DOM. After a change, run **only the tests your change affects** instead:
+
+- **One test file:** `npx vitest run src/services/tradeService.test.ts`
+- **A folder/pattern (substring match):** `npx vitest run src/services/tradeService`
+- **Pure-logic `unit` project only (skips all `.svelte` component mounting):** `npm run test:unit`
+- **Changed files only (git-based):** `npm run test:changed`
+- **Component tests** (`*.component.test.ts`, `components` project): `npx vitest run src/components/shared/TpSlList.refusal.component.test.ts`
+
+Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. `npm run check` is still mandatory after every change regardless of the test scope.
+
 ## Architecture
 
 **Local-First Data Classes** (see `docs/adr/0001-local-first-boundary.md`):
@@ -80,7 +90,7 @@ runs both projects. Example: `src/components/shared/TpSlList.refusal.component.t
 
 ## Workflow
 
-- **Verification over claims:** After every code change, run `npm run check` and affected tests (skill `/verify`). Only then claim completion.
+- **Verification over claims:** After every code change, run `npm run check` and affected tests (skill `/verify`) — see "Run targeted tests, not the whole suite" above for how to scope them. Only then claim completion.
 - **Defensive deletion:** Never delete code of unclear purpose. Leave copyright headers and metadata untouched.
 - **Keep debug logs:** Remove `console.log` statements only upon explicit instruction.
 - **Playwright:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.

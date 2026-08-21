@@ -87,6 +87,7 @@
     "marked": "^18.0.10",
     "marked-katex-extension": "^5.1.11",
     "openai": "^7.5.0",
+    "opencode-omniroute-auth": "^1.2.2",
     "p-limit": "^7.3.1",
     "postcss": "^8.5.26",
     "rss-parser": "^3.13.0",

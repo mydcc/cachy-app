@@ -23,6 +23,16 @@ that: it also flips `$app/environment`'s `browser` to true, which sends
 `technicalsService` down its Worker path and fails two passing tests. `npm test`
 runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
 
+**Run targeted tests, not the whole suite.** `npm test` runs the full suite — both the `unit` and the `components` project — and is slow: the component tests mount every `.svelte` file with a DOM. After a change, run **only the tests your change affects** instead:
+
+- **One test file:** `npx vitest run src/services/tradeService.test.ts`
+- **A folder/pattern (substring match):** `npx vitest run src/services/tradeService`
+- **Pure-logic `unit` project only (skips all `.svelte` component mounting):** `npm run test:unit`
+- **Changed files only (git-based):** `npm run test:changed`
+- **Component tests** (`*.component.test.ts`, `components` project): `npx vitest run src/components/shared/TpSlList.refusal.component.test.ts`
+
+Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. `npm run check` is still mandatory after every change regardless of the test scope.
+
 The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without this step, the build will fail — in cloud sandbox environments (e.g., Jules Environment Setup), this script must be part of the setup step.
 
 ## Non-Negotiable Rules
@@ -48,7 +58,7 @@ The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts
 
 ## Verification Before Marking Completed
 
-After every change: run `npm run check` and affected tests. A task is considered completed ONLY when type checks and tests pass — do not claim completion beforehand.
+After every change: run `npm run check` and the affected tests — see "Run targeted tests, not the whole suite" above. A task is considered completed ONLY when type checks and tests pass — do not claim completion beforehand.
 
 ## Tools & MCP — Mandatory for All Agents
 
