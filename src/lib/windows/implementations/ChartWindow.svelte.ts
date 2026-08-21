@@ -24,6 +24,7 @@ import { WindowBase, type HeaderControl, type WindowSerializedState } from "../W
 import { windowManager } from "../WindowManager.svelte";
 import { tradeState } from "../../../stores/trade.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
+import { safeTfToMs } from "../../../utils/timeUtils";
 import CandleChartView from "./CandleChartView.svelte";
 import type { WindowOptions, ContextMenuAction } from "../types";
 
@@ -69,7 +70,11 @@ export class ChartWindow extends WindowBase {
             ? settingsState.favoriteTimeframes
             : ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 
-        const tfsToShow = Array.from(new Set([...favs, this.timeframe]));
+        // Buttons read best sorted by interval size, regardless of the order
+        // favorites happen to be stored in. safeTfToMs is case-sensitive, so
+        // "1M" (month) correctly outweighs "1m" (minute).
+        const tfsToShow = Array.from(new Set([...favs, this.timeframe]))
+            .sort((a, b) => safeTfToMs(a) - safeTfToMs(b));
 
         const controls: HeaderControl[] = tfsToShow.map(tf => ({
             label: tf,
