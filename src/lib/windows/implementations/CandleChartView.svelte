@@ -36,6 +36,7 @@
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { marketWatcher } from "../../../services/marketWatcher";
     import type { WindowBase } from "../WindowBase.svelte";
+    import type { ChartWindow } from "./ChartWindow.svelte";
 
     interface Props {
         symbol: string;
@@ -50,6 +51,8 @@
         timeframe,
         setTimeframe,
     }: Props = $props();
+
+    let chartWindow = $derived(win as unknown as ChartWindow);
 
     let chartContainer: HTMLElement | null = $state(null);
     let chart: IChartApi | null = $state(null);
@@ -318,30 +321,32 @@
         if (ema3Series) ema3Series.applyOptions({ color: warning });
     }
 
-    // Toggle favorite timeframe status
+    // Toggle favorite timeframe status on the window instance
     function toggleFavorite(tfValue: string, e: Event) {
         e.stopPropagation();
-        const currentFavs = [...(settingsState.favoriteTimeframes ?? [])];
+        const currentFavs = [...(chartWindow.favoriteTimeframes ?? [])];
         const index = currentFavs.indexOf(tfValue);
         if (index > -1) {
             currentFavs.splice(index, 1);
         } else {
             currentFavs.push(tfValue);
         }
-        settingsState.favoriteTimeframes = currentFavs;
-        if (typeof (win as unknown as { updateHeaderControls?: () => void }).updateHeaderControls === "function") {
-            (win as unknown as { updateHeaderControls: () => void }).updateHeaderControls();
+        chartWindow.favoriteTimeframes = currentFavs;
+        if (typeof chartWindow.updateHeaderControls === "function") {
+            chartWindow.updateHeaderControls();
         }
+        win.saveState();
     }
 
     function selectTimeframe(tfValue: string) {
         if (setTimeframe) {
             setTimeframe(tfValue);
         } else {
-            (win as unknown as { timeframe: string }).timeframe = tfValue;
-            if (typeof (win as unknown as { updateHeaderControls?: () => void }).updateHeaderControls === "function") {
-                (win as unknown as { updateHeaderControls: () => void }).updateHeaderControls();
+            chartWindow.timeframe = tfValue;
+            if (typeof chartWindow.updateHeaderControls === "function") {
+                chartWindow.updateHeaderControls();
             }
+            win.saveState();
         }
         showTimeframeDropdown = false;
     }
@@ -547,10 +552,10 @@
         >
             <div class="col-span-4 text-xs font-semibold text-[var(--text-secondary)] mb-1 flex justify-between items-center">
                 <span>Select Period</span>
-                <span class="text-[10px] opacity-70">{(settingsState.favoriteTimeframes ?? []).length} Favoriten</span>
+                <span class="text-[10px] opacity-70">{(chartWindow.favoriteTimeframes ?? []).length} Favoriten</span>
             </div>
             {#each availableTimeframes as tf}
-                {@const isFav = (settingsState.favoriteTimeframes ?? []).includes(tf.value)}
+                {@const isFav = (chartWindow.favoriteTimeframes ?? []).includes(tf.value)}
                 {@const isActive = timeframe === tf.value}
                 <div
                     class="tf-grid-btn flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all border cursor-pointer"

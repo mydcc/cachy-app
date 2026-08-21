@@ -23,7 +23,6 @@
 import { WindowBase, type WindowSerializedState, type HeaderControl } from "../WindowBase.svelte";
 import { windowManager } from "../WindowManager.svelte";
 import { tradeState } from "../../../stores/trade.svelte";
-import { settingsState } from "../../../stores/settings.svelte";
 import CandleChartView from "./CandleChartView.svelte";
 import type { WindowOptions, ContextMenuAction } from "../types";
 
@@ -32,18 +31,22 @@ import type { WindowOptions, ContextMenuAction } from "../types";
  * a financial chart using CandleChartView.
  * 
  * Features:
- * - Timeframe selection in the header using favorite timeframes.
+ * - Timeframe selection in the header using window-specific favorite timeframes.
  * - Integration with tradeState (syncing symbol selection).
  * - Price-in-title display toggle via context menu.
  */
 interface ChartWindowOptions extends WindowOptions {
     /** Restores the active timeframe (e.g. re-opening a window from session data). */
     timeframe?: string;
+    /** Restores the favorite timeframes for this chart window. */
+    favoriteTimeframes?: string[];
 }
 
 export class ChartWindow extends WindowBase {
     /** The active aggregation interval (e.g., 1h, 15m). */
     timeframe = $state("1h");
+    /** Window-specific favorite timeframes displayed in the window header bar. */
+    favoriteTimeframes = $state<string[]>(["1m", "5m", "15m", "1h", "4h", "1d", "1w"]);
 
     constructor(symbol: string, options: ChartWindowOptions = {}) {
         super({
@@ -56,15 +59,20 @@ export class ChartWindow extends WindowBase {
             ...options
         });
         if (options.timeframe) this.timeframe = options.timeframe;
+        if (options.favoriteTimeframes && Array.isArray(options.favoriteTimeframes)) {
+            this.favoriteTimeframes = options.favoriteTimeframes;
+        }
         this.updateHeaderControls();
     }
 
     /**
      * Generates the timeframe buttons displayed in the window header.
-     * Reads favorites directly from `settingsState.favoriteTimeframes`.
+     * Reads favorites directly from `this.favoriteTimeframes`.
      */
     updateHeaderControls() {
-        const favorites = settingsState.favoriteTimeframes ?? ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
+        const favorites = this.favoriteTimeframes && this.favoriteTimeframes.length > 0
+            ? this.favoriteTimeframes
+            : ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 
         // Favorite quick-access buttons
         const controls: HeaderControl[] = favorites.map(tf => ({
@@ -73,6 +81,7 @@ export class ChartWindow extends WindowBase {
             action: () => {
                 this.timeframe = tf;
                 this.updateHeaderControls();
+                this.saveState();
             }
         }));
 
@@ -82,7 +91,6 @@ export class ChartWindow extends WindowBase {
             active: false,
             title: "Select Timeframe",
             action: () => {
-                // Dispatches custom event / popup toggle in CandleChartView or Window
                 const event = new CustomEvent("toggle-timeframe-dropdown", { detail: { windowId: this.id } });
                 window.dispatchEvent(event);
             }
@@ -105,6 +113,7 @@ export class ChartWindow extends WindowBase {
             setTimeframe: (tf: string) => {
                 this.timeframe = tf;
                 this.updateHeaderControls();
+                this.saveState();
             }
         };
     }
@@ -149,11 +158,12 @@ export class ChartWindow extends WindowBase {
         // Implementation logic if needed
     }
 
-    public serialize(): WindowSerializedState & { symbol: string; timeframe: string } {
+    public serialize(): WindowSerializedState & { symbol: string; timeframe: string; favoriteTimeframes: string[] } {
         return {
             ...super.serialize(),
             symbol: this.symbol,
-            timeframe: this.timeframe
+            timeframe: this.timeframe,
+            favoriteTimeframes: $state.snapshot(this.favoriteTimeframes)
         };
     }
 }
