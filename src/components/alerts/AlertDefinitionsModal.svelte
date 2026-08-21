@@ -1,7 +1,7 @@
 <script lang="ts">
   import { alertState } from "../../stores/alerts.svelte";
   import ModalFrame from "../shared/ModalFrame.svelte";
-  import { _ as t } from "svelte-i18n";
+  import { _ } from "../../locales/i18n";
 
 
 
@@ -23,9 +23,9 @@
   }
 
   function formatCondition(condition: Record<string, unknown>) {
-      if (condition.price_cross_up) return `${$t('dashboard.alerts.crossesUp') as string || "Crosses Up"} ${condition.price_cross_up}`;
-      if (condition.price_cross_down) return `${$t('dashboard.alerts.crossesDown') as string || "Crosses Down"} ${condition.price_cross_down}`;
-      if (condition.price_reached) return `${$t('dashboard.alerts.reaches') as string || "Reaches"} ${condition.price_reached}`;
+      if (condition.price_cross_up) return `${$_('dashboard.alerts.crossesUp')} ${condition.price_cross_up}`;
+      if (condition.price_cross_down) return `${$_('dashboard.alerts.crossesDown')} ${condition.price_cross_down}`;
+      if (condition.price_reached) return `${$_('dashboard.alerts.reaches')} ${condition.price_reached}`;
       return JSON.stringify(condition);
   }
 
@@ -42,26 +42,26 @@
 
       alertState.addAlert(newAlert);
       newAlertPrice = "";
-      uiState.showToast($t('dashboard.alerts.createSuccess') as string, "success");
+      uiState.showToast($_('dashboard.alerts.createSuccess'), "success");
   }
 </script>
 
-<ModalFrame title={$t('dashboard.alerts.title', { default: 'Alerts' })} onclose={onClose}>
+<ModalFrame title={$_('dashboard.alerts.title')} onclose={onClose}>
     <div class="alert-form">
-        <h4>{$t('dashboard.alerts.addAlert', { default: 'Add Alert' })}</h4>
+        <h4>{$_('dashboard.alerts.addAlert')}</h4>
         <div class="input-group">
-            <input type="text" bind:value={newAlertSymbol} placeholder={$t('dashboard.alerts.symbol') as string || "Symbol"} class="form-input" />
-            <input type="number" bind:value={newAlertPrice} placeholder={$t('dashboard.alerts.priceLimit') as string} class="form-input" />
-            <button class="add-btn" aria-label={$t('dashboard.alerts.addAlert') as string} onclick={createAlert}>+</button>
+            <input type="text" bind:value={newAlertSymbol} placeholder={$_('dashboard.alerts.symbol')} class="form-input" />
+            <input type="number" bind:value={newAlertPrice} placeholder={$_('dashboard.alerts.priceLimit')} class="form-input" />
+            <button class="add-btn" aria-label={$_('dashboard.alerts.addAlert')} onclick={createAlert}>+</button>
         </div>
     </div>
 
     <div class="tabs">
         <button class:active={activeTab === "active"} onclick={() => activeTab = "active"}>
-            {$t('dashboard.alerts.active', { default: 'Active' })}
+            {$_('dashboard.alerts.active')}
         </button>
         <button class:active={activeTab === "history"} onclick={() => activeTab = "history"}>
-            {$t('dashboard.alerts.history', { default: 'History' })}
+            {$_('dashboard.alerts.history')}
         </button>
     </div>
 
@@ -73,13 +73,13 @@
                         <strong>{alert.symbol}</strong>
                         <span>{formatCondition(alert.condition)}</span>
                     </div>
-                    <button class="delete-btn" aria-label={$t('dashboard.alerts.deleteAlert') as string} onclick={() => removeAlert(alert.id)}>
+                    <button class="delete-btn" aria-label={$_('dashboard.alerts.deleteAlert')} onclick={() => removeAlert(alert.id)}>
                         ×
                     </button>
                 </div>
             {:else}
                 <div class="empty-state">
-                    {$t('dashboard.alerts.noActive', { default: 'No active alerts' })}
+                    {$_('dashboard.alerts.noActive')}
                 </div>
             {/each}
         </div>
@@ -90,15 +90,15 @@
                     <div class="alert-info">
                         <strong>{alert.symbol}</strong>
                         <span>{formatCondition(alert.condition)}</span>
-                        <span class="fired-badge">{$t('dashboard.alerts.fired', { default: 'Fired' })}</span>
+                        <span class="fired-badge">{$_('dashboard.alerts.fired')}</span>
                     </div>
-                    <button class="delete-btn" aria-label={$t('dashboard.alerts.deleteAlert') as string} onclick={() => removeAlert(alert.id)}>
+                    <button class="delete-btn" aria-label={$_('dashboard.alerts.deleteAlert')} onclick={() => removeAlert(alert.id)}>
                         ×
                     </button>
                 </div>
             {:else}
                 <div class="empty-state">
-                    {$t('dashboard.alerts.noHistory') as string || "No history"}
+                    {$_('dashboard.alerts.noHistory')}
                 </div>
             {/each}
         </div>

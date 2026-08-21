@@ -75,7 +75,7 @@
         onclick={toggleMain}
         oncontextmenu={handleContextMenu}
         aria-label={$_("common.aria.toggleVideo")}
-        title="Left-Click: Toggle Genesis | Right-Click: More Channels"
+        title={$_("common.toggleVideoTooltip")}
     >
         <svg
             viewBox="0 0 24 24"
@@ -108,7 +108,7 @@
             <div
                 class="px-3 py-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider border-b border-[var(--border-color)] mb-1"
             >
-                Channels
+                {$_("common.channels")}
             </div>
             {#each CUSTOM_CHANNELS as ch}
                 <button
