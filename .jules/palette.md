@@ -18,3 +18,6 @@
 3. Be sure to regenerate the `schema.d.ts` via `node scripts/generate-i18n-types.js` to avoid `npm run check` typescript errors when manipulating JSON locale files.
 
 **Action:** Extracted legacy hardcoded string fallbacks in `AlertDefinitionsModal.svelte` and migrated it to the standard `$_` store. Added new `common.toggleVideoTooltip` and `common.channels` strings in English and German for `FloatingIframeButton.svelte`. Avoided committing the `static/wasm/technicals_wasm.wasm` build artifact.
+## 2025-02-23 - GitHub Actions setup corrections
+**Learning:** `actions/checkout@v6` does not exist and fails GitHub Actions workflows. The opencode action model `opencode/deepseek-v4-flash-free` was unavailable in CI, leading to a build failure.
+**Action:** Replaced `actions/checkout@v6` with `actions/checkout@v4` and changed the model in `.github/workflows/opencode.yml` to `gemini-3-flash` based on the error output's suggestion.
