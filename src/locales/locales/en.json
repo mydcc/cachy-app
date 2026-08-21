@@ -1670,6 +1670,8 @@
       "showTechnicalAnalysis": "Show technical analysis panel",
       "historyLength": "History Length (Candles)",
       "moreHistoryDesc": "More history = slower initial load. (Max: 2000)",
+      "chartUpdateInterval": "Candle Chart Update Rate",
+      "chartUpdateIntervalDesc": "Controls how frequently candle real-time prices are redrawn.",
       "automationTitle": "Automation & Advanced",
       "autoTrading": "Auto Trading (Beta)",
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",

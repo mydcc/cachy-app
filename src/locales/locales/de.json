@@ -1499,6 +1499,8 @@
       "showTechnicalAnalysis": "Technische Analyse-Panel anzeigen",
       "historyLength": "Historienlänge (Kerzen)",
       "moreHistoryDesc": "Mehr Historie = langsameres Laden. (Max: 2000)",
+      "chartUpdateInterval": "Kerzenchart Aktualisierungsrate",
+      "chartUpdateIntervalDesc": "Steuert wie oft Kerzen-Echtzeitkurse neu gezeichnet werden.",
       "automationTitle": "Automatisierung & Erweitert",
       "autoTrading": "Automatisierter Handel (Beta)",
       "autoTradingDesc": "Aktivieren Sie automatisierte Handelsfunktionen (Demnächst).",

@@ -31,6 +31,7 @@
     import { JSIndicators } from "../../../utils/indicators";
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
+    import { settingsState } from "../../../stores/settings.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { marketWatcher } from "../../../services/marketWatcher";
     import type { WindowBase } from "../WindowBase.svelte";
@@ -39,13 +40,42 @@
         symbol: string;
         window: WindowBase;
         timeframe: string;
+        showTimeframeDropdown?: boolean;
+        toggleTimeframeDropdown?: () => void;
+        closeTimeframeDropdown?: () => void;
+        setTimeframe?: (tf: string) => void;
+        updateHeaderControls?: () => void;
     }
 
     let {
         symbol,
         window: win,
         timeframe,
+        showTimeframeDropdown = false,
+        toggleTimeframeDropdown,
+        closeTimeframeDropdown,
+        setTimeframe,
+        updateHeaderControls,
     }: Props = $props();
+
+    const ALL_TIMEFRAMES = [
+        "1m", "2m", "3m", "5m", "6m", "9m", "10m", "12m", "15m", "24m", "27m", "30m", "45m",
+        "1h", "2h", "4h", "6h", "8h", "12h",
+        "1d", "3d", "1w", "1M"
+    ];
+
+    function toggleFavorite(tf: string, e: Event) {
+        e.stopPropagation();
+        const current = [...(settingsState.favoriteTimeframes || [])];
+        const index = current.indexOf(tf);
+        if (index >= 0) {
+            current.splice(index, 1);
+        } else {
+            current.push(tf);
+        }
+        settingsState.favoriteTimeframes = current;
+        updateHeaderControls?.();
+    }
 
     let chartContainer: HTMLElement | null = $state(null);
     let chart: IChartApi | null = $state(null);
@@ -61,6 +91,8 @@
     let allHistoryLoaded = $state(false);
     let lastRenderedTime: Time | null = $state(null);
     let lastRenderedCount = $state(0);
+    let lastRenderTimestamp = 0;
+    let renderThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
@@ -218,6 +250,10 @@
         );
 
         return () => {
+            if (renderThrottleTimer) {
+                clearTimeout(renderThrottleTimer);
+                renderThrottleTimer = null;
+            }
             timeScale.unsubscribeVisibleLogicalRangeChange(
                 handleVisibleLogicalRangeChange,
             );
@@ -333,30 +369,46 @@
                 const isLiveUpdate = lastRenderedTime === lastTime && klines.length === lastRenderedCount;
 
                 if (isLiveUpdate && !isInitialLoad) {
-                    // Fast Path: Update single candle
-                    try {
-                        const update = {
-                            time: lastTime,
-                            open: Number(lastKline.open),
-                            high: Number(lastKline.high),
-                            low: Number(lastKline.low),
-                            close: Number(lastKline.close),
-                        };
-                        candleSeries.update(update);
+                    const renderTick = () => {
+                        if (!candleSeries) return;
+                        try {
+                            const currentLastKline = klines[klines.length - 1];
+                            const currentLastTime = (currentLastKline.time / 1000) as Time;
+                            const update = {
+                                time: currentLastTime,
+                                open: Number(currentLastKline.open),
+                                high: Number(currentLastKline.high),
+                                low: Number(currentLastKline.low),
+                                close: Number(currentLastKline.close),
+                            };
+                            candleSeries.update(update);
 
-                        if (win.currentPrice !== undefined) {
-                            win.currentPrice = update.close.toFixed(2);
+                            if (win.currentPrice !== undefined) {
+                                win.currentPrice = update.close.toFixed(2);
+                            }
+                            lastRenderTimestamp = Date.now();
+                        } catch (e) {
+                            console.error("[CandleChartView] Live update failed, will full-render next cycle:", e);
+                            lastRenderedTime = null;
+                            lastRenderedCount = 0;
                         }
+                    };
 
-                        // Note: We skip full indicator recalculation for single tick updates to save CPU.
-                        // Ideally we would update the last point of indicators too, but that requires
-                        // incremental calculation support or re-running on the tail.
-                        // For now, indicators update only on new candles or full refreshes.
-                    } catch (e) {
-                        // Fallback to full render on next cycle
-                        console.error("[CandleChartView] Live update failed, will full-render next cycle:", e);
-                        lastRenderedTime = null;
-                        lastRenderedCount = 0;
+                    const now = Date.now();
+                    const throttleMs = settingsState.chartRenderIntervalMs ?? 0;
+
+                    if (throttleMs <= 0 || lastRenderTimestamp === 0 || now - lastRenderTimestamp >= throttleMs) {
+                        if (renderThrottleTimer) {
+                            clearTimeout(renderThrottleTimer);
+                            renderThrottleTimer = null;
+                        }
+                        renderTick();
+                    } else if (!renderThrottleTimer) {
+                        const remaining = throttleMs - (now - lastRenderTimestamp);
+                        renderThrottleTimer = setTimeout(() => {
+                            renderThrottleTimer = null;
+                            renderTick();
+                        }, Math.max(0, remaining));
                     }
                 } else {
                     // Slow Path: Full Render (History load or New Candle)
@@ -405,6 +457,7 @@
                                 ? unique[unique.length - 1].time
                                 : null;
                         lastRenderedCount = klines.length;
+                        lastRenderTimestamp = 0;
                         isInitialLoad = false;
 
                         // Update Indicators if enabled
@@ -485,8 +538,55 @@
 </script>
 
 <div
-    class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[rgba(255,255,255,0.05)]"
+    class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[rgba(255,255,255,0.05)] relative"
 >
+    {#if showTimeframeDropdown}
+        <div
+            class="absolute top-2 left-2 z-30 bg-[#1e222d] border border-[#2a2e39] rounded-xl p-3.5 shadow-2xl w-[320px] text-white flex flex-col gap-3 font-sans animate-fade-in"
+        >
+            <div class="flex justify-between items-center border-b border-[#2a2e39] pb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-300">Select period</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-amber-400 font-mono">
+                        {settingsState.favoriteTimeframes?.length || 0}/10 ★
+                    </span>
+                    <button
+                        class="text-gray-400 hover:text-white text-xs px-1"
+                        onclick={() => closeTimeframeDropdown?.()}
+                    >✕</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1.5 max-h-[260px] overflow-y-auto pr-1 custom-scrollbar">
+                {#each ALL_TIMEFRAMES as tf}
+                    {@const isFav = settingsState.favoriteTimeframes?.includes(tf)}
+                    {@const isActive = tf === timeframe}
+                    <div
+                        class="flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium border transition-all {isActive
+                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] shadow-md'
+                            : 'bg-[#2a2e39] border-transparent text-gray-200 hover:bg-[#363a45]'}"
+                    >
+                        <button
+                            type="button"
+                            class="flex-1 text-left font-medium outline-none cursor-pointer"
+                            onclick={() => setTimeframe?.(tf)}
+                        >
+                            {tf}
+                        </button>
+                        <button
+                            type="button"
+                            class="text-xs px-0.5 hover:scale-125 transition-transform outline-none cursor-pointer {isFav ? 'text-amber-400 font-bold' : 'text-gray-500 opacity-40 hover:opacity-100'}"
+                            onclick={(e) => toggleFavorite(tf, e)}
+                            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                            ★
+                        </button>
+                    </div>
+                {/each}
+            </div>
+        </div>
+    {/if}
+
     <div
         bind:this={chartContainer}
         class="chart-container flex-1 min-h-0 w-full relative"

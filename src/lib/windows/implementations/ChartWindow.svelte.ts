@@ -20,9 +20,10 @@
   Chart Window Implementation using Lightweight Charts
 */
 
-import { WindowBase, type WindowSerializedState } from "../WindowBase.svelte";
+import { WindowBase, type HeaderControl, type WindowSerializedState } from "../WindowBase.svelte";
 import { windowManager } from "../WindowManager.svelte";
 import { tradeState } from "../../../stores/trade.svelte";
+import { settingsState } from "../../../stores/settings.svelte";
 import CandleChartView from "./CandleChartView.svelte";
 import type { WindowOptions, ContextMenuAction } from "../types";
 
@@ -43,6 +44,7 @@ interface ChartWindowOptions extends WindowOptions {
 export class ChartWindow extends WindowBase {
     /** The active aggregation interval (e.g., 1h, 15m). */
     timeframe = $state("1h");
+    showTimeframeDropdown = $state(false);
 
     constructor(symbol: string, options: ChartWindowOptions = {}) {
         super({
@@ -60,27 +62,35 @@ export class ChartWindow extends WindowBase {
 
     /**
      * Generates the timeframe buttons displayed in the window header.
-     * Updates whenever the active timeframe changes.
+     * Dynamically pulls favorite timeframes from settingsState.
      */
     updateHeaderControls() {
-        const tfs = [
-            { label: "3m", value: "3m" },
-            { label: "5m", value: "5m" },
-            { label: "15m", value: "15m" },
-            { label: "1h", value: "1h" },
-            { label: "4h", value: "4h" },
-            { label: "1D", value: "1d" },
-            { label: "1W", value: "1w" },
-            { label: "1M", value: "1M" }
-        ];
-        this.headerControls = tfs.map(tf => ({
-            label: tf.label,
-            active: this.timeframe === tf.value,
+        const favs = settingsState.favoriteTimeframes && settingsState.favoriteTimeframes.length > 0
+            ? settingsState.favoriteTimeframes
+            : ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
+
+        const tfsToShow = Array.from(new Set([...favs, this.timeframe]));
+
+        const controls: HeaderControl[] = tfsToShow.map(tf => ({
+            label: tf,
+            active: this.timeframe === tf,
             action: () => {
-                this.timeframe = tf.value;
+                this.timeframe = tf;
                 this.updateHeaderControls();
             }
         }));
+
+        controls.push({
+            label: this.showTimeframeDropdown ? "▲" : "▼",
+            active: this.showTimeframeDropdown,
+            title: "Select period",
+            action: () => {
+                this.showTimeframeDropdown = !this.showTimeframeDropdown;
+                this.updateHeaderControls();
+            }
+        });
+
+        this.headerControls = controls;
     }
 
     /** The Svelte component used to render the chart content. */
@@ -94,8 +104,21 @@ export class ChartWindow extends WindowBase {
             symbol: this.symbol,
             timeframe: this.timeframe,
             showPriceInTitle: this.showPriceInTitle,
+            showTimeframeDropdown: this.showTimeframeDropdown,
+            toggleTimeframeDropdown: () => {
+                this.showTimeframeDropdown = !this.showTimeframeDropdown;
+                this.updateHeaderControls();
+            },
+            closeTimeframeDropdown: () => {
+                this.showTimeframeDropdown = false;
+                this.updateHeaderControls();
+            },
             setTimeframe: (tf: string) => {
                 this.timeframe = tf;
+                this.showTimeframeDropdown = false;
+                this.updateHeaderControls();
+            },
+            updateHeaderControls: () => {
                 this.updateHeaderControls();
             }
         };
