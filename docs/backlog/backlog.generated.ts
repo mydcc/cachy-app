@@ -863,24 +863,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0249-account-balance-reconciliation-stale-margin.md"
   },
   {
-    "id": "BUG-0250",
-    "title": "BitgetWS decimal initializations crash WebSocket processing loop due to unvalidated inputs",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P1",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "exchange",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0250-bitgetws-decimal-crash.md"
-  },
-  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
