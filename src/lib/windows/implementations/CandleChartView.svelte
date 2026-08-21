@@ -17,6 +17,7 @@
 
 <script lang="ts">
     import { onMount, untrack } from "svelte";
+    import { _ } from "../../../locales/i18n";
     import {
         createChart,
         ColorType,
@@ -52,7 +53,7 @@
         window: win,
         timeframe,
         showTimeframeDropdown = false,
-        toggleTimeframeDropdown,
+        toggleTimeframeDropdown: _toggleTimeframeDropdown,
         closeTimeframeDropdown,
         setTimeframe,
         updateHeaderControls,
@@ -71,6 +72,7 @@
         if (index >= 0) {
             current.splice(index, 1);
         } else {
+            if (current.length >= 10) return;
             current.push(tf);
         }
         settingsState.favoriteTimeframes = current;
@@ -542,17 +544,19 @@
 >
     {#if showTimeframeDropdown}
         <div
-            class="absolute top-2 left-2 z-30 bg-[#1e222d] border border-[#2a2e39] rounded-xl p-3.5 shadow-2xl w-[320px] text-white flex flex-col gap-3 font-sans animate-fade-in"
+            class="absolute top-2 left-2 z-30 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-3.5 shadow-2xl w-[320px] text-[var(--text-primary)] flex flex-col gap-3 font-sans animate-fade-in"
         >
-            <div class="flex justify-between items-center border-b border-[#2a2e39] pb-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-gray-300">Select period</span>
+            <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{$_("settings.trading.selectPeriod")}</span>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] text-amber-400 font-mono">
+                    <span class="text-[10px] text-[var(--warning-color)] font-mono">
                         {settingsState.favoriteTimeframes?.length || 0}/10 ★
                     </span>
                     <button
-                        class="text-gray-400 hover:text-white text-xs px-1"
+                        type="button"
+                        class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs px-1"
                         onclick={() => closeTimeframeDropdown?.()}
+                        aria-label={$_("common.close")}
                     >✕</button>
                 </div>
             </div>
@@ -564,7 +568,7 @@
                     <div
                         class="flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-medium border transition-all {isActive
                             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] shadow-md'
-                            : 'bg-[#2a2e39] border-transparent text-gray-200 hover:bg-[#363a45]'}"
+                            : 'bg-[var(--bg-tertiary)] border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]'}"
                     >
                         <button
                             type="button"
@@ -575,9 +579,9 @@
                         </button>
                         <button
                             type="button"
-                            class="text-xs px-0.5 hover:scale-125 transition-transform outline-none cursor-pointer {isFav ? 'text-amber-400 font-bold' : 'text-gray-500 opacity-40 hover:opacity-100'}"
+                            class="text-xs px-0.5 hover:scale-125 transition-transform outline-none cursor-pointer {isFav ? 'text-[var(--warning-color)] font-bold' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}"
                             onclick={(e) => toggleFavorite(tf, e)}
-                            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                            title={isFav ? $_("marketOverview.tooltips.removeFavorite") : $_("marketOverview.tooltips.addFavorite")}
                         >
                             ★
                         </button>

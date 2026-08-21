@@ -1482,6 +1482,7 @@ export type TranslationKey =
   | "settings.trading.showTechnicalAnalysis"
   | "settings.trading.historyLength"
   | "settings.trading.moreHistoryDesc"
+  | "settings.trading.selectPeriod"
   | "settings.trading.chartUpdateInterval"
   | "settings.trading.chartUpdateIntervalDesc"
   | "settings.trading.automationTitle"

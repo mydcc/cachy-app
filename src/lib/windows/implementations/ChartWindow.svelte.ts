@@ -83,7 +83,6 @@ export class ChartWindow extends WindowBase {
         controls.push({
             label: this.showTimeframeDropdown ? "▲" : "▼",
             active: this.showTimeframeDropdown,
-            title: "Select period",
             action: () => {
                 this.showTimeframeDropdown = !this.showTimeframeDropdown;
                 this.updateHeaderControls();
