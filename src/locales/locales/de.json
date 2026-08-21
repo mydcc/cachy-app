@@ -1835,6 +1835,8 @@
     "maxFavorites": "Maximale Anzahl an Favoriten erreicht (12)."
   },
   "common": {
+    "toggleVideoTooltip": "Linksklick: Genesis umschalten | Rechtsklick: Weitere Kanäle",
+    "channels": "Kanäle",
     "save": "Speichern",
     "cancel": "Abbrechen",
     "ok": "OK",

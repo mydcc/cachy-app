@@ -1819,6 +1819,8 @@
     "maxFavorites": "Maximum number of favorites reached (12)."
   },
   "common": {
+    "toggleVideoTooltip": "Left-Click: Toggle Genesis | Right-Click: More Channels",
+    "channels": "Channels",
     "save": "Save",
     "cancel": "Cancel",
     "ok": "OK",
