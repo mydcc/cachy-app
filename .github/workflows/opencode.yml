@@ -61,7 +61,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           # Swap for a stronger model here once a provider key is configured.
-          model: google/gemini-3-flash
+          model: google/gemini-3.6-flash
           # Keep the session private even on this public repo.
           share: false
 
@@ -101,7 +101,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: google/gemini-3-flash
+          model: google/gemini-3.6-flash
           # Keep the session private even on this public repo.
           share: false
           prompt: |
@@ -151,7 +151,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: google/gemini-3-flash
+          model: google/gemini-3.6-flash
           # Keep the session private even on this public repo.
           share: false
           prompt: |
@@ -188,7 +188,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: google/gemini-3-flash
+          model: google/gemini-3.6-flash
           # Keep the session private even on this public repo.
           share: false
           prompt: ${{ inputs.task }}
