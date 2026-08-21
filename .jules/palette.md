@@ -21,3 +21,6 @@
 ## 2025-02-23 - GitHub Actions setup corrections
 **Learning:** `actions/checkout@v6` does not exist and fails GitHub Actions workflows. The opencode action model `opencode/deepseek-v4-flash-free` was unavailable in CI, leading to a build failure.
 **Action:** Replaced `actions/checkout@v6` with `actions/checkout@v4` and changed the model in `.github/workflows/opencode.yml` to `gemini-3-flash` based on the error output's suggestion.
+## 2025-02-23 - GitHub Actions setup corrections (Follow-up)
+**Learning:** OpenCode requires the model name to be fully qualified with the provider. `gemini-3-flash` is invalid; it must be `google/gemini-3-flash`.
+**Action:** Replaced `gemini-3-flash` with `google/gemini-3-flash` in `.github/workflows/opencode.yml`.
