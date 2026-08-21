@@ -2,9 +2,9 @@
 
 # Backlog index
 
-142 items. How to read and add them: [README.md](README.md).
+143 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ done 101
+Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ done 102
 
 ---
 
@@ -65,7 +65,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0065](bugs/BUG-0065-market-price-buffer-clobbered-by-partial-push.md) | A partial WS price push can erase a real markPrice buffered earlier in the same flush window | P1 | ✅ done | trade-panel |
 | [BUG-0215](bugs/BUG-0215-order-refusal-placeholders.md) | Gate refusals render raw placeholders and refuse every paper order | P1 | ✅ done | trade-panel |
 | [BUG-0219](bugs/BUG-0219-place-order-ordertype-field.md) | place_order never received an order type, so every limit order failed | P1 | ✅ done | execution |
-| [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | 🟡 in-progress | ui |
+| [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | ✅ done | ui |
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | 📋 specced | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
@@ -178,6 +178,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) | Favourites live in two stores that never agree, so Settings has no effect on what gets analysed | P2 | ✅ done | settings |
 | [BUG-0237](bugs/BUG-0237-stream-logs-timing-safe-comparison-hash.md) | Stream logs authentication leaks secret length before timing-safe comparison | P2 | ✅ done | security |
 | [BUG-0238](bugs/BUG-0238-gemini-proxy-model-param-sanitization.md) | Gemini AI proxy passes unvalidated model parameter into API path | P2 | ✅ done | security |
+| [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | 📋 specced | exchange |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -248,7 +249,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0241](bugs/BUG-0241-custom-prompt-overwrites-safety.md) | customSystemPrompt completely overwrites baseRoleInstructions and safety rules | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | ✅ done | M8 | community, pro, private | none | none | — |
-| [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
+| [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -301,6 +302,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0238](bugs/BUG-0238-gemini-proxy-model-param-sanitization.md) | Gemini AI proxy passes unvalidated model parameter into API path | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0244](bugs/BUG-0244-fragile-prompt-leak-workaround.md) | Gemini/Gemma prompt leak guard uses fragile chunk length heuristic | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0246](bugs/BUG-0246-implicit-analysis-mode-coupling.md) | Implicit coupling of empty string to standard behaviour in modeInstructions | P2 | ✅ done | M8 | community, pro, private | none | none | — |
+| [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -358,4 +360,4 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 
 ---
 
-Next free number: **0250**
+Next free number: **0251**

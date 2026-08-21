@@ -18,6 +18,12 @@ on:
         required: true
         type: string
 
+# Single place to change the model for every opencode job below. Uses a free
+# OpenCode Zen model with a zero-retention policy (code is not used for
+# training); the free lineup rotates, so swap the value here when needed.
+env:
+  OPENCODE_MODEL: oc/x-preview-f-free
+
 jobs:
   # Interactive: mention /oc or /opencode in an issue or PR comment to trigger a
   # task (e.g. "/oc explain this issue", "/oc fix this", "/oc <change>" on a PR).
@@ -51,7 +57,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -60,8 +66,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          # Swap for a stronger model here once a provider key is configured.
-          model: opencode/deepseek-v4-flash-free
+          model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
 
@@ -92,7 +97,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -101,7 +106,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/deepseek-v4-flash-free
+          model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
           prompt: |
@@ -142,7 +147,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -151,7 +156,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/deepseek-v4-flash-free
+          model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
           prompt: |
@@ -179,7 +184,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -188,7 +193,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: opencode/deepseek-v4-flash-free
+          model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
           prompt: ${{ inputs.task }}

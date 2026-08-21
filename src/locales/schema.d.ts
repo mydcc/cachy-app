@@ -1608,6 +1608,8 @@ export type TranslationKey =
   | "symbolPicker.volFilter.10m"
   | "symbolPicker.volFilter.50m"
   | "symbolPicker.maxFavorites"
+  | "common.toggleVideoTooltip"
+  | "common.channels"
   | "common.save"
   | "common.cancel"
   | "common.ok"
