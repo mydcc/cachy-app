@@ -31,11 +31,11 @@
     }
 
     interface Props {
-        // Props - Metrics from derived stores
         performanceData: PerformanceData;
         qualityData: QualityData;
         isPro?: boolean;
         minimal?: boolean;
+        currency?: string;
     }
 
     let {
@@ -43,6 +43,7 @@
         qualityData,
         isPro = false,
         minimal = false,
+        currency = "USDT",
     }: Props = $props();
 </script>
 
@@ -52,9 +53,7 @@
             <div class="stats-minimal">
                 <!-- Total P/L -->
                 <div class="stat-mini">
-                    <span class="mini-label"
-                        >{$_("journal.stats.totalPnL")}</span
-                    >
+                    <span class="mini-label">{$_("journal.stats.totalPnL")}</span>
                     <span
                         class="mini-value"
                         class:positive={(performanceData?.totalPnl ?? 0) >= 0}
@@ -62,14 +61,13 @@
                     >
                         {(performanceData?.totalPnl ?? 0) >= 0 ? "+" : ""}{(
                             performanceData?.totalPnl ?? 0
-                        ).toFixed(0)}$
+                        ).toFixed(0)} {currency}
                     </span>
                 </div>
 
                 <!-- Win Rate -->
                 <div class="stat-mini">
-                    <span class="mini-label">{$_("journal.stats.winRate")}</span
-                    >
+                    <span class="mini-label">{$_("journal.stats.winRate")}</span>
                     <span class="mini-value">
                         {(performanceData?.winRate ?? 0).toFixed(0)}%
                     </span>
@@ -77,9 +75,7 @@
 
                 <!-- Profit Factor -->
                 <div class="stat-mini">
-                    <span class="mini-label"
-                        >{$_("journal.stats.profitFactor")}</span
-                    >
+                    <span class="mini-label">{$_("journal.stats.profitFactor")}</span>
                     <span class="mini-value">
                         {(performanceData?.profitFactor ?? 0).toFixed(1)}
                     </span>
@@ -87,9 +83,7 @@
 
                 <!-- Total Trades -->
                 <div class="stat-mini">
-                    <span class="mini-label"
-                        >{$_("journal.stats.totalTrades")}</span
-                    >
+                    <span class="mini-label">{$_("journal.stats.totalTrades")}</span>
                     <span class="mini-value">
                         {performanceData?.totalTrades ?? 0}
                     </span>
@@ -105,11 +99,9 @@
 
                 <!-- Max DD -->
                 <div class="stat-mini">
-                    <span class="mini-label"
-                        >{$_("journal.stats.maxDrawdown")}</span
-                    >
+                    <span class="mini-label">{$_("journal.stats.maxDrawdown")}</span>
                     <span class="mini-value negative">
-                        -{(performanceData?.maxDrawdown ?? 0).toFixed(0)}$
+                        -{(performanceData?.maxDrawdown ?? 0).toFixed(0)} {currency}
                     </span>
                 </div>
             </div>
@@ -125,7 +117,7 @@
                     >
                         {(performanceData?.totalPnl ?? 0) >= 0 ? "+" : ""}{(
                             performanceData?.totalPnl ?? 0
-                        ).toFixed(2)} $
+                        ).toFixed(2)} {currency}
                     </div>
                 </div>
 
@@ -143,15 +135,11 @@
 
                 <!-- Profit Factor -->
                 <div class="stat-card">
-                    <div class="stat-label">
-                        {$_("journal.stats.profitFactor")}
-                    </div>
+                    <div class="stat-label">{$_("journal.stats.profitFactor")}</div>
                     <div
                         class="stat-value"
-                        class:positive={(performanceData?.profitFactor ?? 0) >=
-                            1.5}
-                        class:neutral={(performanceData?.profitFactor ?? 0) <
-                            1.5}
+                        class:positive={(performanceData?.profitFactor ?? 0) >= 1.5}
+                        class:neutral={(performanceData?.profitFactor ?? 0) < 1.5}
                     >
                         {(performanceData?.profitFactor ?? 0).toFixed(2)}
                     </div>
@@ -159,9 +147,7 @@
 
                 <!-- Total Trades -->
                 <div class="stat-card">
-                    <div class="stat-label">
-                        {$_("journal.stats.totalTrades")}
-                    </div>
+                    <div class="stat-label">{$_("journal.stats.totalTrades")}</div>
                     <div class="stat-value neutral">
                         {performanceData?.totalTrades ?? 0}
                     </div>
@@ -181,11 +167,9 @@
 
                 <!-- Max Drawdown -->
                 <div class="stat-card">
-                    <div class="stat-label">
-                        {$_("journal.stats.maxDrawdown")}
-                    </div>
+                    <div class="stat-label">{$_("journal.stats.maxDrawdown")}</div>
                     <div class="stat-value negative">
-                        {(performanceData?.maxDrawdown ?? 0).toFixed(2)} $
+                        -{(performanceData?.maxDrawdown ?? 0).toFixed(2)} {currency}
                     </div>
                 </div>
             </div>

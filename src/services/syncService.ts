@@ -467,6 +467,24 @@ export const syncService = {
             if (riskAmount.gt(0)) totalRR = netPnl.div(riskAmount);
           }
 
+          const rawPos = p as unknown as Record<string, unknown>;
+          const rawEntryFee = rawPos.openFee ?? rawPos.entryFee;
+          const rawExitFee = rawPos.closeFee ?? rawPos.exitFee;
+          let entryFee = rawEntryFee !== undefined ? new Decimal(rawEntryFee as string | number).abs() : undefined;
+          let exitFee = rawExitFee !== undefined ? new Decimal(rawExitFee as string | number).abs() : undefined;
+          if (!entryFee && !exitFee && fee.abs().gt(0)) {
+            const entryNotional = entryPrice.times(qty);
+            const exitNotional = closePrice.times(qty);
+            const totalNotional = entryNotional.plus(exitNotional);
+            if (totalNotional.gt(0)) {
+              entryFee = fee.abs().times(entryNotional).div(totalNotional);
+              exitFee = fee.abs().minus(entryFee);
+            } else {
+              entryFee = fee.abs().div(2);
+              exitFee = fee.abs().minus(entryFee);
+            }
+          }
+
           addedCount++;
 
           return {
@@ -491,6 +509,10 @@ export const syncService = {
             totalNetProfit: netPnl,
             riskAmount,
             totalFees: fee.abs().plus(funding.abs()),
+            entryFee,
+            exitFee,
+            entryFeeType: "taker" as const,
+            exitFeeType: "taker" as const,
             notes: `Synced Position. Funding: ${funding.toFixed(4)}`,
             isManual: false,
             positionSize: qty,

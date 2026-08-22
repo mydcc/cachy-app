@@ -461,6 +461,8 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
     "netLoss",
     "riskAmount",
     "totalFees",
+    "entryFee",
+    "exitFee",
     "maxPotentialProfit",
     "positionSize",
     "fundingFee",
