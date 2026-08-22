@@ -70,6 +70,12 @@ function baseInput(overrides: Partial<Parameters<PriceLineManager["update"]>[0]>
         stopLoss: { orderId: "sl-1", triggerPrice: new Decimal(90) },
         tickSize: new Decimal(1),
         readOnly: false,
+        colors: {
+            entry: "#787b86",
+            liquidation: "#ef5350",
+            takeProfit: "#26a69a",
+            stopLoss: "#ef5350",
+        },
         ...overrides,
     };
 }

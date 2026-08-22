@@ -76,6 +76,13 @@ export interface PriceLineUpdateInput {
     tickSize: Decimal;
     /** `supports.tpSl === false` on the active exchange — lines are shown but not draggable. */
     readOnly: boolean;
+    /** Theme-aware colors from the host (CandleChartView). If omitted, uses fallback hex values. */
+    colors?: {
+        entry: string;
+        liquidation: string;
+        takeProfit: string;
+        stopLoss: string;
+    };
 }
 
 export interface PriceLineManagerCallbacks {
@@ -180,15 +187,17 @@ export class PriceLineManager {
         // under the user's cursor.
         this.lastInput = input;
 
+        const colors = input.colors ?? COLORS;
+
         this.syncLine(
             "entryLine",
             input.position ? { price: input.position.entryPrice, title: "Entry" } : null,
-            COLORS.entry,
+            colors.entry,
         );
         this.syncLine(
             "liquidationLine",
             input.position ? { price: input.position.liquidationPrice, title: "Liq." } : null,
-            COLORS.liquidation,
+            colors.liquidation,
         );
 
         const tpTitle =
@@ -199,7 +208,7 @@ export class PriceLineManager {
             this.syncLine(
                 "takeProfitLine",
                 input.takeProfit ? { price: input.takeProfit.triggerPrice, title: tpTitle } : null,
-                COLORS.takeProfit,
+                colors.takeProfit,
             );
         }
 
@@ -211,7 +220,7 @@ export class PriceLineManager {
             this.syncLine(
                 "stopLossLine",
                 input.stopLoss ? { price: input.stopLoss.triggerPrice, title: slTitle } : null,
-                COLORS.stopLoss,
+                colors.stopLoss,
             );
         }
     }

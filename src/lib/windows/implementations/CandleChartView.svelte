@@ -311,13 +311,13 @@
                 triggerPrice: price.toString(),
             });
             toastService.success(
-                get(_)("trade.tpSlUpdated" as import("../../../locales/schema").TranslationKey) ||
+                get(_)("trade.tpSlUpdated") ||
                     "TP/SL updated",
             );
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
             toastService.error(
-                get(_)("trade.tpSlUpdateFailed" as import("../../../locales/schema").TranslationKey, {
+                get(_)("trade.tpSlUpdateFailed", {
                     values: { msg },
                 }) || `TP/SL update failed: ${msg}`,
             );
@@ -642,6 +642,12 @@
                     : null,
                 tickSize,
                 readOnly,
+                colors: {
+                    entry: getVar("--text-secondary") || "#787b86",
+                    liquidation: getVar("--danger-color") || "#ef5350",
+                    takeProfit: getVar("--success-color") || "#26a69a",
+                    stopLoss: getVar("--danger-color") || "#ef5350",
+                },
             });
         });
     });
