@@ -128,6 +128,29 @@ export class SecretsLoader {
   }
 
   /**
+   * Device-key loss detection via the `_deviceKeyCanary` blob that
+   * `applyFieldEncryption` always writes: if the canary cannot be decrypted
+   * with the current device key, IndexedDB lost its key and **every**
+   * encrypted secret is unrecoverable until re-entered. Distinguishes this
+   * total-loss case from single corrupted blobs (plain failure count).
+   * Legacy data without a canary counts as "not lost" to avoid false alarms.
+   */
+  async isDeviceKeyLost(
+    encryptedSecrets: Record<string, EncryptedBlob> | undefined,
+  ): Promise<boolean> {
+    const canary = encryptedSecrets?.["_deviceKeyCanary"];
+    if (!canary) return false;
+    try {
+      const hasStoredSecrets = Object.keys(encryptedSecrets || {}).length > 0;
+      const deviceKey = await this.getDeviceKey(hasStoredSecrets);
+      await cryptoService.decrypt(canary, deviceKey);
+      return false;
+    } catch {
+      return true;
+    }
+  }
+
+  /**
    * Decrypts `encryptedSecrets` in obfuscation mode (no master password) and
    * writes each decrypted `SENSITIVE_KEYS` value back via `setSensitiveField`.
    * Returns the failure count. The caller is responsible for resolving

@@ -73,13 +73,23 @@
     </div>
 
     <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-        {#if settingsState.decryptionFailures > 0}
+        {#if settingsState.decryptionFailures > 0 || settingsState.deviceKeyLost}
             <div class="mb-6 flex items-start gap-3 text-sm text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--warning-color)] p-4 rounded-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                 <div class="flex flex-col">
-                    <strong class="text-[var(--text-primary)] mb-1">{$_("settings.decryptionWarningTitle") || "Security Warning"} ({settingsState.decryptionFailures})</strong>
+                    <strong class="text-[var(--text-primary)] mb-1">
+                        {#if settingsState.deviceKeyLost}
+                            {$_("settings.deviceKeyLostTitle")}
+                        {:else}
+                            {$_("settings.decryptionWarningTitle")} ({settingsState.decryptionFailures})
+                        {/if}
+                    </strong>
                     <span class="text-[var(--text-secondary)] text-xs">
-                        {$_("settings.decryptionWarningMessage") || "saved key(s) could not be read due to device storage reset and need to be re-entered to restore connection."}
+                        {#if settingsState.deviceKeyLost}
+                            {$_("settings.deviceKeyLostDesc")}
+                        {:else}
+                            {$_("settings.decryptionWarningMessage")}
+                        {/if}
                     </span>
                 </div>
             </div>

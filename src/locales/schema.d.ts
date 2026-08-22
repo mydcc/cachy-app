@@ -718,6 +718,8 @@ export type TranslationKey =
   | "languages.en"
   | "settings.decryptionWarningTitle"
   | "settings.decryptionWarningMessage"
+  | "settings.deviceKeyLostTitle"
+  | "settings.deviceKeyLostDesc"
   | "settings.calculation.analyzeFavorites"
   | "settings.calculation.analyzeFavoritesBadgeAll"
   | "settings.calculation.analyzeFavoritesBadgeTop"
