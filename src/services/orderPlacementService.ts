@@ -109,6 +109,14 @@ export interface EntryPlan {
 /** How many times a missing stop is re-placed before it is called failed. */
 export const STOP_RETRY_ATTEMPTS = 2;
 
+/**
+ * Wait between retries. Bitunix attaches a bracket TP/SL to a just-filled
+ * entry as a separate, asynchronous step on its side — observed to take a
+ * couple of seconds. Retrying immediately raced that step and always lost,
+ * turning a genuinely-protected position into a false "unprotected" alarm.
+ */
+export const STOP_RETRY_DELAY_MS = 1200;
+
 class OrderPlacementService {
     /**
      * Places the entry together with whatever protection the exchange
@@ -228,6 +236,7 @@ class OrderPlacementService {
                     `[Placement] Stop not present for ${plan.symbol}, retry ${attempt + 1}/${STOP_RETRY_ATTEMPTS}`,
                 );
                 await this.replaceStop(plan);
+                await new Promise((resolve) => setTimeout(resolve, STOP_RETRY_DELAY_MS));
                 continue;
             }
 
