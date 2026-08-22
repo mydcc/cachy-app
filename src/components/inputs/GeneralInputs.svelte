@@ -103,10 +103,10 @@
   <h2 class="section-header" id="trade-type-label">
     {$_("dashboard.generalInputs.header")}
   </h2>
-  <div class="grid grid-cols-1 gap-4 mb-4">
+  <div class="grid grid-cols-1 gap-3 mb-4">
     <!-- Trade Type Switch -->
     <div
-      class="trade-type-switch p-1 rounded-lg flex"
+      class="trade-type-switch p-1 rounded-lg flex h-[56px] gap-1"
       role="radiogroup"
       aria-labelledby="trade-type-label"
     >
@@ -115,7 +115,7 @@
         name="tradeType"
         data-track-id="trade-type-long"
         value={CONSTANTS.TRADE_TYPE_LONG}
-        class="long w-1/2"
+        class="long w-1/2 h-full flex items-center justify-center text-sm font-semibold uppercase tracking-wider rounded-md"
         class:active={tradeType === CONSTANTS.TRADE_TYPE_LONG}
         role="radio"
         aria-checked={tradeType === CONSTANTS.TRADE_TYPE_LONG}
@@ -127,7 +127,7 @@
         name="tradeType"
         data-track-id="trade-type-short"
         value={CONSTANTS.TRADE_TYPE_SHORT}
-        class="short w-1/2"
+        class="short w-1/2 h-full flex items-center justify-center text-sm font-semibold uppercase tracking-wider rounded-md"
         class:active={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
         role="radio"
         aria-checked={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
@@ -136,83 +136,86 @@
       >
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
       <!-- Leverage Input Wrapper -->
-      <div class="relative">
+      <div>
         <label
           for="leverage-input"
-          class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
+          class="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block"
           >{$_("dashboard.generalInputs.leverage")}</label
         >
-        <input
-          id="leverage-input"
-          name="leverage"
-          type="text"
-          data-track-id="input-leverage"
-          use:numberInput={{
-            noDecimals: true,
-            maxValue: 125,
-            minValue: 1,
-          }}
-          use:enhancedInput={{
-            step: 1,
-            min: 1,
-            max: 125,
-            noDecimals: true,
-            hasAction: remoteLev !== undefined,
-          }}
-          value={format(leverage)}
-          oninput={handleLeverageInput}
-          class="input-field w-full px-4 py-2 rounded-md transition-colors"
-          class:border-green-500={isLeverageSynced}
-          class:text-green-400={isLeverageSynced}
-          placeholder={$_("dashboard.generalInputs.leveragePlaceholder")}
-        />
-        <!-- Sync Indicator -->
-        {#if remoteLev !== undefined}
-          <button
-            class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
-            style="background-color: {isLeverageSynced
-              ? 'var(--success-color)'
-              : 'var(--warning-color)'};"
-            data-track-id="btn-sync-leverage"
-            title={isLeverageSynced
-              ? $_("dashboard.generalInputs.syncedWithApi")
-              : $_("dashboard.generalInputs.manualOverride", {
-                  values: { value: remoteLev + "x" },
-                })}
-            onclick={syncLeverage}
-          ></button>
-        {/if}
+        <div class="relative">
+          <input
+            id="leverage-input"
+            name="leverage"
+            type="text"
+            data-track-id="input-leverage"
+            use:numberInput={{
+              noDecimals: true,
+              maxValue: 125,
+              minValue: 1,
+            }}
+            use:enhancedInput={{
+              step: 1,
+              min: 1,
+              max: 125,
+              noDecimals: true,
+              hasAction: remoteLev !== undefined,
+            }}
+            value={format(leverage)}
+            oninput={handleLeverageInput}
+            class="input-field w-full px-3 rounded-md transition-colors text-sm"
+            class:border-green-500={isLeverageSynced}
+            class:text-green-400={isLeverageSynced}
+            placeholder={$_("dashboard.generalInputs.leveragePlaceholder")}
+          />
+          <!-- Sync Indicator -->
+          {#if remoteLev !== undefined}
+            <button
+              class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
+              style="background-color: {isLeverageSynced
+                ? 'var(--success-color)'
+                : 'var(--warning-color)'};"
+              data-track-id="btn-sync-leverage"
+              title={isLeverageSynced
+                ? $_("dashboard.generalInputs.syncedWithApi")
+                : $_("dashboard.generalInputs.manualOverride", {
+                    values: { value: remoteLev + "x" },
+                  })}
+              onclick={syncLeverage}
+            ></button>
+          {/if}
+        </div>
       </div>
 
       <!-- Fees Input Wrapper -->
-      <div class="relative">
+      <div>
         <label
           for="fees-input"
-          class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
+          class="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block"
           >{$_("dashboard.generalInputs.fees")}</label
         >
-        <input
-          id="fees-input"
-          name="fees"
-          type="text"
-          data-track-id="input-fees"
-          use:numberInput={{ maxDecimalPlaces: 4 }}
-          use:enhancedInput={{
-            step: 0.01,
-            min: 0,
-            hasAction: targetRemoteFee !== undefined,
-          }}
-          value={format(fees)}
-          oninput={handleFeesInput}
-          class="input-field w-full px-4 py-2 rounded-md transition-colors"
-          class:border-green-500={isFeeSynced}
-          class:text-green-400={isFeeSynced}
-          placeholder={$_("dashboard.generalInputs.feesPlaceholder")}
-        />
-        <!-- Sync Indicator for Fees -->
-        {#if targetRemoteFee !== undefined}
+        <div class="relative">
+          <input
+            id="fees-input"
+            name="fees"
+            type="text"
+            data-track-id="input-fees"
+            use:numberInput={{ maxDecimalPlaces: 4 }}
+            use:enhancedInput={{
+              step: 0.01,
+              min: 0,
+              hasAction: targetRemoteFee !== undefined,
+            }}
+            value={format(fees)}
+            oninput={handleFeesInput}
+            class="input-field w-full px-3 rounded-md transition-colors text-sm"
+            class:border-green-500={isFeeSynced}
+            class:text-green-400={isFeeSynced}
+            placeholder={$_("dashboard.generalInputs.feesPlaceholder")}
+          />
+          <!-- Sync Indicator for Fees -->
+          {#if targetRemoteFee !== undefined}
           <button
             class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
             style="background-color: {isFeeSynced
@@ -242,6 +245,7 @@
     <!-- Spacer -->
     <div class="mb-0"></div>
   </div>
+</div>
 </div>
 
 <style>

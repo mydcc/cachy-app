@@ -387,6 +387,7 @@
     "summaryResults": {
       "header": "Zusammenfassung",
       "positionSizeLabel": "Positionsgröße",
+      "positionSizeTooltip": "Das gesamte kalkulierte Handelsvolumen für diesen Trade (in Basiswährung bzw. Kontrakten). Es basiert auf deinem definierten Risiko-Betrag, dem Abstand zum Stop-Loss und den anfallenden Gebühren.",
       "lockPositionSizeTitle": "Positionsgröße sperren/entsperren",
       "lockPositionSizeAriaLabel": "Positionsgröße sperren/entsperren",
       "copyPositionSizeAriaLabel": "Positionsgröße kopieren",

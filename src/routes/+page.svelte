@@ -547,7 +547,7 @@
       </div>
       <div id="tp-results-container">
         {#each resultsState.calculatedTpDetails as tpDetail}
-          <div class="result-group !mt-0 md:!mt-6">
+          <div class="result-group">
             <h2 class="section-header">
               {$_("dashboard.takeProfit")}
               {tpDetail.index + 1} ({tpDetail.percentSold.toFixed(0)}%)
@@ -640,15 +640,15 @@
       <footer class="md:col-span-2">
         <textarea
           id="tradeNotes"
-          class="input-field w-full px-4 py-2 rounded-md mb-4"
+          class="input-field w-full px-3 py-2 rounded-md mb-4 text-sm"
           rows="2"
           placeholder={$_("dashboard.tradeNotesPlaceholder")}
           bind:value={tradeState.tradeNotes}
         ></textarea>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
           <button
             id="save-journal-btn"
-            class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action"
+            class="w-full font-semibold h-12 px-4 rounded-lg btn-primary-action flex items-center justify-center"
             class:pro-execute={settingsState.entitlement.capabilities.tradeExecution}
             onclick={async () => {
               if (settingsState.entitlement.capabilities.tradeExecution) {
@@ -675,7 +675,7 @@
           >
           <button
             id="show-dashboard-readme-btn"
-            class="font-bold p-3 rounded-lg btn-secondary-action"
+            class="font-semibold h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-lg btn-secondary-action"
             title={$_("dashboard.showInstructionsTitle")}
             aria-label={$_("dashboard.showInstructionsAriaLabel")}
             onclick={() => uiState.toggleGuideModal(true)}
