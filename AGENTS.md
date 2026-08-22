@@ -56,6 +56,11 @@ The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts
 
 **Performance:** No heavy computations (sort/filter/map) directly in template `{#each}` — prepare with `$derived` beforehand.
 
+**Iframe & 3D Metaverse Protection (Non-Negotiable):**
+- Never set `Cross-Origin-Embedder-Policy` (COEP) (neither `credentialless` nor `require-corp`). It breaks cross-origin iframes (Unity Metaverse `space.cachy.app`, embedded news articles, etc.).
+- `Permissions-Policy` MUST delegate permissions needed for 3D Metaverse (`space.cachy.app`) and embedded views (camera, microphone, xr-spatial-tracking, display-capture, fullscreen, autoplay, accelerometer, gyroscope, clipboard-write, encrypted-media, picture-in-picture, web-share, geolocation). Never restrict them to empty `()` (e.g. `camera=()`, `geolocation=()`).
+- `Content-Security-Policy` `frame-src` MUST allow `'self'`, `https://space.cachy.app`, `https://s.cachy.app`, `https:`, `blob:`, `data:`.
+
 ## Verification Before Marking Completed
 
 After every change: run `npm run check` and the affected tests — see "Run targeted tests, not the whole suite" above. A task is considered completed ONLY when type checks and tests pass — do not claim completion beforehand.
