@@ -209,8 +209,8 @@
   });
 </script>
 
-<div>
-  <h2 class="section-header !mt-6">
+<div class="mb-4">
+  <h2 class="section-header">
     {$_("dashboard.portfolioInputs.header")}
   </h2>
   <div class="flex flex-nowrap items-end gap-2 justify-start w-full">

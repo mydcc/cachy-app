@@ -36,33 +36,41 @@
 
   let { targets = $bindable(), calculatedTpDetails = [] }: Props = $props();
 
+  // Ensure TP1 is always present
+  $effect(() => {
+    if (targets.length === 0) {
+      targets = [{ price: null, percent: "100", isLocked: false }];
+    }
+  });
+
   function addRow() {
     app.addTakeProfitRow();
   }
 
   function removeRow(index: number) {
+    if (index === 0) return;
     app.removeTakeProfitRow(index);
     dispatch("remove", index);
   }
 </script>
 
-<div class="mt-4">
-  <div class="section-header !mt-4">
+<div class="mb-4">
+  <!-- Section Header -->
+  <div class="section-header flex justify-between items-center mb-2">
     <span>{$_("dashboard.takeProfitTargets.header")}</span>
 
     <div class="flex items-center gap-2">
-      <Tooltip text={$_("dashboard.takeProfitTargets.tooltip")} />
-
-      {#if targets.length < 10}
+      {#if targets.length < 4}
         <button
           class="text-[var(--accent-color)] hover:text-[var(--accent-hover)] transition-colors p-1"
           onclick={addRow}
           title={$_("dashboard.takeProfitTargets.addTargetTitle")}
+          aria-label={$_("dashboard.takeProfitTargets.addTargetTitle")}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="18"
+            height="18"
             fill="currentColor"
             viewBox="0 0 16 16"
           >
@@ -76,21 +84,15 @@
     </div>
   </div>
 
-  {#if targets.length === 0}
-    <div
-      class="text-center p-4 border border-dashed border-[var(--border-color)] rounded-lg text-[var(--text-secondary)] text-sm"
-    >
-      {$_("dashboard.takeProfitTargets.emptyState")}
-    </div>
-  {/if}
-
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-    {#each targets as target, i}
+  <!-- Target Rows (clean vertical list) -->
+  <div class="space-y-2">
+    {#each targets as target, i (i)}
       <TakeProfitRow
         index={i}
         price={target.price}
         percent={target.percent}
         isLocked={target.isLocked}
+        canRemove={i > 0}
         tpDetail={calculatedTpDetails.find((d) => d.index === i)}
         on:remove={() => removeRow(i)}
       />

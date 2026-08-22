@@ -393,8 +393,6 @@
           bind:fees={tradeState.fees}
         />
 
-        <TagInputs tags={tradeState.tags} />
-
         <PortfolioInputs
           bind:accountSize={tradeState.accountSize}
           bind:riskPercentage={tradeState.riskPercentage}
@@ -403,41 +401,47 @@
           isPositionSizeLocked={tradeState.isPositionSizeLocked}
           on:toggleRiskAmountLock={() => app.toggleRiskAmountLock()}
         />
+
+        <PlaceOrderPanel />
       </div>
 
-      <TradeSetupInputs
-        bind:symbol={tradeState.symbol}
-        bind:entryPrice={tradeState.entryPrice}
-        bind:useAtrSl={tradeState.useAtrSl}
-        bind:atrValue={tradeState.atrValue}
-        bind:atrMultiplier={tradeState.atrMultiplier}
-        bind:stopLossPrice={tradeState.stopLossPrice}
-        bind:atrMode={tradeState.atrMode}
-        bind:atrTimeframe={tradeState.atrTimeframe}
-        on:showError={handleTradeSetupError}
-        on:fetchPrice={() => app.handleFetchPrice()}
-        on:toggleAtrInputs={(e) => {
-          tradeState.useAtrSl = e.detail;
-        }}
-        on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
-        on:setAtrMode={(e) => app.setAtrMode(e.detail)}
-        on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
-        on:fetchAtr={() => app.fetchAtr()}
-        atrFormulaDisplay={resultsState.atrFormulaText}
-        showAtrFormulaDisplay={resultsState.showAtrFormulaDisplay}
-        isPriceFetching={uiState.isPriceFetching}
-        isAtrFetching={uiState.isAtrFetching}
-        symbolSuggestions={uiState.symbolSuggestions}
-        showSymbolSuggestions={uiState.showSymbolSuggestions}
-      />
-    </div>
+      <div>
+        <TradeSetupInputs
+          bind:symbol={tradeState.symbol}
+          bind:entryPrice={tradeState.entryPrice}
+          bind:useAtrSl={tradeState.useAtrSl}
+          bind:atrValue={tradeState.atrValue}
+          bind:atrMultiplier={tradeState.atrMultiplier}
+          bind:stopLossPrice={tradeState.stopLossPrice}
+          bind:atrMode={tradeState.atrMode}
+          bind:atrTimeframe={tradeState.atrTimeframe}
+          on:showError={handleTradeSetupError}
+          on:fetchPrice={() => app.handleFetchPrice()}
+          on:toggleAtrInputs={(e) => {
+            tradeState.useAtrSl = e.detail;
+          }}
+          on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
+          on:setAtrMode={(e) => app.setAtrMode(e.detail)}
+          on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
+          on:fetchAtr={() => app.fetchAtr()}
+          atrFormulaDisplay={resultsState.atrFormulaText}
+          showAtrFormulaDisplay={resultsState.showAtrFormulaDisplay}
+          isPriceFetching={uiState.isPriceFetching}
+          isAtrFetching={uiState.isAtrFetching}
+          symbolSuggestions={uiState.symbolSuggestions}
+          showSymbolSuggestions={uiState.showSymbolSuggestions}
+        />
 
-    <TakeProfitTargets
-      bind:targets={tradeState.targets}
-      on:change={handleTargetsChange}
-      on:remove={handleTpRemove}
-      calculatedTpDetails={resultsState.calculatedTpDetails}
-    />
+        <TakeProfitTargets
+          bind:targets={tradeState.targets}
+          on:change={handleTargetsChange}
+          on:remove={handleTpRemove}
+          calculatedTpDetails={resultsState.calculatedTpDetails}
+        />
+
+        <TagInputs tags={tradeState.tags} />
+      </div>
+    </div>
 
     {#if uiState.showErrorMessage}
       <div
@@ -464,22 +468,18 @@
           on:toggleLock={() => app.togglePositionSizeLock()}
           on:copy={() => uiState.showFeedback("copy")}
         />
-        <!-- FEAT-0021: places the position the summary above just described,
-             from the same calculator output. -->
-        <PlaceOrderPanel />
         {#if resultsState.showTotalMetricsGroup}
           <div id="total-metrics-group" class="result-group">
             <h2 class="section-header">
-              {$_("dashboard.totalTradeMetrics")}<Tooltip
-                text={$_("dashboard.totalTradeMetricsTooltip")}
-              />
+              {$_("dashboard.totalTradeMetrics")}
             </h2>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.riskPerTradeCurrency")}<Tooltip
-                  text={$_("dashboard.riskPerTradeCurrencyTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.riskPerTradeCurrencyTooltip")}>
+                  <span>{$_("dashboard.riskPerTradeCurrency")}</span>
+                </Tooltip>
+              </span>
+              <span
                 id="riskAmountCurrency"
                 class="result-value"
                 style:color="var(--danger-color)"
@@ -487,20 +487,22 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.totalFees")}<Tooltip
-                  text={$_("dashboard.totalFeesTooltip")}
-                /></span
-              ><span id="totalFees" class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.totalFeesTooltip")}>
+                  <span>{$_("dashboard.totalFees")}</span>
+                </Tooltip>
+              </span>
+              <span id="totalFees" class="result-value"
                 >{resultsState.totalFees}</span
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.maxPotentialProfit")}<Tooltip
-                  text={$_("dashboard.maxPotentialProfitTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.maxPotentialProfitTooltip")}>
+                  <span>{$_("dashboard.maxPotentialProfit")}</span>
+                </Tooltip>
+              </span>
+              <span
                 id="maxPotentialProfit"
                 class="result-value"
                 style:color="var(--success-color)"
@@ -508,20 +510,22 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.weightedRR")}<Tooltip
-                  text={$_("dashboard.weightedRRTooltip")}
-                /></span
-              ><span id="totalRR" class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.weightedRRTooltip")}>
+                  <span>{$_("dashboard.weightedRR")}</span>
+                </Tooltip>
+              </span>
+              <span id="totalRR" class="result-value"
                 >{resultsState.totalRR}</span
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.totalNetProfit")}<Tooltip
-                  text={$_("dashboard.totalNetProfitTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.totalNetProfitTooltip")}>
+                  <span>{$_("dashboard.totalNetProfit")}</span>
+                </Tooltip>
+              </span>
+              <span
                 id="totalNetProfit"
                 class="result-value"
                 style:color="var(--success-color)"
@@ -529,11 +533,12 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.soldPosition")}<Tooltip
-                  text={$_("dashboard.soldPositionTooltip")}
-                /></span
-              ><span id="totalPercentSold" class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.soldPositionTooltip")}>
+                  <span>{$_("dashboard.soldPosition")}</span>
+                </Tooltip>
+              </span>
+              <span id="totalPercentSold" class="result-value"
                 >{resultsState.totalPercentSold}</span
               >
             </div>
@@ -548,8 +553,12 @@
               {tpDetail.index + 1} ({tpDetail.percentSold.toFixed(0)}%)
             </h2>
             <div class="result-item">
-              <span class="result-label">{$_("dashboard.riskRewardRatio")}</span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.riskRewardRatioTooltip")}>
+                  <span>{$_("dashboard.riskRewardRatio")}</span>
+                </Tooltip>
+              </span>
+              <span
                 class="result-value"
                 style:color={tpDetail.riskRewardRatio.gte(2)
                   ? "var(--success-color)"
@@ -560,20 +569,22 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.netProfit")}<Tooltip
-                  text={$_("dashboard.netProfitTooltip")}
-                /></span
-              ><span class="result-value" style:color="var(--success-color)"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.netProfitTooltip")}>
+                  <span>{$_("dashboard.netProfit")}</span>
+                </Tooltip>
+              </span>
+              <span class="result-value" style:color="var(--success-color)"
                 >+{formatDynamicDecimal(tpDetail.netProfit, 2)}</span
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.priceChange")}<Tooltip
-                  text={$_("dashboard.priceChangeTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.priceChangeTooltip")}>
+                  <span>{$_("dashboard.priceChange")}</span>
+                </Tooltip>
+              </span>
+              <span
                 class="result-value"
                 style:color={tpDetail.priceChangePercent.gt(0)
                   ? "var(--success-color)"
@@ -582,11 +593,12 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.returnOnCapital")}<Tooltip
-                  text={$_("dashboard.returnOnCapitalTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.returnOnCapitalTooltip")}>
+                  <span>{$_("dashboard.returnOnCapital")}</span>
+                </Tooltip>
+              </span>
+              <span
                 class="result-value"
                 style:color={tpDetail.returnOnCapital.gt(0)
                   ? "var(--success-color)"
@@ -595,17 +607,22 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.partialVolume")}<Tooltip
-                  text={$_("dashboard.partialVolumeTooltip")}
-                /></span
-              ><span class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.partialVolumeTooltip")}>
+                  <span>{$_("dashboard.partialVolume")}</span>
+                </Tooltip>
+              </span>
+              <span class="result-value"
                 >{formatDynamicDecimal(tpDetail.partialVolume, 4)}</span
               >
             </div>
             <div class="result-item">
-              <span class="result-label">{$_("dashboard.exitFeeLabel")}</span
-              ><span class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.exitFeeTooltip")}>
+                  <span>{$_("dashboard.exitFeeLabel")}</span>
+                </Tooltip>
+              </span>
+              <span class="result-value"
                 >{formatDynamicDecimal(tpDetail.exitFee, 4)}</span
               >
             </div>

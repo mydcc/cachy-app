@@ -529,7 +529,7 @@ export const app = {
 
   addTakeProfitRow() {
     const currentTargets = tradeState.targets;
-    if (currentTargets.length >= 10) return;
+    if (currentTargets.length >= 4) return;
 
     const newTargets = [
       ...currentTargets,
@@ -540,6 +540,7 @@ export const app = {
   },
 
   removeTakeProfitRow(index: number) {
+    if (index === 0) return;
     const currentTargets = [...tradeState.targets];
     if (currentTargets.length <= 1) return;
 

@@ -355,27 +355,27 @@ export class CalculatorService {
 
     // Note: Event tracking moved to explicit user actions (e.g., addTrade)
     // to prevent hundreds of redundant events from reactive calculations
-    onboardingService.trackFirstCalculation();
-
     const newStopLoss = new Decimal(values.stopLossPrice).toString();
     const storedSL = parseDecimal(currentTradeState.stopLossPrice);
     const stopLossChange = storedSL.minus(values.stopLossPrice).abs();
 
-    const hasNoData = !currentTradeState.currentTradeData;
+    const currentTradeData = {
+      ...values,
+      ...baseMetrics!,
+      ...totalMetrics,
+      tradeType: currentTradeState.tradeType,
+      status: "Open",
+      calculatedTpDetails,
+    };
 
-    if (stopLossChange.gt(0.000001) || hasNoData) {
+    if (stopLossChange.gt(0.000001)) {
       tradeState.update((s) => ({
         ...s,
-        currentTradeData: {
-          ...values,
-          ...baseMetrics!,
-          ...totalMetrics,
-          tradeType: currentTradeState.tradeType,
-          status: "Open",
-          calculatedTpDetails,
-        },
+        currentTradeData,
         stopLossPrice: newStopLoss,
       }));
+    } else {
+      tradeState.currentTradeData = currentTradeData;
     }
   }
 
