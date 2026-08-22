@@ -82,6 +82,19 @@
      *  so the badge becomes a tap-to-expand toggle). */
     let expandedSymbol = $state<string | null>(null);
 
+    // Initial desktop window size: wide enough that the trend-matrix table
+    // (md+ layout) opens as a table instead of its narrow card fallback,
+    // without eating the whole viewport. Read once per mount -- this
+    // component mounts only while its window is open.
+    const modalWidth =
+        typeof window !== "undefined"
+            ? Math.min(1160, Math.round(window.innerWidth * 0.94))
+            : 1160;
+    const modalHeight =
+        typeof window !== "undefined"
+            ? Math.min(820, Math.round(window.innerHeight * 0.9))
+            : 820;
+
     const TONE_COLOR: Record<string, string> = {
         bullish: "var(--success-color)",
         bearish: "var(--danger-color)",
@@ -261,6 +274,8 @@
         isOpen={true}
         title={$_("app.marketDashboard.title") || "Global Market Overview"}
         showBackdrop={false}
+        width={modalWidth}
+        height={modalHeight}
         onclose={() => uiState.toggleMarketDashboardModal(false)}
     >
         <div class="space-y-3 sm:space-y-6">
@@ -304,7 +319,7 @@
             </div>
 
             <!-- Market Internals Header -->
-            <div class="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                 <div
                     class="bg-[var(--bg-tertiary)] p-2.5 sm:p-4 rounded-xl border border-[var(--border-color)] flex flex-col justify-between"
                 >
@@ -580,12 +595,16 @@
                                 ></div>
                             </div>
 
-                            <!-- Funding / 24h volume -->
+                            <!-- Funding / 24h volume. Volume is secondary:
+                                 it only earns its line from xl up, so the
+                                 md-xl range does not cram this column. -->
                             <div class="col-span-2 text-right flex flex-col">
                                 <span class="font-mono text-xs">
                                     {fundingOf(row.symbol) ?? "—"}
                                 </span>
-                                <span class="text-[10px] text-[var(--text-secondary)]">
+                                <span
+                                    class="hidden xl:block text-[10px] text-[var(--text-secondary)]"
+                                >
                                     {volumeOf(row.symbol) ?? "—"}
                                 </span>
                             </div>
@@ -608,7 +627,7 @@
                                                 </span>
                                                 {#if rsiNum !== null}
                                                     <span
-                                                        class="text-[10px] font-mono {rsiNum > 70
+                                                        class="hidden xl:block text-[10px] font-mono {rsiNum > 70
                                                             ? 'text-[var(--danger-color)]'
                                                             : rsiNum < 30
                                                               ? 'text-[var(--success-color)]'
