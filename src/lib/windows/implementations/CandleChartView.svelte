@@ -41,6 +41,9 @@
     import { marketWatcher } from "../../../services/marketWatcher";
     import { activeExchange } from "../../../services/exchange";
     import { toastService } from "../../../services/toastService.svelte";
+    import { appFetch } from "../../appAuth";
+    import { unwrapApiEnvelope } from "../../../utils/utils";
+    import type { NormalizedPosition } from "../../../types/exchange";
     import {
         PriceLineManager,
         type TpSlKind,
@@ -108,6 +111,32 @@
 
     // FEAT-0247: position and TP/SL price lines
     let priceLineManager: PriceLineManager | null = null;
+
+    // FEAT-0247: accountState.positions is otherwise only REST-hydrated from
+    // PositionsSidebar.svelte's onMount (see BUG-0249's root cause #2) — a
+    // chart window opened on its own, without the sidebar mounted, would
+    // never see an already-open position and the lines would silently never
+    // appear. Mirrors PositionsSidebar's fetchPositions(); harmless if the
+    // sidebar already hydrated the same data (accountState.hydratePositions
+    // just replaces the array).
+    async function hydratePositionsIfEmpty() {
+        if (accountState.positions.length > 0) return;
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) return;
+        try {
+            const response = await appFetch("/api/positions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ exchange: provider, apiKey: keys.key, apiSecret: keys.secret }),
+            });
+            const json = await response.json();
+            const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
+            if (data?.positions) accountState.hydratePositions(data.positions);
+        } catch (e) {
+            console.error("[CandleChartView] FEAT-0247: position hydration failed:", e);
+        }
+    }
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
@@ -227,6 +256,7 @@
             },
         });
         if (chartContainer) priceLineManager.attach(chartContainer);
+        void hydratePositionsIfEmpty();
 
         const handleResize = () => {
             if (chart && chartContainer) {

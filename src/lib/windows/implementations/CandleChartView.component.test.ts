@@ -119,6 +119,17 @@ vi.mock("../../../utils/indicators", () => ({
     JSIndicators: { ema: vi.fn((closes: number[]) => closes.map((c) => c)) },
 }));
 
+// FEAT-0247 position hydration: PositionsSidebar.svelte is the only other
+// place that populates accountState.positions via REST — a chart window
+// opened standalone (sidebar not mounted) needs its own fetch or the price
+// lines never appear even for a real open position. appFetch is spied on
+// directly so the hydration test can assert against it without a real
+// network call.
+const appFetchMock = vi.hoisted(() => vi.fn());
+vi.mock("../../appAuth", () => ({
+    appFetch: appFetchMock,
+}));
+
 // FEAT-0247 drag-to-modify: the exchange adapter and toast surface are
 // spied on directly so the drop tests can assert against them without a
 // real network call.
@@ -141,6 +152,7 @@ import { JSIndicators } from "../../../utils/indicators";
 import { toastService } from "../../../services/toastService.svelte";
 import { accountState } from "../../../stores/account.svelte";
 import { tpSlState } from "../../../stores/tpsl.svelte";
+import { settingsState } from "../../../stores/settings.svelte";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -188,6 +200,8 @@ beforeEach(() => {
     chart.priceLines.clear();
     accountState.positions = [];
     tpSlState.reset();
+    settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "", secret: "" } };
+    appFetchMock.mockReset();
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -459,5 +473,100 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         await settle();
 
         expect(modifyTpSlOrder).not.toHaveBeenCalled();
+    });
+});
+
+/*
+ * FEAT-0247 — a chart window opened without PositionsSidebar mounted must
+ * still see an already-open position.
+ *
+ * accountState.positions is otherwise only REST-hydrated from
+ * PositionsSidebar.svelte's onMount (fetchPositions() ->
+ * accountState.hydratePositions()) — see BUG-0249's root cause #2. A trader
+ * who opens just the chart window, with an already-open real position and
+ * no sidebar mounted, would see accountState.positions stay empty forever
+ * and no price lines would ever render, even though nothing was wrong with
+ * PriceLineManager or the symbol match.
+ */
+describe("FEAT-0247 — chart-only position hydration", () => {
+    it("hydrates accountState.positions on mount when it is empty and API keys are configured", async () => {
+        settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
+        appFetchMock.mockResolvedValue({
+            json: () =>
+                Promise.resolve({
+                    success: true,
+                    data: {
+                        positions: [
+                            {
+                                symbol: "BTCUSDT",
+                                side: "long",
+                                size: "1",
+                                entryPrice: "100",
+                                leverage: "10",
+                                unrealizedPnl: "0",
+                                margin: "10",
+                                marginMode: "isolated",
+                                liquidationPrice: "80",
+                                markPrice: "100",
+                                breakEvenPrice: "100",
+                                marginRate: "0",
+                                realizedPnl: "0",
+                            },
+                        ],
+                    },
+                }),
+        });
+
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        expect(appFetchMock).toHaveBeenCalledWith(
+            "/api/positions",
+            expect.objectContaining({ method: "POST" }),
+        );
+        expect(accountState.positions.some((p) => p.symbol === "BTCUSDT")).toBe(true);
+    });
+
+    it("does not fetch when accountState.positions is already populated", async () => {
+        settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
+        accountState.positions = [
+            {
+                positionId: "p-1",
+                symbol: "BTCUSDT",
+                side: "long",
+                size: new Decimal(1),
+                entryPrice: new Decimal(100),
+                leverage: new Decimal(10),
+                unrealizedPnl: new Decimal(0),
+                margin: new Decimal(10),
+                marginMode: "ISOLATED",
+                liquidationPrice: new Decimal(80),
+                markPrice: new Decimal(100),
+                breakEvenPrice: new Decimal(100),
+                marginRate: new Decimal(0),
+                realizedPnl: new Decimal(0),
+            },
+        ] as never;
+
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        expect(appFetchMock).not.toHaveBeenCalled();
+    });
+
+    it("does not fetch when no API keys are configured", async () => {
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        expect(appFetchMock).not.toHaveBeenCalled();
     });
 });
