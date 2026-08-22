@@ -199,6 +199,7 @@ beforeEach(() => {
     marketState.data = {};
     chart.priceLines.clear();
     accountState.positions = [];
+    accountState.openOrders = [];
     tpSlState.reset();
     settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "", secret: "" } };
     appFetchMock.mockReset();
@@ -211,6 +212,7 @@ afterEach(() => {
     component = null;
     host.remove();
     accountState.positions = [];
+    accountState.openOrders = [];
     tpSlState.reset();
 });
 
@@ -530,7 +532,7 @@ describe("FEAT-0247 — chart-only position hydration", () => {
         expect(accountState.positions.some((p) => p.symbol === "BTCUSDT")).toBe(true);
     });
 
-    it("does not fetch when accountState.positions is already populated", async () => {
+    it("does not re-fetch positions when accountState.positions is already populated", async () => {
         settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
         accountState.positions = [
             {
@@ -550,6 +552,9 @@ describe("FEAT-0247 — chart-only position hydration", () => {
                 realizedPnl: new Decimal(0),
             },
         ] as never;
+        // Orders would still be fetched (independent guard) — seed it too so
+        // this test isolates the positions-skip behavior specifically.
+        accountState.openOrders = [{ orderId: "o-1", symbol: "BTCUSDT" } as never];
 
         component = mount(CandleChartView, {
             target: host,
@@ -568,5 +573,81 @@ describe("FEAT-0247 — chart-only position hydration", () => {
         await settle();
 
         expect(appFetchMock).not.toHaveBeenCalled();
+    });
+});
+
+/*
+ * FEAT-0247 — a resting (unfilled) limit order must show a chart line even
+ * before it fills into a position. Raised directly by the person testing
+ * this against real Bitunix orders: they want to see it work for a pending
+ * limit order first, before trusting it with money on a filled position.
+ * accountState.openOrders has the same PositionsSidebar-only REST hydration
+ * gap as accountState.positions (BUG-0249's root cause #2) — see the
+ * "chart-only position hydration" describe block above.
+ */
+describe("FEAT-0247 — chart-only pending order hydration", () => {
+    it("hydrates accountState.openOrders on mount when empty and API keys are configured", async () => {
+        settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
+        appFetchMock.mockImplementation((url: string) => {
+            if (url === "/api/orders") {
+                return Promise.resolve({
+                    json: () =>
+                        Promise.resolve({
+                            orders: [
+                                {
+                                    orderId: "o-1",
+                                    symbol: "BTCUSDT",
+                                    side: "buy",
+                                    type: "limit",
+                                    price: "65000",
+                                    amount: "1",
+                                    filled: "0",
+                                    status: "NEW",
+                                    ctime: Date.now(),
+                                },
+                            ],
+                        }),
+                });
+            }
+            return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { positions: [] } }) });
+        });
+
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        expect(appFetchMock).toHaveBeenCalledWith(
+            "/api/orders",
+            expect.objectContaining({ method: "POST" }),
+        );
+        expect(accountState.openOrders.some((o) => o.orderId === "o-1")).toBe(true);
+    });
+
+    it("renders a price line for the resting limit order", async () => {
+        settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
+        accountState.openOrders = [
+            {
+                orderId: "o-1",
+                symbol: "BTCUSDT",
+                side: "buy",
+                type: "limit",
+                price: new Decimal(65000),
+                amount: new Decimal(1),
+                filled: new Decimal(0),
+                status: "NEW",
+                timestamp: Date.now(),
+            },
+        ];
+
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const prices = [...chart.priceLines.values()].map((l) => l.price);
+        expect(prices).toContain(65000);
     });
 });

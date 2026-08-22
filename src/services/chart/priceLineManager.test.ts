@@ -75,6 +75,7 @@ function baseInput(overrides: Partial<Parameters<PriceLineManager["update"]>[0]>
             liquidation: "#ef5350",
             takeProfit: "#26a69a",
             stopLoss: "#ef5350",
+            pendingOrder: "#787b86",
         },
         ...overrides,
     };
@@ -242,5 +243,64 @@ describe("PriceLineManager — hover and drag", () => {
 
         const slLine = [...lines.entries()].find(([, l]) => l.title.startsWith("SL"))![0];
         expect(slLine.options().price).toBe(70);
+    });
+});
+
+describe("PriceLineManager — pending (unfilled) orders", () => {
+    it("renders a line for a resting limit order even without an open position", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        manager.update(
+            baseInput({
+                position: null,
+                takeProfit: null,
+                stopLoss: null,
+                pendingOrders: [{ orderId: "o-1", price: new Decimal(65000), side: "buy" }],
+            }),
+        );
+
+        expect(lines.size).toBe(1);
+        const [, line] = [...lines.entries()][0];
+        expect(line.price).toBe(65000);
+        expect(line.title).toContain("Buy");
+    });
+
+    it("moves an existing pending-order line instead of recreating it", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        manager.update(
+            baseInput({
+                position: null,
+                takeProfit: null,
+                stopLoss: null,
+                pendingOrders: [{ orderId: "o-1", price: new Decimal(100), side: "sell" }],
+            }),
+        );
+        const [handle] = [...lines.keys()];
+
+        manager.update(
+            baseInput({
+                position: null,
+                takeProfit: null,
+                stopLoss: null,
+                pendingOrders: [{ orderId: "o-1", price: new Decimal(105), side: "sell" }],
+            }),
+        );
+
+        expect(lines.has(handle)).toBe(true);
+        expect(lines.get(handle)!.price).toBe(105);
+    });
+
+    it("removes a pending-order line once the order is filled or cancelled", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        manager.update(baseInput({ pendingOrders: [{ orderId: "o-1", price: new Decimal(100), side: "buy" }] }));
+        expect(lines.size).toBe(5); // entry, liq, TP, SL + pending order
+
+        manager.update(baseInput({ pendingOrders: [] }));
+        expect(lines.size).toBe(4);
     });
 });
