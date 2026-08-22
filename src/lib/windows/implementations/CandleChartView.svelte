@@ -245,6 +245,10 @@
             borderVisible: false,
             wickUpColor: getVar("--success-color") || "#26a69a",
             wickDownColor: getVar("--danger-color") || "#ef5350",
+            // FEAT-0247's priceLineManager draws its own explicit Entry/Liq/
+            // B/E/TP/SL lines — the series' own default last-value line would
+            // just duplicate/clutter those.
+            priceLineVisible: false,
         });
 
         // Initialize EMA Series
@@ -253,16 +257,22 @@
             color: getVar("--success-color") || "#26a69a",
             lineWidth: 2,
             crosshairMarkerVisible: false,
+            // Each EMA's default last-value price line cluttered the chart
+            // alongside the position/order price lines — the line series
+            // itself is enough, it doesn't need its own axis line too.
+            priceLineVisible: false,
         });
         ema2Series = chart.addSeries(LineSeries, {
             color: getVar("--danger-color") || "#ef5350",
             lineWidth: 2,
             crosshairMarkerVisible: false,
+            priceLineVisible: false,
         });
         ema3Series = chart.addSeries(LineSeries, {
             color: getVar("--warning-color") || "#ffb300",
             lineWidth: 2,
             crosshairMarkerVisible: false,
+            priceLineVisible: false,
         });
         untrack(() => updateColors());
 
