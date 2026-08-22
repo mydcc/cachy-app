@@ -50,37 +50,54 @@ export const SENSITIVE_KEYS: (keyof Settings)[] = [
  */
 export class SecretsLoader {
   private _deviceKey: string | CryptoKey | null = null;
+  private _deviceKeyPromise: Promise<string | CryptoKey> | null = null;
 
   /**
    * Securely retrieves the device key used to obfuscate secrets when no
    * master password is set. Migrates from localStorage to IndexedDB if
    * necessary. Cached for the lifetime of this instance.
+   *
+   * The in-flight promise is shared: parallel callers (the device-key-lost
+   * canary check and background decryption) must hit
+   * `getOrGenerateDeviceKey` exactly once — both to keep a single IndexedDB
+   * round-trip and so one-shot loss guards ("refuse to mint a replacement
+   * key") cannot be consumed by one caller while the other silently gets a
+   * fresh, wrong key.
    */
-  async getDeviceKey(hasStoredSecrets: boolean): Promise<string | CryptoKey> {
-    if (!browser) return "server-side-key-placeholder";
-    if (this._deviceKey) return this._deviceKey;
+  getDeviceKey(hasStoredSecrets: boolean): Promise<string | CryptoKey> {
+    if (!browser) return Promise.resolve("server-side-key-placeholder");
+    if (this._deviceKey) return Promise.resolve(this._deviceKey);
+    if (this._deviceKeyPromise) return this._deviceKeyPromise;
 
     // 1. Check for legacy key in localStorage for migration
     const legacyKey = localStorage.getItem("cachy_device_id");
 
     // 2. Get or Generate secure key (handles migration if legacyKey provided)
-    const key = await cryptoService.getOrGenerateDeviceKey(
-      legacyKey || undefined,
-      hasStoredSecrets,
-    );
+    this._deviceKeyPromise = cryptoService
+      .getOrGenerateDeviceKey(legacyKey || undefined, hasStoredSecrets)
+      .then((key) => {
+        this._deviceKey = key;
 
-    // 3. Cleanup legacy key if migration happened
-    if (legacyKey) {
-      if (import.meta.env.DEV) {
-        console.warn(
-          "[Settings] Migrated device key from localStorage to secure storage.",
-        );
-      }
-      localStorage.removeItem("cachy_device_id");
-    }
+        // 3. Cleanup legacy key once the migration succeeded
+        if (legacyKey) {
+          if (import.meta.env.DEV) {
+            console.warn(
+              "[Settings] Migrated device key from localStorage to secure storage.",
+            );
+          }
+          localStorage.removeItem("cachy_device_id");
+        }
 
-    this._deviceKey = key;
-    return key;
+        return key;
+      })
+      .catch((e) => {
+        // Don't cache failures: a transient IndexedDB error must be
+        // retryable instead of poisoning every later caller.
+        this._deviceKeyPromise = null;
+        throw e;
+      });
+
+    return this._deviceKeyPromise;
   }
 
   /**
@@ -125,6 +142,29 @@ export class SecretsLoader {
       encryptedApiKeys: merged.encryptedApiKeys,
       apiKeys: currentApiKeys,
     };
+  }
+
+  /**
+   * Device-key loss detection via the `_deviceKeyCanary` blob that
+   * `applyFieldEncryption` always writes: if the canary cannot be decrypted
+   * with the current device key, IndexedDB lost its key and **every**
+   * encrypted secret is unrecoverable until re-entered. Distinguishes this
+   * total-loss case from single corrupted blobs (plain failure count).
+   * Legacy data without a canary counts as "not lost" to avoid false alarms.
+   */
+  async isDeviceKeyLost(
+    encryptedSecrets: Record<string, EncryptedBlob> | undefined,
+  ): Promise<boolean> {
+    const canary = encryptedSecrets?.["_deviceKeyCanary"];
+    if (!canary) return false;
+    try {
+      const hasStoredSecrets = Object.keys(encryptedSecrets || {}).length > 0;
+      const deviceKey = await this.getDeviceKey(hasStoredSecrets);
+      await cryptoService.decrypt(canary, deviceKey);
+      return false;
+    } catch {
+      return true;
+    }
   }
 
   /**

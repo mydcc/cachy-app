@@ -271,6 +271,78 @@ describe("SettingsManager.load() -- secretsReady resolves exactly once", () => {
   });
 });
 
+describe("SettingsManager.load() -- device key loss detection", () => {
+  const canaryBlob = { ciphertext: "canary-c", iv: "i", salt: "s", method: "AES-GCM" as const };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+    // Earlier describes leave rejected implementations behind
+    // (clearAllMocks keeps them), so restore the happy path here.
+    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockReset().mockResolvedValue(
+      { algorithm: { name: "PBKDF2" } } as unknown as CryptoKey,
+    );
+    vi.mocked(cryptoService.decrypt).mockReset();
+  });
+
+  it("flags deviceKeyLost when the canary fails to decrypt alongside the secrets", async () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        encryptedSecrets: {
+          openaiApiKey: { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" },
+          _deviceKeyCanary: canaryBlob,
+        },
+      }),
+    );
+    vi.mocked(cryptoService.decrypt).mockRejectedValue(new Error("OperationError"));
+
+    const settings = new SettingsManager();
+    await settings.secretsReady;
+
+    expect(settings.deviceKeyLost).toBe(true);
+    expect(settings.decryptionFailures).toBeGreaterThan(0);
+  });
+
+  it("keeps deviceKeyLost false when the canary still decrypts", async () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        encryptedSecrets: {
+          openaiApiKey: { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" },
+          _deviceKeyCanary: canaryBlob,
+        },
+      }),
+    );
+    vi.mocked(cryptoService.decrypt).mockResolvedValue("decrypted-value");
+
+    const settings = new SettingsManager();
+    await settings.secretsReady;
+
+    expect(settings.deviceKeyLost).toBe(false);
+    expect(settings.decryptionFailures).toBe(0);
+  });
+
+  it("does not flag deviceKeyLost for legacy data without a canary, even on failures", async () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        encryptedSecrets: {
+          openaiApiKey: { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" },
+        },
+      }),
+    );
+    vi.mocked(cryptoService.decrypt).mockRejectedValue(new Error("bad key"));
+
+    const settings = new SettingsManager();
+    await settings.secretsReady;
+
+    expect(settings.decryptionFailures).toBeGreaterThan(0);
+    expect(settings.deviceKeyLost).toBe(false);
+  });
+});
+
 describe("SettingsManager.load() -- a failed decrypt never touches the stored ciphertext", () => {
   const originalBlob = {
     ciphertext: "original-ciphertext",

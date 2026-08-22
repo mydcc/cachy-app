@@ -870,6 +870,14 @@ export class SettingsManager {
   decryptionFailures = $state(0);
 
   /**
+   * True when the device-key canary could not be decrypted: the browser lost
+   * the IndexedDB key and every stored secret is unrecoverable until
+   * re-entered. Distinct from `decryptionFailures > 0`, which also covers
+   * single corrupted blobs while the key itself is fine.
+   */
+  deviceKeyLost = $state(false);
+
+  /**
    * Resolves once `load()` has restored the encrypted secrets into memory.
    *
    * Decrypting them is asynchronous — it needs the device key from IndexedDB
@@ -1143,12 +1151,23 @@ export class SettingsManager {
         if (!this.isEncrypted) {
           secretsPending = true;
           void this.secretsLoader
+            .isDeviceKeyLost(this.encryptedSecrets)
+            .then((lost) => {
+              this.deviceKeyLost = lost;
+            })
+            .catch(() => {
+              // Canary check is best-effort; a failed probe must not block
+              // decryption or flip the flag without evidence.
+              this.deviceKeyLost = false;
+            });
+          void this.secretsLoader
             .decryptSecrets(this.encryptedSecrets, (key, value) => {
               // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
               this[key] = value;
             })
             .then((failures) => {
               this.decryptionFailures = failures;
+              if (failures === 0) this.deviceKeyLost = false;
             })
             .catch((e) => {
               this.decryptionFailures = SENSITIVE_KEYS.length;

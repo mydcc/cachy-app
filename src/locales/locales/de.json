@@ -793,6 +793,8 @@
   "settings": {
     "decryptionWarningTitle": "Sicherheitswarnung",
     "decryptionWarningMessage": "gespeicherte Schlüssel konnten aufgrund eines Resets des Gerätespeichers nicht gelesen werden und müssen neu eingegeben werden, um die Verbindung wiederherzustellen.",
+    "deviceKeyLostTitle": "Verschlüsselte Schlüssel nicht lesbar",
+    "deviceKeyLostDesc": "Der Browser hat den Geräteschlüssel entfernt. Bitte alle API-Schlüssel neu eingeben, damit sie wieder verschlüsselt gespeichert werden können.",
     "calculation": {
       "analyzeFavorites": "Alle Favoriten analysieren",
       "analyzeFavoritesBadgeAll": "Alle Favoriten",

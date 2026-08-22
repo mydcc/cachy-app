@@ -793,6 +793,8 @@
   "settings": {
     "decryptionWarningTitle": "Security Warning",
     "decryptionWarningMessage": "saved key(s) could not be read due to device storage reset and need to be re-entered to restore connection.",
+    "deviceKeyLostTitle": "Encrypted keys unreadable",
+    "deviceKeyLostDesc": "The browser lost the device key. Please re-enter all API keys so they can be encrypted and stored again.",
     "calculation": {
       "analyzeFavorites": "Analyze All Favorites",
       "analyzeFavoritesBadgeAll": "All Favorites",
