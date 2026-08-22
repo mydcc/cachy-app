@@ -385,8 +385,8 @@ class UiManager {
         const win = new ModalWindow(SettingsContent, "Settings", {
           id: "settings",
           windowType: "settings",
-          width: 900,
-          height: 700,
+          width: 1024,
+          height: 720,
         });
         return win;
       });

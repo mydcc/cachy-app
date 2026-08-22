@@ -34,6 +34,7 @@
 
     import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
     import { effectsState } from "../../../stores/effects.svelte";
+    import { settingsState } from "../../../stores/settings.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
     import CachyIcon from "../CachyIcon.svelte";
@@ -344,6 +345,28 @@
             windowManager.bringToFront(win.id);
         }
     }
+
+    let isBurningActive = $derived.by(() => {
+        if (!settingsState.enableBurningBorders) return false;
+        if (!win.enableBurningBorders) return false;
+
+        switch (win.windowType) {
+            case "chart":
+                return settingsState.burnCharts;
+            case "modal":
+            case "dialog":
+            case "symbolpicker":
+                return settingsState.burnModals;
+            case "channel":
+            case "news":
+            case "iframe":
+                return settingsState.burnChannels;
+            case "journal":
+                return settingsState.burnJournal;
+            default:
+                return false;
+        }
+    });
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -391,10 +414,14 @@
     style:opacity={win.opacity}
     onpointerdown={handlePointerDown}
     oncontextmenu={handleContextMenu}
-    use:burn={win.enableBurningBorders
+    use:burn={isBurningActive
         ? {
               id: win.id,
-              layer: win.isMinimized ? "tiles" : "windows",
+              layer: win.showBackdrop || win.windowType === "modal" || win.windowType === "dialog" || win.windowType === "symbolpicker"
+                  ? "modals"
+                  : win.isMinimized
+                    ? "tiles"
+                    : "windows",
               symbol: win.symbol,
               intensity: (win.isFocused ? 1.5 : 0.6) * win.burnIntensity,
               // Push Geometry only when open (avoid layout overhead during animation).

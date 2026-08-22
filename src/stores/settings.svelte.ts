@@ -42,6 +42,11 @@ export type BackgroundAnimationPreset =
   | "aurora";
 export type AnimationIntensity = "low" | "medium" | "high";
 export type AnalysisDepth = "quick" | "standard" | "deep";
+export type AmbientToplineMode =
+  | "symbol_orderflow"
+  | "market_momentum"
+  | "risk_health";
+export type AmbientToplineIntensity = "subtle" | "standard" | "vibrant";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
 export type TechnicalsUpdateMode =
@@ -219,7 +224,6 @@ export interface Settings {
   syncFavorites: boolean;
   confirmTradeDeletion: boolean;
   confirmBulkDeletion: boolean;
-  chatFontSize: number;
   fontFamily: string;
   cryptoPanicApiKey?: string;
   newsApiKey?: string;
@@ -291,20 +295,28 @@ export interface Settings {
   borderEffectColorMode: "theme" | "interactive" | "custom" | "classic";
   borderEffectCustomColor: string;
   burningBordersIntensity: AnimationIntensity;
-  burnNewsWindows: boolean;
-  burnChannelWindows: boolean;
+  burnCharts: boolean;
+  burnModals: boolean;
+  burnChannels: boolean;
   burnMarketOverviewTiles: boolean;
   burnFlashCards: boolean;
   burnJournal: boolean;
-  burnModals: boolean;
-  burnSettings: boolean;
-  burnGuide: boolean;
+  burnNewsWindows?: boolean;
+  burnChannelWindows?: boolean;
+  burnSettings?: boolean;
+  burnGuide?: boolean;
   fireConfig: {
     speed: number;
     turbulence: number;
     thickness: number;
     coreHeat: number;
   };
+
+  // Ambient Sentiment Topline
+  enableAmbientTopline: boolean;
+  ambientToplineMode: AmbientToplineMode;
+  ambientToplineIntensity: AmbientToplineIntensity;
+  ambientToplineBursts: boolean;
 
   // Market & Performance Settings
   marketMode: MarketMode;
@@ -403,7 +415,6 @@ const defaultSettings: Settings = {
   syncFavorites: true,
   confirmTradeDeletion: true,
   confirmBulkDeletion: true,
-  chatFontSize: 13,
   maxPrivateNotes: 50,
   aiConfirmClear: true,
   fontFamily: "Inter",
@@ -501,23 +512,26 @@ const defaultSettings: Settings = {
 
   enableBurningBorders: false,
   borderEffect: "fire",
-  borderEffectColorMode: "theme",
+  borderEffectColorMode: "interactive",
   borderEffectCustomColor: "#ff8800",
   burningBordersIntensity: "medium",
-  burnNewsWindows: true,
-  burnChannelWindows: true,
+  burnCharts: false,
+  burnModals: false,
+  burnChannels: false,
   burnMarketOverviewTiles: true,
   burnFlashCards: true,
-  burnJournal: true,
-  burnModals: true,
-  burnSettings: true,
-  burnGuide: true,
+  burnJournal: false,
   fireConfig: {
     speed: 1.0,
     turbulence: 1.0,
     thickness: 20.0,
     coreHeat: 0.8,
   },
+
+  enableAmbientTopline: false,
+  ambientToplineMode: "symbol_orderflow",
+  ambientToplineIntensity: "standard",
+  ambientToplineBursts: true,
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
@@ -659,7 +673,6 @@ export class SettingsManager {
   syncFavorites = $state<boolean>(defaultSettings.syncFavorites);
   confirmTradeDeletion = $state<boolean>(defaultSettings.confirmTradeDeletion);
   confirmBulkDeletion = $state<boolean>(defaultSettings.confirmBulkDeletion);
-  chatFontSize = $state<number>(defaultSettings.chatFontSize);
   fontFamily = $state<string>(defaultSettings.fontFamily);
   cryptoPanicApiKey = $state<string | undefined>(
     defaultSettings.cryptoPanicApiKey,
@@ -765,16 +778,23 @@ export class SettingsManager {
   burningBordersIntensity = $state<AnimationIntensity>(
     defaultSettings.burningBordersIntensity,
   );
-  burnNewsWindows = $state<boolean>(defaultSettings.burnNewsWindows);
-  burnChannelWindows = $state<boolean>(defaultSettings.burnChannelWindows);
+  burnCharts = $state<boolean>(defaultSettings.burnCharts);
+  burnModals = $state<boolean>(defaultSettings.burnModals);
+  burnChannels = $state<boolean>(defaultSettings.burnChannels);
   burnMarketOverviewTiles = $state<boolean>(
     defaultSettings.burnMarketOverviewTiles,
   );
   burnFlashCards = $state<boolean>(defaultSettings.burnFlashCards);
   burnJournal = $state<boolean>(defaultSettings.burnJournal);
-  burnModals = $state<boolean>(defaultSettings.burnModals);
-  burnSettings = $state<boolean>(defaultSettings.burnSettings);
-  burnGuide = $state<boolean>(defaultSettings.burnGuide);
+
+  enableAmbientTopline = $state<boolean>(defaultSettings.enableAmbientTopline);
+  ambientToplineMode = $state<AmbientToplineMode>(
+    defaultSettings.ambientToplineMode,
+  );
+  ambientToplineIntensity = $state<AmbientToplineIntensity>(
+    defaultSettings.ambientToplineIntensity,
+  );
+  ambientToplineBursts = $state<boolean>(defaultSettings.ambientToplineBursts);
 
   fireConfig = $state(defaultSettings.fireConfig);
 
@@ -1186,7 +1206,7 @@ export class SettingsManager {
       }
 
       this.applyCoreFields(merged);
-      this.applyDisplayFields(merged);
+      this.applyDisplayFields(merged, parsed);
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error("[Settings] Load failed, using defaults:", e);
@@ -1290,7 +1310,7 @@ export class SettingsManager {
   }
 
   /** Display/UI, background customization and Burning Borders fields. Part of load()'s merge+assign step. */
-  private applyDisplayFields(merged: Settings) {
+  private applyDisplayFields(merged: Settings, rawParsed?: Partial<Settings>) {
     this.showSpinButtons = merged.showSpinButtons;
     this.disclaimerAccepted = merged.disclaimerAccepted;
     this.useUtcDateParsing = merged.useUtcDateParsing;
@@ -1299,8 +1319,7 @@ export class SettingsManager {
     this.syncFavorites = merged.syncFavorites;
     this.confirmTradeDeletion = merged.confirmTradeDeletion;
     this.confirmBulkDeletion = merged.confirmBulkDeletion;
-    this.chatFontSize = merged.chatFontSize;
-    this.fontFamily = merged.fontFamily;
+    this.fontFamily = merged.fontFamily || defaultSettings.fontFamily;
     this.showMarketOverviewLinks = merged.showMarketOverviewLinks;
     this.showMarketOverview =
       merged.showMarketOverview ?? defaultSettings.showMarketOverview;
@@ -1329,14 +1348,15 @@ export class SettingsManager {
       merged.customRssFeeds || defaultSettings.customRssFeeds || [];
     this.entitlement.isProLicenseActive =
       merged.isProLicenseActive ?? defaultSettings.isProLicenseActive;
+
+    this.enableGlassmorphism =
+      merged.enableGlassmorphism ?? defaultSettings.enableGlassmorphism;
     this.glassBlur = merged.glassBlur ?? defaultSettings.glassBlur;
     this.glassSaturate =
       merged.glassSaturate ?? defaultSettings.glassSaturate;
     this.glassOpacity = merged.glassOpacity ?? defaultSettings.glassOpacity;
 
     // Background Customization
-    this.enableGlassmorphism =
-      merged.enableGlassmorphism ?? defaultSettings.enableGlassmorphism;
     this.backgroundType =
       merged.backgroundType ?? defaultSettings.backgroundType;
     this.backgroundUrl =
@@ -1386,23 +1406,36 @@ export class SettingsManager {
     this.burningBordersIntensity =
       merged.burningBordersIntensity ??
       defaultSettings.burningBordersIntensity;
-    this.burnNewsWindows =
-      merged.burnNewsWindows ?? defaultSettings.burnNewsWindows;
-    this.burnChannelWindows =
-      merged.burnChannelWindows ?? defaultSettings.burnChannelWindows;
+    this.burnCharts = rawParsed?.burnCharts ?? merged.burnCharts ?? defaultSettings.burnCharts;
+    this.burnModals = rawParsed?.burnModals ?? merged.burnModals ?? defaultSettings.burnModals;
+    this.burnChannels =
+      rawParsed?.burnChannels ??
+      rawParsed?.burnChannelWindows ??
+      rawParsed?.burnNewsWindows ??
+      merged.burnChannels ??
+      defaultSettings.burnChannels;
     this.burnMarketOverviewTiles =
+      rawParsed?.burnMarketOverviewTiles ??
       merged.burnMarketOverviewTiles ??
       defaultSettings.burnMarketOverviewTiles;
     this.burnFlashCards =
-      merged.burnFlashCards ?? defaultSettings.burnFlashCards;
-    this.burnJournal = merged.burnJournal ?? defaultSettings.burnJournal;
-    this.burnModals = merged.burnModals ?? defaultSettings.burnModals;
-    this.burnSettings = merged.burnSettings ?? defaultSettings.burnSettings;
-    this.burnGuide = merged.burnGuide ?? defaultSettings.burnGuide;
+      rawParsed?.burnFlashCards ??
+      merged.burnFlashCards ??
+      defaultSettings.burnFlashCards;
+    this.burnJournal = rawParsed?.burnJournal ?? merged.burnJournal ?? defaultSettings.burnJournal;
     this.fireConfig = {
       ...defaultSettings.fireConfig,
       ...(merged.fireConfig || {}),
     };
+
+    this.enableAmbientTopline =
+      merged.enableAmbientTopline ?? defaultSettings.enableAmbientTopline;
+    this.ambientToplineMode =
+      merged.ambientToplineMode || defaultSettings.ambientToplineMode;
+    this.ambientToplineIntensity =
+      merged.ambientToplineIntensity || defaultSettings.ambientToplineIntensity;
+    this.ambientToplineBursts =
+      merged.ambientToplineBursts ?? defaultSettings.ambientToplineBursts;
 
     this.enableDockingCentered =
       merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
@@ -1543,20 +1576,21 @@ export class SettingsManager {
       syncFavorites: this.syncFavorites,
       confirmTradeDeletion: this.confirmTradeDeletion,
       confirmBulkDeletion: this.confirmBulkDeletion,
-      chatFontSize: this.chatFontSize,
       enableBurningBorders: this.enableBurningBorders,
       borderEffect: this.borderEffect,
       borderEffectColorMode: this.borderEffectColorMode,
       borderEffectCustomColor: this.borderEffectCustomColor,
       burningBordersIntensity: this.burningBordersIntensity,
-      burnNewsWindows: this.burnNewsWindows,
-      burnChannelWindows: this.burnChannelWindows,
+      burnCharts: this.burnCharts,
+      burnModals: this.burnModals,
+      burnChannels: this.burnChannels,
       burnMarketOverviewTiles: this.burnMarketOverviewTiles,
       burnFlashCards: this.burnFlashCards,
       burnJournal: this.burnJournal,
-      burnModals: this.burnModals,
-      burnSettings: this.burnSettings,
-      burnGuide: this.burnGuide,
+      enableAmbientTopline: this.enableAmbientTopline,
+      ambientToplineMode: this.ambientToplineMode,
+      ambientToplineIntensity: this.ambientToplineIntensity,
+      ambientToplineBursts: this.ambientToplineBursts,
       fireConfig: $state.snapshot(this.fireConfig),
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,

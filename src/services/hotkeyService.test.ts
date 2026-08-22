@@ -124,7 +124,6 @@ describe("HotkeyService", () => {
       enableGlassmorphism: true,
       maxPrivateNotes: 50,
       aiConfirmClear: true,
-      chatFontSize: 13,
       panelIsExpanded: false,
       isDeepDiveUnlocked: false,
       fontFamily: "Inter", // Added missing prop
