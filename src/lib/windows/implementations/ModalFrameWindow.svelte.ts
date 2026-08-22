@@ -42,6 +42,12 @@ export interface ModalFrameWindowOptions {
      *  convention); callers whose window is a monitoring surface -- not a
      *  blocking task -- turn it off so background tiles stay readable. */
     showBackdrop?: boolean;
+    /** Initial window size in px. Omitted -> WindowBase's 640x480 default,
+     *  which sits BELOW most desktop content breakpoints: wide-layout
+     *  callers (e.g. the Market Dashboard) pass explicit values so their
+     *  table layout does not open in its narrow fallback form. */
+    width?: number;
+    height?: number;
     children?: Snippet;
     headerExtra?: Snippet;
 }
@@ -52,7 +58,14 @@ export class ModalFrameWindow extends WindowBase {
     private _onCloseCallback?: () => void;
 
     constructor(options: ModalFrameWindowOptions) {
-        super({ title: options.title, windowType: "modal" });
+        super({
+            title: options.title,
+            windowType: "modal",
+            ...(options.width !== undefined ? { width: options.width } : {}),
+            ...(options.height !== undefined
+                ? { height: options.height }
+                : {}),
+        });
 
         this._children = options.children;
         this._bodyClass = options.bodyClass ?? "";
