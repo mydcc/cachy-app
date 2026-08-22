@@ -216,15 +216,12 @@
 
         priceLineManager = new PriceLineManager(candleSeries, {
             onDragStart: () => {
-                tpSlDragActive = true;
                 chart?.applyOptions({ handleScroll: false, handleScale: false });
             },
             onDragCancel: () => {
-                tpSlDragActive = false;
                 chart?.applyOptions({ handleScroll: true, handleScale: true });
             },
             onDrop: (kind, orderId, price) => {
-                tpSlDragActive = false;
                 chart?.applyOptions({ handleScroll: true, handleScale: true });
                 untrack(() => handleTpSlDrop(kind, orderId, price));
             },
