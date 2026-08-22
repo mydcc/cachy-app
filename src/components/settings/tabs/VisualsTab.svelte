@@ -22,6 +22,7 @@
     import { uiState } from "../../../stores/ui.svelte";
     import { locale, setLocale } from "../../../locales/i18n";
     import Toggle from "../../shared/Toggle.svelte";
+    import Tooltip from "../../shared/Tooltip.svelte";
     import { toastService } from "../../../services/toastService.svelte";
 
     let { themes } = $props<{
@@ -178,7 +179,7 @@
         <!-- Appearance Section -->
         {#if activeSubTab === "appearance"}
             <section class="settings-section animate-fade-in">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <!-- Language -->
                     <div class="field-group">
                         <label for="lang-select"
@@ -188,7 +189,7 @@
                             id="lang-select"
                             value={$locale}
                             onchange={(e) => setLocale(e.currentTarget.value)}
-                            class="input-field"
+                            class="input-field w-full"
                         >
                             <option value="en">{$_("languages.en")}</option>
                             <option value="de">{$_("languages.de")}</option>
@@ -203,7 +204,7 @@
                             value={uiState.currentTheme}
                             onchange={(e) =>
                                 uiState.setTheme(e.currentTarget.value)}
-                            class="input-field"
+                            class="input-field w-full"
                         >
                             {#each themes as theme}
                                 <option value={theme.value}
@@ -215,374 +216,523 @@
 
                     <!-- Font -->
                     <div class="field-group">
-                        <div class="flex gap-2">
-                            <div class="flex-1">
-                                <label for="font-select"
-                                    >{$_("settings.fontFamily")}</label
+                        <label for="font-select"
+                            >{$_("settings.fontFamily")}</label
+                        >
+                        <select
+                            id="font-select"
+                            bind:value={settingsState.fontFamily}
+                            class="input-field w-full"
+                        >
+                            {#each fonts as font}
+                                <option value={font.value}
+                                    >{font.label}</option
                                 >
-                                <select
-                                    id="font-select"
-                                    bind:value={settingsState.fontFamily}
-                                    class="input-field"
-                                >
-                                    {#each fonts as font}
-                                        <option value={font.value}
-                                            >{font.label}</option
-                                        >
-                                    {/each}
-                                </select>
-                            </div>
-                            <div class="w-1/3">
-                                <label for="chat-font-size"
-                                    >{$_("settings.visuals.chatSize")}</label
-                                >
-                                <div class="flex items-center gap-2">
-                                    <input
-                                        id="chat-font-size"
-                                        type="number"
-                                        bind:value={settingsState.chatFontSize}
-                                        min="10"
-                                        max="24"
-                                        class="input-field"
-                                    />
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)]"
-                                        >{$_("settings.visuals.coordinates.px")}</span
-                                    >
-                                </div>
-                            </div>
-                        </div>
+                            {/each}
+                        </select>
                     </div>
-
-                    <!-- Glassmorphism -->
-                    <label class="toggle-card self-end">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium"
-                                >{$_("settings.enableGlassmorphism")}</span
-                            >
-                        </div>
-                        <Toggle
-                            bind:checked={settingsState.enableGlassmorphism}
-                        />
-                    </label>
                 </div>
 
-                {#if settingsState.enableGlassmorphism}
-                    <div
-                        class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-[var(--bg-secondary)] rounded-lg"
-                    >
-                        <div class="field-group">
-                            <label
-                                for="glass-blur"
-                                class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
-                            >
-                                {$_("settings.profile.glass.blur")}: {settingsState.glassBlur}px
-                            </label>
-                            <input
-                                id="glass-blur"
-                                type="range"
-                                bind:value={settingsState.glassBlur}
-                                min="0"
-                                max="120"
-                                class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
+                <!-- Glassmorphism -->
+                <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
+                    <div class="toggle-card flex-col items-start gap-4">
+                        <div class="flex justify-between items-center w-full">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">
+                                    {$_("settings.enableGlassmorphism")}
+                                </span>
+                                <span class="text-xs text-[var(--text-secondary)]">
+                                    {$_("settings.glassmorphismDesc")}
+                                </span>
+                            </div>
+                            <Toggle
+                                bind:checked={settingsState.enableGlassmorphism}
                             />
                         </div>
-                        <div class="field-group">
-                            <label
-                                for="glass-opacity"
-                                class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
+
+                        {#if settingsState.enableGlassmorphism}
+                            <div
+                                class="w-full grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-[var(--border-color)] animate-fade-in"
                             >
-                                {$_("settings.profile.glass.opacity")}: {Math.round(
-                                    settingsState.glassOpacity * 100,
-                                )}%
-                            </label>
-                            <input
-                                id="glass-opacity"
-                                type="range"
-                                bind:value={settingsState.glassOpacity}
-                                min="0"
-                                max="1"
-                                step="0.05"
-                                class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
-                            />
-                        </div>
-                        <div class="field-group">
-                            <label
-                                for="glass-saturate"
-                                class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
-                            >
-                                {$_("settings.profile.glass.saturate")}: {settingsState.glassSaturate}%
-                            </label>
-                            <input
-                                id="glass-saturate"
-                                type="range"
-                                bind:value={settingsState.glassSaturate}
-                                min="50"
-                                max="300"
-                                step="10"
-                                class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
-                            />
-                        </div>
+                                <div class="field-group">
+                                    <label
+                                        for="glass-blur"
+                                        class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
+                                    >
+                                        {$_("settings.profile.glass.blur")}: {settingsState.glassBlur}px
+                                    </label>
+                                    <input
+                                        id="glass-blur"
+                                        type="range"
+                                        bind:value={settingsState.glassBlur}
+                                        min="0"
+                                        max="120"
+                                        class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
+                                    />
+                                </div>
+                                <div class="field-group">
+                                    <label
+                                        for="glass-opacity"
+                                        class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
+                                    >
+                                        {$_("settings.profile.glass.opacity")}: {Math.round(
+                                            settingsState.glassOpacity * 100,
+                                        )}%
+                                    </label>
+                                    <input
+                                        id="glass-opacity"
+                                        type="range"
+                                        bind:value={settingsState.glassOpacity}
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
+                                    />
+                                </div>
+                                <div class="field-group">
+                                    <label
+                                        for="glass-saturate"
+                                        class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
+                                    >
+                                        {$_("settings.profile.glass.saturate")}: {settingsState.glassSaturate}%
+                                    </label>
+                                    <input
+                                        id="glass-saturate"
+                                        type="range"
+                                        bind:value={settingsState.glassSaturate}
+                                        min="50"
+                                        max="300"
+                                        step="10"
+                                        class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                        {/if}
                     </div>
-                {/if}
+                </div>
 
                 <!-- Burning Borders -->
                 <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
-                    <label class="toggle-card mb-2">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium"
-                                >{$_("settings.visuals.burningBorders")}</span
-                            >
-                            <span
-                                class="text-[10px] text-[var(--text-secondary)]"
-                                >{$_(
-                                    "settings.visuals.burningBordersDesc",
-                                )}</span
-                            >
+                    <div class="toggle-card flex-col items-start gap-4">
+                        <div class="flex justify-between items-center w-full">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">
+                                    {$_("settings.visuals.burningBorders")}
+                                </span>
+                                <span class="text-xs text-[var(--text-secondary)]">
+                                    {$_(
+                                        "settings.visuals.burningBordersDesc",
+                                    )}
+                                </span>
+                            </div>
+                            <Toggle
+                                bind:checked={settingsState.enableBurningBorders}
+                            />
                         </div>
-                        <Toggle
-                            bind:checked={settingsState.enableBurningBorders}
-                        />
-                    </label>
 
-                    {#if settingsState.enableBurningBorders}
-                        <div class="flex flex-col gap-4 animate-fade-in">
-                            <div class="field-group mb-4">
-                                <span
-                                    class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                                >
-                                    {$_("settings.visuals.effectStyle")}
-                                </span>
-                                <div class="flex gap-2">
-                                    <button
-                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffect ===
-                                        'fire'
-                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
-                                            : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
-                                        onclick={() =>
-                                            (settingsState.borderEffect =
-                                                "fire")}
-                                    >
-                                        {$_("settings.visuals.fire")}
-                                    </button>
-                                    <button
-                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffect ===
-                                        'glow'
-                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
-                                            : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
-                                        onclick={() =>
-                                            (settingsState.borderEffect =
-                                                "glow")}
-                                    >
-                                        {$_("settings.visuals.glow")}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="field-group mb-4">
-                                <span
-                                    class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                                >
-                                    {$_("settings.visuals.colorMode")}
-                                </span>
-                                <div class="flex flex-wrap gap-2">
-                                    {#each ["theme", "interactive", "custom", "classic"] as const as mode}
-                                        <button
-                                            class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffectColorMode ===
-                                            mode
-                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
-                                                : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
-                                            onclick={() =>
-                                                (settingsState.borderEffectColorMode =
-                                                    mode)}
-                                        >
-                                            {$_(
-                                                colorModeLabels[
-                                                    mode
-                                                ] as TranslationKey,
-                                            ) || mode}
-                                        </button>
-                                    {/each}
-                                </div>
-                            </div>
-
-                            {#if settingsState.borderEffectColorMode === "custom"}
-                                <div class="field-group mb-4 animate-fade-in">
-                                    <span
-                                        class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                                    >
-                                        {$_("settings.visuals.customColor")}
-                                    </span>
-                                    <div class="flex items-center gap-3">
-                                        <input
-                                            type="color"
-                                            class="w-8 h-8 rounded border border-[var(--border-color)] bg-transparent cursor-pointer"
-                                            bind:value={
-                                                settingsState.borderEffectCustomColor
-                                            }
-                                        />
+                        {#if settingsState.enableBurningBorders}
+                            <div class="w-full flex flex-col gap-3.5 pt-3 border-t border-[var(--border-color)] animate-fade-in">
+                                <!-- Style & Intensity in 2 Columns -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="field-group">
                                         <span
-                                            class="text-xs font-mono text-[var(--text-secondary)]"
+                                            class="text-xs font-semibold text-[var(--text-secondary)] mb-1 block"
                                         >
-                                            {settingsState.borderEffectCustomColor}
+                                            {$_("settings.visuals.effectStyle")}
                                         </span>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                class="h-8 px-3 text-xs capitalize rounded border transition-colors flex items-center justify-center {settingsState.borderEffect ===
+                                                'fire'
+                                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                    : 'bg-[var(--bg-tertiary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]'}"
+                                                onclick={() =>
+                                                    (settingsState.borderEffect =
+                                                        "fire")}
+                                            >
+                                                {$_("settings.visuals.fire")}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="h-8 px-3 text-xs capitalize rounded border transition-colors flex items-center justify-center {settingsState.borderEffect ===
+                                                'glow'
+                                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                    : 'bg-[var(--bg-tertiary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]'}"
+                                                onclick={() =>
+                                                    (settingsState.borderEffect =
+                                                        "glow")}
+                                            >
+                                                {$_("settings.visuals.glow")}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="field-group">
+                                        <span
+                                            class="text-xs font-semibold text-[var(--text-secondary)] mb-1 block"
+                                        >
+                                            {$_("settings.visuals.intensity")}
+                                        </span>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            {#each ["low", "medium", "high"] as const as intensity}
+                                                <button
+                                                    type="button"
+                                                    class="h-8 px-2 text-xs capitalize rounded border transition-colors flex items-center justify-center {settingsState.burningBordersIntensity ===
+                                                    intensity
+                                                        ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                        : 'bg-[var(--bg-tertiary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]'}"
+                                                    onclick={() =>
+                                                        (settingsState.burningBordersIntensity =
+                                                            intensity)}
+                                                >
+                                                    {$_(
+                                                        `settings.profile.background.intensity${intensity.charAt(0).toUpperCase() + intensity.slice(1)}` as TranslationKey,
+                                                    ) || intensity}
+                                                </button>
+                                            {/each}
+                                        </div>
                                     </div>
                                 </div>
-                            {/if}
 
-                            <div class="field-group">
-                                <span
-                                    class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                                >
-                                    {$_("settings.visuals.intensity")}</span
-                                >
-                                <div class="flex gap-2">
-                                    {#each ["low", "medium", "high"] as const as intensity}
-                                        <button
-                                            class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.burningBordersIntensity ===
-                                            intensity
-                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
-                                                : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
-                                            onclick={() =>
-                                                (settingsState.burningBordersIntensity =
-                                                    intensity)}
+                                <!-- Color Mode -->
+                                <div class="field-group">
+                                    <span
+                                        class="text-xs font-semibold text-[var(--text-secondary)] mb-1 block"
+                                    >
+                                        {$_("settings.visuals.colorMode")}
+                                    </span>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
+                                            {#each ["theme", "interactive", "custom", "classic"] as const as mode}
+                                                <button
+                                                    type="button"
+                                                    class="h-8 px-2 text-xs capitalize rounded border transition-colors flex items-center justify-center {settingsState.borderEffectColorMode ===
+                                                    mode
+                                                        ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                        : 'bg-[var(--bg-tertiary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--text-secondary)]'}"
+                                                    onclick={() =>
+                                                        (settingsState.borderEffectColorMode =
+                                                            mode)}
+                                                >
+                                                    {$_(
+                                                        colorModeLabels[
+                                                            mode
+                                                        ] as TranslationKey,
+                                                    ) || mode}
+                                                </button>
+                                            {/each}
+                                        </div>
+
+                                        {#if settingsState.borderEffectColorMode === "custom"}
+                                            <div class="flex items-center gap-2 pl-2 border-l border-[var(--border-color)] animate-fade-in">
+                                                <input
+                                                    type="color"
+                                                    class="w-8 h-8 rounded border border-[var(--border-color)] bg-transparent cursor-pointer"
+                                                    bind:value={
+                                                        settingsState.borderEffectCustomColor
+                                                    }
+                                                />
+                                                <span
+                                                    class="text-xs font-mono text-[var(--text-secondary)]"
+                                                >
+                                                    {settingsState.borderEffectCustomColor}
+                                                </span>
+                                            </div>
+                                        {/if}
+                                    </div>
+                                </div>
+
+                                <!-- Targets Grid in 3 Columns -->
+                                <div class="field-group">
+                                    <span
+                                        class="text-xs font-semibold text-[var(--text-secondary)] mb-1 block"
+                                    >
+                                        {$_("settings.appearance.burnTargets" as TranslationKey)}
+                                    </span>
+                                    <div
+                                        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2.5 rounded-lg bg-[var(--bg-primary)]/40 border border-[var(--border-color)]/60"
+                                    >
+                                        <label
+                                            class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)]/50 cursor-pointer group transition-colors"
                                         >
-                                            {$_(
-                                                `settings.profile.background.intensity${intensity.charAt(0).toUpperCase() + intensity.slice(1)}` as TranslationKey,
-                                            ) || intensity}
-                                        </button>
-                                    {/each}
+                                            <span
+                                                class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate"
+                                            >
+                                                {$_(
+                                                    "settings.appearance.burnMarketOverview" as TranslationKey,
+                                                )}
+                                            </span>
+                                            <Toggle
+                                                bind:checked={
+                                                    settingsState.burnMarketOverviewTiles
+                                                }
+                                            />
+                                        </label>
+                                        <label
+                                            class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)]/50 cursor-pointer group transition-colors"
+                                        >
+                                            <span
+                                                class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate"
+                                            >
+                                                {$_(
+                                                    "settings.appearance.burnFlashCards" as TranslationKey,
+                                                )}
+                                            </span>
+                                            <Toggle
+                                                bind:checked={
+                                                    settingsState.burnFlashCards
+                                                }
+                                            />
+                                        </label>
+                                        <label
+                                            class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)]/50 cursor-pointer group transition-colors"
+                                        >
+                                            <span
+                                                class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate"
+                                            >
+                                                {$_(
+                                                    "settings.appearance.burnCharts" as TranslationKey,
+                                                )}
+                                            </span>
+                                            <Toggle
+                                                bind:checked={
+                                                    settingsState.burnCharts
+                                                }
+                                            />
+                                        </label>
+                                        <label
+                                            class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)]/50 cursor-pointer group transition-colors"
+                                        >
+                                            <span
+                                                class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate"
+                                            >
+                                                {$_(
+                                                    "settings.appearance.burnModals" as TranslationKey,
+                                                )}
+                                            </span>
+                                            <Toggle
+                                                bind:checked={settingsState.burnModals}
+                                            />
+                                        </label>
+                                        <label
+                                            class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)]/50 cursor-pointer group transition-colors"
+                                        >
+                                            <span
+                                                class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate"
+                                            >
+                                                {$_(
+                                                    "settings.appearance.burnChannels" as TranslationKey,
+                                                )}
+                                            </span>
+                                            <Toggle
+                                                bind:checked={
+                                                    settingsState.burnChannels
+                                                }
+                                            />
+                                        </label>
+                                        <label
+                                            class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)]/50 cursor-pointer group transition-colors"
+                                        >
+                                            <span
+                                                class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate"
+                                            >
+                                                {$_(
+                                                    "settings.appearance.burnJournal" as TranslationKey,
+                                                )}
+                                            </span>
+                                            <Toggle
+                                                bind:checked={settingsState.burnJournal}
+                                            />
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
+                        {/if}
+                    </div>
+                </div>
 
-                            <div
-                                class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-2"
-                            >
-                                <label
-                                    class="flex items-center justify-between cursor-pointer group"
-                                >
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                    >
-                                        {$_(
-                                            "settings.appearance.burnMarketOverview" as TranslationKey,
-                                        )}
-                                    </span>
-                                    <Toggle
-                                        bind:checked={
-                                            settingsState.burnMarketOverviewTiles
-                                        }
-                                    />
-                                </label>
-                                <label
-                                    class="flex items-center justify-between cursor-pointer group"
-                                >
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                    >
-                                        {$_(
-                                            "settings.appearance.burnNews" as TranslationKey,
-                                        )}
-                                    </span>
-                                    <Toggle
-                                        bind:checked={
-                                            settingsState.burnNewsWindows
-                                        }
-                                    />
-                                </label>
-                                <label
-                                    class="flex items-center justify-between cursor-pointer group"
-                                >
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                    >
-                                        {$_(
-                                            "settings.appearance.burnChannels" as TranslationKey,
-                                        )}
-                                    </span>
-                                    <Toggle
-                                        bind:checked={
-                                            settingsState.burnChannelWindows
-                                        }
-                                    />
-                                </label>
-                                <label
-                                    class="flex items-center justify-between cursor-pointer group"
-                                >
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                    >
-                                        {$_(
-                                            "settings.appearance.burnFlashCards" as TranslationKey,
-                                        )}
-                                    </span>
-                                    <Toggle
-                                        bind:checked={
-                                            settingsState.burnFlashCards
-                                        }
-                                    />
-                                </label>
-                                <label
-                                    class="flex items-center justify-between cursor-pointer group"
-                                >
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                    >
-                                        {$_(
-                                            "settings.appearance.burnJournal" as TranslationKey,
-                                        )}
-                                    </span>
-                                    <Toggle
-                                        bind:checked={settingsState.burnJournal}
-                                    />
-                                </label>
-                                <label
-                                    class="flex items-center justify-between cursor-pointer group"
-                                >
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                    >
-                                        {$_(
-                                            "settings.appearance.burnSettings" as TranslationKey,
-                                        )}
-                                    </span>
-                                    <Toggle
-                                        bind:checked={
-                                            settingsState.burnSettings
-                                        }
-                                    />
-                                </label>
-                                <label
-                                    class="flex items-center justify-between cursor-pointer group"
-                                >
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                    >
-                                        {$_(
-                                            "settings.appearance.burnGuide" as TranslationKey,
-                                        )}
-                                    </span>
-                                    <Toggle
-                                        bind:checked={settingsState.burnGuide}
-                                    />
-                                </label>
-                                <label
-                                    class="flex items-center justify-between cursor-pointer group"
-                                >
-                                    <span
-                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                    >
-                                        {$_(
-                                            "settings.appearance.burnModals" as TranslationKey,
-                                        )}
-                                    </span>
-                                    <Toggle
-                                        bind:checked={settingsState.burnModals}
-                                    />
-                                </label>
+                <!-- Sentiment Topline (Three.js WebGL) -->
+                <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
+                    <div class="toggle-card flex-col items-start gap-4">
+                        <div class="flex justify-between items-center w-full">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">
+                                    {$_(
+                                        "settings.appearance.ambientTopline" as TranslationKey,
+                                    )}
+                                </span>
+                                <span class="text-xs text-[var(--text-secondary)]">
+                                    {$_(
+                                        "settings.appearance.ambientToplineDesc" as TranslationKey,
+                                    )}
+                                </span>
                             </div>
+                            <Toggle
+                                bind:checked={settingsState.enableAmbientTopline}
+                            />
                         </div>
-                    {/if}
+
+                        {#if settingsState.enableAmbientTopline}
+                            <div
+                                class="w-full flex flex-col gap-3.5 pt-3 border-t border-[var(--border-color)] animate-fade-in"
+                            >
+                                <!-- Data Mode Selector -->
+                                <div class="field-group">
+                                    <span
+                                        class="text-xs font-semibold text-[var(--text-secondary)] mb-1 block"
+                                    >
+                                        {$_(
+                                            "settings.appearance.ambientToplineMode" as TranslationKey,
+                                        )}
+                                    </span>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <Tooltip
+                                            text={$_(
+                                                "settings.appearance.ambientToplineModeSymbolTooltip" as TranslationKey,
+                                            )}
+                                            underline={false}
+                                        >
+                                            <button
+                                                type="button"
+                                                class="w-full h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineMode ===
+                                                'symbol_orderflow'
+                                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
+                                                onclick={() =>
+                                                    (settingsState.ambientToplineMode =
+                                                        'symbol_orderflow')}
+                                            >
+                                                {$_(
+                                                    "settings.appearance.ambientToplineModeSymbol" as TranslationKey,
+                                                )}
+                                            </button>
+                                        </Tooltip>
+                                        <Tooltip
+                                            text={$_(
+                                                "settings.appearance.ambientToplineModeMarketTooltip" as TranslationKey,
+                                            )}
+                                            underline={false}
+                                        >
+                                            <button
+                                                type="button"
+                                                class="w-full h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineMode ===
+                                                'market_momentum'
+                                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
+                                                onclick={() =>
+                                                    (settingsState.ambientToplineMode =
+                                                        'market_momentum')}
+                                            >
+                                                {$_(
+                                                    "settings.appearance.ambientToplineModeMarket" as TranslationKey,
+                                                )}
+                                            </button>
+                                        </Tooltip>
+                                        <Tooltip
+                                            text={$_(
+                                                "settings.appearance.ambientToplineModeRiskTooltip" as TranslationKey,
+                                            )}
+                                            underline={false}
+                                        >
+                                            <button
+                                                type="button"
+                                                class="w-full h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineMode ===
+                                                'risk_health'
+                                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                    : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
+                                                onclick={() =>
+                                                    (settingsState.ambientToplineMode =
+                                                        'risk_health')}
+                                            >
+                                                {$_(
+                                                    "settings.appearance.ambientToplineModeRisk" as TranslationKey,
+                                                )}
+                                            </button>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+
+                                <!-- Intensity Selector -->
+                                <div class="field-group">
+                                    <span
+                                        class="text-xs font-semibold text-[var(--text-secondary)] mb-1 block"
+                                    >
+                                        {$_(
+                                            "settings.appearance.ambientToplineIntensity" as TranslationKey,
+                                        )}
+                                    </span>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <button
+                                            type="button"
+                                            class="h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineIntensity ===
+                                            'subtle'
+                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
+                                            onclick={() =>
+                                                (settingsState.ambientToplineIntensity =
+                                                    'subtle')}
+                                        >
+                                            {$_(
+                                                "settings.appearance.ambientToplineIntensitySubtle" as TranslationKey,
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineIntensity ===
+                                            'standard'
+                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
+                                            onclick={() =>
+                                                (settingsState.ambientToplineIntensity =
+                                                    'standard')}
+                                        >
+                                            {$_(
+                                                "settings.appearance.ambientToplineIntensityStandard" as TranslationKey,
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineIntensity ===
+                                            'vibrant'
+                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-semibold'
+                                                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
+                                            onclick={() =>
+                                                (settingsState.ambientToplineIntensity =
+                                                    'vibrant')}
+                                        >
+                                            {$_(
+                                                "settings.appearance.ambientToplineIntensityVibrant" as TranslationKey,
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Trade Bursts Toggle -->
+                                <div
+                                    class="flex justify-between items-center pt-2 border-t border-[var(--border-color)]/60"
+                                >
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-medium">
+                                            {$_(
+                                                "settings.appearance.ambientToplineBursts" as TranslationKey,
+                                            )}
+                                        </span>
+                                        <span
+                                            class="text-[11px] text-[var(--text-secondary)]"
+                                        >
+                                            {$_(
+                                                "settings.appearance.ambientToplineBurstsDesc" as TranslationKey,
+                                            )}
+                                        </span>
+                                    </div>
+                                    <Toggle
+                                        bind:checked={settingsState.ambientToplineBursts}
+                                    />
+                                </div>
+                            </div>
+                        {/if}
+                    </div>
                 </div>
             </section>
         {/if}
