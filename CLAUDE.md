@@ -88,6 +88,11 @@ Reserve the full `npm test` for when you touched many files across projects or r
 
 **Performance:** No heavy computations (sort/filter/map) directly in template `{#each}` — prepare data with `$derived` beforehand.
 
+**Iframe & 3D Metaverse Protection (Non-Negotiable):**
+- Never set `Cross-Origin-Embedder-Policy` (COEP) (neither `credentialless` nor `require-corp`). It breaks cross-origin iframes (Unity Metaverse `space.cachy.app`, embedded news articles, etc.).
+- `Permissions-Policy` MUST delegate permissions needed for 3D Metaverse (`space.cachy.app`) and embedded views (camera, microphone, xr-spatial-tracking, display-capture, fullscreen, autoplay, accelerometer, gyroscope, clipboard-write, encrypted-media, picture-in-picture, web-share, geolocation). Never restrict them to empty `()` (e.g. `camera=()`, `geolocation=()`).
+- `Content-Security-Policy` `frame-src` MUST allow `'self'`, `https://space.cachy.app`, `https://s.cachy.app`, `https:`, `blob:`, `data:`.
+
 ## Workflow
 
 - **Verification over claims:** After every code change, run `npm run check` and affected tests (skill `/verify`) — see "Run targeted tests, not the whole suite" above for how to scope them. Only then claim completion.
