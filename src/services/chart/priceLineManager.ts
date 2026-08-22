@@ -68,10 +68,19 @@ export interface PositionLinesInput {
     size: Decimal;
 }
 
+/** A still-resting (unfilled) limit order for the chart's symbol — shown even without an open position. */
+export interface PendingOrderLineInput {
+    orderId: string;
+    price: Decimal;
+    side: "buy" | "sell";
+}
+
 export interface PriceLineUpdateInput {
     position: PositionLinesInput | null;
     takeProfit: TpSlLineInput | null;
     stopLoss: TpSlLineInput | null;
+    /** Resting limit orders not yet filled into a position — read-only, no drag/drop. */
+    pendingOrders?: PendingOrderLineInput[];
     /** Smallest price increment for this symbol; drags snap to it. */
     tickSize: Decimal;
     /** `supports.tpSl === false` on the active exchange — lines are shown but not draggable. */
@@ -82,6 +91,7 @@ export interface PriceLineUpdateInput {
         liquidation: string;
         takeProfit: string;
         stopLoss: string;
+        pendingOrder: string;
     };
 }
 
@@ -101,6 +111,7 @@ const COLORS = {
     liquidation: "#ef5350",
     takeProfit: "#26a69a",
     stopLoss: "#ef5350",
+    pendingOrder: "#787b86",
 } as const;
 
 const LINE_STYLE_DASHED = 2;
@@ -137,6 +148,8 @@ export class PriceLineManager {
     private liquidationLine: PriceLineHandle | null = null;
     private takeProfitLine: PriceLineHandle | null = null;
     private stopLossLine: PriceLineHandle | null = null;
+    /** Keyed by orderId — unlike the singleton lines above, there can be several resting limit orders at once. */
+    private pendingOrderLines = new Map<string, PriceLineHandle>();
 
     private lastInput: PriceLineUpdateInput | null = null;
 
@@ -223,6 +236,40 @@ export class PriceLineManager {
                 colors.stopLoss,
             );
         }
+
+        this.syncPendingOrders(input.pendingOrders ?? [], colors.pendingOrder);
+    }
+
+    /** Diffs the resting-order set against the previous render: creates new lines, updates moved ones, removes filled/cancelled ones. */
+    private syncPendingOrders(orders: PendingOrderLineInput[], color: string): void {
+        const seen = new Set<string>();
+        for (const order of orders) {
+            seen.add(order.orderId);
+            const title = `${order.side === "buy" ? "Buy" : "Sell"} Limit: ${order.price.toFixed()}`;
+            const priceNum = order.price.toNumber();
+            const existing = this.pendingOrderLines.get(order.orderId);
+            if (existing) {
+                existing.applyOptions({ price: priceNum, title });
+            } else {
+                this.pendingOrderLines.set(
+                    order.orderId,
+                    this.series.createPriceLine({
+                        price: priceNum,
+                        color,
+                        lineWidth: 1,
+                        lineStyle: LINE_STYLE_DASHED,
+                        axisLabelVisible: true,
+                        title,
+                    }),
+                );
+            }
+        }
+        for (const [orderId, line] of this.pendingOrderLines) {
+            if (!seen.has(orderId)) {
+                this.series.removePriceLine(line);
+                this.pendingOrderLines.delete(orderId);
+            }
+        }
     }
 
     public destroy(): void {
@@ -231,6 +278,7 @@ export class PriceLineManager {
         this.syncLine("liquidationLine", null, COLORS.liquidation);
         this.syncLine("takeProfitLine", null, COLORS.takeProfit);
         this.syncLine("stopLossLine", null, COLORS.stopLoss);
+        this.syncPendingOrders([], COLORS.pendingOrder);
         this.lastInput = null;
     }
 

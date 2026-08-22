@@ -43,7 +43,7 @@
     import { toastService } from "../../../services/toastService.svelte";
     import { appFetch } from "../../appAuth";
     import { unwrapApiEnvelope } from "../../../utils/utils";
-    import type { NormalizedPosition } from "../../../types/exchange";
+    import type { NormalizedPosition, NormalizedOrder } from "../../../types/exchange";
     import {
         PriceLineManager,
         type TpSlKind,
@@ -135,6 +135,29 @@
             if (data?.positions) accountState.hydratePositions(data.positions);
         } catch (e) {
             console.error("[CandleChartView] FEAT-0247: position hydration failed:", e);
+        }
+    }
+
+    // FEAT-0247: same standalone-window gap as hydratePositionsIfEmpty, but
+    // for resting (unfilled) limit orders — needed so a pending entry order
+    // shows a line on the chart even before it fills into a position, which
+    // is the case a trader most wants to visually confirm before risking
+    // real size on it.
+    async function hydrateOpenOrdersIfEmpty() {
+        if (accountState.openOrders.length > 0) return;
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) return;
+        try {
+            const response = await appFetch("/api/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ exchange: provider, apiKey: keys.key, apiSecret: keys.secret, type: "pending" }),
+            });
+            const json = await response.json();
+            if (json?.orders) accountState.hydrateOpenOrders(json.orders as NormalizedOrder[]);
+        } catch (e) {
+            console.error("[CandleChartView] FEAT-0247: open order hydration failed:", e);
         }
     }
 
@@ -257,6 +280,7 @@
         });
         if (chartContainer) priceLineManager.attach(chartContainer);
         void hydratePositionsIfEmpty();
+        void hydrateOpenOrdersIfEmpty();
 
         const handleResize = () => {
             if (chart && chartContainer) {
@@ -646,6 +670,9 @@
         const normalized = normalizeSymbol(symbol, "bitunix");
         const position = accountState.positions.find((p) => p.symbol === normalized);
         const plans = tpSlState.plansFor(normalized);
+        const pendingOrders = accountState.openOrders
+            .filter((o) => o.symbol === normalized && o.type === "limit")
+            .map((o) => ({ orderId: o.orderId, price: o.price, side: o.side }));
         const meta = marketState?.symbolMeta?.[normalized];
         const tickSize =
             meta?.quotePrecision !== undefined
@@ -670,6 +697,7 @@
                 stopLoss: plans.loss
                     ? { orderId: plans.loss.orderId, triggerPrice: new Decimal(plans.loss.triggerPrice) }
                     : null,
+                pendingOrders,
                 tickSize,
                 readOnly,
                 colors: {
@@ -677,6 +705,7 @@
                     liquidation: getVar("--danger-color") || "#ef5350",
                     takeProfit: getVar("--success-color") || "#26a69a",
                     stopLoss: getVar("--danger-color") || "#ef5350",
+                    pendingOrder: getVar("--text-secondary") || "#787b86",
                 },
             });
         });
