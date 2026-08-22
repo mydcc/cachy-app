@@ -363,6 +363,7 @@ export type TranslationKey =
   | "dashboard.takeProfitTargets.maxTargetsReached"
   | "dashboard.summaryResults.header"
   | "dashboard.summaryResults.positionSizeLabel"
+  | "dashboard.summaryResults.positionSizeTooltip"
   | "dashboard.summaryResults.lockPositionSizeTitle"
   | "dashboard.summaryResults.lockPositionSizeAriaLabel"
   | "dashboard.summaryResults.copyPositionSizeAriaLabel"

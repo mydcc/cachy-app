@@ -423,9 +423,15 @@
   }
   .submit-btn {
     width: 100%;
-    padding: 0.65rem 1rem;
+    height: 48px;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.875rem;
-    font-weight: 700;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
     border-radius: 0.375rem;
     border: 1px solid var(--accent-color);
     background-color: var(--accent-color);

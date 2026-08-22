@@ -93,7 +93,7 @@
     >{$_("dashboard.tradeSetupInputs.tagsLabel")}</label
   >
   <div
-    class="input-field w-full px-2.5 py-1.5 rounded-md flex flex-nowrap items-center gap-1.5 min-h-[38px] overflow-x-auto"
+    class="input-field w-full px-3 py-1 rounded-md flex flex-nowrap items-center gap-1.5 min-h-[42px] h-[42px] overflow-x-auto"
   >
     {#each tags as tag}
       <span

@@ -218,7 +218,7 @@
         use:enhancedInput={{ step: priceStep, min: 0 }}
         value={format(price)}
         oninput={handlePriceInput}
-        class="input-field w-full px-3 py-2 rounded-md text-sm font-mono"
+        class="input-field w-full px-3 rounded-md text-sm font-mono"
         placeholder={$_("dashboard.takeProfitRow.pricePlaceholder")}
       />
     </div>
@@ -244,7 +244,7 @@
           }}
           value={format(percent)}
           oninput={handlePercentInput}
-          class="input-field w-full px-3 py-2 rounded-md text-sm text-center font-mono pr-6"
+          class="input-field w-full px-2 rounded-md text-sm text-center font-mono pr-5"
           class:locked-input={isLocked}
           disabled={isLocked}
           placeholder="100"

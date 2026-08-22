@@ -387,6 +387,7 @@
     "summaryResults": {
       "header": "Summary",
       "positionSizeLabel": "Position Size",
+      "positionSizeTooltip": "The calculated total order volume for this position (in base asset or contracts), determined by your risk amount, distance to stop loss, and trading fees.",
       "lockPositionSizeTitle": "Lock/Unlock Position Size",
       "lockPositionSizeAriaLabel": "Lock/Unlock Position Size",
       "copyPositionSizeAriaLabel": "Copy Position Size",

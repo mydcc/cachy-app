@@ -68,7 +68,9 @@
   <h2 class="section-header">{$_("dashboard.summaryResults.header")}</h2>
   <div class="result-item">
     <div class="result-label">
-      {$_("dashboard.summaryResults.positionSizeLabel")}
+      <Tooltip text={$_("dashboard.summaryResults.positionSizeTooltip")}>
+        <span>{$_("dashboard.summaryResults.positionSizeLabel")}</span>
+      </Tooltip>
       <button
         id="lock-position-size-btn"
         class="copy-btn ml-2"
