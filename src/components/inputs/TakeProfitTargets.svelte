@@ -17,7 +17,6 @@
 
 <script lang="ts">
   import TakeProfitRow from "../shared/TakeProfitRow.svelte";
-  import Tooltip from "../shared/Tooltip.svelte";
   import { app } from "../../services/app";
   import { _ } from "../../locales/i18n";
   import { createEventDispatcher } from "svelte";

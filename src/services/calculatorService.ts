@@ -24,7 +24,6 @@ import {
 import { marketState } from "../stores/market.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { trackCustomEvent } from "./trackingService";
-import { onboardingService } from "./onboardingService";
 import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 
