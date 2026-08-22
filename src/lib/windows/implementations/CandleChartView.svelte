@@ -670,9 +670,24 @@
         const normalized = normalizeSymbol(symbol, "bitunix");
         const position = accountState.positions.find((p) => p.symbol === normalized);
         const plans = tpSlState.plansFor(normalized);
+        // Bitunix lets a bracket TP/SL be attached at order placement, before
+        // the entry order fills into a position — those live on the order
+        // itself (tpPrice/slPrice), not in tpSlState, which only tracks
+        // plans against an already-open position.
         const pendingOrders = accountState.openOrders
             .filter((o) => o.symbol === normalized && o.type === "limit")
-            .map((o) => ({ orderId: o.orderId, price: o.price, side: o.side }));
+            .flatMap((o) => {
+                const lines: { orderId: string; price: Decimal; side: "buy" | "sell"; kind: "entry" | "takeProfit" | "stopLoss" }[] = [
+                    { orderId: o.orderId, price: o.price, side: o.side, kind: "entry" },
+                ];
+                if (o.tpPrice) {
+                    lines.push({ orderId: `${o.orderId}-tp`, price: new Decimal(o.tpPrice), side: o.side, kind: "takeProfit" as const });
+                }
+                if (o.slPrice) {
+                    lines.push({ orderId: `${o.orderId}-sl`, price: new Decimal(o.slPrice), side: o.side, kind: "stopLoss" as const });
+                }
+                return lines;
+            });
         const meta = marketState?.symbolMeta?.[normalized];
         const tickSize =
             meta?.quotePrecision !== undefined
@@ -688,6 +703,7 @@
                           side: position.side,
                           entryPrice: position.entryPrice,
                           liquidationPrice: position.liquidationPrice,
+                          breakEvenPrice: position.breakEvenPrice,
                           size: position.size,
                       }
                     : null,
@@ -701,8 +717,15 @@
                 tickSize,
                 readOnly,
                 colors: {
-                    entry: getVar("--text-secondary") || "#787b86",
+                    // Entry line tracks unrealizedPnl (live via WS), not a
+                    // fixed neutral color: red means the position is
+                    // currently underwater, green means it's in profit —
+                    // the same signal a trader reads off the PnL number.
+                    entry: position?.unrealizedPnl.isNegative()
+                        ? getVar("--danger-color") || "#ef5350"
+                        : getVar("--success-color") || "#26a69a",
                     liquidation: getVar("--danger-color") || "#ef5350",
+                    breakEven: getVar("--warning-color") || "#ffb300",
                     takeProfit: getVar("--success-color") || "#26a69a",
                     stopLoss: getVar("--danger-color") || "#ef5350",
                     pendingOrder: getVar("--text-secondary") || "#787b86",

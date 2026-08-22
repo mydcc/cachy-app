@@ -352,7 +352,7 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
  * directly.
  */
 describe("FEAT-0247 — dragging a chart TP/SL line", () => {
-    function seedPositionAndPlans() {
+    function seedPositionAndPlans(unrealizedPnl: Decimal = new Decimal(0)) {
         accountState.positions = [
             {
                 positionId: "p-1",
@@ -361,7 +361,7 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
                 size: new Decimal(1),
                 entryPrice: new Decimal(100),
                 leverage: new Decimal(10),
-                unrealizedPnl: new Decimal(0),
+                unrealizedPnl,
                 margin: new Decimal(10),
                 marginMode: "ISOLATED",
                 liquidationPrice: new Decimal(80),
@@ -395,7 +395,38 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         await settle();
 
         const prices = [...chart.priceLines.values()].map((l) => l.price).sort((a, b) => a - b);
-        expect(prices).toEqual([80, 90, 100, 120]);
+        expect(prices).toEqual([80, 90, 100, 100, 120]); // Liq, SL, Entry, B/E, TP
+    });
+
+    it("colors the Entry line red when the position is underwater, green when in profit", async () => {
+        seedPositionAndPlans(new Decimal(-5));
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const entryCallLoss = vi.mocked(chart.candleSeries.createPriceLine).mock.calls.find(
+            ([opts]) => opts.title === "Entry",
+        );
+        expect(entryCallLoss?.[0].color).toBe("#ef5350");
+
+        unmount(component as never);
+        component = null;
+        chart.priceLines.clear();
+        vi.clearAllMocks();
+
+        seedPositionAndPlans(new Decimal(5));
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const entryCallProfit = vi.mocked(chart.candleSeries.createPriceLine).mock.calls.find(
+            ([opts]) => opts.title === "Entry",
+        );
+        expect(entryCallProfit?.[0].color).toBe("#26a69a");
     });
 
     it("submits modifyTpSlOrder through the exchange adapter on drop", async () => {
