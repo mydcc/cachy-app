@@ -1139,7 +1139,11 @@ class BitunixWebSocketService {
 
   private subscribePrivate() {
     if (!this.isAuthenticated || !this.wsPrivate) return;
-    const channels = ["position", "order", "wallet"];
+    // "tp_sl" carries bracket TP/SL leg attach/detach as its own event,
+    // independent of "order" — Bitunix attaches the two legs to a resting
+    // order asynchronously and does not reliably echo both back on the same
+    // "order" push (docs/bitunix-api/08_websocket.md:294-326).
+    const channels = ["position", "order", "wallet", "tp_sl"];
     const args = channels.map((ch) => ({ ch }));
     const payload = { op: "subscribe", args: args };
     try {

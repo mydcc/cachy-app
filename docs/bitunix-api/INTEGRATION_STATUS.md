@@ -116,7 +116,7 @@ Tradepanel ist das der größte fehlende Block.
 | `order` | private | ✅ | |
 | `position` | private | ✅ | |
 | `wallet` (Balance) | private | ✅ | Felder `expMoney`, `isolationFrozen`, `crossFrozen` werden empfangen, aber nicht angezeigt |
-| TP/SL-Channel | private | ❌ | TP/SL-Änderungen erreichen die UI nur per REST-Polling, nicht in Echtzeit |
+| `tp_sl` (TP/SL-Channel) | private | ✅ | Jedes Bein (TP/SL) kommt als eigener Push, nicht atomar zusammen — `tpSlState.updateFromWs()` aktualisiert pro Bein |
 
 Wichtiger Doku-Hinweis (aus `07_trade.md`/`06_tp_sl.md`): Eine erfolgreiche
 REST-Antwort bei order-verändernden Endpoints garantiert **nicht**, dass die
@@ -152,6 +152,8 @@ Verfügbar, aber weder geholt noch angezeigt:
 4. **`tpsl/place_order` + `tpsl/position/place_order`** — TP/SL nachträglich setzen
 5. **Native Endpoints statt Client-Loops** — `cancel_all_orders`,
    `close_all_position`, `flash_close_position`, `modify_order`
-6. **Privater TP/SL-WS-Channel** abonnieren
+6. ~~**Privater TP/SL-WS-Channel** abonnieren~~ — erledigt: `tp_sl`-Channel
+   abonniert, `tpSlState.updateFromWs()` verarbeitet Pushes live statt nur
+   per 30s-REST-Cache
 7. Nice-to-have: `tickers`-Batch-Channel (Best Bid/Ask), Funding-History,
    Position-Tiers

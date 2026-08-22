@@ -47,6 +47,22 @@ export function getTradePnL(t: JournalEntry): Decimal {
   return new Decimal(0);
 }
 
+/**
+ * Entry price adjusted so an immediate exit nets zero PnL — accounts for the
+ * entry fee already paid and an assumed equal-rate exit fee. `feePercent` is
+ * a percentage (e.g. "0.0140" for 0.014%), not a fraction.
+ */
+export function calculateBreakEvenPrice(
+  entryPrice: Decimal,
+  feePercent: Decimal,
+  tradeType: string,
+): Decimal {
+  const feeFactor = feePercent.div(100);
+  return tradeType === CONSTANTS.TRADE_TYPE_LONG
+    ? entryPrice.times(feeFactor.plus(1)).div(new Decimal(1).minus(feeFactor))
+    : entryPrice.times(new Decimal(1).minus(feeFactor)).div(feeFactor.plus(1));
+}
+
 export function calculateBaseMetrics(
   values: TradeValues,
   tradeType: string,
@@ -66,15 +82,11 @@ export function calculateBaseMetrics(
     .times(values.fees.div(100));
   const netLoss = riskAmount.plus(entryFee).plus(slExitFee);
 
-  const feeFactor = values.fees.div(100);
-  const breakEvenPrice =
-    tradeType === CONSTANTS.TRADE_TYPE_LONG
-      ? values.entryPrice
-        .times(feeFactor.plus(1))
-        .div(new Decimal(1).minus(feeFactor))
-      : values.entryPrice
-        .times(new Decimal(1).minus(feeFactor))
-        .div(feeFactor.plus(1));
+  const breakEvenPrice = calculateBreakEvenPrice(
+    values.entryPrice,
+    values.fees,
+    tradeType,
+  );
 
   const mmr = values.maintenanceMarginRate || new Decimal(0);
 

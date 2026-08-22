@@ -35,6 +35,12 @@ it: the trade panel neither shows the active leverage/margin mode for a symbol
 nor lets the user change it, so every settings change requires the exchange's
 own UI. M3 lists "account state, displayed and editable" as a milestone bullet.
 
+The same "account state, displayed" gap also applies to fields already
+arriving over the private `wallet` WebSocket channel
+(`docs/bitunix-api/08_websocket.md:191-213`): `expMoney`, `isolationFrozen`
+and `crossFrozen` are received and stored on `Asset`
+(`src/stores/account.svelte.ts`), but nothing in the UI reads them.
+
 ## Proposal
 
 One proxy route for the account-settings endpoint family:
@@ -50,6 +56,11 @@ One proxy route for the account-settings endpoint family:
 Write actions follow the existing signed-proxy pattern and confirm success via
 the private WebSocket state rather than trusting the REST response alone.
 
+- Surface `expMoney`, `isolationFrozen` and `crossFrozen` from the existing
+  `wallet` channel subscription somewhere in the account/balance UI (e.g.
+  `AccountSummary.svelte` / `AccountTooltip`), next to the existing
+  isolation/cross margin split. No new fetch — the data already flows.
+
 ## Acceptance criteria
 
 - [x] The trade panel shows current leverage and margin mode for the active
@@ -62,6 +73,9 @@ the private WebSocket state rather than trusting the REST response alone.
       updated margin is reflected via WS/refetch, not optimistic-only.
 - [ ] API keys are used only as credentials of the user-initiated request
       through the proxy (ADR-0001 exception); nothing else leaves the device.
+- [ ] `expMoney`, `isolationFrozen` and `crossFrozen` are visible in the
+      account UI when non-zero, sourced from the existing `wallet` channel
+      data rather than a new fetch.
 
 ## Out of scope
 
