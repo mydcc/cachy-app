@@ -73,6 +73,44 @@
     });
 
     /**
+     * Menu keyboard support: Escape closes, ArrowUp/ArrowDown cycle items.
+     * The logo button is a real menu button -- it announces itself via aria
+     * attributes instead of being a mystery brand icon, and it must be
+     * operable without a pointer.
+     */
+    function onMenuKeydown(e: KeyboardEvent) {
+        if (e.key === "Escape") {
+            e.stopPropagation();
+            showSettings = false;
+            return;
+        }
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        e.preventDefault();
+        const popup = e.currentTarget as HTMLElement;
+        const items = Array.from(
+            popup.querySelectorAll<HTMLButtonElement>(".menu-item"),
+        );
+        if (items.length === 0) return;
+        const index = items.indexOf(document.activeElement as HTMLButtonElement);
+        const next =
+            e.key === "ArrowDown"
+                ? items[(index + 1) % items.length]
+                : items[(index - 1 + items.length) % items.length];
+        next?.focus();
+    }
+
+    /** Keyboard activation of the logo button (it has no onclick today --
+     *  Enter/Space were dead ends for keyboard users). */
+    function onLogoKeydown(e: KeyboardEvent) {
+        if (!win.hasContextMenu) return;
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        e.stopPropagation();
+        showSettings = !showSettings;
+        windowManager.bringToFront(win.id);
+    }
+
+    /**
      * Stacking & Focus Management
      * Ensures the window is brought to the front when clicked.
      */
@@ -427,8 +465,13 @@
                         showSettings = !showSettings;
                         windowManager.bringToFront(win.id);
                     }}
+                    onkeydown={onLogoKeydown}
                     role="button"
                     tabindex="0"
+                    aria-haspopup="menu"
+                    aria-expanded={showSettings}
+                    title={$_("common.windowMenu")}
+                    aria-label={$_("common.windowMenu")}
                 >
                     <CachyIcon width="20" height="20" active={win.isFocused} />
                 </div>
@@ -668,11 +711,15 @@
             <div
                 class="window-settings-popup context-menu"
                 style:display="block"
+                role="menu"
+                tabindex="-1"
+                onkeydown={onMenuKeydown}
             >
                 {#each win.getContextMenuActions() as action}
                     <button
                         class="menu-item"
                         class:danger={action.danger}
+                        role="menuitem"
                         onpointerdown={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -680,7 +727,7 @@
                             action.action();
                         }}
                     >
-                        {#if action.icon}<span>{action.icon}</span>{/if}
+                        {#if action.icon}<span aria-hidden="true">{action.icon}</span>{/if}
                         <span>{action.label}</span>
                     </button>
                 {/each}
@@ -959,7 +1006,7 @@
         line-height: 1;
     }
     .header-ctrl-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: color-mix(in srgb, var(--text-primary), transparent 90%);
         color: var(--text-primary);
         transform: translateY(-1px);
     }
@@ -1034,7 +1081,7 @@
     .cachy-logo:hover {
         transform: scale(1.1);
         filter: drop-shadow(0 0 5px var(--accent-color));
-        background: rgba(255, 255, 255, 0.05);
+        background: color-mix(in srgb, var(--text-primary), transparent 95%);
         border-radius: 4px;
     }
     .control-group {
@@ -1062,7 +1109,7 @@
         transition: all 0.2s;
     }
     .tool-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: color-mix(in srgb, var(--text-primary), transparent 90%);
         color: var(--text-primary);
     }
     .zoom-text {
@@ -1099,8 +1146,8 @@
         position: absolute;
         top: calc(100% + 8px);
         left: 8px;
-        background: rgba(15, 23, 42, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: color-mix(in srgb, var(--bg-primary), transparent 5%);
+        border: 1px solid var(--border-color);
         border-radius: 10px;
         padding: 6px;
         z-index: 1000;
@@ -1148,7 +1195,7 @@
 
     .menu-item.danger:hover {
         background: var(--danger-color);
-        color: white;
+        color: var(--text-on-accent, #000000);
     }
 
     /* Resize handles */

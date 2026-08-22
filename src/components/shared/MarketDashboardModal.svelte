@@ -26,6 +26,10 @@
     import { settingsState } from "../../stores/settings.svelte";
     import { marketState } from "../../stores/market.svelte";
     import { marketWatcher } from "../../services/marketWatcher"; // Use existing service
+    import { tradeState } from "../../stores/trade.svelte";
+    import { app } from "../../services/app";
+    import { toastService } from "../../services/toastService.svelte";
+    import { isMobileDevice } from "../../services/capabilityDetection";
     import { _ } from "../../locales/i18n";
     import { Decimal } from "decimal.js";
     import Tooltip from "./Tooltip.svelte";
@@ -65,6 +69,19 @@
     let breadth = $derived(marketBreadth(rows));
     let topPick = $derived(topOpportunity(rows));
 
+    /** One-word reading of marketHeat -- a bare "62" forces every user to
+     *  re-derive overbought/oversold from memory. */
+    let heatZone = $derived.by(() => {
+        if (avgRsi === null) return null;
+        if (avgRsi >= 70) return $_("app.marketDashboard.zoneOverbought");
+        if (avgRsi <= 30) return $_("app.marketDashboard.zoneOversold");
+        return $_("app.marketDashboard.zoneNeutral");
+    });
+
+    /** Mobile: which row's score reasoning is expanded (touch has no hover,
+     *  so the badge becomes a tap-to-expand toggle). */
+    let expandedSymbol = $state<string | null>(null);
+
     const TONE_COLOR: Record<string, string> = {
         bullish: "var(--success-color)",
         bearish: "var(--danger-color)",
@@ -77,12 +94,15 @@
         return { label: $_(key), color: TONE_COLOR[tone] };
     }
 
-    /** The score's own reasoning, already computed by ConfluenceAnalyzer. */
+    /** Row-specific reasoning straight from ConfluenceAnalyzer. The generic
+     *  scale explainer lives ONCE in the column header -- repeating it on
+     *  every row was noise, not information. */
     function scoreTooltip(analysis: SymbolAnalysis | undefined): string {
-        const explainer = $_("app.marketDashboard.scoreExplainer");
         const reasons = analysis?.confluenceReasons;
-        if (!reasons || reasons.length === 0) return explainer;
-        return `${explainer}\n\n${$_("app.marketDashboard.scoreBasis")}:\n${reasons.join("\n")}`;
+        if (!reasons || reasons.length === 0) {
+            return $_("app.marketDashboard.scoreExplainer");
+        }
+        return `${$_("app.marketDashboard.scoreReasons")}\n${reasons.join("\n")}`;
     }
 
     function fundingOf(symbol: string): string | null {
@@ -99,6 +119,47 @@
         if (d.gte(1_000_000)) return `$${d.div(1_000_000).toFixed(1)}M`;
         if (d.gte(1_000)) return `$${d.div(1_000).toFixed(1)}K`;
         return `$${d.toFixed(0)}`;
+    }
+
+    // Row click = load this symbol into the calculator, exactly like the
+    // favourite tiles do (MarketOverview.loadToCalculator). Desktop keeps
+    // this window open -- it is a monitoring surface and rows stay
+    // comparable across picks. Mobile closes after an analysed pick,
+    // because the maximized list would hide the calculator reacting.
+    let activeSymbol = $derived(tradeState.symbol?.toUpperCase() ?? "");
+
+    function selectRow(row: Row): void {
+        if (!row.symbol) return;
+        const upper = row.symbol.toUpperCase();
+        const price = marketState.data[row.symbol]?.lastPrice;
+        tradeState.update((s) => {
+            const next = {
+                ...s,
+                symbol: upper,
+                useAtrSl: true,
+                atrMode: "auto" as "auto" | "manual",
+            };
+            if (price) {
+                next.entryPrice = new Decimal(price).toString();
+            }
+            return next;
+        });
+        app.fetchAllAnalysisData(upper);
+        toastService.success(
+            $_("app.marketDashboard.symbolLoaded", {
+                values: { symbol: upper },
+            }),
+        );
+        if (isMobileDevice() && row.analysed) {
+            uiState.toggleMarketDashboardModal(false);
+        }
+    }
+
+    function onRowKeydown(e: KeyboardEvent, row: Row): void {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            selectRow(row);
+        }
     }
 
     // Effect: Subscribe to live data for displayed symbols when modal is open
@@ -199,12 +260,13 @@
     <ModalFrame
         isOpen={true}
         title={$_("app.marketDashboard.title") || "Global Market Overview"}
+        showBackdrop={false}
         onclose={() => uiState.toggleMarketDashboardModal(false)}
     >
         <div class="space-y-3 sm:space-y-6">
-            <!-- Status strip: one line, so the space goes to data instead -->
+            <!-- Status strip: one slim line -- the space goes to data -->
             <div
-                class="flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
+                class="flex items-center justify-between gap-2 text-[11px] px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
             >
                 <div class="flex items-center gap-2 min-w-0">
                     {#if analysisState.isAnalyzing}
@@ -231,8 +293,8 @@
                         >
                     {/if}
                 </div>
-                <span class="text-[var(--text-secondary)] truncate text-[11px] sm:text-xs">
-                    {$_("app.marketDashboard.analysedOf", {
+                <span class="text-[var(--text-secondary)] truncate text-[10px] sm:text-[11px]">
+                    {$_("app.marketDashboard.analysedCompact", {
                         values: {
                             analysed: analysedRows.length,
                             total: settingsState.favoriteSymbols.length,
@@ -266,9 +328,14 @@
                             <span class="text-lg sm:text-2xl font-bold">
                                 {avgRsi.toFixed(0)}
                             </span>
-                            <span class="text-[10px] sm:text-xs text-[var(--text-secondary)] truncate"
-                                >{$_("app.marketDashboard.avgRsi")}</span
+                            <span
+                                class="text-[10px] sm:text-xs font-semibold truncate"
+                                class:text-[var(--danger-color)]={avgRsi >= 70}
+                                class:text-[var(--success-color)]={avgRsi <= 30}
+                                class:text-[var(--text-secondary)]={avgRsi > 30 && avgRsi < 70}
                             >
+                                {heatZone}
+                            </span>
                         </div>
                         <div
                             class="h-1 bg-[var(--bg-primary)] rounded-full mt-1.5 sm:mt-2 overflow-hidden"
@@ -309,7 +376,12 @@
                                 {breadth.percent.toFixed(0)}%
                             </span>
                             <span class="text-[10px] sm:text-xs text-[var(--text-secondary)] truncate">
-                                {$_("app.marketDashboard.bullish")} · n={breadth.sample}
+                                {$_("app.marketDashboard.bullishOf", {
+                                    values: {
+                                        bullish: breadth.bullish,
+                                        total: breadth.measured,
+                                    },
+                                })}
                             </span>
                         </div>
                         <div
@@ -360,10 +432,19 @@
                 </div>
             </div>
 
-            <!-- Trend Matrix Table -->
+            <!-- Trend Matrix Table. Height is only capped from md up -- on
+                 phones the maximized window's own scroll is the single
+                 boundary (nested scroll containers read as broken here). -->
             <div
-                class="bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-color)] overflow-hidden flex flex-col max-h-[60vh]"
+                class="bg-[var(--bg-tertiary)] rounded-xl border border-[var(--border-color)] overflow-hidden flex flex-col md:max-h-[60vh]"
             >
+                <!-- Mobile trend legend: names the pill order ONCE instead of
+                     repeating a "TREND" label inside every card -->
+                <div
+                    class="md:hidden px-3 pt-2 pb-1 text-[10px] uppercase tracking-wide text-[var(--text-secondary)]"
+                >
+                    {$_("app.marketDashboard.trendLegend")}
+                </div>
                 <!-- Desktop Table Header (hidden on mobile < md) -->
                 <div
                     class="hidden md:grid grid-cols-12 gap-2 p-3 border-b border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs font-bold text-[var(--text-secondary)] uppercase sticky top-0 z-10"
@@ -392,11 +473,22 @@
                         {@const signal = signalOf(row.analysis)}
                         {@const isPartial = row.analysis?.quality === "partial"}
 
-                        <!-- DESKTOP ROW (>= md: 768px) -->
+                        <!-- DESKTOP ROW (>= md: 768px). Click selects:
+                             loads the symbol into the calculator; the window
+                             intentionally stays open on desktop. -->
                         <div
-                            class="hidden md:grid grid-cols-12 gap-2 p-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors items-center text-sm group {row.analysed
+                            class="hidden md:grid grid-cols-12 gap-2 p-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors items-center text-sm group cursor-pointer row-selectable {row.analysed
                                 ? ''
                                 : 'opacity-60'}"
+                            class:row-selected={activeSymbol ===
+                                row.symbol.toUpperCase()}
+                            role="button"
+                            tabindex="0"
+                            aria-pressed={activeSymbol ===
+                                row.symbol.toUpperCase()}
+                            title={$_("app.marketDashboard.selectRow")}
+                            onclick={() => selectRow(row)}
+                            onkeydown={(e) => onRowKeydown(e, row)}
                         >
                             <!-- Asset -->
                             <div class="col-span-2 font-bold flex flex-col min-w-0">
@@ -404,6 +496,25 @@
                                     class="truncate group-hover:text-[var(--accent-color)] transition-colors"
                                     >{row.symbol}</span
                                 >
+                                {#if activeSymbol === row.symbol.toUpperCase()}
+                                    <span
+                                        class="text-[10px] font-semibold text-[var(--accent-color)] flex items-center gap-1"
+                                        aria-hidden="true"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="10"
+                                            height="10"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="3"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><polyline points="20 6 9 17 4 12" /></svg
+                                        >
+                                    </span>
+                                {/if}
                                 {#if row.outOfScope}
                                     <Tooltip text={$_("app.marketDashboard.notAnalysedHint")}>
                                         <span
@@ -519,11 +630,22 @@
                             </div>
                         </div>
 
-                        <!-- MOBILE CARD ROW (< md: 768px) -->
+                        <!-- MOBILE CARD ROW (< md: 768px). Same selection
+                             semantics as desktop; closes after an analysed
+                             pick so the user sees the calculator react. -->
                         <div
-                            class="md:hidden p-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors flex flex-col gap-2.5 {row.analysed
+                            class="md:hidden p-3 border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors flex flex-col gap-2.5 cursor-pointer row-selectable {row.analysed
                                 ? ''
                                 : 'opacity-60'}"
+                            class:row-selected={activeSymbol ===
+                                row.symbol.toUpperCase()}
+                            role="button"
+                            tabindex="0"
+                            aria-pressed={activeSymbol ===
+                                row.symbol.toUpperCase()}
+                            title={$_("app.marketDashboard.selectRow")}
+                            onclick={() => selectRow(row)}
+                            onkeydown={(e) => onRowKeydown(e, row)}
                         >
                             <!-- Top Tier: Symbol + Price/Change + Confluence Badge -->
                             <div class="flex items-center justify-between gap-2">
@@ -556,34 +678,44 @@
                                         {/if}
                                     </div>
 
-                                    <!-- Confluence Signal & Score -->
+                                    <!-- Confluence Signal & Score. Touch has no
+                                         hover: tapping the badge expands the
+                                         score reasoning inline instead. -->
                                     {#if row.analysed}
-                                        <Tooltip text={scoreTooltip(row.analysis)}>
-                                            <div class="flex items-center gap-1.5 cursor-help">
-                                                <div class="flex flex-col items-end">
-                                                    <span class="text-[11px] font-bold whitespace-nowrap" style="color: {signal.color}">
-                                                        {signal.label}
+                                        <button
+                                            type="button"
+                                            class="flex items-center gap-1.5 cursor-pointer"
+                                            title={scoreTooltip(row.analysis)}
+                                            aria-expanded={expandedSymbol === row.symbol}
+                                            onclick={(e) => {
+                                                e.stopPropagation();
+                                                expandedSymbol =
+                                                    expandedSymbol === row.symbol ? null : row.symbol;
+                                            }}
+                                        >
+                                            <div class="flex flex-col items-end">
+                                                <span class="text-[11px] font-bold whitespace-nowrap" style="color: {signal.color}">
+                                                    {signal.label}
+                                                </span>
+                                                {#if rsiNum !== null}
+                                                    <span
+                                                        class="text-[9px] font-mono {rsiNum > 70
+                                                            ? 'text-[var(--danger-color)]'
+                                                            : rsiNum < 30
+                                                              ? 'text-[var(--success-color)]'
+                                                              : 'text-[var(--text-secondary)]'}"
+                                                    >
+                                                        RSI {rsiNum.toFixed(1)}
                                                     </span>
-                                                    {#if rsiNum !== null}
-                                                        <span
-                                                            class="text-[9px] font-mono {rsiNum > 70
-                                                                ? 'text-[var(--danger-color)]'
-                                                                : rsiNum < 30
-                                                                  ? 'text-[var(--success-color)]'
-                                                                  : 'text-[var(--text-secondary)]'}"
-                                                        >
-                                                            RSI {rsiNum.toFixed(1)}
-                                                        </span>
-                                                    {/if}
-                                                </div>
-                                                <div
-                                                    class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold border bg-[var(--bg-secondary)]"
-                                                    style="border-color: {signal.color}"
-                                                >
-                                                    {row.analysis?.confluenceScore.toFixed(0)}
-                                                </div>
+                                                {/if}
                                             </div>
-                                        </Tooltip>
+                                            <div
+                                                class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold border bg-[var(--bg-secondary)]"
+                                                style="border-color: {signal.color}"
+                                            >
+                                                {row.analysis?.confluenceScore.toFixed(0)}
+                                            </div>
+                                        </button>
                                     {:else}
                                         <span class="text-xs text-[var(--text-secondary)] italic">
                                             {$_("app.marketDashboard.noData")}
@@ -594,9 +726,8 @@
 
                             <!-- Bottom Tier: Trend Matrix Pills + Funding & Volume -->
                             <div class="flex items-center justify-between pt-1.5 border-t border-[var(--border-color)] border-opacity-40 text-xs text-[var(--text-secondary)]">
-                                <!-- Trend Matrix with timeframes -->
+                                <!-- Trend Matrix pills (order: 15m · 1h · 4h · 1d -- see legend) -->
                                 <div class="flex items-center gap-1.5">
-                                    <span class="text-[10px] uppercase font-semibold text-[var(--text-secondary)]">{$_("app.marketDashboard.trendMatrix.trend")}:</span>
                                     <div class="flex items-center gap-1">
                                         <div
                                             class="w-2 h-4 rounded-xs {trendCellClass(trends?.['15m'])}"
@@ -623,7 +754,6 @@
                                                 : $_("app.marketDashboard.trendMatrix.trend1d")}
                                         ></div>
                                     </div>
-                                    <span class="text-[9px] text-[var(--text-secondary)] opacity-80">(15m - 1d)</span>
                                 </div>
 
                                 <!-- Funding Rate & Quote Volume -->
@@ -636,6 +766,15 @@
                                     {/if}
                                 </div>
                             </div>
+
+                            <!-- Expanded score reasoning (mobile tap detail) -->
+                            {#if expandedSymbol === row.symbol && row.analysed}
+                                <div
+                                    class="pt-1.5 text-[10px] leading-relaxed text-[var(--text-secondary)] whitespace-pre-line border-t border-[var(--border-color)]"
+                                >
+                                    {(row.analysis?.confluenceReasons ?? []).join("\n")}
+                                </div>
+                            {/if}
                         </div>
                     {:else}
                         <div
@@ -653,3 +792,14 @@
         </div>
     </ModalFrame>
 {/if}
+
+<style>
+    .row-selectable:focus-visible {
+        outline: 2px solid var(--accent-color);
+        outline-offset: -2px;
+    }
+    .row-selected {
+        background: color-mix(in srgb, var(--accent-color), transparent 92%);
+        box-shadow: inset 3px 0 0 var(--accent-color);
+    }
+</style>

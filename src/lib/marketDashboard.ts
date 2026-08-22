@@ -108,16 +108,28 @@ export function marketHeat(rows: DashboardRow[]): number | null {
 
 /**
  * Share of favourites trading above their 4h EMA 200, with the sample size it
- * was computed from. Only timeframes that produced a real reading count --
- * "unknown" is missing data, not a bearish vote.
+ * was computed from AND the absolute counts behind it -- the UI renders
+ * "x von y bullish" because "58% · n=12" tested as unreadable. Only
+ * timeframes that produced a real reading count -- "unknown" is missing
+ * data, not a bearish vote.
  */
-export function marketBreadth(rows: DashboardRow[]): { percent: number; sample: number } | null {
+export function marketBreadth(rows: DashboardRow[]): {
+    percent: number;
+    sample: number;
+    bullish: number;
+    measured: number;
+} | null {
     const measured = rows.filter(
         (r) => r.analysis?.trends?.["4h"] === "bullish" || r.analysis?.trends?.["4h"] === "bearish",
     );
     if (measured.length === 0) return null;
     const bullish = measured.filter((r) => r.analysis!.trends!["4h"] === "bullish").length;
-    return { percent: (bullish / measured.length) * 100, sample: measured.length };
+    return {
+        percent: (bullish / measured.length) * 100,
+        sample: measured.length,
+        bullish,
+        measured: measured.length,
+    };
 }
 
 /**

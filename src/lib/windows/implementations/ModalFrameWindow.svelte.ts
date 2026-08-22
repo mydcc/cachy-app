@@ -38,6 +38,10 @@ export interface ModalFrameWindowOptions {
     alignment?: "center" | "top";
     extraClasses?: string;
     bodyClass?: string;
+    /** Dim the rest of the UI behind this window. Default true (modal
+     *  convention); callers whose window is a monitoring surface -- not a
+     *  blocking task -- turn it off so background tiles stay readable. */
+    showBackdrop?: boolean;
     children?: Snippet;
     headerExtra?: Snippet;
 }
@@ -54,6 +58,10 @@ export class ModalFrameWindow extends WindowBase {
         this._bodyClass = options.bodyClass ?? "";
         this._onCloseCallback = options.onclose;
         this.extraClasses = options.extraClasses ?? "";
+        // Overrides the registry default for the "modal" type (showBackdrop:
+        // true). Set before first paint -- WindowContainer derives the dimming
+        // layer from this flag reactively.
+        this.showBackdrop = options.showBackdrop ?? true;
 
         if (options.headerExtra) {
             this.headerSnippet = options.headerExtra;

@@ -175,7 +175,12 @@ describe("marketBreadth", () => {
 
         // 100% of ONE measured symbol -- and the sample size is published so
         // the reader can weigh it. Counting B as "not bullish" would report 50%.
-        expect(marketBreadth(rows)).toEqual({ percent: 100, sample: 1 });
+        expect(marketBreadth(rows)).toEqual({
+            percent: 100,
+            sample: 1,
+            bullish: 1,
+            measured: 1,
+        });
     });
 });
 
