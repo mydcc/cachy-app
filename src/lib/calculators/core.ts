@@ -63,6 +63,31 @@ export function calculateBreakEvenPrice(
     : entryPrice.times(new Decimal(1).minus(feeFactor)).div(feeFactor.plus(1));
 }
 
+/**
+ * Required margin, net loss and entry fee for a given position size — the
+ * three `BaseMetrics` fields that scale with it. Split out from
+ * `calculateBaseMetrics` so a caller that rounds `positionSize` to the
+ * exchange's precision *after* the initial calculation (as the calculator
+ * UI does, to match what will actually be ordered) can re-derive these
+ * from the rounded size instead of leaving them reflecting the pre-rounding
+ * one — see BUG-0252.
+ */
+export function deriveMoneyMetrics(
+  positionSize: Decimal,
+  values: Pick<TradeValues, "entryPrice" | "stopLossPrice" | "leverage" | "fees">,
+  riskAmount: Decimal,
+): { requiredMargin: Decimal; netLoss: Decimal; entryFee: Decimal } {
+  const orderVolume = positionSize.times(values.entryPrice);
+  const requiredMargin = values.leverage.gt(0)
+    ? orderVolume.div(values.leverage)
+    : orderVolume;
+  const feeFactor = values.fees.div(100);
+  const entryFee = orderVolume.times(feeFactor);
+  const slExitFee = positionSize.times(values.stopLossPrice).times(feeFactor);
+  const netLoss = riskAmount.plus(entryFee).plus(slExitFee);
+  return { requiredMargin, netLoss, entryFee };
+}
+
 export function calculateBaseMetrics(
   values: TradeValues,
   tradeType: string,
@@ -72,15 +97,11 @@ export function calculateBaseMetrics(
   if (riskPerUnit.isZero()) return null;
 
   const positionSize = riskAmount.div(riskPerUnit);
-  const orderVolume = positionSize.times(values.entryPrice);
-  const requiredMargin = values.leverage.gt(0)
-    ? orderVolume.div(values.leverage)
-    : orderVolume;
-  const entryFee = orderVolume.times(values.fees.div(100));
-  const slExitFee = positionSize
-    .times(values.stopLossPrice)
-    .times(values.fees.div(100));
-  const netLoss = riskAmount.plus(entryFee).plus(slExitFee);
+  const { requiredMargin, netLoss, entryFee } = deriveMoneyMetrics(
+    positionSize,
+    values,
+    riskAmount,
+  );
 
   const breakEvenPrice = calculateBreakEvenPrice(
     values.entryPrice,
