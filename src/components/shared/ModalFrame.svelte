@@ -43,6 +43,8 @@
         title?: string;
         extraClasses?: string;
         alignment?: "center" | "top";
+        /** Dim the UI behind the window (default true). */
+        showBackdrop?: boolean;
         onclose?: () => void;
         children?: Snippet;
         headerExtra?: Snippet;
@@ -54,6 +56,7 @@
         title = "",
         extraClasses = "",
         alignment = "center",
+        showBackdrop = true,
         onclose,
         children,
         headerExtra,
@@ -83,6 +86,7 @@
             const w = new ModalFrameWindow({
                 title,
                 alignment,
+                showBackdrop,
                 extraClasses,
                 bodyClass,
                 children,
