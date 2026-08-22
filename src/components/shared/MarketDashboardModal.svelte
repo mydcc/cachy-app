@@ -767,15 +767,18 @@
                             onclick={() => selectRow(row)}
                             onkeydown={(e) => onRowKeydown(e, row)}
                         >
-                            <!-- Symbol & scope badge -->
-                            <div class="flex items-center gap-1.5 min-w-0">
-                                <span class="font-bold text-sm text-[var(--text-primary)] truncate">{row.symbol}</span>
-                                {#if row.outOfScope}
-                                    <span class="text-[9px] px-1 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)] shrink-0">{$_("app.marketDashboard.noData")}</span>
-                                {:else if isPartial}
-                                    <span class="text-[9px] px-1 rounded bg-[var(--bg-secondary)] text-[var(--warning-color)] shrink-0">{$_("app.marketDashboard.partial")}</span>
-                                {/if}
-                            </div>
+                            <!-- Symbol: FIXED column so every pill group sits
+                                 exactly below the one above -- favourites cap
+                                 at 12, so reserving width is cheap. Longer
+                                 names truncate. Scope chips dropped here: an
+                                 unanalysed row already reads as such via its
+                                 hollow pills and empty score slot; details
+                                 live in the tap panel. -->
+                            <span
+                                class="w-16 shrink-0 font-bold text-sm text-[var(--text-primary)] truncate"
+                            >
+                                {row.symbol}
+                            </span>
 
                             <!-- Compact trend pills (order: 15m · 1h · 4h · 1d -- see legend) -->
                             <div class="flex items-center gap-0.5 shrink-0" aria-hidden="true">
