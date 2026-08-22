@@ -746,11 +746,15 @@
                             </div>
                         </div>
 
-                        <!-- MOBILE CARD ROW (< md: 768px). Same selection
-                             semantics as desktop; closes after an analysed
-                             pick so the user sees the calculator react. -->
+                        <!-- MOBILE TICKER ROW (< md: 768px). One visual
+                             line: symbol, compact trend pills, price+change,
+                             colored score. Signal label, RSI, funding and
+                             volume live in the badge's tap detail -- a phone
+                             row is a ticker line, not a card. Selection
+                             semantics unchanged: tap loads the symbol into
+                             the calculator; closes after an analysed pick. -->
                         <div
-                            class="md:hidden p-3 hover:bg-[var(--bg-primary)] transition-colors flex flex-col gap-2.5 cursor-pointer row-selectable {row.analysed
+                            class="md:hidden px-3 py-2 hover:bg-[var(--bg-primary)] transition-colors flex flex-wrap items-center gap-x-2 gap-y-1 cursor-pointer row-selectable {row.analysed
                                 ? ''
                                 : 'opacity-60'}"
                             class:row-selected={activeSymbol ===
@@ -763,132 +767,92 @@
                             onclick={() => selectRow(row)}
                             onkeydown={(e) => onRowKeydown(e, row)}
                         >
-                            <!-- Top Tier: Symbol + Price/Change + Confluence Badge -->
-                            <div class="flex items-center justify-between gap-2">
-                                <!-- Symbol & scope badge -->
-                                <div class="flex items-center gap-2 min-w-0">
-                                    <span class="font-bold text-sm sm:text-base text-[var(--text-primary)] truncate">{row.symbol}</span>
-                                    {#if row.outOfScope}
-                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)] shrink-0">{$_("app.marketDashboard.noData")}</span>
-                                    {:else if isPartial}
-                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--warning-color)] shrink-0">{$_("app.marketDashboard.partial")}</span>
-                                    {/if}
-                                </div>
+                            <!-- Symbol & scope badge -->
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="font-bold text-sm text-[var(--text-primary)] truncate">{row.symbol}</span>
+                                {#if row.outOfScope}
+                                    <span class="text-[9px] px-1 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)] shrink-0">{$_("app.marketDashboard.noData")}</span>
+                                {:else if isPartial}
+                                    <span class="text-[9px] px-1 rounded bg-[var(--bg-secondary)] text-[var(--warning-color)] shrink-0">{$_("app.marketDashboard.partial")}</span>
+                                {/if}
+                            </div>
 
-                                <div class="flex items-center gap-3 shrink-0">
-                                    <!-- Live Price & 24h Change -->
-                                    <div class="text-right flex flex-col items-end">
-                                        {#if livePrice === null}
-                                            <span class="font-mono text-xs sm:text-sm text-[var(--text-secondary)]">—</span>
-                                        {:else}
-                                            <span class="font-mono font-semibold text-xs sm:text-sm text-[var(--text-primary)]">${formatPrice(livePrice)}</span>
-                                        {/if}
-                                        {#if liveChange !== null}
-                                            <span
-                                                class="text-[11px] font-semibold {liveChange >= 0
-                                                    ? 'text-[var(--success-color)]'
-                                                    : 'text-[var(--danger-color)]'}"
-                                            >
-                                                {liveChange > 0 ? "+" : ""}{liveChange.toFixed(2)}%
-                                            </span>
-                                        {/if}
-                                    </div>
+                            <!-- Compact trend pills (order: 15m · 1h · 4h · 1d -- see legend) -->
+                            <div class="flex items-center gap-0.5 shrink-0" aria-hidden="true">
+                                <div class="w-1.5 h-3 rounded-xs {trendCellClass(trends?.['15m'])}"></div>
+                                <div class="w-1.5 h-3 rounded-xs {trendCellClass(trends?.['1h'])}"></div>
+                                <div class="w-2 h-3.5 rounded-xs {trendCellClass(trends?.['4h'])} ring-1 ring-[var(--bg-tertiary)]"></div>
+                                <div class="w-1.5 h-3 rounded-xs {trendCellClass(trends?.['1d'])}"></div>
+                            </div>
 
-                                    <!-- Confluence Signal & Score. Touch has no
-                                         hover: tapping the badge expands the
-                                         score reasoning inline instead. -->
-                                    {#if row.analysed}
-                                        <button
-                                            type="button"
-                                            class="flex items-center gap-1.5 cursor-pointer"
-                                            title={scoreTooltip(row.analysis)}
-                                            aria-expanded={expandedSymbol === row.symbol}
-                                            onclick={(e) => {
-                                                e.stopPropagation();
-                                                expandedSymbol =
-                                                    expandedSymbol === row.symbol ? null : row.symbol;
-                                            }}
-                                        >
-                                            <div class="flex flex-col items-end">
-                                                <span class="text-[11px] font-bold whitespace-nowrap" style="color: {signal.color}">
-                                                    {signal.label}
-                                                </span>
-                                                {#if rsiNum !== null}
-                                                    <span
-                                                        class="text-[9px] font-mono {rsiNum > 70
-                                                            ? 'text-[var(--danger-color)]'
-                                                            : rsiNum < 30
-                                                              ? 'text-[var(--success-color)]'
-                                                              : 'text-[var(--text-secondary)]'}"
-                                                    >
-                                                        RSI {rsiNum.toFixed(1)}
-                                                    </span>
-                                                {/if}
-                                            </div>
-                                            <div
-                                                class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold border bg-[var(--bg-secondary)]"
-                                                style="border-color: {signal.color}"
-                                            >
-                                                {row.analysis?.confluenceScore.toFixed(0)}
-                                            </div>
-                                        </button>
+                            <div class="ml-auto flex items-center gap-2.5 shrink-0">
+                                <!-- Live price & 24h change -->
+                                <div class="text-right leading-tight">
+                                    {#if livePrice === null}
+                                        <span class="font-mono text-xs text-[var(--text-secondary)]">—</span>
                                     {:else}
-                                        <span class="text-xs text-[var(--text-secondary)] italic">
-                                            {$_("app.marketDashboard.noData")}
+                                        <span class="font-mono font-semibold text-xs text-[var(--text-primary)]">${formatPrice(livePrice)}</span>
+                                    {/if}
+                                    {#if liveChange !== null}
+                                        <span
+                                            class="block text-[10px] font-semibold {liveChange >= 0
+                                                ? 'text-[var(--success-color)]'
+                                                : 'text-[var(--danger-color)]'}"
+                                        >
+                                            {liveChange > 0 ? "+" : ""}{liveChange.toFixed(2)}%
                                         </span>
                                     {/if}
                                 </div>
+
+                                <!-- Score badge: the border+number color carries
+                                     the signal word; tapping expands label, RSI,
+                                     funding and reasoning inline. Touch has no
+                                     hover -- this is its only affordance. -->
+                                {#if row.analysed}
+                                    <button
+                                        type="button"
+                                        class="w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold border bg-[var(--bg-secondary)] cursor-pointer"
+                                        style="border-color: {signal.color}; color: {signal.color}"
+                                        title={scoreTooltip(row.analysis)}
+                                        aria-expanded={expandedSymbol === row.symbol}
+                                        onclick={(e) => {
+                                            e.stopPropagation();
+                                            expandedSymbol =
+                                                expandedSymbol === row.symbol ? null : row.symbol;
+                                        }}
+                                    >
+                                        {row.analysis?.confluenceScore.toFixed(0)}
+                                    </button>
+                                {:else}
+                                    <span class="text-[10px] text-[var(--text-secondary)] italic">
+                                        {$_("app.marketDashboard.noData")}
+                                    </span>
+                                {/if}
                             </div>
 
-                            <!-- Bottom Tier: Trend Matrix Pills + Funding & Volume -->
-                            <div class="flex items-center justify-between pt-1.5 border-t border-[var(--border-color)]/40 text-xs text-[var(--text-secondary)]">
-                                <!-- Trend Matrix pills (order: 15m · 1h · 4h · 1d -- see legend) -->
-                                <div class="flex items-center gap-1.5">
-                                    <div class="flex items-center gap-1">
-                                        <div
-                                            class="w-2 h-4 rounded-xs {trendCellClass(trends?.['15m'])}"
-                                            title={trends?.['15m'] === undefined || trends?.['15m'] === 'unknown'
-                                                ? $_("app.marketDashboard.trendUnknown")
-                                                : $_("app.marketDashboard.trendMatrix.trend15m")}
-                                        ></div>
-                                        <div
-                                            class="w-2 h-4 rounded-xs {trendCellClass(trends?.['1h'])}"
-                                            title={trends?.['1h'] === undefined || trends?.['1h'] === 'unknown'
-                                                ? $_("app.marketDashboard.trendUnknown")
-                                                : $_("app.marketDashboard.trendMatrix.trend1h")}
-                                        ></div>
-                                        <div
-                                            class="w-2.5 h-5 rounded-xs {trendCellClass(trends?.['4h'])} ring-1 ring-[var(--bg-tertiary)]"
-                                            title={trends?.['4h'] === undefined || trends?.['4h'] === 'unknown'
-                                                ? $_("app.marketDashboard.trendUnknown")
-                                                : $_("app.marketDashboard.trendMatrix.trend4h")}
-                                        ></div>
-                                        <div
-                                            class="w-2 h-4 rounded-xs {trendCellClass(trends?.['1d'])}"
-                                            title={trends?.['1d'] === undefined || trends?.['1d'] === 'unknown'
-                                                ? $_("app.marketDashboard.trendUnknown")
-                                                : $_("app.marketDashboard.trendMatrix.trend1d")}
-                                        ></div>
-                                    </div>
-                                </div>
-
-                                <!-- Funding Rate & Quote Volume -->
-                                <div class="flex items-center gap-2 font-mono text-[11px]">
-                                    {#if fundingOf(row.symbol)}
-                                        <span>{$_("app.marketDashboard.funding")}: <strong class="text-[var(--text-primary)]">{fundingOf(row.symbol)}</strong></span>
-                                    {/if}
-                                    {#if volumeOf(row.symbol)}
-                                        <span class="hidden xs:inline">• Vol: <strong class="text-[var(--text-primary)]">{volumeOf(row.symbol)}</strong></span>
-                                    {/if}
-                                </div>
-                            </div>
-
-                            <!-- Expanded score reasoning (mobile tap detail) -->
+                            <!-- Expanded tap detail: everything that left the
+                                 ticker line, plus the score's reasoning. -->
                             {#if expandedSymbol === row.symbol && row.analysed}
                                 <div
-                                    class="pt-1.5 text-[10px] leading-relaxed text-[var(--text-secondary)] whitespace-pre-line border-t border-[var(--border-color)]"
+                                    class="w-full pt-2 mt-1 border-t border-[var(--border-color)]/40 text-[10px] leading-relaxed text-[var(--text-secondary)]"
                                 >
-                                    {(row.analysis?.confluenceReasons ?? []).join("\n")}
+                                    <div class="flex flex-wrap gap-x-3 gap-y-0.5 mb-1">
+                                        <span class="font-sans font-bold" style="color: {signal.color}">
+                                            {signal.label}
+                                        </span>
+                                        {#if rsiNum !== null}
+                                            <span>RSI {rsiNum.toFixed(1)}</span>
+                                        {/if}
+                                        {#if fundingOf(row.symbol)}
+                                            <span>{$_("app.marketDashboard.funding")} {fundingOf(row.symbol)}</span>
+                                        {/if}
+                                        {#if volumeOf(row.symbol)}
+                                            <span>{$_("app.marketDashboard.volume24h")} {volumeOf(row.symbol)}</span>
+                                        {/if}
+                                    </div>
+                                    <div class="whitespace-pre-line">
+                                        {(row.analysis?.confluenceReasons ?? []).join("\n")}
+                                    </div>
                                 </div>
                             {/if}
                         </div>
