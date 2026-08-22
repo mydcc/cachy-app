@@ -2584,7 +2584,9 @@
     "closeAbortedSafety": "Schließen sicherheitshalber abgebrochen. Offene Orders konnten nicht storniert werden.",
     "closeAllFailed": "Flash Close fehlgeschlagen für: {failedSymbols}",
     "fetchFailed": "Abrufen fehlgeschlagen",
-    "flashCloseFailed": "Flash Close fehlgeschlagen: {msg}"
+    "flashCloseFailed": "Flash Close fehlgeschlagen: {msg}",
+    "tpSlUpdated": "TP/SL aktualisiert",
+    "tpSlUpdateFailed": "TP/SL-Aktualisierung fehlgeschlagen: {msg}"
   },
   "marketAnalyst": {
     "analysisFailed": "Analyse für {symbol} fehlgeschlagen: {error}"

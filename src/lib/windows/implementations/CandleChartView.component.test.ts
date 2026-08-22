@@ -52,13 +52,35 @@ import { marketState } from "./marketState.helper.svelte.ts";
 // lightweight-charts needs a canvas the happy-dom test env lacks; the series
 // mocks double as the spy surface the regression asserts on.
 const chart = vi.hoisted(() => {
+    // Price === Y for createPriceLine/priceToCoordinate/coordinateToPrice —
+    // same trivial 1:1 scale as priceLineManager.test.ts's fake series, so
+    // FEAT-0247 drag tests can pick coordinates without a real chart.
+    const priceLines = new Map<object, { price: number; title: string }>();
     const candleSeries = {
         update: vi.fn(),
         setData: vi.fn(),
         applyOptions: vi.fn(),
+        createPriceLine: vi.fn((options: { price: number; title: string }) => {
+            const state = { price: options.price, title: options.title };
+            const handle = {
+                applyOptions: (next: { price?: number; title?: string }) => {
+                    if (next.price !== undefined) state.price = next.price;
+                    if (next.title !== undefined) state.title = next.title;
+                },
+                options: () => ({ ...state }),
+            };
+            priceLines.set(handle, state);
+            return handle;
+        }),
+        removePriceLine: vi.fn((line: object) => {
+            priceLines.delete(line);
+        }),
+        priceToCoordinate: vi.fn((price: number) => price),
+        coordinateToPrice: vi.fn((coordinate: number) => coordinate),
     };
     return {
         candleSeries,
+        priceLines,
         chart: {
             addSeries: vi.fn(() => candleSeries),
             applyOptions: vi.fn(),
@@ -97,8 +119,28 @@ vi.mock("../../../utils/indicators", () => ({
     JSIndicators: { ema: vi.fn((closes: number[]) => closes.map((c) => c)) },
 }));
 
+// FEAT-0247 drag-to-modify: the exchange adapter and toast surface are
+// spied on directly so the drop tests can assert against them without a
+// real network call.
+const modifyTpSlOrder = vi.hoisted(() => vi.fn().mockResolvedValue({}));
+const activeExchangeMock = vi.hoisted(() =>
+    vi.fn(() => ({
+        supports: { tpSl: true },
+        trading: { modifyTpSlOrder },
+    })),
+);
+vi.mock("../../../services/exchange", () => ({
+    activeExchange: activeExchangeMock,
+}));
+vi.mock("../../../services/toastService.svelte", () => ({
+    toastService: { success: vi.fn(), error: vi.fn(), add: vi.fn() },
+}));
+
 import CandleChartView from "./CandleChartView.svelte";
 import { JSIndicators } from "../../../utils/indicators";
+import { toastService } from "../../../services/toastService.svelte";
+import { accountState } from "../../../stores/account.svelte";
+import { tpSlState } from "../../../stores/tpsl.svelte";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -143,6 +185,9 @@ async function settle(rounds = 4) {
 beforeEach(() => {
     vi.clearAllMocks();
     marketState.data = {};
+    chart.priceLines.clear();
+    accountState.positions = [];
+    tpSlState.reset();
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -151,6 +196,8 @@ afterEach(() => {
     if (component) unmount(component);
     component = null;
     host.remove();
+    accountState.positions = [];
+    tpSlState.reset();
 });
 
 describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => {
@@ -274,5 +321,143 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
             expect.objectContaining({ close: 70000 }),
         );
         expect(chart.candleSeries.setData).not.toHaveBeenCalled();
+    });
+});
+
+/*
+ * FEAT-0247 — dragging a TP/SL price line submits a modification.
+ *
+ * Exercises the actual wiring in CandleChartView (not just PriceLineManager
+ * in isolation, see priceLineManager.test.ts): the component creates a
+ * PriceLineManager against the real candleSeries, feeds it the position/TP/SL
+ * plans from accountState/tpSlState, and on drop calls
+ * `activeExchange().trading.modifyTpSlOrder` — the gated (FEAT-0011) path
+ * reached through the exchange adapter (FEAT-0016), not tradeService
+ * directly.
+ */
+describe("FEAT-0247 — dragging a chart TP/SL line", () => {
+    function seedPositionAndPlans() {
+        accountState.positions = [
+            {
+                positionId: "p-1",
+                symbol: "BTCUSDT",
+                side: "long",
+                size: new Decimal(1),
+                entryPrice: new Decimal(100),
+                leverage: new Decimal(10),
+                unrealizedPnl: new Decimal(0),
+                margin: new Decimal(10),
+                marginMode: "ISOLATED",
+                liquidationPrice: new Decimal(80),
+                markPrice: new Decimal(100),
+                breakEvenPrice: new Decimal(100),
+                marginRate: new Decimal(0),
+                realizedPnl: new Decimal(0),
+            },
+        ] as never;
+
+        vi.spyOn(tpSlState, "plansFor").mockReturnValue({
+            profit: { orderId: "tp-1", symbol: "BTCUSDT", planType: "PROFIT", triggerPrice: "120", status: "NEW" } as never,
+            loss: { orderId: "sl-1", symbol: "BTCUSDT", planType: "LOSS", triggerPrice: "90", status: "NEW" } as never,
+        });
+        vi.spyOn(tpSlState, "ensureFresh").mockResolvedValue(undefined);
+        vi.spyOn(tpSlState, "invalidate").mockImplementation(() => {});
+    }
+
+    function dragSlLineTo(container: HTMLElement, fromY: number, toY: number) {
+        container.dispatchEvent(new MouseEvent("mousedown", { clientY: fromY, bubbles: true }));
+        container.dispatchEvent(new MouseEvent("mousemove", { clientY: toY, bubbles: true }));
+        window.dispatchEvent(new MouseEvent("mouseup"));
+    }
+
+    it("renders Entry/Liquidation/TP/SL lines for the position", async () => {
+        seedPositionAndPlans();
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const prices = [...chart.priceLines.values()].map((l) => l.price).sort((a, b) => a - b);
+        expect(prices).toEqual([80, 90, 100, 120]);
+    });
+
+    it("submits modifyTpSlOrder through the exchange adapter on drop", async () => {
+        seedPositionAndPlans();
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const container = host.querySelector(".chart-container") as HTMLElement;
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+
+        // SL line sits at price/coordinate 90 (tick size defaults to 0.01
+        // here — no symbolMeta in this test's marketState mock).
+        dragSlLineTo(container, 90, 95);
+        await settle();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "sl-1",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "95",
+            }),
+        );
+        expect(toastService.success).toHaveBeenCalled();
+        expect(tpSlState.invalidate).toHaveBeenCalled();
+    });
+
+    it("shows an error toast and still invalidates the cache when the modification is refused", async () => {
+        modifyTpSlOrder.mockRejectedValueOnce(new Error("refused"));
+        seedPositionAndPlans();
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const container = host.querySelector(".chart-container") as HTMLElement;
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+
+        dragSlLineTo(container, 90, 95);
+        await settle();
+
+        expect(toastService.error).toHaveBeenCalled();
+        expect(tpSlState.invalidate).toHaveBeenCalled();
+    });
+
+    it("does not offer a drag when the exchange doesn't support TP/SL edits", async () => {
+        modifyTpSlOrder.mockClear();
+        seedPositionAndPlans();
+        activeExchangeMock.mockReturnValueOnce({
+            supports: { tpSl: false },
+            trading: { modifyTpSlOrder },
+        } as never);
+
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const container = host.querySelector(".chart-container") as HTMLElement;
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+
+        dragSlLineTo(container, 90, 95);
+        await settle();
+
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
     });
 });

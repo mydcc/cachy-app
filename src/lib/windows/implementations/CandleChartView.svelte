@@ -29,12 +29,22 @@
         type Time,
         type LogicalRange,
     } from "lightweight-charts";
+    import { Decimal } from "decimal.js";
+    import { get } from "svelte/store";
     import { JSIndicators } from "../../../utils/indicators";
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
+    import { accountState } from "../../../stores/account.svelte";
+    import { tpSlState } from "../../../stores/tpsl.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { marketWatcher } from "../../../services/marketWatcher";
+    import { activeExchange } from "../../../services/exchange";
+    import { toastService } from "../../../services/toastService.svelte";
+    import {
+        PriceLineManager,
+        type TpSlKind,
+    } from "../../../services/chart/priceLineManager";
     import type { WindowBase } from "../WindowBase.svelte";
 
     interface Props {
@@ -95,6 +105,10 @@
     let lastRenderedCount = $state(0);
     let lastRenderTimestamp = 0;
     let renderThrottleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // FEAT-0247: position and TP/SL price lines
+    let priceLineManager: PriceLineManager | null = null;
+    let tpSlDragActive = $state(false);
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
@@ -201,6 +215,23 @@
         });
         untrack(() => updateColors());
 
+        priceLineManager = new PriceLineManager(candleSeries, {
+            onDragStart: () => {
+                tpSlDragActive = true;
+                chart?.applyOptions({ handleScroll: false, handleScale: false });
+            },
+            onDragCancel: () => {
+                tpSlDragActive = false;
+                chart?.applyOptions({ handleScroll: true, handleScale: true });
+            },
+            onDrop: (kind, orderId, price) => {
+                tpSlDragActive = false;
+                chart?.applyOptions({ handleScroll: true, handleScale: true });
+                untrack(() => handleTpSlDrop(kind, orderId, price));
+            },
+        });
+        if (chartContainer) priceLineManager.attach(chartContainer);
+
         const handleResize = () => {
             if (chart && chartContainer) {
                 chart.applyOptions({
@@ -260,9 +291,48 @@
                 handleVisibleLogicalRangeChange,
             );
             if (chartContainer) resizeObserver.unobserve(chartContainer);
+            priceLineManager?.destroy();
+            priceLineManager = null;
             if (chart) chart.remove();
         };
     });
+
+    /**
+     * FEAT-0247: a TP/SL line was dragged and dropped at `price`. Goes
+     * through `activeExchange().trading.modifyTpSlOrder` — the same gated
+     * (FEAT-0011) path the TP/SL edit modal uses (core code talks to
+     * exchanges only through the adapter, see FEAT-0016) — so a drag on the
+     * chart carries the same audit trail and risk checks as any other order
+     * mutation.
+     */
+    async function handleTpSlDrop(kind: TpSlKind, orderId: string, price: Decimal) {
+        const planType = kind === "takeProfit" ? "PROFIT" : "LOSS";
+        try {
+            await activeExchange().trading.modifyTpSlOrder({
+                orderId,
+                symbol: normalizeSymbol(symbol, "bitunix"),
+                planType,
+                triggerPrice: price.toString(),
+            });
+            toastService.success(
+                get(_)("trade.tpSlUpdated" as import("../../../locales/schema").TranslationKey) ||
+                    "TP/SL updated",
+            );
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            toastService.error(
+                get(_)("trade.tpSlUpdateFailed" as import("../../../locales/schema").TranslationKey, {
+                    values: { msg },
+                }) || `TP/SL update failed: ${msg}`,
+            );
+        } finally {
+            // Whether it succeeded or was refused, the on-chart line must
+            // reflect the resting order's real price, not the dropped one —
+            // refetch rather than trust the optimistic drag position.
+            tpSlState.invalidate();
+            void tpSlState.ensureFresh(Date.now());
+        }
+    }
 
     async function loadMore() {
         if (isLoadingHistory || allHistoryLoaded) return;
@@ -537,6 +607,48 @@
     });
 
     // Reactive Options update (Scale, Visibility, etc.)
+
+    // FEAT-0247: keep the Entry/Liquidation/TP/SL price lines in sync with
+    // the live position, the resting TP/SL plans, and the active exchange's
+    // tick size — and with whether it supports editing them at all.
+    $effect(() => {
+        // `candleSeries` (reactive $state) is read purely so this effect
+        // re-runs once the chart mounts and `priceLineManager` stops being
+        // null — the manager itself is a plain field, not a rune.
+        if (!candleSeries || !priceLineManager) return;
+
+        const normalized = normalizeSymbol(symbol, "bitunix");
+        const position = accountState.positions.find((p) => p.symbol === normalized);
+        const plans = tpSlState.plansFor(normalized);
+        const meta = marketState?.symbolMeta?.[normalized];
+        const tickSize =
+            meta?.quotePrecision !== undefined
+                ? new Decimal(10).pow(-meta.quotePrecision)
+                : new Decimal("0.01");
+        const readOnly = activeExchange().supports.tpSl === false;
+
+        untrack(() => {
+            void tpSlState.ensureFresh();
+            priceLineManager?.update({
+                position: position
+                    ? {
+                          side: position.side,
+                          entryPrice: position.entryPrice,
+                          liquidationPrice: position.liquidationPrice,
+                          size: position.size,
+                      }
+                    : null,
+                takeProfit: plans.profit
+                    ? { orderId: plans.profit.orderId, triggerPrice: new Decimal(plans.profit.triggerPrice) }
+                    : null,
+                stopLoss: plans.loss
+                    ? { orderId: plans.loss.orderId, triggerPrice: new Decimal(plans.loss.triggerPrice) }
+                    : null,
+                tickSize,
+                readOnly,
+            });
+        });
+    });
 </script>
 
 <div

@@ -2,7 +2,7 @@
 id: FEAT-0247
 title: Interactive chart positions and draggable TP/SL lines
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: M3
 editions: [community, pro, private]

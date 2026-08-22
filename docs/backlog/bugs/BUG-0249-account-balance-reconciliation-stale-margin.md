@@ -2,7 +2,7 @@
 id: BUG-0249
 title: Account balance and margin do not reconcile after closing positions and stale funding rate log
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: M3
 editions: [community, pro, private]
