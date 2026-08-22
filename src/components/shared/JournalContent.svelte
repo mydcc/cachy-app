@@ -858,7 +858,7 @@
         border-radius: 9999px;
         background: var(--bg-tertiary);
         color: var(--text-primary);
-        font-mono: true;
+        font-family: monospace;
     }
 
     @keyframes fadeIn {

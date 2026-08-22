@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { tradeState } from "../../stores/trade.svelte";
+  import { journalState } from "../../stores/journal.svelte";
   import { _ } from "../../locales/i18n";
 
   interface Props {
@@ -27,14 +28,47 @@
 
   let tagInput = $state("");
 
+  const DEFAULT_TAG_SUGGESTIONS = ["breakout", "trend", "reversal", "scalp", "support"];
+
+  // Compute top 5 most frequently used tags from journal history
+  const topFrequentTags = $derived.by(() => {
+    const counts: Record<string, number> = {};
+    for (const entry of journalState.entries) {
+      if (Array.isArray(entry.tags)) {
+        for (const t of entry.tags) {
+          const clean = t?.trim();
+          if (clean) {
+            counts[clean] = (counts[clean] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    // Sort by frequency descending
+    const sorted = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag);
+
+    // If fewer than 5 user tags exist, offer sensible trading defaults
+    const pool = Array.from(new Set([...sorted, ...DEFAULT_TAG_SUGGESTIONS]));
+
+    // Exclude tags already attached to the current trade
+    return pool.filter((t) => !tags.includes(t)).slice(0, 4);
+  });
+
   function addTag() {
     const cleaned = tagInput.trim();
     if (cleaned) {
       if (!tags.includes(cleaned)) {
-        // We update the store via the parent binding or store update
         tradeState.update((s) => ({ ...s, tags: [...s.tags, cleaned] }));
       }
       tagInput = "";
+    }
+  }
+
+  function selectChip(chip: string) {
+    if (!tags.includes(chip)) {
+      tradeState.update((s) => ({ ...s, tags: [...s.tags, chip] }));
     }
   }
 
@@ -59,17 +93,17 @@
     >{$_("dashboard.tradeSetupInputs.tagsLabel")}</label
   >
   <div
-    class="input-field w-full px-4 py-2 rounded-md flex flex-wrap items-center gap-2 min-h-[42px]"
+    class="input-field w-full px-2.5 py-1.5 rounded-md flex flex-nowrap items-center gap-1.5 min-h-[38px] overflow-x-auto"
   >
     {#each tags as tag}
       <span
-        class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs font-bold px-2 py-1 rounded flex items-center gap-1 border border-[var(--border-color)]"
+        class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs font-semibold px-2 py-0.5 rounded flex items-center gap-1 border border-[var(--border-color)] flex-shrink-0"
       >
         #{tag}
         <button
-          class="hover:text-[var(--danger-color)]"
+          class="hover:text-[var(--danger-color)] text-xs opacity-70 hover:opacity-100 transition-opacity ml-0.5"
           onclick={() => removeTag(tag)}
-          aria-label={`${$_("common.aria.removeTag")} ${tag}`}>{$_("common.remove")}</button
+          aria-label={`${$_("common.aria.removeTag")} ${tag}`}>×</button
         >
       </span>
     {/each}
@@ -77,7 +111,7 @@
       id="tag-input"
       name="tagInput"
       type="text"
-      class="bg-transparent outline-none flex-grow min-w-[60px] text-sm"
+      class="bg-transparent outline-none flex-grow min-w-[70px] text-sm text-[var(--text-primary)]"
       placeholder={tags.length === 0
         ? $_("dashboard.tradeSetupInputs.tagsPlaceholder")
         : ""}
@@ -86,6 +120,21 @@
       onblur={addTag}
     />
   </div>
+
+  <!-- Suggested / Most frequent tag chips -->
+  {#if topFrequentTags.length > 0}
+    <div class="flex flex-wrap items-center gap-1 mt-1.5">
+      {#each topFrequentTags as chip}
+        <button
+          type="button"
+          class="tag-chip text-[11px] leading-tight px-2 py-0.5 rounded-full border border-[var(--border-color)] bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--accent-color)] hover:border-[var(--accent-color)] hover:bg-[var(--bg-secondary)] transition-all cursor-pointer flex items-center gap-0.5"
+          onclick={() => selectChip(chip)}
+        >
+          <span class="opacity-40 text-[9px]">+</span>#{chip}
+        </button>
+      {/each}
+    </div>
+  {/if}
 </div>
 
 <style>

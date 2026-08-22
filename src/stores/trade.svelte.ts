@@ -149,7 +149,7 @@ export const INITIAL_TRADE_STATE = {
   analysisTimeframe: "1h",
   tradeNotes: "",
   tags: [] as string[],
-  targets: [] as TradeTarget[],
+  targets: [{ price: null, percent: "100", isLocked: false }] as TradeTarget[],
   isPositionSizeLocked: false,
   lockedPositionSize: null as Decimal | null,
   isRiskAmountLocked: false,

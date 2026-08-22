@@ -662,7 +662,9 @@
       {/if}
       {#if estimatedHoldingCost24h !== null}
         <span class="flex items-center gap-1">
-          <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+          <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
+            <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+          </Tooltip>
           <span
             class="font-medium"
             class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
@@ -670,7 +672,6 @@
           >
             {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
           </span>
-          <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")} />
         </span>
       {/if}
     </div>
@@ -679,7 +680,9 @@
       class="flex flex-wrap items-center gap-x-3 gap-y-1 -mt-2 mb-4 text-[10px] text-[var(--text-secondary)]"
     >
       <span class="flex items-center gap-1">
-        <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+        <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
+          <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+        </Tooltip>
         <span
           class="font-medium"
           class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
@@ -687,7 +690,6 @@
         >
           {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
         </span>
-        <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")} />
       </span>
     </div>
   {/if}

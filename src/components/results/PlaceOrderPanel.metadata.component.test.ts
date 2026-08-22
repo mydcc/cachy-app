@@ -27,7 +27,7 @@ vi.mock("../../services/logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const settings = vi.hoisted(() => ({ apiProvider: "bitunix" as string }));
+const settings = vi.hoisted(() => ({ apiProvider: "bitunix" as string, autoUpdatePriceInput: true }));
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settings }));
 
 const paperStateMock = vi.hoisted(() => ({ enabled: false }));
@@ -241,5 +241,31 @@ describe("FEAT-0067 — PlaceOrderPanel trading pair metadata validation", () =>
 
         const submitBtn = host.querySelector<HTMLButtonElement>("button.submit-btn");
         expect(submitBtn?.disabled).toBe(false);
+    });
+
+    it("only renders Market and Limit order types (Trigger is omitted)", async () => {
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        const typeButtons = host.querySelectorAll<HTMLButtonElement>("button.type-btn");
+        const buttonTexts = Array.from(typeButtons).map((btn) => btn.textContent?.trim());
+        expect(buttonTexts).toEqual([lookup("orderEntry.type.market"), lookup("orderEntry.type.limit")]);
+        expect(host.textContent).not.toContain(lookup("orderEntry.type.trigger"));
+    });
+
+    it("clicking Market order button automatically enables autoUpdatePriceInput if disabled", async () => {
+        settings.autoUpdatePriceInput = false;
+
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        const marketBtn = host.querySelectorAll<HTMLButtonElement>("button.type-btn")[0];
+        expect(marketBtn?.disabled).toBe(false);
+
+        marketBtn.click();
+        await settle();
+
+        expect(settings.autoUpdatePriceInput).toBe(true);
+        expect(marketBtn.classList.contains("active")).toBe(true);
     });
 });
