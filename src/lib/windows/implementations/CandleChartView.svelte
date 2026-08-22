@@ -674,20 +674,38 @@
         // the entry order fills into a position — those live on the order
         // itself (tpPrice/slPrice), not in tpSlState, which only tracks
         // plans against an already-open position.
-        const pendingOrders = accountState.openOrders
-            .filter((o) => o.symbol === normalized && o.type === "limit")
-            .flatMap((o) => {
-                const lines: { orderId: string; price: Decimal; side: "buy" | "sell"; kind: "entry" | "takeProfit" | "stopLoss" }[] = [
-                    { orderId: o.orderId, price: o.price, side: o.side, kind: "entry" },
-                ];
-                if (o.tpPrice) {
-                    lines.push({ orderId: `${o.orderId}-tp`, price: new Decimal(o.tpPrice), side: o.side, kind: "takeProfit" as const });
-                }
-                if (o.slPrice) {
-                    lines.push({ orderId: `${o.orderId}-sl`, price: new Decimal(o.slPrice), side: o.side, kind: "stopLoss" as const });
-                }
-                return lines;
-            });
+        const matchingOrders = accountState.openOrders.filter((o) => o.symbol === normalized && o.type === "limit");
+        // FEAT-0247 diagnostic: bracket TP/SL on a resting order was
+        // reported as invisible even though the exchange has it set. Log
+        // the raw tpPrice/slPrice this component actually sees on each
+        // matching order, to tell apart "the fields never arrived from the
+        // exchange/hydration" from "they arrived but something here drops
+        // them" (falsy 0/empty-string, wrong symbol match, etc).
+        if (matchingOrders.length > 0) {
+            console.debug(
+                "[CandleChartView] FEAT-0247: pending orders for symbol",
+                matchingOrders.map((o) => ({
+                    orderId: o.orderId,
+                    symbol: o.symbol,
+                    type: o.type,
+                    status: o.status,
+                    tpPrice: o.tpPrice,
+                    slPrice: o.slPrice,
+                })),
+            );
+        }
+        const pendingOrders = matchingOrders.flatMap((o) => {
+            const lines: { orderId: string; price: Decimal; side: "buy" | "sell"; kind: "entry" | "takeProfit" | "stopLoss" }[] = [
+                { orderId: o.orderId, price: o.price, side: o.side, kind: "entry" },
+            ];
+            if (o.tpPrice) {
+                lines.push({ orderId: `${o.orderId}-tp`, price: new Decimal(o.tpPrice), side: o.side, kind: "takeProfit" as const });
+            }
+            if (o.slPrice) {
+                lines.push({ orderId: `${o.orderId}-sl`, price: new Decimal(o.slPrice), side: o.side, kind: "stopLoss" as const });
+            }
+            return lines;
+        });
         const meta = marketState?.symbolMeta?.[normalized];
         const tickSize =
             meta?.quotePrecision !== undefined
