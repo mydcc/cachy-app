@@ -20,7 +20,6 @@
     import { formatDynamicDecimal } from "../../../utils/utils";
     import { Decimal } from "decimal.js";
     import type { JournalEntry, JournalTableRow, JournalGroupSummary } from "../../../stores/types";
-    import { icons } from "../../../lib/constants";
 
     interface Props {
         trades?: JournalTableRow[];
@@ -35,10 +34,7 @@
         onSort?: (field: string) => void;
         onPageChange?: (page: number) => void;
         onDeleteTrade?: (id: number | string) => void;
-        onStatusChange?: (id: number | string, status: string) => void;
         onItemsPerPageChange?: (itemsPerPage: number) => void;
-        onUpdateTrade?: (id: number | string, data: Partial<JournalEntry>) => void;
-        onUploadScreenshot?: (id: number | string, file: File) => void;
         onOpenTradeDetail?: (trade: JournalEntry) => void;
     }
 
@@ -54,10 +50,7 @@
         onSort,
         onPageChange,
         onDeleteTrade,
-        onStatusChange,
         onItemsPerPageChange,
-        onUpdateTrade,
-        onUploadScreenshot,
         onOpenTradeDetail,
     }: Props = $props();
 
@@ -160,15 +153,6 @@
 
     function handleMainSort(field: string) {
         onSort?.(field);
-    }
-
-    function handleInternalSort(field: string) {
-        if (internalSortField === field) {
-            internalSortDirection = internalSortDirection === "asc" ? "desc" : "asc";
-        } else {
-            internalSortField = field;
-            internalSortDirection = "desc";
-        }
     }
 
     function handlePageChange(page: number) {

@@ -374,7 +374,6 @@
         });
     }
 
-    let showPaperTrades = $state(true);
     let journalSearchQuery = $derived(tradeState.journalSearchQuery);
     let journalFilterStatus = $derived(tradeState.journalFilterStatus);
 
@@ -750,10 +749,7 @@
                     {groupBySymbol}
                     onSort={(field) => handleSort(field as SortField)}
                     onDeleteTrade={(id) => confirmDeleteTrade(id)}
-                    onStatusChange={(id, status) => app.updateTradeStatus(id, status)}
-                    onUpdateTrade={(id, data) => app.updateTrade(id, data)}
                     onPageChange={(page) => (currentPage = page)}
-                    onUploadScreenshot={(id, file) => handleScreenshotUpload(id, file)}
                     onOpenTradeDetail={openTradeDetail}
                 />
             </div>
