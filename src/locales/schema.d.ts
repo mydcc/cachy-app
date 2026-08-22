@@ -2136,6 +2136,8 @@ export type TranslationKey =
   | "trade.apiError"
   | "trade.fetchFailed"
   | "trade.flashCloseFailed"
+  | "trade.tpSlUpdated"
+  | "trade.tpSlUpdateFailed"
   | "workerErrors.eventError"
   | "workerErrors.notAvailable"
   | "workerErrors.timeout"

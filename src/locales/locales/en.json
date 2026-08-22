@@ -2534,7 +2534,9 @@
     "closeAllFailed": "Flash Close Failed for: {failedSymbols}",
     "apiError": "API Error: {error}",
     "fetchFailed": "Fetch failed",
-    "flashCloseFailed": "Flash Close Failed: {msg}"
+    "flashCloseFailed": "Flash Close Failed: {msg}",
+    "tpSlUpdated": "TP/SL updated",
+    "tpSlUpdateFailed": "TP/SL update failed: {msg}"
   },
   "workerErrors": {
     "eventError": "Worker Error Event",

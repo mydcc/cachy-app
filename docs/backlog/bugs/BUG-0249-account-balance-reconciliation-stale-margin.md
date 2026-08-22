@@ -2,7 +2,7 @@
 id: BUG-0249
 title: Account balance and margin do not reconcile after closing positions and stale funding rate log
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -44,10 +44,10 @@ start_date: 2026-08-19
 
 ## Acceptance criteria
 
-- [ ] Closing a position immediately updates used margin and available balance in the UI without requiring F5.
-- [ ] `tradeService` triggers account balance synchronization after position close and order execution.
-- [ ] The `[NETWORK] [FUNDING RATE RAW]` log is removed.
-- [ ] Unit and component tests verify the reconciliation trigger and log absence.
+- [x] Closing a position immediately updates used margin and available balance in the UI without requiring F5.
+- [x] `tradeService` triggers account balance synchronization after position close and order execution.
+- [x] The `[NETWORK] [FUNDING RATE RAW]` log is removed.
+- [x] Unit and component tests verify the reconciliation trigger and log absence.
 
 ## Verification Strategy
 

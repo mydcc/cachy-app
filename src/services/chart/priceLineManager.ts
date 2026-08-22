@@ -1,0 +1,349 @@
+/*
+ * Copyright (C) 2026 MYDCT
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*
+ * FEAT-0247 — position and TP/SL price lines on the candlestick chart.
+ *
+ * Lightweight Charts v5 has no built-in draggable price line, so dragging is
+ * built by hand on top of `createPriceLine` + `priceToCoordinate` /
+ * `coordinateToPrice`: hit-test the mouse against each draggable line's
+ * current on-screen Y, and while a drag is active, feed every mousemove
+ * straight back into the same conversion to keep the line under the cursor.
+ *
+ * Kept framework-agnostic (no Svelte imports) and decimal.js-only for money
+ * math, so it is unit-testable against a fake series/container and reusable
+ * outside this one component.
+ */
+
+import { Decimal } from "decimal.js";
+
+/** The subset of `ISeriesApi<"Candlestick">` this manager actually needs. */
+export interface PriceLineHostSeries {
+    createPriceLine(options: {
+        id?: string;
+        price: number;
+        color: string;
+        lineWidth?: 1 | 2 | 3 | 4;
+        lineStyle?: number;
+        axisLabelVisible?: boolean;
+        title: string;
+    }): PriceLineHandle;
+    removePriceLine(line: PriceLineHandle): void;
+    priceToCoordinate(price: number): number | null;
+    coordinateToPrice(coordinate: number): number | null;
+}
+
+export interface PriceLineHandle {
+    applyOptions(options: { price?: number; title?: string }): void;
+    options(): { price: number; title: string };
+}
+
+export type TpSlKind = "takeProfit" | "stopLoss";
+
+export interface TpSlLineInput {
+    /** The resting order's id — required to submit a modification on drop. */
+    orderId: string;
+    triggerPrice: Decimal;
+}
+
+export interface PositionLinesInput {
+    side: "long" | "short";
+    entryPrice: Decimal;
+    liquidationPrice: Decimal;
+    /** Position size, for the on-line PnL projection. */
+    size: Decimal;
+}
+
+export interface PriceLineUpdateInput {
+    position: PositionLinesInput | null;
+    takeProfit: TpSlLineInput | null;
+    stopLoss: TpSlLineInput | null;
+    /** Smallest price increment for this symbol; drags snap to it. */
+    tickSize: Decimal;
+    /** `supports.tpSl === false` on the active exchange — lines are shown but not draggable. */
+    readOnly: boolean;
+    /** Theme-aware colors from the host (CandleChartView). If omitted, uses fallback hex values. */
+    colors?: {
+        entry: string;
+        liquidation: string;
+        takeProfit: string;
+        stopLoss: string;
+    };
+}
+
+export interface PriceLineManagerCallbacks {
+    /** Fired once when a drag on a TP/SL line begins. */
+    onDragStart?: (kind: TpSlKind) => void;
+    /** Fired on every mousemove while dragging, with the snapped price. */
+    onDragMove?: (kind: TpSlKind, price: Decimal) => void;
+    /** Fired on mouseup with the final snapped price — submit the order modification here. */
+    onDrop?: (kind: TpSlKind, orderId: string, price: Decimal) => void;
+    /** Fired when Escape cancels a drag; the line has already been restored. */
+    onDragCancel?: (kind: TpSlKind) => void;
+}
+
+const COLORS = {
+    entry: "#787b86",
+    liquidation: "#ef5350",
+    takeProfit: "#26a69a",
+    stopLoss: "#ef5350",
+} as const;
+
+const LINE_STYLE_DASHED = 2;
+const HIT_TEST_PX = 6;
+
+function snap(price: Decimal, tickSize: Decimal): Decimal {
+    if (tickSize.isZero() || tickSize.isNegative()) return price;
+    return price.dividedBy(tickSize).round().times(tickSize);
+}
+
+/** `+pct% / +$pnl` — the sign always shows, so a loss reads unambiguously. */
+function formatDistance(from: Decimal, to: Decimal, side: "long" | "short", size: Decimal): string {
+    if (from.isZero()) return "";
+    const pct = to.minus(from).dividedBy(from).times(100);
+    const directional = side === "long" ? to.minus(from) : from.minus(to);
+    const pnl = directional.times(size);
+    const sign = (d: Decimal) => (d.isNegative() ? "" : "+");
+    return `${sign(pct)}${pct.toFixed(2)}% / ${sign(pnl)}${pnl.toFixed(2)}`;
+}
+
+/**
+ * Owns the lifecycle of one symbol's position/TP/SL price lines on a chart
+ * series, plus the mouse-driven drag interaction for the TP/SL lines.
+ *
+ * One instance per chart. Call `update()` whenever the position or TP/SL
+ * plans change, `attach()` once the chart's DOM container exists, and
+ * `destroy()` on chart teardown.
+ */
+export class PriceLineManager {
+    private series: PriceLineHostSeries;
+    private callbacks: PriceLineManagerCallbacks;
+
+    private entryLine: PriceLineHandle | null = null;
+    private liquidationLine: PriceLineHandle | null = null;
+    private takeProfitLine: PriceLineHandle | null = null;
+    private stopLossLine: PriceLineHandle | null = null;
+
+    private lastInput: PriceLineUpdateInput | null = null;
+
+    private container: HTMLElement | null = null;
+    private drag: {
+        kind: TpSlKind;
+        orderId: string;
+        originalPrice: Decimal;
+        line: PriceLineHandle;
+    } | null = null;
+    private hoveredKind: TpSlKind | null = null;
+
+    private readonly handleMouseMove = (e: MouseEvent) => this.onMouseMove(e);
+    private readonly handleMouseDown = (e: MouseEvent) => this.onMouseDown(e);
+    private readonly handleMouseUp = () => this.onMouseUp();
+    private readonly handleKeyDown = (e: KeyboardEvent) => this.onKeyDown(e);
+
+    constructor(series: PriceLineHostSeries, callbacks: PriceLineManagerCallbacks = {}) {
+        this.series = series;
+        this.callbacks = callbacks;
+    }
+
+    /** Wires mouse/keyboard listeners to the chart's DOM container. Idempotent. */
+    public attach(container: HTMLElement): void {
+        if (this.container === container) return;
+        this.detach();
+        this.container = container;
+        container.addEventListener("mousemove", this.handleMouseMove);
+        container.addEventListener("mousedown", this.handleMouseDown);
+        window.addEventListener("mouseup", this.handleMouseUp);
+        window.addEventListener("keydown", this.handleKeyDown);
+    }
+
+    public detach(): void {
+        if (!this.container) return;
+        this.container.removeEventListener("mousemove", this.handleMouseMove);
+        this.container.removeEventListener("mousedown", this.handleMouseDown);
+        window.removeEventListener("mouseup", this.handleMouseUp);
+        window.removeEventListener("keydown", this.handleKeyDown);
+        this.container.style.cursor = "";
+        this.container = null;
+    }
+
+    /** Creates, moves, or removes each line to match `input`. Safe to call on every render. */
+    public update(input: PriceLineUpdateInput): void {
+        // A drag in progress owns the dragged line's price until drop/cancel —
+        // an incoming store update (e.g. a WS push) must not yank it out from
+        // under the user's cursor.
+        this.lastInput = input;
+
+        const colors = input.colors ?? COLORS;
+
+        this.syncLine(
+            "entryLine",
+            input.position ? { price: input.position.entryPrice, title: "Entry" } : null,
+            colors.entry,
+        );
+        this.syncLine(
+            "liquidationLine",
+            input.position ? { price: input.position.liquidationPrice, title: "Liq." } : null,
+            colors.liquidation,
+        );
+
+        const tpTitle =
+            input.position && input.takeProfit
+                ? `TP: ${input.takeProfit.triggerPrice.toFixed()} (${formatDistance(input.position.entryPrice, input.takeProfit.triggerPrice, input.position.side, input.position.size)})`
+                : "TP";
+        if (this.drag?.kind !== "takeProfit") {
+            this.syncLine(
+                "takeProfitLine",
+                input.takeProfit ? { price: input.takeProfit.triggerPrice, title: tpTitle } : null,
+                colors.takeProfit,
+            );
+        }
+
+        const slTitle =
+            input.position && input.stopLoss
+                ? `SL: ${input.stopLoss.triggerPrice.toFixed()} (${formatDistance(input.position.entryPrice, input.stopLoss.triggerPrice, input.position.side, input.position.size)})`
+                : "SL";
+        if (this.drag?.kind !== "stopLoss") {
+            this.syncLine(
+                "stopLossLine",
+                input.stopLoss ? { price: input.stopLoss.triggerPrice, title: slTitle } : null,
+                colors.stopLoss,
+            );
+        }
+    }
+
+    public destroy(): void {
+        this.detach();
+        this.syncLine("entryLine", null, COLORS.entry);
+        this.syncLine("liquidationLine", null, COLORS.liquidation);
+        this.syncLine("takeProfitLine", null, COLORS.takeProfit);
+        this.syncLine("stopLossLine", null, COLORS.stopLoss);
+        this.lastInput = null;
+    }
+
+    private syncLine(
+        field: "entryLine" | "liquidationLine" | "takeProfitLine" | "stopLossLine",
+        target: { price: Decimal; title: string } | null,
+        color: string,
+    ): void {
+        const existing = this[field];
+        if (!target) {
+            if (existing) {
+                this.series.removePriceLine(existing);
+                this[field] = null;
+            }
+            return;
+        }
+        const priceNum = target.price.toNumber();
+        if (!existing) {
+            this[field] = this.series.createPriceLine({
+                price: priceNum,
+                color,
+                lineWidth: 2,
+                lineStyle: field === "entryLine" || field === "liquidationLine" ? LINE_STYLE_DASHED : 0,
+                axisLabelVisible: true,
+                title: target.title,
+            });
+            return;
+        }
+        existing.applyOptions({ price: priceNum, title: target.title });
+    }
+
+    private draggableLineFor(kind: TpSlKind): PriceLineHandle | null {
+        return kind === "takeProfit" ? this.takeProfitLine : this.stopLossLine;
+    }
+
+    /** Y-distance in px from the mouse to a line's current on-screen position, or null if the line isn't rendered. */
+    private distanceToLine(kind: TpSlKind, mouseY: number): number | null {
+        const line = this.draggableLineFor(kind);
+        if (!line) return null;
+        const y = this.series.priceToCoordinate(line.options().price);
+        if (y === null) return null;
+        return Math.abs(y - mouseY);
+    }
+
+    private nearestDraggableLine(mouseY: number): TpSlKind | null {
+        if (!this.lastInput || this.lastInput.readOnly) return null;
+        const candidates: TpSlKind[] = ["takeProfit", "stopLoss"];
+        let best: TpSlKind | null = null;
+        let bestDist = HIT_TEST_PX;
+        for (const kind of candidates) {
+            const d = this.distanceToLine(kind, mouseY);
+            if (d !== null && d <= bestDist) {
+                best = kind;
+                bestDist = d;
+            }
+        }
+        return best;
+    }
+
+    private relativeY(e: MouseEvent): number {
+        const rect = this.container!.getBoundingClientRect();
+        return e.clientY - rect.top;
+    }
+
+    private onMouseDown(e: MouseEvent): void {
+        if (!this.container || !this.lastInput) return;
+        const y = this.relativeY(e);
+        const kind = this.nearestDraggableLine(y);
+        if (!kind) return;
+
+        const input = this.lastInput;
+        const plan = kind === "takeProfit" ? input.takeProfit : input.stopLoss;
+        const line = this.draggableLineFor(kind);
+        if (!plan || !line) return;
+
+        this.drag = { kind, orderId: plan.orderId, originalPrice: plan.triggerPrice, line };
+        this.callbacks.onDragStart?.(kind);
+        e.preventDefault();
+    }
+
+    private onMouseMove(e: MouseEvent): void {
+        if (!this.container) return;
+        const y = this.relativeY(e);
+
+        if (this.drag) {
+            const rawPrice = this.series.coordinateToPrice(y);
+            if (rawPrice === null) return;
+            const snapped = snap(new Decimal(rawPrice), this.lastInput?.tickSize ?? new Decimal(0));
+            this.drag.line.applyOptions({ price: snapped.toNumber() });
+            this.callbacks.onDragMove?.(this.drag.kind, snapped);
+            return;
+        }
+
+        const hovered = this.nearestDraggableLine(y);
+        if (hovered !== this.hoveredKind) {
+            this.hoveredKind = hovered;
+            this.container.style.cursor = hovered ? "ns-resize" : "";
+        }
+    }
+
+    private onMouseUp(): void {
+        if (!this.drag) return;
+        const { kind, orderId, line } = this.drag;
+        const snappedPrice = new Decimal(line.options().price);
+        this.drag = null;
+        this.callbacks.onDrop?.(kind, orderId, snappedPrice);
+    }
+
+    private onKeyDown(e: KeyboardEvent): void {
+        if (e.key !== "Escape" || !this.drag) return;
+        const { kind, line, originalPrice } = this.drag;
+        line.applyOptions({ price: originalPrice.toNumber() });
+        this.drag = null;
+        this.callbacks.onDragCancel?.(kind);
+    }
+}
