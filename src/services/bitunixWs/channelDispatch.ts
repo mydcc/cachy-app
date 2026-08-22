@@ -19,6 +19,7 @@ import type { ParseOutcome } from "./messageParser";
 import Decimal from "decimal.js";
 import { marketState } from "../../stores/market.svelte";
 import { accountState } from "../../stores/account.svelte";
+import { tpSlState } from "../../stores/tpsl.svelte";
 import { omsService } from "../omsService";
 import { mdaService } from "../mdaService";
 import { normalizeSymbol } from "../../utils/symbolUtils";
@@ -290,6 +291,12 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
       if (data) {
         if (Array.isArray(data)) data.forEach((item: Record<string, unknown>) => accountState.updateBalanceFromWs(item));
         else accountState.updateBalanceFromWs(data);
+      }
+    } else if (validatedChannel === "tp_sl") {
+      const data = (validatedMessage as Record<string, unknown>).data as Record<string, unknown>;
+      if (data) {
+        if (Array.isArray(data)) data.forEach((item: Record<string, unknown>) => tpSlState.updateFromWs(item));
+        else tpSlState.updateFromWs(data);
       }
     }
   }

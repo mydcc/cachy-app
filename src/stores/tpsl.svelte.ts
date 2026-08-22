@@ -59,6 +59,20 @@ export interface SymbolPlans {
     loss?: TpSlOrder;
 }
 
+/**
+ * Bitunix's dedicated TP/SL channel (docs/bitunix-api/08_websocket.md:294) —
+ * a single push carries whichever of the two legs it concerns, not
+ * necessarily both ("Mind. eines von tpQty/slQty erforderlich").
+ */
+export interface RawWsTpSl {
+    event?: string;
+    orderId?: string | number;
+    symbol?: string;
+    status?: string;
+    tpPrice?: string;
+    slPrice?: string;
+}
+
 function planTypeOf(order: TpSlOrder): "PROFIT" | "LOSS" | null {
     const raw = String(order.planType ?? "").toUpperCase();
     if (raw.includes("PROFIT")) return "PROFIT";
@@ -141,6 +155,42 @@ class TpSlManager {
         })();
 
         return this.inFlight;
+    }
+
+    /**
+     * Applies a live push from Bitunix's TP/SL channel — the leg it carries
+     * lands (or is removed) immediately, instead of waiting for the next
+     * `ensureFresh()` to happen to fall outside the 30s cache window. This is
+     * what makes a freshly-attached bracket stop show up on its own, without
+     * needing something else (like opening the TP/SL tab) to force a refetch.
+     */
+    public updateFromWs(data: RawWsTpSl): void {
+        const orderId = data.orderId !== undefined ? String(data.orderId) : "";
+        if (!orderId || !data.symbol) return;
+        const symbol = data.symbol;
+        const closed = data.event === "CLOSE" || ["CANCELED", "FILLED"].includes(data.status ?? "");
+
+        const applyLeg = (leg: "tp" | "sl", planType: "PROFIT" | "LOSS", price: string | undefined) => {
+            if (price === undefined) return;
+            const legId = `${orderId}-${leg}`;
+            const index = this._orders.findIndex((o) => o.orderId === legId);
+            if (closed) {
+                if (index !== -1) this._orders.splice(index, 1);
+                return;
+            }
+            const updated: TpSlOrder = {
+                orderId: legId,
+                symbol,
+                planType,
+                triggerPrice: price,
+                status: data.status ?? "NEW",
+            };
+            if (index !== -1) this._orders[index] = updated;
+            else this._orders.push(updated);
+        };
+
+        applyLeg("tp", "PROFIT", data.tpPrice);
+        applyLeg("sl", "LOSS", data.slPrice);
     }
 
     /**

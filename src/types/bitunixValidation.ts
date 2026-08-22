@@ -157,6 +157,7 @@ export const ALLOWED_CHANNELS = [
   "order",
   "wallet",
   "trade",
+  "tp_sl",
 ] as const;
 
 export type AllowedChannel = (typeof ALLOWED_CHANNELS)[number];
