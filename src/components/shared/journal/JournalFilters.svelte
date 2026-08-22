@@ -20,22 +20,19 @@
     import { icons } from "../../../lib/constants";
 
     interface Props {
-        // Props - Filter State (two-way binding)
         searchQuery?: string;
         filterStatus?: string;
         filterDateStart?: string;
         filterDateEnd?: string;
+        selectedTag?: string;
+        availableTags?: string[];
         groupBySymbol?: boolean;
-        /** Whether simulated fills (FEAT-0012) appear in the list. */
-        showPaperTrades?: boolean;
-        /** How many stored entries are simulated; the toggle hides itself at 0. */
+        tradeMode?: "live" | "paper" | "all";
+        liveCount?: number;
         paperCount?: number;
-        // Props - Additional Data
         totalTrades?: number;
         filteredCount?: number;
-        // Event Props
         ontoggleSettings?: () => void;
-        // Snippets
         actions?: import("svelte").Snippet;
     }
 
@@ -44,8 +41,11 @@
         filterStatus = $bindable("all"),
         filterDateStart = $bindable(""),
         filterDateEnd = $bindable(""),
+        selectedTag = $bindable(""),
+        availableTags = [],
         groupBySymbol = $bindable(false),
-        showPaperTrades = $bindable(true),
+        tradeMode = $bindable("live"),
+        liveCount = 0,
         paperCount = 0,
         totalTrades = 0,
         filteredCount = 0,
@@ -56,12 +56,75 @@
     function toggleSettings() {
         ontoggleSettings?.();
     }
+
+    function setQuickDate(range: "today" | "week" | "month" | "30days" | "ytd" | "all") {
+        const now = new Date();
+        const formatDate = (d: Date) => d.toISOString().split("T")[0];
+
+        if (range === "all") {
+            filterDateStart = "";
+            filterDateEnd = "";
+            return;
+        }
+
+        if (range === "today") {
+            const todayStr = formatDate(now);
+            filterDateStart = todayStr;
+            filterDateEnd = todayStr;
+            return;
+        }
+
+        if (range === "week") {
+            const firstDay = new Date(now);
+            const day = now.getDay() || 7;
+            firstDay.setDate(now.getDate() - day + 1);
+            filterDateStart = formatDate(firstDay);
+            filterDateEnd = formatDate(now);
+            return;
+        }
+
+        if (range === "month") {
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            filterDateStart = formatDate(firstDay);
+            filterDateEnd = formatDate(now);
+            return;
+        }
+
+        if (range === "30days") {
+            const past30 = new Date(now);
+            past30.setDate(now.getDate() - 30);
+            filterDateStart = formatDate(past30);
+            filterDateEnd = formatDate(now);
+            return;
+        }
+
+        if (range === "ytd") {
+            const firstOfYear = new Date(now.getFullYear(), 0, 1);
+            filterDateStart = formatDate(firstOfYear);
+            filterDateEnd = formatDate(now);
+            return;
+        }
+    }
+
+    function resetFilters() {
+        searchQuery = "";
+        filterStatus = "all";
+        filterDateStart = "";
+        filterDateEnd = "";
+        selectedTag = "";
+    }
+
+    let hasActiveFilters = $derived(
+        Boolean(searchQuery) ||
+        filterStatus !== "all" ||
+        Boolean(filterDateStart) ||
+        Boolean(filterDateEnd) ||
+        Boolean(selectedTag)
+    );
 </script>
 
-<div class="journal-filters">
-    <!-- Header removed for minimal design -->
-
-    <!-- Filter Controls -->
+<div class="journal-filters space-y-3">
+    <!-- Row 1: Primary Search & Select Controls -->
     <div class="filter-controls">
         <!-- Search Input -->
         <div class="filter-group col-span-2 sm:col-span-1">
@@ -83,7 +146,19 @@
             </select>
         </div>
 
-        <!-- Date Range Filter -->
+        <!-- Tag Filter if tags exist -->
+        {#if availableTags.length > 0}
+            <div class="filter-group">
+                <select bind:value={selectedTag} class="filter-select">
+                    <option value="">{$_("journal.filters.filterTags")}</option>
+                    {#each availableTags as tag}
+                        <option value={tag}>#{tag}</option>
+                    {/each}
+                </select>
+            </div>
+        {/if}
+
+        <!-- Date Range Inputs -->
         <div class="filter-group date-range">
             <input
                 type="date"
@@ -100,50 +175,129 @@
             />
         </div>
 
-        <!-- Actions: Pivot Toggle & Settings -->
+        <!-- Actions & Settings -->
         <div class="filter-actions">
             {#if actions}
                 {@render actions()}
             {/if}
-            {#if filteredCount < totalTrades}
-                <span class="trade-count mr-2">
-                    {filteredCount}/{totalTrades}
-                    {$_("journal.trades")}
-                </span>
-            {:else}
-                <span class="trade-count mr-2">
-                    {totalTrades}
-                    {$_("journal.trades")}
-                </span>
-            {/if}
+
+            <!-- 3-Way Mode Segmented Control: Live / Paper / All -->
+            <div class="inline-flex p-0.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs font-bold shadow-xs">
+                <button
+                    type="button"
+                    class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
+                    class:bg-[var(--card-bg)]={tradeMode === 'live'}
+                    class:text-[var(--success-color)]={tradeMode === 'live'}
+                    class:shadow-xs={tradeMode === 'live'}
+                    onclick={() => (tradeMode = 'live')}
+                >
+                    <span class="w-2 h-2 rounded-full bg-[var(--success-color)] inline-block"></span>
+                    <span>Live</span>
+                    <span class="text-[10px] text-[var(--text-secondary)] font-normal font-mono">({liveCount})</span>
+                </button>
+                <button
+                    type="button"
+                    class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
+                    class:bg-[var(--card-bg)]={tradeMode === 'paper'}
+                    class:text-[var(--accent-color)]={tradeMode === 'paper'}
+                    class:shadow-xs={tradeMode === 'paper'}
+                    onclick={() => (tradeMode = 'paper')}
+                >
+                    <span class="w-2 h-2 rounded-full bg-[var(--accent-color)] inline-block"></span>
+                    <span>Paper</span>
+                    <span class="text-[10px] text-[var(--text-secondary)] font-normal font-mono">({paperCount})</span>
+                </button>
+                <button
+                    type="button"
+                    class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
+                    class:bg-[var(--card-bg)]={tradeMode === 'all'}
+                    class:text-[var(--text-primary)]={tradeMode === 'all'}
+                    class:shadow-xs={tradeMode === 'all'}
+                    onclick={() => (tradeMode = 'all')}
+                >
+                    <span>🔀</span>
+                    <span>Alle</span>
+                </button>
+            </div>
 
             <label class="pivot-toggle">
                 <input type="checkbox" bind:checked={groupBySymbol} />
                 <span class="toggle-slider"></span>
-                <span class="toggle-text">{$_("journal.labels.pivotMode")}</span
-                >
+                <span class="toggle-text">{$_("journal.labels.pivotMode")}</span>
             </label>
-
-            <!-- Only worth showing once there is something to filter. -->
-            {#if paperCount > 0}
-                <label class="pivot-toggle">
-                    <input type="checkbox" bind:checked={showPaperTrades} />
-                    <span class="toggle-slider"></span>
-                    <span class="toggle-text"
-                        >{$_("journal.paper.showToggle", {
-                            values: { count: String(paperCount) },
-                        })}</span
-                    >
-                </label>
-            {/if}
 
             <button
                 class="settings-btn"
                 onclick={toggleSettings}
                 title={$_("journal.labels.tableSettings")}
+                aria-label={$_("journal.labels.tableSettings")}
             >
                 {@html icons.settings}
             </button>
+        </div>
+    </div>
+
+    <!-- Row 2: Quick Date Presets & Count / Reset Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)] text-xs">
+        <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[var(--text-secondary)] font-medium mr-1">{$_("journal.labels.from")}:</span>
+            <button
+                class="quick-date-btn"
+                onclick={() => setQuickDate("today")}
+            >
+                {$_("journal.filters.quickToday")}
+            </button>
+            <button
+                class="quick-date-btn"
+                onclick={() => setQuickDate("week")}
+            >
+                {$_("journal.filters.quickWeek")}
+            </button>
+            <button
+                class="quick-date-btn"
+                onclick={() => setQuickDate("month")}
+            >
+                {$_("journal.filters.quickMonth")}
+            </button>
+            <button
+                class="quick-date-btn"
+                onclick={() => setQuickDate("30days")}
+            >
+                {$_("journal.filters.quick30Days")}
+            </button>
+            <button
+                class="quick-date-btn"
+                onclick={() => setQuickDate("ytd")}
+            >
+                {$_("journal.filters.quickYtd")}
+            </button>
+            <button
+                class="quick-date-btn"
+                onclick={() => setQuickDate("all")}
+            >
+                {$_("journal.filters.quickAll")}
+            </button>
+
+            {#if hasActiveFilters}
+                <button
+                    class="quick-date-btn text-[var(--accent-color)] border-[var(--accent-color)] font-bold ml-2"
+                    onclick={resetFilters}
+                >
+                    ✕ {$_("journal.filters.reset")}
+                </button>
+            {/if}
+        </div>
+
+        <div class="flex items-center gap-2 text-[var(--text-secondary)] font-medium">
+            {#if filteredCount < totalTrades}
+                <span class="trade-count">
+                    {filteredCount}/{totalTrades} {$_("journal.trades")}
+                </span>
+            {:else}
+                <span class="trade-count">
+                    {totalTrades} {$_("journal.trades")}
+                </span>
+            {/if}
         </div>
     </div>
 </div>
@@ -173,7 +327,7 @@
 
     @media (min-width: 1024px) {
         .filter-controls {
-            grid-template-columns: 1.5fr 0.8fr 1.5fr auto;
+            grid-template-columns: 1.4fr 0.8fr 0.9fr 1.4fr auto;
         }
     }
 
@@ -186,12 +340,12 @@
     .filter-input,
     .filter-select {
         width: 100%;
-        padding: 0.6rem 0.85rem;
+        padding: 0.5rem 0.75rem;
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
         background: var(--input-bg);
         color: var(--text-primary);
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         transition: all 0.2s ease;
     }
 
@@ -205,7 +359,7 @@
     .date-range {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.4rem;
     }
 
     .date-input {
@@ -221,14 +375,15 @@
     .filter-actions {
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 0.75rem;
         justify-content: flex-end;
+        flex-wrap: wrap;
     }
 
     .pivot-toggle {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.5rem;
         cursor: pointer;
         user-select: none;
     }
@@ -239,10 +394,10 @@
 
     .toggle-slider {
         position: relative;
-        width: 36px;
-        height: 20px;
+        width: 32px;
+        height: 18px;
         background: var(--bg-tertiary);
-        border-radius: 20px;
+        border-radius: 18px;
         transition: 0.3s;
         border: 1px solid var(--border-color);
     }
@@ -250,10 +405,10 @@
     .toggle-slider::before {
         content: "";
         position: absolute;
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
         left: 2px;
-        bottom: 2px;
+        top: 2px;
         background: var(--text-secondary);
         border-radius: 50%;
         transition: 0.3s;
@@ -265,38 +420,50 @@
     }
 
     .pivot-toggle input:checked + .toggle-slider::before {
-        transform: translateX(16px);
-        background: var(--gray-900, #121212);
+        transform: translateX(14px);
+        background: var(--card-bg);
     }
 
     .toggle-text {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: var(--text-primary);
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 500;
         white-space: nowrap;
     }
 
     .settings-btn {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        padding: 0.5rem;
-        border-radius: 0.5rem;
-        cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
+        width: 34px;
+        height: 34px;
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
         color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
 
     .settings-btn:hover {
         background: var(--bg-tertiary);
         color: var(--text-primary);
-        border-color: var(--accent-color);
     }
 
-    :global(.settings-btn svg) {
-        width: 20px;
-        height: 20px;
+    .quick-date-btn {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .quick-date-btn:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border-color: var(--accent-color);
     }
 </style>
