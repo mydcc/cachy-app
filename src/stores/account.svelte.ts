@@ -10,6 +10,8 @@
 import { Decimal } from "decimal.js";
 import { parseTimestamp, parseDecimal } from "../utils/utils";
 import type { NormalizedPosition, NormalizedOrder } from "../types/exchange";
+import { calculateBreakEvenPrice } from "../lib/calculators/core";
+import { CONSTANTS } from "../lib/constants";
 
 export interface Position {
   positionId: string;
@@ -272,7 +274,11 @@ class AccountManager {
           realizedPnl: safeDecimal(data.realizedPNL, new Decimal(0)),
           liquidationPrice: new Decimal(0),
           markPrice: new Decimal(0),
-          breakEvenPrice: new Decimal(0),
+          breakEvenPrice: calculateBreakEvenPrice(
+            safeDecimal(data.averagePrice || data.avgOpenPrice, new Decimal(0)),
+            new Decimal(CONSTANTS.DEFAULT_FEES),
+            side,
+          ),
           marginRate: new Decimal(0),
         };
         this.positions.push(newPos);
@@ -425,26 +431,34 @@ class AccountManager {
   // `positionId` unset, which broke matching against subsequent WS updates.
 
   hydratePositions(raw: NormalizedPosition[]) {
-    this.positions = raw.map((p, i) => ({
-      // Bitunix always returns positionId; Bitget's normalized shape
-      // currently doesn't carry one — synthesize a stable key so hydration
-      // still works, at the cost of not correlating with WS updates for
-      // that exchange (tracked as a known gap, not silently broken).
-      positionId: p.positionId ?? `${p.symbol}-${p.side}-${i}`,
-      symbol: p.symbol,
-      side: (p.side || "long").toLowerCase() as "long" | "short",
-      size: parseDecimal(p.size),
-      entryPrice: parseDecimal(p.entryPrice),
-      leverage: parseDecimal(p.leverage),
-      unrealizedPnl: parseDecimal(p.unrealizedPnL),
-      margin: parseDecimal(p.margin),
-      marginMode: (p.marginMode || "cross").toLowerCase(),
-      liquidationPrice: parseDecimal(p.liquidationPrice),
-      markPrice: parseDecimal(p.markPrice),
-      breakEvenPrice: new Decimal(0),
-      marginRate: parseDecimal(p.marginRate),
-      realizedPnl: parseDecimal(p.realizedPnl),
-    }));
+    this.positions = raw.map((p, i) => {
+      const side = (p.side || "long").toLowerCase() as "long" | "short";
+      const entryPrice = parseDecimal(p.entryPrice);
+      return {
+        // Bitunix always returns positionId; Bitget's normalized shape
+        // currently doesn't carry one — synthesize a stable key so hydration
+        // still works, at the cost of not correlating with WS updates for
+        // that exchange (tracked as a known gap, not silently broken).
+        positionId: p.positionId ?? `${p.symbol}-${p.side}-${i}`,
+        symbol: p.symbol,
+        side,
+        size: parseDecimal(p.size),
+        entryPrice,
+        leverage: parseDecimal(p.leverage),
+        unrealizedPnl: parseDecimal(p.unrealizedPnL),
+        margin: parseDecimal(p.margin),
+        marginMode: (p.marginMode || "cross").toLowerCase(),
+        liquidationPrice: parseDecimal(p.liquidationPrice),
+        markPrice: parseDecimal(p.markPrice),
+        breakEvenPrice: calculateBreakEvenPrice(
+          entryPrice,
+          new Decimal(CONSTANTS.DEFAULT_FEES),
+          side,
+        ),
+        marginRate: parseDecimal(p.marginRate),
+        realizedPnl: parseDecimal(p.realizedPnl),
+      };
+    });
     this.notifyListeners();
   }
 
