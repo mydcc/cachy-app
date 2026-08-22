@@ -64,6 +64,8 @@ export interface PositionLinesInput {
     side: "long" | "short";
     entryPrice: Decimal;
     liquidationPrice: Decimal;
+    /** Entry price adjusted for fees — the price at which the position nets zero PnL. */
+    breakEvenPrice: Decimal;
     /** Position size, for the on-line PnL projection. */
     size: Decimal;
 }
@@ -73,6 +75,15 @@ export interface PendingOrderLineInput {
     orderId: string;
     price: Decimal;
     side: "buy" | "sell";
+    /**
+     * "entry" (default) renders "Buy/Sell Limit: <price>" in the neutral
+     * pending-order color. "takeProfit"/"stopLoss" render a TP/SL bracket
+     * attached to that same resting entry order (Bitunix supports setting
+     * tpPrice/slPrice at order placement, before it fills into a position),
+     * using the matching TP/SL color so it reads the same as a filled
+     * position's TP/SL line.
+     */
+    kind?: "entry" | "takeProfit" | "stopLoss";
 }
 
 export interface PriceLineUpdateInput {
@@ -89,6 +100,7 @@ export interface PriceLineUpdateInput {
     colors?: {
         entry: string;
         liquidation: string;
+        breakEven: string;
         takeProfit: string;
         stopLoss: string;
         pendingOrder: string;
@@ -109,6 +121,7 @@ export interface PriceLineManagerCallbacks {
 const COLORS = {
     entry: "#787b86",
     liquidation: "#ef5350",
+    breakEven: "#ffb300",
     takeProfit: "#26a69a",
     stopLoss: "#ef5350",
     pendingOrder: "#787b86",
@@ -146,6 +159,7 @@ export class PriceLineManager {
 
     private entryLine: PriceLineHandle | null = null;
     private liquidationLine: PriceLineHandle | null = null;
+    private breakEvenLine: PriceLineHandle | null = null;
     private takeProfitLine: PriceLineHandle | null = null;
     private stopLossLine: PriceLineHandle | null = null;
     /** Keyed by orderId — unlike the singleton lines above, there can be several resting limit orders at once. */
@@ -212,6 +226,11 @@ export class PriceLineManager {
             input.position ? { price: input.position.liquidationPrice, title: "Liq." } : null,
             colors.liquidation,
         );
+        this.syncLine(
+            "breakEvenLine",
+            input.position ? { price: input.position.breakEvenPrice, title: "B/E" } : null,
+            colors.breakEven,
+        );
 
         const tpTitle =
             input.position && input.takeProfit
@@ -237,15 +256,26 @@ export class PriceLineManager {
             );
         }
 
-        this.syncPendingOrders(input.pendingOrders ?? [], colors.pendingOrder);
+        this.syncPendingOrders(input.pendingOrders ?? [], colors);
     }
 
     /** Diffs the resting-order set against the previous render: creates new lines, updates moved ones, removes filled/cancelled ones. */
-    private syncPendingOrders(orders: PendingOrderLineInput[], color: string): void {
+    private syncPendingOrders(
+        orders: PendingOrderLineInput[],
+        colors: { takeProfit: string; stopLoss: string; pendingOrder: string },
+    ): void {
         const seen = new Set<string>();
         for (const order of orders) {
             seen.add(order.orderId);
-            const title = `${order.side === "buy" ? "Buy" : "Sell"} Limit: ${order.price.toFixed()}`;
+            const kind = order.kind ?? "entry";
+            const title =
+                kind === "takeProfit"
+                    ? `TP: ${order.price.toFixed()}`
+                    : kind === "stopLoss"
+                      ? `SL: ${order.price.toFixed()}`
+                      : `${order.side === "buy" ? "Buy" : "Sell"} Limit: ${order.price.toFixed()}`;
+            const color =
+                kind === "takeProfit" ? colors.takeProfit : kind === "stopLoss" ? colors.stopLoss : colors.pendingOrder;
             const priceNum = order.price.toNumber();
             const existing = this.pendingOrderLines.get(order.orderId);
             if (existing) {
@@ -276,14 +306,15 @@ export class PriceLineManager {
         this.detach();
         this.syncLine("entryLine", null, COLORS.entry);
         this.syncLine("liquidationLine", null, COLORS.liquidation);
+        this.syncLine("breakEvenLine", null, COLORS.breakEven);
         this.syncLine("takeProfitLine", null, COLORS.takeProfit);
         this.syncLine("stopLossLine", null, COLORS.stopLoss);
-        this.syncPendingOrders([], COLORS.pendingOrder);
+        this.syncPendingOrders([], COLORS);
         this.lastInput = null;
     }
 
     private syncLine(
-        field: "entryLine" | "liquidationLine" | "takeProfitLine" | "stopLossLine",
+        field: "entryLine" | "liquidationLine" | "breakEvenLine" | "takeProfitLine" | "stopLossLine",
         target: { price: Decimal; title: string } | null,
         color: string,
     ): void {
@@ -301,7 +332,10 @@ export class PriceLineManager {
                 price: priceNum,
                 color,
                 lineWidth: 2,
-                lineStyle: field === "entryLine" || field === "liquidationLine" ? LINE_STYLE_DASHED : 0,
+                lineStyle:
+                    field === "entryLine" || field === "liquidationLine" || field === "breakEvenLine"
+                        ? LINE_STYLE_DASHED
+                        : 0,
                 axisLabelVisible: true,
                 title: target.title,
             });

@@ -64,6 +64,7 @@ function baseInput(overrides: Partial<Parameters<PriceLineManager["update"]>[0]>
             side: "long" as const,
             entryPrice: new Decimal(100),
             liquidationPrice: new Decimal(80),
+            breakEvenPrice: new Decimal(101),
             size: new Decimal(1),
         },
         takeProfit: { orderId: "tp-1", triggerPrice: new Decimal(120) },
@@ -73,6 +74,7 @@ function baseInput(overrides: Partial<Parameters<PriceLineManager["update"]>[0]>
         colors: {
             entry: "#787b86",
             liquidation: "#ef5350",
+            breakEven: "#ffb300",
             takeProfit: "#26a69a",
             stopLoss: "#ef5350",
             pendingOrder: "#787b86",
@@ -93,7 +95,17 @@ describe("PriceLineManager — rendering", () => {
         manager.update(baseInput());
 
         const prices = [...lines.values()].map((l) => l.price).sort((a, b) => a - b);
-        expect(prices).toEqual([80, 90, 100, 120]);
+        expect(prices).toEqual([80, 90, 100, 101, 120]);
+    });
+
+    it("renders a Break-Even line at position.breakEvenPrice", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        manager.update(baseInput());
+
+        const beLine = [...lines.values()].find((l) => l.title === "B/E");
+        expect(beLine?.price).toBe(101);
     });
 
     it("puts price, percentage distance and projected PnL in the TP/SL titles", () => {
@@ -114,10 +126,10 @@ describe("PriceLineManager — rendering", () => {
         const manager = new PriceLineManager(series);
 
         manager.update(baseInput());
-        expect(lines.size).toBe(4);
+        expect(lines.size).toBe(5);
 
         manager.update(baseInput({ takeProfit: null }));
-        expect(lines.size).toBe(3);
+        expect(lines.size).toBe(4);
     });
 
     it("clears every line on destroy", () => {
@@ -298,9 +310,9 @@ describe("PriceLineManager — pending (unfilled) orders", () => {
         const manager = new PriceLineManager(series);
 
         manager.update(baseInput({ pendingOrders: [{ orderId: "o-1", price: new Decimal(100), side: "buy" }] }));
-        expect(lines.size).toBe(5); // entry, liq, TP, SL + pending order
+        expect(lines.size).toBe(6); // entry, liq, B/E, TP, SL + pending order
 
         manager.update(baseInput({ pendingOrders: [] }));
-        expect(lines.size).toBe(4);
+        expect(lines.size).toBe(5);
     });
 });
