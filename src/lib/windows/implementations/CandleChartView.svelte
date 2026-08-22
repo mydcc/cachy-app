@@ -108,7 +108,6 @@
 
     // FEAT-0247: position and TP/SL price lines
     let priceLineManager: PriceLineManager | null = null;
-    let tpSlDragActive = $state(false);
 
     // Dynamic Theme Update using MutationObserver
     onMount(() => {
