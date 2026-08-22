@@ -640,65 +640,32 @@
       <footer class="md:col-span-2">
         <textarea
           id="tradeNotes"
-          class="input-field w-full px-3 py-2 rounded-md mb-4 text-sm"
+          class="input-field w-full px-3 py-2 rounded-md mb-3 text-sm"
           rows="2"
           placeholder={$_("dashboard.tradeNotesPlaceholder")}
           bind:value={tradeState.tradeNotes}
         ></textarea>
-        <div class="flex items-center gap-3">
-          <button
-            id="save-journal-btn"
-            class="w-full font-semibold h-12 px-4 rounded-lg btn-primary-action flex items-center justify-center"
-            class:pro-execute={settingsState.entitlement.capabilities.tradeExecution}
-            onclick={async () => {
-              if (settingsState.entitlement.capabilities.tradeExecution) {
-                // Pro: Execute Trade
-                uiState.showError("app.tradeExecutionDev");
-              } else {
-                // Community: Add to Journal
-                await app.addTrade();
-              }
-            }}
-            disabled={resultsState.positionSize === "-"}
-            use:trackClick={{
-              category: settingsState.entitlement.capabilities.tradeExecution
-                ? "Trading"
-                : "Journal",
-              action: "Click",
-              name: settingsState.entitlement.capabilities.tradeExecution
-                ? "ExecuteTrade"
-                : "SaveTrade",
-            }}
-            >{settingsState.entitlement.capabilities.tradeExecution
-              ? $_("dashboard.executeTrade")
-              : $_("dashboard.addTradeToJournal")}</button
-          >
-          <button
-            id="show-dashboard-readme-btn"
-            class="font-semibold h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-lg btn-secondary-action"
-            title={$_("dashboard.showInstructionsTitle")}
-            aria-label={$_("dashboard.showInstructionsAriaLabel")}
-            onclick={() => uiState.toggleGuideModal(true)}
-            use:trackClick={{
-              category: "Navigation",
-              action: "Click",
-              name: "ShowInstructions",
-            }}>{@html icons.book}</button
-          >
-          {#if uiState.showSaveFeedback}<span
-              id="save-feedback"
-              class="save-feedback"
-              class:visible={uiState.showSaveFeedback}
-              >{uiState.toastMessage || $_("dashboard.savedFeedback")}</span
-            >{/if}
-        </div>
-        <div class="mt-4 flex justify-between items-center">
-          <LanguageSwitcher />
+        <div class="flex justify-between items-center py-2 px-1">
+          <div class="flex items-center gap-3">
+            <LanguageSwitcher />
+            <button
+              id="show-dashboard-readme-btn"
+              class="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg btn-secondary-action transition-all hover:scale-105"
+              title={$_("dashboard.showInstructionsTitle")}
+              aria-label={$_("dashboard.showInstructionsAriaLabel")}
+              onclick={() => uiState.toggleGuideModal(true)}
+              use:trackClick={{
+                category: "Navigation",
+                action: "Click",
+                name: "ShowInstructions",
+              }}>{@html icons.book}</button
+            >
+          </div>
           <div class="flex items-center gap-2">
             <QuizButton />
             <FloatingIframeButton />
             <button
-              class="text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-3 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
+              class="text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-1.5 px-3 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
               title={$_("dashboard.triggerPulse")}
               onclick={(e) =>
                 effectsState.triggerProjectile(e.currentTarget as HTMLElement)}
