@@ -104,7 +104,7 @@
   });
 </script>
 
-<div
+<span
   bind:this={triggerEl}
   class="tooltip-container"
   role="button"
@@ -114,8 +114,8 @@
   onfocusin={show}
   onfocusout={hide}
 >
-  {#if children}{@render children()}{:else}
-    <span class="tooltip-trigger">?</span>
+  {#if children}
+    {@render children()}
   {/if}
   {#if visible && text}
     <div
@@ -128,55 +128,48 @@
       <div bind:this={arrowEl} class="tooltip-arrow"></div>
     </div>
   {/if}
-</div>
+</span>
 
 <style>
   .tooltip-container {
     position: relative;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-  }
-  .tooltip-trigger {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    width: 1rem;
-    height: 1rem;
-    border-radius: 9999px;
-    background-color: var(--text-secondary);
-    color: var(--bg-secondary);
-    font-weight: bold;
     cursor: help;
-    font-size: 0.75rem;
-    margin-left: 0.25rem;
-    line-height: 1rem;
+    border-bottom: 1px dashed color-mix(in srgb, var(--text-secondary) 50%, transparent);
+    transition: border-color 0.15s ease, color 0.15s ease;
+    text-decoration: none;
+  }
+  .tooltip-container:hover {
+    border-bottom-color: var(--accent-color);
   }
   .tooltip-content {
-    width: 220px;
+    width: max-content;
+    max-width: 240px;
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
     text-align: center;
-    border-radius: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    padding: 0.4rem 0.65rem;
     position: absolute;
     z-index: 100;
     left: 0;
     top: 0;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    box-shadow: var(--shadow-tooltip);
-    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow-tooltip, 0 4px 12px rgba(0,0,0,0.3));
+    border: 1px solid var(--border-color);
     pointer-events: none;
     text-transform: none;
+    line-height: 1.35;
   }
   .tooltip-arrow {
     position: absolute;
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     background-color: var(--bg-tertiary);
     transform: rotate(45deg);
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
     border-top: none;
     border-left: none;
   }

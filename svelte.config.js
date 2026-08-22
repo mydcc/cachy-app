@@ -64,7 +64,10 @@ const config = {
         "frame-src": [
           "self",
           "https://space.cachy.app",
+          "https://s.cachy.app",
           "https:",
+          "blob:",
+          "data:",
         ],
         "frame-ancestors": ["self"],
         "connect-src": [

@@ -393,8 +393,6 @@
           bind:fees={tradeState.fees}
         />
 
-        <TagInputs tags={tradeState.tags} />
-
         <PortfolioInputs
           bind:accountSize={tradeState.accountSize}
           bind:riskPercentage={tradeState.riskPercentage}
@@ -403,41 +401,47 @@
           isPositionSizeLocked={tradeState.isPositionSizeLocked}
           on:toggleRiskAmountLock={() => app.toggleRiskAmountLock()}
         />
+
+        <PlaceOrderPanel />
       </div>
 
-      <TradeSetupInputs
-        bind:symbol={tradeState.symbol}
-        bind:entryPrice={tradeState.entryPrice}
-        bind:useAtrSl={tradeState.useAtrSl}
-        bind:atrValue={tradeState.atrValue}
-        bind:atrMultiplier={tradeState.atrMultiplier}
-        bind:stopLossPrice={tradeState.stopLossPrice}
-        bind:atrMode={tradeState.atrMode}
-        bind:atrTimeframe={tradeState.atrTimeframe}
-        on:showError={handleTradeSetupError}
-        on:fetchPrice={() => app.handleFetchPrice()}
-        on:toggleAtrInputs={(e) => {
-          tradeState.useAtrSl = e.detail;
-        }}
-        on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
-        on:setAtrMode={(e) => app.setAtrMode(e.detail)}
-        on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
-        on:fetchAtr={() => app.fetchAtr()}
-        atrFormulaDisplay={resultsState.atrFormulaText}
-        showAtrFormulaDisplay={resultsState.showAtrFormulaDisplay}
-        isPriceFetching={uiState.isPriceFetching}
-        isAtrFetching={uiState.isAtrFetching}
-        symbolSuggestions={uiState.symbolSuggestions}
-        showSymbolSuggestions={uiState.showSymbolSuggestions}
-      />
-    </div>
+      <div>
+        <TradeSetupInputs
+          bind:symbol={tradeState.symbol}
+          bind:entryPrice={tradeState.entryPrice}
+          bind:useAtrSl={tradeState.useAtrSl}
+          bind:atrValue={tradeState.atrValue}
+          bind:atrMultiplier={tradeState.atrMultiplier}
+          bind:stopLossPrice={tradeState.stopLossPrice}
+          bind:atrMode={tradeState.atrMode}
+          bind:atrTimeframe={tradeState.atrTimeframe}
+          on:showError={handleTradeSetupError}
+          on:fetchPrice={() => app.handleFetchPrice()}
+          on:toggleAtrInputs={(e) => {
+            tradeState.useAtrSl = e.detail;
+          }}
+          on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
+          on:setAtrMode={(e) => app.setAtrMode(e.detail)}
+          on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
+          on:fetchAtr={() => app.fetchAtr()}
+          atrFormulaDisplay={resultsState.atrFormulaText}
+          showAtrFormulaDisplay={resultsState.showAtrFormulaDisplay}
+          isPriceFetching={uiState.isPriceFetching}
+          isAtrFetching={uiState.isAtrFetching}
+          symbolSuggestions={uiState.symbolSuggestions}
+          showSymbolSuggestions={uiState.showSymbolSuggestions}
+        />
 
-    <TakeProfitTargets
-      bind:targets={tradeState.targets}
-      on:change={handleTargetsChange}
-      on:remove={handleTpRemove}
-      calculatedTpDetails={resultsState.calculatedTpDetails}
-    />
+        <TakeProfitTargets
+          bind:targets={tradeState.targets}
+          on:change={handleTargetsChange}
+          on:remove={handleTpRemove}
+          calculatedTpDetails={resultsState.calculatedTpDetails}
+        />
+
+        <TagInputs tags={tradeState.tags} />
+      </div>
+    </div>
 
     {#if uiState.showErrorMessage}
       <div
@@ -464,22 +468,18 @@
           on:toggleLock={() => app.togglePositionSizeLock()}
           on:copy={() => uiState.showFeedback("copy")}
         />
-        <!-- FEAT-0021: places the position the summary above just described,
-             from the same calculator output. -->
-        <PlaceOrderPanel />
         {#if resultsState.showTotalMetricsGroup}
           <div id="total-metrics-group" class="result-group">
             <h2 class="section-header">
-              {$_("dashboard.totalTradeMetrics")}<Tooltip
-                text={$_("dashboard.totalTradeMetricsTooltip")}
-              />
+              {$_("dashboard.totalTradeMetrics")}
             </h2>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.riskPerTradeCurrency")}<Tooltip
-                  text={$_("dashboard.riskPerTradeCurrencyTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.riskPerTradeCurrencyTooltip")}>
+                  <span>{$_("dashboard.riskPerTradeCurrency")}</span>
+                </Tooltip>
+              </span>
+              <span
                 id="riskAmountCurrency"
                 class="result-value"
                 style:color="var(--danger-color)"
@@ -487,20 +487,22 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.totalFees")}<Tooltip
-                  text={$_("dashboard.totalFeesTooltip")}
-                /></span
-              ><span id="totalFees" class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.totalFeesTooltip")}>
+                  <span>{$_("dashboard.totalFees")}</span>
+                </Tooltip>
+              </span>
+              <span id="totalFees" class="result-value"
                 >{resultsState.totalFees}</span
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.maxPotentialProfit")}<Tooltip
-                  text={$_("dashboard.maxPotentialProfitTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.maxPotentialProfitTooltip")}>
+                  <span>{$_("dashboard.maxPotentialProfit")}</span>
+                </Tooltip>
+              </span>
+              <span
                 id="maxPotentialProfit"
                 class="result-value"
                 style:color="var(--success-color)"
@@ -508,20 +510,22 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.weightedRR")}<Tooltip
-                  text={$_("dashboard.weightedRRTooltip")}
-                /></span
-              ><span id="totalRR" class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.weightedRRTooltip")}>
+                  <span>{$_("dashboard.weightedRR")}</span>
+                </Tooltip>
+              </span>
+              <span id="totalRR" class="result-value"
                 >{resultsState.totalRR}</span
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.totalNetProfit")}<Tooltip
-                  text={$_("dashboard.totalNetProfitTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.totalNetProfitTooltip")}>
+                  <span>{$_("dashboard.totalNetProfit")}</span>
+                </Tooltip>
+              </span>
+              <span
                 id="totalNetProfit"
                 class="result-value"
                 style:color="var(--success-color)"
@@ -529,11 +533,12 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.soldPosition")}<Tooltip
-                  text={$_("dashboard.soldPositionTooltip")}
-                /></span
-              ><span id="totalPercentSold" class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.soldPositionTooltip")}>
+                  <span>{$_("dashboard.soldPosition")}</span>
+                </Tooltip>
+              </span>
+              <span id="totalPercentSold" class="result-value"
                 >{resultsState.totalPercentSold}</span
               >
             </div>
@@ -542,14 +547,18 @@
       </div>
       <div id="tp-results-container">
         {#each resultsState.calculatedTpDetails as tpDetail}
-          <div class="result-group !mt-0 md:!mt-6">
+          <div class="result-group">
             <h2 class="section-header">
               {$_("dashboard.takeProfit")}
               {tpDetail.index + 1} ({tpDetail.percentSold.toFixed(0)}%)
             </h2>
             <div class="result-item">
-              <span class="result-label">{$_("dashboard.riskRewardRatio")}</span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.riskRewardRatioTooltip")}>
+                  <span>{$_("dashboard.riskRewardRatio")}</span>
+                </Tooltip>
+              </span>
+              <span
                 class="result-value"
                 style:color={tpDetail.riskRewardRatio.gte(2)
                   ? "var(--success-color)"
@@ -560,20 +569,22 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.netProfit")}<Tooltip
-                  text={$_("dashboard.netProfitTooltip")}
-                /></span
-              ><span class="result-value" style:color="var(--success-color)"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.netProfitTooltip")}>
+                  <span>{$_("dashboard.netProfit")}</span>
+                </Tooltip>
+              </span>
+              <span class="result-value" style:color="var(--success-color)"
                 >+{formatDynamicDecimal(tpDetail.netProfit, 2)}</span
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.priceChange")}<Tooltip
-                  text={$_("dashboard.priceChangeTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.priceChangeTooltip")}>
+                  <span>{$_("dashboard.priceChange")}</span>
+                </Tooltip>
+              </span>
+              <span
                 class="result-value"
                 style:color={tpDetail.priceChangePercent.gt(0)
                   ? "var(--success-color)"
@@ -582,11 +593,12 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.returnOnCapital")}<Tooltip
-                  text={$_("dashboard.returnOnCapitalTooltip")}
-                /></span
-              ><span
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.returnOnCapitalTooltip")}>
+                  <span>{$_("dashboard.returnOnCapital")}</span>
+                </Tooltip>
+              </span>
+              <span
                 class="result-value"
                 style:color={tpDetail.returnOnCapital.gt(0)
                   ? "var(--success-color)"
@@ -595,17 +607,22 @@
               >
             </div>
             <div class="result-item">
-              <span class="result-label"
-                >{$_("dashboard.partialVolume")}<Tooltip
-                  text={$_("dashboard.partialVolumeTooltip")}
-                /></span
-              ><span class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.partialVolumeTooltip")}>
+                  <span>{$_("dashboard.partialVolume")}</span>
+                </Tooltip>
+              </span>
+              <span class="result-value"
                 >{formatDynamicDecimal(tpDetail.partialVolume, 4)}</span
               >
             </div>
             <div class="result-item">
-              <span class="result-label">{$_("dashboard.exitFeeLabel")}</span
-              ><span class="result-value"
+              <span class="result-label">
+                <Tooltip text={$_("dashboard.exitFeeTooltip")}>
+                  <span>{$_("dashboard.exitFeeLabel")}</span>
+                </Tooltip>
+              </span>
+              <span class="result-value"
                 >{formatDynamicDecimal(tpDetail.exitFee, 4)}</span
               >
             </div>
@@ -623,65 +640,32 @@
       <footer class="md:col-span-2">
         <textarea
           id="tradeNotes"
-          class="input-field w-full px-4 py-2 rounded-md mb-4"
+          class="input-field w-full px-3 py-2 rounded-md mb-3 text-sm"
           rows="2"
           placeholder={$_("dashboard.tradeNotesPlaceholder")}
           bind:value={tradeState.tradeNotes}
         ></textarea>
-        <div class="flex items-center gap-4">
-          <button
-            id="save-journal-btn"
-            class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action"
-            class:pro-execute={settingsState.entitlement.capabilities.tradeExecution}
-            onclick={async () => {
-              if (settingsState.entitlement.capabilities.tradeExecution) {
-                // Pro: Execute Trade
-                uiState.showError("app.tradeExecutionDev");
-              } else {
-                // Community: Add to Journal
-                await app.addTrade();
-              }
-            }}
-            disabled={resultsState.positionSize === "-"}
-            use:trackClick={{
-              category: settingsState.entitlement.capabilities.tradeExecution
-                ? "Trading"
-                : "Journal",
-              action: "Click",
-              name: settingsState.entitlement.capabilities.tradeExecution
-                ? "ExecuteTrade"
-                : "SaveTrade",
-            }}
-            >{settingsState.entitlement.capabilities.tradeExecution
-              ? $_("dashboard.executeTrade")
-              : $_("dashboard.addTradeToJournal")}</button
-          >
-          <button
-            id="show-dashboard-readme-btn"
-            class="font-bold p-3 rounded-lg btn-secondary-action"
-            title={$_("dashboard.showInstructionsTitle")}
-            aria-label={$_("dashboard.showInstructionsAriaLabel")}
-            onclick={() => uiState.toggleGuideModal(true)}
-            use:trackClick={{
-              category: "Navigation",
-              action: "Click",
-              name: "ShowInstructions",
-            }}>{@html icons.book}</button
-          >
-          {#if uiState.showSaveFeedback}<span
-              id="save-feedback"
-              class="save-feedback"
-              class:visible={uiState.showSaveFeedback}
-              >{uiState.toastMessage || $_("dashboard.savedFeedback")}</span
-            >{/if}
-        </div>
-        <div class="mt-4 flex justify-between items-center">
-          <LanguageSwitcher />
+        <div class="flex justify-between items-center py-2 px-1">
+          <div class="flex items-center gap-3">
+            <LanguageSwitcher />
+            <button
+              id="show-dashboard-readme-btn"
+              class="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg btn-secondary-action transition-all hover:scale-105"
+              title={$_("dashboard.showInstructionsTitle")}
+              aria-label={$_("dashboard.showInstructionsAriaLabel")}
+              onclick={() => uiState.toggleGuideModal(true)}
+              use:trackClick={{
+                category: "Navigation",
+                action: "Click",
+                name: "ShowInstructions",
+              }}>{@html icons.book}</button
+            >
+          </div>
           <div class="flex items-center gap-2">
             <QuizButton />
             <FloatingIframeButton />
             <button
-              class="text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-3 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
+              class="text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-1.5 px-3 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
               title={$_("dashboard.triggerPulse")}
               onclick={(e) =>
                 effectsState.triggerProjectile(e.currentTarget as HTMLElement)}

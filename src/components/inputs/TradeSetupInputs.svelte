@@ -488,7 +488,7 @@
         onkeydown={handleKeyDownSymbol}
         onfocus={() => (isSymbolFocused = true)}
         onblur={() => (isSymbolFocused = false)}
-        class="input-field w-full px-4 py-2 rounded-md pr-16 relative z-30 touch-manipulation"
+        class="input-field w-full px-3 rounded-md pr-16 relative z-30 touch-manipulation text-sm"
         placeholder={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
         autocomplete="off"
         inputmode="text"
@@ -578,7 +578,7 @@
           handleEntryPriceInput(e);
           onboardingService.trackFirstInput();
         }}
-        class="input-field w-full px-4 py-2 rounded-md transition-all {priceDeviation >
+        class="input-field w-full px-3 rounded-md transition-all text-sm {priceDeviation >
         10
           ? 'border-[var(--orange-500)] shadow-[0_0_5px_var(--orange-500)]'
           : ''}"
@@ -662,7 +662,9 @@
       {/if}
       {#if estimatedHoldingCost24h !== null}
         <span class="flex items-center gap-1">
-          <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+          <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
+            <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+          </Tooltip>
           <span
             class="font-medium"
             class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
@@ -670,7 +672,6 @@
           >
             {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
           </span>
-          <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")} />
         </span>
       {/if}
     </div>
@@ -679,7 +680,9 @@
       class="flex flex-wrap items-center gap-x-3 gap-y-1 -mt-2 mb-4 text-[10px] text-[var(--text-secondary)]"
     >
       <span class="flex items-center gap-1">
-        <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+        <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
+          <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+        </Tooltip>
         <span
           class="font-medium"
           class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
@@ -687,7 +690,6 @@
         >
           {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
         </span>
-        <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")} />
       </span>
     </div>
   {/if}
@@ -743,8 +745,10 @@
           id="stop-loss-price-input"
           name="stopLossPrice"
           type="text"
-          data-track-id="input-stop-loss"
-          use:numberInput={{ maxDecimalPlaces: symbolMeta?.quotePrecision ?? 20 }}
+          data-track-id="input-stop-loss-price"
+          use:numberInput={{
+            maxDecimalPlaces: symbolMeta?.quotePrecision ?? 20,
+          }}
           use:enhancedInput={{
             step: priceStep,
             min: 0,
@@ -753,7 +757,7 @@
           onfocus={() => (isStopLossPriceFocused = true)}
           onblur={() => (isStopLossPriceFocused = false)}
           oninput={handleStopLossPriceInput}
-          class="input-field w-full px-4 py-2 rounded-md"
+          class="input-field w-full px-3 rounded-md text-sm"
           placeholder={$_(
             "dashboard.tradeSetupInputs.manualStopLossPlaceholder",
           )}
@@ -777,7 +781,7 @@
               onfocus={() => (isAtrValueFocused = true)}
               onblur={() => (isAtrValueFocused = false)}
               oninput={handleAtrValueInput}
-              class="input-field w-full px-4 py-2 rounded-md"
+              class="input-field w-full px-3 rounded-md text-sm"
               placeholder={$_("dashboard.tradeSetupInputs.atrValuePlaceholder")}
             />
           </div>
@@ -796,7 +800,7 @@
               onfocus={() => (isAtrMultiplierFocused = true)}
               onblur={() => (isAtrMultiplierFocused = false)}
               oninput={handleAtrMultiplierInput}
-              class="input-field w-full px-4 py-2 rounded-md"
+              class="input-field w-full px-3 rounded-md text-sm"
               placeholder={$_(
                 "dashboard.tradeSetupInputs.multiplierPlaceholder",
               )}
@@ -806,7 +810,7 @@
       {:else}
         <div class="grid grid-cols-3 gap-2 mt-2 items-end">
           <div>
-            <label for="atr-timeframe" class="input-label !mb-1 text-xs"
+            <label for="atr-timeframe" class="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block"
               >{$_("dashboard.tradeSetupInputs.atrTimeframeLabel")}</label
             >
             <!-- Dynamic Dropdown based on Favorites -->
@@ -817,7 +821,7 @@
                 data-track-id="select-atr-timeframe"
                 value={atrTimeframe}
                 onchange={handleAtrTimeframeChange}
-                class="input-field w-full px-2 py-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
+                class="input-field w-full px-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
               >
                 {#each (settingsState.favoriteTimeframes?.length ?? 0) > 0 ? settingsState.favoriteTimeframes : ["5m", "15m", "1h", "4h"] as tf}
                   <option value={tf}>{tf}</option>
@@ -839,7 +843,7 @@
             </div>
           </div>
           <div>
-            <label for="atr-value-input-auto" class="input-label !mb-1 text-xs"
+            <label for="atr-value-input-auto" class="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block"
               >{$_("dashboard.tradeSetupInputs.atrLabel")}</label
             >
             <div class="relative">
@@ -858,7 +862,7 @@
                 onfocus={() => (isAtrValueFocused = true)}
                 onblur={() => (isAtrValueFocused = false)}
                 oninput={handleAtrValueInput}
-                class="input-field w-full px-4 py-2 rounded-md"
+                class="input-field w-full px-3 rounded-md text-sm"
                 placeholder={$_("dashboard.tradeSetupInputs.atrLabel")}
               />
               <button
@@ -891,7 +895,7 @@
           <div>
             <label
               for="atr-multiplier-input-auto"
-              class="input-label !mb-1 text-xs"
+              class="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block"
               >{$_("dashboard.tradeSetupInputs.atrMultiplierLabel")}</label
             >
             <div class="relative">
@@ -909,7 +913,7 @@
                 onfocus={() => (isAtrMultiplierFocused = true)}
                 onblur={() => (isAtrMultiplierFocused = false)}
                 oninput={handleAtrMultiplierInput}
-                class="input-field w-full px-4 py-2 rounded-md"
+                class="input-field w-full px-3 rounded-md text-sm"
                 placeholder={$_("dashboard.tradeSetupInputs.multiplierExample")}
               />
             </div>

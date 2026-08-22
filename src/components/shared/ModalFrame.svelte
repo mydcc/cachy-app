@@ -45,6 +45,10 @@
         alignment?: "center" | "top";
         /** Dim the UI behind the window (default true). */
         showBackdrop?: boolean;
+        /** Initial window size in px (defaults: WindowBase 640x480). The
+         *  value is read once at window creation, like alignment/extraClasses. */
+        width?: number;
+        height?: number;
         onclose?: () => void;
         children?: Snippet;
         headerExtra?: Snippet;
@@ -57,6 +61,8 @@
         extraClasses = "",
         alignment = "center",
         showBackdrop = true,
+        width = undefined,
+        height = undefined,
         onclose,
         children,
         headerExtra,
@@ -87,6 +93,8 @@
                 title,
                 alignment,
                 showBackdrop,
+                width,
+                height,
                 extraClasses,
                 bodyClass,
                 children,

@@ -52,6 +52,7 @@
   import { translateRefusal, MAX_ACCOUNT_STATE_AGE_MS } from "../../services/orderGate";
   import { marketState } from "../../stores/market.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
+  import { formatDynamicDecimal, parseDecimal } from "../../utils/utils";
   import type { TranslationKey } from "../../locales/schema";
 
   const exchange = $derived(settingsState.apiProvider);
@@ -62,9 +63,32 @@
   let submitting = $state(false);
   let result = $state<PlacementResult | null>(null);
 
-  const ALL_TYPES: OrderEntryType[] = ["market", "limit", "trigger"];
+  // Trigger is omitted since Bitunix does not support trigger orders via API
+  const ALL_TYPES: OrderEntryType[] = ["market", "limit"];
+
+  function selectOrderType(t: OrderEntryType) {
+    entryType = t;
+    if (t === "market") {
+      settingsState.autoUpdatePriceInput = true;
+      const currentSym = tradeState.symbol;
+      if (currentSym) {
+        const norm = normalizeSymbol(currentSym, exchange === "bitget" ? "bitget" : "bitunix");
+        const livePrice = marketState.data[norm]?.lastPrice;
+        if (livePrice) {
+          tradeState.entryPrice = new Decimal(livePrice).toString();
+        }
+      }
+    }
+  }
 
   const data = $derived(tradeState.currentTradeData);
+
+  const levDecimal = $derived(parseDecimal(tradeState.leverage));
+  const marginCost = $derived(
+    data && data.positionSize instanceof Decimal && data.entryPrice instanceof Decimal && levDecimal.gt(0)
+      ? data.positionSize.mul(data.entryPrice).div(levDecimal)
+      : null
+  );
 
   const meta = $derived(
     data?.symbol ? marketState.symbolMeta[normalizeSymbol(data.symbol, "bitunix")] : undefined,
@@ -230,49 +254,53 @@
   }
 </script>
 
-<section class="place-order-panel">
+<div>
   <h2 class="section-header">{$_("orderEntry.title")}</h2>
 
-  <!-- Order type -->
-  <div class="flex flex-wrap gap-2 mb-3">
-    {#each ALL_TYPES as t (t)}
-      {@const ok = supportsOrderType(exchange, t)}
-      <button
-        class="type-btn"
-        class:active={entryType === t}
-        disabled={!ok}
-        title={ok ? undefined : $_(unsupportedReasonKey(exchange, t) as TranslationKey)}
-        onclick={() => (entryType = t)}
-      >
-        {typeLabel(t)}
-      </button>
-    {/each}
-  </div>
-
-  {#if entryType === "limit" && caps.timeInForce.length > 0}
-    <div class="field-row">
-      <label for="order-tif">{$_("orderEntry.timeInForce")}</label>
-      <select id="order-tif" bind:value={timeInForce} class="input-field">
-        {#each caps.timeInForce as tif (tif)}
-          <option value={tif}>{tif}</option>
-        {/each}
-      </select>
+  <!-- Order type & TimeInForce row -->
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+    <div class="flex items-center gap-2">
+      {#each ALL_TYPES as t (t)}
+        {@const exchangeSupports = supportsOrderType(exchange, t)}
+        <button
+          class="type-btn"
+          class:active={entryType === t}
+          disabled={!exchangeSupports}
+          title={!exchangeSupports ? $_(unsupportedReasonKey(exchange, t) as TranslationKey) : undefined}
+          onclick={() => selectOrderType(t)}
+        >
+          {typeLabel(t)}
+        </button>
+      {/each}
     </div>
-  {/if}
+
+    {#if entryType === "limit" && caps.timeInForce.length > 0}
+      <div class="flex items-center gap-1.5">
+        <label for="order-tif" class="text-xs font-semibold text-[var(--text-secondary)]">
+          {$_("orderEntry.timeInForce")}
+        </label>
+        <select id="order-tif" bind:value={timeInForce} class="input-field text-xs py-1 px-2">
+          {#each caps.timeInForce as tif (tif)}
+            <option value={tif}>{tif}</option>
+          {/each}
+        </select>
+      </div>
+    {/if}
+  </div>
 
   <!-- What will be sent, from the calculator -->
   {#if data && data.positionSize instanceof Decimal && data.positionSize.gt(0)}
     <dl class="summary">
-      <div><dt>{$_("orderEntry.summary.size")}</dt><dd>{data.positionSize.toString()}</dd></div>
-      <div><dt>{$_("orderEntry.summary.entry")}</dt><dd>{data.entryPrice.toString()}</dd></div>
-      <div><dt>{$_("orderEntry.summary.stop")}</dt><dd>{data.stopLossPrice.toString()}</dd></div>
+      <div><dt>{$_("orderEntry.summary.size")}</dt><dd>{formatDynamicDecimal(data.positionSize, meta?.basePrecision ?? 4)}</dd></div>
+      {#if marginCost}
+        <div><dt>Margin</dt><dd>{formatDynamicDecimal(marginCost, 2)}</dd></div>
+      {/if}
+      <div><dt>{$_("orderEntry.summary.entry")}</dt><dd>{formatDynamicDecimal(data.entryPrice, meta?.quotePrecision ?? 2)}</dd></div>
+      <div><dt>{$_("orderEntry.summary.stop")}</dt><dd>{formatDynamicDecimal(data.stopLossPrice, meta?.quotePrecision ?? 2)}</dd></div>
     </dl>
 
     {#if !caps.tpSlAtEntry}
       <p class="note warn">{$_("orderEntry.notes.noAttachedProtection")}</p>
-    {:else if (data.targets ?? []).length > 1 && !caps.multipleTakeProfits}
-      <!-- Saying which target is sent beats silently sending the first. -->
-      <p class="note">{$_("orderEntry.notes.firstTargetOnly")}</p>
     {/if}
 
     {#if !hasMeta}
@@ -295,16 +323,22 @@
     <p class="note">{$_("orderEntry.notReady")}</p>
   {/if}
 
-  <button class="submit-btn" disabled={!ready || submitting} onclick={submit}>
-    {submitting
-      ? $_("orderEntry.submitting")
-      : paperState.enabled
-        ? $_("orderEntry.submitPaper")
-        : $_("orderEntry.submitLive")}
+  <button
+    class="submit-btn"
+    class:paper-mode-btn={paperState.enabled}
+    disabled={!ready || submitting}
+    onclick={submit}
+  >
+    {#if submitting}
+      {$_("orderEntry.submitting")}
+    {:else if paperState.enabled}
+      {$_("orderEntry.submitPaper")}
+    {:else}
+      {$_("orderEntry.submitLive")}
+    {/if}
   </button>
 
-  <!-- Outcome. The unprotected case is a persistent banner, not a toast that
-       scrolls away: the item requires it surfaced loudly, not logged. -->
+  <!-- Outcome -->
   {#if result}
     {#if result.unprotected}
       <div class="outcome danger" role="alert">
@@ -323,70 +357,50 @@
     {:else}
       <div class="outcome danger" role="alert">
         {errorText(result)}
-        <!-- A refusal's `errorDetail` is the gate's English developer string,
-             which only repeats what the translated message already said. -->
         {#if result.errorDetail && !result.refusal}
           <span class="detail">{detailText(result.errorDetail)}</span>
         {/if}
       </div>
     {/if}
   {/if}
-</section>
+</div>
 
 <style>
-  .place-order-panel {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 0.75rem;
-    background: var(--bg-secondary);
-  }
   .type-btn {
-    padding: 0.4rem 0.9rem;
-    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.8125rem;
     font-weight: 700;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border-color);
-    background: var(--bg-primary);
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
     color: var(--text-secondary);
     transition: all 0.15s;
+    cursor: pointer;
+  }
+  .type-btn:hover:not(:disabled) {
+    color: var(--text-primary);
   }
   .type-btn.active {
-    background: var(--accent-color);
-    color: var(--btn-accent-text);
-    border-color: var(--accent-color);
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
   }
   .type-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
-  }
-  .field-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-  .field-row label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-  }
-  .input-field {
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    padding: 0.35rem 0.6rem;
-    font-size: 0.8rem;
-    color: var(--text-primary);
   }
   .summary {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.5rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
     margin-bottom: 0.75rem;
+    background: var(--bg-tertiary);
+    padding: 0.5rem 0.6rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
   }
   .summary dt {
-    font-size: 0.65rem;
+    font-size: 0.625rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
@@ -394,7 +408,8 @@
   .summary dd {
     margin: 0;
     font-family: monospace;
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
     color: var(--text-primary);
     word-break: break-all;
   }
@@ -408,13 +423,33 @@
   }
   .submit-btn {
     width: 100%;
-    padding: 0.6rem;
-    font-size: 0.85rem;
-    font-weight: 800;
-    border-radius: 0.5rem;
+    height: 48px;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-radius: 0.375rem;
     border: 1px solid var(--accent-color);
-    background: var(--accent-color);
+    background-color: var(--accent-color);
     color: var(--btn-accent-text);
+    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+    cursor: pointer;
+  }
+  .submit-btn:hover:not(:disabled) {
+    background-color: var(--accent-color-hover);
+    border-color: var(--accent-color-hover);
+  }
+  .submit-btn.paper-mode-btn {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: var(--text-on-success);
+  }
+  .submit-btn.paper-mode-btn:hover:not(:disabled) {
+    opacity: 0.9;
   }
   .submit-btn:disabled {
     opacity: 0.45;

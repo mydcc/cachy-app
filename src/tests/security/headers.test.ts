@@ -47,6 +47,6 @@ describe('Security Headers', () => {
     expect(headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-    expect(headers.get('Permissions-Policy')).toBe('camera=(self "https://space.cachy.app"), microphone=(self "https://space.cachy.app"), geolocation=()');
+    expect(headers.get('Permissions-Policy')).toBe('camera=(self "https://space.cachy.app"), microphone=(self "https://space.cachy.app"), xr-spatial-tracking=(self "https://space.cachy.app" *), display-capture=(self "https://space.cachy.app"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*');
   });
 });

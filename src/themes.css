@@ -2193,10 +2193,25 @@ select {
 }
 
 .input-field {
+  height: 42px;
+  max-height: 42px;
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+
+textarea.input-field {
+  height: auto;
+  max-height: none;
+  min-height: 4.5rem;
+}
+
+.input-field-sm {
+  height: 34px !important;
+  max-height: 34px !important;
+  font-size: 0.75rem;
 }
 
 .settings-number-input {
@@ -2241,7 +2256,11 @@ select {
   background: var(--bg-primary);
   padding: 1rem;
   border-radius: 0.5rem;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
+}
+
+.result-group:first-child {
+  margin-top: 0;
 }
 
 .result-item {
@@ -2366,14 +2385,16 @@ input[type="number"] {
 }
 
 .trade-type-switch button {
-  padding: 0.5rem 1rem;
+  padding: 0 1rem;
+  height: 100%;
+  box-sizing: border-box;
   border-radius: 0.375rem;
   transition: all 0.2s ease-in-out;
   border: 1px solid transparent;
 }
 
 .trade-type-switch button.active {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .trade-type-switch button.long.active {
@@ -2389,12 +2410,14 @@ input[type="number"] {
 }
 
 .trade-type-switch button:not(.active) {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
+  background-color: transparent;
+  color: var(--text-secondary);
 }
 
 .trade-type-switch {
   background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  box-sizing: border-box;
 }
 
 /* Solarized Light: Use dark text on light green 'Long' button */

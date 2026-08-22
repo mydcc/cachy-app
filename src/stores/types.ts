@@ -145,6 +145,8 @@ export interface CurrentTradeData
   calculatedTpDetails: IndividualTpResult[];
 }
 
+export type FeeRateType = "maker" | "taker";
+
 export interface JournalEntry {
   id: number | string;
   date: string;
@@ -168,6 +170,11 @@ export interface JournalEntry {
   totalNetProfit: Decimal;
   riskAmount: Decimal;
   totalFees: Decimal;
+  entryFee?: Decimal;
+  exitFee?: Decimal;
+  entryFeeType?: FeeRateType;
+  exitFeeType?: FeeRateType;
+  feeMode?: "maker_maker" | "maker_taker" | "taker_taker" | "taker_maker";
   maxPotentialProfit: Decimal;
   notes: string;
   targets: Array<{ price: Decimal; percent: Decimal; isLocked: boolean }>;
@@ -191,3 +198,26 @@ export interface JournalEntry {
   positionSize?: Decimal;
   provider?: "bitunix" | "bitget" | "custom";
 }
+
+export interface JournalGroupSummary {
+  id: string;
+  symbol: string;
+  isGroup: true;
+  totalTrades: number;
+  wonTrades: number;
+  totalProfitLoss: Decimal;
+  totalFees: Decimal;
+  entryFee?: Decimal;
+  exitFee?: Decimal;
+  fundingFee?: Decimal;
+  trades: JournalEntry[];
+  status: "Group";
+  tradeType: "group";
+  date: string;
+  entryPrice: Decimal;
+  totalNetProfit: Decimal;
+  totalRR: Decimal;
+}
+
+export type JournalTableRow = JournalEntry | JournalGroupSummary;
+

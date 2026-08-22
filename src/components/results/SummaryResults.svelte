@@ -68,7 +68,9 @@
   <h2 class="section-header">{$_("dashboard.summaryResults.header")}</h2>
   <div class="result-item">
     <div class="result-label">
-      {$_("dashboard.summaryResults.positionSizeLabel")}
+      <Tooltip text={$_("dashboard.summaryResults.positionSizeTooltip")}>
+        <span>{$_("dashboard.summaryResults.positionSizeLabel")}</span>
+      </Tooltip>
       <button
         id="lock-position-size-btn"
         class="copy-btn ml-2"
@@ -116,9 +118,9 @@
   {/if}
   <div class="result-item">
     <div class="result-label">
-      {$_("dashboard.summaryResults.maxNetLossLabel")}<Tooltip
-        text={$_("dashboard.summaryResults.maxNetLossTooltip")}
-      />
+      <Tooltip text={$_("dashboard.summaryResults.maxNetLossTooltip")}>
+        <span>{$_("dashboard.summaryResults.maxNetLossLabel")}</span>
+      </Tooltip>
     </div>
     <span id="netLoss" class="result-value" style:color="var(--danger-color)"
       >{netLoss}</span
@@ -126,9 +128,9 @@
   </div>
   <div class="result-item">
     <div class="result-label">
-      {$_("dashboard.summaryResults.requiredMarginLabel")}<Tooltip
-        text={$_("dashboard.summaryResults.requiredMarginTooltip")}
-      />
+      <Tooltip text={$_("dashboard.summaryResults.requiredMarginTooltip")}>
+        <span>{$_("dashboard.summaryResults.requiredMarginLabel")}</span>
+      </Tooltip>
     </div>
     <span
       id="requiredMargin"
@@ -139,24 +141,27 @@
   </div>
   <div class="result-item">
     <div class="result-label">
-      {$_("dashboard.summaryResults.entryFeeLabel")}
+      <Tooltip text={$_("dashboard.summaryResults.entryFeeTooltip")}>
+        <span>{$_("dashboard.summaryResults.entryFeeLabel")}</span>
+      </Tooltip>
     </div>
     <span id="entryFee" class="result-value">{entryFee}</span>
   </div>
   <div class="result-item">
-    <span class="result-label"
-      >{$_("dashboard.summaryResults.estimatedLiquidationPriceLabel")}<Tooltip
-        text={$_("dashboard.summaryResults.estimatedLiquidationPriceTooltip")}
-      /></span
-    >
+    <span class="result-label">
+      <Tooltip text={$_("dashboard.summaryResults.estimatedLiquidationPriceTooltip")}>
+        <span>{$_("dashboard.summaryResults.estimatedLiquidationPriceLabel")}</span>
+      </Tooltip>
+    </span>
     <span id="liquidationPrice" class="result-value">{liquidationPrice}</span>
   </div>
   <div class="result-item">
-    <span class="result-label"
-      >{$_("dashboard.summaryResults.breakEvenPriceLabel")}<Tooltip
-        text={$_("dashboard.summaryResults.breakEvenPriceTooltip")}
-      /></span
-    ><span
+    <span class="result-label">
+      <Tooltip text={$_("dashboard.summaryResults.breakEvenPriceTooltip")}>
+        <span>{$_("dashboard.summaryResults.breakEvenPriceLabel")}</span>
+      </Tooltip>
+    </span>
+    <span
       id="breakEvenPrice"
       class="result-value"
       style:color="var(--warning-color)">{breakEvenPrice}</span

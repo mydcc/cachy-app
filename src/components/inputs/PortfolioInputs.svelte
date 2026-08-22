@@ -209,19 +209,19 @@
   });
 </script>
 
-<div>
-  <h2 class="section-header !mt-6">
+<div class="mb-4">
+  <h2 class="section-header">
     {$_("dashboard.portfolioInputs.header")}
   </h2>
   <div class="flex flex-nowrap items-end gap-2 justify-start w-full">
     <div class="flex-[1.5] min-w-0">
       <label
         for="account-size"
-        class="input-label text-xs whitespace-nowrap truncate block"
+        class="text-[11px] font-medium text-[var(--text-secondary)] whitespace-nowrap truncate block mb-1"
         title={$_("dashboard.portfolioInputs.accountSizeLabel")}
         >{$_("dashboard.portfolioInputs.accountSizeLabel")}</label
       >
-      <div class="relative mt-1">
+      <div class="relative">
         <input
           id="account-size"
           name="accountSize"
@@ -239,7 +239,7 @@
             handleAccountSizeInput,
             onboardingService.trackFirstInput,
           )}
-          class="input-field w-full px-2.5 py-2 rounded-md"
+          class="input-field w-full px-3 rounded-md text-sm"
           placeholder={$_("dashboard.portfolioInputs.accountSizePlaceholder")}
         />
         <button
@@ -259,11 +259,11 @@
     <div class="flex-[0.75] min-w-0">
       <label
         for="risk-percentage"
-        class="input-label text-xs whitespace-nowrap truncate block"
+        class="text-[11px] font-medium text-[var(--text-secondary)] whitespace-nowrap truncate block mb-1"
         title={$_("dashboard.portfolioInputs.riskPerTradeLabel")}
         >{$_("dashboard.portfolioInputs.riskPerTradeLabel")}</label
       >
-      <div class="relative mt-1">
+      <div class="relative">
         <input
           id="risk-percentage"
           name="riskPercentage"
@@ -286,7 +286,7 @@
             handleRiskPercentageInput,
             onboardingService.trackFirstInput,
           )}
-          class="input-field w-full px-2.5 py-2 rounded-md"
+          class="input-field w-full px-3 rounded-md text-sm"
           placeholder={$_("dashboard.portfolioInputs.riskPerTradePlaceholder")}
           disabled={isRiskAmountLocked || isPositionSizeLocked}
         />
@@ -296,11 +296,11 @@
     <div class="flex-[1.0] min-w-0">
       <label
         for="risk-amount"
-        class="input-label text-xs whitespace-nowrap truncate block"
+        class="text-[11px] font-medium text-[var(--text-secondary)] whitespace-nowrap truncate block mb-1"
         title={$_("dashboard.portfolioInputs.riskAmountLabel")}
         >{$_("dashboard.portfolioInputs.riskAmountLabel")}</label
       >
-      <div class="relative mt-1">
+      <div class="relative">
         <input
           id="risk-amount"
           name="riskAmount"
@@ -315,7 +315,7 @@
           onfocus={() => (isRiskAmountFocused = true)}
           onblur={() => (isRiskAmountFocused = false)}
           oninput={handleRiskAmountInput}
-          class="input-field w-full px-2.5 py-2 rounded-md"
+          class="input-field w-full px-3 rounded-md text-sm"
           placeholder={$_("dashboard.portfolioInputs.riskAmountPlaceholder")}
           disabled={isPositionSizeLocked}
         />

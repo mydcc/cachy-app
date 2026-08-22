@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import Tooltip from "./Tooltip.svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
@@ -34,6 +35,7 @@
     price: string | null;
     percent: string | null;
     isLocked: boolean;
+    canRemove?: boolean;
     tpDetail?: IndividualTpResult | undefined;
   }
 
@@ -42,6 +44,7 @@
     price,
     percent,
     isLocked,
+    canRemove = true,
     tpDetail = undefined,
   }: Props = $props();
 
@@ -51,7 +54,6 @@
     if (currentTargets[index]) {
       currentTargets[index].isLocked = newLockState;
       tradeState.update((s) => ({ ...s, targets: currentTargets }));
-      // If unlocking, allow global rebalance (pass null). If locking, treat as specific change (index)
       app.adjustTpPercentages(newLockState ? index : null);
     }
   }
@@ -88,7 +90,6 @@
     }
   }
 
-  // Determine dynamic step
   let priceStep = $derived.by(() => {
     if (!price) return 0.01;
     const p = parseDecimal(price).toNumber();
@@ -102,71 +103,113 @@
     const abs = val.abs();
     if (abs.lt(0.1)) return val.toFixed(4);
     if (abs.lt(1000)) return val.toFixed(2);
-    // decimal.js has no locale-aware thousands separator, so this is the one
-    // branch that genuinely needs Number() — safe here since a displayed
-    // profit is nowhere near float64's ~15-digit precision limit.
     return val.toNumber().toLocaleString(undefined, { maximumFractionDigits: 0 });
   }
 </script>
 
 <div
-  class="tp-row p-2 rounded-lg relative"
+  class="tp-row p-2.5 rounded-lg border border-[var(--border-color)] space-y-2"
   style="background-color: var(--bg-tertiary);"
 >
-  <!-- ... existing code ... -->
-
-  <!-- (Inside HTML) -->
-
-  <!-- Header: Label + Lock -->
-  <div class="flex justify-between items-center mb-1">
-    <label
-      class="tp-label text-xs text-[var(--text-secondary)] font-bold"
-      for="tp-price-{index}">TP {index + 1}</label
-    >
-
-    <button
-      class="lock-tp-btn btn-lock-icon p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-      title={$_("dashboard.takeProfitRow.lockButtonTitle")}
-      tabindex="-1"
-      onclick={toggleLock}
-      use:trackClick={{
-        category: "TakeProfitRow",
-        action: "Click",
-        name: "ToggleLock",
-      }}
-    >
-      {#if isLocked}
-        <svg
-          class="lock-icon-closed"
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          ><path
-            d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"
-          /></svg
-        >
+  <!-- Line 1: Header, Status badges, PnL & R/R, and Actions -->
+  <div class="flex items-center justify-between text-xs">
+    <div class="flex items-center gap-1.5">
+      <span class="font-bold text-[var(--text-primary)]">TP {index + 1}</span>
+      {#if index === 0}
+        <Tooltip text={$_("orderEntry.notes.firstTargetOnly")}>
+          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent-paired">
+            Exchange Order TP
+          </span>
+        </Tooltip>
       {:else}
-        <svg
-          class="lock-icon-open"
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          ><path
-            d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-4 0H8V6c0-2.21 1.79-4 4-4s4 1.79 4 4v2z"
-          /></svg
-        >
+        <span class="text-[9px] font-medium text-[var(--text-secondary)]">
+          Partial Target
+        </span>
       {/if}
-    </button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      {#if tpDetail}
+        <span class="font-mono text-xs text-[var(--success-color)] font-medium">
+          +${formatProfit(tpDetail.netProfit)}
+        </span>
+        <span
+          class="font-mono text-xs font-medium {tpDetail.riskRewardRatio.gte(2)
+            ? 'text-[var(--success-color)]'
+            : tpDetail.riskRewardRatio.gte(1.5)
+              ? 'text-[var(--warning-color)]'
+              : 'text-[var(--danger-color)]'}"
+        >
+          R/R: {tpDetail.riskRewardRatio.toFixed(2)}
+        </span>
+      {/if}
+
+      <!-- Actions -->
+      <button
+        class="lock-tp-btn p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors rounded hover:bg-[var(--bg-secondary)]"
+        title={$_("dashboard.takeProfitRow.lockButtonTitle")}
+        tabindex="-1"
+        onclick={toggleLock}
+        use:trackClick={{
+          category: "TakeProfitRow",
+          action: "Click",
+          name: "ToggleLock",
+        }}
+      >
+        {#if isLocked}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z" />
+          </svg>
+        {:else}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-4 0H8V6c0-2.21 1.79-4 4-4s4 1.79 4 4v2z" />
+          </svg>
+        {/if}
+      </button>
+
+      {#if canRemove}
+        <button
+          class="remove-tp-btn p-1 text-[var(--danger-color)] hover:opacity-80 transition-opacity rounded hover:bg-[var(--bg-secondary)]"
+          title={$_("dashboard.takeProfitRow.removeButtonTitle")}
+          tabindex="-1"
+          onclick={removeRow}
+          use:trackClick={{
+            category: "TakeProfitRow",
+            action: "Click",
+            name: "RemoveRow",
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+          </svg>
+        </button>
+      {/if}
+    </div>
   </div>
 
-  <!-- Inputs -->
-  <div class="flex items-center justify-between gap-2 mb-1">
+  <!-- Line 2: Price Input (large) & Percent Input (compact) -->
+  <div class="flex items-center gap-2">
     <!-- TP Price Input -->
-    <div class="relative flex-grow">
+    <div class="relative flex-1 min-w-0">
       <input
         id="tp-price-{index}"
         name="tpPrice-{index}"
@@ -175,98 +218,39 @@
         use:enhancedInput={{ step: priceStep, min: 0 }}
         value={format(price)}
         oninput={handlePriceInput}
-        class="tp-price input-field w-full px-2 py-1.5 rounded-md text-sm"
+        class="input-field w-full px-3 rounded-md text-sm font-mono"
         placeholder={$_("dashboard.takeProfitRow.pricePlaceholder")}
       />
     </div>
 
     <!-- TP Percent Input -->
     <div class="relative w-20 flex-shrink-0">
-      <input
-        id="tp-percent-{index}"
-        name="tpPercent-{index}"
-        type="text"
-        use:numberInput={{
-          noDecimals: true,
-          isPercentage: true,
-          minValue: 0,
-          maxValue: 100,
-        }}
-        use:enhancedInput={{
-          step: 1,
-          min: 0,
-          max: 100,
-          noDecimals: true,
-        }}
-        value={format(percent)}
-        oninput={handlePercentInput}
-        class="tp-percent input-field w-full px-2 py-1.5 rounded-md text-sm"
-        class:locked-input={isLocked}
-        disabled={isLocked}
-        placeholder="%"
-      />
-    </div>
-  </div>
-
-  <!-- Footer: Stats + Delete -->
-  <div
-    class="flex justify-between items-center text-[10px] text-[var(--text-secondary)] px-1 mt-1"
-  >
-    <!-- Win Stats -->
-    <div class="truncate">
-      {#if tpDetail}
-        <span title={$_("dashboard.takeProfitRow.winLabel")}>
-          {$_("dashboard.takeProfitRow.winLabel")} <span class="text-[var(--success-color)] font-medium"
-            >+${formatProfit(tpDetail.netProfit)}</span
-          >
-        </span>
-      {/if}
-    </div>
-
-    <!-- Right: R/R + Trash -->
-    <div class="flex items-center gap-2">
-      {#if tpDetail}
-        <span
-          class="whitespace-nowrap"
-          title={$_("dashboard.takeProfitRow.rrLabel")}
-        >
-          {$_("dashboard.takeProfitRow.rrLabel")} <span
-            class="font-medium {tpDetail.riskRewardRatio.gte(2)
-              ? 'text-[var(--success-color)]'
-              : tpDetail.riskRewardRatio.gte(1.5)
-                ? 'text-[var(--warning-color)]'
-                : 'text-[var(--danger-color)]'}"
-            >{tpDetail.riskRewardRatio.toFixed(2)}</span
-          >
-        </span>
-      {/if}
-
-      <button
-        class="remove-tp-btn text-[var(--danger-color)] hover:opacity-80 p-1"
-        title={$_("dashboard.takeProfitRow.removeButtonTitle")}
-        tabindex="-1"
-        onclick={removeRow}
-        use:trackClick={{
-          category: "TakeProfitRow",
-          action: "Click",
-          name: "RemoveRow",
-        }}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          fill="currentColor"
-          class="pointer-events-none"
-          viewBox="0 0 16 16"
-          ><path
-            d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
-          /><path
-            fill-rule="evenodd"
-            d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-          /></svg
-        >
-      </button>
+      <div class="relative flex items-center">
+        <input
+          id="tp-percent-{index}"
+          name="tpPercent-{index}"
+          type="text"
+          use:numberInput={{
+            noDecimals: true,
+            isPercentage: true,
+            minValue: 0,
+            maxValue: 100,
+          }}
+          use:enhancedInput={{
+            step: 1,
+            min: 0,
+            max: 100,
+            noDecimals: true,
+          }}
+          value={format(percent)}
+          oninput={handlePercentInput}
+          class="input-field w-full px-2 rounded-md text-sm text-center font-mono pr-5"
+          class:locked-input={isLocked}
+          disabled={isLocked}
+          placeholder="100"
+        />
+        <span class="absolute right-2 text-xs text-[var(--text-secondary)] pointer-events-none">%</span>
+      </div>
     </div>
   </div>
 </div>
@@ -275,13 +259,5 @@
   .input-field:focus {
     box-shadow: var(--shadow-card);
     border-color: var(--accent-color);
-    z-index: 10;
-  }
-
-  /* Ensure disabled input still looks distinct */
-  .locked-input {
-    background-color: var(--bg-primary);
-    color: var(--text-secondary);
-    cursor: not-allowed;
   }
 </style>

@@ -42,11 +42,11 @@
     let {
         activePreset = "performance",
         themeColors = {
-            success: "#10b981",
-            danger: "#ef4444",
-            warning: "#f59e0b",
-            accent: "#3b82f6",
-            textSecondary: "#64748b",
+            success: "var(--success-color)",
+            danger: "var(--danger-color)",
+            warning: "var(--warning-color)",
+            accent: "var(--accent-color)",
+            textSecondary: "var(--text-secondary)",
         },
     }: Props = $props();
 
