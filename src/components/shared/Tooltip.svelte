@@ -26,10 +26,11 @@
 
   interface Props {
     text?: string;
+    underline?: boolean;
     children?: import("svelte").Snippet;
   }
 
-  let { text = "", children }: Props = $props();
+  let { text = "", underline = true, children }: Props = $props();
   let visible = $state(false);
   let tooltipEl: HTMLElement | undefined = $state();
   let arrowEl: HTMLElement | undefined = $state();
@@ -107,6 +108,7 @@
 <span
   bind:this={triggerEl}
   class="tooltip-container"
+  class:has-underline={underline}
   role="button"
   tabindex="0"
   onmouseenter={show}
@@ -135,12 +137,15 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+    text-decoration: none;
+    border-bottom: none;
+  }
+  .has-underline {
     cursor: help;
     border-bottom: 1px dashed color-mix(in srgb, var(--text-secondary) 50%, transparent);
     transition: border-color 0.15s ease, color 0.15s ease;
-    text-decoration: none;
   }
-  .tooltip-container:hover {
+  .has-underline:hover {
     border-bottom-color: var(--accent-color);
   }
   .tooltip-content {

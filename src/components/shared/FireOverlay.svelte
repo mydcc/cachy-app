@@ -20,7 +20,6 @@
     import * as THREE from "three";
     import { fireStore } from "../../stores/fireStore.svelte";
     import { settingsState } from "../../stores/settings.svelte";
-    import { windowManager } from "../../lib/windows/WindowManager.svelte";
     import { fireVertexShader, fireFragmentShader } from "./FireShader";
     import { browser } from "$app/environment";
 
@@ -39,51 +38,26 @@
     let mesh: THREE.InstancedMesh;
     const dummy = new THREE.Object3D();
 
-    // Reactive state to hide the whole thing when not needed
+    let requestStartLoop: (() => void) | null = null;
+    let requestStopLoop: (() => void) | null = null;
+
+    // Reactive state to hide the whole overlay when not needed
     let isActive = $derived.by(() => {
         if (!settingsState.enableBurningBorders) return false;
 
-        // Check if ANY modal is open (even if it doesn't have a burning border)
-        // This prevents background tiles/windows from burning through transparent modal overlays
-        const isAnyModalOpen =
-            windowManager.isOpen("journal") ||
-            windowManager.isOpen("settings") ||
-            windowManager.isOpen("guide") ||
-            windowManager.isOpen("privacy") ||
-            windowManager.isOpen("whitepaper") ||
-            windowManager.isOpen("changelog") ||
-            windowManager.isOpen("dialog") ||
-            windowManager.isOpen("symbolpicker");
-        // Note: Academy and MarketDashboard flags are checked from stores if needed,
-        // but it seems they might also be windows now. For safety, we remove legacy uiState checks
-        // that caused errors. If they are in windowManager, isOpen will catch them if we knew IDs.
-        // Assuming typical IDs match legacy names.
-
-        // Track which layers have active elements in the fireStore
-        let hasModalElements = false;
-        let hasWindowElements = false;
-        let hasTileElements = false;
-
         for (const el of fireStore.elements.values()) {
-            if (el.layer === "modals") hasModalElements = true;
-            else if (el.layer === "windows") hasWindowElements = true;
-            else if (el.layer === "tiles") hasTileElements = true;
+            if (el.layer === layer) return true;
         }
 
-        // Priority logic:
-        // - 'modals' layer is active if there are modal elements (burning modals).
-        // - 'windows' layer is active if windows exist AND no modal is open (checks isAnyModalOpen).
-        // - 'tiles' layer is active if tiles exist AND no windows exist AND no modal is open (checks isAnyModalOpen).
-
-        if (layer === "modals") return hasModalElements;
-
-        // If ANY modal is open, suppress lower layers
-        if (isAnyModalOpen) return false;
-
-        if (layer === "windows") return hasWindowElements;
-        if (layer === "tiles") return hasTileElements;
-
         return false;
+    });
+
+    $effect(() => {
+        if (isActive && typeof document !== "undefined" && !document.hidden) {
+            requestStartLoop?.();
+        } else {
+            requestStopLoop?.();
+        }
     });
 
     onMount(() => {
@@ -178,17 +152,38 @@
         // Let's stick to 40 for now, but handle overlap via blending.
 
         const clock = new THREE.Clock();
-        let frameId: number;
+        let frameId: number | null = null;
+        let isLoopRunning = false;
+
+        const stopLoop = () => {
+            if (!isLoopRunning) return;
+            isLoopRunning = false;
+            if (frameId !== null) {
+                cancelAnimationFrame(frameId);
+                frameId = null;
+            }
+            if (renderer) {
+                renderer.clear();
+            }
+        };
+
+        const startLoop = () => {
+            if (isLoopRunning || !renderer || !browser) return;
+            if (document.hidden || !isActive) return;
+            isLoopRunning = true;
+            frameId = requestAnimationFrame(animate);
+        };
 
         const animate = () => {
-            frameId = requestAnimationFrame(animate);
-            if (!renderer) return;
+            if (!isLoopRunning || !renderer) return;
 
-            // If not active, just clear and skip (or we could stop the loop)
-            if (!isActive) {
-                renderer.clear();
+            // Pause if inactive or tab in background
+            if (document.hidden || !isActive) {
+                stopLoop();
                 return;
             }
+
+            frameId = requestAnimationFrame(animate);
 
             const time = clock.getElapsedTime();
             material.uniforms.uTime.value = time;
@@ -294,7 +289,21 @@
             renderer.render(scene, camera);
         };
 
-        animate();
+        requestStartLoop = startLoop;
+        requestStopLoop = stopLoop;
+
+        if (isActive && !document.hidden) {
+            startLoop();
+        }
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                stopLoop();
+            } else if (isActive) {
+                startLoop();
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
 
         const handleResize = () => {
             if (!renderer) return;
@@ -310,7 +319,10 @@
         window.addEventListener("resize", handleResize);
 
         return () => {
-            cancelAnimationFrame(frameId);
+            requestStartLoop = null;
+            requestStopLoop = null;
+            stopLoop();
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("resize", handleResize);
             if (renderer) {
                 renderer.dispose();

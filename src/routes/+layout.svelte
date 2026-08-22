@@ -35,6 +35,7 @@ import { afterNavigate } from "$app/navigation";
 
   import ToastContainer from "../components/shared/ToastContainer.svelte";
   import FireOverlay from "../components/shared/FireOverlay.svelte";
+  import AmbientTopline from "../components/shared/AmbientTopline.svelte";
   import FXOverlay from "../components/shared/FXOverlay.svelte";
 
   import { _ } from "../locales/i18n";
@@ -425,6 +426,7 @@ import { afterNavigate } from "$app/navigation";
   <OfflineBanner />
   <BackgroundRenderer />
   <!-- Rendering Layers for Visual Effects -->
+  <AmbientTopline />
   <FireOverlay layer="tiles" zIndex={10} />
   <FireOverlay layer="windows" zIndex={200} />
   <FireOverlay layer="modals" zIndex={20000} />
