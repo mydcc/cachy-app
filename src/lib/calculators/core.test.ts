@@ -18,7 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
-import { calculateBreakEvenPrice, calculateBaseMetrics } from "./core";
+import { calculateBreakEvenPrice, calculateBaseMetrics, deriveMoneyMetrics } from "./core";
 import { CONSTANTS } from "../constants";
 import type { TradeValues } from "../../stores/types";
 
@@ -61,5 +61,41 @@ describe("calculateBreakEvenPrice", () => {
 
     expect(base).not.toBeNull();
     expect(base!.breakEvenPrice.equals(standalone)).toBe(true);
+  });
+});
+
+describe("deriveMoneyMetrics — BUG-0252 (position size rounded after the initial calculation)", () => {
+  const values: TradeValues = {
+    accountSize: new Decimal(10000),
+    riskPercentage: new Decimal(1),
+    entryPrice: new Decimal(30000),
+    stopLossPrice: new Decimal(29700),
+    leverage: new Decimal(10),
+    fees: new Decimal(CONSTANTS.DEFAULT_FEES),
+  } as TradeValues;
+
+  it("matches calculateBaseMetrics' own money fields for the same, unrounded position size", () => {
+    const base = calculateBaseMetrics(values, CONSTANTS.TRADE_TYPE_LONG);
+    expect(base).not.toBeNull();
+
+    const derived = deriveMoneyMetrics(base!.positionSize, values, base!.riskAmount);
+    expect(derived.requiredMargin.equals(base!.requiredMargin)).toBe(true);
+    expect(derived.netLoss.equals(base!.netLoss)).toBe(true);
+    expect(derived.entryFee.equals(base!.entryFee)).toBe(true);
+  });
+
+  it("scales requiredMargin/netLoss/entryFee down when re-derived from a rounded-down position size", () => {
+    const base = calculateBaseMetrics(values, CONSTANTS.TRADE_TYPE_LONG);
+    expect(base).not.toBeNull();
+
+    // Exchange precision rounds the raw size down — exactly what the
+    // calculator UI does before placing the order.
+    const rounded = base!.positionSize.toDecimalPlaces(2, Decimal.ROUND_DOWN);
+    expect(rounded.lt(base!.positionSize)).toBe(true);
+
+    const derived = deriveMoneyMetrics(rounded, values, base!.riskAmount);
+    expect(derived.requiredMargin.lt(base!.requiredMargin)).toBe(true);
+    expect(derived.netLoss.lt(base!.netLoss)).toBe(true);
+    expect(derived.entryFee.lt(base!.entryFee)).toBe(true);
   });
 });
