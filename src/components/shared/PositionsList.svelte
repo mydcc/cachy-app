@@ -61,12 +61,18 @@
     settingsState.pnlViewMode = nextMode;
   }
 
+  /*
+   * FEAT-0256: the confirmation moved into `ClosePositionModal`, which asks
+   * the same question and also answers *how much*. A `confirm()` here as well
+   * would make the trader agree twice to one action, and the browser dialog
+   * cannot show the quantity, the remainder or the PnL the close would book.
+   *
+   * `positionsList.confirmClose` is deliberately left in the locale files:
+   * FEAT-0024's confirmation policy is the thing that decides which actions
+   * are confirmed and how, and it will want that string.
+   */
   function handleClose(pos: OMSPosition) {
-    // svelte-i18n takes interpolation under `values`; a bare object is ignored
-    // and the trader is asked to close a position for literal "{symbol}".
-    if (confirm($_("positionsList.confirmClose", { values: { symbol: pos.symbol } }))) {
-      onclose?.(pos);
-    }
+    onclose?.(pos);
   }
 
   function getRoi(pos: OMSPosition) {
