@@ -1047,7 +1047,7 @@
     "backup": "Backup",
     "restore": "Restore",
     "reset": "Reset Data",
-    "resetConfirm": "Are you sure you want to reset all data? This cannot be undone.",
+    "resetConfirm": "Factory reset? This deletes ALL local data: settings, trade journal, API keys, the device encryption key and all caches. This cannot be undone.",
     "apiQuota": {
       "title": "API Quota Monitoring",
       "cryptopanic": "CryptoPanic",

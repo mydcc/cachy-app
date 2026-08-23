@@ -401,7 +401,11 @@ class CryptoServiceImpl {
           const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
           getReq.onsuccess = () => resolve(getReq.result || null);
           getReq.onerror = () => reject(getReq.error);
+          // Release the connection so a factory-reset deleteDatabase()
+          // is not blocked by it (BUG-0288).
+          tx.oncomplete = () => db.close();
         } catch {
+          db.close();
           resolve(null);
         }
       };
@@ -421,6 +425,9 @@ class CryptoServiceImpl {
         const putReq = tx.objectStore(SECURE_STORE_NAME).put(key, alias);
         putReq.onsuccess = () => resolve();
         putReq.onerror = () => reject(putReq.error);
+        // Release the connection so a factory-reset deleteDatabase()
+        // is not blocked by it (BUG-0288).
+        tx.oncomplete = () => db.close();
       };
       request.onerror = () => reject(request.error);
     });

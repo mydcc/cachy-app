@@ -2,7 +2,7 @@
 id: BUG-0288
 title: App reset clears localStorage but leaves the IndexedDB device key and caches behind
 type: bug
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: security
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0288-reset-indexeddb
 ---
 
 # BUG-0263 — App reset clears localStorage but leaves the IndexedDB device key and caches behind

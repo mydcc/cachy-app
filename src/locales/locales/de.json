@@ -1047,7 +1047,7 @@
     "backup": "Sicherung",
     "restore": "Wiederherstellen",
     "reset": "Daten zurücksetzen",
-    "resetConfirm": "Sind Sie sicher, dass Sie alle Daten zurücksetzen möchten? Dies kann nicht rückgängig gemacht werden.",
+    "resetConfirm": "Werkseinstellung? Dies löscht ALLE lokalen Daten: Einstellungen, Trade-Journal, API-Schlüssel, den Geräte-Verschlüsselungsschlüssel und alle Caches. Dies kann nicht rückgängig gemacht werden.",
     "apiQuota": {
       "title": "API Quota Überwachung",
       "cryptopanic": "CryptoPanic",
