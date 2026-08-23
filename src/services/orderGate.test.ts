@@ -430,6 +430,72 @@ describe("orderGate — reduce-only sizing", () => {
     });
 });
 
+describe("orderGate — reduce step size (FEAT-0256)", () => {
+    /** A position of 0.5 on an instrument whose step is 0.1. */
+    function steppedReduce(): OrderIntent {
+        const intent = reduceIntent();
+        intent.displayed.fullClose = false;
+        intent.displayed.stepSize = new Decimal("0.1");
+        intent.payload.qty = "0.2";
+        return intent;
+    }
+
+    it("allows a partial close that is a whole multiple of the step", () => {
+        expect(orderGate.verify(steppedReduce()).approved).toBe(true);
+    });
+
+    it("refuses a partial close that the venue could not fill", () => {
+        const intent = steppedReduce();
+        intent.payload.qty = "0.25";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("stepSize");
+        expect(refusal?.messageKey).toBe("orderGate.stepSize");
+        expect(refusal?.values.step).toBe("0.1");
+        expect(refusal?.values.actual).toBe("0.25");
+    });
+
+    it("records that it checked the step", () => {
+        expect(orderGate.verify(steppedReduce()).checked).toContain("stepSize");
+    });
+
+    it("does not apply the step rule to a full close", () => {
+        // The exemption that matters most. An exchange can hold a size that is
+        // not a whole multiple of the current step — after a partial
+        // liquidation, or when the step itself changed — and the only order
+        // that closes such a position is one for exactly that size. Applying
+        // the rule here would lock the trader inside their own position.
+        const intent = reduceIntent();
+        intent.displayed.fullClose = true;
+        intent.displayed.stepSize = new Decimal("0.3");
+        intent.displayed.positionAmount = new Decimal("0.7");
+        intent.payload.qty = "0.7";
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("does not refuse when the instrument's step is unknown", () => {
+        // Metadata that has not loaded is an absence, not a violation.
+        const intent = steppedReduce();
+        delete intent.displayed.stepSize;
+        intent.payload.qty = "0.25";
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("does not refuse when the step is zero or negative", () => {
+        const intent = steppedReduce();
+        intent.displayed.stepSize = new Decimal(0);
+        intent.payload.qty = "0.25";
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("still enforces the position ceiling ahead of the step rule", () => {
+        // An oversized close is refused for being oversized — the more
+        // specific failure — rather than for its remainder.
+        const intent = steppedReduce();
+        intent.payload.qty = "0.65";
+        expect(orderGate.verify(intent).refusal?.field).toBe("qty");
+    });
+});
+
 describe("orderGate — account state freshness", () => {
     it("refuses an open when the account state has never been read", () => {
         const intent = openIntent();

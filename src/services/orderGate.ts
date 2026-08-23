@@ -586,6 +586,46 @@ class OrderGate {
             if (displayed.fullClose === true && !decimalsAgree(payloadQty, displayed.positionAmount)) {
                 return mismatch("qty", displayed.positionAmount.toString(), payloadQty.toString());
             }
+
+            // A *partial* reduce has to be a quantity the venue can fill, or it
+            // is refused there instead of here — and a control that routinely
+            // produces refused orders is broken, not safe (FEAT-0256).
+            //
+            // Deliberately not applied to a full close. The exchange can hold a
+            // size that is not a whole multiple of the current step — after a
+            // partial liquidation, or when the step itself changed — and the
+            // only order that closes such a position is one for exactly that
+            // size. A step rule without this exemption would lock a trader
+            // inside their own position, which is a worse failure than the one
+            // it prevents.
+            //
+            // The modulo is written out rather than taken from
+            // `partialClose.ts`, whose `isWholeMultipleOfStep` the input uses to
+            // *produce* this quantity. Checking with the producer's own function
+            // would prove only that it agrees with itself — the same reason
+            // `checkSize` recomputes the risk size below instead of reading the
+            // calculator's result.
+            const step = displayed.stepSize;
+            if (
+                displayed.fullClose !== true &&
+                step !== undefined &&
+                step.isFinite() &&
+                step.gt(0)
+            ) {
+                checked.push("stepSize");
+                if (!payloadQty.div(step).isInteger()) {
+                    return {
+                        field: "stepSize",
+                        reason: "mismatch",
+                        messageKey: "orderGate.stepSize",
+                        values: {
+                            field: "stepSize",
+                            step: step.toString(),
+                            actual: payloadQty.toString(),
+                        },
+                    };
+                }
+            }
             return null;
         }
 

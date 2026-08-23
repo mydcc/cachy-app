@@ -931,6 +931,26 @@ class TradeService {
 
         const qty = amount ? amount.toString() : position.amount.toString();
 
+        // A close that names the full amount explicitly is still a full close.
+        // `!amount` alone got this wrong for every caller that passes the size
+        // it read off the position — which is what the positions panel does —
+        // and the distinction now decides whether the gate applies its step-size
+        // rule (FEAT-0256). Declaring a full close as partial would refuse an
+        // exit from a position whose size is not a whole multiple of the current
+        // step, i.e. lock the trader in.
+        const closesEverything = !amount || amount.eq(position.amount);
+
+        // Metadata is best-effort: an instrument whose meta has not loaded
+        // yields no step, and the gate then checks what it can rather than
+        // refusing on an absence.
+        const meta =
+            marketState?.symbolMeta?.[symbol] ??
+            marketState?.symbolMeta?.[normalizeSymbol(symbol, "bitunix")];
+        const stepSize =
+            meta?.basePrecision !== undefined
+                ? new Decimal(10).pow(-meta.basePrecision)
+                : undefined;
+
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
         const pnlVal = position.unrealizedPnl ?? new Decimal(0);
@@ -959,7 +979,8 @@ class TradeService {
                 // the caller's `amount` — comparing the caller's number
                 // against itself would prove nothing.
                 positionAmount: position.amount,
-                fullClose: !amount,
+                fullClose: closesEverything,
+                stepSize,
                 positionId,
             },
         });
