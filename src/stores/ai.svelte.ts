@@ -277,9 +277,16 @@ class AiManager {
           if (directRes.ok) {
             res = directRes;
             this.error = null;
+          } else {
+            const err = await directRes.json().catch(() => ({}));
+            throw new Error(err.error?.message || err.error || `Ollama request failed with status ${directRes.status}`);
           }
-        } catch {
-          // Direct browser fetch failed — fallback to server proxy
+        } catch (err) {
+          // Direct browser fetch failed — fail closed! ADR-0011 forbids falling back to server proxy in local mode.
+          this.isStreaming = false;
+          const msg = err instanceof Error ? err.message : String(err);
+          this.error = `Ollama connection failed: ${msg}. Please ensure Ollama is running locally at ${targetUrl} and CORS is configured (OLLAMA_ORIGINS="*").`;
+          return;
         }
       }
 
@@ -804,9 +811,13 @@ class AiManager {
       };
     }
 
+    const shareTradeContext = settings.aiShareTradeContext ?? false;
+
     return {
       currentTime: new Date().toISOString(),
-      portfolioStats: { totalTrades, winrate, totalPnl, accountSize },
+      portfolioStats: shareTradeContext
+        ? { totalTrades, winrate, totalPnl, accountSize }
+        : undefined,
       activeSymbol: symbol,
       REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown", // RENAMED to be very loud
       priceChange24h: marketData?.priceChangePercent
@@ -814,33 +825,37 @@ class AiManager {
         : "Unknown",
       marketDetails,
       technicals: technicalsContext,
-      openPositions: Array.isArray(account.positions)
-        ? account.positions.map((p: Position) => ({
-          symbol: p.symbol,
-          side: p.side,
-          size: p.size.toString(),
-          entry: p.entryPrice.toString(),
-          pnl: p.unrealizedPnl.toString(),
-          roi:
-            !p.entryPrice.isZero() && !p.size.isZero()
-              ? p.unrealizedPnl
-                .div(p.entryPrice.times(p.size).div(p.leverage))
-                .times(100)
-                .toFixed(2) + "%"
-              : "N/A",
-        }))
-        : [],
-      recentHistory: recentTrades,
-      tradeSetup: {
-        tradeType: trade.tradeType,
-        entry: trade.entryPrice,
-        sl: trade.stopLossPrice,
-        tp: trade.targets,
-        risk: trade.riskPercentage + "%",
-        atrMultiplier: trade.atrMultiplier,
-        useAtrSl: trade.useAtrSl,
-        ...this.calculateRR(trade),
-      },
+      openPositions: shareTradeContext
+        ? (Array.isArray(account.positions)
+          ? account.positions.map((p: Position) => ({
+            symbol: p.symbol,
+            side: p.side,
+            size: p.size.toString(),
+            entry: p.entryPrice.toString(),
+            pnl: p.unrealizedPnl.toString(),
+            roi:
+              !p.entryPrice.isZero() && !p.size.isZero()
+                ? p.unrealizedPnl
+                  .div(p.entryPrice.times(p.size).div(p.leverage))
+                  .times(100)
+                  .toFixed(2) + "%"
+                : "N/A",
+          }))
+          : [])
+        : undefined,
+      recentHistory: shareTradeContext ? recentTrades : undefined,
+      tradeSetup: shareTradeContext
+        ? {
+          tradeType: trade.tradeType,
+          entry: trade.entryPrice,
+          sl: trade.stopLossPrice,
+          tp: trade.targets,
+          risk: trade.riskPercentage + "%",
+          atrMultiplier: trade.atrMultiplier,
+          useAtrSl: trade.useAtrSl,
+          ...this.calculateRR(trade),
+        }
+        : undefined,
       marketIntelligence: cmcContext,
       latestNews: newsContext,
     };

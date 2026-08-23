@@ -2,7 +2,7 @@
 id: BUG-0282
 title: AI assistant sends journal, portfolio and trade setup to servers without explicit consent
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -54,14 +54,14 @@ implemented.
 
 ## Acceptance criteria
 
-- [ ] With consent disabled/default-off, no request body leaving the device
+- [x] With consent disabled/default-off, no request body leaving the device
       contains journal entries, portfolio stats, positions or trade setup —
       asserted against outgoing fetches in a test
-- [ ] Consent, when given, is specific about recipients (which provider(s))
+- [x] Consent, when given, is specific about recipients (which provider(s))
       and revocable; revocation stops egress immediately
-- [ ] Ollama/local mode makes no request to any Cachy-operated endpoint under
+- [x] Ollama/local mode makes no request to any Cachy-operated endpoint under
       any failure condition, proven by a test that kills the local endpoint
-- [ ] German and English strings for the consent surface
+- [x] German and English strings for the consent surface
 
 ## Out of scope
 

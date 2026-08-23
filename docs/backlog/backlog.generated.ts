@@ -929,7 +929,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0282",
     "title": "AI assistant sends journal, portfolio and trade setup to servers without explicit consent",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2286,7 +2286,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0272",
     "title": "Proxy routes drift on credential transport schema validation and error redaction",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "fix-bug-0272",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3517,7 +3519,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0288",
     "title": "App reset clears localStorage but leaves the IndexedDB device key and caches behind",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3529,6 +3531,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0288-reset-indexeddb",
     "file": "bugs/BUG-0288-app-reset-misses-indexeddb.md"
   },
   {
