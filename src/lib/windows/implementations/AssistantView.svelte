@@ -422,6 +422,20 @@
                             <table>
                                 <tbody>
                                     <tr><td>Symbol</td><td>{tradeState.symbol || "BTCUSDT"}</td></tr>
+                                    <tr>
+                                        <td>{$_("settings.ai.contextConsentTitle")}</td>
+                                        <td>
+                                            {#if settingsState.aiShareTradeContext}
+                                                <span class="text-[var(--success-color)]">
+                                                    {$_("settings.ai.contextConsentEnabled", { values: { provider: settingsState.aiProvider.toUpperCase() } })}
+                                                </span>
+                                            {:else}
+                                                <span class="text-[var(--text-secondary)]">
+                                                    {$_("settings.ai.contextConsentDisabled")}
+                                                </span>
+                                            {/if}
+                                        </td>
+                                    </tr>
                                     <tr><td>Technicals</td><td>{contextSummary.hasTechnicals ? "✅ Loaded" : "❌ None"}</td></tr>
                                     <tr><td>News</td><td>{contextSummary.newsCount > 0 ? `✅ ${contextSummary.newsCount} articles` : "❌ None"}</td></tr>
                                     <tr><td>CoinMarketCap</td><td>{contextSummary.hasCmc ? "✅ Loaded" : "❌ No API Key configured"}</td></tr>

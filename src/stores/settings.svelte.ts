@@ -214,6 +214,7 @@ export interface Settings {
   aiConfirmActions: boolean;
   aiAllowSettingsChanges: boolean;
   aiTradeHistoryLimit: number;
+  aiShareTradeContext: boolean;
   aiConfirmClear: boolean;
   aiAnalysisMode: AiAnalysisMode;
   showSpinButtons: boolean | "hover";
@@ -406,6 +407,7 @@ const defaultSettings: Settings = {
   aiConfirmActions: false,
   aiAllowSettingsChanges: false,
   aiTradeHistoryLimit: 50,
+  aiShareTradeContext: false,
   aiAnalysisMode: "risk" as AiAnalysisMode,
   showSpinButtons: "hover",
   disclaimerAccepted: false,
@@ -656,6 +658,7 @@ export class SettingsManager {
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
+  aiShareTradeContext = $state<boolean>(defaultSettings.aiShareTradeContext);
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
   aiAnalysisMode = $state<AiAnalysisMode>(defaultSettings.aiAnalysisMode);
 
@@ -1269,6 +1272,7 @@ export class SettingsManager {
     this.aiConfirmActions = merged.aiConfirmActions;
     this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
     this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
+    this.aiShareTradeContext = merged.aiShareTradeContext ?? defaultSettings.aiShareTradeContext;
     this.aiConfirmClear = merged.aiConfirmClear;
     this.aiAnalysisMode = merged.aiAnalysisMode ?? defaultSettings.aiAnalysisMode;
     this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
@@ -1566,6 +1570,7 @@ export class SettingsManager {
       aiConfirmActions: this.aiConfirmActions,
       aiAllowSettingsChanges: this.aiAllowSettingsChanges,
       aiTradeHistoryLimit: this.aiTradeHistoryLimit,
+      aiShareTradeContext: this.aiShareTradeContext,
       aiConfirmClear: this.aiConfirmClear,
       aiAnalysisMode: this.aiAnalysisMode,
       showSpinButtons: this.showSpinButtons,

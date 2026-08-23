@@ -4,7 +4,7 @@
 
 180 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 29 · 🟢 ready 21 · 🟡 in-progress 2 · ✅ done 110
+Counts by status: 💡 idea 18 · 📋 specced 28 · 🟢 ready 20 · 🟡 in-progress 4 · ✅ done 110
 
 ---
 
@@ -192,7 +192,7 @@ Counts by status: 💡 idea 18 · 📋 specced 29 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | calculator |
 | [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | 📋 specced | security |
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 📋 specced | security |
-| [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 📋 specced | security |
+| [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | security |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | security |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟢 ready | security |
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | 📋 specced | core |
@@ -226,7 +226,7 @@ Counts by status: 💡 idea 18 · 📋 specced 29 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | api |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 📋 specced | security |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟢 ready | api |
-| [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | 🟢 ready | security |
+| [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | 🟡 in-progress | security |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | services |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | execution |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
@@ -352,7 +352,7 @@ Counts by status: 💡 idea 18 · 📋 specced 29 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 📋 specced | none | community, pro, private | C | none | — |
-| [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
@@ -407,7 +407,7 @@ Counts by status: 💡 idea 18 · 📋 specced 29 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |

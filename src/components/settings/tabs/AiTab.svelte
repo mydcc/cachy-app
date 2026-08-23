@@ -314,6 +314,20 @@
                     </div>
 
                     <!-- Context Toggles -->
+                    <label class="toggle-card border-l-4 border-l-[var(--accent-color)]">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.ai.shareTradeContext")}</span
+                            >
+                            <span class="text-xs text-[var(--text-secondary)]"
+                                >{$_("settings.ai.shareTradeContextDesc")}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.aiShareTradeContext}
+                        />
+                    </label>
+
                     <label class="toggle-card">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
