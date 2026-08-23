@@ -259,8 +259,8 @@ class UiManager {
     if (!browser) return;
 
     const html = document.documentElement;
-    const currentThemeClass = Array.from(html.classList).find((c) =>
-      c.startsWith("theme-"),
+    const currentThemeClass = Array.from(html.classList).find(
+      (c) => c.startsWith("theme-") && c !== "theme-transitioning",
     );
     const expectedClass = themeName !== "dark" ? `theme-${themeName}` : null;
 
@@ -271,13 +271,13 @@ class UiManager {
       // DOM is already correct
     } else {
       html.classList.forEach((className) => {
-        if (className.startsWith("theme-")) {
+        if (className.startsWith("theme-") && className !== "theme-transitioning") {
           html.classList.remove(className);
         }
       });
 
       document.body.classList.forEach((className) => {
-        if (className.startsWith("theme-")) {
+        if (className.startsWith("theme-") && className !== "theme-transitioning") {
           document.body.classList.remove(className);
         }
       });
