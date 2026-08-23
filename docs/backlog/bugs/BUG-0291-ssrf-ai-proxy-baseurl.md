@@ -2,7 +2,8 @@
 id: BUG-0291
 title: AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering
 type: bug
-status: ready
+status: in-progress
+assignee: antigravity
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -50,11 +51,11 @@ envelopes or auth model.
 
 ## Acceptance criteria
 
-- [ ] A test posts `baseUrl` values for `127.0.0.1`, `169.254.169.254`,
+- [x] A test posts `baseUrl` values for `127.0.0.1`, `169.254.169.254`,
       `10.x`, `192.168.x`, `[::1]` and decimal/octal-encoded loopback to every
       affected route and gets 403 — failing without the fix
-- [ ] A legitimate public HTTPS base URL still passes validation (test)
-- [ ] No other route gains or loses behaviour — existing route tests pass untouched
+- [x] A legitimate public HTTPS base URL still passes validation (test)
+- [x] No other route gains or loses behaviour — existing route tests pass untouched
 
 ## Out of scope
 

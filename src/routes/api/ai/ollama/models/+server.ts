@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
+import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../../lib/server/urlValidator";
 import type { AiModelInfo } from "../../../../../types/ai";
 
 interface OllamaModel {
@@ -50,8 +51,12 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     return json({ error: "Invalid Ollama base URL" }, { status: 400 });
   }
 
+  if (!isUrlAllowed(baseUrl) || !(await isUrlAllowedAsync(baseUrl))) {
+    return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+  }
+
   try {
-    const response = await fetch(`${baseUrl}/api/tags`);
+    const response = await safeFetch(`${baseUrl}/api/tags`);
 
     if (!response.ok) {
       return json(
@@ -69,13 +74,7 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     return json({ models });
   } catch (e) {
     console.error("Ollama Models Proxy Error:", e);
-    const isLocalhost =
-      baseUrl.includes("localhost") ||
-      baseUrl.includes("127.0.0.1") ||
-      baseUrl.includes("::1");
-    const hint = isLocalhost
-      ? "If running Ollama locally while using a hosted web app (e.g. dev.cachy.app), start Ollama with OLLAMA_ORIGINS=\"*\" so your browser can connect directly, or run Cachy locally."
-      : "Is it running and is the base URL correct?";
+    const hint = "Is it running and is the base URL correct?";
     return json(
       {
         error: `Could not reach Ollama at ${baseUrl}. ${hint}`,
