@@ -33,41 +33,24 @@ npm ci
 
 ---
 
-## 3. Create your configuration
+## 3. Create your configuration (optional)
 
 ```bash
 cp .env.example .env
 ```
 
 `.env.example` is the full reference for every setting; it is kept in step with
-the code by a test, so nothing the app reads is missing from it. Only one entry
-is **required**.
+the code by a test, so nothing the app reads is missing from it. **Nothing in it
+is required to run Cachy** — the file exists for optional knobs:
 
-### Generate the app access token
+- `PORT` — listen port (default `3000` for the plain build)
+- `ORIGIN` — the public URL, needed for correct CSRF/form handling behind a proxy
+- `ADDRESS_HEADER` / `XFF_DEPTH` — make rate limiting see real client IPs behind a reverse proxy
+- `LOG_STREAM_KEY` — protects the debug log stream endpoint
 
-`APP_ACCESS_TOKEN` is a shared secret between your browser and your own Cachy
-server. It is not an exchange API key and not a password — it exists so that
-nobody but you can use your server's API routes.
-
-Generate one:
-
-```bash
-openssl rand -hex 32
-```
-
-No OpenSSL (typical on Windows)? Node is already a prerequisite:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-Paste the result into `.env`:
-
-```env
-APP_ACCESS_TOKEN=<the value you just generated>
-```
-
-> **Keep this value.** You need the exact same string again in step 5.
+API authentication needs no configuration: the app mints its own access token
+automatically (see [ADR-0002](adr/0002-api-authentication-fails-closed.md)).
+There is no deployment-wide secret to generate, keep, or leak.
 
 ---
 
@@ -75,36 +58,35 @@ APP_ACCESS_TOKEN=<the value you just generated>
 
 ```bash
 npm run build
-node --env-file=.env build/index.js
+node build/index.js
 ```
 
 Cachy is now at `http://localhost:3000`.
 
-> **Why not `npm start`?** It runs `node server.js` without
-> `--env-file`, and the server does **not** read `.env` on its own — so your
-> token would never reach it and every API call would answer 401. Use the
-> command above, or export the variables some other way before starting.
-> `--env-file` needs Node 20 or newer, which Cachy requires anyway.
+If you created a `.env`, start with
+`node --env-file=.env build/index.js` instead — the server does **not** read
+`.env` on its own, so `PORT` or `ORIGIN` would never reach it otherwise.
 
-To use a different port, set `PORT` in `.env` (`PORT=3001`) — it is picked up
-with the rest of the file.
+> **Why not `npm start`?** It runs `node server.js` (compression +
+> security headers) without `--env-file`, which has the same limitation —
+> use `node --env-file=.env server.js` to combine your `.env` with those
+> extras. (`--env-file` needs Node 20 or newer, which Cachy requires anyway.)
 
 > If you change anything in `.env` later, **restart the process**. The running
 > server reads its configuration once, at startup.
 
 ---
 
-## 5. Enter the token in the app — do not skip this
+## 5. First steps in the app
 
-Open Cachy and go to **Settings → Connections → App Access Token** and paste the
-**same value** you put in `.env`.
+Open Cachy — that's all the setup there is. On its first request to a protected
+API route, the app obtains a self-issued access token from your own server
+(`POST /api/auth/token`) and stores it in your browser. You can see (and
+regenerate) it under **Settings → Connections → Access Token**; normally you
+never need to touch it.
 
-This is the second half of the same secret. The server rejects every request
-that does not carry it, so leaving this field empty leaves you with an app that
-loads and looks healthy while nothing that touches your account works.
-
-Once it is set you can add your exchange API keys under the same tab and start
-using the calculator, live balance and position sync.
+Once you are in, add your exchange API keys under the same tab and start using
+the calculator, live balance and position sync.
 
 ---
 
@@ -115,78 +97,59 @@ stay empty, and the browser console shows `401 (Unauthorized)` for
 `/api/balance`, `/api/account`, `/api/positions` and `/api/orders`.
 
 Authentication fails closed by design (see
-[ADR-0002](adr/0002-api-authentication-fails-closed.md)): if the token is missing
-or wrong, the request is refused. The error message is deliberately **identical**
-for every cause, so that an unauthenticated caller learns nothing about your
-setup — which also means it cannot tell *you* which of the following it is.
+[ADR-0002](adr/0002-api-authentication-fails-closed.md)): routes guarded by
+`checkClientToken` refuse any request whose token was not issued by this very
+server process. The error message is deliberately **identical**
+(`Invalid or missing client access token`) for every cause, so an unauthenticated
+caller learns nothing about your setup.
 
 Work through them in order.
 
-### a) The token is not in the app's settings
+### a) A stale token after a server restart
 
-By far the most common cause: `.env` is set, step 5 was skipped. Check
-**Settings → Connections → App Access Token**.
+Tokens live in the server process's memory, so **restarting the server
+invalidates every issued token**. The app expects this: when a request fails
+with 401, it automatically mints a fresh token and retries once. If the retry
+also failed (e.g. the server came up moments later), simply reload the page.
 
-Note that this field can take a few seconds to populate after a page load — it
-is decrypted from your browser's local storage in the background. Give it a
-moment before concluding it is empty.
+### b) The token in the browser was cleared
 
-### b) The server never received your `.env`
+Check **Settings → Connections**: the field should show an access token. If it
+is empty or you suspect it is out of sync, click **Create access token** — the
+app replaces its stored token with a freshly issued one.
 
-**`.env` sitting in the project folder does not mean the server read it.** The
-Node server does not parse `.env` files on its own; something has to load the
-values into the process environment.
+### c) You are rate-limited, not unauthorized
 
-`npm start` does **not** do this, and neither do most hosting panels' generated
-start commands. Load the file explicitly:
+Rate limits answer with **429**, not 401: each token may make 300 requests per
+minute, all tokens of one IP together 600 per minute, and token issuance itself
+is capped at 20 per hour per IP. Behind a reverse proxy without
+`ADDRESS_HEADER`/`XFF_DEPTH` configured, every visitor shares one issuance
+bucket — see `.env.example` and [`DEPLOYMENT.md`](../DEPLOYMENT.md) for the fix.
 
-```bash
-node --env-file=.env build/index.js
-```
+### d) Test the server on its own
 
-If a panel manages the process for you, put that command in its "start command"
-field rather than editing the generated script — panels tend to regenerate those
-and silently drop your change.
-
-To confirm what the running process actually has:
+Bypassing the browser entirely, mint a token and use it right away:
 
 ```bash
-# Linux/macOS — replace <PID> with the Cachy process id
-cat /proc/<PID>/environ | tr '\0' '\n' | grep APP_ACCESS_TOKEN
-```
+TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/token | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
 
-The server also says so in its own log on every rejected request:
-
-```
-APP_ACCESS_TOKEN is not configured. Denying all authenticated API requests.
-```
-
-If that line appears, the problem is here and not in your browser.
-
-### c) The two values differ
-
-A trailing space or a partial copy is enough. Clear the settings field and paste
-the value again, freshly copied from `.env`.
-
-To test the server on its own, bypassing the browser entirely:
-
-```bash
 curl -i -X POST http://localhost:3000/api/balance \
   -H "Content-Type: application/json" \
-  -H "x-app-access-token: <your token>" \
+  -H "x-app-access-token: $TOKEN" \
   -d '{"exchange":"bitunix","apiKey":"x","apiSecret":"x"}'
 ```
 
 Anything other than 401 — including an error from the exchange about the dummy
-credentials — means the server side is correct and the problem is in the browser.
+credentials — means the server side is correct and the problem is in the
+browser.
 
 ---
 
 ## Where your data lives
 
 Everything you enter — journal, settings, exchange API keys, presets, notes, and
-this token — stays in your browser's local storage and is never sent to a Cachy
-server. Credentials are encrypted at rest. See
+the client access token — stays in your browser's local storage and is never
+sent to a Cachy server. Credentials are encrypted at rest. See
 [ADR-0001](adr/0001-local-first-boundary.md) for the exact boundary.
 
 Because nothing is stored server-side, **backups are your responsibility**:

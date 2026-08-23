@@ -844,7 +844,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0249",
     "title": "Account balance and margin do not reconcile after closing positions and stale funding rate log",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -1377,6 +1377,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0245-prompt-templating-versioning.md"
   },
   {
+    "id": "FEAT-0251",
+    "title": "Journal UI/UX redesign and entry/exit fee breakdown",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P1",
+    "milestone": "M2",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0251-journal-redesign-and-fee-breakdown.md"
+  },
+  {
     "id": "BUG-0005",
     "title": "GPU-accelerated Choppiness writes to a field nothing reads",
     "type": "bug",
@@ -1752,7 +1770,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0211",
     "title": "Position details hidden behind tooltip delay",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -2033,6 +2051,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "S",
     "estimate": "2",
     "file": "bugs/BUG-0250-offline-banner-buttons-unresponsive.md"
+  },
+  {
+    "id": "BUG-0252",
+    "title": "Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculator",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0252-calculator-required-margin-precision-mismatch.md"
   },
   {
     "id": "FEAT-0019",
@@ -2857,7 +2893,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0247",
     "title": "Interactive chart positions and draggable TP/SL lines",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -3111,6 +3147,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "S",
     "estimate": "2",
     "file": "features/FEAT-0224-typescript-7-update.md"
+  },
+  {
+    "id": "FEAT-0253",
+    "title": "Make the calculator's entry/exit fee estimate honest about what it assumes",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculator",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0253-fee-estimate-methodology.md"
   },
   {
     "id": "IDEA-0036",

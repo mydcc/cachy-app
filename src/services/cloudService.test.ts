@@ -32,6 +32,7 @@ const {
   },
   mockCallbacks: {
     onConnect: undefined as MockCallback,
+    onConnectError: undefined as MockCallback,
     onDisconnect: undefined as MockCallback,
     onApplied: undefined as MockCallback,
     onInsert: undefined as MockCallback,
@@ -60,6 +61,7 @@ vi.mock('../lib/spacetimedb', () => {
     withDatabaseName: (...args: unknown[]) => MockDbBuilder;
     withToken: (...args: unknown[]) => MockDbBuilder;
     onConnect: (cb: (...args: unknown[]) => unknown) => MockDbBuilder;
+    onConnectError: (cb: (...args: unknown[]) => unknown) => MockDbBuilder;
     onDisconnect: (cb: (...args: unknown[]) => unknown) => MockDbBuilder;
     build: () => { subscriptionBuilder: () => typeof subscriptionBuilder };
   }
@@ -70,6 +72,10 @@ vi.mock('../lib/spacetimedb', () => {
     withToken: vi.fn().mockReturnThis(),
     onConnect: vi.fn(function (this: MockDbBuilder, cb: (...args: unknown[]) => unknown) {
       mockCallbacks.onConnect = cb;
+      return this;
+    }),
+    onConnectError: vi.fn(function (this: MockDbBuilder, cb: (...args: unknown[]) => unknown) {
+      mockCallbacks.onConnectError = cb;
       return this;
     }),
     onDisconnect: vi.fn(function (this: MockDbBuilder, cb: (...args: unknown[]) => unknown) {
@@ -117,6 +123,7 @@ describe('CloudService', () => {
 
     // Reset callback holders
     mockCallbacks.onConnect = undefined;
+    mockCallbacks.onConnectError = undefined;
     mockCallbacks.onDisconnect = undefined;
     mockCallbacks.onApplied = undefined;
     mockCallbacks.onInsert = undefined;
@@ -170,5 +177,18 @@ describe('CloudService', () => {
     mockCallbacks.onDisconnect!(ctx);
 
     expect(mockLogger.log).toHaveBeenCalledWith('network', 'Disconnected from SpacetimeDB', ctx);
+  });
+
+  it('should handle onConnectError and record lastError', async () => {
+    const host = 'http://localhost:3000';
+    await cloudService.connect(host, 'cachy-server', 'mock-token');
+
+    expect(mockCallbacks.onConnectError).toBeDefined();
+    const error = new Error('WebSocket connection failed');
+    mockCallbacks.onConnectError!({}, error);
+
+    expect(mockLogger.error).toHaveBeenCalledWith('network', 'SpacetimeDB connection error:', error);
+    expect(cloudService.status().connected).toBe(false);
+    expect(cloudService.status().lastError).toBe('WebSocket connection failed');
   });
 });

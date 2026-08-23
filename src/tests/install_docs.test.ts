@@ -29,14 +29,13 @@ import { describe, it, expect } from "vitest";
 /**
  * Keeps the self-hosting instructions honest.
  *
- * Both editions are self-hosted, so every user is their own operator and has to
- * set `APP_ACCESS_TOKEN` in two places: the server's `.env` and the app's own
- * settings. Miss the second half and authentication fails closed (ADR-0002) —
- * the app loads, looks healthy, and every balance, position and order request
- * answers 401. The error text is deliberately identical for a missing token, a
- * wrong one and an unconfigured server, so it cannot guide anyone out of this.
- * Documentation is the only thing that can, which is what these assertions
- * protect.
+ * Both editions are self-hosted. Since ADR-0002's BUG-0052 amendment, API
+ * authentication uses self-issued, anonymous client tokens: the app obtains
+ * one from its own server (`POST /api/auth/token`) without operator setup,
+ * guarded routes answer 401 to unknown tokens with a deliberately identical
+ * message, and rate limits answer 429. There is no deployment-wide secret —
+ * and the guide must not resurrect one. These assertions pin the current
+ * model into the documentation so the two cannot drift apart silently.
  *
  * In the spirit of `env_documentation.test.ts` and `whitepaper-claims.test.ts`:
  * this repository tests its documentation against reality rather than trusting
@@ -51,16 +50,23 @@ const read = (relative: string) =>
 describe("self-hosting installation guide", () => {
   const install = read("docs/INSTALL.md");
 
-  it("documents the required app access token", () => {
-    expect(install).toMatch(/APP_ACCESS_TOKEN/);
+  it("documents the self-issued client token model", () => {
+    // The operator-facing story: nothing to configure, the app provisions
+    // itself against its own server.
+    expect(install).toMatch(/self-issued/i);
+    expect(install).toMatch(/POST \/api\/auth\/token/);
   });
 
-  it("shows how to generate one", () => {
-    // Without a generation command the reader invents a weak token or gives up.
-    expect(install).toMatch(/openssl rand -hex 32|randomBytes\(32\)/);
+  it("does not resurrect the retired shared-secret setup", () => {
+    // The pre-BUG-0052 flow told operators to generate a secret with openssl
+    // and paste the same value into `.env` and the app. No route reads that
+    // secret any more, so instructions to set it are pure noise — worse, they
+    // imply the app rejects requests without it.
+    expect(install).not.toMatch(/APP_ACCESS_TOKEN=/);
+    expect(install).not.toMatch(/openssl rand -hex 32/);
   });
 
-  it("covers the 401 that a half-configured token produces", () => {
+  it("covers the 401 that an unknown token produces", () => {
     // The failure mode this whole guide exists to prevent. If the
     // troubleshooting section is ever trimmed, this is the line to keep.
     expect(install).toMatch(/401/);
@@ -87,10 +93,11 @@ describe("in-app user manual", () => {
   );
 
   it.each(Object.entries(manuals))(
-    "points at the server-side half of the setup (%s)",
+    "points at the install guide for server context (%s)",
     (_lang, manual) => {
-      // The token has two halves and knowing only about the settings field is
-      // exactly the state that produced this section in the first place.
+      // Knowing only the settings field is exactly the state that produced
+      // this section in the first place; both manuals must hand readers over
+      // to docs/INSTALL.md (or mention .env) for the full picture.
       expect(manual).toMatch(/\.env|INSTALL\.md/);
     },
   );

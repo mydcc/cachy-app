@@ -2,9 +2,9 @@
 
 # Backlog index
 
-143 items. How to read and add them: [README.md](README.md).
+146 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ done 102
+Counts by status: 💡 idea 17 · 📋 specced 22 · 🟡 in-progress 2 · ✅ done 105
 
 ---
 
@@ -48,6 +48,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | 📋 specced | exchange |
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | 📋 specced | exchange |
 | [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | exchange |
+| [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | 🟡 in-progress | ui |
 | [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 📋 specced | exchange |
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 📋 specced | exchange |
 
@@ -66,7 +67,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0215](bugs/BUG-0215-order-refusal-placeholders.md) | Gate refusals render raw placeholders and refuse every paper order | P1 | ✅ done | trade-panel |
 | [BUG-0219](bugs/BUG-0219-place-order-ordertype-field.md) | place_order never received an order type, so every limit order failed | P1 | ✅ done | execution |
 | [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | ✅ done | ui |
-| [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | 📋 specced | trade-panel |
+| [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | ✅ done | trade-panel |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
@@ -85,7 +86,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | trade-panel |
 | [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | execution |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | 📋 specced | exchange |
-| [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | 📋 specced | trade-panel |
+| [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | 🟡 in-progress | trade-panel |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
 
@@ -169,7 +170,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | repo |
 | [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | ✅ done | ui |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | ✅ done | ui |
-| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 🟡 in-progress | ui |
+| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | ✅ done | ui |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | repo |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | repo |
 | [BUG-0225](bugs/BUG-0225-index-regeneration-merge-conflicts.md) | Regenerating INDEX.md per PR causes near-constant merge conflicts across parallel backlog PRs | P2 | ✅ done | repo |
@@ -179,6 +180,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0237](bugs/BUG-0237-stream-logs-timing-safe-comparison-hash.md) | Stream logs authentication leaks secret length before timing-safe comparison | P2 | ✅ done | security |
 | [BUG-0238](bugs/BUG-0238-gemini-proxy-model-param-sanitization.md) | Gemini AI proxy passes unvalidated model parameter into API path | P2 | ✅ done | security |
 | [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | 📋 specced | exchange |
+| [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | calculator |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -204,6 +206,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
 | [FEAT-0224](features/FEAT-0224-typescript-7-update.md) | Evaluate and migrate to TypeScript 7 | P3 | 📋 specced | tooling |
+| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | calculator |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -250,7 +253,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0241](bugs/BUG-0241-custom-prompt-overwrites-safety.md) | customSystemPrompt completely overwrites baseRoleInstructions and safety rules | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | ✅ done | M3 | community, pro, private | none | none | — |
-| [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
+| [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -273,6 +276,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0239](features/FEAT-0239-epic-ai-prompt-architecture.md) | Epic: AI Prompt Architecture & Safety Refactoring | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0242](features/FEAT-0242-structured-function-calling.md) | Replace regex-based JSON action parsing with structured function calling | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0245](features/FEAT-0245-prompt-templating-versioning.md) | Centralize prompt templating and versioning | P1 | ✅ done | M8 | community, pro, private | none | none | — |
+| [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | 🟡 in-progress | M2 | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -290,7 +294,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0192](bugs/BUG-0192-third-party-assets-in-repo.md) | Third-party content and temporary planning assets are tracked in the public repository | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0207](bugs/BUG-0207-mobile-ta-timeframe-menu-toggle.md) | Mobile Technical Analysis timeframe menu fails to reopen | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0209](bugs/BUG-0209-inconsistent-number-input-arrows.md) | Inconsistent and poorly placed number input arrows (Leverage / Risk) | P2 | ✅ done | none | community | none | none | — |
-| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | 🟡 in-progress | none | community | none | none | — |
+| [BUG-0211](bugs/BUG-0211-position-tooltip-delay.md) | Position details hidden behind tooltip delay | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0216](bugs/BUG-0216-i18n-interpolation-values.md) | Three dialogs render raw {placeholder} because $_ was called without the values wrapper | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) | PR-to-issue auto-linking matches backlog IDs by substring and can close the wrong issue | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0221](bugs/BUG-0221-pr-body-closing-keyword-unenforced.md) | A PR description can close the wrong issue and nothing catches it before merge | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0220](bugs/BUG-0220-issue-autolink-substring-match.md) |
@@ -303,6 +307,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0244](bugs/BUG-0244-fragile-prompt-leak-workaround.md) | Gemini/Gemma prompt leak guard uses fragile chunk length heuristic | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0246](bugs/BUG-0246-implicit-analysis-mode-coupling.md) | Implicit coupling of empty string to standard behaviour in modeInstructions | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -337,7 +342,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | ✅ done | none | community, pro, private | C | none | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md), [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) |
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | M8 | community, pro, private | none | none | — |
-| [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) |
+| [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -349,6 +354,7 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
 | [FEAT-0224](features/FEAT-0224-typescript-7-update.md) | Evaluate and migrate to TypeScript 7 | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -360,4 +366,4 @@ Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0251**
+Next free number: **0254**

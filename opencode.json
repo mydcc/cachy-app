@@ -9,8 +9,9 @@
   "mcp": {
     "gortex": {
       "command": [
-        "gortex",
-        "mcp"
+        "/home/pat/.local/bin/gortex",
+        "mcp",
+        "--proxy"
       ],
       "enabled": true,
       "environment": {

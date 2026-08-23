@@ -424,6 +424,8 @@ export type TranslationKey =
   | "dashboard.cancelOrder"
   | "dashboard.connectionStatus"
   | "journal.title"
+  | "journal.viewScreenshot"
+  | "journal.closeLightbox"
   | "journal.closeJournalAriaLabel"
   | "journal.searchSymbolPlaceholder"
   | "journal.filterAll"
