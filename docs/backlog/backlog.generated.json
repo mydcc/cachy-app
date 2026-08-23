@@ -182,6 +182,28 @@
       "file": "bugs/BUG-0064-oms-position-update-wipes-positionid.md"
     },
     {
+      "id": "BUG-0293",
+      "title": "modifyTpSlOrder sent a wire body the venue's modify_order does not document",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "start_date": "2026-08-23",
+      "target_date": "2026-08-23",
+      "file": "bugs/BUG-0293-tpsl-modify-wire-format.md"
+    },
+    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -835,6 +857,106 @@
       "file": "bugs/BUG-0249-account-balance-reconciliation-stale-margin.md"
     },
     {
+      "id": "BUG-0280",
+      "title": "Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "size": "S",
+      "estimate": "3",
+      "file": "bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md"
+    },
+    {
+      "id": "BUG-0281",
+      "title": "Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "size": "S",
+      "estimate": "2",
+      "file": "bugs/BUG-0281-theme-cookie-html-injection.md"
+    },
+    {
+      "id": "BUG-0282",
+      "title": "AI assistant sends journal, portfolio and trade setup to servers without explicit consent",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "A",
+      "adr": "required",
+      "depends_on": [],
+      "file": "bugs/BUG-0282-ai-context-leaves-device-without-consent.md"
+    },
+    {
+      "id": "BUG-0291",
+      "title": "AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0291-ssrf-ai-proxy-baseurl.md"
+    },
+    {
+      "id": "BUG-0292",
+      "title": "Bitunix TP/SL rows carry no planType, so plansFor never groups them",
+      "type": "bug",
+      "status": "in-progress",
+      "assignee": "human",
+      "branch": "fix/bug-0257-tpsl-plan-normalization",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "estimate": "2",
+      "size": "S",
+      "start_date": "2026-08-23",
+      "target_date": "2026-09-20",
+      "file": "bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -1022,8 +1144,8 @@
       "depends_on": [
         "FEAT-0021"
       ],
-      "estimate": "2",
-      "size": "S",
+      "estimate": "8",
+      "size": "L",
       "target_date": "2026-12-14",
       "start_date": "2026-08-01",
       "file": "features/FEAT-0023-position-management.md"
@@ -1237,7 +1359,7 @@
       "id": "FEAT-0070",
       "title": "Place new TP/SL orders on existing Bitunix positions",
       "type": "feature",
-      "status": "specced",
+      "status": "done",
       "priority": "P1",
       "milestone": "M3",
       "editions": [
@@ -1352,7 +1474,7 @@
       "id": "FEAT-0251",
       "title": "Journal UI/UX redesign and entry/exit fee breakdown",
       "type": "feature",
-      "status": "in-progress",
+      "status": "ready",
       "priority": "P1",
       "milestone": "M2",
       "editions": [
@@ -1365,6 +1487,54 @@
       "adr": "none",
       "depends_on": [],
       "file": "features/FEAT-0251-journal-redesign-and-fee-breakdown.md"
+    },
+    {
+      "id": "FEAT-0254",
+      "title": "Give TP/SL price entry a range slider and PnL/ROI/Change modes",
+      "type": "feature",
+      "status": "ready",
+      "branch": "feat/feat-0254-tpsl-range-slider",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "ADR-0010",
+      "depends_on": [],
+      "estimate": "5",
+      "size": "M",
+      "start_date": "2026-08-25",
+      "target_date": "2026-09-15",
+      "file": "features/FEAT-0254-tpsl-input-range-slider-ux.md"
+    },
+    {
+      "id": "FEAT-0256",
+      "title": "Close part of a position without closing all of it",
+      "type": "feature",
+      "status": "ready",
+      "branch": "feat/feat-0256-partial-close",
+      "priority": "P1",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0254"
+      ],
+      "estimate": "3",
+      "size": "M",
+      "start_date": "2026-08-23",
+      "target_date": "2026-09-20",
+      "file": "features/FEAT-0256-partial-close-position.md"
     },
     {
       "id": "BUG-0005",
@@ -1681,7 +1851,7 @@
       "id": "BUG-0192",
       "title": "Third-party content and temporary planning assets are tracked in the public repository",
       "type": "bug",
-      "status": "specced",
+      "status": "done",
       "priority": "P2",
       "milestone": "none",
       "editions": [
@@ -1696,6 +1866,7 @@
       "estimate": "1",
       "size": "XS",
       "start_date": "2026-08-13",
+      "target_date": "2026-08-23",
       "file": "bugs/BUG-0192-third-party-assets-in-repo.md"
     },
     {
@@ -2041,6 +2212,120 @@
       "adr": "none",
       "depends_on": [],
       "file": "bugs/BUG-0252-calculator-required-margin-precision-mismatch.md"
+    },
+    {
+      "id": "BUG-0270",
+      "title": "CSP script-src permits inline and eval'd scripts so the header stops no XSS",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "size": "M",
+      "estimate": "3",
+      "file": "bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md"
+    },
+    {
+      "id": "BUG-0271",
+      "title": "URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [],
+      "size": "M",
+      "estimate": "5",
+      "file": "bugs/BUG-0271-ssrf-encoded-host-bypasses.md"
+    },
+    {
+      "id": "BUG-0272",
+      "title": "Proxy routes drift on credential transport schema validation and error redaction",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "size": "M",
+      "estimate": "3",
+      "file": "bugs/BUG-0272-proxy-route-credential-transport-drift.md"
+    },
+    {
+      "id": "BUG-0283",
+      "title": "Unencrypted backup exports contain plaintext exchange credentials",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0283-backup-export-plaintext-credentials.md"
+    },
+    {
+      "id": "BUG-0284",
+      "title": "Backup restore writes unvalidated strings straight into localStorage",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0284-backup-restore-unvalidated-writes.md"
+    },
+    {
+      "id": "BUG-0286",
+      "title": "Matomo telemetry loads without a consent gate",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "core",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0286-matomo-telemetry-consent-gate.md"
     },
     {
       "id": "FEAT-0019",
@@ -2421,7 +2706,7 @@
       "id": "FEAT-0072",
       "title": "Subscribe the private Bitunix TP/SL WebSocket channel",
       "type": "feature",
-      "status": "specced",
+      "status": "done",
       "priority": "P2",
       "milestone": "M3",
       "editions": [
@@ -2793,7 +3078,7 @@
       "id": "FEAT-0228",
       "title": "Move the venue branches out of the proxy routes into per-venue modules",
       "type": "feature",
-      "status": "specced",
+      "status": "ready",
       "priority": "P2",
       "milestone": "M2",
       "editions": [
@@ -2865,7 +3150,7 @@
       "id": "FEAT-0247",
       "title": "Interactive chart positions and draggable TP/SL lines",
       "type": "feature",
-      "status": "in-progress",
+      "status": "ready",
       "priority": "P2",
       "milestone": "M3",
       "editions": [
@@ -2885,6 +3170,78 @@
       "target_date": "2026-11-25",
       "start_date": "2026-08-19",
       "file": "features/FEAT-0247-chart-position-tpsl-drag.md"
+    },
+    {
+      "id": "FEAT-0257",
+      "title": "Keep three.js off the startup path behind lazily loaded effect overlays",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0257-lazy-load-threejs-effect-overlays.md"
+    },
+    {
+      "id": "FEAT-0258",
+      "title": "Make app.saveJournal() the single debounced writer for journal persistence",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0258-journal-single-debounced-writer.md"
+    },
+    {
+      "id": "FEAT-0259",
+      "title": "Load locale dictionaries on demand instead of eagerly at startup",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "i18n",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0259-lazy-locale-dictionaries.md"
+    },
+    {
+      "id": "FEAT-0285",
+      "title": "Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "required",
+      "depends_on": [],
+      "file": "features/FEAT-0285-credential-transit-boundary.md"
     },
     {
       "id": "BUG-0007",
@@ -3036,6 +3393,154 @@
       "file": "bugs/BUG-0210-settings-security-warning-prominence.md"
     },
     {
+      "id": "BUG-0266",
+      "title": "DashboardNav renders preset.icon through unsanitized {@html}",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0266-dashboardnav-html-preset-icon.md"
+    },
+    {
+      "id": "BUG-0267",
+      "title": "Server-side exchange fetches run without timeout or abort",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "api",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0267-exchange-fetch-timeouts.md"
+    },
+    {
+      "id": "BUG-0268",
+      "title": "Bitget history errors return an empty list indistinguishable from no orders",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "api",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0268-bitget-history-silent-empty.md"
+    },
+    {
+      "id": "BUG-0273",
+      "title": "Security hygiene sweep for three low-severity findings from the identity audit",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "size": "S",
+      "estimate": "2",
+      "file": "bugs/BUG-0273-security-hygiene-sweep.md"
+    },
+    {
+      "id": "BUG-0287",
+      "title": "Issued client tokens never expire and the token map grows without bound",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "api",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0287-client-token-map-no-ttl.md"
+    },
+    {
+      "id": "BUG-0288",
+      "title": "App reset clears localStorage but leaves the IndexedDB device key and caches behind",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0288-app-reset-misses-indexeddb.md"
+    },
+    {
+      "id": "BUG-0289",
+      "title": "Symbol debounce effect arms a setTimeout without returning cleanup",
+      "type": "bug",
+      "status": "in-progress",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "branch": "fix/bug-0289-symbol-debounce-effect-cleanup",
+      "file": "bugs/BUG-0289-symbol-debounce-effect-cleanup.md"
+    },
+    {
+      "id": "BUG-0290",
+      "title": "Stop-protection retry loop retries through a documented no-op placeholder",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0290-replacestop-retry-theater.md"
+    },
+    {
       "id": "FEAT-0022",
       "title": "Make settings findable with a search box",
       "type": "feature",
@@ -3137,6 +3642,134 @@
       "adr": "none",
       "depends_on": [],
       "file": "features/FEAT-0253-fee-estimate-methodology.md"
+    },
+    {
+      "id": "FEAT-0260",
+      "title": "Dynamic-import rarely opened heavyweight modals in the root layout",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0260-lazy-import-rare-modals.md"
+    },
+    {
+      "id": "FEAT-0261",
+      "title": "Hoist JournalTable group sorting out of the each expression into derived state",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0261-journal-table-derived-group-sort.md"
+    },
+    {
+      "id": "FEAT-0262",
+      "title": "Decide the fate of the unused workerPool service",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "services",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0262-workerpool-wire-or-delete.md"
+    },
+    {
+      "id": "FEAT-0263",
+      "title": "Remove the settings cross-tab storage listener in destroy",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "settings",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0263-settings-storage-listener-cleanup.md"
+    },
+    {
+      "id": "FEAT-0264",
+      "title": "Move test-only dependencies out of dependencies into devDependencies",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "tooling",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0264-test-deps-to-devdependencies.md"
+    },
+    {
+      "id": "FEAT-0265",
+      "title": "Exclude lazily consumed vendor chunks from the service-worker precache",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "pwa",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0257"
+      ],
+      "file": "features/FEAT-0265-sw-precache-exclude-lazy-chunks.md"
+    },
+    {
+      "id": "FEAT-0269",
+      "title": "Extend the decimal.js CI audit beyond its three hardcoded files",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "tooling",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0269-decimal-audit-coverage.md"
     },
     {
       "id": "IDEA-0036",
@@ -3315,7 +3948,25 @@
       "size": "S",
       "estimate": "2",
       "file": "ideas/IDEA-0199-bitunix-ui-analysis.md"
+    },
+    {
+      "id": "IDEA-0255",
+      "title": "Add a 0/25/50/75/100% quantity slider to the order-entry form",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "ideas/IDEA-0255-order-quantity-percent-slider.md"
     }
   ],
-  "count": 146
+  "count": 180
 }
