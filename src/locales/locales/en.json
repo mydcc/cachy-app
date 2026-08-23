@@ -1672,6 +1672,8 @@
       "dataMaintenance": "Data & Backup",
       "debugMode": "Debug Mode",
       "debugModeDesc": "Show extended logs and developer features.",
+      "telemetry": "Usage Statistics",
+      "telemetryDesc": "Off by default. If enabled, anonymous usage events (theme, provider, viewport, app version) are sent to our self-hosted Matomo instance at s.cachy.app with IP anonymization. Your journal, settings and API keys never leave this device.",
       "factoryReset": "Factory Reset",
       "factoryResetDesc": "Delete everything and start fresh. Not reversible.",
       "networkLogs": "Network Logs",

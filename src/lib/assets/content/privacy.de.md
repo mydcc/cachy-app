@@ -26,12 +26,17 @@ Um Marktdaten und Funktionen bereitzustellen, interagiert die App mit folgenden 
 
 ## 4. Tracking & Analyse
 
-**Matomo:**
-Wir nutzen Matomo für eine datenschutzfreundliche Analyse der App-Nutzung, um unser Angebot zu verbessern.
+**Matomo (strikt Opt-in):**
+Wir nutzen Matomo für eine datenschutzfreundliche Analyse der App-Nutzung, um unser Angebot zu verbessern. Telemetrie ist **standardmäßig deaktiviert**: Es wird kein Analyse-Skript geladen und keine Daten gesendet, solange Sie „Nutzungsstatistiken" nicht ausdrücklich unter Einstellungen → System → Performance aktivieren. Da vor Ihrer Zustimmung nichts getrackt wird, zeigen wir keinen Cookie-Hinweis.
 
-- Matomo wird von uns selbst gehostet (unter `s.cachy.app`), um die Datenhoheit zu gewährleisten.
+Bei Aktivierung gilt:
+
+- Es werden anonyme Nutzungsereignisse erhoben (Theme, Marktdaten-Anbieter, Viewport, App-Version – nicht die von Ihnen betrachteten Symbole, nicht Ihr Journal, Ihre Einstellungen oder API-Schlüssel).
+- Matomo wird von uns selbst gehostet (unter `s.cachy.app`), um die Datenhoheit zu gewährleisten; es handelt sich um ein First-Party-, Self-Hosting-Deployment.
 - Wir verwenden IP-Anonymisierung.
 - Diese Daten werden ausschließlich zur Nutzungsanalyse verwendet und nicht zu Werbezwecken an Dritte weitergegeben.
+
+Sie können Ihre Einwilligung jederzeit widerrufen, indem Sie den Schalter deaktivieren; ab diesem Zeitpunkt werden keine weiteren Ereignisse gesendet (ein Neuladen der Seite entlädt den Analyse-Container vollständig).
 
 ## 5. Ihre Rechte
 

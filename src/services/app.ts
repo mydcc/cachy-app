@@ -36,7 +36,7 @@ import { safeJsonParse } from "../utils/safeJson";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
-import { addContextProvider } from "./trackingService";
+import { addContextProvider, initTracking } from "./trackingService";
 import { storageUtils } from "../utils/storageUtils";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
@@ -67,10 +67,11 @@ export const app = {
       isInitialized = true;
 
       // 0. Setup Tracking Context
+      // BUG-0286: the currently viewed pair is user context and must not be
+      // part of the default telemetry dimensions (guarded by test).
       addContextProvider(() => {
         return {
           app_theme: uiState.currentTheme,
-          app_symbol: tradeState.symbol,
           app_provider: settingsState.apiProvider,
           app_background: settingsState.backgroundType,
           app_modals: uiState.windows.map((w) => w.id).join(","),
@@ -79,6 +80,9 @@ export const app = {
           app_version: APP_VERSION,
         };
       });
+      // Telemetry is strict opt-in (BUG-0286): this only injects the Matomo
+      // container when the user enabled it in Settings > System > Privacy.
+      initTracking();
 
       // 1. Initialise core logic
       // Risk limits and the kill switch (FEAT-0013) must be attached to the
