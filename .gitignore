@@ -113,3 +113,8 @@ docs/backlog/INDEX.md
 .deploy.lock
 .deploy_work/
 build_old_*/
+
+# Per-agent git worktrees (AGENTS.md § Git Cleanliness) — never tracked.
+# Accidentally committed in #2169, they broke actions/checkout on every PR
+# merging develop (interpreted as submodules without a .gitmodules entry).
+.worktrees/

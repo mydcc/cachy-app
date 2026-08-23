@@ -80,9 +80,9 @@ Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 | **UI/UX**     | **VisualBar component** | `src/components/shared/VisualBar.svelte` — graphical risk/reward visualisation in the calculator, positioned via CSS for real-time updates.          |
 | **Indicators**| **Rust / WebAssembly**  | `technicals-wasm/` compiles to WASM for indicator maths; `src/utils/indicators.ts` (~2000 lines) and `technicalsCalculator.ts` hold the TS side. There is no third-party "TechnicalIndicators" library. |
 | **Compute**   | **WebGPU**              | `src/services/webGpuCalculator.ts` with 17 WGSL compute shaders in `src/shaders/`, for work too heavy for the main thread.                          |
-| **Threading** | **Web Workers**         | Three workers in `src/workers/`, keeping indicator computation off the UI thread.                                                                   |
+| **Threading** | **Web Workers**         | Two workers in `src/workers/` (indicator computation and aggregation), keeping heavy work off the UI thread.                                        |
 | **Realtime DB**| **SpacetimeDB**        | `server/spacetimedb/` plus generated client bindings in `src/lib/spacetimedb/`. Backs the optional Global Chat only — see chapter 6.                |
-| **AI**        | **OpenAI · Gemini**     | Both SDKs are present; the assistant and market analyst call them through the server proxy so keys never reach the client.                          |
+| **AI**        | **OpenAI · Gemini · Anthropic · OpenRouter · Ollama** | SDKs/proxies are present; the assistant and market analyst call them through the server proxy so keys never reach the client.                        |
 | **Charts**    | **lightweight-charts**  | Used alongside Chart.js for price charts; `three` powers the visual background effects.                                                             |
 | **Validation**| **Zod**                 | Strict schema validation on inbound exchange WebSocket payloads, so malformed market data is rejected rather than cast.                             |
 | **Testing**   | **Vitest · Playwright** | Vitest shares configuration with Vite; Playwright covers end-to-end flows.                                                                          |
@@ -112,7 +112,7 @@ Located in `src/routes/api/`, this layer acts as a security gateway.
 
 **The Solution**:
 
-1. Client sends request to `GET /api/sync/orders`.
+1. Client sends request to `POST /api/sync/orders`.
 2. Client includes `API_KEY` and `API_SECRET` in custom headers (transported via HTTPS).
 3. Server (Node.js context) receives headers.
 4. Server constructs the payload, generates the SHA256 signature using the Secret.
@@ -125,7 +125,7 @@ _Note: While secrets travel from Client to Server, the Server is stateless and d
 
 ## 3. Core Logic & Mathematics ("The Heart")
 
-The mathematical heart of Cachy is reached through `src/lib/calculator.ts`, which is a thin facade — the implementation lives in nine modules under `src/lib/calculators/` (core metrics, targets, statistics, charts, quality scoring). Start at the facade, but expect to read the submodules. Together they ensure that every figure on screen is accurate to the penny, regardless of leverage or fee structure.
+The mathematical heart of Cachy is reached through `src/lib/calculator.ts`, which is a thin facade — the implementation lives in four modules under `src/lib/calculators/` (core metrics, statistics, charts, aggregation). Start at the facade, but expect to read the submodules. Together they ensure that every figure on screen is accurate to the penny, regardless of leverage or fee structure.
 
 The worked example below is covered by `src/lib/whitepaper-claims.test.ts`, which runs these exact inputs through the calculator. If the engine and this document ever disagree, that test fails.
 
@@ -221,15 +221,18 @@ The system iterates through every closed trade and buckets the PnL by Hour of Da
 
 ### The Journal Deep Dive System (10 Specialized Analytics Tabs)
 
-Beyond basic analytics, Cachy provides a complete **Deep Dive Analytics System** - a Pro feature suite with 10 specialized tabs:
+Beyond basic analytics, Cachy provides a complete **Deep Dive Analytics System** with 10 specialized tabs:
 
-**1. Forecast** - Monte Carlo Simulation for probabilistic future projections based on historical R-Multiple distribution (minimum 5 trades required).
-
-**2. Trends** - Rolling Metrics over sliding windows:
+**1. Performance** - Rolling Metrics over sliding windows:
 
 - Rolling Win Rate (last 20 trades)
 - Rolling Profit Factor
 - Rolling SQN (System Quality Number): `SQN = (√N × Ø R) / σ(R)` with quality levels (<1.6: poor, >2.5: excellent)
+
+**2. Execution** - Execution quality:
+
+- MFE vs MAE scatter plot (in R-multiples) with efficiency lines
+- Six-segment trade classification doughnut
 
 **3. Leakage** - Identifies "Profit Leaks":
 
@@ -237,36 +240,37 @@ Beyond basic analytics, Cachy provides a complete **Deep Dive Analytics System**
 - Strategy Leakage (loss-making tags)
 - Time Leakage (Worst Trading Hours)
 
-**4. Timing** - Time-based patterns:
+**4. Time** - Time-based patterns:
 
 - Hourly PnL with Gross Wins/Losses
 - Day of Week Analysis
 - Duration vs PnL Scatter Plot
 - Duration Buckets (0-15min, 15-30min, etc.)
 
-**5. Assets** - Symbol Performance Matrix:
-
-- Asset Bubble Chart (X: Win Rate, Y: PnL, Size: Trade Count)
-- Quadrant Analysis to identify "Best Performers" vs. "Account Killers"
-
-**6. Risk** - Risk Management Validation:
+**5. Risk** - Risk Management Validation:
 
 - R-Multiple Distribution Histogram
 - Risk vs Realized PnL Correlation
 
-**7. Market** - Performance by Market Conditions (Trending, Ranging, Volatile)
+**6. Market** - Performance by Market Conditions (Trending, Ranging, Volatile)
 
-**8. Psychology** - Behavioral Finance:
+**7. Strategies** - Tag-based Attribution:
 
-- Streak Visualization
-- Overconfidence/Tilt Detection after long series
-
-**9. Strategies** - Tag-based Attribution:
-
+- Strategy Evolution over time
 - PnL per Tag (requires consistent tagging)
 - Strategy Comparison with Win Rate, PF, Expectancy per Tag
 
-**10. Calendar** - Temporal Heatmap with color-coded days (green: profit, red: loss)
+**8. Behavior** - Behavioral Finance:
+
+- Win Streak and Loss Streak visualizations
+- Overconfidence/Tilt Detection after long series
+
+**9. Forecast** - Monte Carlo Simulation for probabilistic future projections based on historical R-Multiple distribution (minimum 5 trades required).
+
+**10. System Quality** - Statistical system assessment:
+
+- Rolling SQN curve over the trade history
+- Current SQN with classification badge
 
 **Implementation**: All calculations are performed in `src/lib/calculators/` (charts.ts, stats.ts) with Decimal.js for financial precision.
 
@@ -409,8 +413,8 @@ _Component: `TradeSetupInputs.svelte` -> `apiService.ts`_
 
 _Component: `PositionsSidebar.svelte`_
 
-1. **Socket Event**: Bitunix sends a `ORDER_UPDATE` via WebSocket.
-2. **Store Update**: `accountStore` receives the event. It sees status `FILLED`.
+1. **Socket Event**: Bitunix pushes an order update over the private WebSocket channel.
+2. **Store Update**: `accountState` (`src/stores/account.svelte.ts`) receives the event. It sees status `FILLED`.
 3. **Atomic State Change**:
    - The "Pending Order" is removed from `openOrders`.
    - A new "Position" is created in `positions`.
@@ -423,9 +427,9 @@ _Component: `app.ts` (Sync Logic)_
 1. **Closure**: User clicks "Close" or SL is hit.
 2. **History Fetch**: The app polls `get_history_positions` (for closed trades) and `get_pending_positions` (for status updates).
 3. **The "Safe Swap"**:
-   - The system detects a Position ID in History that matches an active ID in `accountStore`.
+   - The system detects a Position ID in History that matches an active ID in `accountState`.
    - It "Hydrates" the trade with final data (Realized PnL, Fees, Funding).
-   - It moves the object from `accountStore` (Active) to `journalState` (History).
+   - It moves the object from `accountState` (Active) to `journalState` (History).
    - It persists the new Journal Entry to `localStorage`.
 
 ---
@@ -465,7 +469,7 @@ A critical challenge in syncing local state with remote API state is handling up
 **The Logic (`src/services/app.ts`)**:
 
 1. **Fetch New Data**: The app retrieves the full list of open positions from the API.
-2. **Diffing**: It compares the new list against the `accountStore`.
+2. **Diffing**: It compares the new list against the `accountState`.
 3. **Atomic Swap**:
    - If a position exists in Store but NOT in API -> It was closed. Move to Journal.
    - If a position exists in API but NOT in Store -> It was opened remotely. Add to Store.
@@ -499,6 +503,16 @@ Cachy acts as a pass-through entity.
 - **Client Side**: API Keys are stored in the browser. They are _never_ sent to Cachy's server for storage.
 - **Transit**: Keys are sent only in the HTTP Headers of specific API requests.
 - **Server Side**: The Node.js proxy receives the request, signs it using the Secret, forwards it to Bitunix, and immediately discards the credentials from memory. No logs are kept.
+
+### Route Authentication: Self-Issued Client Tokens
+
+The proxy routes that can act on exchange credentials or forward AI traffic are not open to anonymous callers. Access control is **self-service and fails closed**:
+
+- `checkClientToken` (`src/lib/server/clientToken.ts`) guards every sensitive route (27 route files under `src/routes/api/`). Requests carry the token in the `x-app-access-token` header.
+- A client obtains its token from `POST /api/auth/token`, which is **deliberately unguarded** — it is how a client gets its first token — and instead rate-limited per IP (20 issuances per hour).
+- The server stores only the token's SHA-256 hash plus request counters, in memory per process. The raw token is never persisted; a server restart invalidates all issued tokens, after which clients simply re-mint.
+- Abuse protection is layered: 300 requests/minute per token, 600 requests/minute per IP summed over all of that IP's tokens. Exceeding either returns `429`.
+- An unknown or missing token gets an identical `401` regardless of the cause, so a caller learns nothing about the deployment. There is no deployment-wide secret to configure, forget, or leak — this model replaced the earlier single shared `APP_ACCESS_TOKEN` (see [ADR-0002](../../docs/adr/0002-api-authentication-fails-closed.md) and its BUG-0052 amendment).
 
 ### Data Class Boundary: What Stays Local and What Does Not
 
@@ -585,17 +599,19 @@ flows.
 
 | Command | Scope |
 | --- | --- |
-| `npm test` | All Vitest unit tests |
+| `npm test` | The full Vitest suite — both the `unit` project and the `components` project (which mounts Svelte components with a DOM) |
 | `npx vitest run <path>` | A single test file |
 | `npm run check` | `svelte-check` type checking — must stay at zero errors |
 | `npm run lint` | ESLint — a required CI check, zero errors, warnings under a ratchet |
 | `npm run test:e2e` | Playwright end-to-end specs in `tests/e2e` |
 | `npm run benchmark:technicals` | Indicator benchmarks |
 
-Unit tests sit next to the code they cover (`*.test.ts`). The worked example in
-chapter 3 is itself executable: `src/lib/whitepaper-claims.test.ts` runs those
-exact inputs through the calculator, so this document cannot drift from the
-engine it describes without a test failing.
+Tests sit next to the code they cover (`*.test.ts`); tests that mount a Svelte
+component are named `*.component.test.ts` and run in the separate `components`
+project. The worked example in chapter 3 is itself executable:
+`src/lib/whitepaper-claims.test.ts` runs those exact inputs through the
+calculator, so this document cannot drift from the engine it describes without
+a test failing.
 
 There are also ad-hoc Python verification scripts under `verification/` and
 `scripts/` (for example `verification/verify_market_overview.py`). They are not
@@ -606,9 +622,11 @@ part of the automated suite and are not maintained to the same standard.
 The production build is a Node.js adapter output.
 
 1. **Build**: `npm run build` (compiles SvelteKit to `build/`)
-2. **Run**: `npm start`, which is `node build/index.js`. `server.js` in the
-   repository root is a separate small wrapper — check which entry point your
-   process manager is configured for before switching.
+2. **Run**: `npm start`, which runs `node server.js` — a small Express wrapper
+   in the repository root that adds compression and security headers on top of
+   the adapter output (`build/handler.js`). If your process manager starts
+   `build/index.js` directly, it bypasses both — check which entry point it is
+   configured for.
 3. **Reverse Proxy**: Nginx is recommended for SSL termination. Ports come from
    `.deploy.conf`: **3001** for stable (cachy.app) and **3002** for beta
    (dev.cachy.app).

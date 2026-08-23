@@ -27,19 +27,19 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 - **Real-time Data:** Integration of Bitunix Websockets for ultra-fast updates.
 - **Market Overview:** Real-time 24h statistics (Price, Change %, Volume, High, Low) for the selected symbol.
-- **Favorites System:** Save up to 4 favorite symbols for quick access. Favorites are displayed in the sidebar (desktop) or below the main card (mobile).
-- **Auto-Updates:** Configurable update intervals (1s, 1m, 10m) for market data.
+- **Favorites System:** Save up to 12 favorite symbols for quick access. They are displayed in the sidebar (desktop) or below the main card (mobile), with the top 4 available as quick-select tiles on the calculator.
+- **Live Streaming:** Bitunix WebSockets push price, order book and ticker updates as they happen — no polling intervals to configure.
 
 ### 🎯 Multi-Target Take Profit
 
-- **Partial Exits:** Define up to 5 take-profit targets.
+- **Partial Exits:** Define up to 4 take-profit targets.
 - **Auto-Balancing:** Percentage distribution automatically adjusts to always total 100%.
 - **Detailed Metrics:** Calculates profit, R/R (Risk/Reward), and net return per target and in total.
 
 ### 📓 Integrated Journal, Notes & Presets
 
 - **Trade Journal:** Save your trades locally, track status (Open, Won, Lost), and notes.
-- **Side Panel:** A collapsible side panel for "Private Notes" (local) and the AI Assistant.
+- **Side Panel:** A collapsible side panel for "Private Notes" (local), the AI Assistant, and (opt-in) Global Chat.
 - **CSV Import/Export:** Full control over your data – export your journal for Excel or import backups.
 - **Presets:** Save frequently used setups (e.g., "Scalping Strategy") for quick access.
 
@@ -76,20 +76,20 @@ leaves your browser.
 git clone https://github.com/mydcc/cachy-app.git
 cd cachy-app
 npm ci
-cp .env.example .env
-openssl rand -hex 32   # paste the result as APP_ACCESS_TOKEN in .env
+cp .env.example .env   # optional: PORT, ORIGIN and reverse-proxy settings live here
 npm run build
-node --env-file=.env build/index.js   # not `npm start` — that skips .env
+node --env-file=.env build/index.js   # or plain `node build/index.js` without a .env
 ```
 
-Then open `http://localhost:3000` and paste **the same token** into
-**Settings → Connections → App Access Token**.
+Then open `http://localhost:3000`. There is no account and no setup secret to
+configure — on first use the app mints its own access token automatically.
 
-> ⚠️ **Both halves are required.** `APP_ACCESS_TOKEN` is a shared secret between
-> your browser and your own server. Authentication fails closed: set it on the
-> server but not in the app (or the other way round) and all 17 guarded API
-> routes answer 401 — the app loads and looks healthy while nothing that touches
-> your account works. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
+> 🔐 **How API authentication works.** Guarded API routes only accept
+> self-issued, anonymous client tokens (obtained via rate-limited
+> `POST /api/auth/token`, minted for you by the app). Authentication fails
+> closed: an unknown token gets 401 on all 27 guarded routes, while the app
+> itself loads normally. There is no deployment-wide secret that can be
+> forgotten or leaked. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
 
 **[→ Full installation guide](docs/INSTALL.md)** — prerequisites, configuration
 and a troubleshooting section for the 401 above.
@@ -122,16 +122,13 @@ For working *on* Cachy. To just run it, use the Quick Start above.
    npm install
    ```
 
-3. **Configure the environment:**
+3. **Configure the environment (optional):**
 
    ```bash
    cp .env.example .env
-   openssl rand -hex 32   # paste the result as APP_ACCESS_TOKEN in .env
    ```
 
-   `APP_ACCESS_TOKEN` is **required** — `npm run dev` cannot reach its own API routes without it, and the same value goes into **Settings → Connections → App Access Token**. See the [Quick Start](#-quick-start-self-hosting) above and [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md) for why it fails closed.
-
-   > ⚠️ **Deploying this to an existing instance:** set `APP_ACCESS_TOKEN` on the server **before** deploying, or every API call on the live site starts failing with 401.
+   A `.env` is **not required** for development — `npm run dev` works out of the box. The file exposes optional knobs such as `PORT`, `ORIGIN` and reverse-proxy headers (see `.env.example`). API access is authenticated with self-issued client tokens that the app mints automatically; there is no server secret to configure. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md) for the model and its rate limits.
 
    > ⚠️ **Never put a secret behind a `VITE_`-prefixed variable.** Vite inlines any such variable into the client bundle, so its value is served as plain JavaScript to every visitor. AI keys are entered per user in Settings → AI and stay in that browser.
 
@@ -198,7 +195,7 @@ npm run build
 ```bash
 npm start
 # or with PM2
-pm2 start build/index.js --name "cachy-app"
+pm2 start server.js --name "cachy-app"
 ```
 
 See `DEPLOYMENT.md` for detailed instructions.

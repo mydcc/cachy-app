@@ -101,9 +101,25 @@ Pivot Points serve as a guide. Traders use them to find targets for profits (Tak
 - **S1 (First Support):**
   $$ S1 = (2 \times P) - \text{High} $$
 
+### Visual Risk/Reward Bar (VisualBar)
+
+Below the input fields, an interactive **VisualBar** visualizes your trade setup:
+
+**What you see:**
+
+- **Red area (left):** Your risk, from the stop loss up to your entry point.
+- **Green area (right):** Your profit potential, from entry to your take profits.
+- **White markers:** The exact SL, Entry and TP price levels.
+- **TP labels:** The Risk/Reward ratio above each take profit (e.g. "2.5R").
+
+**Why it helps:** At a glance you can tell whether a trade has a healthy
+Risk/Reward profile — a worthwhile setup shows clearly more green (profit) than
+red (risk).
+
 ### Favorites
 
-You can save up to **4 favorite symbols** for quick access.
+You can save up to **12 favorite symbols** for quick access. On the calculator
+page, the first 4 appear as quick-select tiles.
 
 - **Add:** Click the Star icon in the Market Overview.
 - **Access:** Click on a favorite in the Sidebar (Desktop) or the Favorites Bar (Mobile) to instantly load it into the calculator.
@@ -128,9 +144,9 @@ The Journal is where you track your performance. It supports both manual entry a
 - **Manual:** You click "Add to Journal" after calculating a trade. You manually update the status (Won/Lost) and exit price.
 - **Synced (Bitunix):** If you use Bitunix and have API keys configured, Cachy can automatically import your trade history, including realized PnL and fees.
 
-### Performance Tracking (Pro)
+### Performance Tracking
 
-Users with Pro status have access to advanced analytics in the Journal:
+The Journal analytics are available to all users:
 
 #### Dashboard Charts
 
@@ -140,13 +156,18 @@ Users with Pro status have access to advanced analytics in the Journal:
 
 #### Deep Dive Analytics
 
-The "Deep Dive" section offers granular insights into your trading behavior:
+The "Deep Dive" section offers ten specialized analytics tabs:
 
-- **Timing:** Analyze which time of day or day of the week is most profitable for you.
-- **Assets:** A bubble chart showing which coins perform best (Win Rate vs PnL).
-- **Risk:** Scatter plot correlating Risk Amount vs. Realized PnL. Are you risking too much on losing trades?
+- **Performance:** Trends of your results over time.
+- **Execution:** The quality of your entries and exits.
+- **Risk:** How your risk amount correlates with realized PnL.
+- **Market:** How the market environment shaped your outcomes.
+- **Leakage:** Where fees, slippage and avoidable mistakes eat your profit.
+- **Time:** Which time of day or day of week is most profitable for you.
 - **Strategies:** Tag your trades (e.g., "Breakout", "Reversal") and see which strategies yield the best results.
-- **Psychology:** Tracks winning and losing streaks to help you identify tilt or flow states.
+- **Behavior:** Winning and losing streaks that help you spot tilt or flow states — including your asset distribution.
+- **Forecast:** A Monte Carlo simulation based on your history.
+- **System Quality:** How clean and complete your journal record keeping is.
 
 ---
 
@@ -154,22 +175,21 @@ The "Deep Dive" section offers granular insights into your trading behavior:
 
 Access settings via the Gear icon.
 
-### App Access Token
+### Access Token (App Access Token)
 
-Because you run Cachy yourself, there is a shared secret between your browser and your own server: the **App Access Token** under Settings → Connections.
+Cachy protects your own server's API routes with **self-issued access tokens**:
+On the first call to a protected API route, the app automatically obtains an
+anonymous token from your own server (`POST /api/auth/token`) and stores it in
+your browser. There is nothing to configure and no secret to paste.
 
-This is **not** an exchange key and not an account password. It makes sure nobody but you can use your server's API routes.
+This is **not** an exchange key and not an account password. The token
+identifies your browser to your server so that other visitors cannot ride along
+on your API routes. The server stores only a hash of the token — never the
+token itself.
 
-The token has to be in **two** places, and they have to match:
-
-1. In the `.env` file on your server, as `APP_ACCESS_TOKEN`.
-2. Here, in the **App Access Token** field.
-
-**How you notice one is missing:** the app starts normally, but the balance never loads, positions stay empty, and the browser console shows `401 (Unauthorized)`. If either half is missing the server refuses every request — deliberately with the same message in all cases, so it never reveals which half is at fault.
-
-After a page load it can take a few seconds for the token to appear in the field: it is decrypted from local storage in the background.
-
-How to generate the token and put it into `.env` is covered in the installation guide (`docs/INSTALL.md`).
+- **View/Reset:** Settings → Connections → **Access Token**. The **"Create access token"** button replaces the stored token with a freshly issued one — normally never needed, since the app manages this itself.
+- **Server restarts:** Tokens live in the server process's memory. After a restart, the app automatically mints a new one and retries.
+- **If something looks broken:** Balance not loading and `401 (Unauthorized)` in the console usually resolves with a page reload; see the troubleshooting section of the installation guide (`docs/INSTALL.md`).
 
 ### API Provider
 
@@ -181,20 +201,29 @@ How to generate the token and put it into `.env` is covered in the installation 
 Since Cachy is local-only, your data is your responsibility.
 
 - **Backup:** Go to Settings -> System -> **Create Backup**. This downloads a JSON file with all your settings, journal entries, and presets.
+  - **Optional:** Enable **"Encrypt backup"** and choose a strong password.
+  - With encryption enabled, all API keys and sensitive data are protected with AES-256 encryption.
 - **Restore:** Use **Restore from Backup** to load a previously saved JSON file.
+  - For encrypted backups you have to enter the correct password.
+  - **Note:** A wrong password results in a "Decryption failed" error.
+
+**Keep your backup password safe!** An encrypted backup cannot be restored without it.
 
 ### Customization
 
-- **Themes:** Choose from over 20 distinct themes (e.g., 'Midnight', 'Dracula', 'Nord').
-- **Hotkeys:** Customize keyboard shortcuts for speed (e.g., `S` for Short, `L` for Long).
+- **Themes:** Choose from 28 distinct themes (e.g., 'Midnight', 'Dracula', 'Nord').
+- **Hotkeys:** Customize keyboard shortcuts for speed. By default (Safety mode) they are `Alt+S` for Short and `Alt+L` for Long; the Direct modes bind the plain `S` and `L` keys.
 - **Debug Mode:** Enable detailed system logs in the browser console for troubleshooting.
 
 ### Side Panel
 
-Choose under **Settings -> Sidebar** between:
+The dockable side panel has three modes: **AI Assistant**, **Quick Notes** and
+(opt-in) **Global Chat**. Click the panel's title to cycle between modes; show
+or hide it under **Settings -> Visuals**.
 
-- **Private Notes:** Store notes locally in your browser only.
+- **Quick Notes:** Store notes locally in your browser only.
 - **AI Assistant:** Interact with the context-aware AI for market analysis.
+- **Global Chat:** Opt-in community chat, disabled by default.
 
 ---
 

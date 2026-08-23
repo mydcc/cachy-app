@@ -112,9 +112,8 @@ The following steps apply to both environments (just adjust directory names).
 3. Fill in the fields:
     - **Path:** `/www/wwwroot/cachy.app`
     - **Name:** `cachy-prod` (or `cachy-dev`)
-    - **Run Command:** Select `Custom Command` and enter: `node build/index.js`
-      _(By default, aaPanel often looks for `app.js` or `index.js`, but SvelteKit is located in `build/index.js`)_
-      Alternatively `node server.js` — a thin wrapper that defaults `PORT` to 3001 instead of adapter-node's 3000, for hosts where 3000 is already taken.
+    - **Run Command:** Select `Custom Command` and enter: `node server.js` —
+      the Express wrapper that applies compression and security headers. It defaults `PORT` to 3001 instead of adapter-node's 3000, for hosts where 3000 is already taken.
     - **Port:** `3001` (default for Production). _Ensure the port is open in the firewall or used internally._
     - **Node Version:** v18 or higher.
 4. Click **Submit**.
@@ -203,9 +202,12 @@ missing.
 > the deploy that pulls this change **removes `.deploy.conf` from the server**.
 >
 > That run still succeeds — the config was sourced before the pull. The *next*
-> one finds no config, regenerates it from the template with placeholder start
-> commands, and fails the health check into a rollback. The failure is one deploy
-> removed from its cause, which is what makes it worth calling out.
+> one finds no config, generates a template copy with placeholder start
+> commands, tells you to check `.deploy.conf`, and **aborts immediately**
+> before touching the lock, the build or the running app. Nothing is deployed
+> and nothing is rolled back — but the deploy still doesn't happen until you
+> restore the file, and the failure is one run removed from its cause, which
+> is what makes it worth calling out.
 >
 > **Back it up on the server first:**
 >
@@ -277,14 +279,11 @@ The deployment scripts support Discord webhook notifications for deployment even
 
 2. **Configure Environment Variables:**
 
-   Add to your shell profile (`~/.bashrc` or `~/.profile`):
+   The script reads a single webhook URL, used for both environments. Add it
+   to your shell profile (`~/.bashrc` or `~/.profile`):
 
    ```bash
-   # Development webhook
-   export DISCORD_WEBHOOK_DEV="https://discord.com/api/webhooks/YOUR_DEV_WEBHOOK"
-   
-   # Production webhook
-   export DISCORD_WEBHOOK_PROD="https://discord.com/api/webhooks/YOUR_PROD_WEBHOOK"
+   export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/YOUR_WEBHOOK"
    ```
 
    Or export before deployment:
@@ -388,7 +387,6 @@ cp .env.example .env
 ```
 
 ```env
-APP_ACCESS_TOKEN=<openssl rand -hex 32>
 PORT=3001
 ORIGIN=https://cachy.app
 NODE_ENV=production
@@ -396,7 +394,11 @@ ADDRESS_HEADER=X-Forwarded-For
 XFF_DEPTH=1
 ```
 
-> ⚠️ **`APP_ACCESS_TOKEN` is required, not optional.** Authentication fails closed: without it, all 17 guarded API routes answer 401 and the deployed app cannot reach its own backend. Set it on the server **before** deploying, and enter the same value in the running app under **Settings → Connections → App Access Token**. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
+> API authentication needs no secret: routes are guarded by self-issued client
+> tokens that the app obtains from your own server automatically
+> (`POST /api/auth/token`, rate-limited — see
+> [ADR-0002's BUG-0052 amendment](docs/adr/0002-api-authentication-fails-closed.md)).
+> There is no deployment-wide token to configure or leak.
 
 _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to resolve `event.url` and to pass its cross-origin check on form submissions._
 

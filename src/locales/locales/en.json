@@ -279,7 +279,18 @@
       "trigger": "Trigger:",
       "amount": "Amt:",
       "cancelTooltip": "Cancel",
-      "editTooltip": "Edit"
+      "editTooltip": "Edit",
+      "calcMode": "Calculation mode",
+      "byPnl": "By PnL",
+      "byRoi": "By ROI",
+      "byChange": "By Change",
+      "targetProfit": "Profit",
+      "targetLoss": "Loss",
+      "triggerPrice": "Trigger price",
+      "tpSliderLabel": "Take-profit target",
+      "slSliderLabel": "Stop-loss target",
+      "grossBeforeFees": "Gross",
+      "netAfterFees": "After fees"
     },
     "viewMode": "View Mode",
     "detailed": "Detailed",
@@ -461,6 +472,8 @@
   },
   "journal": {
     "title": "Trade Journal",
+    "viewScreenshot": "View screenshot",
+    "closeLightbox": "Close",
     "closeJournalAriaLabel": "Close Journal",
     "searchSymbolPlaceholder": "Search symbol...",
     "filterAll": "All",
