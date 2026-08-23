@@ -118,3 +118,9 @@ build_old_*/
 # Accidentally committed in #2169, they broke actions/checkout on every PR
 # merging develop (interpreted as submodules without a .gitmodules entry).
 .worktrees/
+
+# Temporary planning assets, third-party scratch data & ad-hoc verification (BUG-0192)
+*_tpmp/
+*_tmp/
+verification/
+info/
