@@ -22,13 +22,13 @@ target_date: 2026-09-20
 ## Problem
 
 Cachy can close a position, and that is all it can do to one. The close button
-in [`PositionsList.svelte`](../../src/components/shared/PositionsList.svelte)
+in [`PositionsList.svelte`](../../../src/components/shared/PositionsList.svelte)
 sends the full size every time — `handleClosePosition` passes `pos.amount`
 straight through — so taking half off the table means leaving Cachy and doing
 it at the exchange, which is the manual step this app exists to remove.
 
 The service layer is already further along than the UI. `closePosition` takes
-an optional `amount` ([`tradeService.ts:910`](../../src/services/tradeService.ts))
+an optional `amount` ([`tradeService.ts:910`](../../../src/services/tradeService.ts))
 and has since it was written; nothing has ever passed a partial one. So this
 is a missing input, not a missing capability.
 
@@ -41,7 +41,7 @@ has moved far enough to be worth de-risking but not far enough to abandon.
 A quantity input on the close action, defaulting to the full position, with the
 percentage presets a trader actually reaches for.
 
-- **Reuse [`RangeSlider`](../../src/components/shared/RangeSlider.svelte)** from
+- **Reuse [`RangeSlider`](../../../src/components/shared/RangeSlider.svelte)** from
   [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md), marked at
   0/25/50/75/100 %. This is the reuse that item was built for — the primitive
   already emits `Decimal` and snaps to marks, so nothing here needs a second
@@ -53,8 +53,8 @@ percentage presets a trader actually reaches for.
 - **Round to the instrument's step size on commit**, not on display, so the
   quantity that reaches `closePosition` is one the exchange can fill.
 - **Teach the gate the step size on the reduce path.** `closePosition` builds
-  its `displayed` block without one ([`tradeService.ts:955`](../../src/services/tradeService.ts)),
-  and `checkSize`'s reduce branch ([`orderGate.ts:565`](../../src/services/orderGate.ts))
+  its `displayed` block without one ([`tradeService.ts:955`](../../../src/services/tradeService.ts)),
+  and `checkSize`'s reduce branch ([`orderGate.ts:565`](../../../src/services/orderGate.ts))
   checks only *> 0*, *≤ position* and full-close equality. A partial close with
   an unfillable quantity passes the gate today and is refused by the venue.
 
@@ -92,7 +92,7 @@ position amount rather than against the step.
 ## Out of scope
 
 - **Flash close.** `flashClosePosition` exists in the service
-  ([`tradeService.ts:503`](../../src/services/tradeService.ts)) and is wired to
+  ([`tradeService.ts:503`](../../../src/services/tradeService.ts)) and is wired to
   nothing; connecting it is worth doing but belongs with the confirmation
   policy in [`FEAT-0024`](FEAT-0024-confirmation-policy.md), not here. Building
   a bespoke confirmation for one button now means building it twice.

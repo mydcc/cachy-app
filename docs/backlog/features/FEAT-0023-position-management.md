@@ -42,14 +42,14 @@ unverified exchange endpoint.
 | Trailing stop and trailing TP/SL | Needs a verified endpoint | Blocked — see below |
 
 **Flash close** is service-complete and UI-absent: `flashClosePosition` exists
-in [`tradeService.ts:503`](../../src/services/tradeService.ts) and nothing calls
+in [`tradeService.ts:503`](../../../src/services/tradeService.ts) and nothing calls
 it. Wiring it is small. What is not small is its confirmation — it is the most
 dangerous control in the product (one click, full size, market price), its
 default must be on, and turning it off must be a deliberate act. That is
 [`FEAT-0024`](FEAT-0024-confirmation-policy.md)'s whole subject. Building a
 bespoke dialog for one button first means building it twice and leaving the
 second one inconsistent. Today the close button uses a bare `confirm()`
-([`PositionsList.svelte:67`](../../src/components/shared/PositionsList.svelte)),
+([`PositionsList.svelte:67`](../../../src/components/shared/PositionsList.svelte)),
 which is the placeholder that FEAT-0024 replaces.
 
 **Trailing stops** have no verified Bitunix endpoint in the current API doc
