@@ -80,7 +80,6 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     safeMsg = sanitizeErrorMessage(safeMsg, 1000);
 
     logger.error(`[Sync] Error fetching history positions from Bitunix: ${safeMsg}`);
-    console.error(`Error fetching history positions from Bitunix:`, safeMsg);
 
     // Return sanitized message
     return json(

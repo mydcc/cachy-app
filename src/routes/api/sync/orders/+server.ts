@@ -157,10 +157,6 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     logger.error(
       `Error fetching orders from Bitunix: ${safeMsg}`,
     );
-    console.error(
-      `Error fetching orders from Bitunix:`,
-      safeMsg,
-    );
     return json({ error: safeMsg || "Failed to fetch orders" }, { status: 500 });
   }
 };

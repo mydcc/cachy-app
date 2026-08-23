@@ -115,13 +115,13 @@ export function redactString(input: string): string {
 
     // key=value / key: value in query strings and log lines
     out = out.replace(
-        /\b([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api[-_]?key|signature|sign|authorization|bearer)[\w-]*)\s*[=:]\s*([^\s&,;"'}]+)/gi,
+        /\b([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api[-_]?key|signature|authorization|bearer)[\w-]*|sign)\s*[=:]\s*([^\s&,;"'}]+)/gi,
         (_match, key: string) => `${key}=${REDACTED}`,
     );
 
     // "key": "value" in embedded JSON
     out = out.replace(
-        /(["'])([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api[-_]?key|signature|sign|authorization|bearer)[\w-]*)\1(\s*:\s*)(["'])(?:[^"'\\]|\\.)*\4/gi,
+        /(["'])([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api[-_]?key|signature|authorization|bearer)[\w-]*|sign)\1(\s*:\s*)(["'])(?:[^"'\\]|\\.)*\4/gi,
         (_match, q: string, key: string, sep: string, vq: string) =>
             `${q}${key}${q}${sep}${vq}${REDACTED}${vq}`,
     );

@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
+import { logger } from "$lib/server/logger";
 
 vi.mock('../../../../lib/server/clientToken', () => ({
   checkClientToken: vi.fn(() => null)
@@ -50,7 +51,7 @@ describe('POST /api/sync/positions-history - Security', () => {
       status: 400,
     });
 
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
     const request = {
       json: async () => ({ apiKey, apiSecret, limit: 10 }),
@@ -62,10 +63,10 @@ describe('POST /api/sync/positions-history - Security', () => {
     // Verify fetch was called
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    // Verify console.error was called
-    expect(consoleSpy).toHaveBeenCalled();
-    const loggedArgs = consoleSpy.mock.calls[0];
-    const loggedMessage = loggedArgs.join(' ');
+    // Verify logger.error was called
+    expect(loggerSpy).toHaveBeenCalled();
+    const loggedArgs = loggerSpy.mock.calls[0];
+    const loggedMessage = typeof loggedArgs[0] === 'string' ? loggedArgs[0] : loggedArgs.join(' ');
 
     // Vulnerability Check: Ideally, we want these to NOT contain the key.
     expect(loggedMessage).not.toContain(apiKey);
