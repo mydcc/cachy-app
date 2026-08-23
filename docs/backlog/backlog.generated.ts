@@ -2350,7 +2350,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0286",
     "title": "Matomo telemetry loads without a consent gate",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "opencode",
     "branch": "fix/bug-0286-matomo-consent-gate",
     "priority": "P2",

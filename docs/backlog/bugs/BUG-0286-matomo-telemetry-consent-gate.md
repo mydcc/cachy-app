@@ -2,7 +2,7 @@
 id: BUG-0286
 title: Matomo telemetry loads without a consent gate
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 branch: fix/bug-0286-matomo-consent-gate
 priority: P2
@@ -95,5 +95,5 @@ default and honours the new `enableTelemetry` opt-out switch (default on);
 `app_symbol` dropped from default dimensions; DE/EN copy + privacy docs
 describe the anonymous always-on measurement with opt-out. Verified:
 `npm run check` 0 errors; `src/services/trackingService.consent.test.ts`
-9/9 green; affected suites (actions, settings, app) green. Item moves to
-`done` when the PR merges.
+9/9 green; affected suites (actions, settings, app) green. Done with the
+merge of this branch.
