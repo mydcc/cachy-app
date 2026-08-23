@@ -52,8 +52,6 @@ export function setupRealtimeUpdatesEffect(app: any) {
           ? normalizeSymbol(currentSymbol, settingsState.apiProvider || "bitunix")
           : "";
 
-        if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
-
         symbolDebounceTimer = setTimeout(() => {
           if (newSymbol && newSymbol !== currentWatchedSymbol) {
             if (currentWatchedSymbol) {
@@ -70,6 +68,17 @@ export function setupRealtimeUpdatesEffect(app: any) {
           }
         }, 500);
       });
+
+      // BUG-0289: a debounce timer armed just before the root is disposed
+      // (HMR/teardown) would still fire and register watchers for a dead
+      // symbol. Svelte also runs this teardown before every re-run, which is
+      // what keeps rapid symbol changes debounced to the last one.
+      return () => {
+        if (symbolDebounceTimer) {
+          clearTimeout(symbolDebounceTimer);
+          symbolDebounceTimer = null;
+        }
+      };
     });
 
     // 3. Market State Data -> Trade State Entry Price
