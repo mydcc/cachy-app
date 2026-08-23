@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import dns from "node:dns";
 import { POST } from "./+server";
 import * as clientToken from "../../../../lib/server/clientToken";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -18,6 +19,9 @@ describe("Article Content Extractor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(clientToken, "checkClientToken").mockReturnValue(null);
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+    ]);
   });
 
   it("should return 400 for invalid url", async () => {

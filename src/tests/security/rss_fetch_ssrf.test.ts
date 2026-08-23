@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import dns from "node:dns";
 
 // Mock authentication to bypass security check during test
 vi.mock("../../lib/server/clientToken", () => ({
@@ -28,6 +29,9 @@ import { POST } from "../../routes/api/rss-fetch/+server";
 describe("POST /api/rss-fetch SSRF Protection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+    ]);
   });
 
   it("should return 403 for an invalid URL format", async () => {

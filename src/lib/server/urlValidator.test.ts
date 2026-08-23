@@ -134,18 +134,31 @@ describe("urlValidator", () => {
       expect(isUrlAllowed("http://2852039166")).toBe(false); // 169.254.169.254 as dword
       expect(isUrlAllowed("http://0xa9fea9fe")).toBe(false); // 169.254.169.254 as hex
     });
+
+    it("should reject IPv4-mapped IPv6 literals across all representations (BUG-0271)", () => {
+      expect(isPrivateOrReservedHost("::ffff:127.0.0.1")).toBe(true);
+      expect(isPrivateOrReservedHost("::ffff:7f00:1")).toBe(true);
+      expect(isPrivateOrReservedHost("0:0:0:0:0:ffff:127.0.0.1")).toBe(true);
+      expect(isUrlAllowed("http://[::ffff:127.0.0.1]/")).toBe(false);
+      expect(isUrlAllowed("http://[::ffff:7f00:1]/")).toBe(false);
+      expect(isUrlAllowed("http://[::ffff:169.254.169.254]/")).toBe(false);
+      expect(isUrlAllowed("http://[::ffff:a9fe:a9fe]/")).toBe(false);
+    });
   });
 
   describe("isUrlAllowedAsync & DNS rebinding checks (BUG-0271)", () => {
     it("should reject URLs whose DNS resolution returns a private IP", async () => {
       const { isUrlAllowedAsync } = await import("./urlValidator");
 
-      // Localhost / loopback domains or mock
+      // Localhost / loopback domains
       const resultLocal = await isUrlAllowedAsync("http://localhost:3000");
       expect(resultLocal).toBe(false);
 
       const resultOctal = await isUrlAllowedAsync("http://0177.0.0.1:80");
       expect(resultOctal).toBe(false);
+
+      const resultMapped = await isUrlAllowedAsync("http://[::ffff:127.0.0.1]/");
+      expect(resultMapped).toBe(false);
     });
 
     it("should allow valid public URLs with public DNS records", async () => {

@@ -39,10 +39,8 @@ function isPrivateIpv4Octets(a: number, b: number, c: number, d: number): boolea
   if (a === 192 && b === 168) return true;
   // 198.18.0.0/15 (Benchmarking)
   if (a === 198 && (b === 18 || b === 19)) return true;
-  // 224.0.0.0/4 (Multicast) & 240.0.0.0/4 (Reserved)
+  // 224.0.0.0/4 (Multicast) & 240.0.0.0/4 (Reserved) & 255.255.255.255 (Broadcast)
   if (a >= 224) return true;
-  // Broadcast
-  if (a === 255 && b === 255 && c === 255 && d === 255) return true;
 
   return false;
 }
@@ -83,12 +81,14 @@ export function isPrivateOrReservedHost(hostname: string): boolean {
     return true;
   }
 
-  // IPv4-mapped IPv6 (::ffff:127.0.0.1 or ::ffff:7f00:1)
-  if (cleanHost.startsWith("::ffff:")) {
-    const mappedPart = cleanHost.slice(7);
-    if (isPrivateOrReservedHost(mappedPart)) {
-      return true;
-    }
+  // IPv4-mapped IPv6 literals (e.g. ::ffff:127.0.0.1 or normalized ::ffff:7f00:1)
+  // Have no legitimate use for public requests and are strictly rejected.
+  if (
+    cleanHost.startsWith("::ffff:") ||
+    cleanHost.startsWith("0:0:0:0:0:ffff:") ||
+    cleanHost.includes(":ffff:")
+  ) {
+    return true;
   }
 
   // Detect hex representations (e.g. 0x7f.0.0.1, 0x7f000001, 0xa9fea9fe)
@@ -112,7 +112,7 @@ export function isPrivateOrReservedHost(hostname: string): boolean {
   const match = cleanHost.match(ipv4Regex);
   if (match) {
     const octets = match.slice(1).map(Number);
-    if (octets.some((o) => o > 255 || o < 0)) return true;
+    if (octets.some((o) => o > 255)) return true;
 
     const [a, b, c, d] = octets;
     if (isPrivateIpv4Octets(a, b, c, d)) return true;
