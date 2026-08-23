@@ -3179,7 +3179,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0247",
     "title": "Interactive chart positions and draggable TP/SL lines",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
