@@ -45,10 +45,10 @@ once keys are encrypted at rest, this item additionally guards the ciphertext.
 
 ## Acceptance criteria
 
-- [ ] An unencrypted export contains no `apiKeys`/`encryptedApiKeys` data,
+- [x] An unencrypted export contains no `apiKeys`/`encryptedApiKeys` data,
       proven by a test on `getBackupPayload()` output — failing before the fix
-- [ ] A password-encrypted export round-trips credentials exactly (test)
-- [ ] The UI states plainly what an export contains before download
+- [x] A password-encrypted export round-trips credentials exactly (test)
+- [x] The UI states plainly what an export contains before download
       (DE + EN strings)
 
 ## Out of scope
