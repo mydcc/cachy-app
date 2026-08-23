@@ -240,7 +240,7 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
 });
 
 /*
- * BUG-0266 — the regression this file previously could not have caught.
+ * BUG-0292 — the regression this file previously could not have caught.
  *
  * Every other test here builds its plans with the `plan()` helper above:
  * `{orderId, symbol, planType, triggerPrice, status}`. Bitunix sends none of
@@ -252,7 +252,7 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
  * These tests feed the documented response through the same normalisation the
  * fetch path applies, so they fail if that split is removed or renamed.
  */
-describe("tpSlState — against the venue's actual response shape (BUG-0266)", () => {
+describe("tpSlState — against the venue's actual response shape (BUG-0292)", () => {
     /** Verbatim from `06_tp_sl.md` §Get Pending TP/SL Order → Response Example. */
     const DOCUMENTED_ROW = {
         id: "123",

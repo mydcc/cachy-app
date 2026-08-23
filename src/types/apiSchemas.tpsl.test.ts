@@ -142,7 +142,7 @@ describe("the discriminated union still routes the existing actions", () => {
         expect(result.success).toBe(true);
     });
 
-    it("rejects the shape modify used to send (BUG-0267)", () => {
+    it("rejects the shape modify used to send (BUG-0293)", () => {
         // {orderId, symbol, planType, triggerPrice} — what this schema
         // accepted before the fix. `POST /tpsl/modify_order` has no `symbol`
         // or `planType` parameter and reads `tpPrice`/`slPrice`, neither of

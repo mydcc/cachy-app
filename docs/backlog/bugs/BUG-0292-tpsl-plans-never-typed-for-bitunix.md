@@ -1,5 +1,5 @@
 ---
-id: BUG-0266
+id: BUG-0292
 title: Bitunix TP/SL rows carry no planType, so plansFor never groups them
 type: bug
 status: in-progress
@@ -17,7 +17,7 @@ start_date: 2026-08-23
 target_date: 2026-09-20
 ---
 
-# BUG-0266 — Bitunix TP/SL rows carry no `planType`, so `plansFor` never groups them
+# BUG-0292 — Bitunix TP/SL rows carry no `planType`, so `plansFor` never groups them
 
 ## Symptom
 

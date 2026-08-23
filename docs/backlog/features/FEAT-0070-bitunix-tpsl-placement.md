@@ -46,17 +46,17 @@ WS/refetch, not the REST response alone.
 - [x] A partial TP/SL with explicit quantity can be created; the quantity is
       validated against the position size client-side (not against other
       partial plans already reserving part of it — the store does not
-      reliably enumerate every partial plan on a symbol, see BUG-0266 — the
+      reliably enumerate every partial plan on a symbol, see BUG-0292 — the
       venue enforces that bound).
 - [x] The API constraint "one position-TP/SL per position" is reflected in the
       UI: a leg already covered by a position-wide plan
-      (`scopeGuess === "position"`, BUG-0266) shows its price with an Edit
+      (`scopeGuess === "position"`, BUG-0292) shows its price with an Edit
       link into the existing `TpSlEditModal` instead of a second create
       input. A partial leg does not gate this — several partial plans may
       coexist per the API docs, so only the position-wide type is limited.
 - [x] Trigger type (`LAST_PRICE`/`MARK_PRICE`) is selectable, defaulting to
       `MARK_PRICE` — the same default `placePositionTpSl`/`placeTpSlOrder`
-      and the (now-fixed, BUG-0267) modify flow already use.
+      and the (now-fixed, BUG-0293) modify flow already use.
 
 ## Out of scope
 
@@ -71,7 +71,7 @@ WS/refetch, not the REST response alone.
   changes the price and quantity of one leg of that same position-wide row.
 - Reconciling this feature's `scopeGuess` inference against a live account.
   Needs credentials and an open position; the risk if it is wrong is
-  documented on BUG-0266 (a refused create, or a second plan where the
+  documented on BUG-0292 (a refused create, or a second plan where the
   trader expected an edit) and is worth a deliberate check before this ships
   to anyone trading with size.
 

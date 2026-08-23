@@ -62,7 +62,7 @@ import { Decimal } from "decimal.js";
    * plan created moments later by this same modal should not cause its own
    * sections to swap out from under an in-progress edit.
    *
-   * `scopeGuess` is BUG-0266's named inference, not a documented field — see
+   * `scopeGuess` is BUG-0292's named inference, not a documented field — see
    * that item. Gating "position-wide create" on it is the one place this
    * modal relies on the guess; getting it wrong here means either a refused
    * create (visible) or a second plan where the trader expected an edit
@@ -185,7 +185,7 @@ import { Decimal } from "decimal.js";
     }
     // AC#2 — validated against the position size. Other partial plans that
     // may already reserve part of it are not accounted for here: the store
-    // does not reliably enumerate every partial plan on a symbol (BUG-0266),
+    // does not reliably enumerate every partial plan on a symbol (BUG-0292),
     // only the first of each type, so a check against those would be a
     // guess dressed up as a bound. The venue enforces the real limit.
     if (positionSize && qty.gt(positionSize)) {

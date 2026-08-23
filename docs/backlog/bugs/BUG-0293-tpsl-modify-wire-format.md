@@ -1,5 +1,5 @@
 ---
-id: BUG-0267
+id: BUG-0293
 title: modifyTpSlOrder sent a wire body the venue's modify_order does not document
 type: bug
 status: done
@@ -16,7 +16,7 @@ start_date: 2026-08-23
 target_date: 2026-08-23
 ---
 
-# BUG-0267 — `modifyTpSlOrder` sent a wire body the venue's `modify_order` does not document
+# BUG-0293 — `modifyTpSlOrder` sent a wire body the venue's `modify_order` does not document
 
 ## Symptom
 
@@ -114,6 +114,6 @@ visible against the API documentation, not from inside the app.
 ## Links
 
 - [`FEAT-0070`](../features/FEAT-0070-bitunix-tpsl-placement.md) — found while building this
-- [`BUG-0266`](BUG-0266-tpsl-plans-never-typed-for-bitunix.md) — the read-side sibling of this write-side bug
+- [`BUG-0292`](BUG-0292-tpsl-plans-never-typed-for-bitunix.md) — the read-side sibling of this write-side bug
 - [`06_tp_sl.md`](../../bitunix-api/06_tp_sl.md) — the documented request shape
 - `src/services/orderGate.ts` — `checkPrices`, the displayed-vs-wire comparison this bypassed

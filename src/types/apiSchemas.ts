@@ -243,7 +243,7 @@ const PriceLike = z.union([z.string(), z.number()]);
 
 /*
 /**
- * Params for modifying an existing TP/SL order — **WIRE FORMAT** (BUG-0267).
+ * Params for modifying an existing TP/SL order — **WIRE FORMAT** (BUG-0293).
  *
  * The venue reads `tpPrice`/`slPrice` (at least one required), each with its
  * own stop type, order type/price and quantity — the same per-leg fields

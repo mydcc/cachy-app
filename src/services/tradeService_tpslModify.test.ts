@@ -16,7 +16,7 @@
  */
 
 /*
- * BUG-0267 — `modifyTpSlOrder` sent a wire body `POST /tpsl/modify_order`
+ * BUG-0293 — `modifyTpSlOrder` sent a wire body `POST /tpsl/modify_order`
  * does not document: `{orderId, symbol, planType, triggerPrice, qty}`. The
  * venue reads `tpPrice`/`slPrice` (at least one required), each with its own
  * stop type, order type/price and quantity. Every call the old shape made

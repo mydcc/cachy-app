@@ -17,7 +17,7 @@
 
 /**
  * Turning a Bitunix TP/SL row into the plans the rest of the app expects —
- * BUG-0266.
+ * BUG-0292.
  *
  * ## The mismatch this exists to close
  *
@@ -154,7 +154,7 @@ export function normalizeTpSlRow(raw: unknown): TpSlOrder[] {
              * the response carries no field saying which kind a row is — so it
              * is recorded as a named guess rather than folded silently into
              * some other flag. A consumer that would place an order on the
-             * strength of it should confirm it first; see BUG-0266.
+             * strength of it should confirm it first; see BUG-0292.
              */
             scopeGuess: leg.qty === undefined ? "position" : "partial",
         } as TpSlOrder);

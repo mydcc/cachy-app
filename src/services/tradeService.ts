@@ -81,7 +81,7 @@ export interface TpSlOrder {
     workingType?: string;
     timeInForce?: string;
     /**
-     * The id of the venue row this leg was split out of (BUG-0266).
+     * The id of the venue row this leg was split out of (BUG-0292).
      *
      * `orderId` above is a *leg* id — `${sourceOrderId}-tp` or `-sl` — because
      * one Bitunix row carries both legs and the rest of the app models one
@@ -92,7 +92,7 @@ export interface TpSlOrder {
     /**
      * Whether this plan looks position-wide or partial, **inferred** from
      * whether its leg named a quantity. The response carries no field saying
-     * which it is; see BUG-0266. Safe to show, not safe to place an order on.
+     * which it is; see BUG-0292. Safe to show, not safe to place an order on.
      */
     scopeGuess?: "position" | "partial";
     [key: string]: unknown; // Safer than any
@@ -1149,7 +1149,7 @@ class TradeService {
                                   }
                                   return;
                               }
-                              // BUG-0266: a Bitunix row carries both legs and
+                              // BUG-0292: a Bitunix row carries both legs and
                               // names neither, so it has to be split into the
                               // one-plan-per-leg shape the store groups by.
                               // Pushing the raw rows through is what made
@@ -1167,7 +1167,7 @@ class TradeService {
              // Deduplicate
              const uniqueOrders = new Map<string, TpSlOrder>();
              results.forEach((o) => {
-                 // `orderId` first, deliberately (BUG-0266): after the split it
+                 // `orderId` first, deliberately (BUG-0292): after the split it
                  // is the *leg* id, and the two legs of one row share the row's
                  // `id`. Keying on `id` would collapse a take-profit and its
                  // stop into one entry and drop whichever arrived first.
@@ -1194,7 +1194,7 @@ class TradeService {
         // symbol/orderId off the top level, so they are mirrored there. The
         // route ignores the extra keys.
         //
-        // `sourceOrderId` first (BUG-0266): `orderId` on a normalised plan is
+        // `sourceOrderId` first (BUG-0292): `orderId` on a normalised plan is
         // the leg id this app invented ("123-tp"), which the venue has never
         // heard of. The row id it was split from is the one that cancels
         // something. Falls back to `orderId` for plans that were never split —
@@ -1219,7 +1219,7 @@ class TradeService {
     }
 
     /**
-     * Modifies one leg of an existing TP/SL order (BUG-0267).
+     * Modifies one leg of an existing TP/SL order (BUG-0293).
      *
      * `POST /tpsl/modify_order` reads `tpPrice`/`slPrice` (at least one),
      * each with its own stop type, order type/price and quantity — the same
