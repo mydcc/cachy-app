@@ -949,7 +949,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0291",
     "title": "AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "antigravity",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2330,7 +2331,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0284",
     "title": "Backup restore writes unvalidated strings straight into localStorage",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3597,6 +3599,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0288"
     ],
     "file": "bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md"
+  },
+  {
+    "id": "BUG-0295",
+    "title": "Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "api",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0291"
+    ],
+    "file": "bugs/BUG-0295-ollama-default-url.md"
   },
   {
     "id": "FEAT-0022",
