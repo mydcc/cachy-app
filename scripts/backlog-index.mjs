@@ -188,6 +188,12 @@ for (const [dir, type] of Object.entries(DIRS)) {
       errors.push(`${file}: agent_eligible must be boolean (true or false)`);
     }
 
+    // Claiming: an in-progress item without a visible owner is how parallel
+    // agents collide. See "Agent Lifecycle: Check, Claim, Clean Up" in AGENTS.md.
+    if (item.status === "in-progress" && !item.assignee) {
+      errors.push(`${file}: status "in-progress" requires an "assignee" field`);
+    }
+
     items.push({ ...item, file: `${dir}/${filename}` });
   }
 }
@@ -316,6 +322,7 @@ export interface BacklogItem {
   iteration?: string;
   sprint?: string;
   agent_eligible?: boolean | string;
+  assignee?: string;
   file: string;
 }
 

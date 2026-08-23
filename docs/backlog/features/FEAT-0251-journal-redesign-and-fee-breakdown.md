@@ -2,7 +2,7 @@
 id: FEAT-0251
 title: Journal UI/UX redesign and entry/exit fee breakdown
 type: feature
-status: in-progress
+status: ready
 priority: P1
 milestone: M2
 editions: [community, pro, private]

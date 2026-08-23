@@ -2,7 +2,7 @@
 id: FEAT-0254
 title: Give TP/SL price entry a range slider and PnL/ROI/Change modes
 type: feature
-status: in-progress
+status: ready
 branch: feat/feat-0254-tpsl-range-slider
 priority: P1
 milestone: M3

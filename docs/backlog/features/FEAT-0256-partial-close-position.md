@@ -2,7 +2,7 @@
 id: FEAT-0256
 title: Close part of a position without closing all of it
 type: feature
-status: in-progress
+status: ready
 branch: feat/feat-0256-partial-close
 priority: P1
 milestone: M3

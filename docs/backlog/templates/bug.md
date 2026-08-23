@@ -10,6 +10,7 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+# assignee:            # required while status: in-progress (who is working this)
 ---
 
 # BUG-NNNN — Title

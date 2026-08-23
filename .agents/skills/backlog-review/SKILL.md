@@ -66,7 +66,11 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
    - If the PR or its backlog item has `area: execution`, `area: security`, `area: exchange`, or `priority: P0`: flag gently as "👤 Human review recommended before merge" (no red dots, no uppercase alarms).
    - These are exactly what the dispatch pipeline intentionally excludes, because mistakes cost real money.
 
-7. **Post a Comment** (only if findings exist).
+7. **Lifecycle Hygiene.**
+   - Is the item's claim consistent? An `in-progress` item needs `assignee` + branch name (missing `assignee` also fails `npm run backlog:check`).
+   - If the PR merges the work: was cleanup done — worktree removed, branch deletable, item moved to `done` (or a state note left when abandoning)? Gently flag leftovers per "Agent Lifecycle" in `AGENTS.md`.
+
+8. **Post a Comment** (only if findings exist).
    - Use `add_issue_comment` with this structure:
      - **Header:** `Code Review for <sha>` (short SHA is fine) — this marker lets step 1 skip if already reviewed.
      - **Verdict:** One-line summary (e.g., "Clean by CLAUDE.md rules, but acceptance criterion #2 not met").

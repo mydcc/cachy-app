@@ -149,6 +149,23 @@ git worktree add .worktrees/<branch> -b <branch> origin/develop
 
 This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. Gortex/jCodeMunch reindex-on-edit hooks) reacting to files it didn't touch. Remove the worktree (`git worktree remove .worktrees/<branch>`) once its branch is merged or abandoned.
 
+## Agent Lifecycle: Check, Claim, Clean Up
+
+Every task follows the same three phases. The point is proactive conflict avoidance: with several agents working this repo in parallel, collisions are prevented *before* code is written, not discovered at merge time.
+
+**1. Before starting (conflict check):**
+1. `git fetch origin develop && git worktree list` — if another worktree or branch already covers your item or its files, coordinate instead of duplicating.
+2. Read `docs/backlog/INDEX.md`: if the item is `in-progress` with an `assignee` that is not you, **stop** — the item is claimed.
+3. Check open PRs (`gh pr list`) touching the same `area:`; mention potential overlap in the PR or item instead of silently competing.
+
+**2. Claim (before the first commit):**
+- In the item's front matter set `status: in-progress`, `assignee: <agent-name>` (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …), and note the branch name in the item. `npm run backlog:check` fails while an `in-progress` item has no `assignee` — that is intentional, so stale claims surface immediately.
+
+**3. After finishing (mandatory cleanup — also when abandoning):**
+- Remove your worktree: `git worktree remove .worktrees/<branch>` (`--force` only after saving uncommitted work as a patch outside the repo).
+- Delete the branch once merged or abandoned; push first if its commits should be preserved.
+- Update the item: `status: done` (+ shipped version) when merged; otherwise leave a short state note ("what exists, what is open") so the next agent can continue instead of doing archaeology.
+- Never leave uncommitted changes behind: commit them to the branch or save a patch.
 
 ## Scope Guidance for Autonomous/Asynchronous Agents (e.g., Jules)
 
