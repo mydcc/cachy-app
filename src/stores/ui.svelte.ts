@@ -232,7 +232,33 @@ class UiManager {
   setTheme(themeName: string) {
     if (this.currentTheme === themeName) return;
     this.currentTheme = themeName;
-    this.applyThemeToDom(themeName);
+
+    if (browser) {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      if (
+        !prefersReducedMotion &&
+        "startViewTransition" in document &&
+        typeof (document as unknown as { startViewTransition?: (cb: () => void) => void }).startViewTransition === "function"
+      ) {
+        (document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(() => {
+          this.applyThemeToDom(themeName);
+        });
+      } else if (!prefersReducedMotion) {
+        const html = document.documentElement;
+        html.classList.add("theme-transitioning");
+        this.applyThemeToDom(themeName);
+        setTimeout(() => {
+          html.classList.remove("theme-transitioning");
+        }, 240);
+      } else {
+        this.applyThemeToDom(themeName);
+      }
+    } else {
+      this.applyThemeToDom(themeName);
+    }
   }
 
   applyThemeToDom(themeName: string) {
@@ -251,13 +277,13 @@ class UiManager {
       // DOM is already correct
     } else {
       html.classList.forEach((className) => {
-        if (className.startsWith("theme-")) {
+        if (className.startsWith("theme-") && className !== "theme-transitioning") {
           html.classList.remove(className);
         }
       });
 
       document.body.classList.forEach((className) => {
-        if (className.startsWith("theme-")) {
+        if (className.startsWith("theme-") && className !== "theme-transitioning") {
           document.body.classList.remove(className);
         }
       });

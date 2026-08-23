@@ -379,7 +379,7 @@
     class:resizing={isResizing}
     class:interacting={isDragging || isResizing}
     class:transparent={win.isTransparent}
-    class:glass-morphism={win.enableGlassmorphism}
+    class:glass-morphism={win.enableGlassmorphism && settingsState.enableGlassmorphism}
     class:maximized={win.isMaximized}
     class:minimized={win.isMinimized}
     class:pinned-left={win.isPinned && win.pinSide === "left"}
