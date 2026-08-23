@@ -279,7 +279,16 @@
       "trigger": "Trigger:",
       "amount": "Menge:",
       "cancelTooltip": "Abbrechen",
-      "editTooltip": "Bearbeiten"
+      "editTooltip": "Bearbeiten",
+      "calcMode": "Berechnungsmodus",
+      "byPnl": "Nach G/V",
+      "byRoi": "Nach ROI",
+      "byChange": "Nach Änderung",
+      "targetProfit": "Gewinn",
+      "targetLoss": "Verlust",
+      "triggerPrice": "Trigger-Preis",
+      "tpSliderLabel": "Take-Profit-Ziel",
+      "slSliderLabel": "Stop-Loss-Ziel"
     },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",

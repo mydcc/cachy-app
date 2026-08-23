@@ -2,7 +2,8 @@
 id: FEAT-0254
 title: Give TP/SL price entry a range slider and PnL/ROI/Change modes
 type: feature
-status: ready
+status: in-progress
+branch: feat/feat-0254-tpsl-range-slider
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -155,11 +156,23 @@ adding a second slider implementation to the chart's own drag handler.
   agree on one convention (long positive = price up) rather than each
   inventing its own — not blocking for this item alone, but worth settling
   before `FEAT-0247` reaches its drag-and-drop task.
-- **Where does rounding happen?** This item rounds to tick size on slider
-  release / field blur, matching the precision handling already in
-  `tradeService.ts`. Nobody has confirmed that is the right point rather than
-  leaving full precision until the order gate — flagging so it does not get
-  decided by accident.
+- ~~**Where does rounding happen?**~~ Settled in implementation: the formulas
+  in `src/lib/calculators/tpsl.ts` stay unrounded and `roundToTick` is applied
+  by the component when a value is committed. Rounding inside the formulas
+  breaks the price → percent → price round trip the two-way slider depends on,
+  and rounds twice when a caller switches modes. `tpsl.test.ts` asserts the
+  round trip is exact, which is what would fail if this moved.
+
+- **Gross or net of fees, for the ROI and PnL modes?** Still open, and now
+  concrete: the sliders compute gross, while `calculateIndividualTp` in
+  `core.ts` reports `returnOnCapital` net of entry and exit fees. A trader who
+  drags to "+100% ROI" and reads the calculator panel beside it sees two
+  different numbers for the same trade. Gross is exactly invertible and needs
+  no fee rate; net agrees with the rest of the app but makes the inverse
+  depend on the exit price being solved for. The derivation for the net case
+  is written out at the foot of `src/lib/calculators/tpsl.ts`; whichever is
+  chosen, the *other* one should stop being displayed as if it were the same
+  quantity.
 
 ## Links
 
