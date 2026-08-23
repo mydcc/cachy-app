@@ -71,11 +71,10 @@ body-based call sites were never migrated.
 ## Out of scope
 
 The architectural end-state question — sign client-side vs sanction the
-proxy hop — is FEAT-0285
-(`docs/backlog/features/FEAT-0285-credential-transit-boundary.md`,
-part of PR #2194; ADR required). This item only removes today's
-inconsistencies within the current architecture; whichever way FEAT-0285
-decides, these gaps should be closed first.
+proxy hop — is [FEAT-0285](../features/FEAT-0285-credential-transit-boundary.md)
+(ADR required). This item only removes today's inconsistencies within the
+current architecture; whichever way FEAT-0285 decides, these gaps should be
+closed first.
 
 ## Links
 

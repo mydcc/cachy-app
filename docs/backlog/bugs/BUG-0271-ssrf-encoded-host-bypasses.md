@@ -67,16 +67,15 @@ non-decimal encodings or resolution-time indirection.
 
 ## Out of scope
 
-AI proxy routes — covered separately in BUG-0291
-(`docs/backlog/bugs/BUG-0291-ssrf-ai-proxy-baseurl.md`, part of PR #2194 —
-relink this reference once that PR merges).
+covered separately in
+[BUG-0291](BUG-0291-ssrf-ai-proxy-baseurl.md).
 
 ## Links
 
 - [BUG-0235](BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md)
   — predecessor item (done), whose utility this hardens further
-- BUG-0291 (`BUG-0291-ssrf-ai-proxy-baseurl.md`, PR #2194) — sibling SSRF
-  finding on the AI proxy routes
+- [BUG-0291](BUG-0291-ssrf-ai-proxy-baseurl.md) — sibling SSRF finding on
+  the AI proxy routes
 - `src/lib/server/urlValidator.ts`
 - `src/routes/api/external/article-content/+server.ts`
 - `src/routes/api/rss-fetch/+server.ts`
