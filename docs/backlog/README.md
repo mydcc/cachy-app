@@ -102,6 +102,7 @@ depends_on: []
 | `target_date` | `YYYY-MM-DD` | Optional target deadline date for GitHub Projects Roadmap |
 | `iteration` | `string` | Optional sprint / iteration tag (e.g. `2026-W34` or `Sprint 1`) |
 | `agent_eligible` | `true`, `false` | Optional override for AI agent eligibility (defaults to true unless sensitive area) |
+| `assignee` | free slug (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …) | Who is currently working the item. **Required while `status: in-progress`** — `npm run backlog:check` fails otherwise |
 
 ### Status
 
@@ -111,7 +112,8 @@ depends_on: []
 - **`specced`** — the what and why are clear; acceptance criteria written.
 - **`ready`** — an agent or a developer could start now: dependencies met, open
   questions resolved, required ADR exists.
-- **`in-progress`** — someone is on it. Put the branch name in the item.
+- **`in-progress`** — someone is on it. Put the branch name in the item and set
+  `assignee`. An `in-progress` item without an `assignee` fails validation.
 - **`done`** — merged **and** its acceptance criteria are proven, not just
   implemented. Record the version it shipped in.
 - **`dropped`** — decided against. Keep the file and say why. A dropped item
@@ -156,6 +158,9 @@ reproducing test first.
 
 ## Working an item as an agent
 
+0. Conflict check first: `git fetch origin develop && git worktree list`, scan
+   `INDEX.md` for items already `in-progress`, and check open PRs in the same
+   `area:`. If someone else holds the claim, stop and coordinate.
 1. Read the item, then read everything under `Links` in it. Do not start from
    the title alone.
 2. Check `depends_on`. If a dependency is not `done`, stop and say so.
@@ -163,14 +168,20 @@ reproducing test first.
    buildable — write the ADR as its own pull request first.
 4. Check `data_class`. Anything other than `none` means ADR-0001 and ADR-0004
    apply directly to your diff.
-5. Set `status: in-progress` and note the branch, in the same commit as your
-   first change.
+5. Set `status: in-progress`, `assignee: <your-name>` and note the branch, in
+   the same commit as your first change. `npm run backlog:check` fails until
+   `assignee` is set — that is the point: a claim nobody can see is not a claim.
 6. Build it. Follow `CLAUDE.md` — Svelte 5 runes only, `decimal.js` for money,
    CSS variables for colour, tests beside the code.
 7. Verify with the `/verify` skill: `npm run check` plus the affected tests.
    Report what actually ran and what it said.
 8. Set `status: done`, record the shipped version, tick the acceptance criteria
    that are *proven*. Leave unproven ones unticked and say why.
+9. Clean up: remove your worktree (`git worktree remove .worktrees/<branch>`),
+   delete the branch once merged or abandoned (push first if its commits should
+   be preserved), and never leave uncommitted changes behind. If you abandon,
+   reset the item to its previous status with a state note instead of leaving a
+   stale claim. See "Agent Lifecycle" in `AGENTS.md`.
 
 Do not run `npm run backlog:index` and commit `INDEX.md` yourself — CI
 regenerates and commits it after your PR merges (see "Index of everything"

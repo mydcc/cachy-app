@@ -22,7 +22,7 @@
     <link rel="preload" href="/fonts/Inter/Inter-VariableFont_opsz,wght.ttf" as="font" type="font/ttf" crossorigin />
 
     <!-- Prevent indexing of subdomains (dev, metaverse) -->
-    <script>
+    <script nonce="%sveltekit.nonce%">
       if (
         window.location.hostname.includes("dev.cachy.app") ||
         window.location.hostname.includes("metaverse.cachy.app")
@@ -132,7 +132,7 @@
     %sveltekit.head%
 
     <!-- Matomo Tag Manager -->
-    <script>
+    <script nonce="%sveltekit.nonce%">
       (function () {
         if (
           window.location.hostname === "localhost" ||
@@ -153,7 +153,7 @@
     <!-- End Matomo Tag Manager -->
 
     <!-- Theme Initialization (CRITICAL: Must run BEFORE any rendering) -->
-    <script>
+    <script nonce="%sveltekit.nonce%">
       (function () {
         try {
           var theme = localStorage.getItem("cachy_theme") || "dark";
