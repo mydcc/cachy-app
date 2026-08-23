@@ -60,13 +60,13 @@ body-based call sites were never migrated.
 
 ## Acceptance criteria
 
-- [ ] No component sends `apiSecret` in a JSON body (grep/test enforced)
-- [ ] All four proxy routes reject schema-invalid requests with 400 and
+- [x] No component sends `apiSecret` in a JSON body (grep/test enforced)
+- [x] All four proxy routes reject schema-invalid requests with 400 and
       emit redacted error logs on upstream failure (test asserts no
       key-shaped material appears in captured logs)
-- [ ] Existing behavior of balance/positions/sync panels unchanged
+- [x] Existing behavior of balance/positions/sync panels unchanged
       (component tests stay green)
-- [ ] `npm run check` and the affected tests pass
+- [x] `npm run check` and the affected tests pass
 
 ## Out of scope
 

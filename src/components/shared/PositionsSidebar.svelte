@@ -266,11 +266,14 @@
     try {
       const response = await appFetch("/api/positions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": keys.key,
+          "X-Api-Secret": keys.secret,
+          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+        },
         body: JSON.stringify({
           exchange: provider,
-          apiKey: keys.key,
-          apiSecret: keys.secret,
         }),
       });
       const json = await response.json();
@@ -311,11 +314,14 @@
     try {
       const response = await appFetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": keys.key,
+          "X-Api-Secret": keys.secret,
+          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+        },
         body: JSON.stringify({
           exchange: provider,
-          apiKey: keys.key,
-          apiSecret: keys.secret,
           type: "pending",
         }),
       });
@@ -375,11 +381,14 @@
         requests.map((extra) =>
           appFetch("/api/orders", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "X-Api-Key": keys.key,
+              "X-Api-Secret": keys.secret,
+              ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+            },
             body: JSON.stringify({
               exchange: provider,
-              apiKey: keys.key,
-              apiSecret: keys.secret,
               type: "history",
               ...extra,
             }),
@@ -450,11 +459,14 @@
     try {
       const response = await appFetch("/api/account", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": keys.key,
+          "X-Api-Secret": keys.secret,
+          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+        },
         body: JSON.stringify({
           exchange: provider,
-          apiKey: keys.key,
-          apiSecret: keys.secret,
         }),
       });
       const json = await response.json();
