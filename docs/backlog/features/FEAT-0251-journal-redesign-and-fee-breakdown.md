@@ -14,13 +14,15 @@ depends_on: []
 
 # FEAT-0251 — Journal UI/UX redesign and entry/exit fee breakdown
 
-> **Status note (2026-08-23):** Core scope merged in
+> **Status note (2026-08-23):** Complete. All scope shipped in
 > [#2150](https://github.com/mydcc/cachy-app/pull/2150) (`a0d964a9`):
 > sticky columns, `TradeDetailDrawer.svelte`, granular
 > `entryFee`/`exitFee`/`feeMode` fields in `stores/types.ts`,
-> `journal_feeBreakdown.test.ts`. Still open: quick-date filter presets and
-> column presets (AC section 5) are not in the code yet, so those boxes stay
-> unchecked and the item stays `in-progress` until they land.
+> quick-date filter presets (`JournalFilters.svelte` `setQuickDate()`),
+> column presets (`JournalContent.svelte` `applyColumnPreset()`), and
+> `journal_feeBreakdown.test.ts`. AC section 5 verified against the code on
+> 2026-08-23; tag filtering shipped as a single-select dropdown instead of a
+> chip multi-select (AC updated accordingly). Item moved to `done`.
 
 ## Summary
 
@@ -75,10 +77,10 @@ Rework the trading journal window (`JournalContent`, `JournalTable`, `JournalFil
 - [x] Optional table columns for `entryFee`, `exitFee`, and `totalFees` with Maker/Taker badges (*M* / *T*).
 
 ### 5. Enhanced Filters & Column Presets
-- [ ] `JournalFilters` includes Quick-Date filter presets (*Today*, *This Week*, *This Month*, *Last 30 Days*, *YTD*, *All*).
-- [ ] Tag filter chip multi-select in addition to full-text search.
-- [ ] Column visibility popover redesigned with accessible dialog attributes (`role="dialog"`, `aria-modal="true"`) and presets (*Compact*, *Standard*, *Fees & Execution*, *All Columns*).
-- [ ] Responsive action toolbar ensures sync and management buttons wrap cleanly without overflowing or disappearing.
+- [x] `JournalFilters` includes Quick-Date filter presets (*Today*, *This Week*, *This Month*, *Last 30 Days*, *YTD*, *All*) via `setQuickDate()`, with DE/EN i18n keys (`journal.filters.quick*`).
+- [x] Tag filter alongside full-text search — shipped as an accessible single-select tag `<select>` instead of a chip multi-select.
+- [x] Column visibility popover redesigned with accessible dialog attributes (`role="dialog"`, `aria-modal="true"`) and presets (*Compact*, *Standard*, *Fees & Execution*, *All Columns*) via `applyColumnPreset()`.
+- [x] Responsive action toolbar ensures sync and management buttons wrap cleanly without overflowing or disappearing (`flex-wrap` on `.filter-actions`).
 
 ### 6. Cachy Engineering Standards & Non-Negotiables
 - [x] **Svelte 5 Runes only** (`$state`, `$derived`, `$effect` with cleanup functions).
@@ -100,12 +102,15 @@ Rework the trading journal window (`JournalContent`, `JournalTable`, `JournalFil
 ## Test Plan
 
 - [x] Unit tests for fee calculation and net PnL derivation with decimal precision (completed).
-- [x] Component tests for `JournalTable` sticky column classes and column preset switching (completed).
+- [x] Component tests for `JournalTable` sticky column classes, Maker/Taker fee badges, and the trade-detail button (`JournalTable.component.test.ts`). Column-preset switching is not component-tested; verified by code review on 2026-08-23.
 - [x] Svelte-check and TypeScript compilation verification (`npm run check`) (completed).
 
 ---
 
 ## Blockers to Completion
 
-**AC 5: Filter & Column Presets** — Quick-date presets and column preset UI are still not implemented.
-Once AC 5 is complete, this item can transition to `done`.
+None remaining. AC 5 was verified against the code on 2026-08-23: quick-date presets
+(`setQuickDate()`), column presets with dialog attributes (`applyColumnPreset()`,
+`role="dialog"`/`aria-modal="true"`), and the responsive wrapping toolbar are all present
+since #2150. The tag filter shipped as a single-select dropdown rather than a chip
+multi-select, and AC 5 was reworded accordingly. Item transitioned to `done`.
