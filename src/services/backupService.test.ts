@@ -171,4 +171,96 @@ describe("backupService", () => {
 
     await expect(backupService.createBackup("password")).resolves.not.toThrow();
   });
+
+  describe("BUG-0283: Unencrypted backup exports exclude credentials", () => {
+    const sensitiveSettings = JSON.stringify({
+      theme: "cyberpunk",
+      aiProvider: "openai",
+      showSpinButtons: "hover",
+      apiKeys: {
+        bitunix: { key: "bitunix-api-key-123", secret: "bitunix-secret-456" },
+        bitget: { key: "bitget-api-key-789", secret: "bitget-secret-abc", passphrase: "bitget-passphrase" },
+      },
+      encryptedApiKeys: { bitunix: "cipher-text-1", bitget: "cipher-text-2" },
+      encryptedSecrets: "encrypted-secrets-blob",
+      openaiApiKey: "sk-openai-secret-key",
+      geminiApiKey: "AIzaSySecretGeminiKey",
+      anthropicApiKey: "sk-ant-secret-key",
+      openrouterApiKey: "sk-or-secret-key",
+      cryptoPanicApiKey: "cp-secret-key",
+      newsApiKey: "news-api-secret-key",
+      discordBotToken: "discord-secret-token",
+      imgbbApiKey: "imgbb-secret-key",
+      imgurClientId: "imgur-client-id",
+      cloudToken: "cloud-sync-token",
+      appAccessToken: "app-access-token",
+    });
+
+    it("should strip all exchange credentials and API keys in unencrypted backups", async () => {
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, sensitiveSettings);
+
+      const payload = await backupService.getBackupPayload();
+      expect(payload).not.toBeNull();
+      expect(payload?.isEncrypted).toBe(false);
+      expect(payload?.data?.settings).toBeDefined();
+
+      const parsed = JSON.parse(payload?.data?.settings || "{}");
+
+      // Non-sensitive settings must be preserved
+      expect(parsed.theme).toBe("cyberpunk");
+      expect(parsed.aiProvider).toBe("openai");
+      expect(parsed.showSpinButtons).toBe("hover");
+
+      // Exchange credentials must be stripped
+      expect(parsed.apiKeys?.bitunix?.key).toBe("");
+      expect(parsed.apiKeys?.bitunix?.secret).toBe("");
+      expect(parsed.apiKeys?.bitget?.key).toBe("");
+      expect(parsed.apiKeys?.bitget?.secret).toBe("");
+      expect(parsed.apiKeys?.bitget?.passphrase).toBe("");
+      expect(parsed.encryptedApiKeys).toBeUndefined();
+      expect(parsed.encryptedSecrets).toBeUndefined();
+
+      // Third-party API keys and tokens must be stripped
+      expect(parsed.openaiApiKey).toBe("");
+      expect(parsed.geminiApiKey).toBe("");
+      expect(parsed.anthropicApiKey).toBe("");
+      expect(parsed.openrouterApiKey).toBe("");
+      expect(parsed.cryptoPanicApiKey).toBe("");
+      expect(parsed.newsApiKey).toBe("");
+      expect(parsed.discordBotToken).toBe("");
+      expect(parsed.imgbbApiKey).toBe("");
+      expect(parsed.imgurClientId).toBe("");
+      expect(parsed.cloudToken).toBe("");
+      expect(parsed.appAccessToken).toBe("");
+
+      // Ensure the raw settings string in data does not contain any secret substrings
+      const rawSettings = payload?.data?.settings || "";
+      expect(rawSettings).not.toContain("bitunix-secret-456");
+      expect(rawSettings).not.toContain("sk-openai-secret-key");
+      expect(rawSettings).not.toContain("AIzaSySecretGeminiKey");
+      expect(rawSettings).not.toContain("discord-secret-token");
+    });
+
+    it("should retain all credentials in password-encrypted backups and restore them accurately", async () => {
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, sensitiveSettings);
+
+      const payload = await backupService.getBackupPayload("MyMasterPassword123!");
+      expect(payload).not.toBeNull();
+      expect(payload?.isEncrypted).toBe(true);
+      expect(payload?.encryptedData).toBeDefined();
+
+      // Clear localStorage and restore from encrypted payload
+      localStorage.clear();
+      const payloadString = JSON.stringify(payload);
+      const restoreResult = await backupService.restoreFromBackup(payloadString, "MyMasterPassword123!");
+
+      expect(restoreResult.success).toBe(true);
+
+      const restoredSettings = JSON.parse(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY) || "{}");
+      expect(restoredSettings.apiKeys?.bitunix?.key).toBe("bitunix-api-key-123");
+      expect(restoredSettings.apiKeys?.bitunix?.secret).toBe("bitunix-secret-456");
+      expect(restoredSettings.openaiApiKey).toBe("sk-openai-secret-key");
+      expect(restoredSettings.discordBotToken).toBe("discord-secret-token");
+    }, 15000);
+  });
 });

@@ -56,6 +56,43 @@ function getDataFromLocalStorage(key: string): string | null {
 }
 
 /**
+ * Strips exchange credentials, API keys, and sensitive tokens from settings JSON
+ * for unencrypted backup exports (BUG-0283).
+ */
+export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null): string | null {
+  if (!settingsJson) return null;
+  try {
+    const parsed = JSON.parse(settingsJson);
+    if (typeof parsed !== "object" || parsed === null) return settingsJson;
+
+    // Blank out exchange credentials
+    parsed.apiKeys = {
+      bitunix: { key: "", secret: "" },
+      bitget: { key: "", secret: "", passphrase: "" },
+    };
+    delete parsed.encryptedApiKeys;
+    delete parsed.encryptedSecrets;
+
+    // Blank out third-party and AI API keys
+    parsed.openaiApiKey = "";
+    parsed.geminiApiKey = "";
+    parsed.anthropicApiKey = "";
+    parsed.openrouterApiKey = "";
+    parsed.cryptoPanicApiKey = "";
+    parsed.newsApiKey = "";
+    parsed.discordBotToken = "";
+    parsed.imgbbApiKey = "";
+    parsed.imgurClientId = "";
+    parsed.cloudToken = "";
+    parsed.appAccessToken = "";
+
+    return JSON.stringify(parsed);
+  } catch {
+    return settingsJson;
+  }
+}
+
+/**
  * Generates the BackupFile structure containing validated data from localStorage.
  */
 export async function getBackupPayload(password?: string): Promise<BackupFile | null> {
@@ -102,7 +139,12 @@ export async function getBackupPayload(password?: string): Promise<BackupFile | 
     backupFile.kdfHash = blob.kdfHash;
     backupFile.isEncrypted = true;
   } else {
-    backupFile.data = rawData;
+    // Unencrypted backup: sanitize sensitive credentials and API keys (BUG-0283)
+    const sanitizedData: BackupData = {
+      ...rawData,
+      settings: sanitizeSettingsForUnencryptedExport(rawData.settings),
+    };
+    backupFile.data = sanitizedData;
     backupFile.isEncrypted = false;
   }
 
