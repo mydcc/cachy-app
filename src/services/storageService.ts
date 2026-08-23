@@ -210,16 +210,19 @@ class StorageService {
     /**
      * Closes the open database connection (if any) so an
      * indexedDB.deleteDatabase() is not blocked — used by the factory reset
-     * (BUG-0288). The service reopens lazily on next use.
+     * (BUG-0288). Awaitable: callers can delete right after; reopens lazily
+     * on next use.
      */
-    close() {
-        if (!this.dbPromise) return;
-        this.dbPromise
-            .then((db) => db.close())
-            .catch(() => {
-                // already closed/failed — nothing to release
-            });
+    async close(): Promise<void> {
+        const opening = this.dbPromise;
         this.dbPromise = null;
+        if (!opening) return;
+        try {
+            const db = await opening;
+            db.close();
+        } catch {
+            // already closed/failed — nothing to release
+        }
     }
 }
 

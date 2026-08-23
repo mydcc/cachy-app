@@ -54,10 +54,11 @@ async function clearIndexedDb(): Promise<void> {
     if (typeof indexedDB === "undefined") return;
 
     // Open connections block deleteDatabase until they close, so release the
-    // ones the app keeps alive before asking for deletion.
+    // ones this tab keeps alive before asking for deletion. Awaitable so the
+    // deletion cannot race an in-flight close.
     try {
         dbService.close();
-        storageService.close();
+        await storageService.close();
     } catch {
         // Closing is an optimization; deletion below stays best effort.
     }

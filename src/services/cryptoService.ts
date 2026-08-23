@@ -402,8 +402,11 @@ class CryptoServiceImpl {
           getReq.onsuccess = () => resolve(getReq.result || null);
           getReq.onerror = () => reject(getReq.error);
           // Release the connection so a factory-reset deleteDatabase()
-          // is not blocked by it (BUG-0288).
+          // is not blocked by it (BUG-0288). Aborted/errored transactions
+          // never fire oncomplete, so cover those paths too.
           tx.oncomplete = () => db.close();
+          tx.onabort = () => db.close();
+          tx.onerror = () => db.close();
         } catch {
           db.close();
           resolve(null);
@@ -426,8 +429,11 @@ class CryptoServiceImpl {
         putReq.onsuccess = () => resolve();
         putReq.onerror = () => reject(putReq.error);
         // Release the connection so a factory-reset deleteDatabase()
-        // is not blocked by it (BUG-0288).
+        // is not blocked by it (BUG-0288). Aborted/errored transactions
+        // never fire oncomplete, so cover those paths too.
         tx.oncomplete = () => db.close();
+        tx.onabort = () => db.close();
+        tx.onerror = () => db.close();
       };
       request.onerror = () => reject(request.error);
     });
