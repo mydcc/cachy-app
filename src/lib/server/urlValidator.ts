@@ -22,7 +22,7 @@ import { Agent } from "undici";
  * Checks whether an IPv4 address (as 4 numeric octets) falls into private,
  * loopback, link-local, carrier-grade NAT, multicast, or reserved ranges.
  */
-function isPrivateIpv4Octets(a: number, b: number, c: number, d: number): boolean {
+function isPrivateIpv4Octets(a: number, b: number): boolean {
   // 0.0.0.0/8 (Current network)
   if (a === 0) return true;
   // 10.0.0.0/8 (Private Class A)
@@ -114,8 +114,8 @@ export function isPrivateOrReservedHost(hostname: string): boolean {
     const octets = match.slice(1).map(Number);
     if (octets.some((o) => o > 255)) return true;
 
-    const [a, b, c, d] = octets;
-    if (isPrivateIpv4Octets(a, b, c, d)) return true;
+    const [a, b] = octets;
+    if (isPrivateIpv4Octets(a, b)) return true;
   }
 
   // Single-label hostnames without dots or colons (e.g. intranet, router, metadata)
