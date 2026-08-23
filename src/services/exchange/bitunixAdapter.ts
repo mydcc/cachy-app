@@ -97,6 +97,8 @@ const trading: TradingPort = {
     fetchTpSlOrders: (view = "pending") => tradeService.fetchTpSlOrders(view),
     cancelTpSlOrder: (order: TpSlOrder) => tradeService.cancelTpSlOrder(order),
     modifyTpSlOrder: (params) => tradeService.modifyTpSlOrder(params),
+    placePositionTpSl: (params) => tradeService.placePositionTpSl(params),
+    placeTpSlOrder: (params) => tradeService.placeTpSlOrder(params),
 };
 
 export const bitunixAdapter: ExchangeAdapter = {

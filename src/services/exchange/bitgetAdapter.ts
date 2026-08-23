@@ -157,6 +157,10 @@ const trading: TradingPort = {
         SUPPORTS.tpSl ? tradeService.cancelTpSlOrder(order) : refuse("tpSl", "cancelTpSlOrder"),
     modifyTpSlOrder: async (params) =>
         SUPPORTS.tpSl ? tradeService.modifyTpSlOrder(params) : refuse("tpSl", "modifyTpSlOrder"),
+    placePositionTpSl: async (params) =>
+        SUPPORTS.tpSl ? tradeService.placePositionTpSl(params) : refuse("tpSl", "placePositionTpSl"),
+    placeTpSlOrder: async (params) =>
+        SUPPORTS.tpSl ? tradeService.placeTpSlOrder(params) : refuse("tpSl", "placeTpSlOrder"),
 };
 
 export const bitgetAdapter: ExchangeAdapter = {

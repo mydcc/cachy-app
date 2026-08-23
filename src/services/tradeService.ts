@@ -48,6 +48,7 @@ import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
 import { paperExchange } from "./paperExchange";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
+import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import {
     orderGate,
@@ -79,6 +80,21 @@ export interface TpSlOrder {
     reduceOnly?: boolean;
     workingType?: string;
     timeInForce?: string;
+    /**
+     * The id of the venue row this leg was split out of (BUG-0292).
+     *
+     * `orderId` above is a *leg* id — `${sourceOrderId}-tp` or `-sl` — because
+     * one Bitunix row carries both legs and the rest of the app models one
+     * plan per leg. Anything addressing the venue (cancel, modify) must use
+     * this, not `orderId`, or it names a plan the exchange has never heard of.
+     */
+    sourceOrderId?: string;
+    /**
+     * Whether this plan looks position-wide or partial, **inferred** from
+     * whether its leg named a quantity. The response carries no field saying
+     * which it is; see BUG-0292. Safe to show, not safe to place an order on.
+     */
+    scopeGuess?: "position" | "partial";
     [key: string]: unknown; // Safer than any
 }
 
@@ -1133,8 +1149,14 @@ class TradeService {
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
-                              results.push(...res);
+                              // BUG-0292: a Bitunix row carries both legs and
+                              // names neither, so it has to be split into the
+                              // one-plan-per-leg shape the store groups by.
+                              // Pushing the raw rows through is what made
+                              // `plansFor()` answer "no stop" for every
+                              // position that had one.
+                              const res = (Array.isArray(data) ? data : data.rows || []) as unknown[];
+                              results.push(...normalizeTpSlRows(res));
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                           }
@@ -1145,8 +1167,12 @@ class TradeService {
              // Deduplicate
              const uniqueOrders = new Map<string, TpSlOrder>();
              results.forEach((o) => {
-                 const id = o.id || o.orderId || o.planId;
-                 if (id) uniqueOrders.set(id, o);
+                 // `orderId` first, deliberately (BUG-0292): after the split it
+                 // is the *leg* id, and the two legs of one row share the row's
+                 // `id`. Keying on `id` would collapse a take-profit and its
+                 // stop into one entry and drop whichever arrived first.
+                 const id = o.orderId || o.id || o.planId;
+                 if (id) uniqueOrders.set(String(id), o);
              });
              const final = Array.from(uniqueOrders.values());
              // Sort by time (newest first)
@@ -1167,7 +1193,13 @@ class TradeService {
         // `/api/tpsl` nests the order fields under `params`; the gate reads
         // symbol/orderId off the top level, so they are mirrored there. The
         // route ignores the extra keys.
-        const orderId = order.orderId || order.id;
+        //
+        // `sourceOrderId` first (BUG-0292): `orderId` on a normalised plan is
+        // the leg id this app invented ("123-tp"), which the venue has never
+        // heard of. The row id it was split from is the one that cancels
+        // something. Falls back to `orderId` for plans that were never split —
+        // the generic non-Bitunix path produces those.
+        const orderId = order.sourceOrderId || order.orderId || order.id;
         return this.gatedRequest({
             kind: "cancel",
             endpoint: "/api/tpsl",
@@ -1186,13 +1218,37 @@ class TradeService {
         });
     }
 
+    /**
+     * Modifies one leg of an existing TP/SL order (BUG-0293).
+     *
+     * `POST /tpsl/modify_order` reads `tpPrice`/`slPrice` (at least one),
+     * each with its own stop type, order type/price and quantity — the same
+     * per-leg shape `placeTpSlOrder` sends, not a `planType`+`triggerPrice`
+     * switch. It has no `symbol` parameter either; the order is identified by
+     * `orderId` alone. This used to build a wire body the endpoint does not
+     * document — `{orderId, symbol, planType, triggerPrice, qty}` — which
+     * every call since it shipped sent, and which the venue's own "at least
+     * one of tpPrice/slPrice" rule would reject.
+     */
     public async modifyTpSlOrder(params: {
         orderId: string,
         symbol: string,
         planType: "PROFIT" | "LOSS",
         triggerPrice: string,
-        qty?: string
+        qty?: string,
+        stopType?: "LAST_PRICE" | "MARK_PRICE",
     }) {
+        const wire: Record<string, unknown> = { orderId: params.orderId };
+        if (params.planType === "PROFIT") {
+            wire.tpPrice = params.triggerPrice;
+            wire.tpStopType = params.stopType ?? "MARK_PRICE";
+            if (params.qty !== undefined) wire.tpQty = params.qty;
+        } else {
+            wire.slPrice = params.triggerPrice;
+            wire.slStopType = params.stopType ?? "MARK_PRICE";
+            if (params.qty !== undefined) wire.slQty = params.qty;
+        }
+
         return this.gatedRequest({
             kind: "modify",
             endpoint: "/api/tpsl",
@@ -1201,13 +1257,7 @@ class TradeService {
                 action: "modify",
                 symbol: params.symbol,
                 orderId: params.orderId,
-                params: {
-                    orderId: params.orderId,
-                    symbol: params.symbol,
-                    planType: params.planType,
-                    triggerPrice: params.triggerPrice,
-                    qty: params.qty
-                },
+                params: wire,
             },
             displayed: {
                 symbol: params.symbol,
@@ -1219,8 +1269,146 @@ class TradeService {
                 stopLossPrice: params.planType === "LOSS" ? new Decimal(params.triggerPrice) : undefined,
             },
             priceFields: {
-                stopLoss: "params.triggerPrice",
-                takeProfit: "params.triggerPrice",
+                stopLoss: "params.slPrice",
+                takeProfit: "params.tpPrice",
+            },
+        });
+    }
+
+    /**
+     * Creates the one position-wide TP/SL plan a position may carry
+     * (FEAT-0070).
+     *
+     * Distinct from `placeTpSlOrder` below in what it protects: this plan
+     * tracks the position's size, so a position that grows or shrinks stays
+     * covered, and it closes at market. Bitunix allows exactly one per
+     * position — a second create is refused there, which is why the caller
+     * offers edit instead when one already exists.
+     *
+     * `kind: "modify"` rather than `"open"`: setting a stop reduces exposure
+     * and must keep working while the kill switch is engaged, which is what
+     * its own refusal message promises ("adjusting stops still work").
+     */
+    public async placePositionTpSl(params: {
+        symbol: string,
+        positionId: string,
+        takeProfit?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
+        stopLoss?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
+    }) {
+        if (!params.takeProfit && !params.stopLoss) {
+            throw new Error("apiErrors.tpslNoLeg");
+        }
+
+        const wire: Record<string, unknown> = {
+            symbol: params.symbol,
+            positionId: params.positionId,
+        };
+        if (params.takeProfit) {
+            wire.tpPrice = formatApiNum(params.takeProfit.price);
+            wire.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
+        }
+        if (params.stopLoss) {
+            wire.slPrice = formatApiNum(params.stopLoss.price);
+            wire.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
+        }
+
+        return this.gatedRequest({
+            kind: "modify",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "place-position",
+                symbol: params.symbol,
+                params: wire,
+            },
+            displayed: {
+                symbol: params.symbol,
+                positionId: params.positionId,
+                takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
+                stopLossPrice: params.stopLoss?.price,
+            },
+            priceFields: {
+                takeProfit: "params.tpPrice",
+                stopLoss: "params.slPrice",
+            },
+        });
+    }
+
+    /**
+     * Creates a partial TP/SL plan with an explicit quantity (FEAT-0070).
+     *
+     * Unlike the position-wide plan, several of these can coexist, and each
+     * covers a fixed quantity rather than tracking the position. That is what
+     * a scale-out ladder is made of.
+     *
+     * The quantity is the caller's, unrounded here: `closePosition` rounds
+     * because it derives a quantity from a percentage, while this one is
+     * handed a quantity the caller already decided. Rounding it again would
+     * move a number the trader typed.
+     */
+    public async placeTpSlOrder(params: {
+        symbol: string,
+        positionId: string,
+        takeProfit?: {
+            price: Decimal,
+            qty: Decimal,
+            stopType?: "LAST_PRICE" | "MARK_PRICE",
+            orderType?: "LIMIT" | "MARKET",
+            orderPrice?: Decimal,
+        },
+        stopLoss?: {
+            price: Decimal,
+            qty: Decimal,
+            stopType?: "LAST_PRICE" | "MARK_PRICE",
+            orderType?: "LIMIT" | "MARKET",
+            orderPrice?: Decimal,
+        },
+    }) {
+        if (!params.takeProfit && !params.stopLoss) {
+            throw new Error("apiErrors.tpslNoLeg");
+        }
+
+        const wire: Record<string, unknown> = {
+            symbol: params.symbol,
+            positionId: params.positionId,
+        };
+        if (params.takeProfit) {
+            wire.tpPrice = formatApiNum(params.takeProfit.price);
+            wire.tpQty = formatApiNum(params.takeProfit.qty);
+            wire.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
+            wire.tpOrderType = params.takeProfit.orderType ?? "MARKET";
+            if (params.takeProfit.orderPrice !== undefined) {
+                wire.tpOrderPrice = formatApiNum(params.takeProfit.orderPrice);
+            }
+        }
+        if (params.stopLoss) {
+            wire.slPrice = formatApiNum(params.stopLoss.price);
+            wire.slQty = formatApiNum(params.stopLoss.qty);
+            wire.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
+            wire.slOrderType = params.stopLoss.orderType ?? "MARKET";
+            if (params.stopLoss.orderPrice !== undefined) {
+                wire.slOrderPrice = formatApiNum(params.stopLoss.orderPrice);
+            }
+        }
+
+        return this.gatedRequest({
+            kind: "modify",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "place",
+                symbol: params.symbol,
+                params: wire,
+            },
+            displayed: {
+                symbol: params.symbol,
+                positionId: params.positionId,
+                takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
+                stopLossPrice: params.stopLoss?.price,
+            },
+            priceFields: {
+                takeProfit: "params.tpPrice",
+                stopLoss: "params.slPrice",
             },
         });
     }
