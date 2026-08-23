@@ -9,7 +9,7 @@
 
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Decimal } from "decimal.js";
 
 // Mock appAuth to observe whether any proxy requests travel
