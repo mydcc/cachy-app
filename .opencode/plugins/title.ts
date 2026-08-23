@@ -56,14 +56,18 @@ export const TitlePlugin: Plugin = async ({ directory, worktree }) => {
           setTitle("initializing")
           break
         case "session.status": {
-          const status = (event.properties as any)?.status?.type
+          const props = event.properties as Record<string, unknown> | undefined
+          const statusObj = props?.status as Record<string, unknown> | undefined
+          const status = statusObj?.type
           if (status === "busy") setTitle("working")
           else if (status === "retry") setTitle("thinking")
           else if (status === "idle") setTitle("idle")
           break
         }
         case "message.updated": {
-          const role = (event.properties as any)?.info?.role
+          const props = event.properties as Record<string, unknown> | undefined
+          const infoObj = props?.info as Record<string, unknown> | undefined
+          const role = infoObj?.role
           if (role === "assistant") setTitle("thinking")
           break
         }
