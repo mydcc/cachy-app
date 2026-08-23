@@ -1224,6 +1224,144 @@ class TradeService {
             },
         });
     }
+
+    /**
+     * Creates the one position-wide TP/SL plan a position may carry
+     * (FEAT-0070).
+     *
+     * Distinct from `placeTpSlOrder` below in what it protects: this plan
+     * tracks the position's size, so a position that grows or shrinks stays
+     * covered, and it closes at market. Bitunix allows exactly one per
+     * position — a second create is refused there, which is why the caller
+     * offers edit instead when one already exists.
+     *
+     * `kind: "modify"` rather than `"open"`: setting a stop reduces exposure
+     * and must keep working while the kill switch is engaged, which is what
+     * its own refusal message promises ("adjusting stops still work").
+     */
+    public async placePositionTpSl(params: {
+        symbol: string,
+        positionId: string,
+        takeProfit?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
+        stopLoss?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
+    }) {
+        if (!params.takeProfit && !params.stopLoss) {
+            throw new Error("apiErrors.tpslNoLeg");
+        }
+
+        const wire: Record<string, unknown> = {
+            symbol: params.symbol,
+            positionId: params.positionId,
+        };
+        if (params.takeProfit) {
+            wire.tpPrice = formatApiNum(params.takeProfit.price);
+            wire.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
+        }
+        if (params.stopLoss) {
+            wire.slPrice = formatApiNum(params.stopLoss.price);
+            wire.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
+        }
+
+        return this.gatedRequest({
+            kind: "modify",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "place-position",
+                symbol: params.symbol,
+                params: wire,
+            },
+            displayed: {
+                symbol: params.symbol,
+                positionId: params.positionId,
+                takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
+                stopLossPrice: params.stopLoss?.price,
+            },
+            priceFields: {
+                takeProfit: "params.tpPrice",
+                stopLoss: "params.slPrice",
+            },
+        });
+    }
+
+    /**
+     * Creates a partial TP/SL plan with an explicit quantity (FEAT-0070).
+     *
+     * Unlike the position-wide plan, several of these can coexist, and each
+     * covers a fixed quantity rather than tracking the position. That is what
+     * a scale-out ladder is made of.
+     *
+     * The quantity is the caller's, unrounded here: `closePosition` rounds
+     * because it derives a quantity from a percentage, while this one is
+     * handed a quantity the caller already decided. Rounding it again would
+     * move a number the trader typed.
+     */
+    public async placeTpSlOrder(params: {
+        symbol: string,
+        positionId: string,
+        takeProfit?: {
+            price: Decimal,
+            qty: Decimal,
+            stopType?: "LAST_PRICE" | "MARK_PRICE",
+            orderType?: "LIMIT" | "MARKET",
+            orderPrice?: Decimal,
+        },
+        stopLoss?: {
+            price: Decimal,
+            qty: Decimal,
+            stopType?: "LAST_PRICE" | "MARK_PRICE",
+            orderType?: "LIMIT" | "MARKET",
+            orderPrice?: Decimal,
+        },
+    }) {
+        if (!params.takeProfit && !params.stopLoss) {
+            throw new Error("apiErrors.tpslNoLeg");
+        }
+
+        const wire: Record<string, unknown> = {
+            symbol: params.symbol,
+            positionId: params.positionId,
+        };
+        if (params.takeProfit) {
+            wire.tpPrice = formatApiNum(params.takeProfit.price);
+            wire.tpQty = formatApiNum(params.takeProfit.qty);
+            wire.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
+            wire.tpOrderType = params.takeProfit.orderType ?? "MARKET";
+            if (params.takeProfit.orderPrice !== undefined) {
+                wire.tpOrderPrice = formatApiNum(params.takeProfit.orderPrice);
+            }
+        }
+        if (params.stopLoss) {
+            wire.slPrice = formatApiNum(params.stopLoss.price);
+            wire.slQty = formatApiNum(params.stopLoss.qty);
+            wire.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
+            wire.slOrderType = params.stopLoss.orderType ?? "MARKET";
+            if (params.stopLoss.orderPrice !== undefined) {
+                wire.slOrderPrice = formatApiNum(params.stopLoss.orderPrice);
+            }
+        }
+
+        return this.gatedRequest({
+            kind: "modify",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "place",
+                symbol: params.symbol,
+                params: wire,
+            },
+            displayed: {
+                symbol: params.symbol,
+                positionId: params.positionId,
+                takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
+                stopLossPrice: params.stopLoss?.price,
+            },
+            priceFields: {
+                takeProfit: "params.tpPrice",
+                stopLoss: "params.slPrice",
+            },
+        });
+    }
 }
 
 export const tradeService = new TradeService();

@@ -1732,6 +1732,7 @@ export type TranslationKey =
   | "analyst.condition.oversold"
   | "analyst.condition.trending"
   | "apiErrors.symbolNotFound"
+  | "apiErrors.tpslNoLeg"
   | "apiErrors.invalidResponse"
   | "apiErrors.klineError"
   | "apiErrors.generic"

@@ -247,6 +247,60 @@ const ModifyTpSlParams = z.object({
     qty: z.union([z.string(), z.number()]).optional(),
 });
 
+const StopType = z.enum(["LAST_PRICE", "MARK_PRICE"]);
+const PriceLike = z.union([z.string(), z.number()]);
+
+/*
+ * Params for creating TP/SL where none exists (FEAT-0070).
+ *
+ * Both endpoints require at least one of tpPrice/slPrice, and the partial one
+ * additionally at least one of tpQty/slQty. Those rules are enforced here
+ * rather than left to the venue: Bitunix answers a violation with a numeric
+ * code and a terse message, which surfaces to the trader as a failed order
+ * with no indication of which field was missing.
+ */
+const PositionTpSlParams = z.object({
+    symbol: z.string(),
+    positionId: z.string(),
+    tpPrice: PriceLike.optional(),
+    tpStopType: StopType.optional(),
+    slPrice: PriceLike.optional(),
+    slStopType: StopType.optional(),
+}).refine(
+    (p) => p.tpPrice !== undefined || p.slPrice !== undefined,
+    { message: "At least one of tpPrice or slPrice is required" },
+);
+
+const PlaceTpSlParams = z.object({
+    symbol: z.string(),
+    positionId: z.string(),
+    tpPrice: PriceLike.optional(),
+    tpStopType: StopType.optional(),
+    tpOrderType: z.enum(["LIMIT", "MARKET"]).optional(),
+    tpOrderPrice: PriceLike.optional(),
+    tpQty: PriceLike.optional(),
+    slPrice: PriceLike.optional(),
+    slStopType: StopType.optional(),
+    slOrderType: z.enum(["LIMIT", "MARKET"]).optional(),
+    slOrderPrice: PriceLike.optional(),
+    slQty: PriceLike.optional(),
+}).refine(
+    (p) => p.tpPrice !== undefined || p.slPrice !== undefined,
+    { message: "At least one of tpPrice or slPrice is required" },
+).refine(
+    (p) => p.tpQty !== undefined || p.slQty !== undefined,
+    { message: "At least one of tpQty or slQty is required" },
+).refine(
+    // A leg with a price but no quantity is the mistake this catches: the
+    // venue would place it against whatever default it picks, which is not
+    // what the trader dialled in.
+    (p) => p.tpPrice === undefined || p.tpQty !== undefined,
+    { message: "tpQty is required when tpPrice is given" },
+).refine(
+    (p) => p.slPrice === undefined || p.slQty !== undefined,
+    { message: "slQty is required when slPrice is given" },
+);
+
 const PendingRequest = BaseRequest.extend({
     action: z.literal("pending"),
     params: BaseTpSlParams.optional()
@@ -267,11 +321,23 @@ const ModifyRequest = BaseRequest.extend({
     params: ModifyTpSlParams
 });
 
+const PlacePositionRequest = BaseRequest.extend({
+    action: z.literal("place-position"),
+    params: PositionTpSlParams
+});
+
+const PlaceRequest = BaseRequest.extend({
+    action: z.literal("place"),
+    params: PlaceTpSlParams
+});
+
 export const TpSlRequestSchema = z.discriminatedUnion("action", [
     PendingRequest,
     HistoryRequest,
     CancelRequest,
-    ModifyRequest
+    ModifyRequest,
+    PlacePositionRequest,
+    PlaceRequest
 ]);
 
 // Type inference

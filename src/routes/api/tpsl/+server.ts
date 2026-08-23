@@ -102,6 +102,26 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
           params,
         );
         break;
+      // FEAT-0070 — creating TP/SL where none exists. Two endpoints because
+      // Bitunix models two different things: one position-wide plan that
+      // tracks the position's size and closes at market (max one per
+      // position), and any number of partial plans with an explicit quantity.
+      case "place-position":
+        result = await executeBitunixAction(
+          apiKey,
+          apiSecret,
+          "/api/v1/futures/tpsl/position/place_order",
+          params,
+        );
+        break;
+      case "place":
+        result = await executeBitunixAction(
+          apiKey,
+          apiSecret,
+          "/api/v1/futures/tpsl/place_order",
+          params,
+        );
+        break;
       default:
         return json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
