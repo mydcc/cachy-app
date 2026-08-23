@@ -267,22 +267,28 @@
 
 <!-- Global Layout Wrapper -->
 <div
-  class="flex flex-col xl:flex-row items-center xl:items-start justify-center gap-0 md:gap-6 px-0 py-4 md:px-4 md:py-8 min-h-screen w-full box-border"
+  class="flex flex-col items-center xl:items-start justify-center gap-0 md:gap-6 px-0 py-4 md:px-4 md:py-8 min-h-screen w-full box-border"
+  class:xl:grid={settingsState.showSidebars}
+  class:xl:grid-cols-[1fr_auto_1fr]={settingsState.showSidebars}
+  class:xl:flex={!settingsState.showSidebars}
 >
   {#if settingsState.showSidebars}
     <!-- Left Sidebar: Positions Table & Sentiment (Sticky) -->
-    <div class="hidden xl:flex flex-col gap-3 w-96 shrink-0 sticky top-8 z-40">
-      {#if settingsState.showMarketSentiment}
-        <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
-      {/if}
-      {#if settingsState.effectiveShowSidebarActivity}
-        <PositionsSidebar />
-      {/if}
+    <div class="hidden xl:flex justify-self-end self-stretch">
+      <div class="sticky top-8 flex flex-col gap-3 w-96 shrink-0 z-40 h-fit">
+        {#if settingsState.showMarketSentiment}
+          <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
+        {/if}
+        {#if settingsState.effectiveShowSidebarActivity}
+          <PositionsSidebar />
+        {/if}
+      </div>
     </div>
   {/if}
 
   <main
     class="w-full max-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-4 sm:p-8 fade-in relative shrink-0 overflow-hidden"
+    class:xl:col-start-2={settingsState.showSidebars}
   >
     <ConnectionStatus />
     <div
@@ -645,35 +651,24 @@
           placeholder={$_("dashboard.tradeNotesPlaceholder")}
           bind:value={tradeState.tradeNotes}
         ></textarea>
-        <div class="flex justify-between items-center py-2 px-1">
-          <div class="flex items-center gap-3">
+        <div class="grid grid-cols-[1fr_auto_1fr] items-center py-2 px-1 gap-2">
+          <div class="flex items-center justify-start gap-2">
             <LanguageSwitcher />
-            <button
-              id="show-dashboard-readme-btn"
-              class="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg btn-secondary-action transition-all hover:scale-105"
-              title={$_("dashboard.showInstructionsTitle")}
-              aria-label={$_("dashboard.showInstructionsAriaLabel")}
-              onclick={() => uiState.toggleGuideModal(true)}
-              use:trackClick={{
-                category: "Navigation",
-                action: "Click",
-                name: "ShowInstructions",
-              }}>{@html icons.book}</button
-            >
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center justify-center gap-2">
             <QuizButton />
             <FloatingIframeButton />
             <button
-              class="text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-1.5 px-3 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
+              class="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg btn-secondary-action transition-all duration-300 hover:scale-105 text-base"
               title={$_("dashboard.triggerPulse")}
+              aria-label={$_("dashboard.triggerPulse")}
               onclick={(e) =>
                 effectsState.triggerProjectile(e.currentTarget as HTMLElement)}
             >
               🚀
             </button>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center justify-end gap-2">
             <PowerToggle />
           </div>
         </div>
@@ -719,63 +714,62 @@
 
   {#if settingsState.showSidebars}
     <!-- Right Sidebar: Market Data & Favorites (Sticky) -->
-    <div
-      class="hidden xl:flex flex-col gap-3 shrink-0 sticky top-8 transition-all duration-300 z-40 {sidebarWidthClass}"
-    >
-      <!-- Main current symbol -->
-      {#if settingsState.showMarketOverview}
-        <MarketOverview
-          onToggleTechnicals={toggleTechnicals}
-          {isTechnicalsVisible}
-        />
-      {:else if isTechnicalsDocked}
-        <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
-      {/if}
+    <div class="hidden xl:flex justify-self-start self-stretch">
+      <div
+        class="sticky top-8 flex flex-col gap-3 shrink-0 transition-all duration-300 z-40 h-fit {sidebarWidthClass}"
+      >
+        <!-- Main current symbol -->
+        {#if settingsState.showMarketOverview}
+          <MarketOverview
+            onToggleTechnicals={toggleTechnicals}
+            {isTechnicalsVisible}
+          />
+        {:else if isTechnicalsDocked}
+          <TechnicalsPanel  isVisible={isTechnicalsVisible} fluidWidth={true} />
+        {/if}
 
-      <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
-      {#if settingsState.showTechnicals && !isTechnicalsDocked}
-        <div
-          class="absolute top-0 left-full ml-8 transition-all duration-300 transform origin-left z-40"
-          class:scale-0={!isTechnicalsVisible}
-          class:scale-100={isTechnicalsVisible}
-          class:opacity-0={!isTechnicalsVisible}
-          class:opacity-100={isTechnicalsVisible}
-        >
-          <TechnicalsPanel  isVisible={isTechnicalsVisible} />
-        </div>
-      {/if}
+        <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
+        {#if settingsState.showTechnicals && !isTechnicalsDocked}
+          <div
+            class="absolute top-0 left-full ml-8 transition-all duration-300 transform origin-left z-40"
+            class:scale-0={!isTechnicalsVisible}
+            class:scale-100={isTechnicalsVisible}
+            class:opacity-0={!isTechnicalsVisible}
+            class:opacity-100={isTechnicalsVisible}
+          >
+            <TechnicalsPanel  isVisible={isTechnicalsVisible} />
+          </div>
+        {/if}
 
-      <!-- Favorites list -->
-      {#if settingsState.showMarketOverview && displayedFavorites.length > 0}
-        <div
-          class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
-        >
-          {$_("dashboard.favorites") || "Favorites"}
-        </div>
-        {#each displayedFavorites as fav (fav)}
-          <MarketOverview customSymbol={fav} isFavoriteTile={true} />
-        {/each}
-      {/if}
+        <!-- Favorites list -->
+        {#if settingsState.showMarketOverview && displayedFavorites.length > 0}
+          <div
+            class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
+          >
+            {$_("dashboard.favorites") || "Favorites"}
+          </div>
+          {#each displayedFavorites as fav (fav)}
+            <MarketOverview customSymbol={fav} isFavoriteTile={true} />
+          {/each}
+        {/if}
+      </div>
     </div>
   {/if}
 </div>
 
 <footer
-  class="relative z-10 w-full max-w-4xl mx-auto text-center py-4 px-4 text-sm text-[var(--text-secondary)] flex flex-col md:flex-row justify-center items-center gap-4"
+  class="relative z-10 w-full text-center py-6 px-4 text-xs md:text-sm text-[var(--text-secondary)] flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
 >
-  <div class="flex items-center justify-between w-full md:w-auto gap-4">
-    <span>{$_("app.version")} {APP_VERSION}</span>
-  </div>
-
-  <div
-    class="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-xs md:text-sm"
-  >
+  <span class="opacity-80">{$_("app.version")} {APP_VERSION}</span>
+  <span class="opacity-30 select-none hidden sm:inline" aria-hidden="true">•</span>
+  <div class="flex items-center gap-3">
     <a
       href="https://github.com/mydcc/cachy-app"
       target="_blank"
       rel="noopener noreferrer"
       class="text-link flex items-center justify-center hover:text-[var(--accent-color)] transition-all duration-300 hover:scale-110"
       title="GitHub"
+      aria-label="GitHub"
       use:trackClick={{
         category: "Navigation",
         action: "Click",
@@ -790,6 +784,7 @@
       rel="noopener noreferrer"
       class="text-link flex items-center justify-center hover:text-[var(--accent-color)] transition-all duration-300 hover:scale-110"
       title="Deepwiki"
+      aria-label="Deepwiki"
       use:trackClick={{
         category: "Navigation",
         action: "Click",
@@ -798,8 +793,11 @@
     >
       {@html icons.deepwiki}
     </a>
+  </div>
+  <span class="opacity-30 select-none hidden sm:inline" aria-hidden="true">•</span>
+  <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
     <button
-      class="text-link"
+      class="text-link hover:text-[var(--accent-color)] transition-colors cursor-pointer"
       onclick={() => uiState.toggleGuideModal(true)}
       use:trackClick={{
         category: "Navigation",
@@ -808,7 +806,7 @@
       }}>{$_("app.guideButton")}</button
     >
     <button
-      class="text-link"
+      class="text-link hover:text-[var(--accent-color)] transition-colors cursor-pointer"
       onclick={() => uiState.toggleChangelogModal(true)}
       use:trackClick={{
         category: "Navigation",
@@ -817,7 +815,7 @@
       }}>{$_("app.changelogTitle")}</button
     >
     <button
-      class="text-link"
+      class="text-link hover:text-[var(--accent-color)] transition-colors cursor-pointer"
       onclick={() => uiState.togglePrivacyModal(true)}
       use:trackClick={{
         category: "Navigation",
@@ -826,7 +824,7 @@
       }}>{$_("app.privacyLegal")}</button
     >
     <button
-      class="text-link"
+      class="text-link hover:text-[var(--accent-color)] transition-colors cursor-pointer"
       onclick={() => uiState.toggleWhitepaperModal(true)}
       use:trackClick={{
         category: "Navigation",
