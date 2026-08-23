@@ -2,7 +2,9 @@
 id: BUG-0272
 title: Proxy routes drift on credential transport schema validation and error redaction
 type: bug
-status: specced
+status: in-progress
+assignee: antigravity
+branch: fix-bug-0272
 priority: P2
 milestone: none
 editions: [community, pro, private]
