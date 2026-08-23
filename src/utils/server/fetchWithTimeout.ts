@@ -42,16 +42,21 @@ export interface UpstreamApiError extends Error {
  * proper typed error instead of hanging forever. On timeout the returned
  * rejection carries `.status = 504`; routes propagate that into their JSON
  * error response via `upstreamErrorStatus`.
+ *
+ * `fetchImpl` lets SvelteKit routes pass their per-event `fetch` through so
+ * request-scoped behaviour (dedup, caching, tracking) is preserved; it
+ * defaults to the global fetch used by non-event callers and tests.
  */
 export async function fetchWithTimeout(
   url: string,
   init: RequestInit = {},
   timeoutMs: number = DEFAULT_UPSTREAM_TIMEOUT_MS,
+  fetchImpl: typeof fetch = globalThis.fetch,
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetchImpl(url, { ...init, signal: controller.signal });
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") {
       const error = new Error("Upstream exchange API timed out") as UpstreamApiError;
