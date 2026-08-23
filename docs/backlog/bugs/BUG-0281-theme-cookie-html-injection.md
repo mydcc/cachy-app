@@ -60,14 +60,14 @@ Pick one (simplest first):
 
 ## Acceptance criteria
 
-- [ ] A failing-first test renders a request with a crafted
+- [x] A failing-first test renders a request with a crafted
       `cachy_theme` value (quote breakout + `$&` payload) and asserts the
       served HTML changes nothing outside the allowlisted class token
-- [ ] Either the interpolation sink is gone or the cookie is validated and
+- [x] Either the interpolation sink is gone or the cookie is validated and
       rewritten with hardened attributes (`__Host-`/`Secure`)
-- [ ] Theme switching still works in the browser (manual smoke or existing
+- [x] Theme switching still works in the browser (manual smoke or existing
       component test)
-- [ ] `npm run check` and the affected tests pass
+- [x] `npm run check` and the affected tests pass
 
 ## Links
 

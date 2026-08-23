@@ -331,10 +331,6 @@ class UiManager {
 
     try {
       localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, themeName);
-      const expires = new Date(
-        Date.now() + 365 * 24 * 60 * 60 * 1000,
-      ).toUTCString();
-      document.cookie = `${CONSTANTS.LOCAL_STORAGE_THEME_KEY}=${themeName}; expires=${expires}; path=/; SameSite=Lax`;
 
       // Dynamic import to avoid circular dependency
       import("../services/trackingService")
