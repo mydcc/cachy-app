@@ -86,6 +86,10 @@ an unsolvable problem.
 
 ## Links
 
+- [BUG-0280](../bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md)
+  — concrete gap found by the 2026-08 identity audit: exchange keys are not
+  even on the existing device-key path (`SENSITIVE_KEYS`); fixable now,
+  independent of this item's open design questions
 - `docs/adr/0001-local-first-boundary.md`
 - `src/utils/storageHelper.ts`
 - CodeQL alerts #31, #32 (dismissed, tracked here)
