@@ -240,6 +240,16 @@ class UiManager {
       document.startViewTransition(() => {
         this.applyThemeToDom(themeName);
       });
+    } else if (
+      browser &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      const html = document.documentElement;
+      html.classList.add("theme-transitioning");
+      this.applyThemeToDom(themeName);
+      setTimeout(() => {
+        html.classList.remove("theme-transitioning");
+      }, 240);
     } else {
       this.applyThemeToDom(themeName);
     }
