@@ -17,6 +17,7 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
+import { SENSITIVE_KEYS } from "../stores/settings/secretsLoader";
 import { cryptoService } from "./cryptoService";
 
 export const BACKUP_VERSION = 4; // Version 4: PBKDF2 600k Iterations + Strict Data Validation
@@ -73,19 +74,14 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
     delete parsed.encryptedApiKeys;
     delete parsed.encryptedSecrets;
 
-    // Blank out third-party and AI API keys
-    parsed.openaiApiKey = "";
-    parsed.geminiApiKey = "";
-    parsed.anthropicApiKey = "";
+    // Blank out third-party and AI API keys (SENSITIVE_KEYS inventory + extras)
+    for (const key of SENSITIVE_KEYS) {
+      if (key in parsed) {
+        parsed[key] = "";
+      }
+    }
     parsed.openrouterApiKey = "";
-    parsed.cmcApiKey = "";
-    parsed.cryptoPanicApiKey = "";
-    parsed.newsApiKey = "";
-    parsed.discordBotToken = "";
-    parsed.imgbbApiKey = "";
     parsed.imgurClientId = "";
-    parsed.cloudToken = "";
-    parsed.appAccessToken = "";
 
     return JSON.stringify(parsed);
   } catch {

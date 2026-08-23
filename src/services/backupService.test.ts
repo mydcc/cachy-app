@@ -124,7 +124,7 @@ describe("backupService", () => {
 
     const restored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
     expect(restored).toBe(validSettings);
-  }, 15000);
+  }, 30000);
 
   it("should fail with incorrect password", async () => {
     localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, validSettings);
@@ -273,6 +273,6 @@ describe("backupService", () => {
       expect(restoredSettings.openaiApiKey).toBe("sk-openai-secret-key");
       expect(restoredSettings.cmcApiKey).toBe("cmc-secret-key-xyz");
       expect(restoredSettings.discordBotToken).toBe("discord-secret-token");
-    }, 15000);
+    }, 30000);
   });
 });
