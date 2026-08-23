@@ -51,11 +51,6 @@ the UI immediately. This also becomes the confirmation path for
 - Notification UX for triggered stops (M3 "Notifications" bullet — separate
   item when specced).
 
-## Open questions
-
-- ~~Exact channel name on the wire~~ — resolved: `tp_sl`, confirmed live in
-  `bitunixWs.ts`.
-
 ## What shipped
 
 - `src/services/bitunixWs.ts` (`subscribePrivate()`) — `tp_sl` joins
@@ -70,10 +65,12 @@ the UI immediately. This also becomes the confirmation path for
   concerns without waiting for the next `ensureFresh()` poll window. This is
   also what [`FEAT-0057`](FEAT-0057-market-activity-panel-redesign.md)'s
   position-card TP/SL display and `TpSlList.svelte` both read.
-- This status update was found and made while filing
-  [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md) — the item was
-  still `specced` despite the channel having shipped some time earlier under
-  a different item's work.
+
+## Status
+
+✅ **Status was updated from `specced` to `done` on 2026-08-23.** The channel
+was implemented and shipped some time earlier under a different item's work;
+the backlog item was not synchronized. Confirmed live in production.
 
 ## Links
 
