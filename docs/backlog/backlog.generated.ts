@@ -1503,7 +1503,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0251",
     "title": "Journal UI/UX redesign and entry/exit fee breakdown",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
     "milestone": "M2",
     "editions": [
@@ -2266,7 +2266,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0271",
     "title": "URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "fix-bug-0271",
     "priority": "P2",
     "milestone": "none",
     "editions": [
