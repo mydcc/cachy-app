@@ -49,4 +49,36 @@ describe('Security Headers', () => {
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     expect(headers.get('Permissions-Policy')).toBe('camera=(self "https://space.cachy.app"), microphone=(self "https://space.cachy.app"), xr-spatial-tracking=(self "https://space.cachy.app" *), display-capture=(self "https://space.cachy.app"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*');
   });
+
+  it('forces revalidation for HTML documents (stale-deployment protection)', async () => {
+    const resolve = vi.fn().mockResolvedValue(
+      new Response('<html></html>', {
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      }),
+    );
+    const event = {
+      request: new Request('http://localhost/'),
+      url: new URL('http://localhost/'),
+      cookies: { get: () => null },
+    } as unknown as RequestEvent;
+
+    const response = await headersHandler({ event, resolve });
+
+    expect(response.headers.get('Cache-Control')).toBe('no-cache');
+  });
+
+  it('leaves non-HTML responses untouched', async () => {
+    const resolve = vi.fn().mockResolvedValue(
+      new Response('{}', { headers: { 'content-type': 'application/json' } }),
+    );
+    const event = {
+      request: new Request('http://localhost/api/klines'),
+      url: new URL('http://localhost/api/klines'),
+      cookies: { get: () => null },
+    } as unknown as RequestEvent;
+
+    const response = await headersHandler({ event, resolve });
+
+    expect(response.headers.get('Cache-Control')).toBeNull();
+  });
 });
