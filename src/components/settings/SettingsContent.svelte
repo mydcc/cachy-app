@@ -24,6 +24,7 @@
         restoreFromBackup,
     } from "../../services/backupService";
     import { trackCustomEvent } from "../../services/trackingService";
+    import { wipeLocalData } from "../../utils/appReset";
     import type { TranslationKey } from "../../locales/schema";
 
     // New Tab Components
@@ -143,7 +144,7 @@
             "confirm",
         );
         if (confirmed) {
-            localStorage.clear();
+            await wipeLocalData();
             window.location.reload();
         }
     }
