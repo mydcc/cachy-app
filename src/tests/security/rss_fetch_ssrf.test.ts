@@ -52,6 +52,10 @@ describe("POST /api/rss-fetch SSRF Protection", () => {
     const forbiddenUrls = [
       "http://localhost:8080/feed",
       "http://127.0.0.1:3000/rss",
+      "http://0177.0.0.1/rss",
+      "http://0x7f.0.0.1/rss",
+      "http://0x7f000001/rss",
+      "http://2130706433/rss",
       "http://169.254.169.254/latest/meta-data/",
       "http://192.168.1.1/router-status",
       "http://10.0.0.1/admin",

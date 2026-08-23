@@ -21,7 +21,7 @@ import Parser from "rss-parser";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../lib/server/rateLimit";
 import { sanitizeHtmlToText } from "../../../lib/server/sanitizer";
-import { isUrlAllowed } from "../../../lib/server/urlValidator";
+import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../lib/server/urlValidator";
 
 // checkClientToken already rate-limits per token/IP; this is defense in depth
 // on top of it (BUG-0052)
@@ -58,7 +58,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const body = await request.json();
     const { url } = body;
 
-    if (!url || !isUrlAllowed(url)) {
+    if (!url || !isUrlAllowed(url) || !(await isUrlAllowedAsync(url))) {
       return json({ error: "Invalid or prohibited URL" }, { status: 403 });
     }
 
@@ -74,7 +74,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       const ua = uas[Math.floor(Math.random() * uas.length)];
 
       try {
-        const response = await fetch(targetUrl, {
+        const response = await safeFetch(targetUrl, {
           signal: controller.signal,
           headers: {
             "User-Agent": ua,
