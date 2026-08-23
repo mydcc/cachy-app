@@ -25,6 +25,7 @@ import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
 
 // SECURITY NOTE: This endpoint acts as a Backend-For-Frontend (BFF) proxy.
 // It receives API keys from the client to perform a signed request to Bitunix.
@@ -77,7 +78,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     logger.error(`[Sync] Error fetching pending positions from Bitunix: ${safeMsg}`);
     return json(
       { error: safeMsg || "Failed to fetch pending positions" },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -119,7 +120,7 @@ async function fetchBitunixPendingPositions(
     ? `${baseUrl}${path}?${queryString}`
     : `${baseUrl}${path}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,

@@ -28,6 +28,7 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 
 // Define Validation Schema
 const SyncRequestSchema = z.object({
@@ -100,7 +101,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     logger.error(`[Sync] Error fetching history from Bitunix: ${redactString(message)}`);
     return json(
       { error: message || "Failed to fetch history" },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -130,7 +131,7 @@ async function fetchBitunixHistory(
     "" // Empty body for GET
   );
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
     headers: {
       "api-key": apiKey,

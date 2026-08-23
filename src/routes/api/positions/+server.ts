@@ -28,6 +28,7 @@ import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 import type { NormalizedPosition } from "../../../types/exchange";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../utils/redact";
+import { fetchWithTimeout } from "../../../utils/server/fetchWithTimeout";
 
 // Raw Bitunix position fields — names vary across API versions/endpoints,
 // hence the fallback chains at each read site below.
@@ -157,7 +158,7 @@ async function fetchBitunixPositions(
     ? `${baseUrl}${path}?${queryString}`
     : `${baseUrl}${path}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,
@@ -249,7 +250,7 @@ async function fetchBitgetPositions(
 
     const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
         headers: {
             "ACCESS-KEY": apiKey,
             "ACCESS-SIGN": signature,

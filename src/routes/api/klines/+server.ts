@@ -18,10 +18,13 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { safeJsonParse } from "../../../utils/safeJson";
+import {
+  fetchWithTimeout,
+  DEFAULT_UPSTREAM_TIMEOUT_MS,
+  type UpstreamApiError,
+} from "../../../utils/server/fetchWithTimeout";
 
-interface ApiError extends Error {
-  status?: number;
-}
+type ApiError = UpstreamApiError;
 
 // Bitunix kline entry — field names vary across API versions/endpoints,
 // hence the pairs (open/o, id/time, ...).
@@ -48,8 +51,6 @@ interface BitunixRawKline {
 // [timestamp, open, high, low, close, volume, quoteVol]
 type BitgetCandleTuple = [string | number, string | number, string | number, string | number, string | number, string | number, (string | number)?];
 
-const UPSTREAM_TIMEOUT_MS = 8000;
-
 // Bitunix occasionally answers a perfectly valid request with a transient
 // 5xx or lets the connection hang. One bounded retry turns those blips into
 // success instead of surfacing a 5xx (and an error toast) to the chart.
@@ -62,26 +63,6 @@ function sleep(ms: number): Promise<void> {
 
 function isRetryableUpstreamStatus(status: number): boolean {
   return status >= 500;
-}
-
-// Bounds the exchange fetch so a slow/unreachable upstream fails fast with a
-// proper JSON error instead of letting the reverse proxy in front of this
-// server time out first and return a raw 502 to the client.
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") {
-      const error = new Error("Upstream exchange API timed out") as ApiError;
-      error.status = 504;
-      throw error;
-    }
-    throw e;
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -175,7 +156,7 @@ async function fetchBitunixKlines(
   let response!: Response;
   for (let attempt = 1; attempt <= UPSTREAM_RETRY_ATTEMPTS; attempt++) {
     try {
-      response = await fetchWithTimeout(fullUrl, requestInit, UPSTREAM_TIMEOUT_MS);
+      response = await fetchWithTimeout(fullUrl, requestInit, DEFAULT_UPSTREAM_TIMEOUT_MS);
     } catch (e) {
       // Timeouts (surfaced as 504) are transient — retry them. Everything
       // else propagates immediately.
@@ -302,7 +283,7 @@ async function fetchBitgetKlines(
 
   const queryString = new URLSearchParams(params).toString();
 
-  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {}, UPSTREAM_TIMEOUT_MS);
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {}, DEFAULT_UPSTREAM_TIMEOUT_MS);
 
   if (!response.ok) {
     throw new Error(`Bitget API error: ${response.status}`);

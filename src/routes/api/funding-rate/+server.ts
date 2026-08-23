@@ -19,6 +19,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 import { json } from "@sveltejs/kit";
 import { cache } from "$lib/server/cache";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { fetchWithTimeout } from "../../../utils/server/fetchWithTimeout";
 
 interface StatusError {
   status: number;
@@ -63,7 +64,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           const validLimit = isNaN(parsedLimit) ? 30 : Math.min(Math.max(parsedLimit, 1), 200);
           apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=${encodeURIComponent(cleanSymbol)}&limit=${validLimit}`;
         }
-        const response = await fetch(apiUrl);
+        const response = await fetchWithTimeout(apiUrl);
 
         if (!response.ok) {
           const errorText = await response.text();

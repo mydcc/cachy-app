@@ -28,6 +28,7 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -75,7 +76,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     logger.error(`[Balance] Error fetching balance from ${exchange}: ${redactString(rawMsg)}`);
     return json(
       { error: (e instanceof Error ? e.message : null) || "Failed to fetch balance" },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -118,7 +119,7 @@ async function fetchBitunixBalance(
   // 6. Build Query String for URL (standard format key=value)
   const queryString = new URLSearchParams(params).toString();
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
     headers: {
       "api-key": apiKey,
@@ -197,7 +198,7 @@ async function fetchBitgetBalance(
 
     const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
         headers: {
             "ACCESS-KEY": apiKey,
             "ACCESS-SIGN": signature,

@@ -19,6 +19,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 import { json } from "@sveltejs/kit";
 import { cache } from "$lib/server/cache";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { fetchWithTimeout } from "../../../utils/server/fetchWithTimeout";
 
 interface StatusError {
   status: number;
@@ -66,7 +67,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           }
         }
 
-        const response = await fetch(apiUrl);
+        const response = await fetchWithTimeout(apiUrl);
 
         if (!response.ok) {
           const errorText = await response.text();
