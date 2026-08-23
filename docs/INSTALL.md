@@ -67,6 +67,11 @@ If you created a `.env`, start with
 `node --env-file=.env build/index.js` instead — the server does **not** read
 `.env` on its own, so `PORT` or `ORIGIN` would never reach it otherwise.
 
+> **Why not `npm start`?** It runs `node server.js` (compression +
+> security headers) without `--env-file`, which has the same limitation —
+> use `node --env-file=.env server.js` to combine your `.env` with those
+> extras. (`--env-file` needs Node 20 or newer, which Cachy requires anyway.)
+
 > If you change anything in `.env` later, **restart the process**. The running
 > server reads its configuration once, at startup.
 

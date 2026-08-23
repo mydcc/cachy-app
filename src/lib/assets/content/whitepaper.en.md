@@ -622,9 +622,11 @@ part of the automated suite and are not maintained to the same standard.
 The production build is a Node.js adapter output.
 
 1. **Build**: `npm run build` (compiles SvelteKit to `build/`)
-2. **Run**: `npm start`, which is `node build/index.js`. `server.js` in the
-   repository root is a separate small wrapper — check which entry point your
-   process manager is configured for before switching.
+2. **Run**: `npm start`, which runs `node server.js` — a small Express wrapper
+   in the repository root that adds compression and security headers on top of
+   the adapter output (`build/handler.js`). If your process manager starts
+   `build/index.js` directly, it bypasses both — check which entry point it is
+   configured for.
 3. **Reverse Proxy**: Nginx is recommended for SSL termination. Ports come from
    `.deploy.conf`: **3001** for stable (cachy.app) and **3002** for beta
    (dev.cachy.app).

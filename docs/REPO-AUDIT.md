@@ -294,7 +294,7 @@ published maths was made executable.
 | 8 | `npm run test:unit` | Does not exist. The command is `npm test`. |
 | 8 | `python3 verify_pagination.py` | Does not exist. The real scripts are in `verification/` and `scripts/`. |
 | 8 | Reverse proxy to "Port 3000" | `.deploy.conf` uses **3001** (stable) and **3002** (beta). |
-| 8 | `pm2 start server.js` | `npm start` runs `node build/index.js`. Both files exist but are different entry points; the document now says so instead of implying they are interchangeable. |
+| 8 | `pm2 start server.js` | At audit time `npm start` ran `node build/index.js`, so both files existed as different entry points and the document said so. Since #2168 `npm start` runs `node server.js`, making the two equivalent again. |
 | 8 | Setup is `npm install && npm run dev` | Omitted that both `dev` and `build` first run `scripts/build_wasm.sh`, and said nothing about `npm run check`, `npm run lint` or `npm run test:e2e`. |
 
 ### Cross-language divergence
