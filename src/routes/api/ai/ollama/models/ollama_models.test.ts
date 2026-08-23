@@ -102,4 +102,17 @@ describe("Ollama Models Route GET", () => {
     const body = await response.json();
     expect(body.models).toEqual([{ id: "llama3:latest", label: "llama3:latest" }]);
   });
+
+  it("rejects omitted baseUrl query param (defaulting to localhost) with 403 Forbidden", async () => {
+    const url = new URL("http://localhost/api/ai/ollama/models");
+    const request = new Request(url, {
+      headers: { "x-app-access-token": token },
+    });
+
+    const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
+    expect(response.status).toBe(403);
+
+    const body = await response.json();
+    expect(body.error).toMatch(/prohibited|forbidden|invalid/i);
+  });
 });

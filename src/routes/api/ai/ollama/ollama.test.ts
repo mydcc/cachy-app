@@ -105,4 +105,24 @@ describe("Ollama AI Route POST (SSRF Guard)", () => {
     const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
     expect(response.status).toBe(200);
   });
+
+  it("rejects omitted baseUrl (defaulting to localhost) with 403 Forbidden", async () => {
+    const request = new Request("http://localhost/api/ai/ollama", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-app-access-token": token,
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "hello" }],
+        model: "llama3",
+      }),
+    });
+
+    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+    expect(response.status).toBe(403);
+
+    const body = await response.json();
+    expect(body.error).toMatch(/prohibited|forbidden|invalid/i);
+  });
 });
