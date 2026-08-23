@@ -42,6 +42,7 @@
   import OpenOrdersList from "./OpenOrdersList.svelte";
   import OrderHistoryList from "./OrderHistoryList.svelte";
   import TpSlList from "./TpSlList.svelte";
+  import ClosePositionModal from "./ClosePositionModal.svelte";
 
   let isOpen = $state(true);
 
@@ -624,39 +625,28 @@
   }
 
   // Actions
-  async function handleClosePosition(pos: OMSPosition) {
-    try {
-      const res = (await activeExchange().trading.closePosition({
-        symbol: pos.symbol,
-        positionSide: pos.side,
-        amount: pos.amount, // Use amount from OMSPosition
-      })) as { error?: string } | undefined;
 
-      if (res && res.error) {
-        uiState.showError(
-          $_("dashboard.alerts.closePositionError", {
-            values: { error: res.error },
-          }),
-        );
-      } else {
-        uiState.showToast(
-          $_("dashboard.alerts.closePositionSuccess"),
-          "success",
-        );
-        // The exchange cancels a closed position's plans; leaving them cached
-        // would show a stop on a position that no longer exists.
-        tpSlState.invalidate();
-        // Trigger refresh or wait for WS
-      }
-    } catch (e: unknown) {
-      // Previously discarded `e` entirely and showed a fixed generic
-      // message — the exchange's actual rejection reason (e.g. a HEDGE-mode
-      // account rejecting a close that's missing tradeSide/positionId, see
-      // BUG-0062) was never visible to the user. Same pattern
-      // handleCancelOrder already used correctly below.
-      const msg = getDisplayMessage(e, $_);
-      uiState.showError(msg || $_("dashboard.alerts.failedClose"));
-    }
+  /*
+   * FEAT-0256: opens the close dialog rather than closing outright. The order
+   * itself is now placed by `ClosePositionModal`, which owns the quantity —
+   * placing it here as well would mean two paths to the same order, and the
+   * one here could only ever send the full size.
+   *
+   * Error reporting moved with it: the modal shows the exchange's own
+   * rejection reason inline, which is what BUG-0062 needed and what a toast
+   * fired from here would have replaced with a generic message.
+   */
+  function handleClosePosition(pos: OMSPosition) {
+    closingPosition = pos;
+  }
+
+  function handleCloseSuccess() {
+    closingPosition = null;
+    uiState.showToast($_("dashboard.alerts.closePositionSuccess"), "success");
+    // The exchange cancels a closed position's plans; leaving them cached
+    // would show a stop on a position that no longer exists. Still correct
+    // for a partial close, which reduces the plans' scope.
+    tpSlState.invalidate();
   }
 
   async function handleCancelOrder(orderId: string, symbol: string) {
@@ -694,6 +684,9 @@
       "info",
     );
   }
+
+  /** The position whose close dialog is open, or null (FEAT-0256). */
+  let closingPosition = $state<OMSPosition | null>(null);
 </script>
 
 <svelte:window onclick={closeContextMenu} />
@@ -863,4 +856,12 @@
       {#if settingsState.positionViewMode === "focus"}✓{/if}
     </button>
   </div>
+{/if}
+
+{#if closingPosition}
+  <ClosePositionModal
+    position={closingPosition}
+    onclose={() => (closingPosition = null)}
+    onsuccess={handleCloseSuccess}
+  />
 {/if}

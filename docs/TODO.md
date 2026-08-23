@@ -1049,3 +1049,90 @@ reachable from app code). Re-open only if:
 2. A future `npm`/`@semantic-release/npm` release bundles patched
    `ip-address`/`undici` — then `npm update` picks it up automatically and
    the alerts should auto-close.
+
+---
+
+## 29. Does a close percentage mean a share of the original position, or of what is left?
+
+**Raised by [`FEAT-0256`](backlog/features/FEAT-0256-partial-close-position.md)**,
+2026-08-23. Shipped with one behaviour chosen; recorded here because it should
+be a decision rather than an accident.
+
+The partial-close slider runs 0–100 % against the size the venue reports
+**now**. So closing 50 % of a 2-contract position leaves 1 contract, and a
+second 50 % closes 0.5 — half of the remainder, not a quarter of the original.
+
+The alternative is to anchor the percentage to the size the position had when
+the dialog opened, so two 50 % closes would take 1 contract each and the
+second one would close the position entirely.
+
+**What speaks for the current behaviour (share of what is left):**
+- It is what exchanges do, so a trader cross-checking against the venue's own
+  panel sees the same thing.
+- The slider is bound to a live position that can change underneath it — a
+  fill, a liquidation, a close from another device. An anchored percentage
+  would silently mean a different quantity than it did a second ago; a live
+  one always means what it says.
+- No hidden state. The handle position and the position size fully determine
+  the quantity, which is what makes the displayed value provably the submitted
+  one.
+
+**What speaks against:**
+- "Close 25 % three times" does not close 75 %. A trader scaling out in equal
+  thirds has to think, or use the absolute-quantity field.
+- Someone used to a fixed ladder (25/50/75/100 as *cumulative* marks) may read
+  the second press as a no-op when it is not.
+
+**What deciding differently would cost:** `quantityFromPercent` in
+[`partialClose.ts`](../src/lib/calculators/partialClose.ts) takes the position
+size from its context, so an anchored version needs the opening size threaded
+through the component and held as state — reintroducing exactly the second copy
+of a value that the current design avoids. Not large, but it changes the
+component's shape, so it is worth deciding before more callers mount it
+(FEAT-0070, FEAT-0247).
+
+**Not blocking anything.** The current behaviour is defensible and tested; this
+entry exists so that changing it later is a decision with the reasoning
+attached, not a rediscovery.
+
+---
+
+## 30. How should the panel behave when the venue does not report a mark price?
+
+**Raised by [`FEAT-0256`](backlog/features/FEAT-0256-partial-close-position.md)**,
+2026-08-23. Same status: shipped with one behaviour, recorded because the
+alternatives differ in what they tell a trader.
+
+`OMSPosition.markPrice` is optional — Bitget does not always send it. The
+partial-close dialog needs it to say what PnL a close would realise.
+
+**What ships today:** the mark is *recovered* from the unrealised PnL the venue
+does report, which is the same number seen from the other side — PnL is the
+mark distance times the size, so the mark is entry plus PnL per unit
+([`ClosePositionModal.svelte`](../src/components/shared/ClosePositionModal.svelte)).
+
+**Why not simply default to the entry price:** that prints a realised PnL of
+exactly zero, which reads as *"this close books nothing"* rather than *"the
+mark is unknown"*. Same failure mode [`ADR-0010`](adr/0010-estimates-inform-but-never-determine-what-is-sent.md)
+rejects for the net-of-fees line, where an absent rate hides the figure instead
+of rendering it as zero.
+
+**The open question is whether recovery is the right answer at all**, or
+whether the honest move is to hide the PnL line when the venue is silent, the
+way the net-of-fees line is hidden:
+
+- **Recovery (current)** always shows a figure. It is arithmetically exact when
+  `unrealizedPnl` and `amount` are both fresh, and quietly wrong when they are
+  not — a stale PnL from before the last price move yields a stale mark, with
+  nothing on screen to say so.
+- **Hiding** never shows a wrong figure, and gives the trader less. It also
+  makes the dialog inconsistent across venues for no reason the trader can see.
+
+**Why it is not urgent:** nothing here reaches an exchange. The quantity is
+what gets sent, and it never touches the mark price — the same discipline as
+ADR-0010's gross-vs-net split. A wrong mark costs one misleading line, not a
+misplaced order.
+
+**Worth resolving before** the PnL figure is reused anywhere it *is* load-bearing
+— a journal entry, a risk calculation, or a confirmation summary under
+[`FEAT-0024`](backlog/features/FEAT-0024-confirmation-policy.md).
