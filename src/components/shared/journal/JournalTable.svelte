@@ -680,7 +680,7 @@
                                             onmousemove={(e) => updateHoverPosition(e, entryItem.screenshot!, entryItem.symbol)}
                                             onmouseleave={handleThumbnailMouseLeave}
                                             onclick={(e) => openLightbox(entryItem.screenshot!, entryItem.symbol, e)}
-                                            aria-label="View screenshot"
+                                            aria-label={$_("journal.viewScreenshot")}
                                         >
                                             <img
                                                 src={entryItem.screenshot}
@@ -905,7 +905,7 @@
                                                     onmousemove={(e) => updateHoverPosition(e, subTrade.screenshot!, subTrade.symbol)}
                                                     onmouseleave={handleThumbnailMouseLeave}
                                                     onclick={(e) => openLightbox(subTrade.screenshot!, subTrade.symbol, e)}
-                                                    aria-label="View screenshot"
+                                                    aria-label={$_("journal.viewScreenshot")}
                                                 >
                                                     <img
                                                         src={subTrade.screenshot}
@@ -1048,7 +1048,7 @@
                 <button
                     class="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     onclick={closeLightbox}
-                    aria-label="Close"
+                    aria-label={$_("journal.closeLightbox")}
                 >
                     ✕
                 </button>
