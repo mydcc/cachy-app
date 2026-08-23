@@ -194,10 +194,12 @@ export const syncService = {
       // 1. Fetch History Positions
       const historyResponse = await appFetch("/api/sync/positions-history", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.apiKeys.bitunix.key,
+          "X-Api-Secret": settings.apiKeys.bitunix.secret,
+        },
         body: JSON.stringify({
-          apiKey: settings.apiKeys.bitunix.key,
-          apiSecret: settings.apiKeys.bitunix.secret,
           limit: 500,
         }),
       });
@@ -209,11 +211,12 @@ export const syncService = {
       // 2. Fetch Pending Positions
       const pendingResponse = await appFetch("/api/sync/positions-pending", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          apiKey: settings.apiKeys.bitunix.key,
-          apiSecret: settings.apiKeys.bitunix.secret,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.apiKeys.bitunix.key,
+          "X-Api-Secret": settings.apiKeys.bitunix.secret,
+        },
+        body: JSON.stringify({}),
       });
       if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
       const pendingResult = await pendingResponse.json();
@@ -224,10 +227,12 @@ export const syncService = {
       // 3. Fetch Orders
       const orderResponse = await appFetch("/api/sync/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.apiKeys.bitunix.key,
+          "X-Api-Secret": settings.apiKeys.bitunix.secret,
+        },
         body: JSON.stringify({
-          apiKey: settings.apiKeys.bitunix.key,
-          apiSecret: settings.apiKeys.bitunix.secret,
           limit: 500,
         }),
       });

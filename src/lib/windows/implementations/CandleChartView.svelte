@@ -127,8 +127,13 @@
         try {
             const response = await appFetch("/api/positions", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ exchange: provider, apiKey: keys.key, apiSecret: keys.secret }),
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Api-Key": keys.key,
+                    "X-Api-Secret": keys.secret,
+                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+                },
+                body: JSON.stringify({ exchange: provider }),
             });
             const json = await response.json();
             const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
@@ -151,8 +156,13 @@
         try {
             const response = await appFetch("/api/orders", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ exchange: provider, apiKey: keys.key, apiSecret: keys.secret, type: "pending" }),
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Api-Key": keys.key,
+                    "X-Api-Secret": keys.secret,
+                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+                },
+                body: JSON.stringify({ exchange: provider, type: "pending" }),
             });
             const json = await response.json();
             if (json?.orders) accountState.hydrateOpenOrders(json.orders as NormalizedOrder[]);

@@ -305,11 +305,14 @@ class TradeService {
         try {
             const response = await appFetch("/api/leverage-margin-mode", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Api-Key": keys.key,
+                    "X-Api-Secret": keys.secret,
+                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+                },
                 body: JSON.stringify({
                     exchange: provider,
-                    apiKey: keys.key,
-                    apiSecret: keys.secret,
                     symbol,
                 }),
             });
