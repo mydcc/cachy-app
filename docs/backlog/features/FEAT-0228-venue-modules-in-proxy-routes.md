@@ -2,7 +2,7 @@
 id: FEAT-0228
 title: Move the venue branches out of the proxy routes into per-venue modules
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: M2
 editions: [community, pro, private]
