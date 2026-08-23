@@ -2,7 +2,7 @@
 id: BUG-0288
 title: App reset clears localStorage but leaves the IndexedDB device key and caches behind
 type: bug
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,9 +10,11 @@ area: security
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0288-reset-indexeddb
 ---
 
-# BUG-0263 — App reset clears localStorage but leaves the IndexedDB device key and caches behind
+# BUG-0288 — App reset clears localStorage but leaves the IndexedDB device key and caches behind
 
 ## Symptom
 
@@ -36,6 +38,16 @@ later without being added to the teardown.
 Enumerate and delete IndexedDB databases (and Caches API entries if present)
 during reset. Reuse/extend the existing device-key removal logic rather than
 duplicating it.
+
+### Known limitation (documented, follow-up candidate)
+
+A reset can only close the IndexedDB connections of *its own* tab. Connections
+held by other open tabs block `deleteDatabase()`; per design the wipe resolves
+best effort instead of hanging, so in a multi-tab scenario those databases can
+survive until every tab is closed. Surfaced during review of the fix: a small
+`BroadcastChannel` "close your IDB connections" ping to other tabs before
+deleting would close the gap — spin it off as its own item rather than
+widening this one.
 
 ## Acceptance criteria
 

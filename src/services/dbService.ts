@@ -145,6 +145,19 @@ export class DBService {
             request.onerror = () => reject(request.error);
         });
     }
+
+    /**
+     * Closes the cached connection (if any) so an indexedDB.deleteDatabase()
+     * is not blocked — used by the factory reset (BUG-0288). The service
+     * reopens lazily on next use.
+     */
+    public close(): void {
+        if (this.db) {
+            this.db.close();
+            this.db = null;
+        }
+        this.openPromise = null;
+    }
 }
 
 export const dbService = new DBService();
