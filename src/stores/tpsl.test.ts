@@ -37,6 +37,7 @@ vi.mock("../services/tradeService", () => ({
 }));
 
 import { tpSlState, MAX_AGE_MS } from "./tpsl.svelte";
+import { normalizeTpSlRows } from "../services/tpslNormalize";
 
 function plan(symbol: string, planType: string, triggerPrice: string, id = "1") {
     return { orderId: `${symbol}-${planType}-${id}`, symbol, planType, triggerPrice, status: "NEW" };
@@ -235,5 +236,83 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
     it("ignores a push with neither an orderId nor a symbol", () => {
         tpSlState.updateFromWs({ tpPrice: "93" });
         expect(tpSlState.orders).toEqual([]);
+    });
+});
+
+/*
+ * BUG-0266 — the regression this file previously could not have caught.
+ *
+ * Every other test here builds its plans with the `plan()` helper above:
+ * `{orderId, symbol, planType, triggerPrice, status}`. Bitunix sends none of
+ * those three middle fields — its rows carry `id`, `tpPrice` and `slPrice`,
+ * and no `planType` at all. So the store's grouping was proven correct on a
+ * shape it never receives, and against live data `plansFor()` returned nothing
+ * for every symbol.
+ *
+ * These tests feed the documented response through the same normalisation the
+ * fetch path applies, so they fail if that split is removed or renamed.
+ */
+describe("tpSlState — against the venue's actual response shape (BUG-0266)", () => {
+    /** Verbatim from `06_tp_sl.md` §Get Pending TP/SL Order → Response Example. */
+    const DOCUMENTED_ROW = {
+        id: "123",
+        positionId: "12345678",
+        symbol: "BTCUSDT",
+        base: "BTC",
+        quote: "USDT",
+        tpPrice: "50000",
+        tpStopType: "LAST_PRICE",
+        slPrice: "70000",
+        slStopType: "LAST_PRICE",
+        tpOrderType: "LIMIT",
+        tpOrderPrice: "50000",
+        slOrderType: "LIMIT",
+        slOrderPrice: "70000",
+        tpQty: "0.01",
+        slQty: "0.01",
+    };
+
+    it("finds both plans for a position the venue reports as covered", async () => {
+        fetchTpSl.mockResolvedValue(normalizeTpSlRows([DOCUMENTED_ROW]));
+        await tpSlState.ensureFresh();
+
+        const plans = tpSlState.plansFor("BTCUSDT");
+        expect(plans.profit?.triggerPrice).toBe("50000");
+        expect(plans.loss?.triggerPrice).toBe("70000");
+    });
+
+    it("reports the symbol as having plans", async () => {
+        // What a create-vs-edit decision asks. It answered false for every
+        // covered position before the split existed.
+        fetchTpSl.mockResolvedValue(normalizeTpSlRows([DOCUMENTED_ROW]));
+        await tpSlState.ensureFresh();
+
+        expect(tpSlState.hasPlansFor("BTCUSDT")).toBe(true);
+    });
+
+    it("lets a live push update the fetched leg instead of duplicating it", async () => {
+        // The reason the leg id scheme has to match `updateFromWs`: the WS
+        // push names the leg `${orderId}-tp`, and the fetch has to have used
+        // the same name or the list ends up holding both.
+        fetchTpSl.mockResolvedValue(normalizeTpSlRows([DOCUMENTED_ROW]));
+        await tpSlState.ensureFresh();
+        expect(tpSlState.orders).toHaveLength(2);
+
+        tpSlState.updateFromWs({
+            orderId: "123",
+            symbol: "BTCUSDT",
+            tpPrice: "51000",
+            status: "NEW",
+        });
+
+        expect(tpSlState.orders).toHaveLength(2);
+        expect(tpSlState.plansFor("BTCUSDT").profit?.triggerPrice).toBe("51000");
+    });
+
+    it("keeps the venue's own row id, so an edit can still address the plan", async () => {
+        fetchTpSl.mockResolvedValue(normalizeTpSlRows([DOCUMENTED_ROW]));
+        await tpSlState.ensureFresh();
+
+        expect(tpSlState.plansFor("BTCUSDT").profit?.sourceOrderId).toBe("123");
     });
 });
