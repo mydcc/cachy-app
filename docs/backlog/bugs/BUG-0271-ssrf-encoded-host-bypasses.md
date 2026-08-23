@@ -2,7 +2,9 @@
 id: BUG-0271
 title: URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks
 type: bug
-status: specced
+status: in-progress
+assignee: antigravity
+branch: fix-bug-0271
 priority: P2
 milestone: none
 editions: [community, pro, private]
