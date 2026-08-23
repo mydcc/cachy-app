@@ -18,8 +18,10 @@
 <script lang="ts">
     import { marketState } from "../../stores/market.svelte";
     import { settingsState } from "../../stores/settings.svelte";
+    import { uiState } from "../../stores/ui.svelte";
+    import { connectionManager } from "../../services/connectionManager";
+    import { toastService } from "../../services/toastService.svelte";
     import { _ } from "../../locales/i18n";
-    import { app } from "../../services/app";
 
     let isOffline = $derived(
         marketState.connectionStatus === "disconnected" ||
@@ -27,21 +29,21 @@
     );
 
     function handleReconnect() {
-        app.setupRealtimeUpdates();
+        const provider = settingsState.apiProvider || "bitunix";
+        connectionManager.switchProvider(provider, { force: true });
     }
 
     function handleSwitchProvider() {
         const newProvider =
             settingsState.apiProvider === "bitunix" ? "bitget" : "bitunix";
         settingsState.apiProvider = newProvider;
-        app.setupRealtimeUpdates();
+        connectionManager.switchProvider(newProvider, { force: true });
+        const providerName = newProvider === "bitunix" ? "Bitunix" : "Bitget";
+        toastService.info(`Provider: ${providerName}`);
     }
 
     function handleSettings() {
-        // Navigate to settings (can be implemented via router or modal)
-        if (typeof window !== "undefined") {
-            window.location.hash = "#settings";
-        }
+        uiState.openSettings("connections");
     }
 </script>
 
