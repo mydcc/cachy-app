@@ -52,7 +52,7 @@ See `AGENTS.md` § "Git Cleanliness and Parallel Agent Workspaces" for the full 
 - **Svelte 5 Runes only** — no `export let`, no `$:`, no `createEventDispatcher`, no `<slot>`
 - **decimal.js** for ALL financial values — no native `number` for prices/amounts/balances
 - **No hardcoded colors** — CSS variables or paired theme classes only
-- **`npm run check` after every change** — task is only done when type check passes
+- **`npm run check` before completion** — task is only done when type check passes; mid-task cadence by blast radius (see AGENTS.md "Verification Proportionality")
 - **Never push to `develop` or `main` directly** — always via feature branch + PR
 
 ## Commits & PRs

@@ -9,7 +9,7 @@ This file is the Claude Code-specific extension of `AGENTS.md` (the tool-agnosti
 ```bash
 npm run dev          # Dev server (builds WASM first via scripts/build_wasm.sh)
 npm run build        # Production build (including WASM)
-npm run check        # svelte-check — run after EVERY change
+npm run check        # svelte-check — required before completion; mid-task cadence by blast radius
 npm test             # Vitest unit tests
 npm run test:e2e     # Playwright E2E tests
 ```
@@ -30,7 +30,7 @@ runs both projects. Example: `src/components/shared/TpSlList.refusal.component.t
 - **Changed files only (git-based):** `npm run test:changed`
 - **Component tests** (`*.component.test.ts`, `components` project): `npx vitest run src/components/shared/TpSlList.refusal.component.test.ts`
 
-Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. `npm run check` is still mandatory after every change regardless of the test scope.
+Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. A full `npm run check` is still required before completion regardless of the test scope — how often to run it mid-task is judgment-based, see "Verification Proportionality & Multi-Agent Resource Policy" in `AGENTS.md`.
 
 ## Architecture
 
@@ -95,7 +95,7 @@ Reserve the full `npm test` for when you touched many files across projects or r
 
 ## Workflow
 
-- **Verification over claims:** After every code change, run `npm run check` and affected tests (skill `/verify`) — see "Run targeted tests, not the whole suite" above for how to scope them. Only then claim completion.
+- **Verification over claims:** Run `npm run check` and affected tests at verification milestones, and always before claiming completion (mid-task cadence is judgment-based — see "Verification Proportionality & Multi-Agent Resource Policy" in `AGENTS.md`; skill `/verify` reports honestly).
 - **Defensive deletion:** Never delete code of unclear purpose. Leave copyright headers and metadata untouched.
 - **Keep debug logs:** Remove `console.log` statements only upon explicit instruction.
 - **Playwright:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
