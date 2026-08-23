@@ -80,7 +80,7 @@ node --env-file=.env build/index.js
 
 Cachy is now at `http://localhost:3000`.
 
-> **Why not `npm start`?** It runs `node build/index.js` without
+> **Why not `npm start`?** It runs `node server.js` without
 > `--env-file`, and the server does **not** read `.env` on its own — so your
 > token would never reach it and every API call would answer 401. Use the
 > command above, or export the variables some other way before starting.

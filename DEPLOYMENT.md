@@ -112,7 +112,7 @@ The following steps apply to both environments (just adjust directory names).
 3. Fill in the fields:
     - **Path:** `/www/wwwroot/cachy.app`
     - **Name:** `cachy-prod` (or `cachy-dev`)
-    - **Run Command:** Select `Custom Command` and enter: `node build/index.js`
+    - **Run Command:** Select `Custom Command` and enter: `node server.js`
       _(By default, aaPanel often looks for `app.js` or `index.js`, but SvelteKit is located in `build/index.js`)_
       Alternatively `node server.js` — a thin wrapper that defaults `PORT` to 3001 instead of adapter-node's 3000, for hosts where 3000 is already taken.
     - **Port:** `3001` (default for Production). _Ensure the port is open in the firewall or used internally._

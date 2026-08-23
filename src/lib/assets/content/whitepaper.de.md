@@ -634,7 +634,7 @@ Teil der automatisierten Suite und werden nicht auf demselben Stand gehalten.
 Der Produktions-Build ist ein Node.js-Adapter-Output.
 
 1. **Build**: \`npm run build\` (kompiliert SvelteKit nach \`build/\`)
-2. **Run**: \`npm start\`, was \`node build/index.js\` ausführt. \`server.js\` im
+2. **Run**: \`npm start\`, was \`node server.js\` ausführt. \`server.js\` im
    Repository-Root ist ein separater kleiner Wrapper — prüfe, auf welchen
    Einstiegspunkt dein Process Manager konfiguriert ist, bevor du wechselst.
 3. **Reverse Proxy**: Nginx wird für die SSL-Terminierung empfohlen. Die Ports

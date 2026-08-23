@@ -606,7 +606,7 @@ part of the automated suite and are not maintained to the same standard.
 The production build is a Node.js adapter output.
 
 1. **Build**: `npm run build` (compiles SvelteKit to `build/`)
-2. **Run**: `npm start`, which is `node build/index.js`. `server.js` in the
+2. **Run**: `npm start`, which is `node server.js`. `server.js` in the
    repository root is a separate small wrapper — check which entry point your
    process manager is configured for before switching.
 3. **Reverse Proxy**: Nginx is recommended for SSL termination. Ports come from
