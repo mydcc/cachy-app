@@ -2,7 +2,8 @@
 id: BUG-0273
 title: Security hygiene sweep for three low-severity findings from the identity audit
 type: bug
-status: specced
+status: in-progress
+assignee: antigravity
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -45,13 +46,13 @@ Per sub-item as described above; keep each change minimal.
 
 ## Acceptance criteria
 
-- [ ] imgbb upload no longer places the key in the query string, or the
+- [x] imgbb upload no longer places the key in the query string, or the
       item documents why the API shape forbids that
-- [ ] `checkAppAuth` removed after a grep-proven zero-caller check, or kept
+- [x] `checkAppAuth` removed after a grep-proven zero-caller check, or kept
       with a comment naming its caller
-- [ ] Logger sanitizer matches `sign=`, `secret`, `token`, `password`
+- [x] Logger sanitizer matches `sign=`, `secret`, `token`, `password`
       shapes (unit test)
-- [ ] `npm run check` and the affected tests pass
+- [x] `npm run check` and the affected tests pass
 
 ## Out of scope
 

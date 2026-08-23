@@ -43,6 +43,8 @@ class ServerLogger extends EventEmitter {
     "updated_at",
     "author",
     "authority",
+    "signal",
+    "design",
   ]);
 
   // Regex patterns for identifying sensitive keys
@@ -56,7 +58,7 @@ class ServerLogger extends EventEmitter {
     /authorization/i,
     /bearer/i,
     /^private[-_]?key$/i,
-    /^sign$/i,
+    /(?:^|[-_]|api)sign/i,
   ];
 
   private constructor() {
@@ -157,13 +159,23 @@ class ServerLogger extends EventEmitter {
     });
 
     // 5. Redact Key-Value pairs (e.g. key=value, key="value", "key": "value")
-    // Groups:
-    // 1: Quote (Key), 2: Key (Quoted), 3: Key (Unquoted)
-    // 4: Separator
-    // 5: Quote (Val), 6: Val (Quoted), 7: Val (Unquoted)
-    const kvRegex = /(?:("|')([\w-]+)\1|([\w-]+))(\s*[:=]\s*)(?:("|')((?:(?!\5).)*)\5|([^"'&\s,;]+))/gi;
+    // First: equal-separated pairs (e.g. key=val, key="val", "key"=val)
+    const eqRegex = /(?:("|')([\w-]+)\1|([\w-]+))(\s*=\s*)(?:("|')((?:(?!\5).)*)\5|([^"'&\s,;]+))/gi;
+    s = s.replace(eqRegex, (match, qKey, keyQuoted, keyUnquoted, sep, qVal, valQuoted, valUnquoted) => {
+      const key = keyQuoted || keyUnquoted;
+      if (this.isSensitiveKey(key)) {
+        const val = valQuoted ?? valUnquoted;
+        if (!val && val !== "") return match;
+        const qv = qVal || '';
+        const qk = qKey || '';
+        return `${qk}${key}${qk}${sep}${qv}***REDACTED***${qv}`;
+      }
+      return match;
+    });
 
-    s = s.replace(kvRegex, (match, qKey, keyQuoted, keyUnquoted, sep, qVal, valQuoted, valUnquoted) => {
+    // Second: colon-separated pairs (e.g. "key": "val", "key": val, key: "val", key: val)
+    const colonRegex = /(?:("|')([\w-]+)\1|([\w-]+))(\s*:\s*)(?:("|')((?:(?!\5).)*)\5|([^"'&\s,;]+))/gi;
+    s = s.replace(colonRegex, (match, qKey, keyQuoted, keyUnquoted, sep, qVal, valQuoted, valUnquoted) => {
       const key = keyQuoted || keyUnquoted;
 
       // Skip Authorization header keys as they are handled specifically above
@@ -177,11 +189,9 @@ class ServerLogger extends EventEmitter {
 
       if (this.isSensitiveKey(key)) {
         const val = valQuoted ?? valUnquoted;
-        // Don't redact if the value is empty
         if (!val && val !== "") return match;
 
         const qv = qVal || '';
-        // If the key was quoted, we need to reconstruct that
         const qk = qKey || '';
         return `${qk}${key}${qk}${sep}${qv}***REDACTED***${qv}`;
       }

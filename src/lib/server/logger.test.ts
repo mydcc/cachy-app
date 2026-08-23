@@ -173,4 +173,53 @@ MIIEpQIBAAKCAQEA...
     expect(data.username).toBe('trader');
     expect(data.passphrase).toBe('***REDACTED***');
   });
+
+  it('should sanitize sign=, secret, token, password shapes in plain strings', async () => {
+    const plainString = "Request query: sign=abcdef123456&secret=topsecret&token=tok_987&password=secretpass123";
+
+    const logPromise = captureLog();
+    logger.info('Outgoing payload', plainString);
+    const entry = await logPromise;
+
+    expect(entry.data).toBe(
+      "Request query: sign=***REDACTED***&secret=***REDACTED***&token=***REDACTED***&password=***REDACTED***"
+    );
+  });
+
+  it('should sanitize sign=, secret, token, password shapes in URL query params', async () => {
+    const url = "https://api.example.com/v1/trade?symbol=BTCUSDT&sign=hmac123&secret=sec456&token=tok789&password=p1";
+
+    const logPromise = captureLog();
+    logger.debug('Calling exchange API', url);
+    const entry = await logPromise;
+
+    expect(entry.data).toBe(
+      "https://api.example.com/v1/trade?symbol=BTCUSDT&sign=***REDACTED***&secret=***REDACTED***&token=***REDACTED***&password=***REDACTED***"
+    );
+  });
+
+  it('should sanitize sign, api_sign, secret, token, password in object keys and JSON', async () => {
+    const obj = {
+      sign: "hmac_sign_val",
+      api_sign: "api_sign_val",
+      secret: "my_secret_val",
+      token: "bearer_token_val",
+      password: "my_password_val",
+      signal: "BUY",
+      design: "v2"
+    };
+
+    const logPromise = captureLog();
+    logger.info('Exchange Request Object', obj);
+    const entry = await logPromise;
+
+    const data = entry.data as Record<string, unknown>;
+    expect(data.sign).toBe('***REDACTED***');
+    expect(data.api_sign).toBe('***REDACTED***');
+    expect(data.secret).toBe('***REDACTED***');
+    expect(data.token).toBe('***REDACTED***');
+    expect(data.password).toBe('***REDACTED***');
+    expect(data.signal).toBe('BUY');
+    expect(data.design).toBe('v2');
+  });
 });

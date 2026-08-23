@@ -31,14 +31,16 @@ export const imgbbService = {
 
     const formData = new FormData();
     formData.append("image", file);
+    formData.append("key", apiKey);
 
     // Handle expiration (API expects seconds)
     // If 0, we simply don't send the expiration parameter (default is permanent or user account setting)
     // Note: API documentation says "expiration" parameter is optional.
-    let url = `https://api.imgbb.com/1/upload?key=${apiKey}`;
     if (expiration && expiration > 0) {
-      url += `&expiration=${expiration}`;
+      formData.append("expiration", expiration.toString());
     }
+
+    const url = "https://api.imgbb.com/1/upload";
 
     try {
       const response = await fetch(url, {
