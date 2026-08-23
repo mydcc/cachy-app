@@ -40,6 +40,35 @@ export const SENSITIVE_KEYS: (keyof Settings)[] = [
 ];
 
 /**
+ * Shape-preserving redaction for the exchange-credential block (BUG-0280).
+ * Callers pass `$state.snapshot(this.apiKeys)` so the autosave `$effect`
+ * keeps tracking credential edits through the argument evaluation; the
+ * returned placeholders (`_liveApiKeys` deliberately unused) are all this
+ * serialization ever emits, so neither `toJSON()` nor anything downstream
+ * of it can leak key, secret, or passphrase material.
+ */
+export function redactApiKeys(
+  _liveApiKeys: Settings["apiKeys"],
+): Settings["apiKeys"] {
+  return {
+    bitunix: { key: "", secret: "" },
+    bitget: { key: "", secret: "", passphrase: "" },
+  };
+}
+
+/** True when at least one credential field of the entry holds a value. */
+export function apiKeyHasMaterial(
+  entry: Settings["apiKeys"]["bitunix"],
+): boolean {
+  return (
+    !!entry &&
+    Object.values(entry).some((v) => typeof v === "string" && v.length > 0)
+  );
+}
+
+const EXCHANGE_KEY_SLOTS = ["bitunix", "bitget"] as const;
+
+/**
  * Encrypted-credential handling and the `secretsReady` handshake, as one
  * unit with one owner. `SettingsManager` constructs this and calls into it
  * from `load()` and `save()`; it can't import `settings.svelte.ts` back
@@ -104,9 +133,16 @@ export class SecretsLoader {
    * Resolves `encryptedApiKeys` / `isEncrypted` / `isLocked` / `apiKeys` from
    * a merged settings blob. `currentApiKeys` is mutated in place for the
    * legacy (unencrypted) branch to preserve its object identity for any
-   * component bound to it -- the encrypted branch replaces it wholesale
-   * (nothing to preserve: the plain keys must be empty while locked), same
-   * as before this split.
+   * component bound to it -- the encrypted branches replace it wholesale
+   * (nothing to preserve: the plain keys must be empty until decryption
+   * refills them), same as before this split.
+   *
+   * Three storage states exist (BUG-0280):
+   * - master-password blobs + `isEncrypted`: locked until `unlock(password)`;
+   * - device-key blobs without `isEncrypted`: obfuscation mode, unlocked,
+   *   caller schedules the background device-key decryption;
+   * - no blobs: legacy plaintext (kept in memory; the next save encrypts it)
+   *   or nothing at all.
    */
   applyApiKeys(
     merged: Settings,
@@ -121,9 +157,11 @@ export class SecretsLoader {
       merged.encryptedApiKeys &&
       Object.keys(merged.encryptedApiKeys).length > 0
     ) {
+      const encrypted = merged.isEncrypted === true;
       return {
-        isEncrypted: true,
-        isLocked: true,
+        isEncrypted: encrypted,
+        // Obfuscation mode has nothing to unlock: the device key suffices.
+        isLocked: encrypted,
         encryptedApiKeys: merged.encryptedApiKeys,
         apiKeys: {
           bitunix: { key: "", secret: "" },
@@ -258,5 +296,98 @@ export class SecretsLoader {
     );
 
     await Promise.all(encryptionTasks);
+  }
+
+  /**
+   * Decrypts device-key-encrypted exchange credentials (BUG-0280) for the
+   * obfuscation-mode background refill on load. Returns per-exchange
+   * plaintext plus a failure count so callers can surface decryption
+   * problems; a failed blob never yields partial credentials.
+   */
+  async decryptApiKeysWithDeviceKey(
+    encryptedApiKeys: NonNullable<Settings["encryptedApiKeys"]>,
+  ): Promise<{
+    bitunix?: Settings["apiKeys"]["bitunix"];
+    bitget?: Settings["apiKeys"]["bitget"];
+    failures: number;
+  }> {
+    const hasStoredSecrets = Object.keys(encryptedApiKeys).length > 0;
+    const deviceKey = await this.getDeviceKey(hasStoredSecrets);
+
+    const restored: {
+      bitunix?: Settings["apiKeys"]["bitunix"];
+      bitget?: Settings["apiKeys"]["bitget"];
+      failures: number;
+    } = { failures: 0 };
+
+    await Promise.all(
+      EXCHANGE_KEY_SLOTS.map(async (exchange) => {
+        const blob = encryptedApiKeys[exchange];
+        if (!blob) return;
+        try {
+          const json = await cryptoService.decrypt(blob, deviceKey);
+          restored[exchange] = JSON.parse(json);
+        } catch (e) {
+          restored.failures++;
+          console.error(
+            "[Settings] Failed to decrypt " + exchange + " API keys",
+            e,
+          );
+        }
+      }),
+    );
+
+    return restored;
+  }
+
+  /**
+   * Encrypts the live exchange credentials into `data.encryptedApiKeys`
+   * before persistence (BUG-0280) -- same treatment as `applyFieldEncryption`
+   * gives `SENSITIVE_KEYS`, just for the nested `apiKeys` block, which
+   * `toJSON()` only ever emits redacted. `canEncrypt = false` (locked
+   * master-password session) keeps whatever ciphertext already exists.
+   * With `allowClear = false` (background device-key decryption still
+   * pending, live fields not yet refilled) existing blobs are preserved so
+   * the startup autosave cannot race them away; clearing stays possible as
+   * soon as the refill settled or the user typed new material.
+   */
+  async applyApiKeyEncryption(
+    data: Settings,
+    liveApiKeys: Settings["apiKeys"],
+    canEncrypt: boolean,
+    encryptionPassword: string | CryptoKey | undefined,
+    allowClear: boolean,
+  ): Promise<void> {
+    if (!canEncrypt) return;
+
+    if (!data.apiKeys) {
+      data.apiKeys = redactApiKeys(liveApiKeys);
+    }
+    if (!data.encryptedApiKeys) {
+      data.encryptedApiKeys = {};
+    }
+
+    for (const exchange of EXCHANGE_KEY_SLOTS) {
+      const creds = liveApiKeys?.[exchange];
+      const hasMaterial = apiKeyHasMaterial(creds);
+
+      if (!hasMaterial) {
+        if (allowClear) delete data.encryptedApiKeys[exchange];
+        continue;
+      }
+
+      try {
+        data.encryptedApiKeys[exchange] = await cryptoService.encrypt(
+          JSON.stringify(creds),
+          encryptionPassword,
+        );
+      } catch (err) {
+        // Never fall back to plaintext: keep any previous ciphertext and
+        // let the next save retry. The in-memory copy stays untouched.
+        if (import.meta.env.DEV) {
+          console.error(`[Settings] Failed to encrypt ${exchange} API keys:`, err);
+        }
+      }
+    }
   }
 }

@@ -13,7 +13,12 @@ import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 import { EntitlementStore } from "./entitlement.svelte";
-import { SecretsLoader, SENSITIVE_KEYS } from "./settings/secretsLoader";
+import {
+  SecretsLoader,
+  SENSITIVE_KEYS,
+  apiKeyHasMaterial,
+  redactApiKeys,
+} from "./settings/secretsLoader";
 import type { AiAnalysisMode } from "../types/ai";
 import {
   resolveApiProvider,
@@ -885,6 +890,23 @@ export class SettingsManager {
   private effectCleanup: (() => void) | null = null;
   private saveLock = false; // Prevents concurrent saves
 
+  /**
+   * True while the obfuscation-mode background decryption of
+   * `encryptedApiKeys` is still in flight (BUG-0280). Until it settles the
+   * live credential fields are not yet refilled, so a save must preserve
+   * existing blobs instead of reading the empty fields as "user cleared
+   * the keys" and deleting them.
+   */
+  private apiKeyDecryptPending = false;
+
+  /**
+   * Set by `load()` when legacy plaintext exchange credentials were found in
+   * storage (pre-BUG-0280 blobs). The constructor fires one immediate save
+   * so the migration to device-key ciphertext happens on first launch, not
+   * at the next unrelated settings change.
+   */
+  private migrateLegacyApiKeys = false;
+
   // Security State
   encryptedApiKeys = $state<Settings["encryptedApiKeys"]>(undefined);
   encryptedSecrets = $state<Settings["encryptedSecrets"]>(undefined);
@@ -952,6 +974,12 @@ export class SettingsManager {
           });
         });
       });
+
+      // BUG-0280 one-time migration: legacy plaintext exchange keys found on
+      // load are re-encrypted immediately instead of waiting for the next
+      // unrelated settings change (the save itself is a no-op write once the
+      // stored blob is already ciphertext, so later boots stay read-only).
+      if (this.migrateLegacyApiKeys) void this.save();
 
       if (import.meta.env.DEV) {
         console.warn("[Settings] Store ready. Provider:", this.apiProvider);
@@ -1165,46 +1193,106 @@ export class SettingsManager {
       this.encryptedApiKeys = apiKeyResult.encryptedApiKeys;
       this.apiKeys = apiKeyResult.apiKeys;
 
-      // Security: Load Encrypted Secrets (Generic)
-      if (merged.encryptedSecrets) {
-        this.encryptedSecrets = merged.encryptedSecrets;
+      // BUG-0280 migration flag: storage predating the fix kept exchange
+      // credentials as plaintext whenever no master password was set. They
+      // stay usable in memory (above); the constructor's immediate save
+      // re-persists them as device-key ciphertext on first launch.
+      this.migrateLegacyApiKeys =
+        !this.isEncrypted &&
+        !(merged.encryptedApiKeys && Object.keys(merged.encryptedApiKeys).length > 0) &&
+        (apiKeyHasMaterial(merged.apiKeys?.bitunix) ||
+          apiKeyHasMaterial(merged.apiKeys?.bitget));
 
-        // If Obfuscation Mode (no master password), decrypt immediately.
-        // load() is sync, so this is a fire-and-forget background task.
-        if (!this.isEncrypted) {
+      // Security: Load Encrypted Secrets (Generic) and the device-key-
+      // encrypted exchange keys (BUG-0280). Both decrypt against the device
+      // key in obfuscation mode. load() stays synchronous: fire-and-forget
+      // background tasks with a single `secretsReady` release once every
+      // task settled, success or failure.
+      if (!this.isEncrypted) {
+        this.decryptionFailures = 0;
+        const backgroundTasks: Promise<unknown>[] = [];
+        let apiKeyFailures = 0;
+
+        const eak = merged.encryptedApiKeys;
+        if (eak && Object.keys(eak).length > 0) {
+          this.apiKeyDecryptPending = true;
+          backgroundTasks.push(
+            this.secretsLoader
+              .decryptApiKeysWithDeviceKey(eak)
+              .then((restored) => {
+                apiKeyFailures = restored.failures;
+                // Refill only fields nothing else has populated; typed-but-
+                // unsaved credentials win over the stored ciphertext.
+                if (
+                  restored.bitunix &&
+                  !apiKeyHasMaterial(this.apiKeys.bitunix)
+                ) {
+                  this.apiKeys.bitunix = restored.bitunix;
+                }
+                if (
+                  restored.bitget &&
+                  !apiKeyHasMaterial(this.apiKeys.bitget)
+                ) {
+                  this.apiKeys.bitget = restored.bitget;
+                }
+              })
+              .catch((e) => {
+                console.error(
+                  "[Settings] Failed to initialize API key decryption",
+                  e,
+                );
+              })
+              .finally(() => {
+                this.apiKeyDecryptPending = false;
+              }),
+          );
+        }
+
+        if (merged.encryptedSecrets) {
+          this.encryptedSecrets = merged.encryptedSecrets;
+
+          backgroundTasks.push(
+            this.secretsLoader
+              .isDeviceKeyLost(this.encryptedSecrets)
+              .then((lost) => {
+                this.deviceKeyLost = lost;
+              })
+              .catch(() => {
+                // Canary check is best-effort; a failed probe must not block
+                // decryption or flip the flag without evidence.
+                this.deviceKeyLost = false;
+              }),
+          );
+
+          backgroundTasks.push(
+            this.secretsLoader
+              .decryptSecrets(this.encryptedSecrets, (key, value) => {
+                // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
+                this[key] = value;
+              })
+              .then((failures) => {
+                this.decryptionFailures = failures;
+                if (failures === 0) this.deviceKeyLost = false;
+              })
+              .catch((e) => {
+                this.decryptionFailures = SENSITIVE_KEYS.length;
+                console.error(
+                  "[Settings] Failed to initialize background decryption",
+                  e,
+                );
+              }),
+          );
+        }
+
+        if (backgroundTasks.length > 0) {
           secretsPending = true;
-          void this.secretsLoader
-            .isDeviceKeyLost(this.encryptedSecrets)
-            .then((lost) => {
-              this.deviceKeyLost = lost;
-            })
-            .catch(() => {
-              // Canary check is best-effort; a failed probe must not block
-              // decryption or flip the flag without evidence.
-              this.deviceKeyLost = false;
-            });
-          void this.secretsLoader
-            .decryptSecrets(this.encryptedSecrets, (key, value) => {
-              // @ts-expect-error -- dynamic index over SENSITIVE_KEYS, which TypeScript cannot narrow to a writable key
-              this[key] = value;
-            })
-            .then((failures) => {
-              this.decryptionFailures = failures;
-              if (failures === 0) this.deviceKeyLost = false;
-            })
-            .catch((e) => {
-              this.decryptionFailures = SENSITIVE_KEYS.length;
-              console.error(
-                "[Settings] Failed to initialize background decryption",
-                e,
-              );
-            })
-            .finally(() => {
-              // Release waiters even when decryption failed — a request
-              // without the token gets a clean 401, a request that never
-              // fires hangs the UI.
-              this.resolveSecretsReady();
-            });
+          void Promise.all(backgroundTasks).finally(() => {
+            // Release waiters even when decryption failed — a request
+            // without the token gets a clean 401, a request that never
+            // fires hangs the UI.
+            this.decryptionFailures += apiKeyFailures;
+            this.resolveSecretsReady();
+          });
         }
       }
 
@@ -1480,6 +1568,18 @@ export class SettingsManager {
         encryptionPassword,
       );
 
+      // BUG-0280: encrypt the exchange credentials from the live state (the
+      // serialized block above only ever carries placeholders). While the
+      // background device-key decryption is still refilling the fields, an
+      // existing blob must survive instead of being read as "cleared".
+      await this.secretsLoader.applyApiKeyEncryption(
+        data,
+        $state.snapshot(this.apiKeys),
+        canEncrypt,
+        encryptionPassword,
+        !this.apiKeyDecryptPending,
+      );
+
       const current = localStorage.getItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
       );
@@ -1526,12 +1626,11 @@ export class SettingsManager {
       isPro: this.entitlement.isPro,
       feePreference: this.feePreference,
       hotkeyMode: this.hotkeyMode,
-      apiKeys: this.isEncrypted
-        ? {
-            bitunix: { key: "", secret: "" },
-            bitget: { key: "", secret: "", passphrase: "" },
-          }
-        : $state.snapshot(this.apiKeys),
+      // BUG-0280: exchange credentials never serialize, in either mode --
+      // the block carries only placeholders. The $state.snapshot(...)
+      // argument still deep-reads the live keys so the autosave $effect
+      // keeps tracking credential edits.
+      apiKeys: redactApiKeys($state.snapshot(this.apiKeys)),
       encryptedApiKeys: this.encryptedApiKeys
         ? $state.snapshot(this.encryptedApiKeys)
         : undefined,

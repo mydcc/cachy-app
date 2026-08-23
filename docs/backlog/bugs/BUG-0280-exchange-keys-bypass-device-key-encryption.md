@@ -2,7 +2,9 @@
 id: BUG-0280
 title: Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/bug-0280-exchange-key-encryption
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -62,14 +64,15 @@ the otherwise-sound device-key encryption path never sees them.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect: saving `apiKeys` without a master
+- [x] A test reproduces the defect: saving `apiKeys` without a master
       password produces plaintext in the persisted JSON, and fails before
       the fix
-- [ ] After the fix, the same save produces ciphertext and `toJSON()` never
+- [x] After the fix, the same save produces ciphertext and `toJSON()` never
       contains key/secret material
-- [ ] Legacy plaintext entries are migrated to encrypted form on load
-- [ ] A backup payload contains no plaintext exchange credentials
-- [ ] `npm run check` and the affected tests pass
+- [x] Legacy plaintext entries are migrated to encrypted form on load
+- [x] A backup payload contains no plaintext exchange credentials
+      (covered by the BUG-0283 `sanitizeSettingsForUnencryptedExport` tests)
+- [x] `npm run check` and the affected tests pass
 
 ## Priority note
 

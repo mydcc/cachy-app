@@ -889,7 +889,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0280",
     "title": "Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0280-exchange-key-encryption",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3485,7 +3487,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0273",
     "title": "Security hygiene sweep for three low-severity findings from the identity audit",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P3",
     "milestone": "none",
     "editions": [
