@@ -24,8 +24,8 @@
   **One source of truth: `price`.** The slider position and the target field are
   both *derived* from it, and editing either one computes a new price and hands
   it back through `onChange`. There is no second copy of the value to drift, so
-  "what the slider shows" and "what gets submitted" cannot disagree — which is
-  the FEAT-0011 displayed-state discipline applied inside a single component.
+  the displayed price and the submitted price cannot disagree — the FEAT-0011
+  displayed-state discipline applied inside a single component.
 
   **The three modes share one bound.** `TP_MAX_ROI_PERCENT` / `SL_MAX_ROI_PERCENT`
   are expressed in ROI, and the PnL and Change modes convert that same bound

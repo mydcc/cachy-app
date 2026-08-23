@@ -9,7 +9,7 @@ milestone: M3
 editions: [community, pro, private]
 area: trade-panel
 data_class: none
-adr: none
+adr: ADR-0010
 depends_on: []
 estimate: 5
 size: M
