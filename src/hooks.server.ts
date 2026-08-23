@@ -118,6 +118,15 @@ const themeHandler: Handle = async ({ event, resolve }) => {
 
 export const headersHandler: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
+
+  // Documents must revalidate on every navigation: after a redeploy the old
+  // build's hashed chunks are gone, and heuristically cached HTML makes
+  // browsers boot a shell that references them (see lib/staleDeploymentRecovery).
+  const contentType = response.headers.get("content-type");
+  if (contentType?.startsWith("text/html")) {
+    response.headers.set("Cache-Control", "no-cache");
+  }
+
   // COOP: same-origin-allow-popups keeps TradingView popup compatibility
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   // DO NOT add Cross-Origin-Embedder-Policy (COEP). COEP breaks embedded channel iframes (e.g. space.cachy.app Unity Metaverse) and external news modals.
