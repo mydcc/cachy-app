@@ -46,8 +46,11 @@
     roiPercentFromPrice,
     priceFromPnl,
     pnlFromPrice,
+    netPnlFromPrice,
+    netRoiPercentFromPrice,
     roundToTick,
     type TpSlContext,
+    type FeeRates,
   } from "../../lib/calculators/tpsl";
 
   type Mode = "PNL" | "ROI" | "CHANGE";
@@ -80,12 +83,18 @@
     tickSize: Decimal;
     /** Current trigger price. The single source of truth. */
     price: Decimal;
+    /**
+     * Fee rates for the after-fees readout. Omit when no rate is known — the
+     * net line is then hidden rather than computed with zeros, which would
+     * print net and gross as equal and read as "this trade costs nothing".
+     */
+    fees?: FeeRates;
     disabled?: boolean;
     /** Always receives a tick-rounded price. */
     onChange: (price: Decimal) => void;
   }
 
-  let { ctx, kind, tickSize, price, disabled = false, onChange }: Props = $props();
+  let { ctx, kind, tickSize, price, fees, disabled = false, onChange }: Props = $props();
 
   let mode = $state<Mode>("ROI");
 
@@ -145,6 +154,26 @@
   );
 
   const modeUnit = $derived(mode === "PNL" ? "USDT" : "%");
+
+  /*
+   * Readout figures, prepared here rather than in the template — the same
+   * rule that keeps computation out of an `{#each}` body applies to a line
+   * that recomputes on every drag frame.
+   */
+  /*
+   * `toFixed` rather than `toDecimalPlaces`: the latter drops trailing zeros,
+   * so a gross "-10" would sit directly above a net "-10.11" and the two
+   * would not line up as the comparison they are meant to be. Editable fields
+   * keep the unpadded form — padding a value someone is about to type over is
+   * a different mistake.
+   */
+  const money = (v: Decimal) => v.toFixed(2);
+
+  const grossRoi = $derived(money(roiPercentFromPrice(ctx, price)));
+  const grossChange = $derived(money(changePercentFromPrice(ctx, price)));
+  const grossPnl = $derived(money(pnlFromPrice(ctx, price)));
+  const netRoi = $derived(fees ? money(netRoiPercentFromPrice(ctx, price, fees)) : null);
+  const netPnl = $derived(fees ? money(netPnlFromPrice(ctx, price, fees)) : null);
 
   /*
    * The label key is spelled out per tab rather than interpolated. A template
@@ -306,10 +335,27 @@
     />
   </div>
 
-  <!-- Cross-mode readout, so the other two modes stay visible -->
-  <p class="text-[10px] text-[var(--text-secondary)] font-mono">
-    {roiPercentFromPrice(ctx, price).toDecimalPlaces(2)}% ROI ·
-    {changePercentFromPrice(ctx, price).toDecimalPlaces(2)}% ·
-    {pnlFromPrice(ctx, price).toDecimalPlaces(2)} USDT
-  </p>
+  <!--
+    Cross-mode readout: the same trigger stated the other two ways, so
+    switching tabs is not needed just to see them.
+
+    The net line is the honest half. The slider is gross — it has to be, since
+    a trigger is a price and the price must be the one the exchange gets — but
+    gross is optimistic on *both* legs at once: it understates what a stop
+    really costs and overstates what a target really pays, which makes the
+    R:R a trader actually decides on wrong twice over in the same direction.
+    Showing net beside it is what stops that being invisible, without letting
+    an estimated fee rate move the order itself.
+  -->
+  <div class="text-[10px] font-mono flex flex-col gap-0.5">
+    <p class="text-[var(--text-secondary)]">
+      {$_("dashboard.tpslManager.grossBeforeFees")}: {grossRoi}% ROI ·
+      {grossChange}% · {grossPnl} USDT
+    </p>
+    {#if netRoi !== null && netPnl !== null}
+      <p class="text-[var(--text-primary)]">
+        {$_("dashboard.tpslManager.netAfterFees")}: {netRoi}% ROI · {netPnl} USDT
+      </p>
+    {/if}
+  </div>
 </div>

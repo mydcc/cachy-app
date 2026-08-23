@@ -24,7 +24,8 @@
   import TpSlPriceInput from "./TpSlPriceInput.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
-  import type { TpSlContext } from "../../lib/calculators/tpsl";
+  import { tradeState } from "../../stores/trade.svelte";
+  import type { TpSlContext, FeeRates } from "../../lib/calculators/tpsl";
 
   interface Props {
     order: TpSlOrder | null;
@@ -79,6 +80,35 @@
     const precision = order ? marketState.symbolMeta[order.symbol]?.quotePrecision : undefined;
     if (precision === undefined || precision === null) return new Decimal(0);
     return new Decimal(10).pow(-precision);
+  });
+
+  /*
+   * Rates for the after-fees readout. `tradeState.fees` is the calculator's
+   * single hand-entered percentage, so both legs get the same number — which
+   * is what `calculateIndividualTp` already does, so the two agree.
+   *
+   * It is only an estimate, and knowingly so on both legs: the entry rate
+   * depends on whether the position was opened market or limit, and the exit
+   * rate on how the position actually ends — a resting take-profit pays
+   * maker, the same position closed early at market pays taker. The panel has
+   * no per-leg rate to offer yet (`tradeState.feeMode` is `maker_taker` or
+   * `flat`, and `remoteMakerFee`/`remoteTakerFee` are declared but never
+   * assigned), which is why this is a readout and not something the slider
+   * computes against.
+   *
+   * Undefined when no rate is set, so the net line is hidden rather than
+   * printed as equal to gross.
+   */
+  const feeRates = $derived.by<FeeRates | undefined>(() => {
+    const raw = tradeState.fees;
+    if (raw === null || raw === undefined || raw === "") return undefined;
+    try {
+      const rate = new Decimal(raw);
+      if (!rate.isFinite() || rate.lt(0)) return undefined;
+      return { entryPercent: rate, exitPercent: rate };
+    } catch {
+      return undefined;
+    }
   });
 
   /** The trigger price as a Decimal, for the slider. */
@@ -147,6 +177,7 @@
         kind={order?.planType === "PROFIT" ? "TP" : "SL"}
         {tickSize}
         price={triggerDecimal}
+        fees={feeRates}
         disabled={loading}
         onChange={(next) => (triggerPrice = next.toString())}
       />

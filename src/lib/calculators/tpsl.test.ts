@@ -25,8 +25,11 @@ import {
     roiPercentFromPrice,
     priceFromPnl,
     pnlFromPrice,
+    netPnlFromPrice,
+    netRoiPercentFromPrice,
     roundToTick,
     type TpSlContext,
+    type FeeRates,
 } from "./tpsl";
 
 /** Entry 100, 10x, 2 contracts — small round numbers so the arithmetic is checkable by eye. */
@@ -162,6 +165,62 @@ describe("round trips", () => {
         const fromRoi = priceFromRoiPercent(LONG, new Decimal(100));
         expect(changePercentFromPrice(LONG, fromRoi).toString()).toBe("10");
         expect(pnlFromPrice(LONG, fromRoi).toString()).toBe("20");
+    });
+});
+
+describe("fees", () => {
+    /** Bitunix's published rates: maker 0.014%, taker 0.042%. */
+    const MAKER_THEN_TAKER: FeeRates = {
+        entryPercent: new Decimal("0.014"),
+        exitPercent: new Decimal("0.042"),
+    };
+    const FREE: FeeRates = { entryPercent: new Decimal(0), exitPercent: new Decimal(0) };
+
+    it("charges each leg on the notional it actually trades at", () => {
+        // Entry: 2 × 100 × 0.014% = 0.028. Exit: 2 × 110 × 0.042% = 0.0924.
+        // Gross 20 − 0.028 − 0.0924 = 19.8796.
+        const net = netPnlFromPrice(LONG, new Decimal(110), MAKER_THEN_TAKER);
+        expect(net.toString()).toBe("19.8796");
+    });
+
+    it("collapses to gross when both rates are zero", () => {
+        const price = new Decimal(110);
+        expect(netPnlFromPrice(LONG, price, FREE).toString()).toBe(
+            pnlFromPrice(LONG, price).toString(),
+        );
+    });
+
+    it("makes a loss worse, not better — fees are paid either way", () => {
+        const stop = new Decimal(95);
+        const gross = pnlFromPrice(LONG, stop);
+        const net = netPnlFromPrice(LONG, stop, MAKER_THEN_TAKER);
+        expect(gross.toString()).toBe("-10");
+        expect(net.lt(gross)).toBe(true);
+    });
+
+    it("charges a short's fees on the same notionals as a long's", () => {
+        // A short to 90 moves the same 10 points, but its exit notional is
+        // 2 × 90, not 2 × 110 — so its exit fee is smaller, not mirrored.
+        const net = netPnlFromPrice(SHORT, new Decimal(90), MAKER_THEN_TAKER);
+        // Gross 20 − 0.028 − (2 × 90 × 0.042%) = 20 − 0.028 − 0.0756.
+        expect(net.toString()).toBe("19.8964");
+    });
+
+    it("reports net ROI against the posted margin", () => {
+        // Margin = 2 × 100 / 10 = 20. Net 19.8796 / 20 = 99.398%.
+        const roi = netRoiPercentFromPrice(LONG, new Decimal(110), MAKER_THEN_TAKER);
+        expect(roi.toDecimalPlaces(3).toString()).toBe("99.398");
+    });
+
+    it("sits below gross ROI — which is the whole reason it is shown", () => {
+        const price = new Decimal(110);
+        expect(roiPercentFromPrice(LONG, price).toString()).toBe("100");
+        expect(netRoiPercentFromPrice(LONG, price, MAKER_THEN_TAKER).lt(100)).toBe(true);
+    });
+
+    it("returns zero for a position with no size rather than dividing by zero", () => {
+        const empty: TpSlContext = { ...LONG, positionSize: new Decimal(0) };
+        expect(netRoiPercentFromPrice(empty, new Decimal(110), MAKER_THEN_TAKER).toString()).toBe("0");
     });
 });
 

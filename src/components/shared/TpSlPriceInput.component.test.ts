@@ -82,6 +82,7 @@ function render(props: {
     ctx?: TpSlContext;
     kind?: "TP" | "SL";
     price: Decimal;
+    fees?: { entryPercent: Decimal; exitPercent: Decimal };
     onChange: (p: Decimal) => void;
 }) {
     component = mount(TpSlPriceInput, {
@@ -91,6 +92,7 @@ function render(props: {
             kind: props.kind ?? "TP",
             tickSize: TICK,
             price: props.price,
+            fees: props.fees,
             onChange: props.onChange,
         },
     }) as never;
@@ -216,6 +218,70 @@ describe("FEAT-0254 — calculation modes", () => {
 
         // 50 USDT over 2 contracts = +25 on the price.
         expect((onChange.mock.calls.at(-1)![0] as Decimal).toString()).toBe("125");
+    });
+});
+
+describe("FEAT-0254 — the after-fees readout", () => {
+    const FEES = {
+        entryPercent: new Decimal("0.014"),
+        exitPercent: new Decimal("0.042"),
+    };
+
+    it("always states the gross figures", () => {
+        render({ price: new Decimal("110"), onChange: vi.fn() });
+        const text = host.textContent ?? "";
+        expect(text).toContain(lookup("dashboard.tpslManager.grossBeforeFees"));
+        expect(text).toContain("100.00% ROI");
+    });
+
+    it("hides the net line when no fee rate is known", () => {
+        // Rather than printing net == gross, which would read as "this trade
+        // costs nothing" instead of "nobody told us the rate".
+        render({ price: new Decimal("110"), onChange: vi.fn() });
+        expect(host.textContent).not.toContain(lookup("dashboard.tpslManager.netAfterFees"));
+    });
+
+    it("shows net below gross when a rate is given", () => {
+        render({ price: new Decimal("110"), fees: FEES, onChange: vi.fn() });
+        const text = host.textContent ?? "";
+        expect(text).toContain(lookup("dashboard.tpslManager.netAfterFees"));
+        // Margin 20, net PnL 19.8796 → 99.398% → 99.40 at 2dp.
+        expect(text).toContain("99.40% ROI");
+        expect(text).toContain("19.88 USDT");
+    });
+
+    it("does not let fees move the trigger price", () => {
+        // The whole reason net is a readout: an estimated rate must not reach
+        // the order. Same slider position, with and without fees.
+        const withoutFees = vi.fn();
+        render({ price: new Decimal("100"), onChange: withoutFees });
+        let range = slider();
+        range.value = "60";
+        range.dispatchEvent(new Event("input", { bubbles: true }));
+        settle();
+
+        unmount(component!);
+        component = null;
+        host.innerHTML = "";
+
+        const withFees = vi.fn();
+        render({ price: new Decimal("100"), fees: FEES, onChange: withFees });
+        range = slider();
+        range.value = "60";
+        range.dispatchEvent(new Event("input", { bubbles: true }));
+        settle();
+
+        expect((withFees.mock.calls[0][0] as Decimal).toString()).toBe(
+            (withoutFees.mock.calls[0][0] as Decimal).toString(),
+        );
+    });
+
+    it("shows a stop costing more than its gross figure, not less", () => {
+        render({ kind: "SL", price: new Decimal("95"), fees: FEES, onChange: vi.fn() });
+        const text = host.textContent ?? "";
+        // Gross -10 USDT; fees make the realised loss larger.
+        expect(text).toContain("-10.00 USDT");
+        expect(text).toMatch(/-10\.1\d USDT/);
     });
 });
 

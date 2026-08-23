@@ -288,7 +288,9 @@
       "targetLoss": "Verlust",
       "triggerPrice": "Trigger-Preis",
       "tpSliderLabel": "Take-Profit-Ziel",
-      "slSliderLabel": "Stop-Loss-Ziel"
+      "slSliderLabel": "Stop-Loss-Ziel",
+      "grossBeforeFees": "Brutto",
+      "netAfterFees": "Nach Gebühren"
     },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",

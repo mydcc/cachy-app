@@ -192,35 +192,75 @@ export function roundToTick(price: Decimal, tickSize: Decimal): Decimal {
 }
 
 /* ------------------------------------------------------------------ *
- * Fee treatment — OPEN, see FEAT-0254's open questions.
+ * Fees — forward only, on purpose.
+ *
+ * Everything above is gross, and gross is what drives the slider: a trigger
+ * is a *price*, and the price a trader dials in must be the price the
+ * exchange gets. The functions below say what that price is actually worth
+ * after fees, for display beside it.
+ *
+ * There is deliberately no inverse here. Making a net figure *drive* the
+ * slider would put a hand-estimated fee rate into the order itself — a wrong
+ * guess would move real money. As a readout, a wrong guess costs one line of
+ * information. Errors should degrade what is shown, not what is sent.
+ *
+ * The rate is also genuinely uncertain in a way that has nothing to do with
+ * the account's tier: a take-profit resting as a limit order pays maker, the
+ * same position closed early at market pays taker (0.014% vs 0.042% on
+ * Bitunix — a factor of three), and which one happens is not known when the
+ * plan is set. So this is an estimate under a stated assumption, and belongs
+ * where an estimate belongs.
  * ------------------------------------------------------------------ */
 
 /**
- * Gross ROI, as computed by {@link roiPercentFromPrice}, ignores trading fees.
- * `calculateIndividualTp` in `core.ts` does not: its `returnOnCapital` is
- * derived from `netProfit`, which subtracts both the entry and the exit fee.
+ * The two legs are separate rates because they genuinely are: entry is
+ * decided by the order type that opened the position, exit by how it ends.
  *
- * So a trader who drags this slider to "+100% ROI" and then reads the
- * calculator panel next to it sees something slightly under 100 — the same
- * number, computed two ways, disagreeing on screen. That is the class of
- * inconsistency BUG-0252 was about on the margin side.
+ * `core.ts` currently applies one rate to both (`values.fees`), and the trade
+ * panel only carries one — `tradeState.feeMode` is `"maker_taker" | "flat"`
+ * while the journal's own `feeMode` covers all four combinations, and
+ * `remoteMakerFee`/`remoteTakerFee` are declared but never assigned by
+ * anything. Modelling both legs here means the call site is the only thing
+ * that changes when the panel catches up, rather than this arithmetic.
  *
- * TODO(FEAT-0254): decide gross vs net and implement here. Both are
- * defensible:
- *
- *   - **Gross** (current behaviour) — the slider says what the price does.
- *     Simple, exactly invertible, and independent of a fee rate the app may
- *     not know for the active account's tier.
- *   - **Net** — the slider says what the trader actually keeps, and agrees
- *     with the panel. Needs `feePercent` in `TpSlContext`, and the inverse
- *     stops being a one-liner because the exit fee depends on the exit price
- *     being solved for.
- *
- * Net, solved for a long:
- *
- *     netPnL = size × (P − E) − size × E × f − size × P × f
- *            = size × [ P(1 − f) − E(1 + f) ]
- *     ⇒  P   = [ netPnL / size + E(1 + f) ] / (1 − f)
- *
- * where `f` is the fee rate as a fraction (`feePercent / 100`).
+ * Both are percentages, matching `values.fees` — `0.014` means 0.014%, not
+ * 1.4%.
  */
+export interface FeeRates {
+    entryPercent: Decimal;
+    exitPercent: Decimal;
+}
+
+/**
+ * Gross PnL less both legs' fees, each charged on the notional it is actually
+ * traded at — entry fee on entry notional, exit fee on exit notional. Same
+ * convention as `calculateIndividualTp`, so the two agree.
+ */
+export function netPnlFromPrice(
+    ctx: TpSlContext,
+    price: Decimal,
+    fees: FeeRates,
+): Decimal {
+    const gross = pnlFromPrice(ctx, price);
+    const entryFee = ctx.positionSize.times(ctx.entryPrice).times(fees.entryPercent.div(100));
+    const exitFee = ctx.positionSize.times(price).times(fees.exitPercent.div(100));
+    return gross.minus(entryFee).minus(exitFee);
+}
+
+/**
+ * {@link netPnlFromPrice} as a return on the posted margin — the net
+ * counterpart of {@link roiPercentFromPrice}, and the same quantity
+ * `calculateIndividualTp` reports as `returnOnCapital`.
+ */
+export function netRoiPercentFromPrice(
+    ctx: TpSlContext,
+    price: Decimal,
+    fees: FeeRates,
+): Decimal {
+    if (ctx.entryPrice.lte(0) || ctx.positionSize.lte(0) || ctx.leverage.lte(0)) {
+        return new Decimal(0);
+    }
+    const margin = ctx.positionSize.times(ctx.entryPrice).div(ctx.leverage);
+    if (margin.lte(0)) return new Decimal(0);
+    return netPnlFromPrice(ctx, price, fees).div(margin).times(100);
+}

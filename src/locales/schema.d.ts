@@ -279,6 +279,8 @@ export type TranslationKey =
   | "dashboard.tpslManager.triggerPrice"
   | "dashboard.tpslManager.tpSliderLabel"
   | "dashboard.tpslManager.slSliderLabel"
+  | "dashboard.tpslManager.grossBeforeFees"
+  | "dashboard.tpslManager.netAfterFees"
   | "dashboard.viewMode"
   | "dashboard.detailed"
   | "dashboard.focus"
