@@ -2,7 +2,7 @@
 id: BUG-0281
 title: Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
