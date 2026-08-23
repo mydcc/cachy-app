@@ -106,6 +106,13 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
     pool: "threads",
+    // Multi-agent machines run several worktrees at once; each Vitest run
+    // defaults to cpus-1 workers and together they saturate every core.
+    // Agents cap their own runs with VITEST_MAX_WORKERS=1 (or use
+    // `npm run test:seq`) while sibling worktrees are active. Unset keeps
+    // Vitest's default sizing.
+    maxWorkers: process.env.VITEST_MAX_WORKERS ? Number(process.env.VITEST_MAX_WORKERS) : undefined,
+    minWorkers: 1,
     // Two projects, because component tests need one resolution rule the rest
     // of the suite must not have. `npm test` runs both.
     projects: [

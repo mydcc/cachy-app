@@ -31,9 +31,33 @@ runs both projects. Example: `src/components/shared/TpSlList.refusal.component.t
 - **Changed files only (git-based):** `npm run test:changed`
 - **Component tests** (`*.component.test.ts`, `components` project): `npx vitest run src/components/shared/TpSlList.refusal.component.test.ts`
 
-Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. `npm run check` is still mandatory after every change regardless of the test scope.
+Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. A full `npm run check` is still required before completion regardless of the test scope — how often to run it mid-task is judgment-based, see "Verification Proportionality & Multi-Agent Resource Policy" below.
 
 The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without this step, the build will fail — in cloud sandbox environments (e.g., Jules Environment Setup), this script must be part of the setup step.
+
+## Verification Proportionality & Multi-Agent Resource Policy
+
+Agents judge how much verification a change needs based on its blast radius — batch related edits and verify at logical milestones instead of re-running everything after every single save:
+
+- **Trivial/local edit** (single component/util, no exported-signature changes): targeted tests for the touched files; full `npm run check` once before completion.
+- **Cross-cutting change** (services, shared stores, types): targeted tests for all affected areas plus `npm run check`.
+- **Core-critical areas** (position sizing, risk engine, exchange request signing, decimal.js math): always full targeted tests + check — resource pressure never lowers this bar.
+
+When several worktrees are active on one machine:
+
+- Larger test runs: set `VITEST_MAX_WORKERS=1` or use `npm run test:seq` (`--no-file-parallelism`) so sibling agents keep CPU headroom.
+- `npm run check` runs at low scheduling priority automatically (via `scripts/run-lowpri.sh`); keep the number of runs proportionate anyway.
+- Playwright/E2E only when the task touches end-to-end behavior; never run `npm run dev` inside a worktree.
+
+Before every push — sync first, then verify, then push (a check on a stale branch is wasted work):
+
+```bash
+bash scripts/sync-develop.sh   # fetches origin/develop, rebases when behind; non-zero exit = conflicts
+# resolve conflicts if any, then RE-RUN npm run check + relevant targeted tests
+git push --force-with-lease    # after a successful rebase
+```
+
+Unchanged: a task is considered completed ONLY when `npm run check` and the relevant tests pass.
 
 ## Non-Negotiable Rules
 
@@ -63,7 +87,7 @@ The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts
 
 ## Verification Before Marking Completed
 
-After every change: run `npm run check` and the affected tests — see "Run targeted tests, not the whole suite" above. A task is considered completed ONLY when type checks and tests pass — do not claim completion beforehand.
+Before marking a task completed: run `npm run check` and the affected tests — see "Run targeted tests, not the whole suite" above; mid-task cadence is judgment-based ("Verification Proportionality & Multi-Agent Resource Policy"). A task is considered completed ONLY when type checks and tests pass — do not claim completion beforehand.
 
 ## Tools & MCP — Mandatory for All Agents
 
