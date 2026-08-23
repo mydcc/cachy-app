@@ -472,6 +472,8 @@
   },
   "journal": {
     "title": "Trade Journal",
+    "viewScreenshot": "View screenshot",
+    "closeLightbox": "Close",
     "closeJournalAriaLabel": "Close Journal",
     "searchSymbolPlaceholder": "Search symbol...",
     "filterAll": "All",

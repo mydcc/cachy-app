@@ -16,11 +16,29 @@
  */
 
 import "./locales/i18n";
+import { dev } from "$app/environment";
 import type { HandleClientError } from "@sveltejs/kit";
+import {
+  installStaleDeploymentRecovery,
+  isStaleChunkError,
+  scheduleStaleReload,
+} from "$lib/staleDeploymentRecovery";
+
+// Recover from stale deployments: after a release replaces the build output,
+// long-lived tabs fail lazy chunk imports with "Failed to fetch dynamically
+// imported module". Reload once onto the fresh deployment instead of leaving
+// the user stuck (skipped in dev where HMR causes transient import failures).
+if (!dev && typeof window !== "undefined") {
+  installStaleDeploymentRecovery();
+}
 
 export const handleError: HandleClientError = async ({ error }) => {
   // Log the error to the console (default behavior)
   console.error("Client Hook Error:", error);
+
+  if (!dev && isStaleChunkError(error)) {
+    scheduleStaleReload();
+  }
 
   return {
     message: "An unexpected error occurred.",
