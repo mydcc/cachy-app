@@ -198,7 +198,7 @@ npm run build
 ```bash
 npm start
 # or with PM2
-pm2 start build/index.js --name "cachy-app"
+pm2 start server.js --name "cachy-app"
 ```
 
 See `DEPLOYMENT.md` for detailed instructions.
