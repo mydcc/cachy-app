@@ -33,6 +33,11 @@ interface Calculator {
     values: TradeValues,
     tradeType: string,
   ) => BaseMetrics | null;
+  deriveMoneyMetrics: (
+    positionSize: Decimal,
+    values: Pick<TradeValues, "entryPrice" | "stopLossPrice" | "leverage" | "fees">,
+    riskAmount: Decimal,
+  ) => { requiredMargin: Decimal; netLoss: Decimal; entryFee: Decimal };
   calculateIndividualTp: (
     price: Decimal,
     percent: Decimal,
@@ -262,10 +267,24 @@ export class CalculatorService {
     const normSymbol = normalizeSymbol(currentTradeState.symbol || "", "bitunix");
     const meta = marketState.symbolMeta[normSymbol];
     if (meta?.basePrecision !== undefined) {
-      baseMetrics.positionSize = baseMetrics.positionSize.toDecimalPlaces(
+      const rounded = baseMetrics.positionSize.toDecimalPlaces(
         meta.basePrecision,
         Decimal.ROUND_DOWN,
       );
+      if (!rounded.equals(baseMetrics.positionSize)) {
+        // Required margin, net loss and entry fee scale with position size —
+        // re-derive them from what will actually be ordered (BUG-0252),
+        // instead of leaving them reflecting the pre-rounding size.
+        const refreshed = this.calculator.deriveMoneyMetrics(
+          rounded,
+          values,
+          baseMetrics.riskAmount,
+        );
+        baseMetrics.requiredMargin = refreshed.requiredMargin;
+        baseMetrics.netLoss = refreshed.netLoss;
+        baseMetrics.entryFee = refreshed.entryFee;
+      }
+      baseMetrics.positionSize = rounded;
     }
 
     // --- Fill Results ---

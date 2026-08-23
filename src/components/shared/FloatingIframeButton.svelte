@@ -70,7 +70,7 @@
 
 <div class="relative inline-block">
     <button
-        class="btn-icon-accent"
+        class="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg btn-secondary-action transition-all hover:scale-105"
         class:active={isGenesisOpen}
         onclick={toggleMain}
         oncontextmenu={handleContextMenu}
@@ -84,7 +84,7 @@
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="w-5 h-5"
+            class="w-[18px] h-[18px]"
         >
             <polygon points="23 7 16 12 23 17 23 7"></polygon>
             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
@@ -131,8 +131,8 @@
 </div>
 
 <style>
-    .btn-icon-accent.active {
-        color: var(--accent-color);
-        background: rgba(var(--accent-color-rgb), 0.1);
+    button.active {
+        background-color: var(--btn-accent-bg);
+        color: var(--btn-accent-text);
     }
 </style>

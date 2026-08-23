@@ -19,6 +19,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { dispatchMessage, type DispatchContext } from "./channelDispatch";
 import { marketState } from "../../stores/market.svelte";
+import { tpSlState } from "../../stores/tpsl.svelte";
 
 vi.mock("../../stores/market.svelte", () => ({
   marketState: {
@@ -35,6 +36,10 @@ vi.mock("../../stores/account.svelte", () => ({
     updateOrderFromWs: vi.fn(),
     updateBalanceFromWs: vi.fn(),
   },
+}));
+
+vi.mock("../../stores/tpsl.svelte", () => ({
+  tpSlState: { updateFromWs: vi.fn() },
 }));
 
 vi.mock("../omsService", () => ({
@@ -212,5 +217,51 @@ describe("dispatchMessage fast_kline (BUG-0248)", () => {
     expect(source).toBe("ws");
     expect(klines[0].time).toBe(Math.floor(ts / 3600000) * 3600000);
     expect(Number.isNaN(klines[0].time)).toBe(false);
+  });
+});
+
+describe("dispatchMessage tp_sl channel", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("forwards a single push to tpSlState.updateFromWs", () => {
+    const ctx = makeContext();
+
+    dispatchMessage(
+      {
+        type: "validated",
+        message: {
+          ch: "tp_sl",
+          data: { event: "CREATE", orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "93" },
+        },
+      },
+      ctx,
+    );
+
+    expect(tpSlState.updateFromWs).toHaveBeenCalledTimes(1);
+    expect(tpSlState.updateFromWs).toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: "42", symbol: "SOLUSDT", tpPrice: "93" }),
+    );
+  });
+
+  it("forwards each item of an array push individually", () => {
+    const ctx = makeContext();
+
+    dispatchMessage(
+      {
+        type: "validated",
+        message: {
+          ch: "tp_sl",
+          data: [
+            { orderId: "42", symbol: "SOLUSDT", tpPrice: "93" },
+            { orderId: "42", symbol: "SOLUSDT", slPrice: "85" },
+          ],
+        },
+      },
+      ctx,
+    );
+
+    expect(tpSlState.updateFromWs).toHaveBeenCalledTimes(2);
   });
 });

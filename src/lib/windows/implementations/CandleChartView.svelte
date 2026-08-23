@@ -245,6 +245,10 @@
             borderVisible: false,
             wickUpColor: getVar("--success-color") || "#26a69a",
             wickDownColor: getVar("--danger-color") || "#ef5350",
+            // FEAT-0247's priceLineManager draws its own explicit Entry/Liq/
+            // B/E/TP/SL lines — the series' own default last-value line would
+            // just duplicate/clutter those.
+            priceLineVisible: false,
         });
 
         // Initialize EMA Series
@@ -253,16 +257,22 @@
             color: getVar("--success-color") || "#26a69a",
             lineWidth: 2,
             crosshairMarkerVisible: false,
+            // Each EMA's default last-value price line cluttered the chart
+            // alongside the position/order price lines — the line series
+            // itself is enough, it doesn't need its own axis line too.
+            priceLineVisible: false,
         });
         ema2Series = chart.addSeries(LineSeries, {
             color: getVar("--danger-color") || "#ef5350",
             lineWidth: 2,
             crosshairMarkerVisible: false,
+            priceLineVisible: false,
         });
         ema3Series = chart.addSeries(LineSeries, {
             color: getVar("--warning-color") || "#ffb300",
             lineWidth: 2,
             crosshairMarkerVisible: false,
+            priceLineVisible: false,
         });
         untrack(() => updateColors());
 
@@ -674,20 +684,38 @@
         // the entry order fills into a position — those live on the order
         // itself (tpPrice/slPrice), not in tpSlState, which only tracks
         // plans against an already-open position.
-        const pendingOrders = accountState.openOrders
-            .filter((o) => o.symbol === normalized && o.type === "limit")
-            .flatMap((o) => {
-                const lines: { orderId: string; price: Decimal; side: "buy" | "sell"; kind: "entry" | "takeProfit" | "stopLoss" }[] = [
-                    { orderId: o.orderId, price: o.price, side: o.side, kind: "entry" },
-                ];
-                if (o.tpPrice) {
-                    lines.push({ orderId: `${o.orderId}-tp`, price: new Decimal(o.tpPrice), side: o.side, kind: "takeProfit" as const });
-                }
-                if (o.slPrice) {
-                    lines.push({ orderId: `${o.orderId}-sl`, price: new Decimal(o.slPrice), side: o.side, kind: "stopLoss" as const });
-                }
-                return lines;
-            });
+        const matchingOrders = accountState.openOrders.filter((o) => o.symbol === normalized && o.type === "limit");
+        // FEAT-0247 diagnostic: bracket TP/SL on a resting order was
+        // reported as invisible even though the exchange has it set. Log
+        // the raw tpPrice/slPrice this component actually sees on each
+        // matching order, to tell apart "the fields never arrived from the
+        // exchange/hydration" from "they arrived but something here drops
+        // them" (falsy 0/empty-string, wrong symbol match, etc).
+        if (matchingOrders.length > 0) {
+            console.debug(
+                "[CandleChartView] FEAT-0247: pending orders for symbol",
+                matchingOrders.map((o) => ({
+                    orderId: o.orderId,
+                    symbol: o.symbol,
+                    type: o.type,
+                    status: o.status,
+                    tpPrice: o.tpPrice,
+                    slPrice: o.slPrice,
+                })),
+            );
+        }
+        const pendingOrders = matchingOrders.flatMap((o) => {
+            const lines: { orderId: string; price: Decimal; side: "buy" | "sell"; kind: "entry" | "takeProfit" | "stopLoss" }[] = [
+                { orderId: o.orderId, price: o.price, side: o.side, kind: "entry" },
+            ];
+            if (o.tpPrice) {
+                lines.push({ orderId: `${o.orderId}-tp`, price: new Decimal(o.tpPrice), side: o.side, kind: "takeProfit" as const });
+            }
+            if (o.slPrice) {
+                lines.push({ orderId: `${o.orderId}-sl`, price: new Decimal(o.slPrice), side: o.side, kind: "stopLoss" as const });
+            }
+            return lines;
+        });
         const meta = marketState?.symbolMeta?.[normalized];
         const tickSize =
             meta?.quotePrecision !== undefined

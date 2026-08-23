@@ -117,7 +117,7 @@ Pivot-Punkte dienen als Orientierungshilfe. Trader nutzen sie, um Ziele für Gew
 
 ### Favoriten
 
-Du kannst bis zu **4 Favoriten** für den schnellen Zugriff speichern.
+Du kannst bis zu **12 Favoriten** für den schnellen Zugriff speichern. Auf der Rechner-Seite werden die ersten 4 als Schnellwahl-Kacheln angezeigt.
 
 - **Hinzufügen:** Klicke auf das Stern-Symbol in der Marktübersicht.
 - **Zugriff:** Klicke auf einen Favoriten in der Sidebar (Desktop) oder der Favoritenleiste (Mobil), um ihn sofort in den Rechner zu laden.
@@ -142,9 +142,9 @@ Das Journal ist der Ort, an dem du deine Performance verfolgst. Es unterstützt 
 - **Manuell:** Du klickst nach der Berechnung eines Trades auf "Zum Journal hinzufügen". Du aktualisierst den Status (Gewonnen/Verloren) und den Ausstiegspreis später manuell.
 - **Synchronisiert (Bitunix):** Wenn du Bitunix nutzt und API-Schlüssel konfiguriert hast, kann Cachy deine Handelshistorie automatisch importieren, inklusive realisiertem PnL und Gebühren.
 
-### Performance Tracking (Pro)
+### Performance Tracking
 
-Nutzer mit Pro-Status haben Zugriff auf erweiterte Analysen im Journal:
+Die Journal-Analysen sind für alle Nutzer freigeschaltet:
 
 #### Dashboard Diagramme
 
@@ -154,13 +154,18 @@ Nutzer mit Pro-Status haben Zugriff auf erweiterte Analysen im Journal:
 
 #### Deep Dive Analysen
 
-Der "Deep Dive"-Bereich bietet detaillierte Einblicke in dein Verhalten:
+Der "Deep Dive"-Bereich bietet zehn spezialisierte Analyse-Tabs:
 
-- **Timing:** Analysiere, zu welcher Tageszeit oder an welchem Wochentag du am profitabelsten bist.
-- **Assets:** Ein Blasendiagramm, das zeigt, welche Coins am besten performen (Win Rate vs PnL).
-- **Risk:** Streudiagramm, das Risikobetrag mit realisiertem PnL korreliert. Riskierst du zu viel bei Verlusttrades?
-- **Strategies:** Tagge deine Trades (z.B. "Breakout", "Reversal") und sieh, welche Strategien die besten Ergebnisse liefern.
-- **Psychology:** Verfolgt Gewinn- und Verlustserien, um dir zu helfen, "Tilt" oder "Flow"-Zustände zu erkennen.
+- **Performance:** Trends deiner Ergebnisse im Zeitverlauf.
+- **Exekution:** Qualität deiner Einstiege und Ausstiege.
+- **Risiko:** Korrelation von Risikobetrag und realisiertem PnL.
+- **Markt:** Wie das Marktumfeld deine Ergebnisse beeinflusst.
+- **Verluste:** Wo Gebühren, Slippage und vermeidbare Fehler Gewinn kosten.
+- **Zeit:** Zu welcher Tageszeit oder an welchem Wochentag du am profitabelsten bist.
+- **Strategien:** Tagge deine Trades (z.B. "Breakout", "Reversal") und sieh, welche Strategien die besten Ergebnisse liefern.
+- **Verhalten:** Gewinn- und Verlustserien, um "Tilt" oder "Flow"-Zustände zu erkennen — inklusive Asset-Verteilung.
+- **Prognose:** Monte-Carlo-Simulation auf Basis deiner Historie.
+- **System Qualität:** Wie sauber und vollständig dein Journal geführt ist.
 
 ---
 
@@ -168,22 +173,21 @@ Der "Deep Dive"-Bereich bietet detaillierte Einblicke in dein Verhalten:
 
 Zugriff auf die Einstellungen über das Zahnrad-Symbol.
 
-### App Zugangstoken
+### Zugangstoken (App Access Token)
 
-Da du Cachy selbst betreibst, gibt es ein gemeinsames Geheimnis zwischen deinem Browser und deinem eigenen Server: den **App Zugangstoken** unter Einstellungen → Verbindungen.
+Cachy schützt die API-Routen deines eigenen Servers mit **selbstausgestellten
+Zugangstokens**: Beim ersten geschützten API-Aufruf fordert die App automatisch
+einen anonymen Token von deinem eigenen Server an (`POST /api/auth/token`) und
+speichert ihn in deinem Browser. Du musst nichts eintragen oder konfigurieren.
 
-Das ist **kein** Börsen-Schlüssel und kein Konto-Passwort. Er sorgt dafür, dass nur du die API-Routen deines Servers nutzen kannst.
+Das ist **kein** Börsen-Schlüssel und kein Konto-Passwort. Der Token identifiziert
+deinen Browser gegenüber deinem Server, damit nicht fremde Besucher deine
+API-Routen mitnutzen können. Der Server speichert nur einen Hash des Tokens —
+nie den Token selbst.
 
-Der Token muss an **zwei** Stellen stehen, und zwar identisch:
-
-1. In der Datei `.env` auf deinem Server, als `APP_ACCESS_TOKEN`.
-2. Hier im Feld **App Zugangstoken**.
-
-**Woran du erkennst, dass etwas fehlt:** Die App startet normal, aber der Kontostand lädt nicht, die Positionen bleiben leer, und die Browser-Konsole zeigt `401 (Unauthorized)`. Fehlt eine der beiden Hälften, weist der Server jede Anfrage ab — aus Sicherheitsgründen mit immer derselben Meldung, egal welche Hälfte fehlt.
-
-Nach dem Laden der Seite kann es ein paar Sekunden dauern, bis der Token im Feld erscheint: Er wird im Hintergrund aus dem lokalen Speicher entschlüsselt.
-
-Wie du den Token erzeugst und in die `.env` einträgst, steht in der Installationsanleitung (`docs/INSTALL.md`).
+- **Ansehen/Zurücksetzen:** Einstellungen → Verbindungen → **Zugangstoken**. Der Button **"Zugangstoken erstellen"** ersetzt den gespeicherten Token durch einen frisch ausgestellten — normalerweise nie nötig, da die App sich selbst versorgt.
+- **Server-Neustart:** Tokens liegen im Speicher des Serverprozesses. Nach einem Neustart stellt die App automatisch einen neuen aus und wiederholt die Anfrage.
+- **Fehlverhalten erkennen:** Lädt der Kontostand nicht und die Konsole zeigt `401 (Unauthorized)`, hilft ein Seiten-Neuladen; Details stehen im Troubleshooting der Installationsanleitung (`docs/INSTALL.md`).
 
 ### API Provider
 
@@ -207,26 +211,19 @@ Da Cachy nur lokal läuft, liegt die Verantwortung für deine Daten bei dir.
 
 ### Anpassung
 
-- **Themes:** Wähle aus über 20 verschiedenen Designs (z.B. 'Midnight', 'Dracula', 'Nord').
-- **Hotkeys:** Passe Tastaturkürzel für Geschwindigkeit an (z.B. `S` für Short, `L` für Long).
+- **Themes:** Wähle aus 28 verschiedenen Designs (z.B. 'Midnight', 'Dracula', 'Nord').
+- **Hotkeys:** Passe Tastaturkürzel für Geschwindigkeit an. Im Standard (Safety-Modus) sind es `Alt+S` für Short und `Alt+L` für Long; die Direkt-Modi belegen die Tasten `S` und `L` ohne Alt.
 - **Debug-Modus:** Aktiviere detaillierte System-Logs in der Browser-Konsole für die Fehlerdiagnose.
-
-### Marktdaten-Aktualisierung
-
-Unter **Einstellungen → Behavior → Market Data Interval** kannst du einstellen, wie oft Cachy Marktdaten aktualisiert:
-
-- **1 Sekunde:** Maximale Echtzeitdaten (höhere Last)
-- **1 Minute:** Ausgewogene Aktualisierung (Standard)
-- **10 Minuten:** Minimale API-Nutzung (schont Ratenlimits)
-
-**Empfehlung:** Für aktives Day-Trading wähle 1 Sekunde. Für Swing-Trading genügen 1-10 Minuten.
 
 ### Side Panel (Seitenleiste)
 
-Wähle unter **Einstellungen -> Sidebar** zwischen:
+Das andockbare Seitenpanel hat drei Modi: **AI Assistant**, **Quick Notes** und
+(opt-in) **Global Chat**. Klicke auf den Titel des Panels, um zwischen den Modi
+zu wechseln; ein-/ausblenden kannst du es unter **Einstellungen → Visuals**.
 
-- **Private Notizen:** Speichere Notizen nur lokal in deinem Browser.
+- **Quick Notes:** Speichere Notizen nur lokal in deinem Browser.
 - **AI Assistant:** Interagiere mit der kontextsensitiven KI für Marktanalysen.
+- **Global Chat:** Opt-in-Community-Chat, standardmäßig deaktiviert.
 
 ---
 

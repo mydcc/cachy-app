@@ -183,3 +183,57 @@ describe("tpSlState — plansFor", () => {
         );
     });
 });
+
+describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
+    it("adds a take-profit leg from a push carrying only tpPrice", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "93" });
+
+        const plans = tpSlState.plansFor("SOLUSDT");
+        expect(plans.profit?.triggerPrice).toBe("93");
+        expect(plans.loss).toBeUndefined();
+    });
+
+    it("adds a stop-loss leg from a push carrying only slPrice", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+
+        const plans = tpSlState.plansFor("SOLUSDT");
+        expect(plans.loss?.triggerPrice).toBe("85");
+        expect(plans.profit).toBeUndefined();
+    });
+
+    it("fills in the other leg on a later push, without dropping the first", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "93" });
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+
+        const plans = tpSlState.plansFor("SOLUSDT");
+        expect(plans.profit?.triggerPrice).toBe("93");
+        expect(plans.loss?.triggerPrice).toBe("85");
+    });
+
+    it("updates a leg's price in place rather than duplicating it", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "93" });
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "95" });
+
+        expect(tpSlState.orders).toHaveLength(1);
+        expect(tpSlState.plansFor("SOLUSDT").profit?.triggerPrice).toBe("95");
+    });
+
+    it("removes a leg on event CLOSE", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "93" });
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", event: "CLOSE", tpPrice: "93" });
+
+        expect(tpSlState.plansFor("SOLUSDT").profit).toBeUndefined();
+    });
+
+    it("removes a leg once its status is CANCELED or FILLED", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "CANCELED", slPrice: "85" });
+
+        expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
+    });
+
+    it("ignores a push with neither an orderId nor a symbol", () => {
+        tpSlState.updateFromWs({ tpPrice: "93" });
+        expect(tpSlState.orders).toEqual([]);
+    });
+});

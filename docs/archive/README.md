@@ -84,6 +84,18 @@ The idea is still reasonable, so it is carried as
 [`FEAT-0022`](../backlog/features/FEAT-0022-settings-search.md) rather than
 silently dropped.
 
+### `reports/hardening_report_root.md` — was `report.md` (repo root)
+
+A point-in-time "Code Analysis and Hardening Report" that sat at the repository
+root. Its headline findings were addressed by later work: the `{@html}`
+sanitization pass, the trade-service amount validation, and the decimal.js
+enforcement it called for all shipped; the two surviving findings from its
+sibling reports above are tracked in
+[`BUG-0007`](../backlog/bugs/BUG-0007-hardcoded-ui-strings.md) and
+[`BUG-0008`](../backlog/bugs/BUG-0008-toast-array-unbounded.md). Archived during the
+1.6.0 release-prep documentation pass rather than deleted, per this folder's
+convention.
+
 ### `dexter_integration_plan.md`, `web_search_implementation_plan.md`
 
 Two overlapping plans for the same feature: an agentic web-search loop for the

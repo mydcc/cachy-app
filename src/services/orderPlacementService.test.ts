@@ -61,7 +61,7 @@ vi.mock("../stores/tpsl.svelte", () => ({
     },
 }));
 
-import { orderPlacementService, type EntryPlan } from "./orderPlacementService";
+import { orderPlacementService, STOP_RETRY_DELAY_MS, type EntryPlan } from "./orderPlacementService";
 import { OrderRefusedError } from "./orderGate";
 
 function plan(overrides: Partial<EntryPlan> = {}): EntryPlan {
@@ -177,6 +177,30 @@ describe("FEAT-0021 — entry filled, stop missing", () => {
         // Doubling the position while trying to protect it would be the worst
         // possible reading of "retry".
         expect(placeOrder).toHaveBeenCalledTimes(1);
+    });
+
+    it("waits before retrying, instead of re-checking instantly", async () => {
+        // The exchange attaches a bracket stop asynchronously — checking
+        // again immediately always lost that race (see STOP_RETRY_DELAY_MS's
+        // own comment). This proves the wait actually happens rather than
+        // relying on real-clock timing in the other tests here.
+        vi.useFakeTimers();
+        try {
+            const resultPromise = orderPlacementService.placeEntryGroup(plan());
+            await vi.advanceTimersByTimeAsync(0);
+            expect(plans.looks).toBe(1);
+
+            await vi.advanceTimersByTimeAsync(STOP_RETRY_DELAY_MS - 1);
+            expect(plans.looks).toBe(1);
+
+            await vi.advanceTimersByTimeAsync(1);
+            expect(plans.looks).toBe(2);
+
+            await vi.advanceTimersByTimeAsync(STOP_RETRY_DELAY_MS);
+            await resultPromise;
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("recovers if the stop turns up on a retry", async () => {

@@ -80,9 +80,9 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 | **UI/UX**     | **VisualBar Component** | Proprietäre Svelte-Komponente für grafische Risk/Reward-Visualisierung im Calculator. Verwendet CSS-basierte Position Calculations für Echtzeit-Updates.     |
 | **Indikatoren** | **Rust / WebAssembly** | \`technicals-wasm/\` kompiliert nach WASM für die Indikator-Mathematik; \`src/utils/indicators.ts\` (~2000 Zeilen) und \`technicalsCalculator.ts\` bilden die TS-Seite. Eine Fremdbibliothek namens "TechnicalIndicators" existiert nicht. |
 | **Compute**   | **WebGPU**              | \`src/services/webGpuCalculator.ts\` mit 17 WGSL-Compute-Shadern in \`src/shaders/\`, für Arbeit, die für den Main Thread zu schwer ist.                       |
-| **Threading** | **Web Workers**         | Drei Worker in \`src/workers/\`, die die Indikatorberechnung vom UI-Thread fernhalten.                                                                        |
+| **Threading** | **Web Workers**         | Zwei Worker in \`src/workers/\` (Indikatorberechnung und Aggregation), die schwere Arbeit vom UI-Thread fernhalten.                                           |
 | **Realtime-DB** | **SpacetimeDB**       | \`server/spacetimedb/\` samt generierter Client-Bindings in \`src/lib/spacetimedb/\`. Trägt ausschließlich den optionalen Global Chat — siehe Kapitel 6.       |
-| **KI**        | **OpenAI · Gemini**     | Beide SDKs sind vorhanden; Assistent und Market Analyst rufen sie über den Server-Proxy auf, sodass Schlüssel den Client nie erreichen.                      |
+| **KI**        | **OpenAI · Gemini · Anthropic · OpenRouter · Ollama** | SDKs/Proxys sind vorhanden; Assistent und Market Analyst rufen sie über den Server-Proxy auf, sodass Schlüssel den Client nie erreichen.                     |
 | **Charts**    | **lightweight-charts**  | Wird neben Chart.js für Preischarts verwendet; \`three\` treibt die visuellen Hintergrundeffekte.                                                             |
 | **Validierung** | **Zod**               | Strenge Schema-Validierung eingehender Börsen-WebSocket-Payloads, damit fehlerhafte Marktdaten verworfen statt gecastet werden.                              |
 | **Testing**   | **Vitest · Playwright** | Vitest teilt die Konfiguration mit Vite; Playwright deckt End-to-End-Abläufe ab.                                                                             |
@@ -112,7 +112,7 @@ Diese Schicht befindet sich in \`src/routes/api/\` und fungiert als Sicherheits-
 
 **Die Lösung**:
 
-1. Der Client sendet eine Anfrage an \`GET /api/sync/orders\`.
+1. Der Client sendet eine Anfrage an \`POST /api/sync/orders\`.
 2. Der Client fügt \`API_KEY\` und \`API_SECRET\` in benutzerdefinierten Headern hinzu (übertragen via HTTPS).
 3. Der Server (Node.js-Kontext) empfängt die Header.
 4. Der Server konstruiert die Payload und generiert die SHA256-Signatur mit dem Geheimnis.
@@ -125,7 +125,7 @@ _Hinweis: Während Geheimnisse vom Client zum Server reisen, ist der Server zust
 
 ## 3. Kernlogik & Mathematik ("Das Herzstück")
 
-Das mathematische Herz von Cachy erreicht man über \`src/lib/calculator.ts\` — das ist allerdings nur eine schmale Fassade. Die Implementierung liegt in neun Modulen unter \`src/lib/calculators/\` (Kernmetriken, Targets, Statistik, Charts, Qualitätsbewertung). Beginne bei der Fassade, aber erwarte, die Untermodule lesen zu müssen. Gemeinsam stellen sie sicher, dass jeder angezeigte Betrag auf den Cent genau ist, unabhängig von Hebel oder Gebührenstruktur.
+Das mathematische Herz von Cachy erreicht man über \`src/lib/calculator.ts\` — das ist allerdings nur eine schmale Fassade. Die Implementierung liegt in vier Modulen unter \`src/lib/calculators/\` (Kernmetriken, Statistik, Charts, Aggregation). Beginne bei der Fassade, aber erwarte, die Untermodule lesen zu müssen. Gemeinsam stellen sie sicher, dass jeder angezeigte Betrag auf den Cent genau ist, unabhängig von Hebel oder Gebührenstruktur.
 
 Das folgende Rechenbeispiel ist durch \`src/lib/whitepaper-claims.test.ts\` abgedeckt, das genau diese Eingaben durch den Rechner schickt. Sollten Engine und dieses Dokument je auseinandergehen, schlägt dieser Test fehl.
 
@@ -216,15 +216,18 @@ Das System iteriert durch jeden geschlossenen Trade und gruppiert die PnL nach T
 
 ### Das Journal Deep Dive System (10 Spezialisierte Analyse-Tabs)
 
-Über die grundlegende Analytik hinaus bietet Cachy ein vollständiges **Deep Dive Analytics System** - eine Pro-Feature-Suite mit 10 spezialisierten Tabs:
+Über die grundlegende Analytik hinaus bietet Cachy ein vollständiges **Deep Dive Analytics System** mit 10 spezialisierten Tabs:
 
-**1. Forecast** - Monte Carlo Simulation für probabilistische Zukunftsprognosen basierend auf historischer R-Multiple-Verteilung (mindestens 5 Trades erforderlich).
-
-**2. Trends** - Rolling Metrics über gleitende Fenster:
+**1. Performance** - Rolling Metrics über gleitende Fenster:
 
 - Rolling Win Rate (letzte 20 Trades)
 - Rolling Profit Factor
 - Rolling SQN (System Quality Number): `SQN = (√N × Ø R) / σ(R)` mit Qualitätsstufen (<1.6: schlecht, >2.5: exzellent)
+
+**2. Exekution** - Ausführungsqualität:
+
+- MFE vs MAE Scatter Plot (in R-Multiples) mit Effizienzlinien
+- Sechs-Segment-Klassifizierung der Trades (Doughnut)
 
 **3. Leakage** - Identifiziert "Gewinnlecks":
 
@@ -232,36 +235,37 @@ Das System iteriert durch jeden geschlossenen Trade und gruppiert die PnL nach T
 - Strategy Leakage (verlustbringende Tags)
 - Time Leakage (Worst Trading Hours)
 
-**4. Timing** - Zeitbasierte Muster:
+**4. Zeit** - Zeitbasierte Muster:
 
 - Hourly PnL mit Brutto-Gewinnen/Verlusten
 - Day of Week Analysis
 - Duration vs PnL Scatter Plot
 - Duration Buckets (0-15min, 15-30min, etc.)
 
-**5. Assets** - Symbol Performance Matrix:
-
-- Asset Bubble Chart (X: Win Rate, Y: PnL, Size: Trade Count)
-- Quadranten-Analyse zur Identifikation von "Best Performers" vs. "Account Killers"
-
-**6. Risk** - Risikomanagement-Validierung:
+**5. Risiko** - Risikomanagement-Validierung:
 
 - R-Multiple Distribution Histogram
 - Risk vs Realized PnL Correlation
 
-**7. Market** - Performance nach Marktbedingungen (Trending, Ranging, Volatile)
+**6. Markt** - Performance nach Marktbedingungen (Trending, Ranging, Volatile)
 
-**8. Psychology** - Behavioral Finance:
+**7. Strategien** - Tag-basierte Attribution:
 
-- Streak Visualization
-- Overconfidence/Tilt Detection nach langen Serien
-
-**9. Strategies** - Tag-basierte Attribution:
-
+- Strategie-Entwicklung im Zeitverlauf
 - PnL pro Tag (erfordert konsequentes Tagging)
 - Strategy Comparison mit Win Rate, PF, Expectancy pro Tag
 
-**10. Calendar** - Temporale Heatmap mit farbcodierten Tagen (grün: Gewinn, rot: Verlust)
+**8. Verhalten** - Behavioral Finance:
+
+- Gewinn- und Verlustserien als Balkendiagramme
+- Overconfidence/Tilt Detection nach langen Serien
+
+**9. Prognose** - Monte Carlo Simulation für probabilistische Zukunftsprognosen basierend auf historischer R-Multiple-Verteilung (mindestens 5 Trades erforderlich).
+
+**10. System Qualität** - Statistische Systembewertung:
+
+- Rolling-SQN-Kurve über die Trade-Historie
+- Aktuelle SQN mit Klassifizierungs-Badge
 
 **Implementierung**: Alle Berechnungen erfolgen in `src/lib/calculators/` (charts.ts, stats.ts) mit Decimal.js für Finanzpräzision.
 
@@ -404,8 +408,8 @@ _Komponente: \`TradeSetupInputs.svelte\` -> \`apiService.ts\`_
 
 _Komponente: \`PositionsSidebar.svelte\`_
 
-1. **Socket-Event**: Bitunix sendet ein \`ORDER_UPDATE\` über WebSocket.
-2. **Store-Update**: \`accountStore\` empfängt das Ereignis. Es sieht Status \`FILLED\`.
+1. **Socket-Event**: Bitunix pusht ein Order-Update über den privaten WebSocket-Kanal.
+2. **Store-Update**: \`accountState\` (\`src/stores/account.svelte.ts\`) empfängt das Ereignis. Es sieht Status \`FILLED\`.
 3. **Atomare Zustandsänderung**:
    - Die "Pending Order" wird aus \`openOrders\` entfernt.
    - Eine neue "Position" wird in \`positions\` erstellt.
@@ -418,9 +422,9 @@ _Komponente: \`app.ts\` (Sync-Logik)_
 1. **Schließung**: Benutzer klickt auf "Schließen" oder SL wird getroffen.
 2. **Historien-Abruf**: Die App pollt \`get_history_positions\` (für geschlossene Trades) und \`get_pending_positions\` (für Status-Updates).
 3. **Der "Safe Swap"**:
-   - Das System erkennt eine Positions-ID in der Historie, die mit einer aktiven ID im \`accountStore\` übereinstimmt.
+   - Das System erkennt eine Positions-ID in der Historie, die mit einer aktiven ID im \`accountState\` übereinstimmt.
    - Es "hydratisiert" den Trade mit finalen Daten (Realisierte PnL, Gebühren, Finanzierung).
-   - Es verschiebt das Objekt vom \`accountStore\` (Aktiv) in den \`journalState\` (Historie).
+   - Es verschiebt das Objekt vom \`accountState\` (Aktiv) in den \`journalState\` (Historie).
    - Es speichert den neuen Journaleintrag im \`localStorage\`.
 
 ---
@@ -460,7 +464,7 @@ Eine kritische Herausforderung bei der Synchronisierung des lokalen Zustands mit
 **Die Logik (\`src/services/app.ts\`)**:
 
 1. **Neue Daten abrufen**: Die App ruft die vollständige Liste der offenen Positionen von der API ab.
-2. **Diffing**: Sie vergleicht die neue Liste mit dem \`accountStore\`.
+2. **Diffing**: Sie vergleicht die neue Liste mit dem \`accountState\`.
 3. **Atomarer Tausch**:
    - Wenn eine Position im Store existiert, aber NICHT in der API -> Sie wurde geschlossen. Verschiebe ins Journal.
    - Wenn eine Position in der API existiert, aber NICHT im Store -> Sie wurde remote geöffnet. Füge zum Store hinzu.
@@ -495,6 +499,16 @@ Cachy fungiert als Durchgangsinstanz.
 - **Übertragung**: Schlüssel werden nur in den HTTP-Headern spezifischer API-Anfragen gesendet.
 - **Server-seitig**: Der Node.js-Proxy empfängt die Anfrage, signiert sie mit dem Geheimnis, leitet sie an Bitunix weiter und verwirft die Anmeldeinformationen sofort aus dem Speicher. Es werden keine Protokolle geführt.
 
+### Routen-Authentifizierung: Selbstausgestellte Client-Tokens
+
+Die Proxy-Routen, die auf Börsen-Credentials wirken oder KI-Traffic weiterleiten, sind nicht anonym erreichbar. Die Zugriffskontrolle ist **Self-Service und fails closed**:
+
+- \`checkClientToken\` (\`src/lib/server/clientToken.ts\`) schützt jede sensible Route (27 Route-Dateien unter \`src/routes/api/\`). Der Token wird im Header \`x-app-access-token\` übertragen.
+- Den Token erhält ein Client von \`POST /api/auth/token\` — bewusst ungeschützt, denn dort zieht er sich seinen ersten Token — und stattdessen pro IP rate-limitiert (20 Ausstellungen pro Stunde).
+- Der Server speichert nur den SHA-256-Hash des Tokens plus Request-Zähler, im Speicher des Prozesses. Der rohe Token wird nie persistiert; ein Server-Neustart invalidiert alle ausgestellten Tokens, danach minten Clients einfach neu.
+- Missbrauchsschutz ist gestaffelt: 300 Anfragen/Minute pro Token, 600 Anfragen/Minute pro IP (Summe über alle Tokens dieser IP). Überschreitung antwortet mit \`429\`.
+- Ein unbekannter oder fehlender Token erhält immer dasselbe \`401\`, gleichgültig woran es liegt — ein Aufrufer erfährt nichts über das Deployment. Es gibt kein deployment-weites Geheimnis, das man konfigurieren, vergessen oder leaken könnte — dieses Modell hat das frühere gemeinsame \`APP_ACCESS_TOKEN\` abgelöst (siehe [ADR-0002](../../docs/adr/0002-api-authentication-fails-closed.md) samt BUG-0052-Amendment).
+
 ### Datenklassen-Grenze: Was lokal bleibt und was nicht
 
 Cachy ist Local-First, aber das bedeutet nicht „kein Server". Die Garantie ist präzise nach Datenklassen definiert:
@@ -509,26 +523,27 @@ Die verbindliche Fassung dieser Grenze — einschließlich der Bedingungen, unte
 
 ### AES-256 Backup-Verschlüsselung
 
-Cachy bietet optionale Backup-Verschlüsselung über den `CryptoService`:
+Cachy bietet optionale Backup-Verschlüsselung über den \`CryptoService\`:
 
 **Implementierung:**
 
-- **Algorithmus:** AES-256-GCM (crypto-js)
-- **Schlüssel-Ableitung:** Password-based Key Derivation Function (PBKDF2 intern von crypto-js)
+- **Algorithmus:** AES-256-GCM über die native WebCrypto-API (\`SubtleCrypto\`)
+- **Schlüssel-Ableitung:** PBKDF2 mit SHA-512 und hoher Iterationszahl (600.000), ebenfalls via \`SubtleCrypto\`
+- **Legacy-Fallback:** Vom \`crypto-js\`-Bibliothekspfad (AES-CBC, 10.000 Iterationen) werden nur noch alte Backup-Blobs entschlüsselt; neu erstellte Backups nutzen ausschließlich WebCrypto
 - **Scope:** Verschlüsselt werden: Journal-Einträge, API-Schlüssel, Settings
 - **Client-Side:** Gesamte Ver- und Entschlüsselung erfolgt im Browser
 
 **Verwendung:**
 
-```typescript
-import { encrypt, decrypt } from "./cryptoService";
+\`\`\`typescript
+import { cryptoService } from "./cryptoService";
 
-// Verschlüsselung
-const { ciphertext, salt, iv } = await encrypt(jsonData, userPassword);
+// Verschlüsselung — liefert ein EncryptedBlob-Objekt (ciphertext, iv, salt, ...)
+const blob = await cryptoService.encrypt(jsonData, userPassword);
 
 // Entschlüsselung
-const decrypted = await decrypt(ciphertext, userPassword);
-```
+const decrypted = await cryptoService.decrypt(blob, userPassword);
+\`\`\`
 
 **Sicherheitsgarantien:**
 
@@ -612,18 +627,19 @@ Cachy verwendet eine Testsuite mit **Vitest**, für End-to-End-Abläufe Playwrig
 
 | Befehl | Umfang |
 | --- | --- |
-| \`npm test\` | Alle Vitest-Unit-Tests |
+| \`npm test\` | Die komplette Vitest-Suite — sowohl das \`unit\`-Projekt als auch das \`components\`-Projekt (mountet Svelte-Komponenten mit DOM) |
 | \`npx vitest run <pfad>\` | Eine einzelne Testdatei |
 | \`npm run check\` | \`svelte-check\` Typprüfung — muss bei null Fehlern bleiben |
 | \`npm run lint\` | ESLint — verpflichtender CI-Check, null Fehler, Warnungen gedeckelt |
 | \`npm run test:e2e\` | Playwright-E2E-Tests in \`tests/e2e\` |
 | \`npm run benchmark:technicals\` | Indikator-Benchmarks |
 
-Unit-Tests liegen direkt neben dem Code, den sie abdecken (\`*.test.ts\`). Das
-Rechenbeispiel aus Kapitel 3 ist selbst ausführbar:
-\`src/lib/whitepaper-claims.test.ts\` schickt genau diese Eingaben durch den
-Rechner. Dieses Dokument kann sich also nicht unbemerkt von der beschriebenen
-Engine entfernen, ohne dass ein Test fehlschlägt.
+Tests liegen direkt neben dem Code, den sie abdecken (\`*.test.ts\`); Tests, die
+eine Svelte-Komponente mounten, heißen \`*.component.test.ts\` und laufen im
+separaten \`components\`-Projekt. Das Rechenbeispiel aus Kapitel 3 ist selbst
+ausführbar: \`src/lib/whitepaper-claims.test.ts\` schickt genau diese Eingaben
+durch den Rechner. Dieses Dokument kann sich also nicht unbemerkt von der
+beschriebenen Engine entfernen, ohne dass ein Test fehlschlägt.
 
 Zusätzlich gibt es Ad-hoc-Python-Skripte zur Verifikation unter \`verification/\`
 und \`scripts/\` (z. B. \`verification/verify_market_overview.py\`). Sie sind nicht

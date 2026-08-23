@@ -28,7 +28,8 @@ record the version it actually landed in, in this file, next to the target. A
 target that drifted by six minors is information, not a failure — it says the
 milestone was bigger than it looked.
 
-Current version: **1.0.0-beta.6** (see `package.json`).
+Current version: **1.6.0-beta.100** on `develop` (see `package.json`); the next
+planned cut is the **1.6.0** stable release from `main`.
 
 ---
 
@@ -37,9 +38,14 @@ Current version: **1.0.0-beta.6** (see `package.json`).
 | # | Milestone | Target | Status | Exit criterion, in one line |
 | --- | --- | --- | --- | --- |
 | **M0** | Stable 1.0 | `1.0.0` | 🟡 | The beta ships as stable with no known money-affecting defect open |
-| **M1** | Safe execution foundation | `~1.1` | ⚪ | No order can reach an exchange unverified, and every order can be stopped |
-| **M2** | Broker abstraction | `~1.3` | ⚪ | A third exchange is added without touching UI or calculation code |
-| **M3** | Trade panel | `~1.5` | ⚪ | A trader can run a full session without opening the exchange's own UI |
+| **M1** | Safe execution foundation | `~1.1` | 🟡 | No order can reach an exchange unverified, and every order can be stopped |
+| **M2** | Broker abstraction | `~1.3` | 🟡 | A third exchange is added without touching UI or calculation code |
+| **M3** | Trade panel | `~1.5` | 🟡 | A trader can run a full session without opening the exchange's own UI |
+
+_Stand August 2026:_ all M0 and M1 backlog items are done, M2/M3 are partially
+delivered (the 1.5–1.6 trade-panel group). Item-level truth lives in
+[`backlog/INDEX.md`](backlog/INDEX.md); a milestone is only marked ✅ here once
+its exit criterion is proven, not when its items are ticked.
 | **M4** | Alerting | `~1.7` | ⚪ | Price, indicator and combined alerts fire locally and reliably |
 | **M5** | Community & whitelabel edition | `~1.8` | 🔒 M1–M3 | A serverless build is produced by CI and deployable without a database |
 | **M6** | Extensions & Pro modules | `~2.0` | 🔒 M5 | A user-written indicator runs isolated and traceable; a paid module installs and revokes |

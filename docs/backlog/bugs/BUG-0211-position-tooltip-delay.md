@@ -2,7 +2,7 @@
 id: BUG-0211
 title: Position details hidden behind tooltip delay
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community]
@@ -40,9 +40,11 @@ Crucial information was moved into a tooltip to save space in the list view, but
 
 ## Acceptance criteria
 
-- [ ] Core financial details of a position (size, entry, mark, margin, liquidation price, margin mode, realized/unrealized PnL) are accessible directly in the card without relying on a hover delay.
-- [ ] Hover-triggered tooltip for position items in `PositionsList.svelte` is removed.
-- [ ] The position list UX renders stably and responsively on both mobile and desktop (no flickering tooltips or mouse coordinate popovers).
+- [x] Core financial details of a position (size, entry, mark, margin, liquidation price, margin mode, realized/unrealized PnL) are accessible directly in the card without relying on a hover delay.
+- [x] Hover-triggered tooltip for position items in `PositionsList.svelte` is removed.
+- [x] The position list UX renders stably and responsively on both mobile and desktop (no flickering tooltips or mouse coordinate popovers).
+
+> Resolved in [#2093](https://github.com/mydcc/cachy-app/pull/2093) (`5e4f27a8`): `PositionTooltip.svelte` deleted, details rendered inline (including `liquidationPrice` and `marginMode`), coverage in `PositionsList.component.test.ts`.
 
 ## Out of scope
 

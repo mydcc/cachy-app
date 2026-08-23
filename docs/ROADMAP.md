@@ -31,7 +31,8 @@ and the exit criteria; the number floats.
 When a group completes, record the version it actually landed in. Drift is
 information — a group that slipped six minors was bigger than it looked.
 
-Current: **1.0.0-beta.6**.
+Current: **1.6.0-beta.100** on `develop` (beta channel); the next planned cut is
+the **1.6.0** stable release from `main`.
 
 ---
 
@@ -142,17 +143,31 @@ order-placing path (needs M1) and an exchange-specific behaviour (needs M2).
 
 | Item | Prio | What |
 | --- | --- | --- |
+| [FEAT-0017](backlog/features/FEAT-0017-exchange-capability-model.md) | P1 | Capability model — blocks FEAT-0020 and FEAT-0247 below |
 | [FEAT-0020](backlog/features/FEAT-0020-account-settings-panel.md) | P1 | Margin, position and asset mode; leverage |
 | [FEAT-0021](backlog/features/FEAT-0021-order-types.md) | P1 | Market, limit, trigger, fixed-risk; TP/SL at entry |
+| [FEAT-0254](backlog/features/FEAT-0254-tpsl-input-range-slider-ux.md) | P1 | TP/SL range-slider input (By PnL/ROI/Change) shared by the three items below |
+| [FEAT-0070](backlog/features/FEAT-0070-bitunix-tpsl-placement.md) | P1 | Create a TP/SL plan where a position has none yet |
 | [FEAT-0023](backlog/features/FEAT-0023-position-management.md) | P1 | Flash close, partial close, trailing stop and TP/SL |
+| [FEAT-0247](backlog/features/FEAT-0247-chart-position-tpsl-drag.md) | P2 | Draggable TP/SL price lines on the chart |
 | [FEAT-0024](backlog/features/FEAT-0024-confirmation-policy.md) | P1 | Per-action confirmation policy |
 | [FEAT-0026](backlog/features/FEAT-0026-multi-account.md) | P1 | Several accounts, unmistakable active one |
 | [FEAT-0025](backlog/features/FEAT-0025-trading-notifications.md) | P2 | Fills, margin thresholds, connection loss |
 
-**Start with [FEAT-0020](backlog/features/FEAT-0020-account-settings-panel.md).**
-Margin mode and position mode change how everything else behaves — a position
-sized for isolated margin means something different in a cross-margin account —
-so building order types first means building them against an unknown.
+**Start with [FEAT-0017](backlog/features/FEAT-0017-exchange-capability-model.md).**
+Both [FEAT-0020](backlog/features/FEAT-0020-account-settings-panel.md) and
+[FEAT-0247](backlog/features/FEAT-0247-chart-position-tpsl-drag.md) depend on
+it and it depends on nothing left in M2 — it is the actual root of this
+milestone's dependency graph, not FEAT-0020. Margin mode and position mode
+still change how everything else behaves — a position sized for isolated
+margin means something different in a cross-margin account — so FEAT-0020
+itself still comes before building order types against an unknown.
+
+[FEAT-0254](backlog/features/FEAT-0254-tpsl-input-range-slider-ux.md) has no
+dependency and can run in parallel with the above from day one: it is the
+shared TP/SL price-entry component (range slider, By PnL/ROI/Change) that
+FEAT-0070, FEAT-0023 and FEAT-0247 each need once they reach their own UI
+work, specified once instead of three times.
 
 **One question blocks [FEAT-0021](backlog/features/FEAT-0021-order-types.md):**
 what happens when the entry fills and the attached stop is rejected. That leaves
