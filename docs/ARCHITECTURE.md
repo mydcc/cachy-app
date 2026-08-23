@@ -177,7 +177,7 @@ Each of these is enforced by something, not just written down.
 ## Verifying a change
 
 ```bash
-npm run check                  # svelte-check — after every change
+npm run check                  # svelte-check — required before completion; mid-task cadence by blast radius
 npm test                       # full unit suite
 npx vitest run <path>          # one file
 npm run test:e2e               # Playwright

@@ -24,10 +24,13 @@
 #        (defaults: origin develop)
 #
 # Exit codes:
-#   0  up to date / ahead-only / rebased cleanly
+#   0  up to date / ahead-only / rebased cleanly (an up-to-date dirty tree
+#      also exits 0)
 #   1  rebase stopped with conflicts — resolve them, re-run checks,
 #      then push with --force-with-lease
-#   2  uncommitted changes present — commit or stash before syncing
+#   2  base moved but working tree has uncommitted changes — commit or
+#      stash, then run again
+#   3  invoked on the base branch itself — switch to a feature branch
 #
 
 set -eu
@@ -35,6 +38,12 @@ set -eu
 REMOTE="${1:-origin}"
 BASE="${2:-develop}"
 BASE_REF="$REMOTE/$BASE"
+
+if [ "$(git branch --show-current)" = "$BASE" ]; then
+    echo "❌ Refusing to run on '$BASE' itself." >&2
+    echo "   This script rebases onto $BASE_REF — switch to a feature branch first." >&2
+    exit 3
+fi
 
 git fetch "$REMOTE" "$BASE"
 

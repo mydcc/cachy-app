@@ -10,7 +10,7 @@ This file is the tool-agnostic single source of truth for all coding agents (Jul
 npm install
 npm run dev          # builds WASM first via scripts/build_wasm.sh
 npm run build        # Production build (including WASM)
-npm run check        # svelte-check — run after EVERY change
+npm run check        # svelte-check — required before completion; mid-task cadence by blast radius
 npm test             # Vitest unit tests
 npm run test:e2e     # Playwright E2E
 ```
@@ -52,7 +52,7 @@ When several worktrees are active on one machine:
 Before every push — sync first, then verify, then push (a check on a stale branch is wasted work):
 
 ```bash
-bash scripts/sync-develop.sh   # fetches origin/develop, rebases when behind; non-zero exit = conflicts
+bash scripts/sync-develop.sh   # fetch + rebase onto origin/develop; exit 1 = conflicts, 2 = commit/stash first (only when behind), 3 = on the base branch
 # resolve conflicts if any, then RE-RUN npm run check + relevant targeted tests
 git push --force-with-lease    # after a successful rebase
 ```

@@ -107,7 +107,7 @@ acceptable; an invented percentage is not.
 ### ✅ VERIFY — all three must be green
 
 ```bash
-npm run check   # svelte-check — mandatory after every change
+npm run check   # svelte-check — mandatory before completion; cadence by blast radius
 npm run lint    # eslint
 npm test        # vitest
 ```
