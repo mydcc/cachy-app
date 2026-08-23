@@ -2,7 +2,7 @@
 id: FEAT-0260
 title: Dynamic-import rarely opened heavyweight modals in the root layout
 type: feature
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]

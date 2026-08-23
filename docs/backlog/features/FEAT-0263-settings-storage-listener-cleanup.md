@@ -2,7 +2,7 @@
 id: FEAT-0263
 title: Remove the settings cross-tab storage listener in destroy
 type: feature
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]

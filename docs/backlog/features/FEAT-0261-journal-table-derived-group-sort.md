@@ -2,7 +2,7 @@
 id: FEAT-0261
 title: Hoist JournalTable group sorting out of the each expression into derived state
 type: feature
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]

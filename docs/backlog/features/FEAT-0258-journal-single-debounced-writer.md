@@ -2,7 +2,7 @@
 id: FEAT-0258
 title: Make app.saveJournal() the single debounced writer for journal persistence
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
