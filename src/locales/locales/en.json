@@ -1673,7 +1673,7 @@
       "debugMode": "Debug Mode",
       "debugModeDesc": "Show extended logs and developer features.",
       "telemetry": "Usage Statistics",
-      "telemetryDesc": "Helps improve Cachy: anonymous usage events (theme, provider, viewport, app version) go to our self-hosted Matomo instance at s.cachy.app with IP anonymization — never your journal, settings or API keys. Turn off any time to stop all tracking.",
+      "telemetryDesc": "Helps improve Cachy: anonymous usage events (theme, market-data provider, background style, open windows, viewport, zoom level, app version) go to our self-hosted Matomo instance at s.cachy.app with IP anonymization — never your journal, settings or API keys. Turn off any time to stop all tracking.",
       "factoryReset": "Factory Reset",
       "factoryResetDesc": "Delete everything and start fresh. Not reversible.",
       "networkLogs": "Network Logs",

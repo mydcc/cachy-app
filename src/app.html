@@ -131,9 +131,10 @@
 
     %sveltekit.head%
 
-    <!-- Matomo Tag Manager: NOT loaded here. Telemetry is opt-in (BUG-0286);
-         trackingService.initTracking() injects the container only after the
-         user explicitly enables it in Settings > System > Privacy. -->
+    <!-- Matomo Tag Manager: NOT loaded here. Telemetry is opt-out
+         (BUG-0286): trackingService.initTracking() injects the container on
+         startup unless the user disabled it under Settings > System >
+         Performance ("Usage Statistics"). -->
 
     <!-- Theme Initialization (CRITICAL: Must run BEFORE any rendering) -->
     <script nonce="%sveltekit.nonce%">

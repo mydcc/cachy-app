@@ -80,8 +80,9 @@ export const app = {
           app_version: APP_VERSION,
         };
       });
-      // Telemetry is strict opt-in (BUG-0286): this only injects the Matomo
-      // container when the user enabled it in Settings > System > Privacy.
+      // Telemetry is opt-out (BUG-0286): tracking runs by default and
+      // initTracking() injects the container unless the user disabled it
+      // under Settings > System > Performance ("Usage Statistics").
       initTracking();
 
       // 1. Initialise core logic

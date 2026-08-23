@@ -29,7 +29,7 @@ To provide market data and functionality, the app interacts with the following e
 **Matomo (anonymous, opt-out):**
 We use Matomo for privacy-friendly analytics to understand how our app is used and to improve it. Measurement is anonymous and first-party, which is why we show no cookie notice — and because you can object at any time:
 
-- Anonymous usage events are collected (theme, market-data provider, viewport, app version — not the symbols you view, not your journal, settings or API keys).
+- Anonymous usage events are collected (theme, market-data provider, background style, open windows, viewport, zoom level, app version — not the symbols you view, not your journal, settings or API keys).
 - Matomo is hosted by us (on `s.cachy.app`) to ensure data ownership; it is a first-party, self-hosted deployment.
 - We use IP anonymization.
 - This data is used solely for usage analysis and is not shared with third parties for advertising purposes.
