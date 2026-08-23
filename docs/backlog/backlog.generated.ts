@@ -3179,7 +3179,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0247",
     "title": "Interactive chart positions and draggable TP/SL lines",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -3535,7 +3535,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0289",
     "title": "Symbol debounce effect arms a setTimeout without returning cleanup",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3547,6 +3547,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0289-symbol-debounce-effect-cleanup",
     "file": "bugs/BUG-0289-symbol-debounce-effect-cleanup.md"
   },
   {

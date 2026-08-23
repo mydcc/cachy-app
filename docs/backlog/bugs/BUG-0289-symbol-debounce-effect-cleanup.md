@@ -2,7 +2,7 @@
 id: BUG-0289
 title: Symbol debounce effect arms a setTimeout without returning cleanup
 type: bug
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: services
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0289-symbol-debounce-effect-cleanup
 ---
 
 # BUG-0264 — Symbol debounce effect arms a setTimeout without returning cleanup
@@ -39,14 +41,22 @@ Return a cleanup from the effect that `clearTimeout(symbolDebounceTimer)`.
 
 ## Acceptance criteria
 
-- [ ] A test disposes the effect root inside the debounce window and asserts the
+- [x] A test disposes the effect root inside the debounce window and asserts the
       pending callback never fires (vi.useFakeTimers) — failing before the fix
-- [ ] Normal debounce behaviour (single registration per settled symbol) unchanged
+      (`src/services/appEffects_symbolDebounce.test.ts`, verified red pre-fix,
+      green post-fix)
+- [x] Normal debounce behaviour (single registration per settled symbol) unchanged
 
 ## Out of scope
 
 The other effects in the file unless the same pattern is found — fix and note,
 no redesign.
+
+> **Note (2026-08-23, opencode):** Checked the other effects in the file — only
+> effect #2 had the pattern. Effect #5 already returns `() => fundingRateService.stop()`;
+> effects #1, #3, #4 and #6 register no timers or listeners needing teardown.
+> Implementation lives on `fix/bug-0289-symbol-debounce-effect-cleanup`; item goes
+> to `done` once the PR merges.
 
 ## Links
 
