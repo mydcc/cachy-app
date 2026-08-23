@@ -2,7 +2,7 @@
 id: BUG-0291
 title: AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering
 type: bug
-status: in-progress
+status: done
 assignee: antigravity
 priority: P1
 milestone: none
