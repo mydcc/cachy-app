@@ -31,7 +31,8 @@ and the exit criteria; the number floats.
 When a group completes, record the version it actually landed in. Drift is
 information — a group that slipped six minors was bigger than it looked.
 
-Current: **1.0.0-beta.6**.
+Current: **1.6.0-beta.100** on `develop` (beta channel); the next planned cut is
+the **1.6.0** stable release from `main`.
 
 ---
 
