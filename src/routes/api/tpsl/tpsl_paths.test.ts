@@ -92,7 +92,7 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
       request: makeRequest({
         exchange: "bitunix",
         action: "modify",
-        params: { orderId: "1", symbol: "BTCUSDT", planType: "PROFIT", triggerPrice: "50000" },
+        params: { orderId: "1", tpPrice: "50000", tpStopType: "MARK_PRICE" },
         ...creds,
       }),
       getClientAddress,

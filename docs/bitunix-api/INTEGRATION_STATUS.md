@@ -86,10 +86,10 @@ Tradepanel ist das der größte fehlende Block.
 | `GET …/tpsl/get_pending_orders` | ✅ | [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "pending"`) |
 | `GET …/tpsl/get_history_orders` | ✅ | [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "history"`) |
 | `POST …/tpsl/cancel_order` | ✅ | [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "cancel"`) |
-| `POST …/tpsl/modify_order` | ✅ | [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "modify"`); UI: [TpSlEditModal](../../src/components/shared/TpSlEditModal.svelte) |
-| `POST …/tpsl/place_order` | ❌ | **Lücke:** Neue TP/SL-Order (Teilmenge) auf bestehende Position kann nicht angelegt werden — nur existierende ändern |
-| `POST …/tpsl/position/place_order` | ❌ | Positions-weites TP/SL (max. 1 pro Position, schließt zum Marktpreis) |
-| `POST …/tpsl/position/modify_order` | ❌ | — |
+| `POST …/tpsl/modify_order` | ✅ | [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "modify"`); UI: [TpSlEditModal](../../src/components/shared/TpSlEditModal.svelte). Wire format fixed in BUG-0267 — it previously sent `{symbol, planType, triggerPrice}`, a shape this endpoint does not document. |
+| `POST …/tpsl/place_order` | ✅ | FEAT-0070: [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "place"`); UI: [TpSlCreateModal](../../src/components/shared/TpSlCreateModal.svelte) (partial section) |
+| `POST …/tpsl/position/place_order` | ✅ | FEAT-0070: [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "place-position"`); UI: [TpSlCreateModal](../../src/components/shared/TpSlCreateModal.svelte) (position-wide section) |
+| `POST …/tpsl/position/modify_order` | ❌ | Adding a missing leg to an existing position-wide plan; not wired. `TpSlCreateModal` routes an already-covered leg to the single-leg `TpSlEditModal` instead, which uses `tpsl/modify_order`. |
 
 ### Sonstiges
 
@@ -149,7 +149,7 @@ Verfügbar, aber weder geholt noch angezeigt:
 2. **Account-Settings-Block** — `get_leverage_margin_mode` (lesen) +
    `change_leverage`, `change_margin_mode`, `adjust_position_margin` (schreiben)
 3. ~~**`place_order` vervollständigen**~~ — erledigt (FEAT-0069): `tpPrice`/`slPrice` atomar, `effect`, `clientId`
-4. **`tpsl/place_order` + `tpsl/position/place_order`** — TP/SL nachträglich setzen
+4. ~~**`tpsl/place_order` + `tpsl/position/place_order`**~~ — erledigt (FEAT-0070): TP/SL nachträglich setzen, position-weit und teilweise
 5. **Native Endpoints statt Client-Loops** — `cancel_all_orders`,
    `close_all_position`, `flash_close_position`, `modify_order`
 6. ~~**Privater TP/SL-WS-Channel** abonnieren~~ — erledigt: `tp_sl`-Channel

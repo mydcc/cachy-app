@@ -303,6 +303,7 @@
       "cancelOrderSuccess": "Order cancelled successfully",
       "cancelOrderError": "Failed to cancel order: {error}",
       "orderCancelled": "Order cancelled",
+      "tpslCreated": "TP/SL plan created",
       "cancelFailed": "Failed to cancel order",
       "confirmCancel": "Cancel this TP/SL order?",
       "noApiKeys": "No API keys configured",
@@ -2080,7 +2081,8 @@
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
     "saveFailed": "Save failed.",
-    "modifyFailed": "Failed to modify order."
+    "modifyFailed": "Failed to modify order.",
+    "createFailed": "Failed to create order."
   },
   "modals": {
     "editTP": {
@@ -2088,6 +2090,25 @@
     },
     "editSL": {
       "title": "Edit Stop Loss"
+    },
+    "createTpSl": {
+      "title": "Set TP/SL",
+      "positionWide": "Position-wide",
+      "positionWideHint": "Tracks the position's size and closes at market. One per position.",
+      "partial": "Partial (custom quantity)",
+      "partialHint": "Covers the quantity you set. Several of these can coexist.",
+      "takeProfitPrice": "Take-profit price",
+      "stopLossPrice": "Stop-loss price",
+      "triggerType": "Trigger type",
+      "markPrice": "Mark price",
+      "lastPrice": "Last price",
+      "alreadySet": "already set",
+      "editExisting": "Edit",
+      "submit": "Create",
+      "quantityRequired": "Enter a quantity for the partial plan.",
+      "invalidQuantity": "Enter a valid quantity.",
+      "qtyExceedsPosition": "Quantity exceeds the position size.",
+      "missingPositionId": "This position has no id yet and cannot be given a plan."
     },
     "closePosition": {
       "title": "Close position",

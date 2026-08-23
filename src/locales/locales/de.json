@@ -303,6 +303,7 @@
       "cancelOrderSuccess": "Auftrag erfolgreich storniert",
       "cancelOrderError": "Stornierung fehlgeschlagen: {error}",
       "orderCancelled": "Bestellung storniert",
+      "tpslCreated": "TP/SL-Plan angelegt",
       "cancelFailed": "Stornierung fehlgeschlagen",
       "confirmCancel": "Diesen TP/SL Auftrag stornieren?",
       "noApiKeys": "Keine API-Keys konfiguriert",
@@ -2091,7 +2092,8 @@
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
     "saveFailed": "Speichern fehlgeschlagen.",
-    "modifyFailed": "Änderung der Order fehlgeschlagen."
+    "modifyFailed": "Änderung der Order fehlgeschlagen.",
+    "createFailed": "Order konnte nicht erstellt werden."
   },
   "modals": {
     "editTP": {
@@ -2099,6 +2101,25 @@
     },
     "editSL": {
       "title": "Stop Loss bearbeiten"
+    },
+    "createTpSl": {
+      "title": "TP/SL setzen",
+      "positionWide": "Positionsweit",
+      "positionWideHint": "Folgt der Positionsgröße und schließt zum Marktpreis. Max. eine pro Position.",
+      "partial": "Teilweise (eigene Menge)",
+      "partialHint": "Deckt die eingegebene Menge ab. Mehrere davon können gleichzeitig bestehen.",
+      "takeProfitPrice": "Take-Profit-Preis",
+      "stopLossPrice": "Stop-Loss-Preis",
+      "triggerType": "Trigger-Typ",
+      "markPrice": "Mark-Preis",
+      "lastPrice": "Letzter Preis",
+      "alreadySet": "bereits gesetzt",
+      "editExisting": "Bearbeiten",
+      "submit": "Anlegen",
+      "quantityRequired": "Menge für den Teilplan eingeben.",
+      "invalidQuantity": "Gültige Menge eingeben.",
+      "qtyExceedsPosition": "Menge übersteigt die Positionsgröße.",
+      "missingPositionId": "Diese Position hat noch keine ID und kann noch nicht mit einem Plan versehen werden."
     },
     "closePosition": {
       "title": "Position schließen",

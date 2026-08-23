@@ -2,7 +2,7 @@
 id: FEAT-0070
 title: Place new TP/SL orders on existing Bitunix positions
 type: feature
-status: specced
+status: done
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -39,25 +39,49 @@ WS/refetch, not the REST response alone.
 
 ## Acceptance criteria
 
-- [ ] A position without TP/SL can be given a position-wide TP, SL or both
-      from the positions UI; the new order appears in the pending TP/SL list.
-- [ ] A partial TP/SL with explicit quantity can be created; quantities are
-      validated against the position size.
-- [ ] The API constraint "one position-TP/SL per position" is reflected in the
-      UI (offer edit instead of a second create).
-- [ ] Trigger type (`LAST_PRICE`/`MARK_PRICE`) is selectable and defaults
-      consistently with the existing modify flow.
+- [x] A position without TP/SL can be given a position-wide TP, SL or both
+      from the positions UI ([`TpSlCreateModal`](../../../src/components/shared/TpSlCreateModal.svelte));
+      the new order appears in the pending TP/SL list (`tpSlState.invalidate()`
+      on success forces the shared cache to refetch).
+- [x] A partial TP/SL with explicit quantity can be created; the quantity is
+      validated against the position size client-side (not against other
+      partial plans already reserving part of it — the store does not
+      reliably enumerate every partial plan on a symbol, see BUG-0266 — the
+      venue enforces that bound).
+- [x] The API constraint "one position-TP/SL per position" is reflected in the
+      UI: a leg already covered by a position-wide plan
+      (`scopeGuess === "position"`, BUG-0266) shows its price with an Edit
+      link into the existing `TpSlEditModal` instead of a second create
+      input. A partial leg does not gate this — several partial plans may
+      coexist per the API docs, so only the position-wide type is limited.
+- [x] Trigger type (`LAST_PRICE`/`MARK_PRICE`) is selectable, defaulting to
+      `MARK_PRICE` — the same default `placePositionTpSl`/`placeTpSlOrder`
+      and the (now-fixed, BUG-0267) modify flow already use.
 
 ## Out of scope
 
 - Trailing stops (no endpoint in the current doc crawl; M3 lists them —
   revisit when the API supports it or emulate client-side under a separate
   item).
+- Adding a missing leg to an *existing* position-wide plan without going
+  through the single-leg edit modal. `POST /tpsl/position/modify_order`
+  (the endpoint that would do this in one call) is not integrated —
+  `INTEGRATION_STATUS.md` line 92. The edit-instead-of-create path this item
+  ships works today because a leg-level edit through `tpsl/modify_order`
+  changes the price and quantity of one leg of that same position-wide row.
+- Reconciling this feature's `scopeGuess` inference against a live account.
+  Needs credentials and an open position; the risk if it is wrong is
+  documented on BUG-0266 (a refused create, or a second plan where the
+  trader expected an edit) and is worth a deliberate check before this ships
+  to anyone trading with size.
 
-## Open questions
+## Resolved
 
-- Default for new TP/SL: position-wide or partial? Position-wide matches the
-  exchange UI's primary flow.
+- Default for new TP/SL: position-wide or partial? **Both offered
+  side-by-side** rather than picking one — the create modal always shows the
+  position-wide section first (matching the exchange UI's own primary flow,
+  as the original open question suggested) and the partial section
+  collapsed underneath it, opened on demand.
 
 ## Links
 

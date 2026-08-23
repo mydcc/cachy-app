@@ -242,17 +242,31 @@ const StopType = z.enum(["LAST_PRICE", "MARK_PRICE"]);
 const PriceLike = z.union([z.string(), z.number()]);
 
 /*
- * Params for modifying an existing TP/SL order (BUG-0267).
+ * Params for modifying an existing TP/SL order (BUG-0267) — **ROUTE INPUT SHAPE**.
+ * The public API (tradeService.modifyTpSlOrder) and route both accept this
+ * shape from clients. The route forwards to Bitunix as-is; tradeService
+ * converts to the wire format internally before sending.
+ */
+const ModifyTpSlClientParams = z.object({
+    orderId: z.union([z.string(), z.number()]),
+    symbol: z.string(),
+    planType: z.enum(["PROFIT", "LOSS"]),
+    triggerPrice: z.string(),
+    qty: z.string().optional(),
+    stopType: z.enum(["MARK_PRICE", "LAST_PRICE"]).optional(),
+});
+
+/**
+ * Params for modifying an existing TP/SL order — **WIRE FORMAT** (BUG-0267).
  *
- * This used to validate `{orderId, symbol, planType, triggerPrice, qty}` —
- * a shape `POST /tpsl/modify_order` does not document at all. The venue reads
- * `tpPrice`/`slPrice` (at least one required), each with its own stop type,
- * order type/price and quantity — the same per-leg fields `place` uses, not
- * a `planType` switch. `symbol` is not a parameter of this endpoint either;
- * it is identified by `orderId` alone. See `06_tp_sl.md` §Modify TP/SL Order.
+ * The venue reads `tpPrice`/`slPrice` (at least one required), each with its
+ * own stop type, order type/price and quantity — the same per-leg fields
+ * `place` uses, not a `planType` switch. `symbol` is not a parameter of this
+ * endpoint either; it is identified by `orderId` alone. See `06_tp_sl.md`
+ * §Modify TP/SL Order.
  *
- * Every call this schema has accepted since it shipped therefore sent a body
- * the venue's own "at least one of tpPrice/slPrice" rule rejects.
+ * This schema is used to validate wire bodies in signedRequest (the FEAT-0011
+ * gate) and to verify the wire format before sending to the venue.
  */
 const ModifyTpSlParams = z.object({
     orderId: z.union([z.string(), z.number()]),
