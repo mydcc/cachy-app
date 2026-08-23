@@ -929,7 +929,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0282",
     "title": "AI assistant sends journal, portfolio and trade setup to servers without explicit consent",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
