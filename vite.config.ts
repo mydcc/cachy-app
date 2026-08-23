@@ -30,7 +30,16 @@ const COMPONENT_TESTS = "src/**/*.component.test.ts";
 
 const VITEST_EXCLUDE = [
   ...configDefaults.exclude,
+  // Both hold git worktrees, and AGENTS.md tells every agent to make one before
+  // starting work — so on any active machine these contain several full copies
+  // of the repo. Without this, a run in the main checkout collects every
+  // worktree's tests too: a `*.component.test.ts` from a sibling branch gets
+  // picked up by the `unit` project, where `svelte` resolves to its server
+  // build and `mount()` throws, and a single run reported 222 failures that
+  // belonged to nobody's change. A suite that is red for reasons unrelated to
+  // your work is a suite people stop reading.
   ".claude/**",
+  ".worktrees/**",
   // Playwright specs must only run via `npm run test:e2e`, not Vitest
   "tests/e2e/**",
   // Benchmarks that assert wall-clock time or heap growth. They are useful

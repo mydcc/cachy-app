@@ -28,6 +28,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { Decimal } from "decimal.js";
 
 vi.mock("../logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -59,6 +60,8 @@ const tradeServiceMock = vi.hoisted(() => ({
     fetchTpSlOrders: vi.fn(async () => [{ orderId: "1" }]),
     cancelTpSlOrder: vi.fn(async () => ({ ok: true })),
     modifyTpSlOrder: vi.fn(async () => ({ ok: true })),
+    placePositionTpSl: vi.fn(async () => ({ ok: true })),
+    placeTpSlOrder: vi.fn(async () => ({ ok: true })),
     fetchLeverageMarginMode: vi.fn(async () => undefined),
     fetchTradingPairInfo: vi.fn(async () => undefined),
 }));
@@ -251,6 +254,24 @@ const TRADING_VERBS: Record<string, VerbSpec> = {
         kind: "write",
         args: [{ orderId: "1", symbol: "BTCUSDT", planType: "LOSS", triggerPrice: "1" }],
         transport: "modifyTpSlOrder",
+    },
+    placePositionTpSl: {
+        gate: "tpSl",
+        kind: "write",
+        args: [{ symbol: "BTCUSDT", positionId: "1", takeProfit: { price: new Decimal(70000) } }],
+        transport: "placePositionTpSl",
+    },
+    placeTpSlOrder: {
+        gate: "tpSl",
+        kind: "write",
+        args: [
+            {
+                symbol: "BTCUSDT",
+                positionId: "1",
+                takeProfit: { price: new Decimal(70000), qty: new Decimal("0.5") },
+            },
+        ],
+        transport: "placeTpSlOrder",
     },
 };
 

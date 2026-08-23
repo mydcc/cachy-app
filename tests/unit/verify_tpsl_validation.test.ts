@@ -160,10 +160,8 @@ describe('TP/SL API Validation', () => {
         action: 'modify',
         params: {
             orderId: '12345',
-            symbol: 'BTCUSDT',
-            planType: 'PROFIT',
-            triggerPrice: '90000',
-            qty: '0.1'
+            tpPrice: '90000',
+            tpStopType: 'MARK_PRICE'
         }
       })
     };
