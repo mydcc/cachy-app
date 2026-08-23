@@ -1423,7 +1423,7 @@
       "debugMode": "Debug Modus",
       "debugModeDesc": "Erweiterte Logs und Entwickler-Funktionen anzeigen.",
       "telemetry": "Nutzungsstatistiken",
-      "telemetryDesc": "Standardmäßig deaktiviert. Bei Aktivierung werden anonyme Nutzungsereignisse (Theme, Anbieter, Viewport, App-Version) an unsere selbst gehostete Matomo-Instanz unter s.cachy.app gesendet – mit IP-Anonymisierung. Journal, Einstellungen und API-Schlüssel verlassen dieses Gerät nie.",
+      "telemetryDesc": "Hilft bei der Verbesserung von Cachy: Anonyme Nutzungsereignisse (Theme, Anbieter, Viewport, App-Version) gehen an unsere selbst gehostete Matomo-Instanz unter s.cachy.app – mit IP-Anonymisierung, nie Journal, Einstellungen oder API-Schlüssel. Zum Stoppen des Trackings jederzeit deaktivierbar.",
       "clearCache": "Cache leeren",
       "reloadApp": "App neu laden",
       "cacheCleared": "Cache wurde geleert.",

@@ -33,12 +33,20 @@ is usage metadata rather than Class A fields.
 (or any other toggle) in the codebase — the `_mtm` container loads unconditionally
 and nothing suppresses it. The verification question resolves to "no gate exists".
 
-## Decision (2026-08-23, user)
+## Decision (2026-08-23, user, final)
 
-**No cookie notice will be shown.** Telemetry becomes strict opt-in, **default
-off**: the container only loads after the user explicitly enables the new
-`enableTelemetry` setting. Because nothing tracks before consent, no consent
-banner is required — the settings toggle itself is the consent surface.
+**Matomo keeps tracking always — opt-out model, no cookie notice.** The
+container loads by default; the settings toggle (System → Performance →
+"Usage Statistics") is an opt-out that stops every event push immediately.
+Rationale: measurement is anonymized first-party data (self-hosted at
+`s.cachy.app`, IP anonymization) under the operator's legitimate interest,
+with an objection option — so no consent banner is required. An earlier
+opt-in/default-off draft was rejected by the user ("Matomo soll immer
+tracken"). `app_symbol` is dropped from default dimensions regardless.
+
+**Operator follow-up (outside this repo):** verify in the Matomo admin that
+the container actually enforces no-cookies tracking and IP anonymization and
+set a retention period; the privacy pages promise both.
 
 ## Cause
 
@@ -82,9 +90,10 @@ Telemetry was wired for operator insight without a consent model attached.
 ## State
 
 Implemented on `fix/bug-0286-matomo-consent-gate` (2026-08-23): container load
-moved out of `app.html` into consent-gated `trackingService.initTracking()`,
-new `enableTelemetry` setting (default off) with a toggle in System →
-Performance, `app_symbol` dropped from default dimensions, DE/EN copy +
-privacy docs updated. Verified: `npm run check` 0 errors;
-`src/services/trackingService.consent.test.ts` 8/8 green; affected suites
-(actions, settings, app) green. Item moves to `done` when the PR merges.
+moved out of `app.html` into `trackingService.initTracking()`, which loads by
+default and honours the new `enableTelemetry` opt-out switch (default on);
+`app_symbol` dropped from default dimensions; DE/EN copy + privacy docs
+describe the anonymous always-on measurement with opt-out. Verified:
+`npm run check` 0 errors; `src/services/trackingService.consent.test.ts`
+9/9 green; affected suites (actions, settings, app) green. Item moves to
+`done` when the PR merges.

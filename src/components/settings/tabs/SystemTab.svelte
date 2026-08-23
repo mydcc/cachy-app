@@ -185,9 +185,9 @@
                         <Toggle bind:checked={settingsState.debugMode} />
                     </div>
 
-                    <!-- Telemetry Consent (BUG-0286): strict opt-in,
-                         default off. No cookie banner needed because
-                         nothing loads before this explicit consent. -->
+                    <!-- Telemetry Opt-Out (BUG-0286): tracking runs by
+                         default on anonymized first-party measurement; this
+                         toggle stops it immediately. No cookie banner needed. -->
                     <div
                         class="action-card flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                     >

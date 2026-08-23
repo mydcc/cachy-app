@@ -10,12 +10,13 @@
 // @vitest-environment happy-dom
 
 /**
- * BUG-0286 — Matomo telemetry consent gate.
+ * BUG-0286 — Matomo telemetry opt-out gate.
  *
- * Telemetry is strict opt-in, default off, and no cookie banner is shown:
- * the settings toggle is the consent surface. These tests assert the gate at
- * the network boundary — with consent off, no element that would trigger a
- * request to the tracking endpoint may exist in the document.
+ * Tracking runs by default on anonymized first-party measurement (no cookie
+ * notice); the settings toggle is an opt-out that must stop every event push
+ * and every container request immediately. These tests assert the gate at
+ * the network boundary — with telemetry opted out, no element that would
+ * trigger a request to the tracking endpoint may exist in the document.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -60,41 +61,21 @@ describe("BUG-0286 — telemetry consent gate", () => {
     delete (window as { _mtm?: unknown })._mtm;
     // happy-dom defaults to http://localhost/, where telemetry stays off by
     // design (same as production dev machines). Simulate the deployed origin
-    // so the consent path itself is what the tests exercise.
+    // so the opt-out path itself is what the tests exercise.
     window.location.href = "https://cachy.app/";
     // Network-boundary guard: catch ANY DOM insertion attempt, regardless of
     // which insertion API the loader uses. happy-dom does not fetch scripts,
     // so the created element IS the network request that production makes.
     insertBeforeSpy = vi.spyOn(Node.prototype, "insertBefore");
+    // NOTE: happy-dom prints async `NotSupportedError` DOMExceptions when an
+    // external script connects (its JS-file loading is disabled in tests).
+    // That is expected log noise here, not a failure — the element in the
+    // document is exactly what production would use to fetch the container.
   });
 
-  it("default-off: initTracking() triggers no request to the tracking endpoint", async () => {
+  it("default: initTracking() loads the container without any prior opt-in", async () => {
     const { tracking } = await loadTrackingService();
 
-    tracking.initTracking();
-
-    expect(injectedTrackingScripts()).toHaveLength(0);
-    expect(window._mtm).toBeUndefined();
-    expect(insertBeforeSpy).not.toHaveBeenCalled();
-  });
-
-  it("default-off: trackCustomEvent() pushes nothing", async () => {
-    const { tracking } = await loadTrackingService();
-
-    expect(() => tracking.trackCustomEvent("Calculation", "Success")).not.toThrow();
-    expect(window._mtm).toBeUndefined();
-
-    // Even if a container were present, the live consent check must block it.
-    const dataLayer: unknown[] = [];
-    window._mtm = dataLayer;
-    tracking.trackCustomEvent("Calculation", "Success");
-    expect(dataLayer).toHaveLength(0);
-  });
-
-  it("opt-in loads exactly one container script and starts the data layer", async () => {
-    const { tracking, settingsState } = await loadTrackingService();
-
-    settingsState.enableTelemetry = true;
     tracking.initTracking();
 
     const scripts = injectedTrackingScripts();
@@ -102,7 +83,6 @@ describe("BUG-0286 — telemetry consent gate", () => {
     expect(scripts[0].getAttribute("src")).toBe(
       "https://s.cachy.app/js/container_h6eaMUR9.js",
     );
-
     const dataLayer = window._mtm as unknown[] | undefined;
     expect(Array.isArray(dataLayer)).toBe(true);
     expect(dataLayer).toContainEqual(
@@ -110,10 +90,46 @@ describe("BUG-0286 — telemetry consent gate", () => {
     );
   });
 
-  it("initTracking() is idempotent while consent stays on", async () => {
+  it("localhost is never tracked, even by default", async () => {
+    const { tracking } = await loadTrackingService();
+
+    window.location.href = "http://localhost:5173/";
+    tracking.initTracking();
+
+    expect(injectedTrackingScripts()).toHaveLength(0);
+    expect(window._mtm).toBeUndefined();
+  });
+
+  it("opted out: initTracking() triggers no request to the tracking endpoint", async () => {
     const { tracking, settingsState } = await loadTrackingService();
 
-    settingsState.enableTelemetry = true;
+    settingsState.enableTelemetry = false;
+    tracking.initTracking();
+
+    expect(injectedTrackingScripts()).toHaveLength(0);
+    expect(window._mtm).toBeUndefined();
+    expect(insertBeforeSpy).not.toHaveBeenCalled();
+  });
+
+  it("opted out: trackCustomEvent() pushes nothing", async () => {
+    const { tracking, settingsState } = await loadTrackingService();
+
+    settingsState.enableTelemetry = false;
+
+    // No container present at all.
+    expect(() => tracking.trackCustomEvent("Calculation", "Success")).not.toThrow();
+    expect(window._mtm).toBeUndefined();
+
+    // Even if a container were present, the live opt-out check must block it.
+    const dataLayer: unknown[] = [];
+    window._mtm = dataLayer;
+    tracking.trackCustomEvent("Calculation", "Success");
+    expect(dataLayer).toHaveLength(0);
+  });
+
+  it("initTracking() is idempotent while tracking stays enabled", async () => {
+    const { tracking } = await loadTrackingService();
+
     tracking.initTracking();
     tracking.initTracking();
     tracking.initTracking();
@@ -122,14 +138,14 @@ describe("BUG-0286 — telemetry consent gate", () => {
   });
 
   it("opting out stops event pushes immediately", async () => {
-    const { tracking, settingsState } = await loadTrackingService();
+    const { tracking } = await loadTrackingService();
 
-    settingsState.enableTelemetry = true;
     tracking.initTracking();
     expect(injectedTrackingScripts()).toHaveLength(1);
     const dataLayerBefore = window._mtm;
     expect(dataLayerBefore).toBeDefined();
 
+    const { settingsState } = await import("../stores/settings.svelte");
     settingsState.enableTelemetry = false;
     tracking.applyTelemetryConsent(false);
 
@@ -139,18 +155,16 @@ describe("BUG-0286 — telemetry consent gate", () => {
     tracking.trackCustomEvent("Sync", "BitunixHistory", "Success", 3);
     expect(window._mtm).toBeUndefined();
 
-    // Re-consent may load again: the stale container from the earlier
-    // consent is still in the document until reload, so a second script is
-    // expected here.
+    // Re-enabling loads again: the stale container from before the opt-out is
+    // still in the document until reload, so a second script is expected.
     settingsState.enableTelemetry = true;
     tracking.applyTelemetryConsent(true);
     expect(injectedTrackingScripts()).toHaveLength(2);
   });
 
-  it("pushed events carry no app_symbol dimension by default", async () => {
-    const { tracking, settingsState } = await loadTrackingService();
+  it("pushed events carry no app_symbol dimension", async () => {
+    const { tracking } = await loadTrackingService();
 
-    settingsState.enableTelemetry = true;
     tracking.initTracking();
     tracking.trackCustomEvent("Price", "Fetch", "BTCUSDT");
 
@@ -167,7 +181,7 @@ describe("BUG-0286 — telemetry consent gate", () => {
     expect(source).not.toContain("app_symbol");
   });
 
-  it("consent copy exists in DE + EN and states what is collected and where", async () => {
+  it("telemetry copy exists in DE + EN and states what is collected and where", async () => {
     vi.resetModules();
     const en = JSON.parse(
       readFileSync(repoFile("src", "locales", "locales", "en.json"), "utf-8"),
@@ -185,6 +199,10 @@ describe("BUG-0286 — telemetry consent gate", () => {
       );
       // … and where it goes.
       expect(locale.settings.system.telemetryDesc).toContain("s.cachy.app");
+      // … and that an opt-out exists.
+      expect(locale.settings.system.telemetryDesc.toLowerCase()).toMatch(
+        /deaktivier|turn off|stop/,
+      );
     }
   });
 });

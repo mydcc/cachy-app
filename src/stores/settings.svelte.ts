@@ -283,9 +283,11 @@ export interface Settings {
   galaxySettings: GalaxySettings;
   tradeFlowSettings: TradeFlowSettings;
   /**
-   * Consent gate for behavioural telemetry (BUG-0286). Strict opt-in, default
-   * off: the self-hosted Matomo container only loads after the user enables
-   * this, so no cookie banner is needed. Nothing tracks before consent.
+   * Opt-out switch for behavioural telemetry (BUG-0286). Tracking runs by
+   * default on anonymized, first-party measurement (IP anonymization,
+   * self-hosted at s.cachy.app); turning this off stops every event push
+   * immediately. Because measurement is anonymous and an opt-out exists, no
+   * cookie notice is shown.
    */
   enableTelemetry: boolean;
   enableNetworkLogs: boolean;
@@ -510,7 +512,7 @@ const defaultSettings: Settings = {
     enableGyroscope: false,
     rotationSpeed: 0.1,
   },
-  enableTelemetry: false,
+  enableTelemetry: true,
   enableNetworkLogs: false,
   logSettings: {
     technicals: false,

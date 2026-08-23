@@ -26,17 +26,15 @@ To provide market data and functionality, the app interacts with the following e
 
 ## 4. Tracking & Analytics
 
-**Matomo (strictly opt-in):**
-We use Matomo for privacy-friendly analytics to understand how our app is used and to improve it. Telemetry is **off by default**: no analytics script is loaded and no data is sent until you explicitly enable "Usage Statistics" in Settings → System → Performance. Because nothing tracks before your consent, we show no cookie notice.
-
-If you opt in:
+**Matomo (anonymous, opt-out):**
+We use Matomo for privacy-friendly analytics to understand how our app is used and to improve it. Measurement is anonymous and first-party, which is why we show no cookie notice — and because you can object at any time:
 
 - Anonymous usage events are collected (theme, market-data provider, viewport, app version — not the symbols you view, not your journal, settings or API keys).
 - Matomo is hosted by us (on `s.cachy.app`) to ensure data ownership; it is a first-party, self-hosted deployment.
 - We use IP anonymization.
 - This data is used solely for usage analysis and is not shared with third parties for advertising purposes.
 
-You can withdraw consent at any time by turning the toggle off; from that moment no further events are sent (a page reload fully unloads the analytics container).
+You can opt out at any time via Settings → System → Performance ("Usage Statistics"); from that moment no further events are sent (a page reload fully unloads the analytics container).
 
 ## 5. Your Rights
 

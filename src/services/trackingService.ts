@@ -31,9 +31,11 @@ const contextProviders: ContextProvider[] = [];
 /**
  * First-party, self-hosted Matomo Tag Manager container (see
  * `src/lib/assets/content/privacy.en.md`). BUG-0286: the container is NOT
- * loaded unconditionally anymore — only `initTracking()` may inject it, and
- * only after the user opted in via Settings > System > Privacy. No cookie
- * banner is shown because nothing tracks before that explicit opt-in.
+ * loaded from app.html anymore — only `initTracking()` injects it. Tracking
+ * runs by default (anonymized measurement under legitimate interest); the
+ * user can opt out any time via Settings > System > Performance, which stops
+ * every event push immediately. No cookie notice is shown because the
+ * measurement is anonymous and an opt-out exists.
  */
 const MATOMO_CONTAINER_URL = "https://s.cachy.app/js/container_h6eaMUR9.js";
 
@@ -56,14 +58,14 @@ export function isTelemetryEnabled(): boolean {
   return (
     typeof window !== "undefined" &&
     !isLocalHostname(window.location.hostname) &&
-    settingsState.enableTelemetry === true
+    settingsState.enableTelemetry !== false
   );
 }
 
 /**
- * Injects the Matomo Tag Manager container — but ONLY when the user has
- * explicitly opted in (`settingsState.enableTelemetry`). Idempotent: safe to
- * call at startup and again whenever the consent toggle changes.
+ * Injects the Matomo Tag Manager container — unless the user opted out
+ * (`settingsState.enableTelemetry === false`). Idempotent: safe to call at
+ * startup and again whenever the toggle changes.
  *
  * With telemetry off this is a no-op: no script element is created and no
  * request to `s.cachy.app` is made.
@@ -93,9 +95,9 @@ export function initTracking(): void {
 }
 
 /**
- * Reacts to a consent-toggle change. Opting in loads the container; opting
- * out drops our reference to the data layer so no further event is pushed.
- * A page reload fully unloads Matomo itself.
+ * Reacts to the telemetry toggle. Re-enabling loads the container again;
+ * opting out drops our reference to the data layer so no further event is
+ * pushed. A page reload fully unloads Matomo itself.
  */
 export function applyTelemetryConsent(enabled: boolean): void {
   if (typeof window === "undefined") return;
