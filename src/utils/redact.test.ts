@@ -136,6 +136,21 @@ describe("redactString", () => {
         const message = "Order refused: qty does not match (expected 1, got 2)";
         expect(redactString(message)).toBe(message);
     });
+
+    it("redacts exact sign key without scrubbing signal or design words", () => {
+        const queryWithSign = "https://fapi.bitunix.com/api/v1?symbol=BTCUSDT&sign=abcdef123456";
+        expect(redactString(queryWithSign)).toContain("sign=***REDACTED***");
+        expect(redactString(queryWithSign)).not.toContain("abcdef123456");
+
+        const messageWithSignalAndDesign = "signal=strong and design=modern layout with symbol=ETH";
+        expect(redactString(messageWithSignalAndDesign)).toBe("signal=strong and design=modern layout with symbol=ETH");
+
+        const jsonWithSignAndSignal = '{"sign": "secret_sig", "signal": "buy", "design": "dark"}';
+        const redactedJson = redactString(jsonWithSignAndSignal);
+        expect(redactedJson).toContain('"sign": "***REDACTED***"');
+        expect(redactedJson).toContain('"signal": "buy"');
+        expect(redactedJson).toContain('"design": "dark"');
+    });
 });
 
 describe("redaction stays in step with the server-side logger", () => {

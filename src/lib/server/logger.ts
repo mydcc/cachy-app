@@ -56,6 +56,7 @@ class ServerLogger extends EventEmitter {
     /authorization/i,
     /bearer/i,
     /^private[-_]?key$/i,
+    /^sign$/i,
   ];
 
   private constructor() {

@@ -17,6 +17,7 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
+import { SENSITIVE_KEYS } from "../stores/settings/secretsLoader";
 import { cryptoService } from "./cryptoService";
 
 export const BACKUP_VERSION = 4; // Version 4: PBKDF2 600k Iterations + Strict Data Validation
@@ -53,6 +54,39 @@ export interface BackupFile {
 function getDataFromLocalStorage(key: string): string | null {
   if (!browser && typeof localStorage === "undefined") return null;
   return localStorage.getItem(key);
+}
+
+/**
+ * Strips exchange credentials, API keys, and sensitive tokens from settings JSON
+ * for unencrypted backup exports (BUG-0283).
+ */
+export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null): string | null {
+  if (!settingsJson) return null;
+  try {
+    const parsed = JSON.parse(settingsJson);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+
+    // Blank out exchange credentials
+    parsed.apiKeys = {
+      bitunix: { key: "", secret: "" },
+      bitget: { key: "", secret: "", passphrase: "" },
+    };
+    delete parsed.encryptedApiKeys;
+    delete parsed.encryptedSecrets;
+
+    // Blank out third-party and AI API keys (SENSITIVE_KEYS inventory + extras)
+    for (const key of SENSITIVE_KEYS) {
+      if (key in parsed) {
+        parsed[key] = "";
+      }
+    }
+    parsed.openrouterApiKey = "";
+    parsed.imgurClientId = "";
+
+    return JSON.stringify(parsed);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -102,7 +136,12 @@ export async function getBackupPayload(password?: string): Promise<BackupFile | 
     backupFile.kdfHash = blob.kdfHash;
     backupFile.isEncrypted = true;
   } else {
-    backupFile.data = rawData;
+    // Unencrypted backup: sanitize sensitive credentials and API keys (BUG-0283)
+    const sanitizedData: BackupData = {
+      ...rawData,
+      settings: sanitizeSettingsForUnencryptedExport(rawData.settings),
+    };
+    backupFile.data = sanitizedData;
     backupFile.isEncrypted = false;
   }
 

@@ -26,6 +26,8 @@ import { safeJsonParse } from "../../../utils/safeJson";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 import type { NormalizedPosition } from "../../../types/exchange";
+import { logger } from "$lib/server/logger";
+import { redactString } from "../../../utils/redact";
 
 // Raw Bitunix position fields — names vary across API versions/endpoints,
 // hence the fallback chains at each read site below.
@@ -113,7 +115,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     return jsonSuccess({ positions });
   } catch (e) {
-    console.error(`Error fetching positions from ${exchange}:`, e);
+    const msg = e instanceof Error ? e.message : String(e);
+    logger.error(`[Positions] Error fetching positions from ${exchange}: ${redactString(msg)}`);
     return handleApiError(e);
   }
 };

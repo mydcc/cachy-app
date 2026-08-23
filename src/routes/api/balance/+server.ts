@@ -23,15 +23,38 @@ import { generateBitgetSignature } from "../../../utils/server/bitget";
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../../../utils/utils";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
+import { BaseRequestSchema } from "../../../types/orderSchemas";
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
+import { safeJsonParse } from "../../../utils/safeJson";
+import { logger } from "$lib/server/logger";
+import { redactString } from "../../../utils/redact";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  const { exchange, apiKey, apiSecret, passphrase } = await request.json();
+  let body: unknown;
+  try {
+    const text = await request.text();
+    body = safeJsonParse(text);
+  } catch {
+    return json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
-  if (!exchange || !apiKey || !apiSecret) {
-    return json({ error: "Missing credentials or exchange" }, { status: 400 });
+  const validation = BaseRequestSchema.safeParse(body);
+  if (!validation.success) {
+    const errors = validation.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ");
+    return json({ error: "Validation Error", details: errors }, { status: 400 });
+  }
+
+  const { exchange } = validation.data;
+  const creds = extractApiCredentials(request, validation.data);
+  const apiKey = creds.apiKey;
+  const apiSecret = creds.apiSecret;
+  const passphrase = creds.passphrase;
+
+  if (!apiKey || !apiSecret) {
+    return json({ error: "Missing API credentials" }, { status: 400 });
   }
 
   try {
@@ -48,7 +71,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     return json({ balance });
   } catch (e) {
-    console.error(`Error fetching balance from ${exchange}:`, e);
+    const rawMsg = e instanceof Error ? e.message : String(e);
+    logger.error(`[Balance] Error fetching balance from ${exchange}: ${redactString(rawMsg)}`);
     return json(
       { error: (e instanceof Error ? e.message : null) || "Failed to fetch balance" },
       { status: 500 },
