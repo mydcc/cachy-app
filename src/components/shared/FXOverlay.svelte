@@ -261,29 +261,40 @@
 
     // --- PHYSICS & LOGIC ---
 
+    let cachedWindows: Array<{ el: HTMLElement; centerX: number; centerY: number }> = [];
+
+    function cacheWindowBounds() {
+        if (!browser) return;
+        const elements = document.querySelectorAll<HTMLElement>(
+            ".window-frame, .glass-panel",
+        );
+        cachedWindows = Array.from(elements).map((el) => {
+            const rect = el.getBoundingClientRect();
+            return {
+                el,
+                centerX: rect.left + rect.width / 2,
+                centerY: rect.top + rect.height / 2,
+            };
+        });
+    }
+
     function checkWindowImpact(obj: THREE.Object3D) {
-        if (!camera || !browser) return;
+        if (!camera || !browser || cachedWindows.length === 0) return;
         const pos2D = obj.position.clone().project(camera);
         const screenX = ((pos2D.x + 1) * window.innerWidth) / 2;
         const screenY = ((-pos2D.y + 1) * window.innerHeight) / 2;
 
-        const elements = document.querySelectorAll(
-            ".window-frame, .glass-panel",
-        );
-        elements.forEach((el) => {
-            const rect = (el as HTMLElement).getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
+        cachedWindows.forEach(({ el, centerX, centerY }) => {
             const dist = Math.sqrt(
                 Math.pow(screenX - centerX, 2) + Math.pow(screenY - centerY, 2),
             );
 
             if (dist < 180) {
                 const intensity = (1 - dist / 180) * 12;
-                (el as HTMLElement).style.transform =
+                el.style.transform =
                     `translate(${(Math.random() - 0.5) * intensity}px, ${(Math.random() - 0.5) * intensity}px) scale(${1 + intensity * 0.001})`;
                 setTimeout(() => {
-                    (el as HTMLElement).style.transform = "";
+                    el.style.transform = "";
                 }, 60);
             }
         });
@@ -311,6 +322,7 @@
 
     function launch(rect: DOMRect) {
         if (!camera) return;
+        cacheWindowBounds();
         const x = ((rect.left + rect.width / 2) / window.innerWidth) * 2 - 1;
         const y = -((rect.top + rect.height / 2) / window.innerHeight) * 2 + 1;
         const vec = new THREE.Vector3(x, y, 0);
@@ -405,14 +417,16 @@
         if (!renderer || !scene || !camera) return;
 
         const anyShardVisible = shards.some((s) => s.visible);
-        let duckActive = !!duckLogic;
+        const physicsActive = !!(stressLogic && stressLogic["physicsBodies"]?.length);
+        const duckActive = duckLogic ? duckLogic.isActive() : false;
 
         if (
             !isFlying &&
             !anyShardVisible &&
-            (!stressLogic || !stressLogic["physicsBodies"]?.length) &&
+            !physicsActive &&
             !duckActive
         ) {
+            renderer.render(scene, camera);
             animationId = null;
             return;
         }
@@ -503,11 +517,8 @@
         duckLogic = new DuckLogic(scene);
         duckLogic.init();
 
-        // Start animation loop to show duck idle
-        if (!animationId) {
-            clock.start();
-            animationId = requestAnimationFrame(animate);
-        }
+        // Render initial static frame
+        renderer.render(scene, camera);
 
         window.addEventListener("resize", onWindowResize);
         document.addEventListener("click", onDocumentClick);
@@ -520,10 +531,13 @@
     });
 
     function onWindowResize() {
-        if (!camera || !renderer) return;
+        if (!camera || !renderer || !scene) return;
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        if (!animationId) {
+            renderer.render(scene, camera);
+        }
     }
 
     function onDocumentClick(event: MouseEvent) {
@@ -542,6 +556,10 @@
         const intersects = raycaster.intersectObject(duckLogic.getGroup(), true);
         if (intersects.length > 0) {
             effectsState.triggerDuckEvent({ type: "pet" });
+            if (!animationId) {
+                clock.start();
+                animationId = requestAnimationFrame(animate);
+            }
         }
     }
 </script>

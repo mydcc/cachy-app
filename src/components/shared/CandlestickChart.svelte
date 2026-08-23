@@ -48,34 +48,28 @@
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
 
-  // Helper to resolve CSS variables (handles "var(--name)" references)
+  // Helper to resolve CSS variables without DOM insertion
   const resolveColor = (varName: string, fallback: string = "#000000") => {
     if (!browser) return fallback;
 
-    // 1. Get the raw value (might be "var(--other)")
-    let val = getComputedStyle(document.documentElement)
-      .getPropertyValue(varName)
-      .trim();
-    if (!val) return fallback;
+    let targetVar = varName.startsWith("var(")
+      ? varName.replace(/^var\(\s*/, "").replace(/\s*,?.*?\)$/, "").trim()
+      : varName;
 
-    // 2. If it's a direct color (hex, rgb, etc) and not a variable reference, return it
-    if (!val.startsWith("var(") && !val.includes("var(")) {
-      return val;
+    let depth = 0;
+    while (targetVar.startsWith("--") && depth < 5) {
+      const val = getComputedStyle(document.documentElement)
+        .getPropertyValue(targetVar)
+        .trim();
+      if (!val) break;
+      if (!val.startsWith("var(")) {
+        return val;
+      }
+      targetVar = val.replace(/^var\(\s*/, "").replace(/\s*,?.*?\)$/, "").trim();
+      depth++;
     }
 
-    // 3. If it is a variable reference, we need the browser to resolve it.
-    try {
-      const temp = document.createElement("div");
-      temp.style.display = "none";
-      temp.style.backgroundColor = `var(${varName})`;
-      document.body.appendChild(temp);
-      const resolved = getComputedStyle(temp).backgroundColor;
-      document.body.removeChild(temp);
-      return resolved || fallback;
-    } catch (e) {
-      console.warn("Failed to resolve color:", varName, e);
-      return fallback;
-    }
+    return fallback;
   };
 
   function prepareChartData(candles: CandleData[]) {

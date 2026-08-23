@@ -57,6 +57,31 @@
         return trimmed || fallback;
     };
 
+    function parseColorToRgb(colorStr: string): [number, number, number] | null {
+        const trimmed = colorStr.trim();
+        if (trimmed.startsWith("#")) {
+            const hex = trimmed.slice(1);
+            if (hex.length === 3) {
+                return [
+                    parseInt(hex[0] + hex[0], 16),
+                    parseInt(hex[1] + hex[1], 16),
+                    parseInt(hex[2] + hex[2], 16),
+                ];
+            } else if (hex.length >= 6) {
+                return [
+                    parseInt(hex.slice(0, 2), 16),
+                    parseInt(hex.slice(2, 4), 16),
+                    parseInt(hex.slice(4, 6), 16),
+                ];
+            }
+        }
+        const match = trimmed.match(/\d+/g);
+        if (match && match.length >= 3) {
+            return [parseInt(match[0], 10), parseInt(match[1], 10), parseInt(match[2], 10)];
+        }
+        return null;
+    }
+
     function updateColors() {
         if (!worker || lifecycleState !== LifecycleState.READY) return;
 
@@ -67,19 +92,12 @@
 
         const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
 
-        // Proper HSL check in main thread
-        const tempDiv = document.createElement('div');
-        tempDiv.style.color = bgStr;
-        document.body.appendChild(tempDiv);
-        const computed = getComputedStyle(tempDiv).color;
-        document.body.removeChild(tempDiv);
-        
-        const rgb = computed.match(/\d+/g);
+        const rgb = parseColorToRgb(bgStr);
         let light = false;
         if (rgb) {
-            const r = parseInt(rgb[0]) / 255;
-            const g = parseInt(rgb[1]) / 255;
-            const b = parseInt(rgb[2]) / 255;
+            const r = rgb[0] / 255;
+            const g = rgb[1] / 255;
+            const b = rgb[2] / 255;
             const max = Math.max(r, g, b), min = Math.min(r, g, b);
             light = (max + min) / 2 > 0.5;
         }

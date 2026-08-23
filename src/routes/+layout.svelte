@@ -427,9 +427,11 @@ import { afterNavigate } from "$app/navigation";
   <BackgroundRenderer />
   <!-- Rendering Layers for Visual Effects -->
   <AmbientTopline />
-  <FireOverlay layer="tiles" zIndex={10} />
-  <FireOverlay layer="windows" zIndex={200} />
-  <FireOverlay layer="modals" zIndex={20000} />
+  {#if settingsState.enableBurningBorders}
+    <FireOverlay layer="tiles" zIndex={10} />
+    <FireOverlay layer="windows" zIndex={200} />
+    <FireOverlay layer="modals" zIndex={20000} />
+  {/if}
   {@render children?.()}
 
   <!-- Global Modals -->

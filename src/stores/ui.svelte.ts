@@ -232,15 +232,35 @@ class UiManager {
   setTheme(themeName: string) {
     if (this.currentTheme === themeName) return;
     this.currentTheme = themeName;
-    this.applyThemeToDom(themeName);
+    if (
+      browser &&
+      "startViewTransition" in document &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      document.startViewTransition(() => {
+        this.applyThemeToDom(themeName);
+      });
+    } else if (
+      browser &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      const html = document.documentElement;
+      html.classList.add("theme-transitioning");
+      this.applyThemeToDom(themeName);
+      setTimeout(() => {
+        html.classList.remove("theme-transitioning");
+      }, 240);
+    } else {
+      this.applyThemeToDom(themeName);
+    }
   }
 
   applyThemeToDom(themeName: string) {
     if (!browser) return;
 
     const html = document.documentElement;
-    const currentThemeClass = Array.from(html.classList).find((c) =>
-      c.startsWith("theme-"),
+    const currentThemeClass = Array.from(html.classList).find(
+      (c) => c.startsWith("theme-") && c !== "theme-transitioning",
     );
     const expectedClass = themeName !== "dark" ? `theme-${themeName}` : null;
 
@@ -251,13 +271,13 @@ class UiManager {
       // DOM is already correct
     } else {
       html.classList.forEach((className) => {
-        if (className.startsWith("theme-")) {
+        if (className.startsWith("theme-") && className !== "theme-transitioning") {
           html.classList.remove(className);
         }
       });
 
       document.body.classList.forEach((className) => {
-        if (className.startsWith("theme-")) {
+        if (className.startsWith("theme-") && className !== "theme-transitioning") {
           document.body.classList.remove(className);
         }
       });
@@ -269,26 +289,33 @@ class UiManager {
 
     const bgColors: Record<string, string> = {
       dark: "#0f172a",
-      light: "#f1f5f9",
-      VIP: "#121212",
-      matrix: "#000000",
-      meteorite: "#0c082f",
-      steel: "#08103f",
+      "ayu-dark": "#0f1419",
+      "ayu-mirage": "#1f2430",
+      catppuccin: "#1e1e2e",
+      cobalt2: "#193549",
       dracula: "#282a36",
-      "solarized-light": "#fdf6e3",
-      "solarized-dark": "#002b36",
-      nord: "#2e3440",
-      "gruvbox-dark": "#282828",
-      monokai: "#1e1f1c",
-      "tokyo-night": "#1a1b26",
+      "dracula-soft": "#282a36",
       "everforest-dark": "#2d353b",
       "github-dark": "#0d1117",
-      "github-light": "#ffffff",
-      "ayu-dark": "#0f1419",
-      "ayu-light": "#f8f9fa",
-      "ayu-mirage": "#1f2430",
+      "gruvbox-dark": "#282828",
+      matrix: "#000000",
       midnight: "#0d1117",
-      cobalt2: "#193549",
+      monokai: "#1e1f1c",
+      "night-owl": "#011627",
+      nord: "#2e3440",
+      obsidian: "#1e1e1e",
+      "one-dark-pro": "#282c34",
+      "solarized-dark": "#002b36",
+      "tokyo-night": "#1a1b26",
+      VIP: "#121212",
+      "ayu-light": "#f8f9fa",
+      "github-light": "#ffffff",
+      "solarized-light": "#fdf6e3",
+      steel: "#08103f",
+      meteorite: "#0c082f",
+      insight: "#0f0505",
+      ever: "#010f08",
+      light: "#f1f5f9",
     };
     const bgColor = bgColors[themeName] || bgColors["dark"];
     html.style.backgroundColor = bgColor;
