@@ -58,10 +58,12 @@ export function isStaleChunkError(error: unknown): boolean {
   if (!message) return false;
 
   const normalized = message.toLowerCase();
+  // The literals below match browser-generated error messages, not UI copy:
+  // they are English in every locale and must never be translated.
   return (
-    normalized.includes("failed to fetch dynamically imported module") ||
-    normalized.includes("error loading dynamically imported module") ||
-    normalized.includes("importing a module script failed")
+    normalized.includes("failed to fetch dynamically imported module") || // i18n-ignore
+    normalized.includes("error loading dynamically imported module") || // i18n-ignore
+    normalized.includes("importing a module script failed") // i18n-ignore
   );
 }
 
