@@ -46,7 +46,8 @@ held by other open tabs block `deleteDatabase()`; per design the wipe resolves
 best effort instead of hanging, so in a multi-tab scenario those databases can
 survive until every tab is closed. Surfaced during review of the fix: a small
 `BroadcastChannel` "close your IDB connections" ping to other tabs before
-deleting would close the gap — spin it off as its own item rather than
+deleting would close the gap — spun off as its own item,
+[`BUG-0294`](BUG-0294-multi-tab-reset-misses-indexeddb.md), rather than
 widening this one.
 
 ## Acceptance criteria
