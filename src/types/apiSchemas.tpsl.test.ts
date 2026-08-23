@@ -129,7 +129,25 @@ describe("place request", () => {
 });
 
 describe("the discriminated union still routes the existing actions", () => {
-    it("keeps modify working", () => {
+    it("accepts modify in the shape the venue actually documents", () => {
+        const result = TpSlRequestSchema.safeParse({
+            ...BASE,
+            action: "modify",
+            params: {
+                orderId: "1",
+                tpPrice: "70000",
+                tpStopType: "MARK_PRICE",
+            },
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it("rejects the shape modify used to send (BUG-0267)", () => {
+        // {orderId, symbol, planType, triggerPrice} — what this schema
+        // accepted before the fix. `POST /tpsl/modify_order` has no `symbol`
+        // or `planType` parameter and reads `tpPrice`/`slPrice`, neither of
+        // which this shape carries, so it violates the venue's own "at least
+        // one of tpPrice/slPrice" rule.
         const result = TpSlRequestSchema.safeParse({
             ...BASE,
             action: "modify",
@@ -139,6 +157,24 @@ describe("the discriminated union still routes the existing actions", () => {
                 planType: "PROFIT",
                 triggerPrice: "70000",
             },
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it("modify requires at least one of tpPrice or slPrice", () => {
+        const result = TpSlRequestSchema.safeParse({
+            ...BASE,
+            action: "modify",
+            params: { orderId: "1" },
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it("modify accepts a quantity change alongside the price", () => {
+        const result = TpSlRequestSchema.safeParse({
+            ...BASE,
+            action: "modify",
+            params: { orderId: "1", slPrice: "55000", slQty: "0.5" },
         });
         expect(result.success).toBe(true);
     });

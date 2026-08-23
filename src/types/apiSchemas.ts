@@ -238,17 +238,38 @@ const CancelTpSlParams = z.object({
     planType: z.enum(["PROFIT", "LOSS"]).optional(),
 });
 
-// Specific params for Modify
-const ModifyTpSlParams = z.object({
-    orderId: z.union([z.string(), z.number()]),
-    symbol: z.string(),
-    planType: z.enum(["PROFIT", "LOSS"]),
-    triggerPrice: z.union([z.string(), z.number()]),
-    qty: z.union([z.string(), z.number()]).optional(),
-});
-
 const StopType = z.enum(["LAST_PRICE", "MARK_PRICE"]);
 const PriceLike = z.union([z.string(), z.number()]);
+
+/*
+ * Params for modifying an existing TP/SL order (BUG-0267).
+ *
+ * This used to validate `{orderId, symbol, planType, triggerPrice, qty}` —
+ * a shape `POST /tpsl/modify_order` does not document at all. The venue reads
+ * `tpPrice`/`slPrice` (at least one required), each with its own stop type,
+ * order type/price and quantity — the same per-leg fields `place` uses, not
+ * a `planType` switch. `symbol` is not a parameter of this endpoint either;
+ * it is identified by `orderId` alone. See `06_tp_sl.md` §Modify TP/SL Order.
+ *
+ * Every call this schema has accepted since it shipped therefore sent a body
+ * the venue's own "at least one of tpPrice/slPrice" rule rejects.
+ */
+const ModifyTpSlParams = z.object({
+    orderId: z.union([z.string(), z.number()]),
+    tpPrice: PriceLike.optional(),
+    tpStopType: StopType.optional(),
+    tpOrderType: z.enum(["LIMIT", "MARKET"]).optional(),
+    tpOrderPrice: PriceLike.optional(),
+    tpQty: PriceLike.optional(),
+    slPrice: PriceLike.optional(),
+    slStopType: StopType.optional(),
+    slOrderType: z.enum(["LIMIT", "MARKET"]).optional(),
+    slOrderPrice: PriceLike.optional(),
+    slQty: PriceLike.optional(),
+}).refine(
+    (p) => p.tpPrice !== undefined || p.slPrice !== undefined,
+    { message: "At least one of tpPrice or slPrice is required" },
+);
 
 /*
  * Params for creating TP/SL where none exists (FEAT-0070).

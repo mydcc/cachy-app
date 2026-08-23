@@ -1218,13 +1218,37 @@ class TradeService {
         });
     }
 
+    /**
+     * Modifies one leg of an existing TP/SL order (BUG-0267).
+     *
+     * `POST /tpsl/modify_order` reads `tpPrice`/`slPrice` (at least one),
+     * each with its own stop type, order type/price and quantity — the same
+     * per-leg shape `placeTpSlOrder` sends, not a `planType`+`triggerPrice`
+     * switch. It has no `symbol` parameter either; the order is identified by
+     * `orderId` alone. This used to build a wire body the endpoint does not
+     * document — `{orderId, symbol, planType, triggerPrice, qty}` — which
+     * every call since it shipped sent, and which the venue's own "at least
+     * one of tpPrice/slPrice" rule would reject.
+     */
     public async modifyTpSlOrder(params: {
         orderId: string,
         symbol: string,
         planType: "PROFIT" | "LOSS",
         triggerPrice: string,
-        qty?: string
+        qty?: string,
+        stopType?: "LAST_PRICE" | "MARK_PRICE",
     }) {
+        const wire: Record<string, unknown> = { orderId: params.orderId };
+        if (params.planType === "PROFIT") {
+            wire.tpPrice = params.triggerPrice;
+            wire.tpStopType = params.stopType ?? "MARK_PRICE";
+            if (params.qty !== undefined) wire.tpQty = params.qty;
+        } else {
+            wire.slPrice = params.triggerPrice;
+            wire.slStopType = params.stopType ?? "MARK_PRICE";
+            if (params.qty !== undefined) wire.slQty = params.qty;
+        }
+
         return this.gatedRequest({
             kind: "modify",
             endpoint: "/api/tpsl",
@@ -1233,13 +1257,7 @@ class TradeService {
                 action: "modify",
                 symbol: params.symbol,
                 orderId: params.orderId,
-                params: {
-                    orderId: params.orderId,
-                    symbol: params.symbol,
-                    planType: params.planType,
-                    triggerPrice: params.triggerPrice,
-                    qty: params.qty
-                },
+                params: wire,
             },
             displayed: {
                 symbol: params.symbol,
@@ -1251,8 +1269,8 @@ class TradeService {
                 stopLossPrice: params.planType === "LOSS" ? new Decimal(params.triggerPrice) : undefined,
             },
             priceFields: {
-                stopLoss: "params.triggerPrice",
-                takeProfit: "params.triggerPrice",
+                stopLoss: "params.slPrice",
+                takeProfit: "params.tpPrice",
             },
         });
     }
