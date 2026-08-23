@@ -48,6 +48,7 @@ import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
 import { paperExchange } from "./paperExchange";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
+import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import {
     orderGate,
@@ -79,6 +80,21 @@ export interface TpSlOrder {
     reduceOnly?: boolean;
     workingType?: string;
     timeInForce?: string;
+    /**
+     * The id of the venue row this leg was split out of (BUG-0266).
+     *
+     * `orderId` above is a *leg* id — `${sourceOrderId}-tp` or `-sl` — because
+     * one Bitunix row carries both legs and the rest of the app models one
+     * plan per leg. Anything addressing the venue (cancel, modify) must use
+     * this, not `orderId`, or it names a plan the exchange has never heard of.
+     */
+    sourceOrderId?: string;
+    /**
+     * Whether this plan looks position-wide or partial, **inferred** from
+     * whether its leg named a quantity. The response carries no field saying
+     * which it is; see BUG-0266. Safe to show, not safe to place an order on.
+     */
+    scopeGuess?: "position" | "partial";
     [key: string]: unknown; // Safer than any
 }
 
@@ -1133,8 +1149,14 @@ class TradeService {
                                   }
                                   return;
                               }
-                              const res = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
-                              results.push(...res);
+                              // BUG-0266: a Bitunix row carries both legs and
+                              // names neither, so it has to be split into the
+                              // one-plan-per-leg shape the store groups by.
+                              // Pushing the raw rows through is what made
+                              // `plansFor()` answer "no stop" for every
+                              // position that had one.
+                              const res = (Array.isArray(data) ? data : data.rows || []) as unknown[];
+                              results.push(...normalizeTpSlRows(res));
                           } catch (e: unknown) {
                               logger.warn("market", `TP/SL network error for ${sym}`, e);
                           }
@@ -1145,8 +1167,12 @@ class TradeService {
              // Deduplicate
              const uniqueOrders = new Map<string, TpSlOrder>();
              results.forEach((o) => {
-                 const id = o.id || o.orderId || o.planId;
-                 if (id) uniqueOrders.set(id, o);
+                 // `orderId` first, deliberately (BUG-0266): after the split it
+                 // is the *leg* id, and the two legs of one row share the row's
+                 // `id`. Keying on `id` would collapse a take-profit and its
+                 // stop into one entry and drop whichever arrived first.
+                 const id = o.orderId || o.id || o.planId;
+                 if (id) uniqueOrders.set(String(id), o);
              });
              const final = Array.from(uniqueOrders.values());
              // Sort by time (newest first)
@@ -1167,7 +1193,13 @@ class TradeService {
         // `/api/tpsl` nests the order fields under `params`; the gate reads
         // symbol/orderId off the top level, so they are mirrored there. The
         // route ignores the extra keys.
-        const orderId = order.orderId || order.id;
+        //
+        // `sourceOrderId` first (BUG-0266): `orderId` on a normalised plan is
+        // the leg id this app invented ("123-tp"), which the venue has never
+        // heard of. The row id it was split from is the one that cancels
+        // something. Falls back to `orderId` for plans that were never split —
+        // the generic non-Bitunix path produces those.
+        const orderId = order.sourceOrderId || order.orderId || order.id;
         return this.gatedRequest({
             kind: "cancel",
             endpoint: "/api/tpsl",
