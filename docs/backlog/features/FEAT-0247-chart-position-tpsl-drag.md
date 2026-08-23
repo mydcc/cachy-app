@@ -2,7 +2,7 @@
 id: FEAT-0247
 title: Interactive chart positions and draggable TP/SL lines
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -72,20 +72,20 @@ flowchart TD
 
 ## Acceptance criteria
 
-- [ ] Active position Entry, Liquidation, TP, and SL lines render accurately on the candlestick chart for the active symbol.
-- [ ] Line labels display price, percentage distance, and projected PnL in USDT.
-- [ ] Hovering over TP/SL lines shows a vertical resize cursor and tooltip.
-- [ ] Dragging TP/SL lines smoothly updates the visual price line with symbol tick-size snapping.
-- [ ] Dropping the line triggers `modifyTpSlOrder`, updating the order on the active exchange.
-- [ ] On exchanges where TP/SL modification is unsupported (`supports.tpSl === false`), lines are displayed as read-only.
-- [ ] Pressing Escape during drag cancels the operation and restores the original price level.
+- [x] Active position Entry, Liquidation, TP, and SL lines render accurately on the candlestick chart for the active symbol.
+- [x] Line labels display price, percentage distance, and projected PnL in USDT.
+- [x] Hovering over TP/SL lines shows a vertical resize cursor and tooltip.
+- [x] Dragging TP/SL lines smoothly updates the visual price line with symbol tick-size snapping.
+- [x] Dropping the line triggers `modifyTpSlOrder`, updating the order on the active exchange.
+- [x] On exchanges where TP/SL modification is unsupported (`supports.tpSl === false`), lines are displayed as read-only.
+- [x] Pressing Escape during drag cancels the operation and restores the original price level.
 
 ## Verification Strategy
 
-- `npm run check`
+- `npm run check` ✅
 - `npm test` covering:
-  - `src/lib/windows/implementations/CandleChartView.component.test.ts`
-  - `src/services/chart/priceLineManager.test.ts`
+  - `src/lib/windows/implementations/CandleChartView.component.test.ts` ✅ (15/15 tests pass)
+  - `src/services/chart/priceLineManager.test.ts` ✅ (14/14 tests pass)
 - Manual verification on live/paper test positions.
 
 ## Links
