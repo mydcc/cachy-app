@@ -2,9 +2,9 @@
 
 # Backlog index
 
-181 items. How to read and add them: [README.md](README.md).
+182 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-progress 7 · ✅ done 112
+Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 18 · 🟡 in-progress 8 · ✅ done 113
 
 ---
 
@@ -170,7 +170,7 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0280](bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md) | Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext | P1 | 🟡 in-progress | security |
 | [BUG-0281](bugs/BUG-0281-theme-cookie-html-injection.md) | Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection | P1 | 🟢 ready | security |
 | [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | 🟢 ready | ai |
-| [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | 🟢 ready | security |
+| [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | security |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -194,7 +194,7 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | security |
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | security |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | security |
-| [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟢 ready | security |
+| [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟡 in-progress | security |
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | 📋 specced | core |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
@@ -230,6 +230,7 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | services |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | execution |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | 📋 specced | security |
+| [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | 📋 specced | api |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -293,7 +294,7 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0280](bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md) | Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext | P1 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0281](bugs/BUG-0281-theme-cookie-html-injection.md) | Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | 🟢 ready | none | community, pro, private | A | required | — |
-| [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | 🟡 in-progress | M3 | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -355,7 +356,7 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | none | community, pro, private | C | none | — |
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | none | community, pro, private | A | none | — |
-| [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
@@ -412,6 +413,7 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | 📋 specced | none | community, pro, private | A | none | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) |
+| [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | 📋 specced | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -436,4 +438,4 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-pr
 
 ---
 
-Next free number: **0295**
+Next free number: **0296**
