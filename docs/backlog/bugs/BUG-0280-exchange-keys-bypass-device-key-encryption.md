@@ -83,9 +83,10 @@ raise it during grooming.
   — broader encrypt-at-rest design (session-secret derivation, scope
   questions); this bug is the concrete gap that exists *today* despite the
   infrastructure already being in place
-- [BUG-0283](BUG-0283-backup-export-plaintext-credentials.md) — companion
-  finding covering the backup-export half of the exposure; fix both so the
-  credentials are neither readable at rest nor exportable in plaintext
+- BUG-0283 (`BUG-0283-backup-export-plaintext-credentials.md`,
+  part of PR #2194) — companion finding covering the backup-export half of
+  the exposure; fix both so the credentials are neither readable at rest
+  nor exportable in plaintext
 - `src/stores/settings/secretsLoader.ts`
 - `src/stores/settings.svelte.ts`
 - `docs/adr/0001-local-first-boundary.md`
