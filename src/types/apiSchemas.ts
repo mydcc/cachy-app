@@ -242,20 +242,6 @@ const StopType = z.enum(["LAST_PRICE", "MARK_PRICE"]);
 const PriceLike = z.union([z.string(), z.number()]);
 
 /*
- * Params for modifying an existing TP/SL order (BUG-0267) — **ROUTE INPUT SHAPE**.
- * The public API (tradeService.modifyTpSlOrder) and route both accept this
- * shape from clients. The route forwards to Bitunix as-is; tradeService
- * converts to the wire format internally before sending.
- */
-const ModifyTpSlClientParams = z.object({
-    orderId: z.union([z.string(), z.number()]),
-    symbol: z.string(),
-    planType: z.enum(["PROFIT", "LOSS"]),
-    triggerPrice: z.string(),
-    qty: z.string().optional(),
-    stopType: z.enum(["MARK_PRICE", "LAST_PRICE"]).optional(),
-});
-
 /**
  * Params for modifying an existing TP/SL order — **WIRE FORMAT** (BUG-0267).
  *
