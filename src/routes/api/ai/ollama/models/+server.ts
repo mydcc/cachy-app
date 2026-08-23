@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
+import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../../lib/server/urlValidator";
 import type { AiModelInfo } from "../../../../../types/ai";
 
 interface OllamaModel {
@@ -50,8 +51,12 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     return json({ error: "Invalid Ollama base URL" }, { status: 400 });
   }
 
+  if (!isUrlAllowed(baseUrl) || !(await isUrlAllowedAsync(baseUrl))) {
+    return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+  }
+
   try {
-    const response = await fetch(`${baseUrl}/api/tags`);
+    const response = await safeFetch(`${baseUrl}/api/tags`);
 
     if (!response.ok) {
       return json(

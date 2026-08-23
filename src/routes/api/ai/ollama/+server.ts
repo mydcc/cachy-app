@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
+import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../lib/server/urlValidator";
 import { AiRequestSchema } from "../../../../types/ai";
 
 const DEFAULT_BASE_URL = "http://localhost:11434";
@@ -58,6 +59,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       return json({ error: "Invalid Ollama base URL" }, { status: 400 });
     }
 
+    if (!isUrlAllowed(baseUrl) || !(await isUrlAllowedAsync(baseUrl))) {
+      return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+    }
+
     if (!model) {
       return json({ error: "Missing model" }, { status: 400 });
     }
@@ -70,7 +75,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     // Ollama's OpenAI-compatible endpoint speaks the same chat-completions
     // wire format as OpenAI/OpenRouter.
-    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+    const response = await safeFetch(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers,
       body: JSON.stringify({ model, messages, stream: true }),
