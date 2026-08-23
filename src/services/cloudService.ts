@@ -117,6 +117,13 @@ class CloudService {
               .subscribeToAllTables();
           }
         })
+        .onConnectError((ctx, error) => {
+          logger.error('network', 'SpacetimeDB connection error:', error);
+          this.connected = false;
+          this.mySenderId = null;
+          this.lastError = error instanceof Error ? error.message : String(error);
+          if (this.onStatusCallback) this.onStatusCallback(this.status());
+        })
         .onDisconnect((ctx) => {
           logger.log('network', 'Disconnected from SpacetimeDB', ctx);
           this.connected = false;
