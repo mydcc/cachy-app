@@ -55,7 +55,7 @@ Per sub-item as described above; keep each change minimal.
 
 ## Out of scope
 
-- The `{@html preset.icon}` sink — filed separately as BUG-0266
-  (`BUG-0266-dashboardnav-html-preset-icon.md`, part of PR #2194).
+- The `{@html preset.icon}` sink — filed separately as
+  [BUG-0266](BUG-0266-dashboardnav-html-preset-icon.md).
 - Anything else covered by the companion items from the 2026-08-23 audit
-  batches (BUG-0256–BUG-0266, BUG-0270–BUG-0272, BUG-0280, BUG-0281).
+  batches (BUG-0266–BUG-0268, BUG-0282–BUG-0291, BUG-0270–BUG-0272, BUG-0280, BUG-0281).
