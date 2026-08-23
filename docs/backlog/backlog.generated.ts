@@ -24,6 +24,7 @@ export interface BacklogItem {
   iteration?: string;
   sprint?: string;
   agent_eligible?: boolean | string;
+  assignee?: string;
   file: string;
 }
 
@@ -965,6 +966,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Bitunix TP/SL rows carry no planType, so plansFor never groups them",
     "type": "bug",
     "status": "in-progress",
+    "assignee": "human",
     "branch": "fix/bug-0257-tpsl-plan-normalization",
     "priority": "P1",
     "milestone": "M3",
@@ -1501,7 +1503,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0251",
     "title": "Journal UI/UX redesign and entry/exit fee breakdown",
     "type": "feature",
-    "status": "in-progress",
+    "status": "ready",
     "priority": "P1",
     "milestone": "M2",
     "editions": [
@@ -1519,7 +1521,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0254",
     "title": "Give TP/SL price entry a range slider and PnL/ROI/Change modes",
     "type": "feature",
-    "status": "in-progress",
+    "status": "ready",
     "branch": "feat/feat-0254-tpsl-range-slider",
     "priority": "P1",
     "milestone": "M3",
@@ -1542,7 +1544,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0256",
     "title": "Close part of a position without closing all of it",
     "type": "feature",
-    "status": "in-progress",
+    "status": "ready",
     "branch": "feat/feat-0256-partial-close",
     "priority": "P1",
     "milestone": "M3",
@@ -3177,7 +3179,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0247",
     "title": "Interactive chart positions and draggable TP/SL lines",
     "type": "feature",
-    "status": "in-progress",
+    "status": "ready",
     "priority": "P2",
     "milestone": "M3",
     "editions": [

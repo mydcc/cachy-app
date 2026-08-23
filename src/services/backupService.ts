@@ -63,7 +63,7 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
   if (!settingsJson) return null;
   try {
     const parsed = JSON.parse(settingsJson);
-    if (typeof parsed !== "object" || parsed === null) return settingsJson;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
 
     // Blank out exchange credentials
     parsed.apiKeys = {
@@ -78,6 +78,7 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
     parsed.geminiApiKey = "";
     parsed.anthropicApiKey = "";
     parsed.openrouterApiKey = "";
+    parsed.cmcApiKey = "";
     parsed.cryptoPanicApiKey = "";
     parsed.newsApiKey = "";
     parsed.discordBotToken = "";
@@ -88,7 +89,7 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
 
     return JSON.stringify(parsed);
   } catch {
-    return settingsJson;
+    return null;
   }
 }
 

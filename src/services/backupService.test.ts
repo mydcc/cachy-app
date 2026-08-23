@@ -187,6 +187,7 @@ describe("backupService", () => {
       geminiApiKey: "AIzaSySecretGeminiKey",
       anthropicApiKey: "sk-ant-secret-key",
       openrouterApiKey: "sk-or-secret-key",
+      cmcApiKey: "cmc-secret-key-xyz",
       cryptoPanicApiKey: "cp-secret-key",
       newsApiKey: "news-api-secret-key",
       discordBotToken: "discord-secret-token",
@@ -220,11 +221,12 @@ describe("backupService", () => {
       expect(parsed.encryptedApiKeys).toBeUndefined();
       expect(parsed.encryptedSecrets).toBeUndefined();
 
-      // Third-party API keys and tokens must be stripped
+      // Third-party and AI API keys and tokens must be stripped
       expect(parsed.openaiApiKey).toBe("");
       expect(parsed.geminiApiKey).toBe("");
       expect(parsed.anthropicApiKey).toBe("");
       expect(parsed.openrouterApiKey).toBe("");
+      expect(parsed.cmcApiKey).toBe("");
       expect(parsed.cryptoPanicApiKey).toBe("");
       expect(parsed.newsApiKey).toBe("");
       expect(parsed.discordBotToken).toBe("");
@@ -238,7 +240,16 @@ describe("backupService", () => {
       expect(rawSettings).not.toContain("bitunix-secret-456");
       expect(rawSettings).not.toContain("sk-openai-secret-key");
       expect(rawSettings).not.toContain("AIzaSySecretGeminiKey");
+      expect(rawSettings).not.toContain("cmc-secret-key-xyz");
       expect(rawSettings).not.toContain("discord-secret-token");
+    });
+
+    it("should fail closed (return null) on malformed or non-object JSON", () => {
+      expect(backupService.sanitizeSettingsForUnencryptedExport("{ malformed json")).toBeNull();
+      expect(backupService.sanitizeSettingsForUnencryptedExport("12345")).toBeNull();
+      expect(backupService.sanitizeSettingsForUnencryptedExport('"string"')).toBeNull();
+      expect(backupService.sanitizeSettingsForUnencryptedExport("[1, 2, 3]")).toBeNull();
+      expect(backupService.sanitizeSettingsForUnencryptedExport(null)).toBeNull();
     });
 
     it("should retain all credentials in password-encrypted backups and restore them accurately", async () => {
@@ -260,6 +271,7 @@ describe("backupService", () => {
       expect(restoredSettings.apiKeys?.bitunix?.key).toBe("bitunix-api-key-123");
       expect(restoredSettings.apiKeys?.bitunix?.secret).toBe("bitunix-secret-456");
       expect(restoredSettings.openaiApiKey).toBe("sk-openai-secret-key");
+      expect(restoredSettings.cmcApiKey).toBe("cmc-secret-key-xyz");
       expect(restoredSettings.discordBotToken).toBe("discord-secret-token");
     }, 15000);
   });
