@@ -52,7 +52,7 @@ plus its smallest honest implementation/documentation step.
 
 ## Out of scope
 
-SSRF filtering of AI routes ([`BUG-0256`](../bugs/BUG-0256-ssrf-ai-proxy-baseurl.md)).
+SSRF filtering of AI routes ([`BUG-0256`](../bugs/BUG-0291-ssrf-ai-proxy-baseurl.md)).
 AI-context egress ([`BUG-0282`](../bugs/BUG-0282-ai-context-leaves-device-without-consent.md)).
 Changing venue signing algorithms themselves.
 

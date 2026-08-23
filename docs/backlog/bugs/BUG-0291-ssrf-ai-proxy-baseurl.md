@@ -1,5 +1,5 @@
 ---
-id: BUG-0256
+id: BUG-0291
 title: AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering
 type: bug
 status: ready
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0256 — AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering
+# BUG-0291 — AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering
 
 ## Symptom
 
