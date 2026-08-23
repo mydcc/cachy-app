@@ -129,6 +129,109 @@ describe("SettingsManager Security", () => {
 });
 
 /**
+ * BUG-0280: exchange API keys bypassed the device-key encryption path and
+ * sat in localStorage as plaintext whenever no master password was set.
+ * These tests pin the fixed behaviour: nothing readable ever reaches
+ * storage, legacy plaintext blobs are migrated on load, and a reload
+ * restores the credentials from their device-key-encrypted blobs.
+ */
+describe("SettingsManager exchange-key encryption at rest (BUG-0280)", () => {
+  const STORAGE_KEY = "cryptoCalculatorSettings";
+  let settingsState: SettingsManager;
+
+  const saveInternal = (mgr: SettingsManager) =>
+    (mgr as unknown as { save(): Promise<void> }).save();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+    settingsState = new SettingsManager();
+  });
+
+  it("reproduces the defect: saving without a master password must not persist plaintext exchange credentials", async () => {
+    settingsState.apiKeys.bitunix = { key: "bu-key", secret: "bu-secret" };
+    settingsState.apiKeys.bitget = {
+      key: "bg-key",
+      secret: "bg-secret",
+      passphrase: "bg-pass",
+    };
+
+    await saveInternal(settingsState);
+
+    const stored = localStorageMock.getItem(STORAGE_KEY);
+    expect(stored).toBeTruthy();
+    expect(stored).not.toContain("bu-key");
+    expect(stored).not.toContain("bg-secret");
+    expect(stored).not.toContain("bg-pass");
+    const parsed = JSON.parse(stored!) as {
+      encryptedApiKeys?: Record<string, unknown>;
+    };
+    expect(parsed.encryptedApiKeys?.bitunix).toBeDefined();
+    expect(parsed.encryptedApiKeys?.bitget).toBeDefined();
+  });
+
+  it("never serializes key or secret material into toJSON(), even unencrypted", () => {
+    settingsState.apiKeys.bitunix = { key: "k1", secret: "s1" };
+    settingsState.apiKeys.bitget = { key: "k2", secret: "s2", passphrase: "p2" };
+
+    const json = settingsState.toJSON();
+
+    expect(json.apiKeys.bitunix.key).toBe("");
+    expect(json.apiKeys.bitunix.secret).toBe("");
+    expect(json.apiKeys.bitget.key).toBe("");
+    expect(json.apiKeys.bitget.passphrase).toBe("");
+    expect(JSON.stringify(json)).not.toContain("s1");
+    expect(JSON.stringify(json)).not.toContain("s2");
+  });
+
+  it("migrates legacy plaintext exchange keys to ciphertext on load", async () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        apiProvider: "bitunix",
+        apiKeys: { bitunix: { key: "legacy-key", secret: "legacy-secret" } },
+      }),
+    );
+
+    const fresh = new SettingsManager();
+
+    // Keys remain usable in memory ...
+    expect(fresh.apiKeys.bitunix.key).toBe("legacy-key");
+
+    // ... and the one-time migration re-persists them encrypted.
+    await vi.waitFor(() => {
+      const stored = localStorageMock.getItem(STORAGE_KEY);
+      expect(stored).toContain("encryptedApiKeys");
+      expect(stored).not.toContain("legacy-secret");
+    });
+  });
+
+  it("restores device-key-encrypted exchange keys after a reload without any master password", async () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        apiProvider: "bitunix",
+        encryptedApiKeys: {
+          bitunix: { ciphertext: "c1", iv: "i", salt: "s", method: "AES-GCM" },
+        },
+      }),
+    );
+    vi.mocked(cryptoService.decrypt).mockResolvedValue(
+      '{"key":"dk","secret":"ds"}',
+    );
+
+    const fresh = new SettingsManager();
+    await fresh.secretsReady;
+
+    expect(fresh.isEncrypted).toBe(false);
+    expect(fresh.isLocked).toBe(false);
+    expect(fresh.apiKeys.bitunix.key).toBe("dk");
+    expect(fresh.apiKeys.bitunix.secret).toBe("ds");
+    expect(fresh.decryptionFailures).toBe(0);
+  });
+});
+
+/**
  * Guards engineering-log item 24a
  * (docs/archive/engineering-log-2026-h1.md). The AI key fields once defaulted
  * to `import.meta.env.VITE_*_API_KEY`. Vite inlines every VITE_-prefixed variable

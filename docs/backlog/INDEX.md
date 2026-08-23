@@ -4,7 +4,7 @@
 
 181 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 26 · 🟢 ready 20 · 🟡 in-progress 5 · ✅ done 112
+Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 20 · 🟡 in-progress 7 · ✅ done 112
 
 ---
 
@@ -167,7 +167,7 @@ Counts by status: 💡 idea 18 · 📋 specced 26 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0234](bugs/BUG-0234-analyst-store-coupling-regression.md) | Analyst backfill through the shared store makes the whole UI flicker continuously | P1 | ✅ done | market-data |
 | [BUG-0235](bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md) | Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability | P1 | ✅ done | security |
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | ✅ done | security |
-| [BUG-0280](bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md) | Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext | P1 | 📋 specced | security |
+| [BUG-0280](bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md) | Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext | P1 | 🟡 in-progress | security |
 | [BUG-0281](bugs/BUG-0281-theme-cookie-html-injection.md) | Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection | P1 | 🟢 ready | security |
 | [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | 🟢 ready | ai |
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | 🟢 ready | security |
@@ -224,7 +224,7 @@ Counts by status: 💡 idea 18 · 📋 specced 26 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟢 ready | ui |
 | [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | api |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | api |
-| [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 📋 specced | security |
+| [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | security |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟢 ready | api |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | security |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | services |
@@ -290,7 +290,7 @@ Counts by status: 💡 idea 18 · 📋 specced 26 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | ✅ done | M3 | community, pro, private | none | none | — |
-| [BUG-0280](bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md) | Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0280](bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md) | Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext | P1 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0281](bugs/BUG-0281-theme-cookie-html-injection.md) | Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | 🟢 ready | none | community, pro, private | A | required | — |
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | 🟢 ready | none | community, pro, private | none | none | — |
@@ -406,7 +406,7 @@ Counts by status: 💡 idea 18 · 📋 specced 26 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
