@@ -56,13 +56,13 @@ CSP support became usable for the app.
 
 ## Acceptance criteria
 
-- [ ] A test asserts the production CSP contains neither `'unsafe-inline'`
+- [x] A test asserts the production CSP contains neither `'unsafe-inline'`
       nor bare `'unsafe-eval'` in `script-src` (fails before the fix)
-- [ ] The app boots with nonce/hash-based CSP: no console CSP violations on
+- [x] The app boots with nonce/hash-based CSP: no console CSP violations on
       first load, WASM technicals still initialize (existing technicals
       tests stay green)
-- [ ] Production headers contain no localhost/127.0.0.1 origins
-- [ ] `npm run check` and the affected tests pass
+- [x] Production headers contain no localhost/127.0.0.1 origins
+- [x] `npm run check` and the affected tests pass
 
 ## Links
 
