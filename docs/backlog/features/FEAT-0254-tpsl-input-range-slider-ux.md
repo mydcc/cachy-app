@@ -2,13 +2,14 @@
 id: FEAT-0254
 title: Give TP/SL price entry a range slider and PnL/ROI/Change modes
 type: feature
-status: ready
+status: in-progress
+branch: feat/feat-0254-tpsl-range-slider
 priority: P1
 milestone: M3
 editions: [community, pro, private]
 area: trade-panel
 data_class: none
-adr: none
+adr: ADR-0010
 depends_on: []
 estimate: 5
 size: M
@@ -155,11 +156,51 @@ adding a second slider implementation to the chart's own drag handler.
   agree on one convention (long positive = price up) rather than each
   inventing its own — not blocking for this item alone, but worth settling
   before `FEAT-0247` reaches its drag-and-drop task.
-- **Where does rounding happen?** This item rounds to tick size on slider
-  release / field blur, matching the precision handling already in
-  `tradeService.ts`. Nobody has confirmed that is the right point rather than
-  leaving full precision until the order gate — flagging so it does not get
-  decided by accident.
+- ~~**Where does rounding happen?**~~ Settled in implementation: the formulas
+  in `src/lib/calculators/tpsl.ts` stay unrounded and `roundToTick` is applied
+  by the component when a value is committed. Rounding inside the formulas
+  breaks the price → percent → price round trip the two-way slider depends on,
+  and rounds twice when a caller switches modes. `tpsl.test.ts` asserts the
+  round trip is exact, which is what would fail if this moved.
+
+- ~~**Gross or net of fees, for the ROI and PnL modes?**~~ Settled: **gross
+  drives the slider, net is shown beside it.**
+
+  A trigger is a price, and the price dialled in has to be the price the
+  exchange receives — so the slider stays gross, matching what every exchange
+  TP/SL dialog computes. But gross is optimistic on *both* legs at once: it
+  understates what a stop really costs and overstates what a target really
+  pays, so the R:R a trader decides on is wrong twice in the same direction.
+  Net is therefore displayed, not hidden.
+
+  What decided it was the failure mode rather than the arithmetic. The rate is
+  an estimate — the entry leg depends on whether the position opened market or
+  limit, the exit leg on how it actually ends (a resting take-profit pays
+  maker, the same position closed early at market pays taker, 0.014% against
+  0.042%). If a net figure *drove* the slider, a wrong estimate would move the
+  order. As a readout it costs one line of information instead. Errors should
+  degrade what is shown, not what is sent.
+
+  Consequence: `netPnlFromPrice` / `netRoiPercentFromPrice` are forward-only —
+  there is deliberately no inverse, and the gross round trip stays exact.
+
+## Follow-up found while building this
+
+The panel cannot currently offer a per-leg fee rate even though the journal
+models one, so the readout above charges the same rate to both legs:
+
+- `tradeState.feeMode` is `"maker_taker" | "flat"`, while `JournalEntry`'s own
+  `feeMode` covers all four combinations and its newer `entryFeeType` /
+  `exitFeeType` supersede it. The panel is the side that is behind.
+- `tradeState.remoteMakerFee` / `remoteTakerFee` are declared, read by
+  `GeneralInputs.svelte`'s `syncFee()`, and **never assigned by anything** —
+  so `targetRemoteFee` is always undefined and the sync control can never
+  fire. Same shape as the freshness check
+  [`FEAT-0021`](FEAT-0021-order-types.md) shipped with nothing to satisfy it.
+- `core.ts` applies `values.fees` to both legs, so it has the same limit.
+
+Not fixed here — this item is the TP/SL input, and a per-leg fee model touches
+the calculator, the panel and the journal's own fields. Worth its own item.
 
 ## Links
 
