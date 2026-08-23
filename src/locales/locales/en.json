@@ -2119,7 +2119,10 @@
     "reconnect": "Reconnect",
     "switchProvider": "Switch Provider",
     "checkSettings": "Check Settings",
-    "diagnostics": "View Diagnostics"
+    "diagnostics": "View Diagnostics",
+    "providerSwitched": "Provider switched to {provider}",
+    "switchFailed": "Failed to switch to {provider}",
+    "reconnectFailed": "Reconnection failed"
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analysis Status",

@@ -31,18 +31,34 @@ vi.mock("../../services/logger", () => ({
 }));
 
 const dictionary = en as Record<string, unknown>;
-function getNestedTranslation(path: string): string {
+function getNestedTranslation(
+  path: string,
+  options?: { values?: Record<string, unknown> },
+): string {
   const parts = path.split(".");
   let current: unknown = dictionary;
   for (const part of parts) {
     if (!current || typeof current !== "object") return path;
     current = (current as Record<string, unknown>)[part];
   }
-  return typeof current === "string" ? current : path;
+  if (typeof current === "string") {
+    if (options?.values) {
+      let result = current;
+      for (const [k, v] of Object.entries(options.values)) {
+        result = result.replace(new RegExp(`\\{${k}\\}`, "g"), String(v));
+      }
+      return result;
+    }
+    return current;
+  }
+  return path;
 }
 
 vi.mock("../../locales/i18n", () => {
-  const translate = (key: string) => getNestedTranslation(key);
+  const translate = (
+    key: string,
+    options?: { values?: Record<string, unknown> },
+  ) => getNestedTranslation(key, options);
   return {
     _: {
       subscribe: (fn: (val: typeof translate) => void) => {
@@ -68,6 +84,7 @@ describe("BUG-0250: OfflineBanner Component Tests", () => {
     document.body.appendChild(target);
     vi.spyOn(connectionManager, "switchProvider").mockResolvedValue(undefined);
     vi.spyOn(toastService, "info").mockImplementation(() => "toast-id");
+    vi.spyOn(toastService, "error").mockImplementation(() => "toast-id");
     vi.spyOn(uiState, "openSettings").mockImplementation(() => {});
   });
 
@@ -131,6 +148,27 @@ describe("BUG-0250: OfflineBanner Component Tests", () => {
     });
   });
 
+  it("shows error toast if Reconnect fails", async () => {
+    marketState.connectionStatus = "disconnected";
+    settingsState.apiProvider = "bitunix";
+    vi.spyOn(connectionManager, "switchProvider").mockRejectedValue(new Error("Connection error"));
+
+    component = mount(OfflineBanner, { target });
+    flushSync();
+
+    const buttons = target.querySelectorAll("button");
+    const reconnectBtn = Array.from(buttons).find((b) =>
+      b.textContent?.includes("Reconnect"),
+    );
+    expect(reconnectBtn).toBeDefined();
+
+    reconnectBtn?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    flushSync();
+
+    expect(toastService.error).toHaveBeenCalledWith("Reconnection failed");
+  });
+
   it("toggles provider, reconnects and displays toast on Switch Provider click", async () => {
     marketState.connectionStatus = "disconnected";
     settingsState.apiProvider = "bitunix";
@@ -145,13 +183,35 @@ describe("BUG-0250: OfflineBanner Component Tests", () => {
     expect(switchBtn).toBeDefined();
 
     switchBtn?.click();
+    await new Promise((r) => setTimeout(r, 0));
     flushSync();
 
     expect(settingsState.apiProvider).toBe("bitget");
     expect(connectionManager.switchProvider).toHaveBeenCalledWith("bitget", {
       force: true,
     });
-    expect(toastService.info).toHaveBeenCalledWith("Provider: Bitget");
+    expect(toastService.info).toHaveBeenCalledWith("Provider switched to Bitget");
+  });
+
+  it("shows error toast if Switch Provider fails", async () => {
+    marketState.connectionStatus = "disconnected";
+    settingsState.apiProvider = "bitunix";
+    vi.spyOn(connectionManager, "switchProvider").mockRejectedValue(new Error("Switch error"));
+
+    component = mount(OfflineBanner, { target });
+    flushSync();
+
+    const buttons = target.querySelectorAll("button");
+    const switchBtn = Array.from(buttons).find((b) =>
+      b.textContent?.includes("Switch Provider"),
+    );
+    expect(switchBtn).toBeDefined();
+
+    switchBtn?.click();
+    await new Promise((r) => setTimeout(r, 0));
+    flushSync();
+
+    expect(toastService.error).toHaveBeenCalledWith("Failed to switch to Bitget");
   });
 
   it("opens settings modal on Check Settings click", async () => {

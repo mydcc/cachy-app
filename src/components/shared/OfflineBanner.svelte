@@ -28,18 +28,30 @@
             marketState.connectionStatus === "error",
     );
 
-    function handleReconnect() {
+    async function handleReconnect() {
         const provider = settingsState.apiProvider || "bitunix";
-        connectionManager.switchProvider(provider, { force: true });
+        try {
+            await connectionManager.switchProvider(provider, { force: true });
+        } catch {
+            toastService.error($_("offline.reconnectFailed"));
+        }
     }
 
-    function handleSwitchProvider() {
+    async function handleSwitchProvider() {
         const newProvider =
             settingsState.apiProvider === "bitunix" ? "bitget" : "bitunix";
-        settingsState.apiProvider = newProvider;
-        connectionManager.switchProvider(newProvider, { force: true });
         const providerName = newProvider === "bitunix" ? "Bitunix" : "Bitget";
-        toastService.info(`Provider: ${providerName}`);
+        settingsState.apiProvider = newProvider;
+        try {
+            await connectionManager.switchProvider(newProvider, { force: true });
+            toastService.info(
+                $_("offline.providerSwitched", { values: { provider: providerName } }),
+            );
+        } catch {
+            toastService.error(
+                $_("offline.switchFailed", { values: { provider: providerName } }),
+            );
+        }
     }
 
     function handleSettings() {
