@@ -82,9 +82,8 @@ describe("uiState Theme Transitions & Management", () => {
     expect(document.documentElement.classList.contains("theme-transitioning")).toBe(false);
   });
 
-  it("should save selected theme to localStorage and cookie", () => {
+  it("should save selected theme to localStorage", () => {
     uiState.setTheme("solarized-dark");
     expect(localStorage.getItem("cachy_theme")).toBe("solarized-dark");
-    expect(document.cookie).toContain("cachy_theme=solarized-dark");
   });
 });

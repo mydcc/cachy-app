@@ -18,7 +18,6 @@
 import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle } from "@sveltejs/kit";
 import { building } from "$app/environment";
-import { CONSTANTS } from "./lib/constants";
 import { logger } from "$lib/server/logger";
 
 // --- Global Console Interceptor for CachyLog ---
@@ -98,24 +97,6 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
   }
 };
 
-const themeHandler: Handle = async ({ event, resolve }) => {
-  const theme = event.cookies.get(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || "dark";
-
-  const response = await resolve(event, {
-    transformPageChunk: ({ html }) => {
-      // Replace the <body> tag with the theme class
-      let bodyClass = "";
-      if (theme !== "dark") {
-        bodyClass = `theme-${theme}`;
-      }
-      // Use a regex to find the <body> tag and inject the class
-      return html.replace(/<body(.*?)>/, `<body class="${bodyClass}"$1>`);
-    },
-  });
-
-  return response;
-};
-
 export const headersHandler: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
 
@@ -141,4 +122,4 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   return response;
 };
 
-export const handle = sequence(loggingHandler, headersHandler, themeHandler);
+export const handle = sequence(loggingHandler, headersHandler);
