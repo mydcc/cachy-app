@@ -124,12 +124,8 @@
     function resolveThemeColor(varName: string, fallback: string = "#ff8800"): THREE.Color {
         if (!browser || typeof document === "undefined") return new THREE.Color(fallback);
         try {
-            const tempDiv = document.createElement("div");
-            tempDiv.style.color = `var(${varName}, ${fallback})`;
-            document.body.appendChild(tempDiv);
-            const computed = getComputedStyle(tempDiv).color;
-            document.body.removeChild(tempDiv);
-            return new THREE.Color(computed || fallback);
+            const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+            return new THREE.Color(raw || fallback);
         } catch {
             return new THREE.Color(fallback);
         }

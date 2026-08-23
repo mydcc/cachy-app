@@ -2868,9 +2868,26 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
   }
 }
 
+/* Theme Transitions */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.18s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0s !important;
+  }
+}
+
 /* Glassmorphism Utility */
 .glass-panel {
   background: var(--bg-secondary);
+  transition:
+    backdrop-filter var(--transition-smooth),
+    background var(--transition-smooth);
 }
 
 .glass-enabled .glass-panel {
@@ -2879,37 +2896,6 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
       transparent);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-}
-
-/* Smooth View Transitions for Theme Switching */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.22s;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Fallback Coordinated Theme Transition Class */
-.theme-transitioning,
-.theme-transitioning *,
-.theme-transitioning *::before,
-.theme-transitioning *::after {
-  transition:
-    background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  transition-delay: 0s !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0s !important;
-  }
-  .theme-transitioning,
-  .theme-transitioning * {
-    transition: none !important;
-  }
 }
 
 /* Hover & Focus Enhancements */

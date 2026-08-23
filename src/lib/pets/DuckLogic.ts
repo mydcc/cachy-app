@@ -397,6 +397,10 @@ export class DuckLogic {
         }
     }
 
+    public isActive(): boolean {
+        return this.state !== DuckState.IDLE && this.state !== DuckState.SLEEPING;
+    }
+
     public getGroup(): THREE.Group {
         return this.group;
     }

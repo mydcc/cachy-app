@@ -24,6 +24,14 @@
               : 35,
     );
 
+    const particles = $derived(
+        Array.from({ length: particleCount }, (_, i) => ({
+            id: i,
+            delay: (i * 0.5).toFixed(1),
+            x: ((i * 37 + 13) % 100).toFixed(1),
+        })),
+    );
+
     // --- Real-time Sentiment ---
     let tradeHistory: string[] = [];
     const tradeHistorySize = 50;
@@ -70,8 +78,8 @@
         <div class="animation-gradient"></div>
     {:else if settingsState.backgroundAnimationPreset === "particles"}
         <div class="animation-particles">
-            {#each Array.from({ length: particleCount }, (_, i) => i) as i}
-                <div class="particle" style="--delay: {i * 0.5}s; --x: {Math.random() * 100}%"></div>
+            {#each particles as p (p.id)}
+                <div class="particle" style="--delay: {p.delay}s; --x: {p.x}%"></div>
             {/each}
         </div>
     {:else if settingsState.backgroundAnimationPreset === "breathing"}
