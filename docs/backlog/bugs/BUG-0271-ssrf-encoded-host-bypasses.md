@@ -2,7 +2,9 @@
 id: BUG-0271
 title: URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks
 type: bug
-status: specced
+status: in-progress
+assignee: antigravity
+branch: fix-bug-0271
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -57,13 +59,13 @@ non-decimal encodings or resolution-time indirection.
 
 ## Acceptance criteria
 
-- [ ] Tests reproduce all three bypasses against `urlValidator` /
+- [x] Tests reproduce all three bypasses against `urlValidator` /
       route-level guards and fail before the fix
-- [ ] `http://0177.0.0.1`, hex-encoded loopback forms, and rebinding-style
+- [x] `http://0177.0.0.1`, hex-encoded loopback forms, and rebinding-style
       names are rejected with 403
-- [ ] Legitimate public URLs continue to be fetched correctly
+- [x] Legitimate public URLs continue to be fetched correctly
       (existing rss-fetch/article tests stay green)
-- [ ] `npm run check` and the affected tests pass
+- [x] `npm run check` and the affected tests pass
 
 ## Out of scope
 

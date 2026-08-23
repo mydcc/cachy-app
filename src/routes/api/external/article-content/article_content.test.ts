@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import dns from "node:dns";
 import { POST } from "./+server";
 import * as clientToken from "../../../../lib/server/clientToken";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -18,6 +19,9 @@ describe("Article Content Extractor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(clientToken, "checkClientToken").mockReturnValue(null);
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+    ]);
   });
 
   it("should return 400 for invalid url", async () => {
@@ -33,6 +37,31 @@ describe("Article Content Extractor", () => {
     } as unknown as RequestEvent);
 
     expect(response.status).toBe(400);
+  });
+
+  it("should return 403 for private, octal, hex, and loopback URLs (SSRF block)", async () => {
+    const blockedUrls = [
+      "http://localhost:3000/news",
+      "http://127.0.0.1:8080/article",
+      "http://0177.0.0.1/article",
+      "http://0x7f.0.0.1/article",
+      "http://169.254.169.254/latest/meta-data/",
+    ];
+
+    for (const url of blockedUrls) {
+      const request = new Request("http://localhost/api/external/article-content", {
+        method: "POST",
+        body: JSON.stringify({ url }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const response = await POST({
+        request,
+        getClientAddress,
+      } as unknown as RequestEvent);
+
+      expect(response.status).toBe(403);
+    }
   });
 
   it("should extract title and paragraphs from html", async () => {

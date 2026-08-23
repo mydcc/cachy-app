@@ -11,7 +11,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
-import { isUrlAllowed } from "../../../../lib/server/urlValidator";
+import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../lib/server/urlValidator";
 
 const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 60 });
 
@@ -38,7 +38,7 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     return json({ error: "Invalid URL" }, { status: 400 });
   }
 
-  if (!isUrlAllowed(targetUrl)) {
+  if (!isUrlAllowed(targetUrl) || !(await isUrlAllowedAsync(targetUrl))) {
     return json({ error: "Invalid or prohibited URL" }, { status: 403 });
   }
 
@@ -51,7 +51,7 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-    const response = await fetch(targetUrl, {
+    const response = await safeFetch(targetUrl, {
       method: "GET",
       signal: controller.signal,
       headers: {
