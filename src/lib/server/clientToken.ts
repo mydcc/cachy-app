@@ -33,6 +33,14 @@ import { createRateLimiter } from "./rateLimit";
  * it resets on restart and does not span multiple instances, an accepted
  * limitation for v1 (the same one the pre-existing news-proxy rate limiter
  * already had).
+ *
+ * Stored records are bounded (BUG-0287): a token expires `TOKEN_TTL_MS` after
+ * issuance and is rejected-and-evicted on first use afterwards, and the map is
+ * hard-capped at `TOKEN_MAP_CAP` entries with oldest-first eviction, so a
+ * long-running process cannot accumulate state without bound no matter how
+ * often clients re-mint. Either event is invisible to well-behaved clients:
+ * `appFetch` recognizes this exact 401, mints a fresh token in the background
+ * and retries once.
  */
 
 interface TokenRecord {
@@ -43,14 +51,53 @@ interface TokenRecord {
 
 const tokens = new Map<string, TokenRecord>();
 
+// A token stops working 24h after issuance. Chosen so any normal usage
+// pattern — a daily trading session, a browser tab left open overnight —
+// outlives it without re-auth friction; and when it does lapse, the only
+// client-visible effect is one background POST /api/auth/token (see appFetch).
+export const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
+// Hard ceiling on stored records, mirroring rateLimit.ts's maxTrackedKeys:
+// bounds memory even if tokens are minted faster than they expire. Oldest-
+// inserted entries go first; insertion order is issuance order because each
+// record is inserted exactly once.
+export const TOKEN_MAP_CAP = 10_000;
+
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function isExpired(record: TokenRecord, now: number): boolean {
+  return now - record.createdAt >= TOKEN_TTL_MS;
+}
+
+/**
+ * Drops expired entries oldest-first. Map iteration is insertion order, which
+ * here equals issuance order, so everything up to the first live entry is
+ * expired and the scan can stop there.
+ */
+function evictExpired(now: number): void {
+  for (const [hash, record] of tokens) {
+    if (!isExpired(record, now)) break;
+    tokens.delete(hash);
+  }
+}
+
+/** Backstop cap: frees room for one more record by dropping the oldest ones. */
+function makeRoom(): void {
+  while (tokens.size >= TOKEN_MAP_CAP) {
+    const oldest = tokens.keys().next().value;
+    if (oldest === undefined) return;
+    tokens.delete(oldest);
+  }
 }
 
 /** Issues a new token, storing only its hash. Returns the raw token — the only time it is ever visible. */
 export function issueToken(): string {
   const token = crypto.randomBytes(32).toString("hex");
   const now = Date.now();
+  evictExpired(now);
+  makeRoom();
   tokens.set(hashToken(token), { createdAt: now, requestCount: 0, lastSeenAt: now });
   return token;
 }
@@ -92,6 +139,15 @@ export function checkClientToken(request: Request, clientAddress: string): Respo
   const record = tokens.get(hash);
   if (!record) return unauthorized();
 
+  // Expired: reject AND evict, so a stale hash cannot linger until some later
+  // mint happens to sweep it. Checked before the limiters so a dead token does
+  // not spend anyone's rate-limit budget.
+  const now = Date.now();
+  if (isExpired(record, now)) {
+    tokens.delete(hash);
+    return unauthorized();
+  }
+
   if (!perIpLimiter.consume(clientAddress)) return rateLimited();
   if (!perTokenLimiter.consume(hash)) return rateLimited();
 
@@ -106,4 +162,9 @@ export function _resetForTests(): void {
   tokens.clear();
   perTokenLimiter.clear();
   perIpLimiter.clear();
+}
+
+/** Test-only escape hatch: current number of stored token records. */
+export function _tokenStoreSizeForTests(): number {
+  return tokens.size;
 }

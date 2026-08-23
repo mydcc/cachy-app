@@ -2,7 +2,9 @@
 id: BUG-0287
 title: Issued client tokens never expire and the token map grows without bound
 type: bug
-status: ready
+status: in-progress
+assignee: opencode
+branch: fix/bug-0287-client-token-ttl
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -38,11 +40,11 @@ re-auth annoyingly (document the value).
 
 ## Acceptance criteria
 
-- [ ] A test issues a token, advances time past the TTL, and the token is
+- [x] A test issues a token, advances time past the TTL, and the token is
       rejected and removed from the map — failing before the fix
-- [ ] Inserting more than the cap evicts oldest entries without erroring valid
+- [x] Inserting more than the cap evicts oldest entries without erroring valid
       newer tokens (test)
-- [ ] Existing rate-limit behaviour unchanged
+- [x] Existing rate-limit behaviour unchanged
 
 ## Out of scope
 

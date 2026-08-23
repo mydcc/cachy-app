@@ -16,8 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { checkClientToken, issueToken, _resetForTests } from "./clientToken";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  checkClientToken,
+  issueToken,
+  _resetForTests,
+  _tokenStoreSizeForTests,
+  TOKEN_TTL_MS,
+  TOKEN_MAP_CAP,
+} from "./clientToken";
 
 function requestWithToken(token: string): Request {
   return new Request("http://localhost/api/test", {
@@ -83,5 +90,63 @@ describe("issueToken / checkClientToken", () => {
     const overLimit = checkClientToken(requestWithToken(oneMoreToken), ip);
     expect(overLimit).not.toBeNull();
     expect(overLimit?.status).toBe(429);
+  });
+});
+
+describe("token expiry and store cap (BUG-0287)", () => {
+  beforeEach(() => {
+    _resetForTests();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("keeps accepting a token right up to its TTL", () => {
+    vi.useFakeTimers();
+    const issuedAt = Date.now();
+    const token = issueToken();
+
+    vi.setSystemTime(issuedAt + TOKEN_TTL_MS - 1);
+    expect(checkClientToken(requestWithToken(token), "1.2.3.4")).toBeNull();
+  });
+
+  it("rejects a token once its TTL has passed and removes it from the store", () => {
+    vi.useFakeTimers();
+    const issuedAt = Date.now();
+    const token = issueToken();
+    expect(checkClientToken(requestWithToken(token), "1.2.3.4")).toBeNull();
+
+    vi.setSystemTime(issuedAt + TOKEN_TTL_MS);
+
+    const result = checkClientToken(requestWithToken(token), "1.2.3.4");
+    expect(result).not.toBeNull();
+    expect(result?.status).toBe(401);
+    expect(_tokenStoreSizeForTests()).toBe(0);
+  });
+
+  it("caps the store by evicting oldest entries without erroring newer tokens", () => {
+    for (let i = 0; i < TOKEN_MAP_CAP; i++) {
+      issueToken();
+    }
+    expect(_tokenStoreSizeForTests()).toBe(TOKEN_MAP_CAP);
+
+    const newest = issueToken();
+    expect(_tokenStoreSizeForTests()).toBe(TOKEN_MAP_CAP);
+
+    expect(checkClientToken(requestWithToken(newest), "1.2.3.4")).toBeNull();
+  });
+
+  it("evicts the oldest token first once the cap is reached", () => {
+    const oldest = issueToken();
+    for (let i = 1; i < TOKEN_MAP_CAP; i++) {
+      issueToken();
+    }
+
+    const overCap = issueToken();
+
+    const oldestResult = checkClientToken(requestWithToken(oldest), "1.2.3.4");
+    expect(oldestResult?.status).toBe(401);
+    expect(checkClientToken(requestWithToken(overCap), "1.2.3.5")).toBeNull();
   });
 });
