@@ -111,11 +111,19 @@ position amount rather than against the step.
 
 ## Open questions
 
-- **Does the percentage act on the original size or the remaining size?** After
-  closing 50 % once, does a second 50 % close a quarter of the original or half
-  of what is left? Half of the remainder is what exchanges do and what the
-  slider naturally expresses, since it is bound to the live position — noting it
-  so the decision is deliberate rather than incidental.
+Two behaviours ship here that were chosen rather than derived, and both are
+open decisions rather than open work. The analysis lives in
+[`TODO.md`](../../TODO.md), which is where a choice waiting on a person
+belongs; neither blocks this item.
+
+- **Does a close percentage mean a share of the original position, or of what
+  is left?** — [`TODO.md` §29](../../TODO.md). Ships as a share of what is
+  left, which is what exchanges do and what a slider bound to a live position
+  naturally expresses.
+- **How should the panel behave when the venue reports no mark price?** —
+  [`TODO.md` §30](../../TODO.md). Ships by recovering the mark from the
+  unrealised PnL rather than defaulting to entry, which would print a realised
+  PnL of zero and read as *this close books nothing*.
 
 ## Links
 
