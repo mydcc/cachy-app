@@ -2,7 +2,7 @@
 id: FEAT-0251
 title: Journal UI/UX redesign and entry/exit fee breakdown
 type: feature
-status: ready
+status: in-progress
 priority: P1
 milestone: M2
 editions: [community, pro, private]
@@ -13,6 +13,14 @@ depends_on: []
 ---
 
 # FEAT-0251 — Journal UI/UX redesign and entry/exit fee breakdown
+
+> **Status note (2026-08-23):** Core scope merged in
+> [#2150](https://github.com/mydcc/cachy-app/pull/2150) (`a0d964a9`):
+> sticky columns, `TradeDetailDrawer.svelte`, granular
+> `entryFee`/`exitFee`/`feeMode` fields in `stores/types.ts`,
+> `journal_feeBreakdown.test.ts`. Still open: quick-date filter presets and
+> column presets (AC section 5) are not in the code yet, so those boxes stay
+> unchecked and the item stays `in-progress` until they land.
 
 ## Summary
 
