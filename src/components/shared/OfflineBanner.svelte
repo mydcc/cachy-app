@@ -18,30 +18,44 @@
 <script lang="ts">
     import { marketState } from "../../stores/market.svelte";
     import { settingsState } from "../../stores/settings.svelte";
+    import { uiState } from "../../stores/ui.svelte";
+    import { connectionManager } from "../../services/connectionManager";
+    import { toastService } from "../../services/toastService.svelte";
     import { _ } from "../../locales/i18n";
-    import { app } from "../../services/app";
 
     let isOffline = $derived(
         marketState.connectionStatus === "disconnected" ||
             marketState.connectionStatus === "error",
     );
 
-    function handleReconnect() {
-        app.setupRealtimeUpdates();
+    async function handleReconnect() {
+        const provider = settingsState.apiProvider || "bitunix";
+        try {
+            await connectionManager.switchProvider(provider, { force: true });
+        } catch {
+            toastService.error($_("offline.reconnectFailed"));
+        }
     }
 
-    function handleSwitchProvider() {
+    async function handleSwitchProvider() {
         const newProvider =
             settingsState.apiProvider === "bitunix" ? "bitget" : "bitunix";
+        const providerName = newProvider === "bitunix" ? "Bitunix" : "Bitget";
         settingsState.apiProvider = newProvider;
-        app.setupRealtimeUpdates();
+        try {
+            await connectionManager.switchProvider(newProvider, { force: true });
+            toastService.info(
+                $_("offline.providerSwitched", { values: { provider: providerName } }),
+            );
+        } catch {
+            toastService.error(
+                $_("offline.switchFailed", { values: { provider: providerName } }),
+            );
+        }
     }
 
     function handleSettings() {
-        // Navigate to settings (can be implemented via router or modal)
-        if (typeof window !== "undefined") {
-            window.location.hash = "#settings";
-        }
+        uiState.openSettings("connections");
     }
 </script>
 

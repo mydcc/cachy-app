@@ -2152,7 +2152,10 @@
     "reconnect": "Neu verbinden",
     "switchProvider": "Provider wechseln",
     "checkSettings": "Einstellungen prüfen",
-    "diagnostics": "Diagnose anzeigen"
+    "diagnostics": "Diagnose anzeigen",
+    "providerSwitched": "Provider zu {provider} gewechselt",
+    "switchFailed": "Wechsel zu {provider} fehlgeschlagen",
+    "reconnectFailed": "Wiederverbindung fehlgeschlagen"
   },
   "calculator": {
     "errors": {
