@@ -2,7 +2,7 @@
 id: BUG-0288
 title: App reset clears localStorage but leaves the IndexedDB device key and caches behind
 type: bug
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,6 @@ area: security
 data_class: A
 adr: none
 depends_on: []
-assignee: opencode
-branch: fix/bug-0288-reset-indexeddb
 ---
 
 # BUG-0288 — App reset clears localStorage but leaves the IndexedDB device key and caches behind
@@ -52,15 +50,22 @@ widening this one.
 
 ## Acceptance criteria
 
-- [ ] After reset, `indexedDB.databases()` reports none of the app's stores —
+- [x] After reset, `indexedDB.databases()` reports none of the app's stores —
       asserted in a test with fake-indexeddb
-- [ ] Reset still works when IndexedDB is unavailable (graceful degradation,
+- [x] Reset still works when IndexedDB is unavailable (graceful degradation,
       localStorage part completes)
-- [ ] DE + EN confirmation copy mentions what is deleted
+- [x] DE + EN confirmation copy mentions what is deleted
 
 ## Out of scope
 
 Server-side erasure (nothing server-side exists for Class A). Backup export.
+
+## Shipped
+
+`1.6.0-beta.113` — squash-merged from PR #2232 (commit `51ff6780`). All three
+acceptance criteria proven by `src/utils/appReset.test.ts` plus the DE/EN copy
+in `src/locales/locales/`. The multi-tab gap documented above is specced as
+[`BUG-0294`](BUG-0294-multi-tab-reset-misses-indexeddb.md).
 
 ## Links
 
