@@ -64,9 +64,6 @@ Real tools with a clear job. None of them run on their own.
 
 ## Also outside this directory
 
-- **`verification/`** — `verify_market_overview.py`, `verify_picker.py`,
-  `verify_presenter.ts` plus two reference screenshots. Manual visual checks
-  from before the e2e suite existed; not wired into anything.
 - **`docs/archive/plans/`** — two design documents, `plan_proposal.md` and
   `settings-ui-optimization-20260228.md`. Historical planning notes, not
   instructions to follow.

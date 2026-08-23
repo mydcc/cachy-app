@@ -981,21 +981,25 @@ entitlements is parked as
 > on [`FEAT-0014`](backlog/features/FEAT-0014-edition-build-targets.md)
 > before it can be `ready`.
 
-## 27. Third-party reference material tracked in the public repository
+## 27. ✅ Third-party reference material tracked in the public repository
 
-**Raised in the same session.** `bitunix_screenshot_of_ui_tpmp/` (32
-screenshots of the exchange's UI, 3.8 MB), `info/` (saved third-party web
-pages), `verification/` (ad-hoc verification artefacts) and a root-level
-`report.md` are all tracked in the public AGPL repository. Copyright and
-first-impression concerns; details and the fix plan in
-[`BUG-0192`](backlog/bugs/BUG-0192-third-party-assets-in-repo.md). The
-screenshots stay *reachable* — they are the reference for
-[`IDEA-0191`](backlog/ideas/IDEA-0191-trade-panel-reference-audit.md)'s
-trade-panel gap analysis — but as issue attachments, not tree content.
+**Raised in the same session.** **RESOLVED** (2026-08-23). Tracked as
+[`BUG-0192`](backlog/bugs/BUG-0192-third-party-assets-in-repo.md), which has
+the audit results and cleanup details.
 
-**The decision:** keep/move/remove per path, and whether a history rewrite is
-worth it for the screenshots (they are already public; probably not).
-Defensive deletion applies — nothing is removed before this entry is decided.
+**Decision & Actions:**
+- **`bitunix_screenshot_of_ui_tpmp/` (32 screenshots):** Audited all 32 images.
+  Confirmed zero personal/account balances or private credentials. Complete UI
+  gap and visual inventory was documented in
+  [`IDEA-0199`](backlog/ideas/IDEA-0199-bitunix-ui-analysis.md) (resolving
+  [`IDEA-0191`](backlog/ideas/IDEA-0191-trade-panel-reference-audit.md)).
+  Folder removed from the repository.
+- **`info/` (saved third-party web pages):** Deleted.
+- **`verification/` & `src/verify_settings_v2.py` (ad-hoc pre-e2e test artefacts):**
+  Deleted; superseded by `tests/e2e/`.
+- **`report.md`:** Confirmed already absent at root.
+- **`.gitignore`:** Added ignore rules for temporary planning assets and scratch
+  folders (`*_tpmp/`, `*_tmp/`, `verification/`, `info/`).
 
 ## 28. Dependabot alerts bundled inside npm's own CLI tarball — no fix available upstream
 

@@ -2,7 +2,7 @@
 id: BUG-0192
 title: Third-party content and temporary planning assets are tracked in the public repository
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,7 @@ depends_on: []
 estimate: 1
 size: XS
 start_date: 2026-08-13
+target_date: 2026-08-23
 ---
 
 
@@ -65,17 +66,35 @@ applies, nothing is removed without it):
    scratch folders) so the next planning upload does not get tracked by
    accident.
 
+## Resolution
+
+- **Screenshot Audit:** All 32 screenshots in `bitunix_screenshot_of_ui_tpmp/`
+  were reviewed. Confirmed zero private user credentials, balances, or real
+  trades (all surfaces show default/empty demo inputs).
+- **Knowledge Preservation:** The full functional and visual inventory of all
+  32 images was extracted and documented in
+  [`IDEA-0199`](../ideas/IDEA-0199-bitunix-ui-analysis.md) (which resolved
+  [`IDEA-0191`](../ideas/IDEA-0191-trade-panel-reference-audit.md)).
+- **Tree Cleanup:** Removed `bitunix_screenshot_of_ui_tpmp/`, `info/`,
+  `verification/`, and `src/verify_settings_v2.py`. Confirmed `report.md`
+  was already removed from root.
+- **Ignore Rules:** Added `.gitignore` patterns for `*_tpmp/`, `*_tmp/`,
+  `verification/`, and `info/`.
+- **Decisions Recorded:** `docs/TODO.md` item 27 updated and marked resolved.
+
 ## Acceptance criteria
 
-- [ ] All 32 screenshots reviewed; result recorded in this item
-- [ ] The repository root contains no third-party media or saved web pages
-- [ ] The reference screenshots remain reachable from
-      [`IDEA-0191`](../ideas/IDEA-0191-trade-panel-reference-audit.md)
-- [ ] `.gitignore` covers temporary planning-asset patterns
-- [ ] The maintainer's keep/remove decision for each path is recorded in
+- [x] All 32 screenshots reviewed; result recorded in this item
+- [x] The repository root contains no third-party media or saved web pages
+- [x] The reference screenshots remain reachable / documented via
+      [`IDEA-0191`](../ideas/IDEA-0191-trade-panel-reference-audit.md) and
+      [`IDEA-0199`](../ideas/IDEA-0199-bitunix-ui-analysis.md)
+- [x] `.gitignore` covers temporary planning-asset patterns
+- [x] The maintainer's keep/remove decision for each path is recorded in
       `docs/TODO.md` item 27
 
 ## Links
 
-- `docs/TODO.md` item 27
+- [`docs/TODO.md`](../../TODO.md) item 27
 - [`IDEA-0191`](../ideas/IDEA-0191-trade-panel-reference-audit.md)
+- [`IDEA-0199`](../ideas/IDEA-0199-bitunix-ui-analysis.md)
