@@ -2,7 +2,8 @@
 id: BUG-0284
 title: Backup restore writes unvalidated strings straight into localStorage
 type: bug
-status: ready
+status: in-progress
+assignee: antigravity
 priority: P2
 milestone: none
 editions: [community, pro, private]
