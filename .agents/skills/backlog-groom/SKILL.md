@@ -7,7 +7,10 @@ Groom the backlog in two phases: first a silent auto-promote pass, then an inter
 
 ## Phase 1 — Auto-promote (silent, no discussion)
 
-0. **Workspace Hygiene:** Before starting, ensure your git workspace is clean (`git status`) and you are on the `develop` branch (`git checkout develop`), or that you are using an isolated git worktree. This prevents inheriting broken state from parallel agents.
+0. **Workspace Hygiene & Stale Claims:** Before starting, ensure your git workspace is clean (`git status`) and you are using an isolated git worktree — never groom from the shared checkout. Then report lifecycle findings so conflicts surface early:
+   - Items with `status: in-progress` whose claim looks dead: no matching branch/worktree (`git worktree list`, `git branch -a`) or no recent activity, or missing `assignee` (which also fails `npm run backlog:check`). Propose releasing them back to `ready` so nobody waits on a ghost.
+   - Orphaned local worktrees (no active branch work, no open PR) → suggest removal per the "Agent Lifecycle" section in `AGENTS.md`.
+   This prevents inheriting broken state from parallel agents and keeps claims truthful.
 1. Read `docs/backlog/INDEX.md` to list every item with `status: specced`.
 2. For each `specced` item, read the file itself — front matter and body, not just the title — and check the same gate `docs/backlog/README.md` describes for "ready":
    - **`depends_on`**: every listed ID must be `status: done`. If any dependency is not done, the item stays `specced` — note which dependency blocks it.

@@ -99,6 +99,7 @@ Reserve the full `npm test` for when you touched many files across projects or r
 - **Defensive deletion:** Never delete code of unclear purpose. Leave copyright headers and metadata untouched.
 - **Keep debug logs:** Remove `console.log` statements only upon explicit instruction.
 - **Playwright:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
+- **Agent lifecycle:** Before any task run the conflict check, claim the backlog item (`status: in-progress` + `assignee:`), and clean up worktree, branch and item afterwards — see "Agent Lifecycle: Check, Claim, Clean Up" in `AGENTS.md`.
 
 ## MCP Tools
 

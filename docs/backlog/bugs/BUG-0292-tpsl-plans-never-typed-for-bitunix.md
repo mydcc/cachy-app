@@ -3,6 +3,7 @@ id: BUG-0292
 title: Bitunix TP/SL rows carry no planType, so plansFor never groups them
 type: bug
 status: in-progress
+assignee: human
 branch: fix/bug-0257-tpsl-plan-normalization
 priority: P1
 milestone: M3
