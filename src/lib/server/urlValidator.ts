@@ -16,7 +16,6 @@
  */
 
 import dns from "node:dns";
-import { Agent } from "undici";
 
 /**
  * Checks whether an IPv4 address (as 4 numeric octets) falls into private,
@@ -186,29 +185,42 @@ export async function isUrlAllowedAsync(urlStr: string): Promise<boolean> {
   }
 }
 
+let _safeDispatcher: unknown = null;
+
 /**
- * Safe undici dispatcher with an embedded lookup guard at dial time,
- * ensuring no connection can be established to private/reserved targets.
+ * Lazily initializes the safe undici dispatcher with an embedded lookup guard at dial time,
+ * ensuring no connection can be established to private/reserved targets while avoiding
+ * eager module evaluation conflicts in test runners.
  */
-export const safeDispatcher = new Agent({
-  connect: {
-    lookup: (hostname, _options, callback) => {
-      dns.lookup(hostname, { all: true }, (err, addresses) => {
-        if (err) return callback(err, "", 4);
-        if (!addresses || addresses.length === 0) {
-          return callback(new Error("ENOTFOUND"), "", 4);
-        }
-        for (const addr of addresses) {
-          if (isPrivateOrReservedHost(addr.address)) {
-            return callback(new Error("Blocked target address (SSRF guard)"), "", 4);
-          }
-        }
-        const chosen = addresses[0];
-        callback(null, chosen.address, chosen.family);
+export async function getSafeDispatcher(): Promise<unknown> {
+  if (!_safeDispatcher) {
+    try {
+      const { Agent } = await import("undici");
+      _safeDispatcher = new Agent({
+        connect: {
+          lookup: (hostname: string, _options: unknown, callback: (err: Error | null, address: string, family: number) => void) => {
+            dns.lookup(hostname, { all: true }, (err, addresses) => {
+              if (err) return callback(err, "", 4);
+              if (!addresses || addresses.length === 0) {
+                return callback(new Error("ENOTFOUND"), "", 4);
+              }
+              for (const addr of addresses) {
+                if (isPrivateOrReservedHost(addr.address)) {
+                  return callback(new Error("Blocked target address (SSRF guard)"), "", 4);
+                }
+              }
+              const chosen = addresses[0];
+              callback(null, chosen.address, chosen.family);
+            });
+          },
+        },
       });
-    },
-  },
-});
+    } catch {
+      _safeDispatcher = null;
+    }
+  }
+  return _safeDispatcher;
+}
 
 /**
  * Safe fetch wrapper that enforces both pre-flight URL validation and
@@ -221,6 +233,11 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
     throw new Error("Prohibited or invalid URL");
   }
 
-  // @ts-expect-error Node fetch supports dispatcher option via undici
-  return fetch(url, { ...init, dispatcher: safeDispatcher });
+  const dispatcher = await getSafeDispatcher();
+  if (dispatcher) {
+    // @ts-expect-error Node fetch supports dispatcher option via undici
+    return fetch(url, { ...init, dispatcher });
+  }
+
+  return fetch(url, init);
 }
