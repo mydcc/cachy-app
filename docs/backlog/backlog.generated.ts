@@ -3447,7 +3447,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0267",
     "title": "Server-side exchange fetches run without timeout or abort",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0267-exchange-fetch-timeouts",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3521,7 +3523,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0288",
     "title": "App reset clears localStorage but leaves the IndexedDB device key and caches behind",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3533,8 +3535,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
-    "branch": "fix/bug-0288-reset-indexeddb",
     "file": "bugs/BUG-0288-app-reset-misses-indexeddb.md"
   },
   {
@@ -3574,6 +3574,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0290-replacestop-retry-theater.md"
+  },
+  {
+    "id": "BUG-0294",
+    "title": "Factory reset cannot delete IndexedDB blocked by connections held in other tabs",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0288"
+    ],
+    "file": "bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md"
   },
   {
     "id": "FEAT-0022",

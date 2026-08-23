@@ -16,6 +16,7 @@
  */
 
 import { json } from "@sveltejs/kit";
+import { upstreamErrorStatus } from "./server/fetchWithTimeout";
 
 export interface ApiErrorDetail {
   code: string;
@@ -66,6 +67,18 @@ export function handleApiError(e: unknown) {
 
   if (message.includes("Unauthorized") || message.includes("401")) {
     return jsonError("Unauthorized", "AUTH_ERROR", 401);
+  }
+
+  // Errors carrying an upstream HTTP status (e.g. the 504 a hung exchange
+  // fetch produces via fetchWithTimeout) keep their status instead of
+  // collapsing into a blanket 500.
+  const upstreamStatus = upstreamErrorStatus(e);
+  if (upstreamStatus !== undefined) {
+    return jsonError(
+      message,
+      upstreamStatus === 504 ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR",
+      upstreamStatus,
+    );
   }
 
   // Bitunix/Bitget specific mappings could go here if widely used

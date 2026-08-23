@@ -25,6 +25,7 @@ import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1).optional(),
@@ -74,7 +75,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     );
     return json(
       { error: (e instanceof Error ? e.message : null) || "Failed to fetch order detail" },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -116,7 +117,7 @@ async function fetchBitunixOrderDetail(
   // 6. Build Query String for URL
   const queryString = new URLSearchParams(params).toString();
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
     headers: {
       "api-key": apiKey,

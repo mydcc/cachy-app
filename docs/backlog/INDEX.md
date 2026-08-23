@@ -2,9 +2,9 @@
 
 # Backlog index
 
-180 items. How to read and add them: [README.md](README.md).
+181 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 21 · 🟡 in-progress 5 · ✅ done 111
+Counts by status: 💡 idea 18 · 📋 specced 26 · 🟢 ready 20 · 🟡 in-progress 5 · ✅ done 112
 
 ---
 
@@ -222,13 +222,14 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | ui |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | ui |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟢 ready | ui |
-| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟢 ready | api |
+| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | api |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | api |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 📋 specced | security |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟢 ready | api |
-| [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | 🟡 in-progress | security |
+| [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | security |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | services |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | execution |
+| [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | 📋 specced | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -403,13 +404,14 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
+| [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | 📋 specced | none | community, pro, private | A | none | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -434,4 +436,4 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 21 · 🟡 in-pr
 
 ---
 
-Next free number: **0294**
+Next free number: **0295**

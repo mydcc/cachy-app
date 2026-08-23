@@ -56,6 +56,9 @@ describe('GET /api/funding-rate', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://fapi.bitunix.com/api/v1/futures/market/funding_rate/batch',
+      // BUG-0267: the timeout helper attaches an abort signal to every
+      // upstream call, so the init object is part of the call shape now.
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(json).toEqual(mockResponse);
   });
@@ -115,6 +118,7 @@ describe('GET /api/funding-rate', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://fapi.bitunix.com/api/v1/futures/market/get_funding_rate_history?symbol=BTCUSDT&limit=20',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(json).toEqual(mockResponse);
   });

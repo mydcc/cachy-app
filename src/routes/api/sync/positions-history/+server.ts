@@ -26,6 +26,7 @@ import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
 
 const RequestSchema = z.object({
   apiKey: z.string().min(1).optional(),
@@ -84,7 +85,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     // Return sanitized message
     return json(
       { error: safeMsg || "Failed to fetch history positions" },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -112,7 +113,7 @@ async function fetchBitunixHistoryPositions(
 
   const url = `${baseUrl}${path}?${queryString}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,
