@@ -56,7 +56,7 @@ import { Decimal } from "decimal.js";
  * enters. Reading capabilities through the adapter registry instead would
  * have pulled in all four.
  */
-import { capabilitiesOf } from "./exchangeCapabilities";
+import { capabilitiesOf, isKnownExchange } from "./exchangeCapabilities";
 import type { OrderEntryType, TimeInForce } from "./exchangeCapabilities";
 
 // ---------------------------------------------------------------------------
@@ -897,15 +897,62 @@ class OrderGate {
         return Decimal.max(stepSize, relative);
     }
 
+    /**
+     * Whether the protection the trader set is expected on *this* payload
+     * (BUG-0297).
+     *
+     * `displayed.stopLossPrice` answers "the stop this position will have".
+     * The price rule below needs a narrower question — "the stop this request
+     * carries" — and the two diverge on a venue that cannot attach protection
+     * to an entry: the stop is real, and it belongs to a second request.
+     * Reading the wide field as the narrow one refused every such entry as
+     * having forgotten a stop the trader had plainly entered.
+     *
+     * Derived from the venue's own declaration rather than taken from the
+     * caller, deliberately. A `stopLossAttached` flag on `DisplayedState`
+     * would let any caller switch the stop comparison off by passing `false`
+     * — which is the one thing a gate must not accept from the code it is
+     * checking. `tpSlAtEntry: false` is a fact about the venue, and a payload
+     * that attaches a stop anyway is already refused as unsupported before
+     * this rule runs, so nothing reaches transport uncompared.
+     *
+     * Scoped to `place-order`: the standalone TP/SL endpoints exist precisely
+     * to carry these levels, and their payloads must still match.
+     */
+    private entryCarriesProtection(intent: OrderIntent): boolean {
+        if (intent.payload.type !== "place-order") return true;
+        /*
+         * An undeclared venue gets the stricter rule, not the looser one.
+         * `UNKNOWN_EXCHANGE` reports `tpSlAtEntry: false`, which is the right
+         * answer to "may this order attach a stop" and the wrong one to "is a
+         * displayed stop excused from comparison here" — nothing is known
+         * about such a venue, so nothing is excused.
+         *
+         * The order-type rule already refuses an undeclared venue before this
+         * runs, so this changes no outcome today. It is here so that the rule
+         * is correct on its own terms rather than by depending on the order
+         * two rules happen to run in.
+         */
+        if (!isKnownExchange(intent.displayed.provider)) return true;
+        return capabilitiesOf(intent.displayed.provider).tpSlAtEntry;
+    }
+
     private checkPrices(intent: OrderIntent, checked: string[]): OrderRefusal | null {
         const { payload, displayed } = intent;
         const fields = { ...DEFAULT_PRICE_FIELDS, ...intent.priceFields };
+
+        const carriesProtection = this.entryCarriesProtection(intent);
+        // Recorded so the audit shows a decision rather than an omission: the
+        // stop was not compared here *because* it travels separately.
+        if (!carriesProtection && displayed.stopLossPrice !== undefined) {
+            checked.push("protectionDeferred");
+        }
 
         const pairs: Array<[string, Decimal | undefined, unknown]> = [
             ["price", displayed.entryPrice, resolvePath(payload, fields.price)],
             [
                 "stopLoss",
-                displayed.stopLossPrice,
+                carriesProtection ? displayed.stopLossPrice : undefined,
                 resolvePath(payload, fields.stopLoss) ?? resolvePath(payload, "stopPrice"),
             ],
         ];
@@ -924,7 +971,12 @@ class OrderGate {
             }
         }
 
-        if (displayed.takeProfits !== undefined) {
+        // Same split as the stop above: a target the entry cannot carry is
+        // placed by a later request and compared there. `placeEntryGroup`
+        // already leaves `takeProfits` undefined in that case, so this is the
+        // belt to that braces — a caller that sets it anyway must not turn a
+        // separately-placed target into a missing one.
+        if (displayed.takeProfits !== undefined && carriesProtection) {
             const payloadTps = this.payloadTakeProfits(payload, fields.takeProfit);
             checked.push("takeProfit");
             if (payloadTps.length !== displayed.takeProfits.length) {

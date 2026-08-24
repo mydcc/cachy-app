@@ -38,11 +38,12 @@ const FINGERPRINT = "abcd…wxyz";
  * shape wholesale; Bitget is where the capability differences bite.
  *
  * `displayed.stopLossPrice` deliberately tracks whether the payload actually
- * carries a stop. The gate's price rule refuses a displayed level the payload
- * omits — a different rule from the one under test here, and one these
- * fixtures must not trip on their way to it. That the *production* caller
- * lets those two diverge on a no-attach venue is
- * BUG-0297, not something to encode in a capability fixture.
+ * carries a stop, keeping these fixtures clear of the price rule on their way
+ * to the capability rule under test. On a venue that cannot attach protection
+ * the two legitimately diverge — the stop is displayed and travels in a second
+ * request — and the price rule now skips it there (BUG-0297). That behaviour
+ * is pinned in `orderPlacementService.gateIntegration.test.ts`, against the
+ * entry the placement service really builds, rather than encoded here.
  */
 function openIntent(provider: string, overrides: Record<string, unknown> = {}): OrderIntent {
     const payload: Record<string, unknown> = {
@@ -117,23 +118,26 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
             expect(orderGate.verify(attachedIntent()).approved).toBe(true);
         });
 
-        /*
-         * Bitget's realistic entry path cannot be expressed as an approved
-         * `open` intent at all today: the size rule needs `displayed
-         * .stopLossPrice`, the price rule then demands a matching `slPrice` in
-         * the payload, and `tpSlAtEntry: false` forbids sending one. That
-         * deadlock is BUG-0297 and predates this item — a reduce is the
-         * Bitget path that does work, and it is what this pins.
-         */
         it("approves a Bitget market close", () => {
             expect(orderGate.verify(reduceIntent("bitget")).approved).toBe(true);
         });
 
-        it("refuses a Bitget entry for a reason that is not the capability check", () => {
+        /*
+         * A Bitget entry used to be refused whichever way it was built
+         * (BUG-0297): the size rule needs `displayed.stopLossPrice`, the price
+         * rule then demanded a matching `slPrice`, and `tpSlAtEntry: false`
+         * forbade sending one. The price rule now skips a stop the venue
+         * cannot carry.
+         *
+         * This fixture omits the displayed stop, so it is refused on size
+         * inputs rather than approved — the whole-chain version, with the stop
+         * displayed and absent from the payload, lives in
+         * `orderPlacementService.gateIntegration.test.ts`. What matters here is
+         * that no capability the venue actually declares is the reason.
+         */
+        it("refuses a stopless Bitget entry on its inputs, not on a capability", () => {
             const verdict = orderGate.verify(openIntent("bitget"));
             expect(verdict.approved).toBe(false);
-            // BUG-0297 territory, not FEAT-0017's: whatever refuses this, it
-            // must not be a capability the venue actually declares.
             expect(verdict.refusal?.field).not.toBe("orderType");
             expect(verdict.refusal?.field).not.toBe("effect");
             expect(verdict.refusal?.field).not.toBe("tpSlAtEntry");
@@ -179,6 +183,25 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
             const verdict = orderGate.verify(intent);
             // Not this rule's business, so it must not appear in the trail.
             expect(verdict.checked).not.toContain("orderTypeSupported");
+        });
+
+        /*
+         * BUG-0297's exemption reads `tpSlAtEntry`, and `UNKNOWN_EXCHANGE`
+         * reports `false` — the right answer to "may this attach a stop" and
+         * the wrong one to "is a displayed stop excused from comparison". An
+         * undeclared venue must get the stricter reading, so the exemption
+         * checks `isKnownExchange` first. This pins that the order-type
+         * refusal, not a skipped price comparison, is what stops such an
+         * order.
+         */
+        it("refuses an undeclared venue outright rather than exempting its prices", () => {
+            const intent = attachedIntent();
+            intent.displayed.provider = "kraken";
+            const verdict = orderGate.verify(intent);
+
+            expect(verdict.approved).toBe(false);
+            expect(verdict.refusal?.field).toBe("orderType");
+            expect(verdict.checked).not.toContain("protectionDeferred");
         });
 
         it("refuses every order type on an undeclared venue", () => {

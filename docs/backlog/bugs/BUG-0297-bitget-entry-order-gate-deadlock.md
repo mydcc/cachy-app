@@ -2,7 +2,9 @@
 id: BUG-0297
 title: An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built
 type: bug
-status: specced
+status: in-progress
+assignee: claude
+branch: bug-0297-entry-gate-deadlock
 priority: P1
 milestone: M2
 editions: [community, pro, private]
@@ -76,28 +78,49 @@ say so.
 
 ## Fix
 
-Not settled — it changes money-safety logic and wants its own review, which is
-why this is a separate item rather than a commit on FEAT-0017.
+`orderGate.checkPrices` asks a narrower question than `displayed.stopLossPrice`
+answers. The field means "the stop this position will have"; the price rule
+needs "the stop this request carries". `entryCarriesProtection()` supplies the
+second, and the stop and target comparisons are skipped when it is false.
 
-Sketch: give `DisplayedState` a way to distinguish a stop carried by *this*
-payload from a stop the placement will attach in a follow-up request, so the
-price rule compares only the former while the size rule keeps reading the
-latter. `placeEntryGroup` already computes `attach` and can set it.
+**Derived from the venue's declaration, not from the caller.** The sketch above
+proposed a flag on `DisplayedState` set by `placeEntryGroup`. That was the
+wrong shape: a `stopLossAttached: false` from any caller would switch the stop
+comparison off, and a gate must not accept from the code it is checking the one
+input that decides whether it checks. `capabilitiesOf(provider).tpSlAtEntry` is
+a fact about the venue instead, and a payload that attaches protection anyway
+is already refused as `unsupported` *before* the price rule runs — so nothing
+reaches transport uncompared.
 
-Leave alone: the size rule's use of the stop distance (it is correct — the
-quantity really does derive from the intended stop), and the price rule's
-refusal on a genuine mismatch.
+Scoped to `place-order`. The standalone TP/SL endpoints exist to carry these
+levels and their payloads must still match, so they are unaffected.
+
+Left alone as planned: the size rule keeps reading the displayed stop (the
+quantity really does derive from the intended stop distance), and a genuine
+mismatch is still refused wherever the venue attaches.
 
 ## Acceptance criteria
 
-- [ ] A test builds the entry `orderPlacementService` actually produces for a
+- [x] A test builds the entry `orderPlacementService` actually produces for a
       `tpSlAtEntry: false` venue and shows the gate refusing it
-- [ ] That test passes with the fix, and the equivalent Bitunix entry is
+      → `orderPlacementService.gateIntegration.test.ts`, which stubs only the
+      network and runs `placeEntryGroup → tradeService.placeOrder → gate`
+      whole. Confirmed failing before the fix: 4 of 8 red, the Bitget entry
+      never reaching transport at all.
+- [x] That test passes with the fix, and the equivalent Bitunix entry is
       unaffected
-- [ ] The gate still refuses a payload whose stop disagrees with the displayed
+      → same file pins the Bitunix entry still carrying `slPrice`/`tpPrice` on
+      the payload.
+- [x] The gate still refuses a payload whose stop disagrees with the displayed
       stop, on both venues
-- [ ] A stop that fails to arrive in the follow-up request is still reported as
+      → on an attaching venue by the price rule, and on a non-attaching one by
+      the capability rule, which is stricter: it cannot carry a stop at all.
+      Both pinned under "what must still be refused".
+- [x] A stop that fails to arrive in the follow-up request is still reported as
       unprotected (`orderPlacementService`'s retry path is untouched)
+      → "still calls the position unprotected when the separate stop never
+      lands". This is the test that makes the exemption safe to grant: without
+      it the fix would trade a deadlock for a silently unprotected position.
 
 ## Links
 

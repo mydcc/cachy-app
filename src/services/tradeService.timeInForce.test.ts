@@ -176,9 +176,9 @@ describe("FEAT-0069 × FEAT-0017 — the GTC default meets venue capabilities", 
          * trader never touched.
          *
          * The assertion is about *which* refusal, not whether one happens:
-         * a Bitget entry is refused anyway today for an unrelated reason
-         * (BUG-0297). What must not happen is being refused over an invented
-         * time in force.
+         * this fixture attaches protection, which Bitget declares it cannot
+         * carry, so it is refused on that capability. What must not happen is
+         * being refused over an invented time in force.
          */
         it("does not invent a time in force the trader never chose", async () => {
             settings.apiProvider = "bitget";

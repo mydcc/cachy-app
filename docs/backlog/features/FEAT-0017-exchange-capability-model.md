@@ -213,8 +213,10 @@ Three, each with a reason:
   A `tpSlAtEntry: false` venue cannot produce an accepted entry order at all:
   the size rule needs `displayed.stopLossPrice`, the price rule then demands a
   matching payload `slPrice`, and the capability forbids sending one. Predates
-  this item and is not fixed here — it changes money-safety logic and wants its
-  own review. `orderGate.capabilities.test.ts` documents the deadlock.
+  this item and was not fixed here — it changes money-safety logic and wanted
+  its own review. **Fixed since**, under its own item: the price rule now skips
+  protection the venue cannot carry, derived from the declaration rather than
+  from the caller.
 - A prototype-chain hole in `capabilitiesOf`, fixed here because this item
   introduced its most dangerous caller: `CAPABILITIES["constructor"]` returned
   a *function* rather than falling through to `UNKNOWN_EXCHANGE`, and the venue
