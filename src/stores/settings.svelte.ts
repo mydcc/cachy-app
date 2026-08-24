@@ -149,6 +149,7 @@ export interface Settings {
   autoUpdatePriceInput: boolean;
   autoFetchBalance: boolean;
   showSidebars: boolean;
+  showTooltips: boolean;
   showTechnicals: boolean;
   showIndicatorParams: boolean;
   hideUnfilledOrders: boolean;
@@ -377,6 +378,7 @@ const defaultSettings: Settings = {
   autoUpdatePriceInput: true,
   autoFetchBalance: false,
   showSidebars: true,
+  showTooltips: true,
   showTechnicals: false,
   showIndicatorParams: false,
   hideUnfilledOrders: false,
@@ -596,6 +598,7 @@ export class SettingsManager {
   autoUpdatePriceInput = $state<boolean>(defaultSettings.autoUpdatePriceInput);
   autoFetchBalance = $state<boolean>(defaultSettings.autoFetchBalance);
   showSidebars = $state<boolean>(defaultSettings.showSidebars);
+  showTooltips = $state<boolean>(defaultSettings.showTooltips);
   showTechnicals = $state<boolean>(defaultSettings.showTechnicals);
   showIndicatorParams = $state<boolean>(defaultSettings.showIndicatorParams);
   hideUnfilledOrders = $state<boolean>(defaultSettings.hideUnfilledOrders);
@@ -1326,6 +1329,7 @@ export class SettingsManager {
     this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
     this.autoFetchBalance = merged.autoFetchBalance;
     this.showSidebars = merged.showSidebars;
+    this.showTooltips = merged.showTooltips ?? defaultSettings.showTooltips;
     this.showTechnicals = merged.showTechnicals;
     this.showIndicatorParams = merged.showIndicatorParams;
     this.hideUnfilledOrders = merged.hideUnfilledOrders;
@@ -1629,6 +1633,7 @@ export class SettingsManager {
       autoUpdatePriceInput: this.autoUpdatePriceInput,
       autoFetchBalance: this.autoFetchBalance,
       showSidebars: this.showSidebars,
+      showTooltips: this.showTooltips,
       showTechnicals: this.showTechnicals,
       showIndicatorParams: this.showIndicatorParams,
       hideUnfilledOrders: this.hideUnfilledOrders,

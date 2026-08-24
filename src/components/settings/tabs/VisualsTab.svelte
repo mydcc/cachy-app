@@ -233,6 +233,21 @@
                     </div>
                 </div>
 
+                <!-- Tooltips -->
+                <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium">
+                                {$_("settings.showTooltips")}
+                            </span>
+                            <span class="text-xs text-[var(--text-secondary)]">
+                                {$_("settings.showTooltipsDesc")}
+                            </span>
+                        </div>
+                        <Toggle bind:checked={settingsState.showTooltips} />
+                    </label>
+                </div>
+
                 <!-- Glassmorphism -->
                 <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
                     <div class="toggle-card flex-col items-start gap-4">

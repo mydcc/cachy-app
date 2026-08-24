@@ -1074,6 +1074,8 @@
     "autoUpdatePrice": "Preis automatisch aktualisieren",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
     "showSidebars": "Seitenleisten anzeigen (Tabelle & Kacheln)",
+    "showTooltips": "Tooltips anzeigen",
+    "showTooltipsDesc": "Hilfreiche Beschreibungen und Erklärungen beim Überfahren mit der Maus anzeigen",
     "enableSidePanel": "Side Panel (KI/Notizen) aktivieren",
     "sidePanelMode": "Side Panel Modus",
     "modeNotes": "Meine Notizen",

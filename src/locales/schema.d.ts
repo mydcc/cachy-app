@@ -972,6 +972,8 @@ export type TranslationKey =
   | "settings.intervalLabel"
   | "settings.autoUpdatePrice"
   | "settings.showSidebars"
+  | "settings.showTooltips"
+  | "settings.showTooltipsDesc"
   | "settings.enableSidePanel"
   | "settings.sidePanelMode"
   | "settings.modeNotes"

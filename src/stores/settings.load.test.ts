@@ -101,6 +101,7 @@ describe("SettingsManager.load() -- legacy-shape tolerance", () => {
     // Fields absent from the legacy blob fall back to current defaults
     // rather than the whole load being discarded.
     expect(settings.showTechnicals).toBe(false);
+    expect(settings.showTooltips).toBe(true);
     expect(settings.technicalsCacheTTL).toBe(60);
   });
 
@@ -376,5 +377,30 @@ describe("SettingsManager.load() -- a failed decrypt never touches the stored ci
 
     const json = settings.toJSON();
     expect(json.encryptedSecrets?.openaiApiKey).toEqual(originalBlob);
+  });
+});
+
+describe("SettingsManager -- showTooltips setting", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+  });
+
+  it("defaults showTooltips to true", () => {
+    const settings = new SettingsManager();
+    expect(settings.showTooltips).toBe(true);
+    expect(settings.toJSON().showTooltips).toBe(true);
+  });
+
+  it("loads showTooltips = false from storage and roundtrips toJSON", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ showTooltips: false }),
+    );
+
+    const settings = new SettingsManager();
+    expect(settings.showTooltips).toBe(false);
+    expect(settings.toJSON().showTooltips).toBe(false);
   });
 });

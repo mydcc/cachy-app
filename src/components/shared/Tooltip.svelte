@@ -23,6 +23,7 @@
     offset,
     arrow,
   } from "@floating-ui/dom";
+  import { settingsState } from "../../stores/settings.svelte";
 
   interface Props {
     text?: string;
@@ -32,12 +33,14 @@
 
   let { text = "", underline = true, children }: Props = $props();
   let visible = $state(false);
+  const isEnabled = $derived(settingsState.showTooltips);
   let tooltipEl: HTMLElement | undefined = $state();
   let arrowEl: HTMLElement | undefined = $state();
   let triggerEl: HTMLElement | undefined = $state();
   // Cleanup logic moved to effect return
 
   function show() {
+    if (!isEnabled) return;
     visible = true;
   }
 
@@ -108,18 +111,18 @@
 <span
   bind:this={triggerEl}
   class="tooltip-container"
-  class:has-underline={underline}
-  role="button"
-  tabindex="0"
-  onmouseenter={show}
-  onmouseleave={hide}
-  onfocusin={show}
-  onfocusout={hide}
+  class:has-underline={underline && isEnabled}
+  role={isEnabled ? "button" : undefined}
+  tabindex={isEnabled ? 0 : undefined}
+  onmouseenter={isEnabled ? show : undefined}
+  onmouseleave={isEnabled ? hide : undefined}
+  onfocusin={isEnabled ? show : undefined}
+  onfocusout={isEnabled ? hide : undefined}
 >
   {#if children}
     {@render children()}
   {/if}
-  {#if visible && text}
+  {#if isEnabled && visible && text}
     <div
       bind:this={tooltipEl}
       id="tooltip-text"
