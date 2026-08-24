@@ -92,11 +92,18 @@
   function captureRect(element: HTMLElement) {
     const updated = element.getBoundingClientRect();
     const pad = 6;
+    // Clamp on all four sides: the pad may never push the cutout past the
+    // viewport edge, and an element hanging off-screen must not produce a
+    // box wider than the screen.
+    const overRight = Math.max(0, updated.right + pad - window.innerWidth);
+    const overBottom = Math.max(0, updated.bottom + pad - window.innerHeight);
+    const top = Math.max(0, updated.top - pad);
+    const left = Math.max(0, updated.left - pad);
     targetRect = {
-      top: Math.max(0, updated.top - pad),
-      left: Math.max(0, updated.left - pad),
-      width: updated.width + pad * 2,
-      height: updated.height + pad * 2,
+      top,
+      left,
+      width: Math.max(0, updated.width + pad * 2 - overRight),
+      height: Math.max(0, updated.height + pad * 2 - overBottom),
     };
   }
 

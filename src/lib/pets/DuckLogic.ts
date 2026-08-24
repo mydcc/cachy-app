@@ -267,7 +267,13 @@ export class DuckLogic {
                 break;
             }
             case "onboarding_complete": {
-                // One-time reward — see applyOnboardingReward.
+                // One-time reward — see applyOnboardingReward. Deliberately
+                // gated by this class's flag alone: wiping duck data via the
+                // Danger Zone resets the pet wholesale, so replaying the tour
+                // afterwards legitimately re-earns the reward (fresh pet,
+                // fresh reward). The separate tour-outcome record in
+                // localStorage (`cachy_onboarding_completed`) must never gate
+                // this — it serves future auto-pop/analytics decisions.
                 if (!this.onboardingCompleted) {
                     const next = applyOnboardingReward({
                         xp: this.xp,
@@ -443,6 +449,23 @@ export class DuckLogic {
 
     public isActive(): boolean {
         return this.state !== DuckState.IDLE && this.state !== DuckState.SLEEPING;
+    }
+
+    // Read-only state views for tests; not part of the rendering contract.
+    public getState(): DuckState {
+        return this.state;
+    }
+
+    public getXp(): number {
+        return this.xp;
+    }
+
+    public getLevel(): number {
+        return this.level;
+    }
+
+    public hasCompletedOnboarding(): boolean {
+        return this.onboardingCompleted;
     }
 
     public getGroup(): THREE.Group {

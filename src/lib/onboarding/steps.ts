@@ -27,7 +27,12 @@ export interface OnboardingStep {
   targetSelectors: string[];
   titleKey: TranslationKey;
   descKey: TranslationKey;
-  preferredPlacement?: "top" | "bottom" | "left" | "right" | "auto";
+  /**
+   * Vertical placement preference of the card relative to the target. Only
+   * top/bottom/auto are implemented — the card is horizontally centered on
+   * its target, so left/right would silently degrade to the default branch.
+   */
+  preferredPlacement?: "top" | "bottom" | "auto";
 }
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [

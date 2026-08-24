@@ -19,6 +19,13 @@ import { ONBOARDING_STEPS, type OnboardingStep } from "../lib/onboarding/steps";
 import { effectsState } from "./effects.svelte";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
 
+/**
+ * Records how the tour last ended ("completed" | "skipped") — input for a
+ * future auto-pop or analytics layer. It deliberately does NOT gate the duck's
+ * one-time XP reward: `duck_dao_state.onboardingCompleted` owns that, so a
+ * user who wipes their duck data via the Danger Zone re-earns the reward on a
+ * replayed tour (fresh pet, fresh reward — pinned by test in DuckLogic.test).
+ */
 const STORAGE_KEY = "cachy_onboarding_completed";
 
 /**
