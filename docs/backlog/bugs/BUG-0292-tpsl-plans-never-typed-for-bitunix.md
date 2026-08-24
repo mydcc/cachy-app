@@ -2,9 +2,8 @@
 id: BUG-0292
 title: Bitunix TP/SL rows carry no planType, so plansFor never groups them
 type: bug
-status: in-progress
-assignee: human
-branch: fix/bug-0257-tpsl-plan-normalization
+status: done
+shipped: v1.6.0-beta.129
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -139,3 +138,4 @@ ends up covered twice).
 - [`06_tp_sl.md`](../../bitunix-api/06_tp_sl.md) — the documented response shape
 - `src/services/tpslNormalize.ts` — the split
 - `src/stores/tpsl.svelte.ts` — `planTypeOf`, `plansFor`, `updateFromWs`
+- Commit `2950a7f1` on develop — the fix itself
