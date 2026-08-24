@@ -328,3 +328,60 @@ describe("FEAT-0021 — an entry with no protection requested", () => {
         expect(result.unprotected).toBe(false);
     });
 });
+
+/*
+ * FEAT-0017 — which time-in-force may be dropped, and which may not.
+ *
+ * The distinction is the whole point: dropping a value that changes how an
+ * order executes, without telling anyone, hands the trader a different order
+ * than the one they asked for. Dropping the neutral default hands them the
+ * same order with one fewer field.
+ */
+describe("FEAT-0017 — time in force against venue capabilities", () => {
+    function effectOf(): unknown {
+        return placeOrder.mock.calls[0]?.[0]?.effect;
+    }
+
+    it("sends a time in force the venue declares", async () => {
+        await orderPlacementService.placeEntryGroup(
+            plan({ entryType: "limit", timeInForce: "POST_ONLY" }),
+        );
+        expect(effectOf()).toBe("POST_ONLY");
+    });
+
+    /*
+     * Bitget declares an empty list. GTC is what an order does anyway with no
+     * constraint attached, and the panel rests there, so dropping it changes
+     * nothing — without this, a default nobody chose would have the gate
+     * refuse every Bitget limit order.
+     */
+    it("drops GTC on a venue that declares none, since GTC changes nothing", async () => {
+        await orderPlacementService.placeEntryGroup(
+            plan({ exchange: "bitget", entryType: "limit", timeInForce: "GTC" }),
+        );
+        expect(effectOf()).toBeUndefined();
+    });
+
+    /*
+     * The regression guard for the silent downgrade. POST_ONLY means "maker
+     * only"; sending nothing instead means "fill however you can", which can
+     * take the other side of the book at a taker fee. That is not a downgrade
+     * to make quietly, so it travels and the gate refuses it out loud.
+     */
+    it.each(["IOC", "FOK", "POST_ONLY"] as const)(
+        "does not silently drop %s on a venue that declares none",
+        async (tif) => {
+            await orderPlacementService.placeEntryGroup(
+                plan({ exchange: "bitget", entryType: "limit", timeInForce: tif }),
+            );
+            expect(effectOf()).toBe(tif);
+        },
+    );
+
+    it("sends no time in force on a market order, whatever was selected", async () => {
+        await orderPlacementService.placeEntryGroup(
+            plan({ entryType: "market", timeInForce: "IOC" }),
+        );
+        expect(effectOf()).toBeUndefined();
+    });
+});

@@ -131,19 +131,27 @@ class OrderPlacementService {
         const attach = caps.tpSlAtEntry;
 
         /*
-         * A venue that declares no time-in-force gets none (FEAT-0017).
+         * Time in force, against what the venue declares (FEAT-0017).
          *
-         * The panel defaults this to "GTC" and only offers a picker where the
-         * venue declares values, so nothing *chose* a GTC for Bitget — the
-         * default simply rode along. Bitget's declaration is empty, and the
-         * gate refuses an `effect` the venue never declared, so passing the
-         * default through would refuse every Bitget limit order. Dropping it
-         * here is what the venue actually wants: no field at all.
+         * Only GTC is dropped when the venue takes none. It is the neutral
+         * default — good-till-cancelled *is* what an order does with no
+         * constraint attached — and the panel rests there, so dropping it
+         * changes nothing about the order. Without this, Bitget (which
+         * declares an empty list) would have every limit order refused by the
+         * gate over a default nobody chose.
+         *
+         * IOC, FOK and POST_ONLY are not dropped. Each one changes how the
+         * order executes, and quietly sending "no constraint" instead would
+         * give the trader a different order than the one they asked for —
+         * a POST_ONLY that becomes a taker fill costs money. It goes through
+         * unchanged and the gate refuses it, loudly, which is the outcome
+         * worth having.
          */
-        const effect =
-            plan.timeInForce !== undefined && caps.timeInForce.includes(plan.timeInForce)
-                ? plan.timeInForce
-                : undefined;
+        const effect = (() => {
+            if (plan.timeInForce === undefined) return undefined;
+            if (caps.timeInForce.includes(plan.timeInForce)) return plan.timeInForce;
+            return plan.timeInForce === "GTC" ? undefined : plan.timeInForce;
+        })();
 
         let clientId: string | undefined;
         try {

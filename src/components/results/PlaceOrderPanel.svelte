@@ -66,6 +66,27 @@
   let submitting = $state(false);
   let result = $state<PlacementResult | null>(null);
 
+  /*
+   * The time-in-force as it applies to the venue that is actually active.
+   *
+   * `apiProvider` changes at runtime and the raw selection outlives the
+   * switch: picking POST_ONLY on Bitunix and moving to Bitget left a
+   * maker-only instruction sitting on a venue that declares no time-in-force
+   * at all. "Maker only" quietly becoming "whatever fills" is a different
+   * order — different fill, different fee.
+   *
+   * Derived rather than reset through an `$effect`, so the submitted value
+   * cannot lag the venue by an effect tick. `timeInForce` stays the user's
+   * raw choice; this is what the order is built from, and it is always
+   * consistent with `caps` by construction.
+   *
+   * GTC where the venue declares none: the neutral default, and the one value
+   * `orderPlacementService` may drop without changing how the order executes.
+   */
+  const effectiveTimeInForce = $derived<TimeInForce>(
+    caps.timeInForce.includes(timeInForce) ? timeInForce : (caps.timeInForce[0] ?? "GTC"),
+  );
+
   // Trigger is omitted since Bitunix does not support trigger orders via API
   const ALL_TYPES: OrderEntryType[] = ["market", "limit"];
 
@@ -229,7 +250,7 @@
         leverage: data.leverage,
         marginMode: tradeState.remoteMarginMode,
         accountStateAt: tradeState.remoteAccountStateAt,
-        timeInForce: entryType === "limit" ? timeInForce : undefined,
+        timeInForce: entryType === "limit" ? effectiveTimeInForce : undefined,
       });
 
       if (result.unprotected) {
@@ -294,10 +315,19 @@
         <label for="order-tif" class="text-xs font-semibold text-[var(--text-secondary)]">
           {$_("orderEntry.timeInForce")}
         </label>
+        <!--
+          The reason is also on the control itself, not only as a hover on the
+          wrapper: a disabled select is never focusable, so a title attribute
+          reaches a mouse and nothing else. `aria-label` puts the same sentence
+          in the accessibility tree, where a screen reader still announces it.
+        -->
         <select
           id="order-tif"
           bind:value={timeInForce}
           disabled={!tifSupported}
+          aria-label={!tifSupported
+            ? $_(unsupportedTimeInForceReasonKey(exchange) as TranslationKey)
+            : $_("orderEntry.timeInForce")}
           class="input-field text-xs py-1 px-2"
         >
           {#each caps.timeInForce as tif (tif)}

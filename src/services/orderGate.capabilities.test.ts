@@ -141,14 +141,44 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
     });
 
     describe("order type", () => {
-        it("does not crash on an order type it cannot read", () => {
-            // An unreadable type is deliberately not checked against
-            // capabilities: the mismatch and missing rules already cover a
-            // payload disagreeing with the display, and inventing a type to
-            // refuse would refuse valid orders.
-            const verdict = orderGate.verify(attachedIntent({ orderType: "STOP" }));
-            expect(verdict).toBeDefined();
-            expect(verdict.refusal?.field).not.toBe("orderType");
+        /*
+         * The hole this closes: any spelling outside MARKET/LIMIT used to
+         * read as "unknown" and skip the capability check entirely — under
+         * exactly the verb no venue declares. A trigger order could reach
+         * transport on a venue with `orderTypes: ["market", "limit"]`.
+         */
+        it.each(["STOP", "STOP_MARKET", "STOP_LIMIT", "TRIGGER", "TAKE_PROFIT"])(
+            "refuses %s, since no venue declares a trigger type",
+            (orderType) => {
+                const verdict = orderGate.verify(attachedIntent({ orderType }));
+                expect(verdict.approved).toBe(false);
+                expect(verdict.refusal?.field).toBe("orderType");
+                expect(verdict.refusal?.messageKey).toBe("orderGate.unsupportedOrderType");
+                expect(verdict.refusal?.values.orderType).toBe("trigger");
+            },
+        );
+
+        it("refuses an order type it cannot read at all", () => {
+            // An order type the gate cannot verify is not a verified order
+            // type — the same rule the symbol check applies.
+            const verdict = orderGate.verify(attachedIntent({ orderType: "ICEBERG" }));
+            expect(verdict.approved).toBe(false);
+            expect(verdict.refusal?.field).toBe("orderType");
+            expect(verdict.refusal?.values.orderType).toBe("ICEBERG");
+        });
+
+        it("refuses a non-string order type rather than waving it through", () => {
+            const verdict = orderGate.verify(attachedIntent({ orderType: 7 }));
+            expect(verdict.approved).toBe(false);
+            expect(verdict.refusal?.field).toBe("orderType");
+        });
+
+        it("leaves an absent order type to the rules that own it", () => {
+            const intent = attachedIntent();
+            delete intent.payload.orderType;
+            const verdict = orderGate.verify(intent);
+            // Not this rule's business, so it must not appear in the trail.
+            expect(verdict.checked).not.toContain("orderTypeSupported");
         });
 
         it("refuses every order type on an undeclared venue", () => {
@@ -245,6 +275,20 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
 
         it("allows a single target", () => {
             expect(orderGate.verify(attachedIntent()).approved).toBe(true);
+        });
+
+        /*
+         * The ladder rule asks about targets carried *by this entry*. An entry
+         * attaching only a stop, with its targets placed as separate requests,
+         * claims to hold none — refusing it would refuse the normal shape
+         * wherever targets are placed separately.
+         */
+        it("ignores targets the entry does not carry", () => {
+            const intent = openIntent("bitunix", { slPrice: "49500" });
+            intent.displayed.takeProfits = [new Decimal(51000), new Decimal(52000)];
+            const verdict = orderGate.verify(intent);
+            expect(verdict.checked).not.toContain("multipleTakeProfits");
+            expect(verdict.refusal?.field).not.toBe("takeProfits");
         });
     });
 

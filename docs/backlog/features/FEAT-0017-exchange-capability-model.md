@@ -148,6 +148,33 @@ Three, each with a reason:
    carries a position mode, so there is nothing to declare. Bitunix declares
    both, which `mappers.ts` and `buildCloseOrderFields` evidence.
 
+## Raised in review (PR #2271), and fixed
+
+- **The gate could never refuse a trigger.** `entryTypeOf` returned `null` for
+  any spelling outside `MARKET`/`LIMIT`, and the caller skipped the capability
+  check on `null` — a hole under exactly the verb no venue declares. It now
+  reads three outcomes: known (checked), unreadable (**refused** — an order
+  type the gate cannot verify is not a verified order type, the same rule the
+  symbol check applies), and absent (left to the missing-field rule). Trigger
+  spellings map to `trigger` rather than being rejected by name, so a venue
+  that later declares one is allowed without touching the function.
+- **A silent time-in-force downgrade.** `POST_ONLY` on a venue declaring none
+  was dropped without a word: "maker only" became "whatever fills", which is a
+  different fill at a different fee. Only `GTC` is dropped now — it is the
+  neutral default and changes nothing — while `IOC`/`FOK`/`POST_ONLY` travel
+  and the gate refuses them out loud. The panel additionally derives the
+  submitted value from `caps` (`$derived`, not an `$effect` reset) so it cannot
+  lag a runtime exchange switch by a tick.
+- **The ladder check sat inside the attach branch**, so an entry attaching only
+  a stop, with targets placed separately, was refused for holding a ladder it
+  never claimed. It is keyed on the payload carrying a target now.
+- **The audit trail overclaimed.** `checked` recorded `orderTypeSupported` even
+  when no comparison happened; it now records only comparisons that ran.
+- **Accessibility and copy.** The disabled time-in-force control carries the
+  reason as `aria-label` as well as `title` — a disabled select is never
+  focusable, so a title reaches a mouse and nothing else. German
+  "verfallen" → "verworfen".
+
 ## Found on the way
 
 - [`BUG-0297`](../bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) — **P1.**
@@ -167,9 +194,11 @@ Three, each with a reason:
 - `npm run check` (svelte-check)
 - `npm test` across unit and component test suites:
   - `src/services/exchangeCapabilities.test.ts` — new, 19 tests
-  - `src/services/orderGate.capabilities.test.ts` — new, 18 tests
+  - `src/services/orderGate.capabilities.test.ts` — new, 26 tests
   - `src/components/results/PlaceOrderPanel.capabilities.component.test.ts`
-    — new, 14 tests, each case run against both venues
+    — new, 16 tests, each case run against both venues
+  - `src/services/orderPlacementService.test.ts` — 6 added, pinning which
+    time-in-force may be dropped silently and which may not
   - `src/services/exchange/exchangeAdapter.test.ts`
   - `src/services/exchange/unsupportedVerbs.test.ts`
   - `src/services/orderGate.test.ts`

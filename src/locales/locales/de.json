@@ -2637,7 +2637,7 @@
     "riskLimitUnmeasurable": "Order abgelehnt: Für {field} ist ein Limit konfiguriert, aber diese Order enthält nichts, woran es geprüft werden könnte. Die Order wurde nicht gesendet.",
     "unsupportedOrderType": "Order abgelehnt: {exchange} unterstützt den Ordertyp {orderType} nicht. Die Order wurde nicht gesendet.",
     "unsupportedTimeInForce": "Order abgelehnt: {exchange} akzeptiert die Gültigkeit {timeInForce} nicht. Die Order wurde nicht gesendet.",
-    "unsupportedTpSlAtEntry": "Order abgelehnt: {exchange} kann Take-Profit und Stop-Loss nicht mit der Einstiegsorder zusammen übernehmen. Sie wären stillschweigend verfallen und die Position wäre ungeschützt geöffnet worden.",
+    "unsupportedTpSlAtEntry": "Order abgelehnt: {exchange} kann Take-Profit und Stop-Loss nicht mit der Einstiegsorder zusammen übernehmen. Sie wären stillschweigend verworfen worden und die Position wäre ungeschützt geöffnet worden.",
     "unsupportedMultipleTakeProfits": "Order abgelehnt: {exchange} trägt nur ein Take-Profit-Ziel an der Einstiegsorder, es wurden aber {count} übergeben. Die überzähligen Ziele wären ohne Fehlermeldung verworfen worden."
   },
   "workerErrors": {

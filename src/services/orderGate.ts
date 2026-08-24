@@ -397,21 +397,48 @@ function mismatch(
 }
 
 /**
- * The payload's wire spelling of an order type, as the capability vocabulary
- * spells it. `null` for anything unrecognised — an order type the gate cannot
- * read is not checked against capabilities here, because the mismatch and
- * missing-field rules already cover a payload that disagrees with the display,
- * and inventing a type to refuse would refuse valid orders.
+ * How the payload's order type reads against the capability vocabulary.
+ *
+ * Three outcomes, not two, because "no order type" and "an order type I cannot
+ * read" call for opposite treatment: the first is another rule's business, the
+ * second is a refusal. Collapsing them into `null` let any spelling outside
+ * MARKET/LIMIT skip the capability check entirely — a hole under exactly the
+ * verb no venue declares.
  */
-function entryTypeOf(value: unknown): OrderEntryType | null {
-    if (typeof value !== "string") return null;
+type EntryTypeReading =
+    | { kind: "known"; type: OrderEntryType }
+    | { kind: "unreadable"; raw: string }
+    | { kind: "absent" };
+
+/**
+ * Reads the payload's wire spelling of an order type.
+ *
+ * Trigger spellings are mapped rather than rejected outright, so the answer
+ * stays a *capability* question: no venue declares `trigger` today and the
+ * check refuses it, but a venue that later declares one is allowed without
+ * touching this function.
+ *
+ * Anything else present is `unreadable`, and the caller refuses it. An order
+ * type the gate cannot verify is not a verified order type — the same rule the
+ * symbol check applies a few lines up.
+ */
+function entryTypeOf(value: unknown): EntryTypeReading {
+    if (value === undefined || value === null) return { kind: "absent" };
+    if (typeof value !== "string") return { kind: "unreadable", raw: String(value) };
     switch (value.toUpperCase()) {
         case "MARKET":
-            return "market";
+            return { kind: "known", type: "market" };
         case "LIMIT":
-            return "limit";
+            return { kind: "known", type: "limit" };
+        case "STOP":
+        case "STOP_MARKET":
+        case "STOP_LIMIT":
+        case "TRIGGER":
+        case "TAKE_PROFIT":
+        case "TAKE_PROFIT_MARKET":
+            return { kind: "known", type: "trigger" };
         default:
-            return null;
+            return { kind: "unreadable", raw: value };
     }
 }
 
@@ -518,15 +545,36 @@ class OrderGate {
         if (payload.type === "place-order") {
             const caps = capabilitiesOf(displayed.provider);
 
-            checked.push("orderTypeSupported");
-            const entryType = entryTypeOf(payload.orderType);
-            if (entryType !== null && !caps.orderTypes.includes(entryType)) {
-                return refuse({
-                    field: "orderType",
-                    reason: "unsupported",
-                    messageKey: "orderGate.unsupportedOrderType",
-                    values: { field: "orderType", orderType: entryType, exchange: displayed.provider },
-                });
+            // `checked` is the audit trail, so it records only comparisons
+            // that happened. An absent order type is the missing-field rule's
+            // business, not this one's.
+            const reading = entryTypeOf(payload.orderType);
+            if (reading.kind !== "absent") {
+                checked.push("orderTypeSupported");
+                if (reading.kind === "unreadable") {
+                    return refuse({
+                        field: "orderType",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedOrderType",
+                        values: {
+                            field: "orderType",
+                            orderType: reading.raw,
+                            exchange: displayed.provider,
+                        },
+                    });
+                }
+                if (!caps.orderTypes.includes(reading.type)) {
+                    return refuse({
+                        field: "orderType",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedOrderType",
+                        values: {
+                            field: "orderType",
+                            orderType: reading.type,
+                            exchange: displayed.provider,
+                        },
+                    });
+                }
             }
 
             // Only when one is actually sent. A market order carries no
@@ -561,19 +609,30 @@ class OrderGate {
                         values: { field: "tpSlAtEntry", exchange: displayed.provider },
                     });
                 }
+            }
 
-                // A venue carrying one pair cannot carry a ladder. Sending
-                // the extra targets anyway drops them without an error, so
-                // the trader believes in targets that do not exist.
-                if (!caps.multipleTakeProfits && (displayed.takeProfits?.length ?? 0) > 1) {
-                    checked.push("multipleTakeProfits");
+            /*
+             * A venue carrying one target at entry cannot carry a ladder:
+             * the extras are dropped without an error, so the trader believes
+             * in targets that do not exist.
+             *
+             * Keyed on the payload actually carrying a target, not on
+             * protection generally. An entry that attaches only a stop while
+             * its targets are placed as separate requests is a ladder the
+             * entry never claimed to hold, and refusing it would refuse the
+             * normal shape on every no-attach venue.
+             */
+            if (payload.tpPrice !== undefined && !caps.multipleTakeProfits) {
+                checked.push("multipleTakeProfits");
+                const targetCount = displayed.takeProfits?.length ?? 0;
+                if (targetCount > 1) {
                     return refuse({
                         field: "takeProfits",
                         reason: "unsupported",
                         messageKey: "orderGate.unsupportedMultipleTakeProfits",
                         values: {
                             field: "takeProfits",
-                            count: String(displayed.takeProfits?.length ?? 0),
+                            count: String(targetCount),
                             exchange: displayed.provider,
                         },
                     });

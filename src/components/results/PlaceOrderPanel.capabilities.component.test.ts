@@ -89,7 +89,10 @@ vi.mock("../../stores/market.svelte", () => ({
     },
 }));
 
-const fetchTradingPairInfoMock = vi.fn();
+// Resolves rather than returning undefined: the real port returns a promise,
+// and a bare vi.fn() hands the panel `undefined` to await. That surfaced as a
+// stray rejection attributed to this file only under a full parallel run.
+const fetchTradingPairInfoMock = vi.fn().mockResolvedValue(undefined);
 vi.mock("../../services/exchange", () => ({
     activeExchange: () => ({
         account: { fetchTradingPairInfo: fetchTradingPairInfoMock },
@@ -136,6 +139,7 @@ const TRADABLE: TradingPairInfo = {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    fetchTradingPairInfoMock.mockResolvedValue(undefined);
     settings.apiProvider = "bitunix";
     settings.autoUpdatePriceInput = true;
     mockSymbolMetaStore.symbolMeta = { BTCUSDT: { ...TRADABLE } };
@@ -279,6 +283,41 @@ describe("FEAT-0017 — PlaceOrderPanel reads exchange capabilities", () => {
                 expect(tifSelect()).toBeNull();
             },
         );
+
+        /*
+         * A venue declaring none offers nothing selectable but GTC, so a
+         * maker-only instruction cannot be standing when the order is built.
+         *
+         * The runtime provider switch itself is not exercised here: the
+         * settings store is a plain mock, so assigning `apiProvider` mid-test
+         * would prove the mock is non-reactive rather than prove anything
+         * about the panel. What guarantees the switch is that the submitted
+         * value is `$derived` from `caps` instead of reset by an effect — it
+         * cannot lag the venue. The consequences of getting it wrong are
+         * pinned where they bite: `orderPlacementService.timeInForce.test.ts`
+         * for the drop semantics, `orderGate.capabilities.test.ts` for the
+         * refusal.
+         */
+        it("leaves only GTC standing on a venue that declares none", async () => {
+            await mountFor("bitget");
+            await selectLimit();
+
+            const select = tifSelect();
+            expect(select?.disabled).toBe(true);
+            expect(select?.value).toBe("GTC");
+        });
+
+        it("keeps a value the venue declares selectable", async () => {
+            await mountFor("bitunix");
+            await selectLimit();
+
+            const select = tifSelect();
+            select!.value = "IOC";
+            select!.dispatchEvent(new Event("change", { bubbles: true }));
+            await settle();
+
+            expect(tifSelect()?.value).toBe("IOC");
+        });
     });
 
     describe("attached protection, per exchange", () => {
