@@ -2,7 +2,9 @@
 id: BUG-0287
 title: Issued client tokens never expire and the token map grows without bound
 type: bug
-status: ready
+status: in-progress
+assignee: opencode
+branch: fix/bug-0287-client-token-ttl
 priority: P3
 milestone: none
 editions: [community, pro, private]
