@@ -2210,7 +2210,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0250",
     "title": "OfflineBanner buttons are unresponsive and non-functional when connection is lost",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
