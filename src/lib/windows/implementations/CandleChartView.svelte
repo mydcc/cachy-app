@@ -409,11 +409,16 @@
         isLoadingHistory = true;
 
         try {
-            const hasMore = await marketWatcher.loadMoreHistory(
+            const result = await marketWatcher.loadMoreHistory(
                 normalizeSymbol(symbol, "bitunix"),
                 timeframe,
             );
-            if (!hasMore) {
+            // BUG-0296: only a *successful* fetch with nothing older on the
+            // exchange ends history loading here. An "error" (or "busy")
+            // must keep the flag open so the next scroll-left retries — one
+            // transient network blip used to permanently disable history
+            // loading for every timeframe of this window.
+            if (result === "exhausted") {
                 allHistoryLoaded = true;
             }
         } finally {
@@ -423,6 +428,21 @@
             }, 500);
         }
     }
+
+    // BUG-0296: history-loading state belongs to one symbol+timeframe
+    // combination. Switching either in the same chart window must re-arm
+    // loading, otherwise an `allHistoryLoaded` from a previous timeframe
+    // (e.g. set by exhaustion or a past failure) silently blocks back-fill
+    // for the newly selected one.
+    $effect(() => {
+        // Track both props; reset without depending on other reactive reads.
+        void symbol;
+        void timeframe;
+        untrack(() => {
+            allHistoryLoaded = false;
+            isLoadingHistory = false;
+        });
+    });
 
     // Helper to resolve CSS variables
     function getVar(name: string): string {
