@@ -24,11 +24,44 @@ on:
         required: true
         type: string
 
-# Single place to change the model for every opencode job below. Uses a free
-# OpenCode Zen model with a zero-retention policy (code is not used for
-# training); the free lineup rotates, so swap the value here when needed.
+# Single place to change the models for every opencode job below. Each job
+# tries OPENCODE_MODEL first; if the run fails (free-tier rate limits, provider
+# outages), it falls back to the next entry. Keep fallbacks on different
+# providers so one saturated upstream does not take all of them down.
 env:
-  OPENCODE_MODEL: opencode/x-preview-f-free
+  OPENCODE_MODEL: opencode/big-pickle
+  OPENCODE_MODEL_FALLBACK_1: opencode/nemotron-3-ultra-free
+  OPENCODE_MODEL_FALLBACK_2: opencode/x-preview-f-free
+  REVIEW_PROMPT: |
+    Review this pull request using the Cachy review checklist:
+    - If the PR links a backlog item (Fixes #NNN), read docs/backlog/ and
+      check whether the diff satisfies the Acceptance Criteria and stays
+      within Out of Scope.
+    - Non-negotiable rules: Svelte 5 runes only (no export let, no $:, no
+      createEventDispatcher, no <slot>); every $effect that registers
+      listeners or subscriptions returns a cleanup function; decimal.js
+      for ALL prices, amounts and balances (native number is forbidden for
+      financial values); no hardcoded colors (CSS variables or paired
+      classes from src/themes.css only); Local-First boundary (Class A
+      data never leaves the device; core code must not import from
+      src/lib/spacetimedb/ or src/services/cloudService.ts).
+    - Do not repeat failures CI already reports.
+    - Check plain correctness: logic errors, silent failures, unhandled
+      edge cases.
+    - If the PR touches area: execution, security, exchange, or priority
+      P0, add a gentle note that human review is recommended before merge
+      (no alarms, no uppercase shouting).
+    - Only post a comment when you have findings. Start it with
+      "Code Review for <short-sha>" so it is recognized on re-runs.
+  WEEKLY_PROMPT: |
+    Weekly maintenance scan:
+    - Scan the codebase for TODO/FIXME/HACK comments and summarize the
+      findings.
+    - Check docs/backlog for items with incomplete acceptance criteria
+      or unresolved open questions and list which ones block promotion
+      to ready.
+    - If you find issues worth addressing, open an issue to track them.
+    - Do not modify code.
 
 jobs:
   # Interactive: mention /oc or /opencode in an issue or PR comment to trigger a
@@ -84,14 +117,42 @@ jobs:
           }
           JSON
 
+      # Fallback chain: free Zen models are rate-limited per model, so a run
+      # can fail with 429/503 while other models still work. Try the primary,
+      # then the fallbacks. Only the last attempt may fail the job.
       - name: Run opencode
+        id: oc_primary
         uses: anomalyco/opencode/github@latest
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
+          share: false
+
+      - name: Run opencode (fallback 1)
+        id: oc_fallback_1
+        if: steps.oc_primary.outcome == 'failure'
+        uses: anomalyco/opencode/github@latest
+        continue-on-error: true
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_1 }}
+          share: false
+
+      - name: Run opencode (fallback 2)
+        id: oc_fallback_2
+        if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
           share: false
 
   # Automated review of every non-draft PR against the Cachy checklist
@@ -137,8 +198,12 @@ jobs:
           }
           JSON
 
+      # Fallback chain, see the interactive job for rationale. Only the last
+      # attempt may fail the job.
       - name: Run opencode review
+        id: oc_primary
         uses: anomalyco/opencode/github@latest
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -146,27 +211,32 @@ jobs:
           model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
-          prompt: |
-            Review this pull request using the Cachy review checklist:
-            - If the PR links a backlog item (Fixes #NNN), read docs/backlog/ and
-              check whether the diff satisfies the Acceptance Criteria and stays
-              within Out of Scope.
-            - Non-negotiable rules: Svelte 5 runes only (no export let, no $:, no
-              createEventDispatcher, no <slot>); every $effect that registers
-              listeners or subscriptions returns a cleanup function; decimal.js
-              for ALL prices, amounts and balances (native number is forbidden for
-              financial values); no hardcoded colors (CSS variables or paired
-              classes from src/themes.css only); Local-First boundary (Class A
-              data never leaves the device; core code must not import from
-              src/lib/spacetimedb/ or src/services/cloudService.ts).
-            - Do not repeat failures CI already reports.
-            - Check plain correctness: logic errors, silent failures, unhandled
-              edge cases.
-            - If the PR touches area: execution, security, exchange, or priority
-              P0, add a gentle note that human review is recommended before merge
-              (no alarms, no uppercase shouting).
-            - Only post a comment when you have findings. Start it with
-              "Code Review for <short-sha>" so it is recognized on re-runs.
+          prompt: ${{ env.REVIEW_PROMPT }}
+
+      - name: Run opencode review (fallback 1)
+        id: oc_fallback_1
+        if: steps.oc_primary.outcome == 'failure'
+        uses: anomalyco/opencode/github@latest
+        continue-on-error: true
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_1 }}
+          share: false
+          prompt: ${{ env.REVIEW_PROMPT }}
+
+      - name: Run opencode review (fallback 2)
+        id: oc_fallback_2
+        if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
+          share: false
+          prompt: ${{ env.REVIEW_PROMPT }}
 
       # One review run leaves two comments: the full review (posted as
       # github-actions[bot] via GITHUB_TOKEN) plus an opencode-agent[bot]
@@ -228,8 +298,12 @@ jobs:
           }
           JSON
 
+      # Fallback chain, see the interactive job for rationale. Only the last
+      # attempt may fail the job.
       - name: Run opencode weekly maintenance
+        id: oc_primary
         uses: anomalyco/opencode/github@latest
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -237,15 +311,32 @@ jobs:
           model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
-          prompt: |
-            Weekly maintenance scan:
-            - Scan the codebase for TODO/FIXME/HACK comments and summarize the
-              findings.
-            - Check docs/backlog for items with incomplete acceptance criteria
-              or unresolved open questions and list which ones block promotion
-              to ready.
-            - If you find issues worth addressing, open an issue to track them.
-            - Do not modify code.
+          prompt: ${{ env.WEEKLY_PROMPT }}
+
+      - name: Run opencode weekly maintenance (fallback 1)
+        id: oc_fallback_1
+        if: steps.oc_primary.outcome == 'failure'
+        uses: anomalyco/opencode/github@latest
+        continue-on-error: true
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_1 }}
+          share: false
+          prompt: ${{ env.WEEKLY_PROMPT }}
+
+      - name: Run opencode weekly maintenance (fallback 2)
+        id: oc_fallback_2
+        if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
+          share: false
+          prompt: ${{ env.WEEKLY_PROMPT }}
 
   # Manual run from the Actions tab (workflow_dispatch): the task text entered
   # in the UI is used verbatim as the prompt.
@@ -278,13 +369,42 @@ jobs:
           }
           JSON
 
+      # Fallback chain, see the interactive job for rationale. Only the last
+      # attempt may fail the job.
       - name: Run opencode manual task
+        id: oc_primary
         uses: anomalyco/opencode/github@latest
+        continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
+          share: false
+          prompt: ${{ inputs.task }}
+
+      - name: Run opencode manual task (fallback 1)
+        id: oc_fallback_1
+        if: steps.oc_primary.outcome == 'failure'
+        uses: anomalyco/opencode/github@latest
+        continue-on-error: true
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_1 }}
+          share: false
+          prompt: ${{ inputs.task }}
+
+      - name: Run opencode manual task (fallback 2)
+        id: oc_fallback_2
+        if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
           share: false
           prompt: ${{ inputs.task }}
