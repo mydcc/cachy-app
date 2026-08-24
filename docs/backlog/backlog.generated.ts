@@ -2250,7 +2250,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0270",
     "title": "CSP script-src permits inline and eval'd scripts so the header stops no XSS",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
