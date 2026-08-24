@@ -54,15 +54,35 @@ type BitgetCandleTuple = [string | number, string | number, string | number, str
 // Bitunix occasionally answers a perfectly valid request with a transient
 // 5xx or lets the connection hang. One bounded retry turns those blips into
 // success instead of surfacing a 5xx (and an error toast) to the chart.
+// BUG-0296: the backoff is staged rather than flat, and 429 responses are
+// retried too — honoring Retry-After within a small ceiling so we back off
+// when asked instead of hammering through a rate-limit window.
 const UPSTREAM_RETRY_ATTEMPTS = 3;
-const UPSTREAM_RETRY_BACKOFF_MS = 250;
+const UPSTREAM_RETRY_BACKOFF_BASE_MS = 250;
+const UPSTREAM_RETRY_BACKOFF_MAX_MS = 2000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function isRetryableUpstreamStatus(status: number): boolean {
-  return status >= 500;
+  return status === 429 || status >= 500;
+}
+
+function upstreamRetryDelayMs(attempt: number): number {
+  return Math.min(
+    UPSTREAM_RETRY_BACKOFF_BASE_MS * 2 ** (attempt - 1),
+    UPSTREAM_RETRY_BACKOFF_MAX_MS,
+  );
+}
+
+/** Numeric `Retry-After` in seconds, clamped to the retry-delay ceiling. */
+function retryAfterHeaderMs(response: Response): number | null {
+  const raw = response.headers.get("retry-after");
+  if (!raw) return null;
+  const seconds = Number(raw);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  return Math.min(seconds * 1000, UPSTREAM_RETRY_BACKOFF_MAX_MS);
 }
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -161,7 +181,7 @@ async function fetchBitunixKlines(
       // Timeouts (surfaced as 504) are transient — retry them. Everything
       // else propagates immediately.
       if ((e as ApiError)?.status === 504 && attempt < UPSTREAM_RETRY_ATTEMPTS) {
-        await sleep(UPSTREAM_RETRY_BACKOFF_MS * attempt);
+        await sleep(upstreamRetryDelayMs(attempt));
         continue;
       }
       throw e;
@@ -169,7 +189,11 @@ async function fetchBitunixKlines(
     if (response.ok || !isRetryableUpstreamStatus(response.status) || attempt === UPSTREAM_RETRY_ATTEMPTS) {
       break;
     }
-    await sleep(UPSTREAM_RETRY_BACKOFF_MS * attempt);
+    const delay =
+      response.status === 429
+        ? (retryAfterHeaderMs(response) ?? upstreamRetryDelayMs(attempt))
+        : upstreamRetryDelayMs(attempt);
+    await sleep(delay);
   }
 
   if (!response.ok) {
