@@ -24,7 +24,7 @@
   import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
-  import { onMount } from "svelte";
+  import { onMount, type Component } from "svelte";
   import { initAutoBackup } from "../services/autoBackupService.svelte";
   import { initFileTargets } from "../services/fileTargetBackupService.svelte";
 import { afterNavigate } from "$app/navigation";
@@ -36,9 +36,11 @@ import { afterNavigate } from "$app/navigation";
 
   import ToastContainer from "../components/shared/ToastContainer.svelte";
 
-  // FEAT-0257: FireOverlay / AmbientTopline / FXOverlay are NOT statically
-  // imported here. Each one pulls the ~542 KB three-vendor chunk, so they are
-  // loaded via dynamic import below, only when their effect is enabled/used.
+  // FEAT-0257 follow-up: FireOverlay / AmbientTopline / FXOverlay are NOT
+  // statically imported here — each pulls the ~0.5 MB three-vendor chunk.
+  // Each component is loaded via dynamic import only when its effect is
+  // enabled/triggered, and a failed import is logged and retried on the
+  // next trigger.
   import { _ } from "../locales/i18n";
   import { effectsState } from "../stores/effects.svelte";
 
@@ -56,19 +58,39 @@ import { afterNavigate } from "$app/navigation";
 
   let { children }: Props = $props();
 
-  // FEAT-0257: FXOverlay has no settings toggle — it is event-driven
-  // (projectile/smash/duck). Mount it sticky once the first effect event
-  // arrives; events persist in effectsState until FXOverlay consumes them,
-  // so nothing is lost while the chunk loads.
-  let fxOverlayRequested = $state(false);
+  let AmbientToplineComponent: Component | null = $state(null);
+  let FireOverlayComponent: Component | null = $state(null);
+  let FXOverlayComponent: Component | null = $state(null);
+
   $effect(() => {
-    if (
-      effectsState.projectileOrigin ||
-      effectsState.smashTarget ||
-      effectsState.duckEvent
-    ) {
-      fxOverlayRequested = true;
+    if (settingsState.enableAmbientTopline && !AmbientToplineComponent) {
+      import("../components/shared/AmbientTopline.svelte")
+        .then((m) => (AmbientToplineComponent = m.default))
+        .catch((err) => console.error("Failed to load AmbientTopline", err));
     }
+  });
+
+  $effect(() => {
+    if (settingsState.enableBurningBorders && !FireOverlayComponent) {
+      import("../components/shared/FireOverlay.svelte")
+        .then((m) => (FireOverlayComponent = m.default))
+        .catch((err) => console.error("Failed to load FireOverlay", err));
+    }
+  });
+
+  // FEAT-0257 follow-up: FXOverlay has no settings toggle — it is event-driven
+  // (projectile/smash/duck). Events queue in effectsState until FXOverlay
+  // consumes them, so nothing is lost while the chunk loads; if the import
+  // fails, the next event retries it.
+  $effect(() => {
+    const hasEvents =
+      effectsState.projectileEvents.length > 0 ||
+      effectsState.smashEvents.length > 0 ||
+      effectsState.duckEvents.length > 0;
+    if (!hasEvents || FXOverlayComponent) return;
+    import("../components/shared/FXOverlay.svelte")
+      .then((m) => (FXOverlayComponent = m.default))
+      .catch((err) => console.error("Failed to load FXOverlay", err));
   });
 
   // --- Automated OPFS Local Backup (FEAT-0212 Phase 1) ---
@@ -451,19 +473,13 @@ import { afterNavigate } from "$app/navigation";
   <OfflineBanner />
   <BackgroundRenderer />
   <!-- Rendering Layers for Visual Effects -->
-  {#if settingsState.enableAmbientTopline}
-    {#await import("../components/shared/AmbientTopline.svelte") then AmbientToplineModule}
-      {@const AmbientTopline = AmbientToplineModule.default}
-      <AmbientTopline />
-    {/await}
+  {#if settingsState.enableAmbientTopline && AmbientToplineComponent}
+    <AmbientToplineComponent />
   {/if}
-  {#if settingsState.enableBurningBorders}
-    {#await import("../components/shared/FireOverlay.svelte") then FireOverlayModule}
-      {@const FireOverlay = FireOverlayModule.default}
-      <FireOverlay layer="tiles" zIndex={10} />
-      <FireOverlay layer="windows" zIndex={200} />
-      <FireOverlay layer="modals" zIndex={20000} />
-    {/await}
+  {#if settingsState.enableBurningBorders && FireOverlayComponent}
+    <FireOverlayComponent layer="tiles" zIndex={10} />
+    <FireOverlayComponent layer="windows" zIndex={200} />
+    <FireOverlayComponent layer="modals" zIndex={20000} />
   {/if}
   {@render children?.()}
 
@@ -486,11 +502,8 @@ import { afterNavigate } from "$app/navigation";
 <WindowContainer />
 <ToastContainer />
 <GlobalTracker />
-{#if fxOverlayRequested}
-  {#await import("../components/shared/FXOverlay.svelte") then FXOverlayModule}
-    {@const FXOverlay = FXOverlayModule.default}
-    <FXOverlay />
-  {/await}
+{#if FXOverlayComponent}
+  <FXOverlayComponent />
 {/if}
 
 {#if uiState.tooltip.visible}
