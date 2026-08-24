@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+  import DOMPurify from "dompurify";
   import { icons } from "../../lib/constants";
 
   interface Props {
@@ -71,7 +72,8 @@
       onclick={() => onselect?.(preset.id)}
     >
       {#if preset.icon}
-        {@html preset.icon}
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html DOMPurify.sanitize(preset.icon)}
       {/if}
       <span>{preset.label}</span>
     </button>

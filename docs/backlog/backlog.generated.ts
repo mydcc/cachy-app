@@ -988,6 +988,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md"
   },
   {
+    "id": "BUG-0297",
+    "title": "An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "M2",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0297-bitget-entry-order-gate-deadlock.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -1063,7 +1081,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0017",
     "title": "Describe what each exchange can do, and let the UI read it",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-exchange-capability-descriptions-35eeed",
     "priority": "P1",
     "milestone": "M2",
     "editions": [
@@ -3517,7 +3537,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0266",
     "title": "DashboardNav renders preset.icon through unsanitized {@html}",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0266-sanitize-nav-icon",
     "priority": "P3",
     "milestone": "none",
     "editions": [
