@@ -96,3 +96,7 @@ Decompose the AI store and prompt pipeline into a modular, testable, and safety-
   - [`FEAT-0245`](FEAT-0245-prompt-templating-versioning.md)
   - [`BUG-0246`](../bugs/BUG-0246-implicit-analysis-mode-coupling.md)
 - GitHub Epic Issue: #2074
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

@@ -155,3 +155,7 @@ order and `src/tests/architecture/order_gate_bypass.test.ts` still proves it.
 
 - [`docs/MILESTONES.md`](../../MILESTONES.md) — M2
 - `src/services/bitunixWs.ts`, `src/services/bitgetWs.ts`, `src/stores/account.svelte.ts`
+
+## What shipped
+
+Shipped in 1.6.0-beta.108.

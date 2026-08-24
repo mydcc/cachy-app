@@ -43,3 +43,7 @@ Likely a CSS layout issue or suboptimal component structure in the Flashcard com
 - [x] The button is easily clickable on both desktop and mobile.
 
 ## Links
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

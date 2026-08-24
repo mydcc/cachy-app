@@ -144,3 +144,7 @@ before committing.
 - Multi-provider parallel active streaming (only the active provider is
   connected).
 - Push notifications when the tab is completely closed.
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

@@ -61,3 +61,7 @@ start_date: 2026-08-19
 - `src/stores/account.svelte.ts`
 - `src/components/shared/PositionsSidebar.svelte`
 - `src/services/bitunixWs.ts`
+
+## What shipped
+
+Shipped in 1.6.0-beta.85.

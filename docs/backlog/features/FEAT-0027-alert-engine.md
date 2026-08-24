@@ -91,3 +91,7 @@ would need its own ADR and belongs to M7 at the earliest.
 
 - Reference screenshots: Bitunix "Super Alert" panel
 - `src/services/marketWatcher.ts`, `src/services/connectionManager.ts`
+
+## What shipped
+
+Shipped in 1.4.0-beta.6.

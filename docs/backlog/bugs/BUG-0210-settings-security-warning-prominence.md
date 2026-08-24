@@ -55,3 +55,7 @@ BUG-0053 introduced `decryptionFailures` detection and placed a global, high-pro
 
 - Issue: #1963
 - Related: `BUG-0053-device-key-loss-orphans-secrets.md`
+
+## What shipped
+
+Shipped in back-merge main into develop.

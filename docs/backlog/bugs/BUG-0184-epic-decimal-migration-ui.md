@@ -89,3 +89,7 @@ extracted primitive.
 
 `npm run check` (1951 files, 0 errors), `npm test` (1131 passed) and
 `npm run build` all verified on this change.
+
+## What shipped
+
+Shipped in 1.6.0-beta.18.

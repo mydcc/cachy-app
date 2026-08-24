@@ -142,3 +142,7 @@ viewport classes:
 - `src/components/shared/CandlestickPatternsView.svelte`
 - `src/themes.css:3029-3060`
 - Same surface, different mechanism: [`BUG-0048`](BUG-0048-glass-removes-academy-sidebar-background.md)
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

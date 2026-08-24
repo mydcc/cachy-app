@@ -48,3 +48,7 @@ The application relies on default browser styling for `<input type="number">` wi
 ## Links
 
 - Issue: #1962
+
+## What shipped
+
+Shipped in 1.6.0-beta.49.

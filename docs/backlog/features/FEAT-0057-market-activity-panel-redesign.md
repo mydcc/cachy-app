@@ -133,3 +133,7 @@ position is gone would be worse than showing none.
 - `src/components/shared/PositionsList.svelte`,
   `PositionTooltip.svelte`, `AccountSummary.svelte`,
   `OrderHistoryList.svelte`
+
+## What shipped
+
+Shipped in 1.2.0-beta.30.

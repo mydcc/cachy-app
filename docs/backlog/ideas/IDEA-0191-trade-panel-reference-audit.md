@@ -55,3 +55,7 @@ reading them earlier produces a list that goes stale against the M2/M3 specs.
 - [`FEAT-0057`](../features/FEAT-0057-market-activity-panel-redesign.md) —
   the item that already consumed part of this reference set
 - [`MILESTONES.md`](../../MILESTONES.md) — M3
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

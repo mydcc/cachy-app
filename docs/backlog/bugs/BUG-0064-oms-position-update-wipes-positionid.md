@@ -98,3 +98,7 @@ pattern. All other fields keep overwriting fresh on every push (intentional
 - `docs/bitunix-api/08_websocket.md:261-291` ("Position Channel")
 - `docs/backlog/bugs/BUG-0062-hedge-mode-close-position-fails.md`
 - `docs/backlog/bugs/BUG-0063-close-position-500s-must-not-be-null.md`
+
+## What shipped
+
+Shipped in 1.2.0-beta.37.

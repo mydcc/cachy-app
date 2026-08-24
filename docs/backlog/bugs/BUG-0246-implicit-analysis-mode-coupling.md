@@ -65,3 +65,7 @@ Using empty strings as sentinel values for default mode configuration instead of
 
 - Epic: [`FEAT-0239`](../features/FEAT-0239-epic-ai-prompt-architecture.md)
 - GitHub Issue: #2073
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

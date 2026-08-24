@@ -96,3 +96,7 @@ Even after Layer 1 was patched, live candles still did not move because the WS t
 - `src/services/bitunixWs/channelDispatch.ts`
 - `src/services/bitunixWs/channelDispatch.test.ts`
 - `src/services/mdaService.ts`
+
+## What shipped
+
+Shipped in 1.6.0-beta.85.

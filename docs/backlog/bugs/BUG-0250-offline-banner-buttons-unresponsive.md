@@ -47,3 +47,7 @@ Investigation of `src/components/shared/OfflineBanner.svelte` and related servic
 - [x] Clicking **Switch Provider** toggles the active API provider, attempts reconnection, and provides clear visual feedback or toast error if switching fails.
 - [x] Clicking **Check Settings** correctly opens the Settings modal (`uiState.toggleSettingsModal(true)`).
 - [x] Automated unit tests for `OfflineBanner.svelte` verify button click handlers trigger expected service/store calls.
+
+## What shipped
+
+Shipped in 1.6.0-beta.108.

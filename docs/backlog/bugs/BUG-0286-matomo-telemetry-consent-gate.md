@@ -97,3 +97,7 @@ describe the anonymous always-on measurement with opt-out. Verified:
 `npm run check` 0 errors; `src/services/trackingService.consent.test.ts`
 9/9 green; affected suites (actions, settings, app) green. Done with the
 merge of this branch.
+
+## What shipped
+
+Shipped in 1.6.0-beta.124.

@@ -92,3 +92,7 @@ paying that cost on every push.
 - `.github/workflows/sync-backlog.yml`, `.github/workflows/sync-backlog-full.yml`
 - [`BUG-0225`](BUG-0225-index-regeneration-merge-conflicts.md) — same session,
   same file, the sibling fix this one follows
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

@@ -155,3 +155,7 @@ Basierend auf den extrahierten UI-Elementen und den vorliegenden M3-Spezifikatio
 2. **Einstellungen**: Die Komplexität der **Configs** (Cross vs. Isolated Margin, Single-Asset vs. Multi-Assets, One-Way vs. Hedge Mode, Multi-Trade Toggle) erfordert eine gut durchdachte, leicht zugängliche Einstellungs-Oberfläche, die über ein einfaches Panel hinausgeht.
 3. **Trigger-Typen**: Das UI muss die Auswahl des Trigger-Preises (**Mark**, **Index**, **Last**) bei Trigger-Orders, SL und TP zwingend abbilden.
 4. **Position-Management**: Eine "Reverse"-Funktion sowie Buttons für eine schnelle Teil-/Komplett-Schließung (Close Limit/Market, Close All) sind im UI unverzichtbar für effizientes Trading.
+
+## What shipped
+
+Shipped in 1.6.0-beta.107.

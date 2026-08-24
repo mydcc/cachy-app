@@ -88,3 +88,7 @@ follow-up rather than folded into this fix.
 - `src/components/shared/PositionsSidebar.svelte`
 - `src/components/shared/OrderHistoryList.svelte`
 - `src/stores/account.svelte.ts` — `registerOrderCloseCallback()`
+
+## What shipped
+
+Shipped in 1.2.0-beta.30.

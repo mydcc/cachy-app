@@ -50,3 +50,7 @@ Timeout handling ([`BUG-0267`](BUG-0267-exchange-fetch-timeouts.md)). Sync logic
 
 - `src/routes/api/orders/+server.ts`
 - Security audit 2026-08-23, finding "silent failure masquerades as empty history" (Medium)
+
+## What shipped
+
+Shipped in 1.6.0-beta.126.

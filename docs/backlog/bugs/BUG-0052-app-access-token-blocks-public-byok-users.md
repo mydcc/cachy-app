@@ -192,3 +192,7 @@ reasonable follow-up in the Fix section, not required for v1.
   (`checkClientToken()` replacing `checkAppAuth()`)
 - `docs/adr/0001-local-first-boundary.md` — the boundary this item's
   "Local-first compatibility" section reasons against
+
+## What shipped
+
+Shipped in 1.2.0-beta.12.

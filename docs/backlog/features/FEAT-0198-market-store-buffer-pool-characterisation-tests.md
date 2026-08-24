@@ -82,3 +82,7 @@ tests, not a refactor — use `test:` as the commit type.
 
 - [`FEAT-0195`](FEAT-0195-split-market-store.md) — the item this unblocks
 - [`FEAT-0190`](FEAT-0190-epic-split-god-functions.md) — parent epic and shared rules
+
+## What shipped
+
+Shipped in 1.6.0-beta.20.

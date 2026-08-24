@@ -110,3 +110,7 @@ down — deliberately not guessed at further here.
 - `src/components/shared/AccountSummary.svelte`
 - [`BUG-0058`](BUG-0058-ws-position-update-missing-qty-closes-position.md) —
   the report that surfaced this while re-testing
+
+## What shipped
+
+Shipped in 1.2.0-beta.32.

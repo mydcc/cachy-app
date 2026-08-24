@@ -53,3 +53,7 @@ Structure the system prompt payload to maximize provider prompt caching:
 
 - Epic: [`FEAT-0239`](FEAT-0239-epic-ai-prompt-architecture.md)
 - GitHub Issue: #2075
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

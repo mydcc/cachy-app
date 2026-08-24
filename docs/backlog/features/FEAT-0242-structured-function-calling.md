@@ -55,3 +55,7 @@ Transition to provider-native Tool Use / Function Calling for supported provider
 
 - Epic: [`FEAT-0239`](FEAT-0239-epic-ai-prompt-architecture.md)
 - GitHub Issue: #2076
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

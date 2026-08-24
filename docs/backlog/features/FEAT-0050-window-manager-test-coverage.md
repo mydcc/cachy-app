@@ -135,3 +135,7 @@ exists in this repo's CI yet).
 - `docs/TODO.md` item 25 — `IframeWindow`/`openIframe()` unreachability,
   found while writing the registry completeness test
 - `src/stores/quiz.test.ts` for the house style
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

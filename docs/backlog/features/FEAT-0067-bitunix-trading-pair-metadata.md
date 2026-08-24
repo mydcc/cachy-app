@@ -69,3 +69,7 @@ uses it to round inputs and to disable trading when `symbolStatus` is not
 - [`docs/bitunix-api/INTEGRATION_STATUS.md`](../../bitunix-api/INTEGRATION_STATUS.md)
 - [`docs/bitunix-api/04_market.md`](../../bitunix-api/04_market.md)
 - [`docs/MILESTONES.md`](../../MILESTONES.md) — M3
+
+## What shipped
+
+Shipped in 1.6.0-beta.81.

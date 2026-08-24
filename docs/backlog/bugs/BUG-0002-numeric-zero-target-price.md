@@ -84,3 +84,7 @@ re-testing a copy of its filter logic.
 
 - [`docs/TODO.md`](../../TODO.md) item 2
 - `src/stores/trade.svelte.ts`, `src/services/app.ts`, `src/lib/presets.ts`
+
+## What shipped
+
+Shipped in 1.2.0-beta.14.

@@ -51,3 +51,7 @@ The Gemini proxy assumes the `model` parameter is a valid model identifier witho
 ## Links
 
 - `src/routes/api/ai/gemini/+server.ts`
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

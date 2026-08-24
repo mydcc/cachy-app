@@ -54,3 +54,7 @@ There is no prompt versioning, modularity, or snapshot testing, making changes r
 
 - Epic: [`FEAT-0239`](FEAT-0239-epic-ai-prompt-architecture.md)
 - GitHub Issue: #2077
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

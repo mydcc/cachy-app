@@ -112,3 +112,7 @@ Full data-pipeline change:
 - `src/stores/account.svelte.ts`, `src/stores/market.svelte.ts`,
   `src/services/bitunixWs.ts`, `src/components/shared/PositionsSidebar.svelte`,
   `src/components/shared/PositionsList.svelte`
+
+## What shipped
+
+Shipped in 1.2.0-beta.30.

@@ -155,3 +155,7 @@ isn't actively tracking, which does not represent real touch input either):
 - `src/lib/windows/WindowBase.svelte.ts` — `persistedSnapshot`, `saveState()`
 - `src/lib/windows/WindowManager.svelte.ts:31` — exported `SAVE_DEBOUNCE_MS`
 - Related mobile defect: [`BUG-0043`](BUG-0043-responsive-window-remaximizes.md)
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

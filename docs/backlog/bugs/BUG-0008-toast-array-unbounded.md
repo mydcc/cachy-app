@@ -59,3 +59,7 @@ fake timers).
 ## Links
 
 - `docs/archive/plans/plan_proposal.md` — group 2, item 5
+
+## What shipped
+
+Shipped in 1.3.0-beta.7.

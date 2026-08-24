@@ -84,3 +84,7 @@ Three pieces, in order:
 - `src/routes/api/orders/+server.ts` — the hard-coded limit
 - `src/components/shared/OrderHistoryList.svelte`
 - `docs/bitunix-api/07_trade.md`
+
+## What shipped
+
+Shipped in 1.6.0-beta.82.

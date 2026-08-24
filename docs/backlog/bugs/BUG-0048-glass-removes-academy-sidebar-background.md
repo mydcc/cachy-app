@@ -153,3 +153,7 @@ via the real persisted setting:
 - `src/components/shared/ChartPatternChart.svelte` — tooltip, now `use:portal`
 - `src/lib/actions/portal.ts` — the existing action reused here
 - Same surface, different mechanism: [`BUG-0047`](BUG-0047-academy-unusable-on-mobile.md)
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

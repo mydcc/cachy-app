@@ -92,3 +92,7 @@ HEDGE/ONE_WAY").
 - `src/services/tradeService.ts` — `buildCloseOrderFields()`
 - `docs/bitunix-api/07_trade.md:32,583-584` ("Place Order" / "Batch Order")
 - `docs/backlog/bugs/BUG-0062-hedge-mode-close-position-fails.md`
+
+## What shipped
+
+Shipped in 1.2.0-beta.36.

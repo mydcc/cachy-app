@@ -52,3 +52,7 @@ None.
 
 - `src/components/shared/journal/JournalTable.svelte`
 - Source: Autonomous Optimization Architect review, 2026-08-23.
+
+## What shipped
+
+Shipped in 1.6.0-beta.127.

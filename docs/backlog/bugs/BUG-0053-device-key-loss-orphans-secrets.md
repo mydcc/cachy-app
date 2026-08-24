@@ -204,3 +204,7 @@ item once option 2 has landed here, not bundled into this one.
   fallback, already fixed)
 - [`docs/adr/0001-local-first-boundary.md`](../../adr/0001-local-first-boundary.md)
   — why there is no server-side copy to fall back to
+
+## What shipped
+
+Shipped in 1.6.0-beta.15.

@@ -91,3 +91,7 @@ question out of scope for this location/parity bug.
 
 - [`docs/TODO.md`](../../TODO.md) item 4
 - `src/services/webGpuCalculator.ts`, `src/services/wasmCalculator.ts`
+
+## What shipped
+
+Shipped in 1.3.0-beta.9.

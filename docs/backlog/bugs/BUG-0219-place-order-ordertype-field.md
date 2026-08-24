@@ -105,3 +105,7 @@ which it did not before.
 - [`BUG-0215`](BUG-0215-order-refusal-placeholders.md),
   [`BUG-0216`](BUG-0216-i18n-interpolation-values.md) — the same day's other two
   cases of a key reaching the user instead of a message
+
+## What shipped
+
+Shipped in 1.6.0-beta.54.

@@ -88,3 +88,7 @@ those too, or file a follow-up if the scope turns out larger than expected.
   this was found
 - `src/components/settings/tabs/IndicatorSettings.svelte`
 - `src/locales/locales/de.json`, `src/locales/locales/en.json` — `settings.technicals.*`
+
+## What shipped
+
+Shipped in 1.4.0-beta.6.

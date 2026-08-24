@@ -47,3 +47,7 @@ We need to fetch the last 7 days (21 entries at 8h intervals) on demand and disp
 
 - [`docs/bitunix-api/INTEGRATION_STATUS.md`](../../bitunix-api/INTEGRATION_STATUS.md) §1
 - [`04_market.md`](../../bitunix-api/04_market.md)
+
+## What shipped
+
+Shipped in 1.6.0-beta.27.

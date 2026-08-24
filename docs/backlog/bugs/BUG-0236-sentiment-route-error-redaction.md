@@ -70,3 +70,7 @@ The sentiment endpoint lacked the error sanitization and credential masking patt
 - `src/routes/api/sentiment/+server.ts`
 - `src/routes/api/external/news/+server.ts`
 - `src/types/apiSchemas.ts`
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

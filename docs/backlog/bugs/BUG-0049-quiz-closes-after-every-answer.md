@@ -152,3 +152,7 @@ close button is present, unobstructed, and closes the quiz on click
 - `src/services/toastService.svelte.ts` — used for the not-ready warning
 - `src/locales/locales/en.json`, `de.json` — `quiz.notReady`
 - [`FEAT-0041`](../features/FEAT-0041-window-layer-contract.md) for the stacking half
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

@@ -100,3 +100,7 @@ BUG-0060's position/account envelope bug):
   `PositionsSidebar.svelte`
 - `docs/bitunix-api/07_trade.md:294-325`,
   `docs/bitunix-api/08_websocket.md:216-256`
+
+## What shipped
+
+Shipped in 1.2.0-beta.34.

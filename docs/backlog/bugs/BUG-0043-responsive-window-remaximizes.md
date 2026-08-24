@@ -174,3 +174,7 @@ and the DOM (`.window-frame`'s `maximized` class) reflected it correctly.
 - `src/lib/windows/WindowBase.test.ts`, `src/lib/windows/WindowManager.test.ts`
 - `src/lib/windows/WindowRegistry.svelte.ts` — which types set `isResponsive`; `settings` is registered but has no reachable implementation
 - Related mobile defect: [`BUG-0042`](BUG-0042-window-drag-jumps-on-touch.md)
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

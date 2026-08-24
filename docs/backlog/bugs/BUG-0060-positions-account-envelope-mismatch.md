@@ -138,3 +138,7 @@ and need their own investigation.
 - `src/utils/apiResponse.ts` — `jsonSuccess`/`jsonError`/`handleApiError`
 - `src/services/syncService.ts` — the other client already reading this
   envelope correctly
+
+## What shipped
+
+Shipped in 1.2.0-beta.33.

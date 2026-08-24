@@ -2,8 +2,7 @@
 id: BUG-0297
 title: An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built
 type: bug
-status: in-progress
-assignee: claude
+status: done
 branch: bug-0297-entry-gate-deadlock
 priority: P1
 milestone: M2
@@ -128,3 +127,7 @@ mismatch is still refused wherever the venue attaches.
   it; `tpSlAtEntry` is the flag the two code paths read differently
 - [`FEAT-0011`](../features/FEAT-0011-preflight-order-verification.md) — the
   gate whose rules collide here
+
+## What shipped
+
+Shipped in 1.6.0-beta.138.

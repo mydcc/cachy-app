@@ -146,3 +146,7 @@ the pattern tabs untouched.
   case in `createFromData()`
 - `src/components/shared/LeftControlPanel.svelte`, `src/routes/+page.svelte`
 - `src/stores/ui.svelte.ts`
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

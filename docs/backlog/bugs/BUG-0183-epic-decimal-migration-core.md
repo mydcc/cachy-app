@@ -82,3 +82,7 @@ converges on, same as the Rust/WASM engine's output does.
 `confluenceAnalyzer.ts` additionally never touches a price directly except a
 `close > vwap` comparison on two already-`TechnicalsData`-typed (`number`)
 fields — nothing to convert.
+
+## What shipped
+
+Shipped in 1.6.0-beta.18.

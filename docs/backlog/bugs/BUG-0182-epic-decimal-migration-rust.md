@@ -43,3 +43,7 @@ When passing `Decimal` values across the WASM boundary (to or from TypeScript), 
       and results serialize back as strings (`serde-with-str`).
 - [x] `npm run check` and `npm run test` pass.
 - [x] E2E tests still pass.
+
+## What shipped
+
+Shipped in 1.6.0-beta.18.

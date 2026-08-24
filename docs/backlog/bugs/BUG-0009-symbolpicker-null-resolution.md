@@ -80,3 +80,7 @@ value is `false`, not `null` — confirmed to fail against the pre-fix code.
 
 - [`docs/TODO.md`](../../TODO.md) item 10
 - `src/stores/modal.svelte.ts`, `src/lib/windows/implementations/SymbolPickerWindow.svelte.ts`
+
+## What shipped
+
+Shipped in 1.3.0-beta.11.

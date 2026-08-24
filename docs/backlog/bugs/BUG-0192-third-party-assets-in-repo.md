@@ -98,3 +98,7 @@ applies, nothing is removed without it):
 - [`docs/TODO.md`](../../TODO.md) item 27
 - [`IDEA-0191`](../ideas/IDEA-0191-trade-panel-reference-audit.md)
 - [`IDEA-0199`](../ideas/IDEA-0199-bitunix-ui-analysis.md)
+
+## What shipped
+
+Shipped in 1.6.0-beta.107.
