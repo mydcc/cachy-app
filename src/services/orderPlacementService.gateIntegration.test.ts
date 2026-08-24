@@ -221,9 +221,6 @@ describe("BUG-0297 — an entry on a venue that cannot attach protection", () =>
          * displayed one is still a mismatch wherever the venue attaches.
          */
         it("refuses a payload stop that disagrees with the displayed stop", async () => {
-            const spy = vi.spyOn(tradeService, "placeOrder");
-            spy.mockRestore();
-
             const result = await orderPlacementService.placeEntryGroup(plan());
             expect(result.entryPlaced).toBe(true);
 
