@@ -4,7 +4,7 @@
 
 182 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 16 · 🟡 in-progress 9 · ✅ done 114
+Counts by status: 💡 idea 18 · 📋 specced 23 · 🟢 ready 15 · 🟡 in-progress 9 · ✅ done 117
 
 ---
 
@@ -169,7 +169,7 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 16 · 🟡 in-pr
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | ✅ done | security |
 | [BUG-0280](bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md) | Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext | P1 | 🟡 in-progress | security |
 | [BUG-0281](bugs/BUG-0281-theme-cookie-html-injection.md) | Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection | P1 | 🟢 ready | security |
-| [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | 🟢 ready | ai |
+| [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | ✅ done | ai |
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | security |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
@@ -188,14 +188,14 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 16 · 🟡 in-pr
 | [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) | Favourites live in two stores that never agree, so Settings has no effect on what gets analysed | P2 | ✅ done | settings |
 | [BUG-0237](bugs/BUG-0237-stream-logs-timing-safe-comparison-hash.md) | Stream logs authentication leaks secret length before timing-safe comparison | P2 | ✅ done | security |
 | [BUG-0238](bugs/BUG-0238-gemini-proxy-model-param-sanitization.md) | Gemini AI proxy passes unvalidated model parameter into API path | P2 | ✅ done | security |
-| [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | 📋 specced | exchange |
+| [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | ✅ done | exchange |
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | calculator |
 | [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | 📋 specced | security |
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | security |
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | security |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | security |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟡 in-progress | security |
-| [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | 📋 specced | core |
+| [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | core |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -293,7 +293,7 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 16 · 🟡 in-pr
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0280](bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md) | Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext | P1 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0281](bugs/BUG-0281-theme-cookie-html-injection.md) | Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection | P1 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | 🟢 ready | none | community, pro, private | A | required | — |
+| [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | ✅ done | none | community, pro, private | A | required | — |
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | 🟡 in-progress | M3 | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
@@ -350,14 +350,14 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 16 · 🟡 in-pr
 | [BUG-0238](bugs/BUG-0238-gemini-proxy-model-param-sanitization.md) | Gemini AI proxy passes unvalidated model parameter into API path | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0244](bugs/BUG-0244-fragile-prompt-leak-workaround.md) | Gemini/Gemma prompt leak guard uses fragile chunk length heuristic | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0246](bugs/BUG-0246-implicit-analysis-mode-coupling.md) | Implicit coupling of empty string to standard behaviour in modeInstructions | P2 | ✅ done | M8 | community, pro, private | none | none | — |
-| [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | none | community, pro, private | C | none | — |
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
-| [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
