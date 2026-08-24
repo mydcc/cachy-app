@@ -80,11 +80,18 @@
    * raw choice; this is what the order is built from, and it is always
    * consistent with `caps` by construction.
    *
-   * GTC where the venue declares none: the neutral default, and the one value
-   * `orderPlacementService` may drop without changing how the order executes.
+   * The fallback is always GTC, never the venue's first declared value.
+   * Reaching for `caps.timeInForce[0]` would look tidier and is a trap: a
+   * venue declaring `["IOC", …]` would hand an unasked-for IOC to a trader who
+   * selected nothing, and IOC cancels whatever does not fill immediately. GTC
+   * is the only value that is neutral — it is what an order does anyway with
+   * no constraint attached, and the one `orderPlacementService` may drop
+   * without changing how the order executes. A venue that cannot take even
+   * that gets refused by the gate, loudly, which beats inventing a value
+   * nobody chose.
    */
   const effectiveTimeInForce = $derived<TimeInForce>(
-    caps.timeInForce.includes(timeInForce) ? timeInForce : (caps.timeInForce[0] ?? "GTC"),
+    caps.timeInForce.includes(timeInForce) ? timeInForce : "GTC",
   );
 
   // Trigger is omitted since Bitunix does not support trigger orders via API

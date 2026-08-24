@@ -169,6 +169,34 @@ describe("exchange capabilities (FEAT-0017)", () => {
         });
     });
 
+    describe("the neutral time in force", () => {
+        /*
+         * `PlaceOrderPanel` falls back to GTC — unconditionally — when the
+         * user's selection is not one the venue declares. The tempting
+         * alternative, "use the venue's first declared value", would hand an
+         * unasked-for IOC to a trader who selected nothing on a venue
+         * declaring `["IOC", …]`, and IOC cancels whatever does not fill
+         * immediately.
+         *
+         * This holds the property that makes GTC safe to fall back to: it is
+         * the neutral value, so `orderPlacementService` drops it rather than
+         * sending it to a venue that declares none. Any other fallback would
+         * travel and change the order.
+         */
+        it("is GTC on every venue that declares one at all", () => {
+            for (const venue of ["bitunix", "bitget"]) {
+                const declared = capabilitiesOf(venue).timeInForce;
+                if (declared.length === 0) continue;
+                expect(declared).toContain("GTC");
+            }
+        });
+
+        it("is absent exactly where the venue declares nothing", () => {
+            expect(capabilitiesOf("bitget").timeInForce).toEqual([]);
+            expect(capabilitiesOf("kraken").timeInForce).toEqual([]);
+        });
+    });
+
     describe("reason keys", () => {
         it("names the unknown venue rather than blaming the order type", () => {
             expect(unsupportedReasonKey("kraken", "limit")).toBe(

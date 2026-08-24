@@ -124,3 +124,8 @@ build_old_*/
 *_tmp/
 verification/
 info/
+
+# Review scratch written by the opencode agent during a PR review. The findings
+# belong in the PR thread, not in the tree — without this the agent's `git add`
+# sweeps the file into the branch and a squash-merge carries it onto develop.
+.github/review-output.md

@@ -198,6 +198,14 @@ Three, each with a reason:
   reason as `aria-label` as well as `title` — a disabled select is never
   focusable, so a title reaches a mouse and nothing else. German
   "verfallen" → "verworfen".
+- **The panel's fallback could have invented a loaded value.**
+  `effectiveTimeInForce` fell back to `caps.timeInForce[0]`, which is GTC on
+  both venues today and would be *IOC* on a venue declaring `["IOC", …]` —
+  handing an order that cancels whatever does not fill immediately to a trader
+  who selected nothing. The fallback is unconditionally GTC now: the only
+  neutral value, and the only one `orderPlacementService` may drop. A venue
+  that cannot take even GTC is refused by the gate rather than quietly given
+  something else.
 
 ## Found on the way
 
