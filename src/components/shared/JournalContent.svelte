@@ -677,7 +677,7 @@
                 ></div>
                 <div class="relative">
                     <div
-                        class="absolute top-0 right-0 z-50 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl shadow-2xl p-5 min-w-[340px] max-w-md animate-fade-in"
+                        class="absolute top-0 right-0 z-50 glass-panel border border-[var(--border-color)] rounded-xl shadow-2xl p-5 min-w-[340px] max-w-md animate-fade-in"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="col-settings-heading"

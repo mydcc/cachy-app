@@ -186,7 +186,7 @@
                 <button
                     type="button"
                     class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
-                    class:bg-[var(--card-bg)]={tradeMode === 'live'}
+                    class:bg-[var(--bg-tertiary)]={tradeMode === 'live'}
                     class:text-[var(--success-color)]={tradeMode === 'live'}
                     class:shadow-xs={tradeMode === 'live'}
                     onclick={() => (tradeMode = 'live')}
@@ -198,7 +198,7 @@
                 <button
                     type="button"
                     class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
-                    class:bg-[var(--card-bg)]={tradeMode === 'paper'}
+                    class:bg-[var(--bg-tertiary)]={tradeMode === 'paper'}
                     class:text-[var(--accent-color)]={tradeMode === 'paper'}
                     class:shadow-xs={tradeMode === 'paper'}
                     onclick={() => (tradeMode = 'paper')}
@@ -210,7 +210,7 @@
                 <button
                     type="button"
                     class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
-                    class:bg-[var(--card-bg)]={tradeMode === 'all'}
+                    class:bg-[var(--bg-tertiary)]={tradeMode === 'all'}
                     class:text-[var(--text-primary)]={tradeMode === 'all'}
                     class:shadow-xs={tradeMode === 'all'}
                     onclick={() => (tradeMode = 'all')}
@@ -304,7 +304,7 @@
 
 <style>
     .journal-filters {
-        background: var(--card-bg);
+        background: var(--bg-tertiary);
         border-radius: var(--border-radius);
         padding: 0.75rem 1rem;
         margin-bottom: 0.75rem;
@@ -421,7 +421,7 @@
 
     .pivot-toggle input:checked + .toggle-slider::before {
         transform: translateX(14px);
-        background: var(--card-bg);
+        background: var(--bg-primary);
     }
 
     .toggle-text {

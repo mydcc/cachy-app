@@ -205,7 +205,7 @@
 
   <!-- Drawer Panel -->
   <aside
-    class="trade-detail-drawer fixed top-0 right-0 h-full w-full max-w-xl bg-[var(--card-bg)] text-[var(--text-primary)] border-l border-[var(--border-color)] shadow-2xl z-50 flex flex-col overflow-hidden animate-slide-left"
+    class="trade-detail-drawer fixed top-0 right-0 h-full w-full max-w-xl glass-panel text-[var(--text-primary)] border-l border-[var(--border-color)] shadow-2xl z-50 flex flex-col overflow-hidden animate-slide-left"
     role="dialog"
     aria-modal="true"
     aria-labelledby="trade-drawer-title"
@@ -541,7 +541,7 @@
     onclick={() => (showScreenshotModal = false)}
   >
     <div
-      class="relative max-w-4xl max-h-[90vh] bg-[var(--card-bg)] rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)]"
+      class="relative max-w-4xl max-h-[90vh] glass-panel rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)]"
       role="dialog"
       aria-modal="true"
       tabindex="-1"
