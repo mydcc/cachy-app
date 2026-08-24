@@ -455,3 +455,97 @@ describe("WindowBase construction does not register a per-instance resize listen
         addEventListenerSpy.mockRestore();
     });
 });
+
+describe("WindowBase 62% visibility invariant", () => {
+    const originalInnerWidth = window.innerWidth;
+    const originalInnerHeight = window.innerHeight;
+
+    function setViewportHeight(height: number) {
+        Object.defineProperty(window, "innerHeight", {
+            value: height,
+            writable: true,
+            configurable: true,
+        });
+    }
+
+    /** At least 38% of the body must stay inside the viewport on both axes,
+     * otherwise the user cannot grab the window header to move it back. */
+    function expectWithinVisibilityInvariant(win: InstanceType<typeof TestWindow>) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const visibleWidth =
+            Math.min(win.x + win.width, vw) - Math.max(win.x, 0);
+        const visibleHeight =
+            Math.min(win.y + win.height, vh) - Math.max(win.y, 0);
+        expect(visibleWidth).toBeGreaterThanOrEqual(win.width * 0.38 - 0.001);
+        expect(visibleHeight).toBeGreaterThanOrEqual(win.height * 0.38 - 0.001);
+    }
+
+    beforeEach(() => {
+        localStorage.clear();
+        setViewportWidth(1200);
+        setViewportHeight(900);
+    });
+
+    afterEach(() => {
+        setViewportWidth(originalInnerWidth);
+        setViewportHeight(originalInnerHeight);
+    });
+
+    it("re-clamps geometry restored from maximization after the viewport shrank", () => {
+        const win = makeTestWindow();
+        win.width = 400;
+        win.height = 300;
+        // Fully valid position on the initial 1200x900 viewport.
+        win.updatePosition(1150, 880);
+        win.maximize();
+
+        // Browser window resized while the window was maximized.
+        setViewportWidth(600);
+        setViewportHeight(400);
+
+        win.restore();
+
+        // updatePosition's clamp: maxX = 600 - 400*0.38 = 448,
+        // maxY = 400 - 300*0.38 = 286. Without the re-clamp, restore()
+        // would put the window back at its stale pre-maximize spot,
+        // entirely (x) / mostly (y) outside the shrunken viewport.
+        expect(win.isMaximized).toBe(false);
+        expect(win.x).toBe(448);
+        expect(win.y).toBe(286);
+        expectWithinVisibilityInvariant(win);
+    });
+
+    it("keeps a restored window untouched when the viewport did not move it out of bounds", () => {
+        const win = makeTestWindow();
+        win.width = 400;
+        win.height = 300;
+        win.updatePosition(100, 100);
+        win.maximize();
+        win.restore();
+
+        expect(win.x).toBe(100);
+        expect(win.y).toBe(100);
+    });
+
+    it("never spawns a fresh window with more than 62% of its body off-screen", () => {
+        // Deliberately tiny viewport. Windows are sized so that 38% of each
+        // axis physically fits into it -- the invariant cannot hold for a
+        // window wider than the viewport itself, which is a sizing concern,
+        // not a positioning one.
+        setViewportWidth(320);
+        setViewportHeight(480);
+
+        // More instances than the stagger cycle (10) wraps positions around;
+        // every spawn path (centering, stagger, registry layout) must run
+        // through the same clamp to satisfy the rule.
+        for (let i = 0; i < 14; i++) {
+            const win = new TestWindow({
+                id: `test-window-${nextTestId++}`,
+                width: 200,
+                height: 120,
+            });
+            expectWithinVisibilityInvariant(win);
+        }
+    });
+});

@@ -286,6 +286,11 @@ export abstract class WindowBase {
                     WindowBase.staggerCount++;
                 }
             }
+
+            // Every spawn path above writes x/y directly -- run them through
+            // the same viewport clamp as drags so a freshly opened window can
+            // never start with more than 62% of its body off-screen.
+            this.updatePosition(this.x, this.y);
         }
 
         // Setup Responsive maximization for mobile
@@ -584,6 +589,13 @@ export abstract class WindowBase {
             this.height = this.lastHeight;
             this.isMaximized = false;
             this._wasResponsiveMaximized = false;
+
+            // lastX/lastY were snapshotted before maximization and can be
+            // stale if the viewport changed while the window was maximized
+            // (e.g. user maximized, shrank the browser, then restores via
+            // double-click). Re-clamp through updatePosition so the restored
+            // geometry keeps at least 38% of the window inside the viewport.
+            this.updatePosition(this.x, this.y);
 
             // The responsive rule maximized this window and the viewport is
             // still small -- this restore is deliberately undoing that, so
