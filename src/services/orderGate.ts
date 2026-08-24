@@ -48,6 +48,16 @@
  */
 
 import { Decimal } from "decimal.js";
+/*
+ * FEAT-0017. Safe to import here despite this module's no-dependencies rule:
+ * `exchangeCapabilities` gathers per-venue declarations that are frozen data
+ * with no runtime imports of their own, so nothing of the transport graph —
+ * `apiService`, the WebSocket services, `tradeService`, `settingsState` —
+ * enters. Reading capabilities through the adapter registry instead would
+ * have pulled in all four.
+ */
+import { capabilitiesOf } from "./exchangeCapabilities";
+import type { OrderEntryType, TimeInForce } from "./exchangeCapabilities";
 
 // ---------------------------------------------------------------------------
 // Gate pass
@@ -386,6 +396,25 @@ function mismatch(
     };
 }
 
+/**
+ * The payload's wire spelling of an order type, as the capability vocabulary
+ * spells it. `null` for anything unrecognised — an order type the gate cannot
+ * read is not checked against capabilities here, because the mismatch and
+ * missing-field rules already cover a payload that disagrees with the display,
+ * and inventing a type to refuse would refuse valid orders.
+ */
+function entryTypeOf(value: unknown): OrderEntryType | null {
+    if (typeof value !== "string") return null;
+    switch (value.toUpperCase()) {
+        case "MARKET":
+            return "market";
+        case "LIMIT":
+            return "limit";
+        default:
+            return null;
+    }
+}
+
 function missing(field: string): OrderRefusal {
     return { field, reason: "missing", messageKey: "orderGate.missing", values: { field } };
 }
@@ -474,6 +503,81 @@ class OrderGate {
                     messageKey: "orderGate.apiUnsupported",
                     values: { field: "isApiSupported" },
                 });
+            }
+        }
+
+        // --- exchange capabilities (FEAT-0017) -----------------------------
+        // The venue's own declaration, looked up here rather than accepted
+        // from `displayed`. A UI offering a control the venue cannot honour
+        // is precisely what this refuses, so taking the capability list from
+        // that same UI would make the check agree with the bug.
+        //
+        // Scoped to `place-order`: the standalone TP/SL endpoints carry their
+        // levels under `params.` and are governed by `TradingSupport`, not by
+        // whether protection may ride along with an *entry*.
+        if (payload.type === "place-order") {
+            const caps = capabilitiesOf(displayed.provider);
+
+            checked.push("orderTypeSupported");
+            const entryType = entryTypeOf(payload.orderType);
+            if (entryType !== null && !caps.orderTypes.includes(entryType)) {
+                return refuse({
+                    field: "orderType",
+                    reason: "unsupported",
+                    messageKey: "orderGate.unsupportedOrderType",
+                    values: { field: "orderType", orderType: entryType, exchange: displayed.provider },
+                });
+            }
+
+            // Only when one is actually sent. A market order carries no
+            // `effect`, and a venue that accepts none must still take market
+            // orders — refusing on absence would close the venue entirely.
+            const effect = typeof payload.effect === "string" ? payload.effect : undefined;
+            if (effect !== undefined) {
+                checked.push("timeInForceSupported");
+                if (!caps.timeInForce.includes(effect as TimeInForce)) {
+                    return refuse({
+                        field: "effect",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedTimeInForce",
+                        values: { field: "effect", timeInForce: effect, exchange: displayed.provider },
+                    });
+                }
+            }
+
+            // Attaching protection to an entry the venue will not carry it on
+            // means the stop is silently dropped and the position opens
+            // naked. `orderPlacementService` reads the same flag and places
+            // protection separately; this refuses the case where something
+            // attached it anyway.
+            const attachesProtection = payload.tpPrice !== undefined || payload.slPrice !== undefined;
+            if (attachesProtection) {
+                checked.push("tpSlAtEntrySupported");
+                if (!caps.tpSlAtEntry) {
+                    return refuse({
+                        field: "tpSlAtEntry",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedTpSlAtEntry",
+                        values: { field: "tpSlAtEntry", exchange: displayed.provider },
+                    });
+                }
+
+                // A venue carrying one pair cannot carry a ladder. Sending
+                // the extra targets anyway drops them without an error, so
+                // the trader believes in targets that do not exist.
+                if (!caps.multipleTakeProfits && (displayed.takeProfits?.length ?? 0) > 1) {
+                    checked.push("multipleTakeProfits");
+                    return refuse({
+                        field: "takeProfits",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedMultipleTakeProfits",
+                        values: {
+                            field: "takeProfits",
+                            count: String(displayed.takeProfits?.length ?? 0),
+                            exchange: displayed.provider,
+                        },
+                    });
+                }
             }
         }
 

@@ -32,7 +32,14 @@
  * those are, and the guards read it, so the declaration cannot drift from the
  * behaviour. Reads resolve empty; writes throw `ExchangeUnsupportedError`.
  * The proxy route (routes/api/tpsl/+server.ts:58) stays as the last line of
- * defence, and FEAT-0017 will add the first by not offering the control.
+ * defence; FEAT-0017 added the first by not offering the control, via
+ * `bitgetCapabilities` below.
+ *
+ * Two declarations, two questions. `SUPPORTS` answers "has Cachy wired this
+ * verb end-to-end here", `capabilities` answers "what will the venue take on
+ * an order". They are deliberately separate — Bitget genuinely accepts
+ * attached TP/SL, and Cachy still declares `tpSlAtEntry: false`, because it
+ * has no verified wire format for it.
  */
 
 import { apiService } from "../apiService";
@@ -40,7 +47,7 @@ import type { Ticker24h, FundingRateHistoryItem, Kline } from "../apiService";
 import { bitgetWs } from "../bitgetWs";
 import { tradeService } from "../tradeService";
 import type { TpSlOrder, ModifyOrderParams, PlaceOrderParams } from "../tradeService";
-import { capabilitiesOf } from "../exchangeCapabilities";
+import { bitgetCapabilities } from "./bitgetCapabilities";
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import { logger } from "../logger";
 import type {
@@ -165,7 +172,7 @@ const trading: TradingPort = {
 
 export const bitgetAdapter: ExchangeAdapter = {
     id: "bitget",
-    capabilities: capabilitiesOf("bitget"),
+    capabilities: bitgetCapabilities,
     streams: { ticker: true, trades: false },
     supports: SUPPORTS,
     marketData,

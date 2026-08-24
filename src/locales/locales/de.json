@@ -2634,7 +2634,11 @@
       "takeProfit": "der Take-Profit"
     },
     "riskLimitDailyLoss": "Order abgelehnt: Der heute realisierte Verlust beträgt {actual} und hat das Tageslimit von {limit} erreicht oder überschritten. Das Limit wird um 00:00 UTC zurückgesetzt. Positionen schließen und Orders stornieren ist weiterhin möglich.",
-    "riskLimitUnmeasurable": "Order abgelehnt: Für {field} ist ein Limit konfiguriert, aber diese Order enthält nichts, woran es geprüft werden könnte. Die Order wurde nicht gesendet."
+    "riskLimitUnmeasurable": "Order abgelehnt: Für {field} ist ein Limit konfiguriert, aber diese Order enthält nichts, woran es geprüft werden könnte. Die Order wurde nicht gesendet.",
+    "unsupportedOrderType": "Order abgelehnt: {exchange} unterstützt den Ordertyp {orderType} nicht. Die Order wurde nicht gesendet.",
+    "unsupportedTimeInForce": "Order abgelehnt: {exchange} akzeptiert die Gültigkeit {timeInForce} nicht. Die Order wurde nicht gesendet.",
+    "unsupportedTpSlAtEntry": "Order abgelehnt: {exchange} kann Take-Profit und Stop-Loss nicht mit der Einstiegsorder zusammen übernehmen. Sie wären stillschweigend verfallen und die Position wäre ungeschützt geöffnet worden.",
+    "unsupportedMultipleTakeProfits": "Order abgelehnt: {exchange} trägt nur ein Take-Profit-Ziel an der Einstiegsorder, es wurden aber {count} übergeben. Die überzähligen Ziele wären ohne Fehlermeldung verworfen worden."
   },
   "workerErrors": {
     "eventError": "Worker Fehler Event",
@@ -2787,7 +2791,8 @@
     "unsupported": {
       "trigger": "Trigger-Orders sind für diese Börse noch nicht integriert — Cachy kennt kein verifiziertes Anfrageformat dafür.",
       "generic": "Diese Börse unterstützt diesen Ordertyp nicht.",
-      "unknownExchange": "Cachy weiß nicht, was diese Börse unterstützt, und bietet deshalb keine Ordertypen an, die es nicht prüfen kann."
+      "unknownExchange": "Cachy weiß nicht, was diese Börse unterstützt, und bietet deshalb keine Ordertypen an, die es nicht prüfen kann.",
+      "timeInForce": "Diese Börse akzeptiert keine Gültigkeitsdauer — die Order wird ohne gesendet."
     },
     "notes": {
       "noAttachedProtection": "Diese Börse kann keinen Stop an den Einstieg anhängen. Der Stop wird als zweite Anfrage platziert, die Position ist also kurz ungeschützt — du wirst benachrichtigt, falls er nicht ankommt.",
@@ -2816,6 +2821,7 @@
       "metadataLoading": "Lade Handelspaar-Details...",
       "belowMinTradeVolume": "Positionsgröße liegt unter dem Mindesthandelsvolumen ({min}).",
       "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max})."
-    }
+    },
+    "timeInForceNone": "—"
   }
 }

@@ -23,9 +23,11 @@
   FEAT-0011 gate re-derives them anyway and refuses a mismatch; this panel
   does not get to be the only thing standing between a typo and an order.
 
-  Order types come from `exchangeCapabilities` — a seam FEAT-0017 replaces.
-  An unsupported type is shown disabled with a reason rather than omitted,
-  because a missing control looks like a missing feature.
+  Order types and time-in-force come from `exchangeCapabilities`, which serves
+  each venue's own declaration (FEAT-0017). An unsupported option is shown
+  disabled with a reason rather than omitted, because a missing control looks
+  like a missing feature. The gate reads the same declarations, so a control
+  this panel gets wrong is still refused before transport.
 -->
 
 <script lang="ts">
@@ -41,6 +43,7 @@
     capabilitiesOf,
     supportsOrderType,
     unsupportedReasonKey,
+    unsupportedTimeInForceReasonKey,
     type OrderEntryType,
     type TimeInForce,
   } from "../../services/exchangeCapabilities";
@@ -274,15 +277,35 @@
       {/each}
     </div>
 
-    {#if entryType === "limit" && caps.timeInForce.length > 0}
-      <div class="flex items-center gap-1.5">
+    <!--
+      Shown disabled rather than omitted where the venue declares no
+      time-in-force. A control that vanishes reads as a missing feature in
+      Cachy; a disabled one with a reason says the venue does not take it.
+      Same rule as the order-type buttons beside it.
+    -->
+    {#if entryType === "limit"}
+      {@const tifSupported = caps.timeInForce.length > 0}
+      <div
+        class="flex items-center gap-1.5"
+        title={!tifSupported
+          ? $_(unsupportedTimeInForceReasonKey(exchange) as TranslationKey)
+          : undefined}
+      >
         <label for="order-tif" class="text-xs font-semibold text-[var(--text-secondary)]">
           {$_("orderEntry.timeInForce")}
         </label>
-        <select id="order-tif" bind:value={timeInForce} class="input-field text-xs py-1 px-2">
+        <select
+          id="order-tif"
+          bind:value={timeInForce}
+          disabled={!tifSupported}
+          class="input-field text-xs py-1 px-2"
+        >
           {#each caps.timeInForce as tif (tif)}
             <option value={tif}>{tif}</option>
           {/each}
+          {#if !tifSupported}
+            <option value={timeInForce}>{$_("orderEntry.timeInForceNone")}</option>
+          {/if}
         </select>
       </div>
     {/if}

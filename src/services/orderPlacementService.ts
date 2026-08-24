@@ -130,6 +130,21 @@ class OrderPlacementService {
 
         const attach = caps.tpSlAtEntry;
 
+        /*
+         * A venue that declares no time-in-force gets none (FEAT-0017).
+         *
+         * The panel defaults this to "GTC" and only offers a picker where the
+         * venue declares values, so nothing *chose* a GTC for Bitget — the
+         * default simply rode along. Bitget's declaration is empty, and the
+         * gate refuses an `effect` the venue never declared, so passing the
+         * default through would refuse every Bitget limit order. Dropping it
+         * here is what the venue actually wants: no field at all.
+         */
+        const effect =
+            plan.timeInForce !== undefined && caps.timeInForce.includes(plan.timeInForce)
+                ? plan.timeInForce
+                : undefined;
+
         let clientId: string | undefined;
         try {
             const submitted = await tradeService.placeOrder({
@@ -138,7 +153,7 @@ class OrderPlacementService {
                 orderType: plan.entryType === "market" ? "MARKET" : "LIMIT",
                 qty: plan.qty,
                 price: plan.entryType === "market" ? undefined : plan.entryPrice,
-                effect: plan.entryType === "market" ? undefined : plan.timeInForce,
+                effect: plan.entryType === "market" ? undefined : effect,
                 takeProfit:
                     attach && wantsTarget ? { price: plan.takeProfits[0] } : undefined,
                 stopLoss: attach && wantsStop ? { price: plan.stopLossPrice } : undefined,

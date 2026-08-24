@@ -2,7 +2,9 @@
 id: FEAT-0017
 title: Describe what each exchange can do, and let the UI read it
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: worktree-exchange-capability-descriptions-35eeed
 priority: P1
 milestone: M2
 editions: [community, pro, private]
@@ -97,23 +99,84 @@ flowchart TD
 
 ## Acceptance criteria
 
-- [ ] Capabilities are declared per adapter and consumed by the UI
-- [ ] A control for an unsupported capability is not reachable, tested per
+- [x] Capabilities are declared per adapter and consumed by the UI
+      → each venue owns `exchange/<venue>Capabilities.ts`; the adapter reads
+      its own for `adapter.capabilities`, and `PlaceOrderPanel` reads the same
+      declarations through `capabilitiesOf`.
+- [x] A control for an unsupported capability is not reachable, tested per
       exchange
-- [ ] The verification gate refuses an unsupported combination independently of
+      → `PlaceOrderPanel.capabilities.component.test.ts`, 14 tests, every case
+      run against both venues. Unsupported controls are rendered **disabled
+      with a reason**, not omitted — a vanished control reads as a feature
+      Cachy lacks.
+- [x] The verification gate refuses an unsupported combination independently of
       the UI
-- [ ] Step sizes and leverage bounds come from capabilities, not constants
-- [ ] Adding a capability to one adapter changes no other adapter
+      → `orderGate.capabilities.test.ts`, 18 tests. The gate looks capabilities
+      up itself rather than accepting them from `displayed`; taking them from
+      the UI would make the check agree with the bug it exists to catch.
+- [x] Step sizes and leverage bounds come from capabilities, not constants
+      → already true when this item was picked up, and satisfied more strictly
+      than written: they are **per-symbol** metadata (`market.symbolMeta`, set
+      by `fetchTradingPairInfo`), not exchange-wide. An exchange-level bound
+      would be wrong for most contracts — 125× is right for BTCUSDT and wrong
+      for most altcoin perpetuals — so no capability field was added for them.
+- [x] Adding a capability to one adapter changes no other adapter
+      → `exchangeCapabilities.test.ts` pins it: separate declaration objects,
+      no shared array instances, and every declaration frozen.
+
+## Deviations from the plan above
+
+Three, each with a reason:
+
+1. **Declarations are leaf data modules, not registry delegation.** The plan
+   had `exchangeCapabilities.ts` query registered adapters. `orderGate` is a
+   consumer, and it imports nothing but `decimal.js` on purpose — its docstring
+   promises no network and no store reads. Going through the registry would
+   have put `apiService`, both WebSocket services, `tradeService` and
+   `settingsState` in the safety gate's import graph. The declarations are
+   import-free data instead, read by both the adapter and the aggregator, so
+   the two paths agree by construction (asserted).
+
+2. **`trailingStop` is `false` on both venues.** The plan lists trailing
+   support as a capability. Cachy has no trailing-stop wire format anywhere —
+   the only "trailing" in the codebase is the ATR trailing-stop *indicator*,
+   which draws a line and places nothing. Declaring the venue's capability
+   rather than Cachy's would produce a control whose submission fails after the
+   trader commits.
+
+3. **`positionModes` is empty for Bitget.** No Bitget response Cachy reads
+   carries a position mode, so there is nothing to declare. Bitunix declares
+   both, which `mappers.ts` and `buildCloseOrderFields` evidence.
+
+## Found on the way
+
+- [`BUG-0297`](../bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) — **P1.**
+  A `tpSlAtEntry: false` venue cannot produce an accepted entry order at all:
+  the size rule needs `displayed.stopLossPrice`, the price rule then demands a
+  matching payload `slPrice`, and the capability forbids sending one. Predates
+  this item and is not fixed here — it changes money-safety logic and wants its
+  own review. `orderGate.capabilities.test.ts` documents the deadlock.
+- A prototype-chain hole in `capabilitiesOf`, fixed here because this item
+  introduced its most dangerous caller: `CAPABILITIES["constructor"]` returned
+  a *function* rather than falling through to `UNKNOWN_EXCHANGE`, and the venue
+  id comes from user-writable localStorage. Left alone, the new gate check
+  would have thrown while submitting an order.
 
 ## Verification Strategy
 
 - `npm run check` (svelte-check)
 - `npm test` across unit and component test suites:
+  - `src/services/exchangeCapabilities.test.ts` — new, 19 tests
+  - `src/services/orderGate.capabilities.test.ts` — new, 18 tests
+  - `src/components/results/PlaceOrderPanel.capabilities.component.test.ts`
+    — new, 14 tests, each case run against both venues
   - `src/services/exchange/exchangeAdapter.test.ts`
   - `src/services/exchange/unsupportedVerbs.test.ts`
   - `src/services/orderGate.test.ts`
-  - `src/components/results/PlaceOrderPanel.component.test.ts`
+  - `src/tests/architecture/exchange_boundary.test.ts`
 - `scripts/check_translations.sh` (0 missing, 0 empty, 0 one-sided keys)
+- `node scripts/generate-i18n-types.js` after the new keys, without which
+  `npm run check` rejects them
 
 ## Links
 
