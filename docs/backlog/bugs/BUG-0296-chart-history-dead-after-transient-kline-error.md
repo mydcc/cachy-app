@@ -2,7 +2,7 @@
 id: BUG-0296
 title: One transient kline error permanently disables chart history loading for all timeframes
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -84,17 +84,29 @@ Two layers compound:
 
 ## Acceptance criteria
 
-- [ ] A unit test proves `loadMoreHistory` reports `"error"` when the kline
+- [x] A unit test proves `loadMoreHistory` reports `"error"` when the kline
       fetch rejects (fails without the fix, which returned `false`)
-- [ ] A component test proves `allHistoryLoaded` stays `false` after a failed
+- [x] A component test proves `allHistoryLoaded` stays `false` after a failed
       load attempt and the next visible-range event triggers another
       `loadMoreHistory` call
-- [ ] A component test proves `allHistoryLoaded` becomes `true` only after an
+- [x] A component test proves `allHistoryLoaded` becomes `true` only after an
       `"exhausted"` result, and is reset when the symbol/timeframe changes
 - [ ] The proxy retries 429 responses honoring a bounded `Retry-After`, and
       uses staged backoff across attempts
-- [ ] Existing "symbol not found" → 404 behaviour unchanged (regression tests
+      *(implemented in `+server.ts`; existing route tests stay green, but no
+      dedicated retry-timing test exists yet — left unticked until one does)*
+- [x] Existing "symbol not found" → 404 behaviour unchanged (regression tests
       stay green)
+
+## Shipped
+
+PR #2261 (squash commit `b1a1208b`) — releases with the next beta cut after
+2026-08-24. Proven by `src/services/marketWatcher/historyFetcher.test.ts`
+(result contract) and the BUG-0296 block in
+`src/lib/windows/implementations/CandleChartView.component.test.ts` (retry /
+exhaustion / timeframe re-arm, driven through captured visible-range
+subscribers). The proxy 429 criterion above is implemented but not yet pinned
+by its own test.
 
 ## Out of scope
 
