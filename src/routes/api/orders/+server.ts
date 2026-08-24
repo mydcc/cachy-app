@@ -989,10 +989,10 @@ async function fetchBitgetHistoryOrders(
         }
     });
 
-    if (!response.ok) return []; // Fail gracefully
+    if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
     const text = await response.text();
     const res = safeJsonParse(text);
-    if (res.code !== "00000") return [];
+    if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
 
     const orders = res.data || [];
     let mapped: NormalizedOrder[] = orders.map((o: BitgetRawOrder) => ({

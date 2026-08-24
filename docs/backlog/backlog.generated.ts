@@ -3474,7 +3474,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0268",
     "title": "Bitget history errors return an empty list indistinguishable from no orders",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [

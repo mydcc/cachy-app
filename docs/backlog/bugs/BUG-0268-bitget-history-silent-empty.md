@@ -2,7 +2,7 @@
 id: BUG-0268
 title: Bitget history errors return an empty list indistinguishable from no orders
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -37,10 +37,10 @@ shows a retryable error state instead of an authoritative-looking empty list.
 
 ## Acceptance criteria
 
-- [ ] A test with a non-OK response and a test with an exchange error body assert
+- [x] A test with a non-OK response and a test with an exchange error body assert
       neither resolves to `[]` — failing before the fix
-- [ ] A genuinely empty history still resolves to `[]` (test)
-- [ ] UI surfaces a retryable error for the failure cases
+- [x] A genuinely empty history still resolves to `[]` (test)
+- [x] UI surfaces a retryable error for the failure cases
 
 ## Out of scope
 

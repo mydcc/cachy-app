@@ -4,7 +4,7 @@
 
 182 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 23 · 🟢 ready 15 · 🟡 in-progress 9 · ✅ done 117
+Counts by status: 💡 idea 18 · 📋 specced 23 · 🟢 ready 14 · 🟡 in-progress 9 · ✅ done 118
 
 ---
 
@@ -223,7 +223,7 @@ Counts by status: 💡 idea 18 · 📋 specced 23 · 🟢 ready 15 · 🟡 in-pr
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | ui |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟢 ready | ui |
 | [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | api |
-| [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | api |
+| [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | api |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | security |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟡 in-progress | api |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | security |
@@ -406,7 +406,7 @@ Counts by status: 💡 idea 18 · 📋 specced 23 · 🟢 ready 15 · 🟡 in-pr
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
-| [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | none | community, pro, private | A | none | — |
