@@ -2,7 +2,7 @@
 id: BUG-0289
 title: Symbol debounce effect arms a setTimeout without returning cleanup
 type: bug
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,6 @@ area: services
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
-branch: fix/bug-0289-symbol-debounce-effect-cleanup
 ---
 
 # BUG-0264 — Symbol debounce effect arms a setTimeout without returning cleanup
@@ -57,6 +55,12 @@ no redesign.
 > effects #1, #3, #4 and #6 register no timers or listeners needing teardown.
 > Implementation lives on `fix/bug-0289-symbol-debounce-effect-cleanup`; item goes
 > to `done` once the PR merges.
+
+## Shipped
+
+`1.6.0-beta.114` — squash-merged from PR #2233 (commit `a5f4b248`). The symbol
+debounce effect returns a `clearTimeout` teardown; regression test:
+`src/services/appEffects_symbolDebounce.test.ts`.
 
 ## Links
 

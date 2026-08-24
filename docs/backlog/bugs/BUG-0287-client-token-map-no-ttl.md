@@ -2,9 +2,7 @@
 id: BUG-0287
 title: Issued client tokens never expire and the token map grows without bound
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/bug-0287-client-token-ttl
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -50,6 +48,12 @@ re-auth annoyingly (document the value).
 
 Persistent token storage or cross-instance sharing. The bootstrap-endpoint
 trade-off already documented in the code.
+
+## Shipped
+
+`1.6.0-beta.123` — squash-merged from PR #2241 (commit `33371d67`). Tokens
+older than the TTL are rejected and evicted in `checkClientToken`, with a size
+cap and oldest-first eviction as backstop.
 
 ## Links
 

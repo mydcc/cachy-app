@@ -2,8 +2,7 @@
 id: BUG-0284
 title: Backup restore writes unvalidated strings straight into localStorage
 type: bug
-status: in-progress
-assignee: antigravity
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -44,11 +43,11 @@ poisoned state.
 
 ## Acceptance criteria
 
-- [ ] A test restores a backup whose `settings` field is not valid JSON / fails
+- [x] A test restores a backup whose `settings` field is not valid JSON / fails
       schema sanity and asserts nothing was written for that section and the UI
       reports the rejection — failing before the fix
-- [ ] A legitimate full backup still restores completely (round-trip test)
-- [ ] Partial rejection never leaves a half-imported mix of old and new state
+- [x] A legitimate full backup still restores completely (round-trip test)
+- [x] Partial rejection never leaves a half-imported mix of old and new state
       without an explicit user-visible result
 
 ## Out of scope
@@ -56,6 +55,13 @@ poisoned state.
 Full Zod schemas for every store's persisted shape — light structural checks only;
 deeper typing is each store's own concern. Credential handling inside backups
 ([`BUG-0283`](BUG-0283-backup-export-plaintext-credentials.md)).
+
+## Shipped
+
+`1.6.0-beta.119` — squash-merged from PR #2240 (commit `85e1d805`). Every
+section passes `validateBackupSections` before any write; rejection is
+fail-closed, names the invalid sections, and applies nothing. Tests:
+`src/services/backupService.test.ts`.
 
 ## Links
 
