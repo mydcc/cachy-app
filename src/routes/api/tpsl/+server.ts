@@ -26,6 +26,7 @@ import { checkClientToken } from "../../../lib/server/clientToken";
 import { TpSlRequestSchema, sanitizeErrorMessage } from "../../../types/apiSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
@@ -102,6 +103,26 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
           params,
         );
         break;
+      // FEAT-0070 — creating TP/SL where none exists. Two endpoints because
+      // Bitunix models two different things: one position-wide plan that
+      // tracks the position's size and closes at market (max one per
+      // position), and any number of partial plans with an explicit quantity.
+      case "place-position":
+        result = await executeBitunixAction(
+          apiKey,
+          apiSecret,
+          "/api/v1/futures/tpsl/position/place_order",
+          params,
+        );
+        break;
+      case "place":
+        result = await executeBitunixAction(
+          apiKey,
+          apiSecret,
+          "/api/v1/futures/tpsl/place_order",
+          params,
+        );
+        break;
       default:
         return json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
@@ -119,7 +140,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     console.error(`Error processing TP/SL request:`, sanitizeErrorMessage(rawMsg, 1000));
 
     // Determine appropriate status code
-    let status = 500;
+    let status = upstreamErrorStatus(e) ?? 500;
     let message = e instanceof Error ? e.message : "Internal Server Error";
 
     if (message.includes("Bitunix API error")) {
@@ -171,7 +192,7 @@ async function fetchBitunixTpSl(
     ? `${BASE_URL}${path}?${queryString}`
     : `${BASE_URL}${path}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,
@@ -225,7 +246,7 @@ async function executeBitunixAction(
 
   const url = `${BASE_URL}${path}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       "api-key": apiKey,

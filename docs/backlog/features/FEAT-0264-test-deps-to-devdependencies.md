@@ -2,7 +2,7 @@
 id: FEAT-0264
 title: Move test-only dependencies out of dependencies into devDependencies
 type: feature
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]

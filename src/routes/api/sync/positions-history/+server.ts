@@ -22,10 +22,15 @@ import { z } from "zod";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
+import { extractApiCredentials } from "../../../../utils/server/requestUtils";
+import { safeJsonParse } from "../../../../utils/safeJson";
+import { logger } from "$lib/server/logger";
+import { redactString } from "../../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
 
 const RequestSchema = z.object({
-  apiKey: z.string().min(1),
-  apiSecret: z.string().min(1),
+  apiKey: z.string().min(1).optional(),
+  apiSecret: z.string().min(1).optional(),
   limit: z.number().optional(),
 });
 
@@ -33,9 +38,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  let body;
+  let body: unknown;
   try {
-    body = await request.json();
+    if (typeof request.text === "function") {
+      body = safeJsonParse(await request.text());
+    } else if (typeof request.json === "function") {
+      body = await request.json();
+    }
   } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -48,7 +57,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     );
   }
 
-  const { apiKey, apiSecret, limit } = result.data;
+  const creds = extractApiCredentials(request, result.data);
+  const apiKey = creds.apiKey;
+  const apiSecret = creds.apiSecret;
+  const { limit } = result.data;
+
+  if (!apiKey || !apiSecret) {
+    return json({ error: "Invalid request data", details: "Missing API credentials" }, { status: 400 });
+  }
 
   try {
     const positions = await fetchBitunixHistoryPositions(
@@ -58,21 +74,18 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     );
     return json({ data: positions });
   } catch (e) {
-
     const rawMsg = e instanceof Error ? e.message : String(e);
-    // Mask sensitive data (SECURITY FIX)
-    // Mask keys before truncating so partial keys at the boundary are not left unmasked
-    let safeMsg = rawMsg;
+    let safeMsg = redactString(rawMsg);
     if (apiKey && apiKey.length > 4) safeMsg = safeMsg.replaceAll(apiKey, "***");
     if (apiSecret && apiSecret.length > 4) safeMsg = safeMsg.replaceAll(apiSecret, "***");
     safeMsg = sanitizeErrorMessage(safeMsg, 1000);
 
-    console.error(`Error fetching history positions from Bitunix:`, safeMsg);
+    logger.error(`[Sync] Error fetching history positions from Bitunix: ${safeMsg}`);
 
     // Return sanitized message
     return json(
       { error: safeMsg || "Failed to fetch history positions" },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -100,7 +113,7 @@ async function fetchBitunixHistoryPositions(
 
   const url = `${baseUrl}${path}?${queryString}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,

@@ -25,12 +25,12 @@ export interface ApiCredentials {
  * @returns Object containing credentials
  */
 export function extractApiCredentials(request: Request, body?: unknown): ApiCredentials {
-    const headers = request.headers;
+    const headers = request?.headers;
 
     // 1. Try Headers (Case-insensitive get)
-    let apiKey = headers.get("x-api-key") || undefined;
-    let apiSecret = headers.get("x-api-secret") || undefined;
-    let passphrase = headers.get("x-api-passphrase") || undefined;
+    let apiKey = (headers && typeof headers.get === "function" ? headers.get("x-api-key") : undefined) || undefined;
+    let apiSecret = (headers && typeof headers.get === "function" ? headers.get("x-api-secret") : undefined) || undefined;
+    let passphrase = (headers && typeof headers.get === "function" ? headers.get("x-api-passphrase") : undefined) || undefined;
 
     // 2. Fallback to Body (if provided)
     const b = body && typeof body === 'object' ? (body as Record<string, unknown>) : undefined;

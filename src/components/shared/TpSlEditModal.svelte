@@ -134,7 +134,7 @@
 
     try {
       await activeExchange().trading.modifyTpSlOrder({
-        // `sourceOrderId` first (BUG-0266): on a normalised plan, `orderId` is
+        // `sourceOrderId` first (BUG-0292): on a normalised plan, `orderId` is
         // the leg id this app invented ("123-tp") and the venue has never seen
         // it. The row id it was split from is the one that modifies something.
         orderId: order.sourceOrderId || order.orderId || order.id || order.planId || "",

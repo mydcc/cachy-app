@@ -19,6 +19,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 import { json } from "@sveltejs/kit";
 import { cache } from "$lib/server/cache";
 import { safeJsonParse } from "../../../utils/safeJson";
+import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
 
 interface StatusError {
   status: number;
@@ -49,7 +50,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
         let apiUrl = "https://fapi.bitunix.com/api/v1/futures/market/trading_pairs";
         if (symbols) apiUrl += `?symbols=${symbols}`;
 
-        const response = await fetch(apiUrl);
+        const response = await fetchWithTimeout(apiUrl, {}, DEFAULT_UPSTREAM_TIMEOUT_MS, fetch);
         if (!response.ok) {
           const errorText = await response.text();
           throw { status: response.status, message: errorText };

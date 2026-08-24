@@ -72,6 +72,8 @@ const tradeServiceMock = vi.hoisted(() => ({
     fetchTpSlOrders: vi.fn(async () => []),
     cancelTpSlOrder: vi.fn(async () => ({ ok: true })),
     modifyTpSlOrder: vi.fn(async () => ({ ok: true })),
+    placePositionTpSl: vi.fn(async () => ({ ok: true })),
+    placeTpSlOrder: vi.fn(async () => ({ ok: true })),
     fetchLeverageMarginMode: vi.fn(async () => undefined),
     fetchTradingPairInfo: vi.fn(async () => undefined),
 }));

@@ -32,6 +32,7 @@ import { safeJsonParse } from "../../../utils/safeJson";
 import { AccountRequestSchema } from "../../../types/accountSchemas";
 import { logger } from "$lib/server/logger";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
+import { fetchWithTimeout } from "../../../utils/server/fetchWithTimeout";
 
 interface ExchangeAccountData {
   available?: string;
@@ -128,7 +129,7 @@ async function fetchBitunixAccount(
 
   const url = `${baseUrl}${path}?${queryString}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,
@@ -189,7 +190,7 @@ async function fetchBitgetAccount(
 
     const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
         headers: {
             "ACCESS-KEY": apiKey,
             "ACCESS-SIGN": signature,

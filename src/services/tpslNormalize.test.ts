@@ -16,7 +16,7 @@
  */
 
 /*
- * BUG-0266 — normalising Bitunix TP/SL rows.
+ * BUG-0292 — normalising Bitunix TP/SL rows.
  *
  * The fixture below is copied verbatim from the response example in
  * `docs/bitunix-api/06_tp_sl.md` §Get Pending TP/SL Order, and that is the

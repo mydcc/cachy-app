@@ -18,7 +18,6 @@
 import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle } from "@sveltejs/kit";
 import { building } from "$app/environment";
-import { CONSTANTS } from "./lib/constants";
 import { logger } from "$lib/server/logger";
 
 // --- Global Console Interceptor for CachyLog ---
@@ -98,24 +97,6 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
   }
 };
 
-const themeHandler: Handle = async ({ event, resolve }) => {
-  const theme = event.cookies.get(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || "dark";
-
-  const response = await resolve(event, {
-    transformPageChunk: ({ html }) => {
-      // Replace the <body> tag with the theme class
-      let bodyClass = "";
-      if (theme !== "dark") {
-        bodyClass = `theme-${theme}`;
-      }
-      // Use a regex to find the <body> tag and inject the class
-      return html.replace(/<body(.*?)>/, `<body class="${bodyClass}"$1>`);
-    },
-  });
-
-  return response;
-};
-
 export const headersHandler: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
 
@@ -138,9 +119,7 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
 
   // Security Headers from Production Monitor
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-  // Note: Content-Security-Policy is managed by SvelteKit in svelte.config.js, but added here for the monitor
-  response.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://s.cachy.app; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https://s.cachy.app https: blob: data:; frame-ancestors 'self'; connect-src 'self' https://s.cachy.app https://chat.cachy.app wss://chat.cachy.app https://*.cachy.app wss://*.cachy.app http://127.0.0.1:3000 ws://127.0.0.1:3000 http://localhost:3000 ws://localhost:3000 https://bam.nr-data.net https://bam.eu01.nr-data.net wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://generativelanguage.googleapis.com https://api.openai.com");
   return response;
 };
 
-export const handle = sequence(loggingHandler, headersHandler, themeHandler);
+export const handle = sequence(loggingHandler, headersHandler);

@@ -735,7 +735,7 @@
           aria-checked={useAtrSl}
         />
         <div
-          class="atr-toggle-track relative w-11 h-6 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:border after:rounded-full after:h-5 after:w-5"
+          class="atr-toggle-track relative w-[36px] h-[12px] peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-0 after:left-0 after:border after:rounded-full after:h-[12px] after:w-[24px]"
         ></div>
       </label>
     </div>

@@ -23,6 +23,7 @@ import { checkClientToken } from "../../../lib/server/clientToken";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
+import { fetchWithTimeout } from "../../../utils/server/fetchWithTimeout";
 
 // Read-only: GET /api/v1/futures/account/get_leverage_margin_mode. There is
 // no write counterpart here — change_leverage/change_margin_mode are a
@@ -96,7 +97,7 @@ async function fetchLeverageMarginMode(
     null,
   );
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
     headers: {
       "api-key": apiKey,

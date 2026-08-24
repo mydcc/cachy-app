@@ -104,44 +104,25 @@ describe('headersHandler (Server Hook)', () => {
 });
 
 describe('handle sequence (Integration)', () => {
-  it('should execute loggingHandler, headersHandler, and themeHandler in sequence', async () => {
+  it('should execute loggingHandler and headersHandler in sequence', async () => {
     // Arrange
     const mockRequest = new Request('http://localhost/test-path', {
       method: 'GET'
     });
 
-    const mockCookies = {
-      get: vi.fn().mockImplementation((key) => {
-        if (key === CONSTANTS.LOCAL_STORAGE_THEME_KEY) return 'light'; // Simulating a light theme
-        return null;
-      })
-    };
-
     const mockEvent = {
       request: mockRequest,
       url: new URL('http://localhost/test-path'),
-      cookies: mockCookies
+      cookies: { get: vi.fn() }
     } as unknown as RequestEvent;
 
     // Create a mock response
-    const mockResponse = new Response('<html><head></head><body>Hello</body></html>', { status: 200 });
-
-    // Mock the inner resolve function
-    // It should receive an options object with transformPageChunk from the themeHandler
-    const mockResolve = vi.fn().mockImplementation(async (event, opts) => {
-      if (opts && opts.transformPageChunk) {
-        // Simulate SvelteKit calling the transformPageChunk function
-        const transformedHtml = opts.transformPageChunk({
-          html: '<html><head></head><body>Hello</body></html>',
-          done: true
-        });
-
-        // Return a response with the transformed HTML body for our test assertion
-        return new Response(transformedHtml, { status: 200 });
-      }
-      return mockResponse;
+    const mockResponse = new Response('<html><head></head><body>Hello</body></html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' }
     });
 
+    const mockResolve = vi.fn().mockResolvedValue(mockResponse);
     const loggerInfoSpy = (await import('$lib/server/logger')).logger.info;
 
     // Act
@@ -157,9 +138,52 @@ describe('handle sequence (Integration)', () => {
     expect(result.headers.get('Cross-Origin-Embedder-Policy')).toBeNull();
     expect(result.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
 
-    // 3. Check themeHandler behavior (transformPageChunk application)
+    // 3. Response body is delivered unchanged
     const bodyText = await result.text();
-    expect(bodyText).toContain('<body class="theme-light">');
+    expect(bodyText).toBe('<html><head></head><body>Hello</body></html>');
+  });
+
+  it('BUG-0281: should not allow HTML/markup injection via crafted cachy_theme cookie', async () => {
+    const maliciousPayload = 'x"><img src=x onerror=alert(1)>$&$\'';
+    const mockRequest = new Request('http://localhost/test-path', { method: 'GET' });
+    const mockCookies = {
+      get: vi.fn().mockImplementation((key) => {
+        if (key === CONSTANTS.LOCAL_STORAGE_THEME_KEY) return maliciousPayload;
+        return null;
+      })
+    };
+    const mockEvent = {
+      request: mockRequest,
+      url: new URL('http://localhost/test-path'),
+      cookies: mockCookies
+    } as unknown as RequestEvent;
+
+    const baseHtml = '<!DOCTYPE html><html><head></head><body class="min-h-screen"><div>App</div></body></html>';
+    const mockResponse = new Response(baseHtml, {
+      status: 200,
+      headers: { 'content-type': 'text/html' }
+    });
+
+    const mockResolve = vi.fn().mockImplementation(async (event, opts) => {
+      if (opts && opts.transformPageChunk) {
+        const transformedHtml = opts.transformPageChunk({
+          html: baseHtml,
+          done: true
+        });
+        return new Response(transformedHtml, { status: 200, headers: { 'content-type': 'text/html' } });
+      }
+      return mockResponse;
+    });
+
+    const result = await handle({ event: mockEvent, resolve: mockResolve });
+    const bodyText = await result.text();
+
+    // Must not inject attacker markup or quote-breakout into body tag
+    expect(bodyText).not.toContain('<img');
+    expect(bodyText).not.toContain('onerror=');
+    expect(bodyText).not.toContain(maliciousPayload);
+    // HTML should remain unmodified outside of authorized behavior
+    expect(bodyText).toBe(baseHtml);
   });
 
   it('should log warnings for 429/401 and errors for other 4xx/5xx responses', async () => {

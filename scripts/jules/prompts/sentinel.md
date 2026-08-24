@@ -161,7 +161,7 @@ deliverable is a **backlog item** (`docs/backlog/templates/bug.md`, then
 ### ✅ VERIFY
 
 ```bash
-npm run check   # svelte-check — mandatory after every change
+npm run check   # svelte-check — mandatory before completion; cadence by blast radius
 npm run lint    # eslint
 npm test        # vitest
 ```

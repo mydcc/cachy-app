@@ -19,7 +19,6 @@
   import { onMount, untrack } from "svelte";
   import { Decimal } from "decimal.js";
   import { settingsState } from "../../stores/settings.svelte";
-  import { tradeState } from "../../stores/trade.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
@@ -43,6 +42,7 @@
   import OrderHistoryList from "./OrderHistoryList.svelte";
   import TpSlList from "./TpSlList.svelte";
   import ClosePositionModal from "./ClosePositionModal.svelte";
+  import TpSlCreateModal from "./TpSlCreateModal.svelte";
 
   let isOpen = $state(true);
 
@@ -266,11 +266,14 @@
     try {
       const response = await appFetch("/api/positions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": keys.key,
+          "X-Api-Secret": keys.secret,
+          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+        },
         body: JSON.stringify({
           exchange: provider,
-          apiKey: keys.key,
-          apiSecret: keys.secret,
         }),
       });
       const json = await response.json();
@@ -311,11 +314,14 @@
     try {
       const response = await appFetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": keys.key,
+          "X-Api-Secret": keys.secret,
+          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+        },
         body: JSON.stringify({
           exchange: provider,
-          apiKey: keys.key,
-          apiSecret: keys.secret,
           type: "pending",
         }),
       });
@@ -375,11 +381,14 @@
         requests.map((extra) =>
           appFetch("/api/orders", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "X-Api-Key": keys.key,
+              "X-Api-Secret": keys.secret,
+              ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+            },
             body: JSON.stringify({
               exchange: provider,
-              apiKey: keys.key,
-              apiSecret: keys.secret,
               type: "history",
               ...extra,
             }),
@@ -450,11 +459,14 @@
     try {
       const response = await appFetch("/api/account", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": keys.key,
+          "X-Api-Secret": keys.secret,
+          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+        },
         body: JSON.stringify({
           exchange: provider,
-          apiKey: keys.key,
-          apiSecret: keys.secret,
         }),
       });
       const json = await response.json();
@@ -666,27 +678,21 @@
     }
   }
 
-  async function handleTpSl(pos: OMSPosition) {
-    // Placeholder: Could open a modal or just pre-fill trade inputs
-    // For now, let's load it into the Trade Inputs
-    tradeState.update((s) => ({
-      ...s,
-      symbol: pos.symbol,
-      entryPrice: pos.entryPrice.toString(),
-      lockedPositionSize: pos.amount, // Use amount
-      isPositionSizeLocked: true,
-      leverage: pos.leverage.toString(),
-    }));
-    uiState.showToast(
-      $_("dashboard.alerts.loadedIntoInputs", {
-        values: { symbol: pos.symbol },
-      }),
-      "info",
-    );
+  /** FEAT-0070: opens the create-or-edit TP/SL dialog for a position. */
+  function handleTpSl(pos: OMSPosition) {
+    tpSlCreatePosition = pos;
+  }
+
+  function handleTpSlCreateSuccess() {
+    tpSlCreatePosition = null;
+    uiState.showToast($_("dashboard.alerts.tpslCreated"), "success");
   }
 
   /** The position whose close dialog is open, or null (FEAT-0256). */
   let closingPosition = $state<OMSPosition | null>(null);
+
+  /** The position whose TP/SL create dialog is open, or null (FEAT-0070). */
+  let tpSlCreatePosition = $state<OMSPosition | null>(null);
 </script>
 
 <svelte:window onclick={closeContextMenu} />
@@ -863,5 +869,13 @@
     position={closingPosition}
     onclose={() => (closingPosition = null)}
     onsuccess={handleCloseSuccess}
+  />
+{/if}
+
+{#if tpSlCreatePosition}
+  <TpSlCreateModal
+    position={tpSlCreatePosition}
+    onclose={() => (tpSlCreatePosition = null)}
+    onsuccess={handleTpSlCreateSuccess}
   />
 {/if}

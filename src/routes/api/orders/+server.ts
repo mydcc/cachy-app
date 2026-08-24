@@ -34,6 +34,7 @@ import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { logger } from "$lib/server/logger";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 
 // Raw fields read off Bitget's current/history order list responses. The
 // two endpoints use different field names for fill price and status
@@ -282,7 +283,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     return json(
       { error: sanitizedMsg, code: errorCode, details: sanitizedDetails },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -296,7 +297,7 @@ async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: str
     const payload = { symbol, orderList: [{ orderId }] };
     const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
         headers: {
             "api-key": apiKey,
@@ -337,7 +338,7 @@ async function cancelAllBitunixOrders(apiKey: string, apiSecret: string, symbol?
 
     const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
         headers: {
             "api-key": apiKey,
@@ -376,7 +377,7 @@ async function closeAllBitunixPositions(apiKey: string, apiSecret: string, symbo
 
     const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
         headers: {
             "api-key": apiKey,
@@ -407,7 +408,7 @@ async function flashCloseBitunixPosition(apiKey: string, apiSecret: string, posi
     const payload = { positionId };
     const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
         headers: {
             "api-key": apiKey,
@@ -446,7 +447,7 @@ async function fetchBitunixOrderDetail(
 
     const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
         method: "GET",
         headers: {
             "api-key": apiKey,
@@ -535,7 +536,7 @@ async function modifyBitunixOrder(
     const finalPayload = cleanPayload(body);
     const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
         headers: {
             "api-key": apiKey,
@@ -618,7 +619,7 @@ async function placeBitunixOrder(
 
   const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     method: "POST",
     headers: {
       "api-key": apiKey,
@@ -670,7 +671,7 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
   const path = "/api/v1/futures/trade/get_pending_orders";
   const { nonce, timestamp, signature } = generateBitunixSignature(apiKey, apiSecret, {}, "");
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     method: "GET",
     headers: {
       "api-key": apiKey,
@@ -771,7 +772,7 @@ async function fetchBitunixHistoryOrders(
   if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
   const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
     headers: {
       "api-key": apiKey,
@@ -877,7 +878,7 @@ async function placeBitgetOrder(
 
     const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, cleanedBody);
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
         headers: {
             "ACCESS-KEY": apiKey,
@@ -921,7 +922,7 @@ async function fetchBitgetPendingOrders(
 
     const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
         method: "GET",
         headers: {
             "ACCESS-KEY": apiKey,
@@ -978,7 +979,7 @@ async function fetchBitgetHistoryOrders(
 
     const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
         headers: {
             "ACCESS-KEY": apiKey,
             "ACCESS-SIGN": signature,
@@ -988,10 +989,10 @@ async function fetchBitgetHistoryOrders(
         }
     });
 
-    if (!response.ok) return []; // Fail gracefully
+    if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
     const text = await response.text();
     const res = safeJsonParse(text);
-    if (res.code !== "00000") return [];
+    if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
 
     const orders = res.data || [];
     let mapped: NormalizedOrder[] = orders.map((o: BitgetRawOrder) => ({
@@ -1039,7 +1040,7 @@ async function cancelBitgetOrder(
 
     const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, body);
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
         headers: {
             "ACCESS-KEY": apiKey,

@@ -28,6 +28,21 @@ const { version: appVersion } = JSON.parse(
 /** Test files that mount a Svelte component. See the `components` project below. */
 const COMPONENT_TESTS = "src/**/*.component.test.ts";
 
+// Multi-agent machines run several worktrees at once; each Vitest run defaults
+// to cpus-1 workers and together they saturate every core. Agents cap their own
+// runs with VITEST_MAX_WORKERS=1 (or `npm run test:seq`) while sibling
+// worktrees are active. Unset keeps Vitest's default sizing. Invalid values
+// fail fast instead of silently becoming NaN or tripping minWorkers > maxWorkers.
+const maxWorkers = (() => {
+  const raw = process.env.VITEST_MAX_WORKERS;
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`Invalid VITEST_MAX_WORKERS="${raw}" — use a positive integer.`);
+  }
+  return parsed;
+})();
+
 const VITEST_EXCLUDE = [
   ...configDefaults.exclude,
   // Both hold git worktrees, and AGENTS.md tells every agent to make one before
@@ -106,6 +121,8 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
     pool: "threads",
+    maxWorkers, // VITEST_MAX_WORKERS cap — see note above
+    minWorkers: 1,
     // Two projects, because component tests need one resolution rule the rest
     // of the suite must not have. `npm test` runs both.
     projects: [

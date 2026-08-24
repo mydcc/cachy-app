@@ -23,10 +23,15 @@ import type { BitunixOrder } from "../../../../types/bitunix";
 import { z } from "zod";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
+import { extractApiCredentials } from "../../../../utils/server/requestUtils";
+import { safeJsonParse } from "../../../../utils/safeJson";
+import { logger } from "$lib/server/logger";
+import { redactString } from "../../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
 
 const RequestSchema = z.object({
-  apiKey: z.string().min(1),
-  apiSecret: z.string().min(1),
+  apiKey: z.string().min(1).optional(),
+  apiSecret: z.string().min(1).optional(),
   limit: z.number().optional(),
 });
 
@@ -34,9 +39,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  let body;
+  let body: unknown;
   try {
-    body = await request.json();
+    if (typeof request.text === "function") {
+      body = safeJsonParse(await request.text());
+    } else if (typeof request.json === "function") {
+      body = await request.json();
+    }
   } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -49,7 +58,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     );
   }
 
-  const { apiKey, apiSecret, limit } = result.data;
+  const creds = extractApiCredentials(request, result.data);
+  const apiKey = creds.apiKey;
+  const apiSecret = creds.apiSecret;
+  const { limit } = result.data;
+
+  if (!apiKey || !apiSecret) {
+    return json({ error: "Invalid request data", details: "Missing API credentials" }, { status: 400 });
+  }
 
   try {
     let allOrders: BitunixOrder[] = [];
@@ -108,9 +124,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       allOrders = allOrders.concat(regularResult.value);
     } else {
       const msg = (regularResult.reason as Error).message || "Unknown error";
-      console.error(
-        "Error fetching regular orders:",
-        sanitizeMsg(msg),
+      logger.error(
+        `Error fetching regular orders: ${sanitizeMsg(msg)}`,
       );
     }
 
@@ -118,9 +133,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       allOrders = allOrders.concat(tpslResult.value);
     } else {
       const msg = (tpslResult.reason as Error).message || "Unknown error";
-      console.warn(
-        "Error fetching TP/SL orders:",
-        sanitizeMsg(msg),
+      logger.warn(
+        `Error fetching TP/SL orders: ${sanitizeMsg(msg)}`,
       );
     }
 
@@ -128,9 +142,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       allOrders = allOrders.concat(planResult.value);
     } else {
       const msg = (planResult.reason as Error).message || "Unknown error";
-      console.warn(
-        "Error fetching plan orders:",
-        sanitizeMsg(msg),
+      logger.warn(
+        `Error fetching plan orders: ${sanitizeMsg(msg)}`,
       );
     }
 
@@ -138,15 +151,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   } catch (e: unknown) {
     // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
     const rawMsg = e instanceof Error ? e.message : String(e);
-    let safeMsg = rawMsg;
-    if (apiKey.length > 4) safeMsg = safeMsg.replaceAll(apiKey, "***");
-    if (apiSecret.length > 4) safeMsg = safeMsg.replaceAll(apiSecret, "***");
+    let safeMsg = redactString(rawMsg);
+    if (apiKey && apiKey.length > 4) safeMsg = safeMsg.replaceAll(apiKey, "***");
+    if (apiSecret && apiSecret.length > 4) safeMsg = safeMsg.replaceAll(apiSecret, "***");
     safeMsg = sanitizeErrorMessage(safeMsg, 1000);
-    console.error(
-      `Error fetching orders from Bitunix:`,
-      safeMsg,
+    logger.error(
+      `Error fetching orders from Bitunix: ${safeMsg}`,
     );
-    return json({ error: safeMsg || "Failed to fetch orders" }, { status: 500 });
+    return json({ error: safeMsg || "Failed to fetch orders" }, { status: upstreamErrorStatus(e) ?? 500 });
   }
 };
 
@@ -228,7 +240,7 @@ async function fetchBitunixData(
 
   const url = `${baseUrl}${path}?${queryString}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,

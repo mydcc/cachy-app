@@ -11,7 +11,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
-import { isUrlAllowed } from "../../../../lib/server/urlValidator";
+import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../lib/server/urlValidator";
 import { JSDOM } from "jsdom";
 
 const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 30 });
@@ -33,7 +33,7 @@ async function extractArticleContent(targetUrl: string): Promise<{ title?: strin
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    const response = await fetch(targetUrl, {
+    const response = await safeFetch(targetUrl, {
       signal: controller.signal,
       headers: {
         "User-Agent":
@@ -136,7 +136,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       return json({ error: "Invalid URL" }, { status: 400 });
     }
 
-    if (!isUrlAllowed(url)) {
+    if (!isUrlAllowed(url) || !(await isUrlAllowedAsync(url))) {
       return json({ error: "Invalid or prohibited URL" }, { status: 403 });
     }
 

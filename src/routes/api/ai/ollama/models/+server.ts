@@ -18,6 +18,11 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
+import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../../lib/server/urlValidator";
+import {
+  MISSING_BASE_URL_ERROR,
+  resolveBaseUrl,
+} from "../../../../../lib/server/ollamaBaseUrl";
 import type { AiModelInfo } from "../../../../../types/ai";
 
 interface OllamaModel {
@@ -25,33 +30,27 @@ interface OllamaModel {
   size?: number;
 }
 
-const DEFAULT_BASE_URL = "http://localhost:11434";
-
-// Ollama is the user's own local (or self-hosted) instance — this never
-// reaches a Cachy-operated server, same trust boundary as the Bitunix/Bitget
-// proxies. Only http/https is accepted to keep the target unambiguous.
-function resolveBaseUrl(raw: string | null): string | null {
-  const candidate = raw?.trim() || DEFAULT_BASE_URL;
-  try {
-    const parsed = new URL(candidate);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-    return candidate.replace(/\/$/, "");
-  } catch {
-    return null;
-  }
-}
-
 export const GET: RequestHandler = async ({ request, url, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  const baseUrl = resolveBaseUrl(url.searchParams.get("baseUrl"));
+  const rawBaseUrl = url.searchParams.get("baseUrl");
+  const baseUrl = resolveBaseUrl(rawBaseUrl);
   if (!baseUrl) {
+    if (!rawBaseUrl?.trim()) {
+      // No baseUrl and no operator default (BUG-0295): explain the remedy
+      // instead of a bare rejection.
+      return json({ error: MISSING_BASE_URL_ERROR }, { status: 400 });
+    }
     return json({ error: "Invalid Ollama base URL" }, { status: 400 });
   }
 
+  if (!isUrlAllowed(baseUrl) || !(await isUrlAllowedAsync(baseUrl))) {
+    return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+  }
+
   try {
-    const response = await fetch(`${baseUrl}/api/tags`);
+    const response = await safeFetch(`${baseUrl}/api/tags`);
 
     if (!response.ok) {
       return json(
@@ -69,13 +68,7 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
     return json({ models });
   } catch (e) {
     console.error("Ollama Models Proxy Error:", e);
-    const isLocalhost =
-      baseUrl.includes("localhost") ||
-      baseUrl.includes("127.0.0.1") ||
-      baseUrl.includes("::1");
-    const hint = isLocalhost
-      ? "If running Ollama locally while using a hosted web app (e.g. dev.cachy.app), start Ollama with OLLAMA_ORIGINS=\"*\" so your browser can connect directly, or run Cachy locally."
-      : "Is it running and is the base URL correct?";
+    const hint = "Is it running and is the base URL correct?";
     return json(
       {
         error: `Could not reach Ollama at ${baseUrl}. ${hint}`,

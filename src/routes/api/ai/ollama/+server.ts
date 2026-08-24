@@ -18,22 +18,13 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
+import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../lib/server/urlValidator";
+import {
+  MISSING_BASE_URL_ERROR,
+  resolveBaseUrl,
+  usesConfiguredDefault,
+} from "../../../../lib/server/ollamaBaseUrl";
 import { AiRequestSchema } from "../../../../types/ai";
-
-const DEFAULT_BASE_URL = "http://localhost:11434";
-
-// Same trust boundary as the models route: this is the user's own local (or
-// self-hosted) Ollama instance, never a Cachy-operated server.
-function resolveBaseUrl(raw: string | undefined): string | null {
-  const candidate = raw?.trim() || DEFAULT_BASE_URL;
-  try {
-    const parsed = new URL(candidate);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-    return candidate.replace(/\/$/, "");
-  } catch {
-    return null;
-  }
-}
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -55,7 +46,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const { messages, model, baseUrl: rawBaseUrl } = parseResult.data;
     baseUrl = resolveBaseUrl(rawBaseUrl);
     if (!baseUrl) {
+      // Distinguish "nothing configured" from "invalid URL supplied": the
+      // former is an operator setup gap and gets the remedy in the message
+      // (BUG-0295), not a bare rejection.
+      if (usesConfiguredDefault(rawBaseUrl)) {
+        return json({ error: MISSING_BASE_URL_ERROR }, { status: 400 });
+      }
       return json({ error: "Invalid Ollama base URL" }, { status: 400 });
+    }
+
+    if (!isUrlAllowed(baseUrl) || !(await isUrlAllowedAsync(baseUrl))) {
+      return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
     }
 
     if (!model) {
@@ -70,7 +71,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     // Ollama's OpenAI-compatible endpoint speaks the same chat-completions
     // wire format as OpenAI/OpenRouter.
-    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+    const response = await safeFetch(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers,
       body: JSON.stringify({ model, messages, stream: true }),
@@ -93,13 +94,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     });
   } catch (e) {
     console.error("Ollama Proxy Error:", e);
-    const isLocalhost =
-      baseUrl?.includes("localhost") ||
-      baseUrl?.includes("127.0.0.1") ||
-      baseUrl?.includes("::1");
-    const hint = isLocalhost
-      ? "If running Ollama locally while using a hosted web app (e.g. dev.cachy.app), start Ollama with OLLAMA_ORIGINS=\"*\" so your browser can connect directly, or run Cachy locally."
-      : "Is it running and is the base URL correct?";
+    const hint = "Is it running and is the base URL correct?";
     return json(
       {
         error:

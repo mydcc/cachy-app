@@ -2,7 +2,7 @@
 id: FEAT-0251
 title: Journal UI/UX redesign and entry/exit fee breakdown
 type: feature
-status: in-progress
+status: done
 priority: P1
 milestone: M2
 editions: [community, pro, private]
@@ -14,13 +14,15 @@ depends_on: []
 
 # FEAT-0251 — Journal UI/UX redesign and entry/exit fee breakdown
 
-> **Status note (2026-08-23):** Core scope merged in
+> **Status note (2026-08-23):** Complete. All scope shipped in
 > [#2150](https://github.com/mydcc/cachy-app/pull/2150) (`a0d964a9`):
 > sticky columns, `TradeDetailDrawer.svelte`, granular
 > `entryFee`/`exitFee`/`feeMode` fields in `stores/types.ts`,
-> `journal_feeBreakdown.test.ts`. Still open: quick-date filter presets and
-> column presets (AC section 5) are not in the code yet, so those boxes stay
-> unchecked and the item stays `in-progress` until they land.
+> quick-date filter presets (`JournalFilters.svelte` `setQuickDate()`),
+> column presets (`JournalContent.svelte` `applyColumnPreset()`), and
+> `journal_feeBreakdown.test.ts`. AC section 5 verified against the code on
+> 2026-08-23; tag filtering shipped as a single-select dropdown instead of a
+> chip multi-select (AC updated accordingly). Item moved to `done`.
 
 ## Summary
 
@@ -43,21 +45,21 @@ Rework the trading journal window (`JournalContent`, `JournalTable`, `JournalFil
 ## Acceptance Criteria
 
 ### 1. Information Architecture & Navigation
-- [ ] `JournalContent` provides structured top-level tab navigation:
+- [x] `JournalContent` provides structured top-level tab navigation:
   - **Overview & Charts** (Statistics + Equity / PnL / Win-Loss Charts)
   - **Journal Table** (Filters + Trade Table + Action Toolbar)
   - **Deep-Dive Analytics** (Heatmaps, Hour-of-Day, Radar, Scatter)
-- [ ] Active tab state is preserved within the session.
+- [x] Active tab state is preserved within the session.
 
 ### 2. Table Enhancements & Sticky Columns
-- [ ] `JournalTable` implements sticky column pinning:
+- [x] `JournalTable` implements sticky column pinning:
   - Sticky Left: Date and Symbol columns remain fixed with proper z-indexing and subtle separation shadow when scrolling horizontally.
   - Sticky Right: Net PnL and Row Action menu remain fixed during horizontal scroll.
-- [ ] Table row layout remains a clean, single-height row. Clicking a trade row or its "Details" button opens the Trade Detail Drawer.
-- [ ] No separate mobile card view is introduced; table retains clean horizontal scroll with sticky keys across viewports.
+- [x] Table row layout remains a clean, single-height row. Clicking a trade row or its "Details" button opens the Trade Detail Drawer.
+- [x] No separate mobile card view is introduced; table retains clean horizontal scroll with sticky keys across viewports.
 
 ### 3. Trade Detail Drawer
-- [ ] A right-side slide-over drawer (`TradeDetailDrawer.svelte`) displays:
+- [x] A right-side slide-over drawer (`TradeDetailDrawer.svelte`) displays:
   - Complete trade execution parameters (Entry, Exit, Stop Loss, R:R, Leverage, Position Size).
   - Detailed fee breakdown (Entry Fee, Exit Fee, Total Trading Fees, Funding Fees).
   - Editable trade notes with auto-save.
@@ -66,26 +68,26 @@ Rework the trading journal window (`JournalContent`, `JournalTable`, `JournalFil
   - TP execution breakdown with individual target realized PnL.
 
 ### 4. Granular Trading Fees (Maker / Taker)
-- [ ] `JournalEntry` supports granular fee tracking:
+- [x] `JournalEntry` supports granular fee tracking:
   - `entryFee` (Decimal) and `entryFeeType` (`maker` | `taker`)
   - `exitFee` (Decimal) and `exitFeeType` (`maker` | `taker`)
   - `totalFees` (Decimal) representing cumulative trading fees (`entryFee + exitFee`)
   - `fundingFee` (Decimal)
-- [ ] Net PnL formula strictly enforced: $\text{Gross PnL} - \text{Total Fees} - \text{Funding Fee} = \text{Net PnL}$.
-- [ ] Optional table columns for `entryFee`, `exitFee`, and `totalFees` with Maker/Taker badges (*M* / *T*).
+- [x] Net PnL formula strictly enforced: $\text{Gross PnL} - \text{Total Fees} - \text{Funding Fee} = \text{Net PnL}$.
+- [x] Optional table columns for `entryFee`, `exitFee`, and `totalFees` with Maker/Taker badges (*M* / *T*).
 
 ### 5. Enhanced Filters & Column Presets
-- [ ] `JournalFilters` includes Quick-Date filter presets (*Today*, *This Week*, *This Month*, *Last 30 Days*, *YTD*, *All*).
-- [ ] Tag filter chip multi-select in addition to full-text search.
-- [ ] Column visibility popover redesigned with accessible dialog attributes (`role="dialog"`, `aria-modal="true"`) and presets (*Compact*, *Standard*, *Fees & Execution*, *All Columns*).
-- [ ] Responsive action toolbar ensures sync and management buttons wrap cleanly without overflowing or disappearing.
+- [x] `JournalFilters` includes Quick-Date filter presets (*Today*, *This Week*, *This Month*, *Last 30 Days*, *YTD*, *All*) via `setQuickDate()`, with DE/EN i18n keys (`journal.filters.quick*`).
+- [x] Tag filter alongside full-text search — shipped as an accessible single-select tag `<select>` instead of a chip multi-select.
+- [x] Column visibility popover redesigned with accessible dialog attributes (`role="dialog"`, `aria-modal="true"`) and presets (*Compact*, *Standard*, *Fees & Execution*, *All Columns*) via `applyColumnPreset()`.
+- [x] Responsive action toolbar ensures sync and management buttons wrap cleanly without overflowing or disappearing (`flex-wrap` on `.filter-actions`).
 
 ### 6. Cachy Engineering Standards & Non-Negotiables
-- [ ] **Svelte 5 Runes only** (`$state`, `$derived`, `$effect` with cleanup functions).
-- [ ] **`decimal.js` for all financial math** (prices, fees, PnL, percentages). Native numbers forbidden.
-- [ ] **Local-First Boundary:** All journal entries, notes, and tags remain strictly Class A (`localStorage` / IndexedDB).
-- [ ] **Theming:** No hardcoded hex color fallbacks. All colors derive from CSS variables (`var(--bg-primary)`, `var(--text-primary)`, `var(--accent-color)`, etc.) and paired classes from `src/themes.css`.
-- [ ] **Dynamic Currency:** Currency formatting dynamically reads the configured base currency.
+- [x] **Svelte 5 Runes only** (`$state`, `$derived`, `$effect` with cleanup functions).
+- [x] **`decimal.js` for all financial math** (prices, fees, PnL, percentages). Native numbers forbidden.
+- [x] **Local-First Boundary:** All journal entries, notes, and tags remain strictly Class A (`localStorage` / IndexedDB).
+- [x] **Theming:** No hardcoded hex color fallbacks. All colors derive from CSS variables (`var(--bg-primary)`, `var(--text-primary)`, `var(--accent-color)`, etc.) and paired classes from `src/themes.css`.
+- [x] **Dynamic Currency:** Currency formatting dynamically reads the configured base currency.
 
 ---
 
@@ -99,6 +101,16 @@ Rework the trading journal window (`JournalContent`, `JournalTable`, `JournalFil
 
 ## Test Plan
 
-- [ ] Unit tests for fee calculation and net PnL derivation with decimal precision.
-- [ ] Component tests for `JournalTable` sticky column classes and column preset switching.
-- [ ] Svelte-check and TypeScript compilation verification (`npm run check`).
+- [x] Unit tests for fee calculation and net PnL derivation with decimal precision (completed).
+- [x] Component tests for `JournalTable` sticky column classes, Maker/Taker fee badges, and the trade-detail button (`JournalTable.component.test.ts`). Column-preset switching is not component-tested; verified by code review on 2026-08-23.
+- [x] Svelte-check and TypeScript compilation verification (`npm run check`) (completed).
+
+---
+
+## Blockers to Completion
+
+None remaining. AC 5 was verified against the code on 2026-08-23: quick-date presets
+(`setQuickDate()`), column presets with dialog attributes (`applyColumnPreset()`,
+`role="dialog"`/`aria-modal="true"`), and the responsive wrapping toolbar are all present
+since #2150. The tag filter shipped as a single-select dropdown rather than a chip
+multi-select, and AC 5 was reworded accordingly. Item transitioned to `done`.

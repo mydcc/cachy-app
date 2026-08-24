@@ -31,6 +31,7 @@ import { afterNavigate } from "$app/navigation";
   import { page } from "$app/stores";
   import { trackPageView } from "../services/trackingService";
   import { initZoomPlugin } from "../lib/chartSetup";
+  import { registerResetCoordinator } from "../utils/appReset";
   import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
 
   import ToastContainer from "../components/shared/ToastContainer.svelte";
@@ -66,6 +67,14 @@ import { afterNavigate } from "$app/navigation";
     if (!browser) return;
     const cleanup = initFileTargets();
     return cleanup;
+  });
+
+  // --- Multi-tab Factory Reset Coordination (BUG-0294) ---
+  // Every tab listens for reset pings so a factory reset in another tab can
+  // delete the IndexedDB databases this tab keeps open.
+  $effect(() => {
+    if (!browser) return;
+    return registerResetCoordinator();
   });
 
   // --- CachyLog Integration (Developer & Manual Opt-in) ---

@@ -24,11 +24,16 @@ import {
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
+import { safeJsonParse } from "../../../utils/safeJson";
+import { logger } from "$lib/server/logger";
+import { redactString } from "../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 
 // Define Validation Schema
 const SyncRequestSchema = z.object({
-  apiKey: z.string().min(5),
-  apiSecret: z.string().min(5),
+  apiKey: z.string().min(5).optional(),
+  apiSecret: z.string().min(5).optional(),
   startTime: z.number().int().optional(),
   endTime: z.number().int().optional(),
   limit: z.union([z.number(), z.string()])
@@ -45,7 +50,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   if (authError) return authError;
 
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      if (typeof request.text === "function") {
+        body = safeJsonParse(await request.text());
+      } else if (typeof request.json === "function") {
+        body = await request.json();
+      }
+    } catch {
+      return json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
     // 1. Zod Validation
     const validation = SyncRequestSchema.safeParse(body);
@@ -56,7 +70,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       );
     }
 
-    const { apiKey, apiSecret, startTime, endTime, limit } = validation.data;
+    const creds = extractApiCredentials(request, validation.data);
+    const apiKey = creds.apiKey;
+    const apiSecret = creds.apiSecret;
+    const { startTime, endTime, limit } = validation.data;
+
+    if (!apiKey || !apiSecret) {
+      return json(
+        { error: "Validation Error: Missing API credentials", details: "Missing API credentials" },
+        { status: 400 },
+      );
+    }
 
     // 2. Additional Security Check (Redundant but explicit)
     const keyError = validateBitunixKeys(apiKey, apiSecret);
@@ -74,10 +98,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     return json({ data: history });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    console.error(`Error fetching history from Bitunix:`, message);
+    logger.error(`[Sync] Error fetching history from Bitunix: ${redactString(message)}`);
     return json(
       { error: message || "Failed to fetch history" },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -107,7 +131,7 @@ async function fetchBitunixHistory(
     "" // Empty body for GET
   );
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
     headers: {
       "api-key": apiKey,

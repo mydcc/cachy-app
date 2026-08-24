@@ -1,4 +1,3 @@
-import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -22,6 +21,11 @@ import { createHash, randomBytes } from "crypto";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { z } from "zod";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
+import { extractApiCredentials } from "../../../../utils/server/requestUtils";
+import { safeJsonParse } from "../../../../utils/safeJson";
+import { logger } from "$lib/server/logger";
+import { redactString } from "../../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
 
 // SECURITY NOTE: This endpoint acts as a Backend-For-Frontend (BFF) proxy.
 // It receives API keys from the client to perform a signed request to Bitunix.
@@ -36,9 +40,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  let body;
+  let body: unknown;
   try {
-    body = await request.json();
+    if (typeof request.text === "function") {
+      body = safeJsonParse(await request.text());
+    } else if (typeof request.json === "function") {
+      body = await request.json();
+    }
   } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -63,13 +71,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
     return json({ data: positions });
   } catch (e) {
-    // SECURITY: Do not log the full error object if it might contain the request context or keys.
-    // Logging only the message is safer.
-    const message = e instanceof Error ? e.message : String(e);
-    console.error(`Error fetching pending positions from Bitunix:`, message);
+    const rawMsg = e instanceof Error ? e.message : String(e);
+    let safeMsg = redactString(rawMsg);
+    if (apiKey && apiKey.length > 4) safeMsg = safeMsg.replaceAll(apiKey, "***");
+    if (apiSecret && apiSecret.length > 4) safeMsg = safeMsg.replaceAll(apiSecret, "***");
+    logger.error(`[Sync] Error fetching pending positions from Bitunix: ${safeMsg}`);
     return json(
-      { error: message || "Failed to fetch pending positions" },
-      { status: 500 },
+      { error: safeMsg || "Failed to fetch pending positions" },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -111,7 +120,7 @@ async function fetchBitunixPendingPositions(
     ? `${baseUrl}${path}?${queryString}`
     : `${baseUrl}${path}`;
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,

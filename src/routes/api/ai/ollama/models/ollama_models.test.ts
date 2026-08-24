@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import dns from "node:dns";
 import { GET } from "./+server";
 import { issueToken, _resetForTests } from "../../../../../lib/server/clientToken";
 
@@ -21,7 +22,38 @@ describe("Ollama Models Route GET", () => {
     vi.restoreAllMocks();
     _resetForTests();
     token = issueToken();
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+    ] as unknown as dns.LookupAddress[]);
   });
+
+  const prohibitedBaseUrls = [
+    "http://127.0.0.1:11434",
+    "http://localhost:11434",
+    "http://169.254.169.254",
+    "http://10.0.0.1:11434",
+    "http://192.168.1.1:11434",
+    "http://172.16.0.1:11434",
+    "http://[::1]:11434",
+    "http://0177.0.0.1:11434",
+    "http://2130706433:11434",
+    "http://0x7f000001:11434",
+  ];
+
+  for (const baseUrl of prohibitedBaseUrls) {
+    it(`rejects private or reserved baseUrl ${baseUrl} with 403 Forbidden`, async () => {
+      const url = new URL(`http://localhost/api/ai/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`);
+      const request = new Request(url, {
+        headers: { "x-app-access-token": token },
+      });
+
+      const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
+      expect(response.status).toBe(403);
+
+      const body = await response.json();
+      expect(body.error).toMatch(/prohibited|forbidden|invalid/i);
+    });
+  }
 
   it("returns 400 for an invalid base URL", async () => {
     const url = new URL("http://localhost/api/ai/ollama/models?baseUrl=invalid-url");
@@ -36,10 +68,10 @@ describe("Ollama Models Route GET", () => {
     expect(body.error).toBe("Invalid Ollama base URL");
   });
 
-  it("returns 502 with helpful localhost hint when fetch to Ollama fails", async () => {
+  it("returns 502 when fetch to public Ollama endpoint fails", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("fetch failed"));
 
-    const url = new URL("http://localhost/api/ai/ollama/models?baseUrl=http%3A%2F%2Flocalhost%3A11434");
+    const url = new URL("http://localhost/api/ai/ollama/models?baseUrl=https%3A%2F%2Follama.example.com");
     const request = new Request(url, {
       headers: { "x-app-access-token": token },
     });
@@ -48,8 +80,7 @@ describe("Ollama Models Route GET", () => {
     expect(response.status).toBe(502);
 
     const body = await response.json();
-    expect(body.error).toContain("Could not reach Ollama at http://localhost:11434");
-    expect(body.error).toContain("OLLAMA_ORIGINS");
+    expect(body.error).toContain("Could not reach Ollama at https://ollama.example.com");
   });
 
   it("returns models array when Ollama fetch succeeds", async () => {
@@ -60,7 +91,7 @@ describe("Ollama Models Route GET", () => {
       }),
     );
 
-    const url = new URL("http://localhost/api/ai/ollama/models?baseUrl=http%3A%2F%2Flocalhost%3A11434");
+    const url = new URL("http://localhost/api/ai/ollama/models?baseUrl=https%3A%2F%2Follama.example.com");
     const request = new Request(url, {
       headers: { "x-app-access-token": token },
     });
@@ -70,5 +101,48 @@ describe("Ollama Models Route GET", () => {
 
     const body = await response.json();
     expect(body.models).toEqual([{ id: "llama3:latest", label: "llama3:latest" }]);
+  });
+
+  // BUG-0295: the implicit localhost default is gone. Without a configured
+  // operator default, an omitted baseUrl gets an actionable 400 — not the old
+  // accidental 403.
+  it("answers an omitted baseUrl query param with a documented remedy when no default is configured", async () => {
+    delete process.env.OLLAMA_PROXY_BASE_URL;
+
+    const url = new URL("http://localhost/api/ai/ollama/models");
+    const request = new Request(url, {
+      headers: { "x-app-access-token": token },
+    });
+
+    const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
+    expect(response.status).toBe(400);
+
+    const body = await response.json();
+    expect(body.error).toContain("OLLAMA_PROXY_BASE_URL");
+  });
+
+  it("forwards an omitted baseUrl to OLLAMA_PROXY_BASE_URL when configured", async () => {
+    process.env.OLLAMA_PROXY_BASE_URL = "https://ollama.example.com";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ models: [{ name: "llama3:latest" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const url = new URL("http://localhost/api/ai/ollama/models");
+    const request = new Request(url, {
+      headers: { "x-app-access-token": token },
+    });
+
+    try {
+      const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
+      expect(response.status).toBe(200);
+
+      const body = await response.json();
+      expect(body.models).toEqual([{ id: "llama3:latest", label: "llama3:latest" }]);
+    } finally {
+      delete process.env.OLLAMA_PROXY_BASE_URL;
+    }
   });
 });

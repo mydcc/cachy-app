@@ -22,7 +22,7 @@
     <link rel="preload" href="/fonts/Inter/Inter-VariableFont_opsz,wght.ttf" as="font" type="font/ttf" crossorigin />
 
     <!-- Prevent indexing of subdomains (dev, metaverse) -->
-    <script>
+    <script nonce="%sveltekit.nonce%">
       if (
         window.location.hostname.includes("dev.cachy.app") ||
         window.location.hostname.includes("metaverse.cachy.app")
@@ -131,29 +131,13 @@
 
     %sveltekit.head%
 
-    <!-- Matomo Tag Manager -->
-    <script>
-      (function () {
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1" ||
-          window.location.hostname.includes("192.168.")
-        )
-          return;
-        var _mtm = (window._mtm = window._mtm || []);
-        _mtm.push({ "mtm.startTime": new Date().getTime(), event: "mtm.Start" });
-        var d = document,
-          g = d.createElement("script"),
-          s = d.getElementsByTagName("script")[0];
-        g.async = true;
-        g.src = "https://s.cachy.app/js/container_h6eaMUR9.js";
-        s.parentNode.insertBefore(g, s);
-      })();
-    </script>
-    <!-- End Matomo Tag Manager -->
+    <!-- Matomo Tag Manager: NOT loaded here. Telemetry is opt-out
+         (BUG-0286): trackingService.initTracking() injects the container on
+         startup unless the user disabled it under Settings > System >
+         Performance ("Usage Statistics"). -->
 
     <!-- Theme Initialization (CRITICAL: Must run BEFORE any rendering) -->
-    <script>
+    <script nonce="%sveltekit.nonce%">
       (function () {
         try {
           var theme = localStorage.getItem("cachy_theme") || "dark";
@@ -207,16 +191,6 @@
   </head>
 
   <body class="min-h-screen" data-sveltekit-preload-data="hover">
-    <!-- Matomo Tag Manager (noscript) -->
-    <noscript
-      ><iframe
-        src="https://s.cachy.app/ns.html?id=h6eaMUR9"
-        height="0"
-        width="0"
-        style="display: none; visibility: hidden"
-      ></iframe
-    ></noscript>
-    <!-- End Matomo Tag Manager (noscript) -->
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

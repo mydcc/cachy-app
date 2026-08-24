@@ -2478,27 +2478,50 @@ input[type="number"] {
 }
 
 .atr-toggle-track {
-  background-color: var(--toggle-bg-off);
-  transition: background-color 0.3s;
+  background-image:
+    linear-gradient(hsla(0, 0%, 0%, 0.1), hsla(0, 0%, 100%, 0.1)),
+    linear-gradient(
+      to right,
+      var(--danger-color, #f66) 50%,
+      var(--btn-accent-bg, #6cf) 50%
+    );
+  background-size:
+    100% 100%,
+    200% 100%;
+  background-position:
+    0 0,
+    7.2px 0;
+  box-shadow:
+    inset 0 0.5px 2px hsla(0, 0%, 0%, 0.5),
+    inset 0 0 5px hsla(0, 0%, 0%, 0.5),
+    0 0 0 0.5px hsla(0, 0%, 0%, 0.1),
+    0 -0.5px 1px 1px hsla(0, 0%, 0%, 0.25),
+    0 1px 1px 1px hsla(0, 0%, 100%, 0.1);
 }
 
 input[type="checkbox"]:checked+.atr-toggle-track {
-  background-color: var(--toggle-bg-on);
+  background-position:
+    0 0,
+    16.8px 0;
 }
 
 .atr-toggle-track::after {
-  background-color: var(--toggle-circle-bg);
-  border-color: var(--border-color);
-  transition:
-    transform 0.3s,
-    background-color 0.3s,
-    border-color 0.3s;
+  background-color: #eee;
+  background-image: linear-gradient(
+    hsla(0, 0%, 100%, 0.1),
+    hsla(0, 0%, 0%, 0.1)
+  );
+  border-color: transparent;
+  box-shadow:
+    inset 0 0.5px 0.5px 0.5px hsla(0, 0%, 100%, 1),
+    inset 0 -0.5px 0.5px 0.5px hsla(0, 0%, 0%, 0.25),
+    0 0.5px 1.5px 0.5px hsla(0, 0%, 0%, 0.5),
+    0 0 1px hsla(0, 0%, 0%, 0.25);
+  transition: transform 0.25s;
 }
 
 input[type="checkbox"]:checked+.atr-toggle-track::after {
-  transform: translateX(calc(100% + 2px));
-  border-color: var(--toggle-circle-bg-on) !important;
-  background-color: var(--toggle-circle-bg-on) !important;
+  transform: translateX(12px);
 }
 
 .copy-btn,

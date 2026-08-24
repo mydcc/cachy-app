@@ -21,10 +21,15 @@ import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
+import { extractApiCredentials } from "../../../../utils/server/requestUtils";
+import { safeJsonParse } from "../../../../utils/safeJson";
+import { logger } from "$lib/server/logger";
+import { redactString } from "../../../../utils/redact";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
 
 const RequestSchema = z.object({
-  apiKey: z.string().min(1),
-  apiSecret: z.string().min(1),
+  apiKey: z.string().min(1).optional(),
+  apiSecret: z.string().min(1).optional(),
   orderId: z.string().min(1),
 });
 
@@ -32,9 +37,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  let body;
+  let body: unknown;
   try {
-    body = await request.json();
+    if (typeof request.text === "function") {
+      body = safeJsonParse(await request.text());
+    } else if (typeof request.json === "function") {
+      body = await request.json();
+    }
   } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -47,19 +56,26 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     );
   }
 
-  const { apiKey, apiSecret, orderId } = result.data;
+  const creds = extractApiCredentials(request, result.data);
+  const apiKey = creds.apiKey;
+  const apiSecret = creds.apiSecret;
+  const { orderId } = result.data;
+
+  if (!apiKey || !apiSecret) {
+    return json({ error: "Missing API credentials" }, { status: 400 });
+  }
 
   try {
     const order = await fetchBitunixOrderDetail(apiKey, apiSecret, orderId);
     return json({ data: order });
   } catch (e) {
-    console.error(
-      `Error fetching order detail from Bitunix for ${orderId}:`,
-      e,
+    const rawMsg = e instanceof Error ? e.message : String(e);
+    logger.error(
+      `[Sync] Error fetching order detail from Bitunix for ${orderId}: ${redactString(rawMsg)}`,
     );
     return json(
       { error: (e instanceof Error ? e.message : null) || "Failed to fetch order detail" },
-      { status: 500 },
+      { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
 };
@@ -101,7 +117,7 @@ async function fetchBitunixOrderDetail(
   // 6. Build Query String for URL
   const queryString = new URLSearchParams(params).toString();
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
     headers: {
       "api-key": apiKey,

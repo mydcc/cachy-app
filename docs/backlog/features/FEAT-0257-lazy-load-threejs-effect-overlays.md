@@ -2,7 +2,7 @@
 id: FEAT-0257
 title: Keep three.js off the startup path behind lazily loaded effect overlays
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -67,9 +67,16 @@ Precedent exists in-repo: the markdown vendor chunk is already dynamic-only.
 
 ## Open questions
 
-- Do shipped theme defaults enable any effect out of the box? If yes, decide
-  flash-of-no-background handling before building (WebGL context creation stays
-  inside the gated branch).
+None — resolved during grooming (2026-08-23):
+
+- Theme defaults: `enableBurningBorders` defaults to `false` in
+  `defaultSettings` (`src/stores/settings.svelte.ts` ~L513) — effects are
+  opt-in, so there is no flash-of-no-background risk on default first load.
+- PR #2181 already gates FireOverlay *mounting* behind
+  `{#if settingsState.enableBurningBorders}` (`src/routes/+layout.svelte`
+  ~L430), but `AmbientTopline` (~L429) and `FXOverlay` (~L456) mounts remain
+  ungated and all three components still statically import three — re-verified
+  on develop @ f6ccde06. This item's premise stands unchanged.
 
 ## Links
 
