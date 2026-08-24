@@ -989,7 +989,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0297",
     "title": "An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "bug-0297-entry-gate-deadlock",
     "priority": "P1",
     "milestone": "M2",
     "editions": [
@@ -1079,8 +1081,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0017",
     "title": "Describe what each exchange can do, and let the UI read it",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
+    "status": "done",
     "branch": "worktree-exchange-capability-descriptions-35eeed",
     "priority": "P1",
     "milestone": "M2",
@@ -2401,6 +2402,46 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "opencode",
     "file": "bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md"
+  },
+  {
+    "id": "BUG-0298",
+    "title": "safeFetch fails open when the SSRF dispatcher cannot initialize",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "estimate": "1",
+    "file": "bugs/BUG-0298-safe-fetch-fail-open-fallback.md"
+  },
+  {
+    "id": "BUG-0302",
+    "title": "Dependency advisories confined to dev and release toolchain need triage decision",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "M",
+    "estimate": "2",
+    "file": "bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md"
   },
   {
     "id": "FEAT-0019",
