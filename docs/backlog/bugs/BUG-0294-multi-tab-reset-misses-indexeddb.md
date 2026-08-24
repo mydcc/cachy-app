@@ -2,7 +2,9 @@
 id: BUG-0294
 title: Factory reset cannot delete IndexedDB blocked by connections held in other tabs
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/bug-0294-reset-broadcastchannel-close
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -66,16 +68,20 @@ deletion must resolve rather than hang the reset.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect: with a second open connection to
+- [x] A test reproduces the defect: with a second open connection to
       `cachy_db` simulating another tab (fake-indexeddb), the current wipe
       leaves the database in place — failing without the fix
-- [ ] With the fix, the same scenario deletes the database: the simulated
+      (`resolves in bounded time when a non-cooperating tab keeps a connection open`)
+- [x] With the fix, the same scenario deletes the database: the simulated
       sibling closes its connections on the ping within the grace window
-- [ ] Reset still completes when `BroadcastChannel` is unsupported or no
-      sibling answers — asserted by a test
-- [ ] Existing `appReset.test.ts` scenarios stay green (single-tab behaviour,
+      (`deletes the database when a simulated sibling releases it on the ping`,
+      plus a wiring test asserting the coordinator closes dbService/storageService)
+- [x] Reset still completes when `BroadcastChannel` is unsupported or no
+      sibling answers — asserted by tests
+- [x] Existing `appReset.test.ts` scenarios stay green (single-tab behaviour,
       graceful degradation without IndexedDB)
-- [ ] The grace window is bounded and cannot delay the reset indefinitely
+- [x] The grace window is bounded and cannot delay the reset indefinitely
+      (150 ms fixed wait; bounded-resolution asserted in tests)
 
 ## Out of scope
 
