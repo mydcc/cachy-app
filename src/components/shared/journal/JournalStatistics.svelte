@@ -179,7 +179,7 @@
 
 <style>
     .journal-statistics {
-        background: var(--card-bg);
+        background: var(--bg-tertiary);
         border-radius: var(--border-radius);
         padding: 1.5rem;
         margin-bottom: 1.5rem;

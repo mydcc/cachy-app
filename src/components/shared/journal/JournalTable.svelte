@@ -1015,7 +1015,7 @@
 <!-- Hover-Zoom Floating Card (Clean, bündig & Cursor-nah) -->
 {#if activeHoverScreenshot}
     <div
-        class="fixed z-50 pointer-events-none rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--card-bg)] shadow-2xl transition-transform duration-75"
+        class="fixed z-50 pointer-events-none rounded-xl overflow-hidden border border-[var(--border-color)] glass-panel shadow-2xl transition-transform duration-75"
         style="left: {activeHoverScreenshot.x}px; top: {activeHoverScreenshot.y}px; width: 440px;"
     >
         <img
@@ -1044,7 +1044,7 @@
         onkeydown={(e) => e.key === "Escape" && closeLightbox()}
     >
         <div
-            class="relative max-w-5xl max-h-[90vh] bg-[var(--card-bg)] rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)] flex flex-col"
+            class="relative max-w-5xl max-h-[90vh] glass-panel rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)] flex flex-col"
             role="document"
             tabindex="-1"
             onclick={(e) => e.stopPropagation()}
@@ -1133,7 +1133,7 @@
     }
 
     .nested-trade-row td {
-        background: var(--card-bg);
+        background: var(--bg-tertiary);
         opacity: 0.95;
     }
 
