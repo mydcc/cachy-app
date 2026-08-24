@@ -23,7 +23,7 @@ jobs:
       issues: write # comment on released issues
       pull-requests: write # comment on released pull requests
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # semantic-release needs the full history and all tags to work out
           # which commits are new since the last release.
