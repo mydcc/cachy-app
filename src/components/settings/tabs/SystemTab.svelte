@@ -26,6 +26,7 @@
     import EngineDebugPanel from "../EngineDebugPanel.svelte";
     import DataMaintenance from "../DataMaintenance.svelte";
     import { toastService } from "../../../services/toastService.svelte";
+    import { applyTelemetryConsent } from "../../../services/trackingService";
     import { autoBackupState, triggerAutoBackup } from "../../../services/autoBackupService.svelte";
     import {
         fileTargetState,
@@ -53,6 +54,14 @@
 
     function reloadApp() {
         window.location.reload();
+    }
+
+    // BUG-0286: consent changed — load the Matomo container on opt-in, drop
+    // the data-layer reference on opt-out. Reads the checkbox state from the
+    // event so it never depends on binding order.
+    function handleTelemetryConsent(e: Event) {
+        const enabled = (e.currentTarget as HTMLInputElement).checked;
+        applyTelemetryConsent(enabled);
     }
 
     const fsaSupported = isFileSystemAccessSupported();
@@ -174,6 +183,29 @@
                             </div>
                         </div>
                         <Toggle bind:checked={settingsState.debugMode} />
+                    </div>
+
+                    <!-- Telemetry Opt-Out (BUG-0286): tracking runs by
+                         default on anonymized first-party measurement; this
+                         toggle stops it immediately. No cookie banner needed. -->
+                    <div
+                        class="action-card flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
+                    >
+                        <div>
+                            <div class="font-bold text-sm">
+                                {$_("settings.system.telemetry") ||
+                                    "Usage Statistics"}
+                            </div>
+                            <div
+                                class="text-[10px] text-[var(--text-secondary)]"
+                            >
+                                {$_("settings.system.telemetryDesc")}
+                            </div>
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.enableTelemetry}
+                            onchange={handleTelemetryConsent}
+                        />
                     </div>
                 </div>
 

@@ -4,7 +4,7 @@
 
 182 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 18 · 🟡 in-progress 8 · ✅ done 113
+Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 18 · 🟡 in-progress 8 · ✅ done 114
 
 ---
 
@@ -195,7 +195,7 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 18 · 🟡 in-pr
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | security |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | security |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟡 in-progress | security |
-| [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | 📋 specced | core |
+| [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | core |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -357,7 +357,7 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 18 · 🟡 in-pr
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
-| [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |

@@ -1488,6 +1488,8 @@ export type TranslationKey =
   | "settings.system.dataMaintenance"
   | "settings.system.debugMode"
   | "settings.system.debugModeDesc"
+  | "settings.system.telemetry"
+  | "settings.system.telemetryDesc"
   | "settings.system.factoryReset"
   | "settings.system.factoryResetDesc"
   | "settings.system.networkLogs"

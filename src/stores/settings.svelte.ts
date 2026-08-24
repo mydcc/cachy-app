@@ -282,6 +282,14 @@ export interface Settings {
   videoPlaybackSpeed: number;
   galaxySettings: GalaxySettings;
   tradeFlowSettings: TradeFlowSettings;
+  /**
+   * Opt-out switch for behavioural telemetry (BUG-0286). Tracking runs by
+   * default on anonymized, first-party measurement (IP anonymization,
+   * self-hosted at s.cachy.app); turning this off stops every event push
+   * immediately. Because measurement is anonymous and an opt-out exists, no
+   * cookie notice is shown.
+   */
+  enableTelemetry: boolean;
   enableNetworkLogs: boolean;
   logSettings?: {
     technicals: boolean;
@@ -504,6 +512,7 @@ const defaultSettings: Settings = {
     enableGyroscope: false,
     rotationSpeed: 0.1,
   },
+  enableTelemetry: true,
   enableNetworkLogs: false,
   logSettings: {
     technicals: false,
@@ -766,6 +775,7 @@ export class SettingsManager {
   );
   videoPlaybackSpeed = $state<number>(defaultSettings.videoPlaybackSpeed);
   galaxySettings = $state(defaultSettings.galaxySettings);
+  enableTelemetry = $state<boolean>(defaultSettings.enableTelemetry);
   enableNetworkLogs = $state<boolean>(defaultSettings.enableNetworkLogs);
   logSettings = $state(defaultSettings.logSettings);
 
@@ -1478,6 +1488,8 @@ export class SettingsManager {
       ...(merged.tradeFlowSettings || {}),
     };
 
+    this.enableTelemetry =
+      merged.enableTelemetry ?? defaultSettings.enableTelemetry;
     this.enableNetworkLogs =
       merged.enableNetworkLogs ?? defaultSettings.enableNetworkLogs;
 
@@ -1738,6 +1750,7 @@ export class SettingsManager {
       videoPlaybackSpeed: this.videoPlaybackSpeed,
       galaxySettings: $state.snapshot(this.galaxySettings),
       tradeFlowSettings: $state.snapshot(this.tradeFlowSettings),
+      enableTelemetry: this.enableTelemetry,
       enableNetworkLogs: this.enableNetworkLogs,
       logSettings: $state.snapshot(this.logSettings),
       discordBotToken: this.discordBotToken,

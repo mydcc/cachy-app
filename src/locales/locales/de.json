@@ -1422,6 +1422,8 @@
       "networkLogsDesc": "Zeigt API-Verkehr in der Konsole an.",
       "debugMode": "Debug Modus",
       "debugModeDesc": "Erweiterte Logs und Entwickler-Funktionen anzeigen.",
+      "telemetry": "Nutzungsstatistiken",
+      "telemetryDesc": "Hilft bei der Verbesserung von Cachy: Anonyme Nutzungsereignisse (Theme, Marktdaten-Anbieter, Hintergrundstil, offene Fenster, Viewport, Zoom-Stufe, App-Version) gehen an unsere selbst gehostete Matomo-Instanz unter s.cachy.app – mit IP-Anonymisierung, nie Journal, Einstellungen oder API-Schlüssel. Zum Stoppen des Trackings jederzeit deaktivierbar.",
       "clearCache": "Cache leeren",
       "reloadApp": "App neu laden",
       "cacheCleared": "Cache wurde geleert.",
