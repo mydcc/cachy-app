@@ -19,22 +19,12 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../lib/server/urlValidator";
+import {
+  MISSING_BASE_URL_ERROR,
+  resolveBaseUrl,
+  usesConfiguredDefault,
+} from "../../../../lib/server/ollamaBaseUrl";
 import { AiRequestSchema } from "../../../../types/ai";
-
-const DEFAULT_BASE_URL = "http://localhost:11434";
-
-// Same trust boundary as the models route: this is the user's own local (or
-// self-hosted) Ollama instance, never a Cachy-operated server.
-function resolveBaseUrl(raw: string | undefined): string | null {
-  const candidate = raw?.trim() || DEFAULT_BASE_URL;
-  try {
-    const parsed = new URL(candidate);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-    return candidate.replace(/\/$/, "");
-  } catch {
-    return null;
-  }
-}
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -56,6 +46,12 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const { messages, model, baseUrl: rawBaseUrl } = parseResult.data;
     baseUrl = resolveBaseUrl(rawBaseUrl);
     if (!baseUrl) {
+      // Distinguish "nothing configured" from "invalid URL supplied": the
+      // former is an operator setup gap and gets the remedy in the message
+      // (BUG-0295), not a bare rejection.
+      if (usesConfiguredDefault(rawBaseUrl)) {
+        return json({ error: MISSING_BASE_URL_ERROR }, { status: 400 });
+      }
       return json({ error: "Invalid Ollama base URL" }, { status: 400 });
     }
 

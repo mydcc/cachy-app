@@ -106,7 +106,12 @@ describe("Ollama AI Route POST (SSRF Guard)", () => {
     expect(response.status).toBe(200);
   });
 
-  it("rejects omitted baseUrl (defaulting to localhost) with 403 Forbidden", async () => {
+  // BUG-0295: the implicit localhost default is gone. Without a configured
+  // operator default, an omitted baseUrl gets an actionable 400 — not the old
+  // accidental 403.
+  it("answers an omitted baseUrl with a documented remedy when no default is configured", async () => {
+    delete process.env.OLLAMA_PROXY_BASE_URL;
+
     const request = new Request("http://localhost/api/ai/ollama", {
       method: "POST",
       headers: {
@@ -120,9 +125,38 @@ describe("Ollama AI Route POST (SSRF Guard)", () => {
     });
 
     const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(400);
 
     const body = await response.json();
-    expect(body.error).toMatch(/prohibited|forbidden|invalid/i);
+    expect(body.error).toContain("OLLAMA_PROXY_BASE_URL");
+  });
+
+  it("forwards an omitted baseUrl to OLLAMA_PROXY_BASE_URL when configured", async () => {
+    process.env.OLLAMA_PROXY_BASE_URL = "https://ollama.example.com";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("data: {\"response\":\"ok\"}\n\n", {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      }),
+    );
+
+    const request = new Request("http://localhost/api/ai/ollama", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-app-access-token": token,
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "hello" }],
+        model: "llama3",
+      }),
+    });
+
+    try {
+      const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+      expect(response.status).toBe(200);
+    } finally {
+      delete process.env.OLLAMA_PROXY_BASE_URL;
+    }
   });
 });
