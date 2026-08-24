@@ -2,7 +2,9 @@
 id: FEAT-0257
 title: Keep three.js off the startup path behind lazily loaded effect overlays
 type: feature
-status: ready
+status: in-progress
+assignee: opencode
+branch: feat/lazy-threejs-overlays
 priority: P2
 milestone: none
 editions: [community, pro, private]
