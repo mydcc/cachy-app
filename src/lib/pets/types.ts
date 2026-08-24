@@ -44,6 +44,7 @@ export interface DuckDaoState {
     lastActiveDate: string; // ISO-Datum, "YYYY-MM-DD"
     totalFeeds: number;
     achievements: string[];
+    onboardingCompleted?: boolean;
 }
 
 import type { Decimal } from "decimal.js";
@@ -54,6 +55,8 @@ export type DuckTriggerEvent =
     | { type: "trade_loss"; pnl: number | Decimal }
     | { type: "daily_login" }
     | { type: "academy_complete"; lessonId: string }
+    | { type: "onboarding_step"; step: number }
+    | { type: "onboarding_complete" }
     | { type: "pet" };
 
 export interface Achievement {

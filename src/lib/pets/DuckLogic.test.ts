@@ -18,6 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
+import { applyOnboardingReward, ONBOARDING_XP_REWARD } from "./DuckLogic";
 import { DuckState, DUCK_STATE_PRIORITY } from "./types";
 import type { DuckDaoState } from "./types";
 
@@ -95,17 +96,25 @@ describe("checkNewAchievements", () => {
         expect(unlocked).not.toContain("level_10");
     });
 
+    it("should unlock onboarding_completed when onboardingCompleted is true", () => {
+        const state = makeState({ onboardingCompleted: true });
+        const unlocked = checkNewAchievements(state);
+        expect(unlocked).toContain("onboarding_completed");
+    });
+
     it("should unlock multiple achievements at once", () => {
         const state = makeState({
             totalFeeds: 100,
             level: 20,
             currentStreak: 30,
+            onboardingCompleted: true,
         });
         const unlocked = checkNewAchievements(state);
         expect(unlocked).toContain("first_feed");
         expect(unlocked).toContain("hundred_feeds");
         expect(unlocked).toContain("level_20");
         expect(unlocked).toContain("streak_30");
+        expect(unlocked).toContain("onboarding_completed");
     });
 });
 
@@ -199,5 +208,25 @@ describe("Satiety & Spam Rate calculation", () => {
         expect(recent.length).toBe(5);
         const isSpam = recent.length >= 5;
         expect(isSpam).toBe(true);
+    });
+});
+
+describe("applyOnboardingReward", () => {
+    it("grants the one-time XP reward and recomputes the level", () => {
+        const next = applyOnboardingReward({ xp: 40, level: 1 });
+        expect(next.xp).toBe(40 + ONBOARDING_XP_REWARD);
+        expect(next.level).toBe(Math.floor((40 + ONBOARDING_XP_REWARD) / 50) + 1);
+    });
+
+    it("does not grant XP a second time once onboardingCompleted is true", () => {
+        const first = applyOnboardingReward({ xp: 40, level: 1 });
+        const second = applyOnboardingReward({
+            xp: first.xp,
+            level: first.level,
+            onboardingCompleted: true,
+        });
+        // Tour is re-runnable from Settings — repeat completions farm no XP.
+        expect(second.xp).toBe(first.xp);
+        expect(second.level).toBe(first.level);
     });
 });

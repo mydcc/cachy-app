@@ -33,6 +33,24 @@ const STORAGE_KEY = "duck_dao_state";
 const XP_PER_LEVEL = 50;
 const SLEEP_AFTER_SECONDS = 300; // 5 Minuten Inaktivität
 
+/** One-time reward for completing the onboarding tour (FEAT-0301). */
+export const ONBOARDING_XP_REWARD = 25;
+
+/**
+ * Pure XP/level transition for the onboarding reward — testable without a
+ * THREE.Scene. A repeat completion must not farm XP again: the tour is
+ * re-runnable from Settings at any time.
+ */
+export function applyOnboardingReward(state: {
+    xp: number;
+    level: number;
+    onboardingCompleted?: boolean;
+}): { xp: number; level: number } {
+    if (state.onboardingCompleted) return { xp: state.xp, level: state.level };
+    const xp = state.xp + ONBOARDING_XP_REWARD;
+    return { xp, level: Math.floor(xp / XP_PER_LEVEL) + 1 };
+}
+
 export class DuckLogic {
     private scene: THREE.Scene;
     private group: THREE.Group;
@@ -64,6 +82,7 @@ export class DuckLogic {
     private lastActiveDate = "";
     private totalFeeds = 0;
     private achievements: string[] = [];
+    private onboardingCompleted = false;
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -89,6 +108,7 @@ export class DuckLogic {
                 this.lastActiveDate = data.lastActiveDate ?? "";
                 this.totalFeeds = data.totalFeeds ?? 0;
                 this.achievements = data.achievements ?? [];
+                this.onboardingCompleted = data.onboardingCompleted ?? false;
             } catch (e) {
                 console.error("DuckLogic: Failed to load duck state", e);
             }
@@ -108,6 +128,7 @@ export class DuckLogic {
             lastActiveDate: this.lastActiveDate,
             totalFeeds: this.totalFeeds,
             achievements: this.achievements,
+            onboardingCompleted: this.onboardingCompleted,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
@@ -144,6 +165,7 @@ export class DuckLogic {
             lastActiveDate: this.lastActiveDate,
             totalFeeds: this.totalFeeds,
             achievements: this.achievements,
+            onboardingCompleted: this.onboardingCompleted,
         };
         const newlyUnlocked = checkNewAchievements(currentState);
         if (newlyUnlocked.length > 0) {
@@ -237,6 +259,28 @@ export class DuckLogic {
                 this.level = Math.floor(this.xp / XP_PER_LEVEL) + 1;
                 this.transitionTo(DuckState.CELEBRATING, 1.5);
                 this.updateAppearance();
+                this.saveState();
+                break;
+            }
+            case "onboarding_step": {
+                this.transitionTo(DuckState.PETTING, 1.2);
+                break;
+            }
+            case "onboarding_complete": {
+                // One-time reward — see applyOnboardingReward.
+                if (!this.onboardingCompleted) {
+                    const next = applyOnboardingReward({
+                        xp: this.xp,
+                        level: this.level,
+                    });
+                    if (next.level > this.level) {
+                        this.updateAppearance();
+                    }
+                    this.xp = next.xp;
+                    this.level = next.level;
+                }
+                this.onboardingCompleted = true;
+                this.transitionTo(DuckState.CELEBRATING, 3.0);
                 this.saveState();
                 break;
             }

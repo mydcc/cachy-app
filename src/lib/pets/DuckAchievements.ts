@@ -72,6 +72,12 @@ export const DUCK_ACHIEVEMENTS: Achievement[] = [
         descriptionKey: "duck.achievements.level_20_desc",
         condition: (s: DuckDaoState) => s.level >= 20,
     },
+    {
+        id: "onboarding_completed",
+        nameKey: "duck.achievements.onboarding_completed_name",
+        descriptionKey: "duck.achievements.onboarding_completed_desc",
+        condition: (s: DuckDaoState) => s.onboardingCompleted === true,
+    },
 ];
 
 /**
