@@ -2,7 +2,9 @@
 id: BUG-0295
 title: Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/bug-0295-ollama-env-base-url
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -53,53 +55,42 @@ default. The default path (no `baseUrl`) was not given an explicit
 decision: it neither got documented as "no longer supported via hosted
 Cachy" nor a deliberate replacement.
 
-## Fix (proposal — decision needed)
+## Fix (decision: Option B, chosen 2026-08-24 by the user)
 
-Two options; **Option B is recommended** because it keeps the default
-path working for exactly the audience that needs it without reopening
-the SSRF hole:
+Option B is implemented: make the implicit default explicit.
 
-- **Option A — document only:** document that hosted Cachy + local
-  Ollama requires an explicitly configured baseUrl reachable from the
-  *server* (LAN IP / hostname, not localhost); update the AI settings
-  copy/hints and release notes; pin `no-baseUrl → 403` in a test so the
-  behaviour is at least intentional.
-
-- **Option B — explicit handling of the default path (recommended):**
-  make the implicit default explicit:
-  1. Introduce an operator-configured default (e.g. env
-     `OLLAMA_PROXY_BASE_URL`, read server-side). Requests **without**
-     `baseUrl` resolve to it instead of the hardcoded loopback literal;
-     it is validated by the same reserved-IP filter, so an operator can
-     point it at a LAN-reachable Ollama while loopback stays blocked by
-     default.
-  2. When no operator default is configured, respond to no-`baseUrl`
-     requests with a clear error explaining why the default was removed
-     and what to configure (not a bare 403).
-  3. Tests: no-baseUrl + unset env → documented error; no-baseUrl +
-     env pointing at a public host → forwarded; explicit loopback → 403
-     unchanged.
-  4. Remove or rework the now-unreachable `isLocalhost` hint branch.
-
-Rejected alternative: allowlisting loopback for the Ollama routes —
-would reintroduce SSRF against the most sensitive target class
-(metadata services, internal admin panels).
+1. `src/lib/server/ollamaBaseUrl.ts` — shared resolver for both routes.
+   Requests **without** `baseUrl` resolve to env `OLLAMA_PROXY_BASE_URL`
+   (read server-side via `$env/dynamic/private`) instead of the removed
+   loopback literal; the value passes through the same reserved-IP filter
+   (`isUrlAllowed`/`isUrlAllowedAsync`), so an operator can point it at a
+   LAN-reachable Ollama while loopback stays blocked even via env.
+2. With no operator default configured, no-`baseUrl` requests get a 400 whose
+   message explains why the default was removed and what to configure
+   (documented in `.env.example` too).
+3. Tests: no-baseUrl + unset env → documented error; no-baseUrl + env pointing
+   at an allowed host → forwarded; explicit loopback → 403 unchanged; operator
+   default pointing at loopback → 403 (guard never bypassed). Legacy tests that
+   pinned the accidental 403 were updated to the intended contract.
+4. The stale `isLocalhost` hint branch named in the Symptom section no longer
+   exists on develop (the catch block only carries the generic reachability
+   hint) — nothing left to remove.
 
 ## Acceptance criteria
 
-- [ ] The no-`baseUrl` behaviour of `/api/ai/ollama` and
-      `/api/ai/ollama/models` is pinned by tests (whichever way the
-      decision lands)
-- [ ] Self-hosted operators have a working, documented path to use
-      Ollama through the proxy (env-configured default under Option B),
-      or clear documentation that they must pass an explicit reachable
-      baseUrl (Option A)
-- [ ] Error responses for the blocked default path explain the cause and
+- [x] The no-`baseUrl` behaviour of `/api/ai/ollama` and
+      `/api/ai/ollama/models` is pinned by tests (Option B: unset env →
+      documented 400, env set → forwarded, legacy accidental-403 tests updated)
+- [x] Self-hosted operators have a working, documented path to use
+      Ollama through the proxy (`OLLAMA_PROXY_BASE_URL`, documented in
+      `.env.example`)
+- [x] Error responses for the blocked default path explain the cause and
       remedy instead of a bare 403 message
-- [ ] Explicit loopback/reserved-IP URLs remain rejected with 403
-      (BUG-0291 regression test stays green)
-- [ ] The unreachable `isLocalhost` hint branch is removed or made
-      reachable again
+- [x] Explicit loopback/reserved-IP URLs remain rejected with 403
+      (BUG-0291 regression tests stay green; operator default pointing at
+      loopback is also rejected)
+- [x] The unreachable `isLocalhost` hint branch is removed or made
+      reachable again — already absent on develop; nothing to change
 
 ## Out of scope
 

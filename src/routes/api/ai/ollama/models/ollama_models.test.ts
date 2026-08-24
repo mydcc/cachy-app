@@ -103,16 +103,46 @@ describe("Ollama Models Route GET", () => {
     expect(body.models).toEqual([{ id: "llama3:latest", label: "llama3:latest" }]);
   });
 
-  it("rejects omitted baseUrl query param (defaulting to localhost) with 403 Forbidden", async () => {
+  // BUG-0295: the implicit localhost default is gone. Without a configured
+  // operator default, an omitted baseUrl gets an actionable 400 — not the old
+  // accidental 403.
+  it("answers an omitted baseUrl query param with a documented remedy when no default is configured", async () => {
+    delete process.env.OLLAMA_PROXY_BASE_URL;
+
     const url = new URL("http://localhost/api/ai/ollama/models");
     const request = new Request(url, {
       headers: { "x-app-access-token": token },
     });
 
     const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(400);
 
     const body = await response.json();
-    expect(body.error).toMatch(/prohibited|forbidden|invalid/i);
+    expect(body.error).toContain("OLLAMA_PROXY_BASE_URL");
+  });
+
+  it("forwards an omitted baseUrl to OLLAMA_PROXY_BASE_URL when configured", async () => {
+    process.env.OLLAMA_PROXY_BASE_URL = "https://ollama.example.com";
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ models: [{ name: "llama3:latest" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const url = new URL("http://localhost/api/ai/ollama/models");
+    const request = new Request(url, {
+      headers: { "x-app-access-token": token },
+    });
+
+    try {
+      const response = await GET({ request, url, getClientAddress } as unknown as Parameters<typeof GET>[0]);
+      expect(response.status).toBe(200);
+
+      const body = await response.json();
+      expect(body.models).toEqual([{ id: "llama3:latest", label: "llama3:latest" }]);
+    } finally {
+      delete process.env.OLLAMA_PROXY_BASE_URL;
+    }
   });
 });
