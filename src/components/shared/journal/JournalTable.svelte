@@ -151,6 +151,16 @@
         return list.slice(Math.max(0, start), Math.min(list.length, end));
     });
 
+    let sortedGroupTrades = $derived.by(() => {
+        const map = new Map<string, JournalEntry[]>();
+        for (const item of paginatedTrades) {
+            if (isGroupRow(item) && expandedGroups.has(item.symbol) && item.trades) {
+                map.set(item.symbol, sortTradesList(item.trades, internalSortField, internalSortDirection));
+            }
+        }
+        return map;
+    });
+
     function handleMainSort(field: string) {
         onSort?.(field);
     }
@@ -754,7 +764,7 @@
 
                         <!-- Sub-rows when group is expanded -->
                         {#if isGroup && expandedGroups.has(item.symbol) && (item as JournalGroupSummary).trades}
-                            {#each sortTradesList((item as JournalGroupSummary).trades, internalSortField, internalSortDirection) as subTrade (subTrade.id)}
+                            {#each sortedGroupTrades.get(item.symbol) || [] as subTrade (subTrade.id)}
                                 {@const subPnl = subTrade.totalNetProfit || subTrade.realizedPnl || new Decimal(0)}
                                 <tr
                                     class="nested-trade-row cursor-pointer transition-colors"

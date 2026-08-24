@@ -3750,7 +3750,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0261",
     "title": "Hoist JournalTable group sorting out of the each expression into derived state",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "Jules",
     "priority": "P3",
     "milestone": "none",
     "editions": [
