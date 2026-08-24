@@ -2,7 +2,8 @@
 id: FEAT-0261
 title: Hoist JournalTable group sorting out of the each expression into derived state
 type: feature
-status: ready
+status: done
+assignee: Jules
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -34,9 +35,9 @@ rows.
 
 ## Acceptance criteria
 
-- [ ] No function call that sorts inside any `{#each}` expression in the file.
-- [ ] Visible ordering behavior unchanged (component test evidence).
-- [ ] `npm run check` and `JournalTable.component.test.ts` pass.
+- [x] No function call that sorts inside any `{#each}` expression in the file.
+- [x] Visible ordering behavior unchanged (component test evidence).
+- [x] `npm run check` and `JournalTable.component.test.ts` pass.
 
 ## Out of scope
 
