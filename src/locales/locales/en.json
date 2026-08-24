@@ -1073,6 +1073,8 @@
     "intervalLabel": "Check Frequency (in seconds)",
     "autoUpdatePrice": "Auto-update Price",
     "showSidebars": "Show Sidebars",
+    "showTooltips": "Show Tooltips",
+    "showTooltipsDesc": "Display helpful descriptions and explanations on hover",
     "enableSidePanel": "Enable Side Panel (AI/Notes)",
     "sidePanelMode": "Side Panel Mode",
     "modeNotes": "My Notes",

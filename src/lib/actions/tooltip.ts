@@ -26,6 +26,7 @@ import {
 } from "@floating-ui/dom";
 
 import DOMPurify from "dompurify";
+import { settingsState } from "../../stores/settings.svelte";
 
 export interface TooltipOptions {
   content: string;
@@ -77,6 +78,7 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
   }
 
   function createTooltip() {
+    if (!settingsState.showTooltips) return;
     if (tooltipElement) return;
 
     tooltipElement = document.createElement("div");
@@ -246,6 +248,7 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
   }
 
   function onMouseEnter() {
+    if (!settingsState.showTooltips) return;
     if (config.delay) {
       timer = setTimeout(createTooltip, config.delay);
     } else {
