@@ -7,12 +7,14 @@ on:
     types: [created]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    # Doc-only PRs (backlog audits, markdown edits) get no automated agent
-    # review — it burns tokens without any code to check. Human reviewers can
-    # still read those diffs themselves.
+    # Doc-only PRs (backlog audits, markdown edits), CI-only PRs and pure
+    # lockfile bumps get no automated agent review — it burns tokens without
+    # any code to check. Human reviewers can still read those diffs themselves.
     paths-ignore:
       - "docs/**"
       - "**.md"
+      - ".github/**"
+      - "package-lock.json"
   # Weekly maintenance scan (needs its own prompt job, see "scheduled").
   schedule:
     - cron: "0 9 * * 1"
@@ -31,7 +33,7 @@ on:
 env:
   OPENCODE_MODEL: opencode/big-pickle
   OPENCODE_MODEL_FALLBACK_1: opencode/nemotron-3-ultra-free
-  OPENCODE_MODEL_FALLBACK_2: opencode/x-preview-f-free
+  OPENCODE_MODEL_FALLBACK_2: opencode/laguna-s-2.1-free
   REVIEW_PROMPT: |
     Review this pull request using the Cachy review checklist:
     - If the PR links a backlog item (Fixes #NNN), read docs/backlog/ and
@@ -85,8 +87,9 @@ jobs:
        startsWith(github.event.comment.body, '/opencode'))
     runs-on: ubuntu-latest
     # Hard stop: an unattended agent stuck on a decision must never burn
-    # runner minutes until the default 6h timeout.
-    timeout-minutes: 15
+    # runner minutes until the default 6h timeout. The budget covers up to
+    # three fallback attempts; fast model failures (429/503) leave ample room.
+    timeout-minutes: 35
     # Serialize interactive runs: two parallel /oc calls would push to the same
     # branches. Queued, never cancelled.
     concurrency:
@@ -99,7 +102,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -170,7 +173,7 @@ jobs:
       github.event.pull_request.draft != true &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     # Per-PR group: rapid push sequences cancel the stale review instead of
     # spending tokens/minutes on an outdated diff.
     concurrency:
@@ -183,7 +186,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -272,7 +275,7 @@ jobs:
   scheduled:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     concurrency:
       group: opencode-scheduled
       cancel-in-progress: false
@@ -283,7 +286,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -343,7 +346,7 @@ jobs:
   manual:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     concurrency:
       group: opencode-manual
       cancel-in-progress: false
@@ -354,7 +357,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
