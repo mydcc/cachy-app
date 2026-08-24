@@ -2,7 +2,8 @@
 id: FEAT-0254
 title: Give TP/SL price entry a range slider and PnL/ROI/Change modes
 type: feature
-status: ready
+status: done
+assignee: jules
 branch: feat/feat-0254-tpsl-range-slider
 priority: P1
 milestone: M3
@@ -92,32 +93,32 @@ adding a second slider implementation to the chart's own drag handler.
 
 ## Acceptance criteria
 
-- [ ] `RangeSlider` is keyboard-operable (arrow keys move by one tick),
+- [x] `RangeSlider` is keyboard-operable (arrow keys move by one tick),
       touch-operable, and snaps to its configured tick marks; every value it
       emits is a `Decimal` rounded to the symbol's tick size, never a raw
       `number`.
-- [ ] `TpSlPriceInput` offers By PnL / By ROI / By Change tabs; switching
+- [x] `TpSlPriceInput` offers By PnL / By ROI / By Change tabs; switching
       tabs recomputes the trigger price live from the same entry price,
       leverage and side, and long vs. short flips the sign correctly for all
       three modes.
-- [ ] Moving the slider and typing in the number field stay in sync in both
+- [x] Moving the slider and typing in the number field stay in sync in both
       directions — neither one goes stale while the other changes.
-- [ ] The trigger price the component displays and the trigger price
+- [x] The trigger price the component displays and the trigger price
       `TpSlEditModal` actually submits to `modifyTpSlOrder` are the same
       `Decimal` value — no independent re-derivation between display and
       submit (the same discipline `FEAT-0011`'s gate already expects
       elsewhere).
-- [ ] The component works both as a single position-wide input and inside a
+- [x] The component works both as a single position-wide input and inside a
       list of multiple partial (quantity-scoped) legs, without a rewrite —
       this item guarantees the input behaves correctly either way; which
       screen offers which is `FEAT-0070`'s decision, not this item's.
-- [ ] Unit tests cover the PnL/ROI/Change formulas against documented worked
+- [x] Unit tests cover the PnL/ROI/Change formulas against documented worked
       examples (long and short) and slider snap-to-tick-size rounding.
-- [ ] A component test confirms `TpSlEditModal` mounted with the new input
+- [x] A component test confirms `TpSlEditModal` mounted with the new input
       still saves correctly (replaces the current plain-number-field test).
-- [ ] German and English strings for every new label, tab and validation
+- [x] German and English strings for every new label, tab and validation
       message.
-- [ ] `npm run check` passes; all styling via CSS variables — no hardcoded
+- [x] `npm run check` passes; all styling via CSS variables — no hardcoded
       colors (20+ theme requirement).
 
 ## Out of scope

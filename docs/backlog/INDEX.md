@@ -4,7 +4,7 @@
 
 182 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 15 · 🟡 in-progress 9 · ✅ done 116
+Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 14 · 🟡 in-progress 9 · ✅ done 117
 
 ---
 
@@ -80,7 +80,7 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 15 · 🟡 in-pr
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | exchange |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | execution |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | ✅ done | execution |
-| [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | 🟢 ready | trade-panel |
+| [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | trade-panel |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | 🟢 ready | trade-panel |
 | [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | trade-panel |
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | trade-panel |
@@ -319,7 +319,7 @@ Counts by status: 💡 idea 18 · 📋 specced 24 · 🟢 ready 15 · 🟡 in-pr
 | [FEAT-0242](features/FEAT-0242-structured-function-calling.md) | Replace regex-based JSON action parsing with structured function calling | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0245](features/FEAT-0245-prompt-templating-versioning.md) | Centralize prompt templating and versioning | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | ✅ done | M2 | community, pro, private | A | none | — |
-| [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | 🟢 ready | M3 | community, pro, private | none | ADR-0010 | — |
+| [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | M3 | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | 🟢 ready | M3 | community, pro, private | none | none | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
