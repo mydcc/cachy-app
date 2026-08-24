@@ -2,9 +2,8 @@
 id: BUG-0295
 title: Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/bug-0295-ollama-env-base-url
+status: done
+shipped: v1.6.0-beta.126 (PR #2259)
 priority: P3
 milestone: none
 editions: [community, pro, private]
