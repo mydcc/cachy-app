@@ -91,3 +91,7 @@ rather than folding an unbounded scope into a P3 fix. Filed as
 - [`BUG-0076`](BUG-0076-indicatorsettings-hardcoded-strings.md) — follow-up
   for `IndicatorSettings.svelte`'s remaining hardcoded strings, found during
   this item's sweep
+
+## What shipped
+
+Shipped in 1.3.0-beta.8.

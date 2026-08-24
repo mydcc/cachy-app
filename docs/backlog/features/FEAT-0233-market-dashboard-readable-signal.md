@@ -97,3 +97,7 @@ among favourites, not a recommended trade.
 
 - `docs/backlog/bugs/BUG-0230-market-analyst-fetch-storm.md`
 - `docs/backlog/bugs/BUG-0232-divergent-favourites-stores.md`
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

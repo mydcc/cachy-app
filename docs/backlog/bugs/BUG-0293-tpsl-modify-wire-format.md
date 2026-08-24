@@ -117,3 +117,7 @@ visible against the API documentation, not from inside the app.
 - [`BUG-0292`](BUG-0292-tpsl-plans-never-typed-for-bitunix.md) — the read-side sibling of this write-side bug
 - [`06_tp_sl.md`](../../bitunix-api/06_tp_sl.md) — the documented request shape
 - `src/services/orderGate.ts` — `checkPrices`, the displayed-vs-wire comparison this bypassed
+
+## What shipped
+
+Shipped in 1.6.0-beta.108.

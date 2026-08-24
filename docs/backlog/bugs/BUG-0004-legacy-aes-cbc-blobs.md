@@ -107,3 +107,7 @@ applying the fix. `npm run check` and the full `cryptoService`/
 - `src/services/cryptoService.test.ts` — `describe("CryptoService — legacy
   AES-CBC blobs (BUG-0004)")`
 - `src/services/__fixtures__/legacy-aes-cbc-blob.json`
+
+## What shipped
+
+Shipped in 1.2.0-beta.15.

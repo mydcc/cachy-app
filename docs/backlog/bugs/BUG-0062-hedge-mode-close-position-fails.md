@@ -115,3 +115,7 @@ so even a correct `mapToOMSPosition()` would have had nothing to map.
 - `src/routes/api/orders/+server.ts`
 - `src/components/shared/PositionsSidebar.svelte` — `handleClosePosition()`
 - `docs/bitunix-api/07_trade.md:564-619` ("Place Order")
+
+## What shipped
+
+Shipped in 1.2.0-beta.35.

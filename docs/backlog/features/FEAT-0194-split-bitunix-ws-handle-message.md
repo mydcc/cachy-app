@@ -114,3 +114,7 @@ as the contract for the extracted parser.
 - [`FEAT-0190`](FEAT-0190-epic-split-god-functions.md) — parent epic and shared rules
 - [`FEAT-0016`](FEAT-0016-exchange-adapter-interface.md) — the interface this split anticipates
 - [`docs/adr/0003-edition-boundary.md`](../../adr/0003-edition-boundary.md)
+
+## What shipped
+
+Shipped in 1.6.0-beta.20.

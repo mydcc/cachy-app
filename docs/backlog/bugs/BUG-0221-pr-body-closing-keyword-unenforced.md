@@ -130,3 +130,7 @@ Different rule, not a relaxation of the first.
   sibling check for commit messages, left as it was
 - `CLAUDE.md`, `AGENTS.md` — the `Fixes #<issue>` requirement and the
   closing-keyword convention this item now enforces rather than merely states
+
+## What shipped
+
+Shipped in 1.6.0-beta.56.

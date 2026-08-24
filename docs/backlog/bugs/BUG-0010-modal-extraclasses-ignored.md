@@ -100,3 +100,7 @@ test fails against the pre-fix code before making it pass.
 
 - [`docs/TODO.md`](../../TODO.md) item 15
 - `src/stores/modal.svelte.ts`, `src/services/uiManager.ts`
+
+## What shipped
+
+Shipped in back-merge main into develop.

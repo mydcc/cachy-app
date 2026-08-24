@@ -2,8 +2,7 @@
 id: BUG-0266
 title: DashboardNav renders preset.icon through unsanitized {@html}
 type: bug
-status: in-progress
-assignee: opencode
+status: done
 branch: fix/bug-0266-sanitize-nav-icon
 priority: P3
 milestone: none
@@ -50,3 +49,7 @@ Icon-authoring features (none exist). Other `{@html}` sites — audited clean.
 
 - `src/components/shared/DashboardNav.svelte`, `src/components/shared/Icon.svelte`
 - Security audit 2026-08-23, finding "unsanitized {@html preset.icon} component contract" (Low)
+
+## What shipped
+
+Shipped in 1.6.0-beta.137.

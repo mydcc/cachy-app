@@ -84,3 +84,7 @@ this fix, and closing a position is not the place to bundle one.
 - [`BUG-0215`](BUG-0215-order-refusal-placeholders.md) — the same symptom from a
   different cause (values discarded in transit rather than never passed), found
   the same day
+
+## What shipped
+
+Shipped in 1.6.0-beta.53.

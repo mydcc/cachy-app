@@ -52,3 +52,7 @@ Crucial information was moved into a tooltip to save space in the list view, but
 - Changes to order tooltips (`OrderDetailsTooltip`) or chart tooltips.
 
 ## Links
+
+## What shipped
+
+Shipped in 1.6.0-beta.102.

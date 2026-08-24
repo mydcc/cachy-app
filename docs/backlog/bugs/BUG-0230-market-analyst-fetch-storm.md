@@ -133,3 +133,7 @@ scoring, and `BUG-0218`'s `markPrice` work, which remains a separate defect.
 ## Links
 
 - `docs/backlog/bugs/BUG-0218-open-positions-price-sync-stall.md`
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

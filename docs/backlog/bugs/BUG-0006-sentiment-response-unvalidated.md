@@ -83,3 +83,7 @@ confirmed to fail against the pre-fix code (temporarily reverting
 
 - [`docs/TODO.md`](../../TODO.md) item 7
 - `src/services/newsService.ts` — `analyzeSentiment()`
+
+## What shipped
+
+Shipped in 1.3.0-beta.10.

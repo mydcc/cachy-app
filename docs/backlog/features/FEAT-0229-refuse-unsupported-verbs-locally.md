@@ -148,3 +148,7 @@ the first line of defence; this item is the second and must work without it.
 - [`ADR-0008`](../../adr/0008-refuse-unsupported-verbs-before-they-travel.md) — the decision this item implements
 - [`ADR-0007`](../../adr/0007-exchange-adapter-boundary.md) — why FEAT-0016 declared the gap without acting on it
 - `src/services/exchange/bitgetAdapter.ts` — the seam is marked in the file
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

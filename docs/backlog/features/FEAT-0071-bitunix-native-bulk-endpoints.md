@@ -69,3 +69,7 @@ the WS channels remain the source of truth for final state.
 
 - [`docs/bitunix-api/INTEGRATION_STATUS.md`](../../bitunix-api/INTEGRATION_STATUS.md)
 - [`docs/bitunix-api/07_trade.md`](../../bitunix-api/07_trade.md)
+
+## What shipped
+
+Shipped in 1.6.0-beta.25.

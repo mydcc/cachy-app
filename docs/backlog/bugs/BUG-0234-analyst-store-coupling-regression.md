@@ -111,3 +111,7 @@ visible UI outranks request count.
 
 - `docs/backlog/bugs/BUG-0230-market-analyst-fetch-storm.md`
 - `docs/adr/0009-candle-depth-and-background-store-isolation.md`
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

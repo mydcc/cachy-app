@@ -79,3 +79,7 @@ When a user has open positions, the mark price (`→ Mark Price`), live unrealiz
 
 - Direct exchange order execution logic (covered by OMS/RMS).
 - Historical PnL reporting (handled by Journal).
+
+## What shipped
+
+Shipped in 1.6.0-beta.66.

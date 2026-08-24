@@ -74,3 +74,7 @@ Prompt-engineering quality of the context payload.
 - [`docs/adr/0001-local-first-boundary.md`](../../adr/0001-local-first-boundary.md)
 - `src/stores/ai.svelte.ts`, `src/routes/api/ai/*`
 - Security audit 2026-08-23, finding "journal/portfolio transmitted to third-party AI providers" (High)
+
+## What shipped
+
+Shipped in 1.6.0-beta.116.

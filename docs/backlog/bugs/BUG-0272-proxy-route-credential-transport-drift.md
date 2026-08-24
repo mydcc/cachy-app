@@ -2,8 +2,7 @@
 id: BUG-0272
 title: Proxy routes drift on credential transport schema validation and error redaction
 type: bug
-status: in-progress
-assignee: antigravity
+status: done
 branch: fix-bug-0272
 priority: P2
 milestone: none
@@ -88,3 +87,7 @@ closed first.
 - Reference: `src/routes/api/orders/+server.ts`
 - Security audit 2026-08-23 (identity & access review), findings
   "inconsistent credential transport" and "unredacted route error logging"
+
+## What shipped
+
+Shipped in 1.6.0-beta.112.

@@ -67,3 +67,7 @@ In `src/routes/api/ai/gemini/+server.ts`, for models matching `"gemma"`, the sys
 
 - Epic: [`FEAT-0239`](../features/FEAT-0239-epic-ai-prompt-architecture.md)
 - GitHub Issue: #2072
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

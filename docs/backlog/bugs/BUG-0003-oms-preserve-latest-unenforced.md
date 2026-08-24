@@ -70,3 +70,7 @@ in practice. Safe Prune (removing finalized orders first) is unchanged.
 
 - [`docs/TODO.md`](../../TODO.md) item 14
 - `src/services/omsService.ts` — `pruneOrders()`
+
+## What shipped
+
+Shipped in 1.2.0-beta.16.

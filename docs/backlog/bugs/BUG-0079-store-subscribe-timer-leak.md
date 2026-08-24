@@ -125,3 +125,7 @@ Remove `private notifyTimer` from these stores.
 
 - N/A
 
+
+## What shipped
+
+Shipped in 1.6.0-beta.12.

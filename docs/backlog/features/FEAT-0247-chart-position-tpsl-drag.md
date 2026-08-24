@@ -93,3 +93,7 @@ flowchart TD
 - [`FEAT-0017`](FEAT-0017-exchange-capability-model.md)
 - [`FEAT-0020`](FEAT-0020-account-settings-panel.md)
 - [`FEAT-0070`](FEAT-0070-bitunix-tpsl-placement.md)
+
+## What shipped
+
+Shipped in 1.6.0-beta.93.

@@ -63,3 +63,7 @@ Update `src/routes/api/stream-logs/+server.ts` to compute SHA-256 digests of `se
 
 - `src/routes/api/stream-logs/+server.ts`
 - `src/lib/server/auth.ts`
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

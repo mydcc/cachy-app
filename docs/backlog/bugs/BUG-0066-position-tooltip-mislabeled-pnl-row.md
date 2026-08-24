@@ -77,3 +77,7 @@ undocumented UI, flagged by the same report.
 - `src/components/shared/PositionTooltip.svelte`
 - `src/components/shared/PositionsList.svelte` — `togglePnlMode()`
 - `src/locales/locales/en.json`, `de.json` — `positionsList.*`
+
+## What shipped
+
+Shipped in 1.2.0-beta.38.

@@ -90,3 +90,7 @@ ever reconciled them, and the analyst happened to read the smaller one.
 ## Links
 
 - `docs/backlog/bugs/BUG-0230-market-analyst-fetch-storm.md`
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

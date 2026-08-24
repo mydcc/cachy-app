@@ -61,3 +61,7 @@ Refactor prompt assembly into an additive architecture:
 
 - Epic: [`FEAT-0239`](../features/FEAT-0239-epic-ai-prompt-architecture.md)
 - GitHub Issue: #2070
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

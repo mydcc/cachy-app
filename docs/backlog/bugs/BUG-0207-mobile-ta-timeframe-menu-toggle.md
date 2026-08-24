@@ -41,3 +41,7 @@ Likely a state management issue with the dropdown/menu component on touch device
 - [x] On mobile, the TA timeframe menu can be opened, a selection made, and then immediately reopened without needing to tap outside first.
 
 ## Links
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

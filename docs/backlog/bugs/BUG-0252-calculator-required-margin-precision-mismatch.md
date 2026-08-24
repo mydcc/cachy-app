@@ -67,3 +67,7 @@ whenever rounding actually changed the size. `breakEvenPrice` and
 
 - `src/lib/calculators/core.ts` (`deriveMoneyMetrics`, `calculateBaseMetrics`)
 - `src/services/calculatorService.ts`
+
+## What shipped
+
+Shipped in 1.6.0-beta.100.

@@ -251,3 +251,7 @@ Three, each with a reason:
 - [`FEAT-0016`](FEAT-0016-exchange-adapter-interface.md)
 - [`FEAT-0229`](FEAT-0229-refuse-unsupported-verbs-locally.md)
 - [`FEAT-0020`](FEAT-0020-account-settings-panel.md) — the main consumer
+
+## What shipped
+
+Shipped in 1.6.0-beta.135.

@@ -132,3 +132,7 @@ change is always the one generated file.
 - `.github/workflows/audit.yml`, `.github/workflows/sync-backlog.yml`
 - `docs/backlog/README.md`, `CLAUDE.md`, `docs/README.md`
 - PR #2025, PR #2026 — the concrete parallel-work incident that surfaced this
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

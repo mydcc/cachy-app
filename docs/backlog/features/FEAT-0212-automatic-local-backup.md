@@ -115,3 +115,7 @@ encryption format rather than inventing a second one:
   — Class A boundary this item stays inside
 - [`IDEA-0189`](../ideas/IDEA-0189-user-operated-sync.md) — why a remote
   target needs its own ADR, ruled out of scope here for the same reason
+
+## What shipped
+
+Shipped in 1.6.0-beta.51.

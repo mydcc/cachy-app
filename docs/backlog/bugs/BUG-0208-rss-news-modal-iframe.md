@@ -44,3 +44,7 @@ The links in the RSS feed are likely rendered as standard `<a>` tags with `targe
 - [x] If the iframe is blocked, a clear fallback to open the link in a new tab is provided.
 
 ## Links
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.

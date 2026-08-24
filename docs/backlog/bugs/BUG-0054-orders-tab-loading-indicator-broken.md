@@ -93,3 +93,7 @@ conflating "list is empty" with "nothing is loading" in the loading UI.
 - `src/components/shared/PositionsSidebar.svelte`
 - `src/components/shared/OpenOrdersList.svelte`
 - `src/stores/account.svelte.ts` — `hydrateOpenOrders()`
+
+## What shipped
+
+Shipped in 1.2.0-beta.30.

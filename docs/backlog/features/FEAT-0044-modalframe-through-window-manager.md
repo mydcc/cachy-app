@@ -190,3 +190,7 @@ Escape/legacy-field logic itself) is covered by the new unit tests.
 - `src/components/shared/windows/WindowFrame.svelte:713,351-378`
 - `src/routes/+page.svelte:203`
 - `src/themes.css:3029-3060`
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

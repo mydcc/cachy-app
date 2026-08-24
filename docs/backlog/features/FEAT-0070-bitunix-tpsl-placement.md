@@ -89,3 +89,7 @@ WS/refetch, not the REST response alone.
 - [`docs/bitunix-api/06_tp_sl.md`](../../bitunix-api/06_tp_sl.md)
 - [`FEAT-0069`](FEAT-0069-bitunix-place-order-completion.md) — atomic TP/SL at
   entry; this item covers the after-entry case
+
+## What shipped
+
+Shipped in 1.6.0-beta.108.

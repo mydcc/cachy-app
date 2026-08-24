@@ -97,3 +97,7 @@ if (import.meta.hot) {
 ## Links
 
 - N/A
+
+## What shipped
+
+Shipped in 1.6.0-beta.8.

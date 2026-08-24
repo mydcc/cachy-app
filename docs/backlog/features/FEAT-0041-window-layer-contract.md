@@ -122,3 +122,7 @@ place among floating surfaces.
 - `src/components/shared/ToastContainer.svelte:39`, `FXOverlay.svelte:528`
 - `src/components/shared/OfflineBanner.svelte:50`, `DisclaimerModal.svelte:42`
 - `src/components/settings/HotkeySettings.svelte:191`
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

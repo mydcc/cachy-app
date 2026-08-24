@@ -87,3 +87,7 @@ unchanged.
 - `src/stores/market.svelte.ts` — `updateSymbol()`, `applyUpdate()`
 - `src/services/bitunixWs.ts:930-970` — price channel handler
 - `docs/backlog/bugs/BUG-0055-position-mark-price-always-zero.md`
+
+## What shipped
+
+Shipped in 1.2.0-beta.37.

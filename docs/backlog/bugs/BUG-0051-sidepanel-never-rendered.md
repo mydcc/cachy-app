@@ -90,3 +90,7 @@ sub-panels — the component was complete, only unreachable.
 - `src/components/shared/SidePanel.svelte:267`
 - `src/components/settings/tabs/VisualsTab.svelte:610`
 - `src/stores/settings.svelte.ts:181,362,587`
+
+## What shipped
+
+Shipped in 1.2.0-beta.6.

@@ -38,3 +38,7 @@ The user suspected a naming conflict because the favorite tiles have the class `
 
 ## Out of Scope
 - Major architectural changes to `MarketWatcher` or `SubscriptionRegistry` (these should remain as they are unless fundamentally broken).
+
+## What shipped
+
+Shipped in merge main into develop for release 1.6.1.
