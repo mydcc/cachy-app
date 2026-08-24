@@ -2249,6 +2249,10 @@ export type TranslationKey =
   | "orderGate.fields.takeProfit"
   | "orderGate.riskLimitDailyLoss"
   | "orderGate.riskLimitUnmeasurable"
+  | "orderGate.unsupportedOrderType"
+  | "orderGate.unsupportedTimeInForce"
+  | "orderGate.unsupportedTpSlAtEntry"
+  | "orderGate.unsupportedMultipleTakeProfits"
   | "trade.closeAbortedSafety"
   | "trade.closeAllFailed"
   | "trade.apiError"
@@ -2344,6 +2348,7 @@ export type TranslationKey =
   | "orderEntry.unsupported.trigger"
   | "orderEntry.unsupported.generic"
   | "orderEntry.unsupported.unknownExchange"
+  | "orderEntry.unsupported.timeInForce"
   | "orderEntry.notes.noAttachedProtection"
   | "orderEntry.notes.firstTargetOnly"
   | "orderEntry.confirm.titleLive"
@@ -2361,4 +2366,5 @@ export type TranslationKey =
   | "orderEntry.errors.tradingUnavailable"
   | "orderEntry.errors.metadataLoading"
   | "orderEntry.errors.belowMinTradeVolume"
-  | "orderEntry.errors.exceedsMaxOrderVolume";
+  | "orderEntry.errors.exceedsMaxOrderVolume"
+  | "orderEntry.timeInForceNone";

@@ -23,9 +23,11 @@
   FEAT-0011 gate re-derives them anyway and refuses a mismatch; this panel
   does not get to be the only thing standing between a typo and an order.
 
-  Order types come from `exchangeCapabilities` — a seam FEAT-0017 replaces.
-  An unsupported type is shown disabled with a reason rather than omitted,
-  because a missing control looks like a missing feature.
+  Order types and time-in-force come from `exchangeCapabilities`, which serves
+  each venue's own declaration (FEAT-0017). An unsupported option is shown
+  disabled with a reason rather than omitted, because a missing control looks
+  like a missing feature. The gate reads the same declarations, so a control
+  this panel gets wrong is still refused before transport.
 -->
 
 <script lang="ts">
@@ -41,6 +43,7 @@
     capabilitiesOf,
     supportsOrderType,
     unsupportedReasonKey,
+    unsupportedTimeInForceReasonKey,
     type OrderEntryType,
     type TimeInForce,
   } from "../../services/exchangeCapabilities";
@@ -62,6 +65,34 @@
   let timeInForce = $state<TimeInForce>("GTC");
   let submitting = $state(false);
   let result = $state<PlacementResult | null>(null);
+
+  /*
+   * The time-in-force as it applies to the venue that is actually active.
+   *
+   * `apiProvider` changes at runtime and the raw selection outlives the
+   * switch: picking POST_ONLY on Bitunix and moving to Bitget left a
+   * maker-only instruction sitting on a venue that declares no time-in-force
+   * at all. "Maker only" quietly becoming "whatever fills" is a different
+   * order — different fill, different fee.
+   *
+   * Derived rather than reset through an `$effect`, so the submitted value
+   * cannot lag the venue by an effect tick. `timeInForce` stays the user's
+   * raw choice; this is what the order is built from, and it is always
+   * consistent with `caps` by construction.
+   *
+   * The fallback is always GTC, never the venue's first declared value.
+   * Reaching for `caps.timeInForce[0]` would look tidier and is a trap: a
+   * venue declaring `["IOC", …]` would hand an unasked-for IOC to a trader who
+   * selected nothing, and IOC cancels whatever does not fill immediately. GTC
+   * is the only value that is neutral — it is what an order does anyway with
+   * no constraint attached, and the one `orderPlacementService` may drop
+   * without changing how the order executes. A venue that cannot take even
+   * that gets refused by the gate, loudly, which beats inventing a value
+   * nobody chose.
+   */
+  const effectiveTimeInForce = $derived<TimeInForce>(
+    caps.timeInForce.includes(timeInForce) ? timeInForce : "GTC",
+  );
 
   // Trigger is omitted since Bitunix does not support trigger orders via API
   const ALL_TYPES: OrderEntryType[] = ["market", "limit"];
@@ -226,7 +257,7 @@
         leverage: data.leverage,
         marginMode: tradeState.remoteMarginMode,
         accountStateAt: tradeState.remoteAccountStateAt,
-        timeInForce: entryType === "limit" ? timeInForce : undefined,
+        timeInForce: entryType === "limit" ? effectiveTimeInForce : undefined,
       });
 
       if (result.unprotected) {
@@ -274,15 +305,44 @@
       {/each}
     </div>
 
-    {#if entryType === "limit" && caps.timeInForce.length > 0}
-      <div class="flex items-center gap-1.5">
+    <!--
+      Shown disabled rather than omitted where the venue declares no
+      time-in-force. A control that vanishes reads as a missing feature in
+      Cachy; a disabled one with a reason says the venue does not take it.
+      Same rule as the order-type buttons beside it.
+    -->
+    {#if entryType === "limit"}
+      {@const tifSupported = caps.timeInForce.length > 0}
+      <div
+        class="flex items-center gap-1.5"
+        title={!tifSupported
+          ? $_(unsupportedTimeInForceReasonKey(exchange) as TranslationKey)
+          : undefined}
+      >
         <label for="order-tif" class="text-xs font-semibold text-[var(--text-secondary)]">
           {$_("orderEntry.timeInForce")}
         </label>
-        <select id="order-tif" bind:value={timeInForce} class="input-field text-xs py-1 px-2">
+        <!--
+          The reason is also on the control itself, not only as a hover on the
+          wrapper: a disabled select is never focusable, so a title attribute
+          reaches a mouse and nothing else. `aria-label` puts the same sentence
+          in the accessibility tree, where a screen reader still announces it.
+        -->
+        <select
+          id="order-tif"
+          bind:value={timeInForce}
+          disabled={!tifSupported}
+          aria-label={!tifSupported
+            ? $_(unsupportedTimeInForceReasonKey(exchange) as TranslationKey)
+            : $_("orderEntry.timeInForce")}
+          class="input-field text-xs py-1 px-2"
+        >
           {#each caps.timeInForce as tif (tif)}
             <option value={tif}>{tif}</option>
           {/each}
+          {#if !tifSupported}
+            <option value={timeInForce}>{$_("orderEntry.timeInForceNone")}</option>
+          {/if}
         </select>
       </div>
     {/if}

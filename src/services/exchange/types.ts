@@ -42,7 +42,7 @@
 
 import type { Decimal } from "decimal.js";
 import type { Ticker24h, FundingRateHistoryItem, Kline } from "../apiService";
-import type { ExchangeCapabilities } from "../exchangeCapabilities";
+import type { ExchangeCapabilities } from "./capabilityTypes";
 import type { TpSlOrder, ModifyOrderParams, PlaceOrderParams } from "../tradeService";
 
 /** Every venue Cachy can talk to. A third one is FEAT-0016's proof, not its scope. */
@@ -64,7 +64,7 @@ export interface TradePrint {
 
 /**
  * What an adapter can do at the transport level, as opposed to what the venue
- * accepts on an order (that is `ExchangeCapabilities`, and FEAT-0017 owns it).
+ * accepts on an order (that is `ExchangeCapabilities`, in `capabilityTypes.ts`).
  *
  * Stated conservatively on purpose: claiming a stream that is not wired up
  * produces a silent dead subscription, which is the failure mode BUG-0001
@@ -205,7 +205,7 @@ export interface TradingPort {
  * proxy route and is refused there, exactly as it was before FEAT-0016 (see
  * `routes/api/tpsl/+server.ts`, which rejects any exchange but Bitunix). What
  * the flag buys is a UI that can stop offering the control in the first place
- * — FEAT-0017's job, once it reads capabilities off the adapter.
+ * — which FEAT-0017 now does, reading `capabilities` off the adapter.
  */
 export interface TradingSupport {
     /** Attached or standalone TP/SL plans. */
@@ -220,9 +220,11 @@ export interface TradingSupport {
 export interface ExchangeAdapter {
     readonly id: ExchangeId;
     /**
-     * What the venue accepts on an order. Sourced from
-     * `exchangeCapabilities.ts` for now — FEAT-0017 replaces the *source* with
-     * a per-adapter declaration, and this property is where it lands.
+     * What the venue accepts on an order (FEAT-0017). The adapter's own
+     * declaration, read straight from its `<venue>Capabilities.ts` — not
+     * looked up in a shared table, so widening one venue cannot widen
+     * another. `exchangeCapabilities.ts` gathers the same declarations for
+     * consumers that must not import the transport graph.
      */
     readonly capabilities: ExchangeCapabilities;
     readonly streams: AdapterStreams;

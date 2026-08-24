@@ -2655,7 +2655,11 @@
       "takeProfit": "the take profit"
     },
     "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
-    "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent."
+    "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent.",
+    "unsupportedOrderType": "Order refused: {exchange} does not support the {orderType} order type. The order was not sent.",
+    "unsupportedTimeInForce": "Order refused: {exchange} does not accept the time in force {timeInForce}. The order was not sent.",
+    "unsupportedTpSlAtEntry": "Order refused: {exchange} cannot carry a take profit and stop loss on the entry order. They would have been dropped silently and the position would have opened unprotected.",
+    "unsupportedMultipleTakeProfits": "Order refused: {exchange} carries only one take-profit target on an entry order, but {count} were supplied. The surplus targets would have been discarded without an error."
   },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
@@ -2787,7 +2791,8 @@
     "unsupported": {
       "trigger": "Trigger orders are not integrated for this exchange yet — Cachy has no verified request format for one.",
       "generic": "This exchange does not support that order type.",
-      "unknownExchange": "Cachy does not know what this exchange supports, so it will not offer order types it cannot verify."
+      "unknownExchange": "Cachy does not know what this exchange supports, so it will not offer order types it cannot verify.",
+      "timeInForce": "This exchange does not accept a time in force — the order is sent without one."
     },
     "notes": {
       "noAttachedProtection": "This exchange cannot attach a stop to the entry. The stop is placed as a second request, so the position is briefly unprotected — you will be told if it does not arrive.",
@@ -2816,6 +2821,7 @@
       "metadataLoading": "Loading trading pair details...",
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
-    }
+    },
+    "timeInForceNone": "—"
   }
 }

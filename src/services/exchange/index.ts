@@ -34,6 +34,20 @@ export type { UnsupportedFeature } from "./errors";
 export type { Ticker24h, Kline, FundingRateHistoryItem } from "../apiService";
 export type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "../tradeService";
 
+/*
+ * The capability vocabulary (FEAT-0017). Re-exported so a component can type
+ * `adapter.capabilities` without naming a venue's declaration module — the
+ * declarations themselves are deliberately *not* exported here, because a
+ * consumer that names one has hard-coded a venue.
+ */
+export type {
+    ExchangeCapabilities,
+    OrderEntryType,
+    TimeInForce,
+    MarginMode,
+    PositionMode,
+} from "./capabilityTypes";
+
 export type {
     ExchangeAdapter,
     ExchangeId,

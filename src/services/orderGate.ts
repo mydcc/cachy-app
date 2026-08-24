@@ -48,6 +48,16 @@
  */
 
 import { Decimal } from "decimal.js";
+/*
+ * FEAT-0017. Safe to import here despite this module's no-dependencies rule:
+ * `exchangeCapabilities` gathers per-venue declarations that are frozen data
+ * with no runtime imports of their own, so nothing of the transport graph —
+ * `apiService`, the WebSocket services, `tradeService`, `settingsState` —
+ * enters. Reading capabilities through the adapter registry instead would
+ * have pulled in all four.
+ */
+import { capabilitiesOf } from "./exchangeCapabilities";
+import type { OrderEntryType, TimeInForce } from "./exchangeCapabilities";
 
 // ---------------------------------------------------------------------------
 // Gate pass
@@ -386,6 +396,52 @@ function mismatch(
     };
 }
 
+/**
+ * How the payload's order type reads against the capability vocabulary.
+ *
+ * Three outcomes, not two, because "no order type" and "an order type I cannot
+ * read" call for opposite treatment: the first is another rule's business, the
+ * second is a refusal. Collapsing them into `null` let any spelling outside
+ * MARKET/LIMIT skip the capability check entirely — a hole under exactly the
+ * verb no venue declares.
+ */
+type EntryTypeReading =
+    | { kind: "known"; type: OrderEntryType }
+    | { kind: "unreadable"; raw: string }
+    | { kind: "absent" };
+
+/**
+ * Reads the payload's wire spelling of an order type.
+ *
+ * Trigger spellings are mapped rather than rejected outright, so the answer
+ * stays a *capability* question: no venue declares `trigger` today and the
+ * check refuses it, but a venue that later declares one is allowed without
+ * touching this function.
+ *
+ * Anything else present is `unreadable`, and the caller refuses it. An order
+ * type the gate cannot verify is not a verified order type — the same rule the
+ * symbol check applies a few lines up.
+ */
+function entryTypeOf(value: unknown): EntryTypeReading {
+    if (value === undefined || value === null) return { kind: "absent" };
+    if (typeof value !== "string") return { kind: "unreadable", raw: String(value) };
+    switch (value.toUpperCase()) {
+        case "MARKET":
+            return { kind: "known", type: "market" };
+        case "LIMIT":
+            return { kind: "known", type: "limit" };
+        case "STOP":
+        case "STOP_MARKET":
+        case "STOP_LIMIT":
+        case "TRIGGER":
+        case "TAKE_PROFIT":
+        case "TAKE_PROFIT_MARKET":
+            return { kind: "known", type: "trigger" };
+        default:
+            return { kind: "unreadable", raw: value };
+    }
+}
+
 function missing(field: string): OrderRefusal {
     return { field, reason: "missing", messageKey: "orderGate.missing", values: { field } };
 }
@@ -474,6 +530,113 @@ class OrderGate {
                     messageKey: "orderGate.apiUnsupported",
                     values: { field: "isApiSupported" },
                 });
+            }
+        }
+
+        // --- exchange capabilities (FEAT-0017) -----------------------------
+        // The venue's own declaration, looked up here rather than accepted
+        // from `displayed`. A UI offering a control the venue cannot honour
+        // is precisely what this refuses, so taking the capability list from
+        // that same UI would make the check agree with the bug.
+        //
+        // Scoped to `place-order`: the standalone TP/SL endpoints carry their
+        // levels under `params.` and are governed by `TradingSupport`, not by
+        // whether protection may ride along with an *entry*.
+        if (payload.type === "place-order") {
+            const caps = capabilitiesOf(displayed.provider);
+
+            // `checked` is the audit trail, so it records only comparisons
+            // that happened. An absent order type is the missing-field rule's
+            // business, not this one's.
+            const reading = entryTypeOf(payload.orderType);
+            if (reading.kind !== "absent") {
+                checked.push("orderTypeSupported");
+                if (reading.kind === "unreadable") {
+                    return refuse({
+                        field: "orderType",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedOrderType",
+                        values: {
+                            field: "orderType",
+                            orderType: reading.raw,
+                            exchange: displayed.provider,
+                        },
+                    });
+                }
+                if (!caps.orderTypes.includes(reading.type)) {
+                    return refuse({
+                        field: "orderType",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedOrderType",
+                        values: {
+                            field: "orderType",
+                            orderType: reading.type,
+                            exchange: displayed.provider,
+                        },
+                    });
+                }
+            }
+
+            // Only when one is actually sent. A market order carries no
+            // `effect`, and a venue that accepts none must still take market
+            // orders — refusing on absence would close the venue entirely.
+            const effect = typeof payload.effect === "string" ? payload.effect : undefined;
+            if (effect !== undefined) {
+                checked.push("timeInForceSupported");
+                if (!caps.timeInForce.includes(effect as TimeInForce)) {
+                    return refuse({
+                        field: "effect",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedTimeInForce",
+                        values: { field: "effect", timeInForce: effect, exchange: displayed.provider },
+                    });
+                }
+            }
+
+            // Attaching protection to an entry the venue will not carry it on
+            // means the stop is silently dropped and the position opens
+            // naked. `orderPlacementService` reads the same flag and places
+            // protection separately; this refuses the case where something
+            // attached it anyway.
+            const attachesProtection = payload.tpPrice !== undefined || payload.slPrice !== undefined;
+            if (attachesProtection) {
+                checked.push("tpSlAtEntrySupported");
+                if (!caps.tpSlAtEntry) {
+                    return refuse({
+                        field: "tpSlAtEntry",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedTpSlAtEntry",
+                        values: { field: "tpSlAtEntry", exchange: displayed.provider },
+                    });
+                }
+            }
+
+            /*
+             * A venue carrying one target at entry cannot carry a ladder:
+             * the extras are dropped without an error, so the trader believes
+             * in targets that do not exist.
+             *
+             * Keyed on the payload actually carrying a target, not on
+             * protection generally. An entry that attaches only a stop while
+             * its targets are placed as separate requests is a ladder the
+             * entry never claimed to hold, and refusing it would refuse the
+             * normal shape on every no-attach venue.
+             */
+            if (payload.tpPrice !== undefined && !caps.multipleTakeProfits) {
+                checked.push("multipleTakeProfits");
+                const targetCount = displayed.takeProfits?.length ?? 0;
+                if (targetCount > 1) {
+                    return refuse({
+                        field: "takeProfits",
+                        reason: "unsupported",
+                        messageKey: "orderGate.unsupportedMultipleTakeProfits",
+                        values: {
+                            field: "takeProfits",
+                            count: String(targetCount),
+                            exchange: displayed.provider,
+                        },
+                    });
+                }
             }
         }
 

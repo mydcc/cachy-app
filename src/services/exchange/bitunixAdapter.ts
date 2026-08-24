@@ -29,7 +29,7 @@ import type { Ticker24h, FundingRateHistoryItem, Kline } from "../apiService";
 import { bitunixWs } from "../bitunixWs";
 import { tradeService } from "../tradeService";
 import type { TpSlOrder, ModifyOrderParams, PlaceOrderParams } from "../tradeService";
-import { capabilitiesOf } from "../exchangeCapabilities";
+import { bitunixCapabilities } from "./bitunixCapabilities";
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import type {
     ExchangeAdapter,
@@ -103,7 +103,7 @@ const trading: TradingPort = {
 
 export const bitunixAdapter: ExchangeAdapter = {
     id: "bitunix",
-    capabilities: capabilitiesOf("bitunix"),
+    capabilities: bitunixCapabilities,
     streams: { ticker: true, trades: true },
     supports: { tpSl: true, leverageMarginMode: true, tradingPairInfo: true },
     marketData,

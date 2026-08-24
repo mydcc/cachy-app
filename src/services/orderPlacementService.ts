@@ -130,6 +130,29 @@ class OrderPlacementService {
 
         const attach = caps.tpSlAtEntry;
 
+        /*
+         * Time in force, against what the venue declares (FEAT-0017).
+         *
+         * Only GTC is dropped when the venue takes none. It is the neutral
+         * default — good-till-cancelled *is* what an order does with no
+         * constraint attached — and the panel rests there, so dropping it
+         * changes nothing about the order. Without this, Bitget (which
+         * declares an empty list) would have every limit order refused by the
+         * gate over a default nobody chose.
+         *
+         * IOC, FOK and POST_ONLY are not dropped. Each one changes how the
+         * order executes, and quietly sending "no constraint" instead would
+         * give the trader a different order than the one they asked for —
+         * a POST_ONLY that becomes a taker fill costs money. It goes through
+         * unchanged and the gate refuses it, loudly, which is the outcome
+         * worth having.
+         */
+        const effect = (() => {
+            if (plan.timeInForce === undefined) return undefined;
+            if (caps.timeInForce.includes(plan.timeInForce)) return plan.timeInForce;
+            return plan.timeInForce === "GTC" ? undefined : plan.timeInForce;
+        })();
+
         let clientId: string | undefined;
         try {
             const submitted = await tradeService.placeOrder({
@@ -138,7 +161,7 @@ class OrderPlacementService {
                 orderType: plan.entryType === "market" ? "MARKET" : "LIMIT",
                 qty: plan.qty,
                 price: plan.entryType === "market" ? undefined : plan.entryPrice,
-                effect: plan.entryType === "market" ? undefined : plan.timeInForce,
+                effect: plan.entryType === "market" ? undefined : effect,
                 takeProfit:
                     attach && wantsTarget ? { price: plan.takeProfits[0] } : undefined,
                 stopLoss: attach && wantsStop ? { price: plan.stopLossPrice } : undefined,
