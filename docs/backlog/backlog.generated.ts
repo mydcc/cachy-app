@@ -3471,7 +3471,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0268",
     "title": "Bitget history errors return an empty list indistinguishable from no orders",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3510,7 +3510,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0287",
     "title": "Issued client tokens never expire and the token map grows without bound",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0287-client-token-ttl",
     "priority": "P3",
     "milestone": "none",
     "editions": [

@@ -4,7 +4,7 @@
 
 182 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 18 · 🟡 in-progress 8 · ✅ done 113
+Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 16 · 🟡 in-progress 9 · ✅ done 114
 
 ---
 
@@ -223,9 +223,9 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 18 · 🟡 in-pr
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | ui |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟢 ready | ui |
 | [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | api |
-| [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | api |
+| [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | api |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | security |
-| [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟢 ready | api |
+| [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟡 in-progress | api |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | security |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | services |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | execution |
@@ -406,9 +406,9 @@ Counts by status: 💡 idea 18 · 📋 specced 25 · 🟢 ready 18 · 🟡 in-pr
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
-| [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
-| [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | none | community, pro, private | A | none | — |
