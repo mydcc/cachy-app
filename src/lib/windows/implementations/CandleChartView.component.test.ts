@@ -40,6 +40,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import { Decimal } from "decimal.js";
 import type { MarketData } from "../../../stores/market/types";
+import { makeReactiveProps } from "./reactiveProps.helper.svelte.ts";
 
 // Reactive store proxy (rune-compiled in .svelte.ts) standing in for the real
 // marketState — it exposes the read-only surface the component uses.
@@ -56,6 +57,21 @@ const chart = vi.hoisted(() => {
     // same trivial 1:1 scale as priceLineManager.test.ts's fake series, so
     // FEAT-0247 drag tests can pick coordinates without a real chart.
     const priceLines = new Map<object, { price: number; title: string }>();
+    const rangeSubscribers = new Set<(range: { from: number; to: number } | null) => void>();
+    const timeScale = {
+        subscribeVisibleLogicalRangeChange: vi.fn(
+            (cb: (range: { from: number; to: number } | null) => void) => {
+                rangeSubscribers.add(cb);
+            },
+        ),
+        unsubscribeVisibleLogicalRangeChange: vi.fn(
+            (cb: (range: { from: number; to: number } | null) => void) => {
+                rangeSubscribers.delete(cb);
+            },
+        ),
+        // Non-null range satisfying the scroll-left double check (from < 10).
+        getVisibleLogicalRange: vi.fn(() => ({ from: 5, to: 30 })),
+    };
     const candleSeries = {
         update: vi.fn(),
         setData: vi.fn(),
@@ -81,15 +97,14 @@ const chart = vi.hoisted(() => {
     return {
         candleSeries,
         priceLines,
+        // BUG-0296: capture visible-range subscribers so tests can drive the
+        // scroll-left handler without a real chart canvas.
+        rangeSubscribers: rangeSubscribers,
         chart: {
             addSeries: vi.fn(() => candleSeries),
             applyOptions: vi.fn(),
             remove: vi.fn(),
-            timeScale: vi.fn(() => ({
-                subscribeVisibleLogicalRangeChange: vi.fn(),
-                unsubscribeVisibleLogicalRangeChange: vi.fn(),
-                getVisibleLogicalRange: vi.fn(() => null),
-            })),
+            timeScale: vi.fn(() => timeScale),
         },
     };
 });
@@ -100,8 +115,13 @@ vi.mock("lightweight-charts", () => ({
     LineSeries: Symbol("line"),
 }));
 
+const loadMoreHistoryMock = vi.hoisted(() => vi.fn());
 vi.mock("../../../services/marketWatcher", () => ({
-    marketWatcher: { register: vi.fn(), unregister: vi.fn() },
+    marketWatcher: {
+        register: vi.fn(),
+        unregister: vi.fn(),
+        loadMoreHistory: loadMoreHistoryMock,
+    },
 }));
 
 vi.mock("../../../stores/indicator.svelte", () => ({
@@ -680,5 +700,108 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
 
         const prices = [...chart.priceLines.values()].map((l) => l.price);
         expect(prices).toContain(65000);
+    });
+});
+
+/*
+ * BUG-0296 — history loading stays retryable.
+ *
+ * A transient kline fetch error used to be reported as `false` ("no more
+ * history") by loadMoreHistory, and the chart turned that into
+ * `allHistoryLoaded = true` — permanently disabling back-fill for every
+ * timeframe of the window until reload. These tests drive the real
+ * scroll-left handler through the captured visible-range subscribers:
+ *
+ * - "error" must NOT end history loading; the next scroll retries.
+ * - "exhausted" (successful fetch, nothing older on the exchange) is the
+ *   only result that ends it.
+ * - switching symbol/timeframe re-arms loading for the new combination.
+ */
+describe("BUG-0296 — history loading stays retryable", () => {
+    function fireScrollLeft(from = 5) {
+        for (const cb of [...chart.rangeSubscribers]) {
+            cb({ from, to: from + 25 });
+        }
+    }
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it("keeps retrying after a failed load attempt (error is not exhaustion)", async () => {
+        vi.useFakeTimers();
+        seedHistory();
+        loadMoreHistoryMock.mockResolvedValue("error");
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        fireScrollLeft();
+        // 200ms debounce before loadMore() actually fires
+        await vi.advanceTimersByTimeAsync(200);
+        expect(loadMoreHistoryMock).toHaveBeenCalledTimes(1);
+
+        // The 500ms refire cooldown passes, then another scroll-left must
+        // retry instead of being blocked by allHistoryLoaded.
+        await vi.advanceTimersByTimeAsync(600);
+        fireScrollLeft();
+        await vi.advanceTimersByTimeAsync(200);
+        expect(loadMoreHistoryMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("stops loading only after an exhausted result", async () => {
+        vi.useFakeTimers();
+        seedHistory();
+        loadMoreHistoryMock.mockResolvedValue("exhausted");
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        fireScrollLeft();
+        await vi.advanceTimersByTimeAsync(200);
+        expect(loadMoreHistoryMock).toHaveBeenCalledTimes(1);
+
+        // Exhausted -> further scroll-left events must not fetch again.
+        await vi.advanceTimersByTimeAsync(600);
+        fireScrollLeft();
+        await vi.advanceTimersByTimeAsync(200);
+        expect(loadMoreHistoryMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("re-arms history loading when the timeframe changes", async () => {
+        vi.useFakeTimers();
+        seedHistory();
+        loadMoreHistoryMock.mockResolvedValue("exhausted");
+        // A reactive props proxy is the supported way to update a mounted
+        // component's inputs — same as the parent window swapping the
+        // timeframe without recreating CandleChartView.
+        const reactiveProps = makeReactiveProps({
+            symbol: "BTCUSDT",
+            timeframe: "1m",
+            window: fakeWindow,
+        });
+        component = mount(CandleChartView, {
+            target: host,
+            props: reactiveProps,
+        }) as never;
+        await settle();
+
+        fireScrollLeft();
+        await vi.advanceTimersByTimeAsync(200);
+        expect(loadMoreHistoryMock).toHaveBeenCalledTimes(1);
+
+        // Switch timeframe in the same chart window: the exhausted marker
+        // from "1m" must not block "5m".
+        reactiveProps.timeframe = "5m";
+        await settle();
+
+        fireScrollLeft();
+        await vi.advanceTimersByTimeAsync(200);
+        expect(loadMoreHistoryMock).toHaveBeenCalledTimes(2);
+        expect(loadMoreHistoryMock).toHaveBeenLastCalledWith("BTCUSDT", "5m");
     });
 });

@@ -16,7 +16,7 @@
  */
 
 import { SubscriptionRegistry } from "./marketWatcher/subscriptionRegistry";
-import { HistoryFetcher } from "./marketWatcher/historyFetcher";
+import { HistoryFetcher, type LoadMoreHistoryResult } from "./marketWatcher/historyFetcher";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { logger } from "./logger";
@@ -258,7 +258,7 @@ export class MarketWatcher {
         return this.historyFetcher.ensureHistory(symbol, tf, targetLimit);
     }
 
-    async loadMoreHistory(symbol: string, tf: string): Promise<boolean> {
+    async loadMoreHistory(symbol: string, tf: string): Promise<LoadMoreHistoryResult> {
         return this.historyFetcher.loadMoreHistory(symbol, tf);
     }
 }

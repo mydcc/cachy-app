@@ -29,6 +29,15 @@ import { type Kline } from "../technicalsTypes";
 import { settingsState } from "../../stores/settings.svelte";
 import { type SubscriptionRegistry } from "./subscriptionRegistry";
 
+/**
+ * Result of a "load older candles" attempt (BUG-0296):
+ * - `loaded`    — the fetch succeeded and appended older candles
+ * - `exhausted` — the fetch succeeded but the exchange has nothing older
+ * - `busy`      — another load for this symbol/timeframe is already in flight
+ * - `error`     — the fetch failed; safe to retry on the next scroll
+ */
+export type LoadMoreHistoryResult = "loaded" | "exhausted" | "busy" | "error";
+
 export class HistoryFetcher {
     constructor(registry: SubscriptionRegistry) {
         this.registry = registry;
@@ -290,16 +299,23 @@ export class HistoryFetcher {
         return result;
     }
 
-    public async loadMoreHistory(symbol: string, tf: string): Promise<boolean> {
+    /**
+     * Fetch one batch of candles older than the oldest candle currently in
+     * the store. The result distinguishes "nothing older exists" from
+     * "the fetch failed": callers must only treat `exhausted` as final,
+     * never an `error` (BUG-0296 — a transient network blip used to
+     * permanently disable history loading for the whole chart window).
+     */
+    public async loadMoreHistory(symbol: string, tf: string): Promise<LoadMoreHistoryResult> {
         const lockKey = `more:${symbol}:${tf}`;
-        if (this.historyLocks.has(lockKey)) return false;
+        if (this.historyLocks.has(lockKey)) return "busy";
         const globalLock = `${symbol}:${tf}`;
-        if (this.historyLocks.has(globalLock)) return false;
+        if (this.historyLocks.has(globalLock)) return "busy";
         this.historyLocks.add(lockKey);
         try {
             const data = marketState.data[symbol];
             if (!data || !data.klines || !data.klines[tf] || data.klines[tf].length === 0) {
-                return false;
+                return "exhausted";
             }
 
             const history = data.klines[tf];
@@ -315,12 +331,12 @@ export class HistoryFetcher {
             if (newKlines && newKlines.length > 0) {
                 const filled = this.fillGaps(newKlines, safeTfToMs(tf));
                 marketState.updateSymbolKlines(symbol, tf, filled, "rest", false);
-                return true;
+                return "loaded";
             }
-            return false;
+            return "exhausted";
         } catch (e) {
             logger.warn("market", `[History] Error loading more history for ${symbol}`, e);
-            return false;
+            return "error";
         } finally {
             this.historyLocks.delete(lockKey);
         }
