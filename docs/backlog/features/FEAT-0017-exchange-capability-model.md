@@ -2,8 +2,7 @@
 id: FEAT-0017
 title: Describe what each exchange can do, and let the UI read it
 type: feature
-status: in-progress
-assignee: claude
+status: done
 branch: worktree-exchange-capability-descriptions-35eeed
 priority: P1
 milestone: M2
