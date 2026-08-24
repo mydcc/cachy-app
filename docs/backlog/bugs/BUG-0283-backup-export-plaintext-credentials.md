@@ -2,7 +2,7 @@
 id: BUG-0283
 title: Unencrypted backup exports contain plaintext exchange credentials
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -55,6 +55,13 @@ once keys are encrypted at rest, this item additionally guards the ciphertext.
 
 Encrypting secrets at rest ([`FEAT-0200`](../features/FEAT-0200-encrypt-localstorage-secrets-at-rest.md)).
 Restore-path validation ([`BUG-0284`](BUG-0284-backup-restore-unvalidated-writes.md)).
+
+## Shipped
+
+`1.6.0-beta.111` — squash-merged from PR #2229 (commit `a651c3b1`). Unencrypted
+exports run through `sanitizeSettingsForUnencryptedExport`; the DE/EN
+export-content notice ships as `app.backupEncryptQuestion`. Tests:
+`src/services/backupService.test.ts`.
 
 ## Links
 

@@ -2,7 +2,7 @@
 id: BUG-0281
 title: Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -68,6 +68,15 @@ Pick one (simplest first):
 - [x] Theme switching still works in the browser (manual smoke or existing
       component test)
 - [x] `npm run check` and the affected tests pass
+
+## Shipped
+
+`1.6.0-beta.117` — squash-merged from PR #2227 (commit `b03a76b6`). The
+server-side interpolation sink was removed entirely (fix option 1); the client
+applies themes via `src/app.html`. Regression test: `src/hooks.server.test.ts`
+("BUG-0281: should not allow HTML/markup injection via crafted cachy_theme
+cookie"). The residual client-side cookie write from the evidence section is
+also gone — no `document.cookie` usage remains in `src/`.
 
 ## Links
 

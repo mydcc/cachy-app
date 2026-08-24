@@ -2,9 +2,7 @@
 id: BUG-0280
 title: Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/bug-0280-exchange-key-encryption
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -79,6 +77,13 @@ the otherwise-sound device-key encryption path never sees them.
 Per the backlog README's own P0 definition ("a credential that can leak")
 this borders on P0; it is triaged P1 consistent with BUG-0235. A human may
 raise it during grooming.
+
+## Shipped
+
+`1.6.0-beta.120` — squash-merged from PR #2243 (commit `9056d6a6`). Exchange
+keys are routed through the device-key encryption with one-time legacy
+migration on load; the backup-export half is covered by BUG-0283's
+`sanitizeSettingsForUnencryptedExport` tests.
 
 ## Links
 

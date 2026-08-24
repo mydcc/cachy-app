@@ -889,9 +889,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0280",
     "title": "Exchange API keys bypass the device-key encryption and sit in localStorage in plaintext",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/bug-0280-exchange-key-encryption",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -911,7 +909,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0281",
     "title": "Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2333,7 +2331,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0283",
     "title": "Unencrypted backup exports contain plaintext exchange credentials",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -2351,8 +2349,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0284",
     "title": "Backup restore writes unvalidated strings straight into localStorage",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "antigravity",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3616,9 +3613,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0287",
     "title": "Issued client tokens never expire and the token map grows without bound",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/bug-0287-client-token-ttl",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3654,7 +3649,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0289",
     "title": "Symbol debounce effect arms a setTimeout without returning cleanup",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3666,8 +3661,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
-    "branch": "fix/bug-0289-symbol-debounce-effect-cleanup",
     "file": "bugs/BUG-0289-symbol-debounce-effect-cleanup.md"
   },
   {
