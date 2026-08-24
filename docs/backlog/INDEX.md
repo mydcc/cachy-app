@@ -4,7 +4,7 @@
 
 182 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 23 · 🟢 ready 14 · 🟡 in-progress 9 · ✅ done 118
+Counts by status: 💡 idea 18 · 📋 specced 22 · 🟢 ready 14 · 🟡 in-progress 9 · ✅ done 119
 
 ---
 
@@ -190,7 +190,7 @@ Counts by status: 💡 idea 18 · 📋 specced 23 · 🟢 ready 14 · 🟡 in-pr
 | [BUG-0238](bugs/BUG-0238-gemini-proxy-model-param-sanitization.md) | Gemini AI proxy passes unvalidated model parameter into API path | P2 | ✅ done | security |
 | [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | ✅ done | exchange |
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | calculator |
-| [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | 📋 specced | security |
+| [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | ✅ done | security |
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | security |
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | security |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | security |
@@ -352,7 +352,7 @@ Counts by status: 💡 idea 18 · 📋 specced 23 · 🟢 ready 14 · 🟡 in-pr
 | [BUG-0246](bugs/BUG-0246-implicit-analysis-mode-coupling.md) | Implicit coupling of empty string to standard behaviour in modeInstructions | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | none | community, pro, private | C | none | — |
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | 🟢 ready | none | community, pro, private | A | none | — |
