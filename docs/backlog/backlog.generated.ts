@@ -968,9 +968,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0292",
     "title": "Bitunix TP/SL rows carry no planType, so plansFor never groups them",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "human",
-    "branch": "fix/bug-0257-tpsl-plan-normalization",
+    "status": "done",
+    "shipped": "v1.6.0-beta.129",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -2368,6 +2367,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0286-matomo-telemetry-consent-gate.md"
   },
   {
+    "id": "BUG-0296",
+    "title": "One transient kline error permanently disables chart history loading for all timeframes",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -3215,7 +3233,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0257",
     "title": "Keep three.js off the startup path behind lazily loaded effect overlays",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "branch": "feat/lazy-threejs-overlays",
     "priority": "P2",
     "milestone": "none",
     "editions": [
