@@ -364,8 +364,9 @@
     }
 
     $effect(() => {
-        if (effectsState.projectileOrigin) {
-            launch(effectsState.projectileOrigin);
+        const origin = effectsState.projectileEvents[0];
+        if (origin) {
+            launch(origin);
             effectsState.consumeProjectileEvent();
             if (!animationId) {
                 clock.start();
@@ -375,8 +376,9 @@
     });
 
     $effect(() => {
-        if (effectsState.smashTarget && camera && stressLogic) {
-            const { rect } = effectsState.smashTarget;
+        const smash = effectsState.smashEvents[0];
+        if (smash && camera && stressLogic) {
+            const { rect } = smash;
             const x =
                 ((rect.left + rect.width / 2) / window.innerWidth) * 2 - 1;
             const y =
@@ -402,8 +404,9 @@
     });
 
     $effect(() => {
-        if (effectsState.duckEvent && duckLogic) {
-            duckLogic.handleEvent(effectsState.duckEvent);
+        const duck = effectsState.duckEvents[0];
+        if (duck && duckLogic) {
+            duckLogic.handleEvent(duck);
             effectsState.consumeDuckEvent();
 
             if (!animationId) {

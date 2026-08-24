@@ -22,40 +22,43 @@
 import type { DuckTriggerEvent } from "../lib/pets/types";
 
 export class EffectsState {
-    projectileOrigin: DOMRect | null = $state(null);
-    smashTarget: { rect: DOMRect; id: string } | null = $state(null);
+    // FEAT-0257 follow-up: events are queued, not overwritten, so rapid
+    // triggers that arrive while FXOverlay's chunk is still loading are
+    // all preserved.
+    projectileEvents: DOMRect[] = $state([]);
+    smashEvents: Array<{ rect: DOMRect; id: string }> = $state([]);
 
     triggerProjectile(element: HTMLElement) {
         if (!element) return;
         const rect = element.getBoundingClientRect();
-        this.projectileOrigin = rect;
+        this.projectileEvents = [...this.projectileEvents, rect];
     }
 
     triggerSmash(element: HTMLElement, id: string) {
         if (!element) return;
         const rect = element.getBoundingClientRect();
-        this.smashTarget = { rect, id };
+        this.smashEvents = [...this.smashEvents, { rect, id }];
     }
 
-    // Reset after consumption
+    // Consume the oldest event of each queue
     consumeProjectileEvent() {
-        this.projectileOrigin = null;
+        this.projectileEvents = this.projectileEvents.slice(1);
     }
 
     consumeSmashEvent() {
-        this.smashTarget = null;
+        this.smashEvents = this.smashEvents.slice(1);
     }
 
     // ─── Duck Events ──────────────────────────────────────────────────────────
 
-    duckEvent: DuckTriggerEvent | null = $state(null);
+    duckEvents: DuckTriggerEvent[] = $state([]);
 
     triggerDuckEvent(event: DuckTriggerEvent) {
-        this.duckEvent = event;
+        this.duckEvents = [...this.duckEvents, event];
     }
 
     consumeDuckEvent() {
-        this.duckEvent = null;
+        this.duckEvents = this.duckEvents.slice(1);
     }
 }
 

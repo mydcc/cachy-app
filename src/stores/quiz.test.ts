@@ -304,7 +304,7 @@ describe("QuizStore", () => {
 
       expect(quizState.knownQuestionIds.has("testId")).toBe(true);
       expect(saveProgressSpy).toHaveBeenCalled();
-      expect(effectsState.duckEvent).toEqual({
+      expect(effectsState.duckEvents[0]).toEqual({
         type: "academy_complete",
         lessonId: "testId",
       });
