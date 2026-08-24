@@ -2,7 +2,8 @@
 id: FEAT-0257
 title: Keep three.js off the startup path behind lazily loaded effect overlays
 type: feature
-status: ready
+status: done
+branch: feat/lazy-threejs-overlays
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -78,7 +79,24 @@ None — resolved during grooming (2026-08-23):
   ungated and all three components still statically import three — re-verified
   on develop @ f6ccde06. This item's premise stands unchanged.
 
+## What shipped
+
+Shipped in `1.6.0-beta.132` via PR #2265 (`feat/lazy-threejs-overlays`).
+
+- All three overlay components load via dynamic imports in
+  `src/routes/+layout.svelte`, gated on `enableAmbientTopline`,
+  `enableBurningBorders`, and a sticky first-event gate for the event-driven
+  FXOverlay (events persist in `effectsState` until consumed, so none are lost
+  while its chunk loads).
+- Mechanism note: engines did not need `await import("three")` conversion —
+  they are reachable only via web workers (separate chunks). The component
+  boundary was the sole static edge into the three-vendor chunk.
+- Build-manifest verified: no entry/node chunk statically reaches the
+  three-vendor chunk (529 KB raw / 131 KB gzipped); overlays are dynamic-only,
+  matching the markdown-vendor precedent.
+
 ## Links
 
 - Files listed above; precedent: markdown-vendor dynamic-only chunk.
 - Source: Autonomous Optimization Architect review, 2026-08-23.
+- PR #2265 (Fixes #2183)
