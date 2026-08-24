@@ -259,6 +259,31 @@
       )
       .slice(0, MAX_FAVORITE_TILES),
   );
+
+  // --- Panel tilt feedback on Pro mode switch (footer PowerToggle) ---
+  let isProPanelTilt = $state(false);
+  let lastKnownIsPro = settingsState.entitlement.isPro;
+
+  $effect(() => {
+    const isPro = settingsState.entitlement.isPro;
+    if (isPro !== lastKnownIsPro) {
+      lastKnownIsPro = isPro;
+      if (!isProPanelTilt) {
+        isProPanelTilt = true;
+      }
+    }
+  });
+
+  function handleTiltAnimationEnd(event: AnimationEvent) {
+    // animationend bubbles, so only react to the panel's own sweep
+    // animation -- child animations (fade-in etc.) must not clear it.
+    if (
+      event.target === event.currentTarget &&
+      event.animationName === "panel-gloss-sweep"
+    ) {
+      isProPanelTilt = false;
+    }
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -289,6 +314,8 @@
   <main
     class="w-full max-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-4 sm:p-8 fade-in relative shrink-0 overflow-hidden"
     class:xl:col-start-2={settingsState.showSidebars}
+    class:panel-tilt={isProPanelTilt}
+    onanimationend={handleTiltAnimationEnd}
   >
     <ConnectionStatus />
     <div
@@ -838,3 +865,65 @@
 <!-- No ModalFrames for Guide/Changelog/Academy etc. anymore - they are managed by WindowManager -->
 
 <FlashCard />
+
+<style>
+  /* Brief 3D tilt + accent gloss sweep on the calculator panel when the
+     user switches the Pro mode via the footer PowerToggle. Pure CSS, no
+     three.js needed; the sweep uses the theme accent variable so it works
+     in every palette. */
+  .calculator-wrapper.panel-tilt {
+    animation: panel-tilt-move 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+
+  .calculator-wrapper.panel-tilt::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      transparent 32%,
+      color-mix(in srgb, var(--accent-color), transparent 78%) 50%,
+      transparent 68%
+    );
+    background-size: 250% 100%;
+    animation: panel-gloss-sweep 0.65s ease-out forwards;
+  }
+
+  @keyframes panel-tilt-move {
+    0% {
+      transform: perspective(1400px) rotateX(0deg) rotateY(0deg)
+        translateY(0);
+    }
+    30% {
+      transform: perspective(1400px) rotateX(1.6deg) rotateY(-1.8deg)
+        translateY(-4px);
+    }
+    62% {
+      transform: perspective(1400px) rotateX(-0.9deg) rotateY(1deg)
+        translateY(0);
+    }
+    100% {
+      transform: perspective(1400px) rotateX(0deg) rotateY(0deg)
+        translateY(0);
+    }
+  }
+
+  @keyframes panel-gloss-sweep {
+    from {
+      background-position: 130% 0;
+    }
+    to {
+      background-position: -40% 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .calculator-wrapper.panel-tilt,
+    .calculator-wrapper.panel-tilt::after {
+      animation: none;
+    }
+  }
+</style>
