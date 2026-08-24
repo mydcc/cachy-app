@@ -2,9 +2,8 @@
 id: BUG-0294
 title: Factory reset cannot delete IndexedDB blocked by connections held in other tabs
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/bug-0294-reset-broadcastchannel-close
+status: done
+shipped: v1.6.0-beta.126 (PR #2258)
 priority: P3
 milestone: none
 editions: [community, pro, private]

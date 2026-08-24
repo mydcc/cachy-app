@@ -3589,7 +3589,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0294",
     "title": "Factory reset cannot delete IndexedDB blocked by connections held in other tabs",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "shipped": "v1.6.0-beta.126 (PR #2258)",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3609,7 +3610,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0295",
     "title": "Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "shipped": "v1.6.0-beta.126 (PR #2259)",
     "priority": "P3",
     "milestone": "none",
     "editions": [
