@@ -47,6 +47,7 @@ import type { NormalizedOrder } from "../types/exchange";
 import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
 import { paperExchange } from "./paperExchange";
+import { capabilitiesOf } from "./exchangeCapabilities";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
@@ -853,6 +854,29 @@ class TradeService {
      * size recomputation, leverage and margin-mode checks, and FEAT-0013's
      * risk limits and kill switch all actually apply.
      */
+    /**
+     * The time in force to put on a limit order.
+     *
+     * FEAT-0069 made GTC the default, because Bitunix documents `effect` as
+     * required on a limit order and dropping it there fails the request.
+     * FEAT-0017 qualifies that: a venue declaring no time in force has no
+     * value this default could stand for, so filling one in invents a field.
+     *
+     * It was not a harmless invention. `orderPlacementService` resolves
+     * `undefined` for such a venue on purpose, and `?? "GTC"` put the value
+     * straight back — so the gate refused the order over a time in force the
+     * trader never chose and the panel showed as "—".
+     *
+     * An explicit value is always honoured, including one the venue cannot
+     * take: that one travels and is refused by name, which is the loud
+     * failure a silent downgrade would have hidden.
+     */
+    private effectFor(effect: PlaceOrderParams["effect"]): PlaceOrderParams["effect"] {
+        if (effect !== undefined) return effect;
+        const venue = capabilitiesOf(settingsState.apiProvider);
+        return venue.timeInForce.length > 0 ? "GTC" : undefined;
+    }
+
     public async placeOrder(params: PlaceOrderParams) {
         const orderType = params.orderType ?? "MARKET";
         const clientId = params.clientId ?? this.newClientOrderId();
@@ -875,7 +899,7 @@ class TradeService {
             clientId,
             // Omitted for MARKET by the route too; not sending it at all
             // keeps the audit record honest about what went out.
-            effect: orderType === "MARKET" ? undefined : (params.effect ?? "GTC"),
+            effect: orderType === "MARKET" ? undefined : this.effectFor(params.effect),
             tradeSide: params.tradeSide,
             positionId: params.positionId,
         };

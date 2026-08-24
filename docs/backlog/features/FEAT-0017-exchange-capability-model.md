@@ -150,6 +150,30 @@ Three, each with a reason:
 
 ## Raised in review (PR #2271), and fixed
 
+- **`tradeService` re-introduced the GTC it was handed `undefined` for.**
+  `placeOrder` applied `params.effect ?? "GTC"` before asking whether the venue
+  has a time in force at all. `orderPlacementService` resolved `undefined` for
+  a venue declaring none, exactly as intended, and the default put the value
+  straight back — so every Bitget limit entry reached the gate carrying
+  `effect: "GTC"` and was refused over a field the trader never touched and the
+  panel showed as "—".
+
+  Not repaired by deleting the default: FEAT-0069 specified it, and Bitunix
+  documents `effect` as **required** on a limit order, so removing it outright
+  would break the venue that works. `effectFor()` applies it only where the
+  venue declares a time in force; an explicit value is always honoured,
+  including one the venue cannot take — that one travels and is refused by
+  name.
+
+  **The test gap that allowed it** is the more useful finding.
+  `orderPlacementService.test.ts` mocks `tradeService.placeOrder`, so it only
+  ever saw what was passed *in*; `orderGate.capabilities.test.ts` builds
+  payloads by hand; and `tradeService_placeOrder.test.ts` pins `apiProvider` to
+  `"bitunix"` in a non-mutable mock, so no venue-specific behaviour could
+  surface there. Three green suites, none of them running the join.
+  `tradeService.timeInForce.test.ts` closes it with a switchable venue and a
+  real `placeOrder`; the reproduction was confirmed failing before the repair.
+
 - **The gate could never refuse a trigger.** `entryTypeOf` returned `null` for
   any spelling outside `MARKET`/`LIMIT`, and the caller skipped the capability
   check on `null` — a hole under exactly the verb no venue declares. It now
@@ -199,6 +223,12 @@ Three, each with a reason:
     — new, 16 tests, each case run against both venues
   - `src/services/orderPlacementService.test.ts` — 6 added, pinning which
     time-in-force may be dropped silently and which may not
+  - `src/services/tradeService.timeInForce.test.ts` — new, 6 tests, the only
+    suite that runs `placeOrder` for real against a *switchable* venue and so
+    the only one that can catch a venue-specific payload defect
+  - `src/services/tradeService_placeOrder.test.ts` — unchanged and still green,
+    which is the point: FEAT-0069's GTC default survives on the venue that
+    declares one
   - `src/services/exchange/exchangeAdapter.test.ts`
   - `src/services/exchange/unsupportedVerbs.test.ts`
   - `src/services/orderGate.test.ts`
