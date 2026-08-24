@@ -902,7 +902,7 @@
       "id": "BUG-0282",
       "title": "AI assistant sends journal, portfolio and trade setup to servers without explicit consent",
       "type": "bug",
-      "status": "ready",
+      "status": "done",
       "priority": "P1",
       "milestone": "none",
       "editions": [
@@ -2321,7 +2321,9 @@
       "id": "BUG-0286",
       "title": "Matomo telemetry loads without a consent gate",
       "type": "bug",
-      "status": "specced",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/bug-0286-matomo-consent-gate",
       "priority": "P2",
       "milestone": "none",
       "editions": [
