@@ -22,6 +22,11 @@
    ================================================================= */
 :root,
 .theme-default {
+  /* --- Shared overlay scrim (theme-independent constant) --- */
+  /* Single source of truth for dim layers (onboarding spotlight etc.),
+     value per FEAT-0300 spec: rgba(0, 0, 0, 0.7). */
+  --scrim: rgba(0, 0, 0, 0.7);
+
   /* --- Galaxy Settings (Defaults) --- */
   --galaxy-bg: var(--bg-primary);
   --galaxy-stars-core: var(--accent-color);

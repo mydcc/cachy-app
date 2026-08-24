@@ -16,14 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import * as THREE from "three";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
+import { applyOnboardingReward, ONBOARDING_XP_REWARD, DuckLogic } from "./DuckLogic";
 import { DuckState, DUCK_STATE_PRIORITY } from "./types";
 import type { DuckDaoState } from "./types";
 
+/*
+ * The FSM tests below construct a real DuckLogic. That is safe without WebGL:
+ * init() (which builds the meshes) is never called, and load/save are guarded
+ * by the `browser` flag. Toasts and the i18n store are mocked so achievement
+ * unlocks stay silent.
+ */
+vi.mock("../../services/toastService.svelte", () => ({
+    toastService: { success: vi.fn(), warning: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+vi.mock("../../locales/i18n", async () => {
+    const { readable } = await import("svelte/store");
+    return {
+        _: readable((key: string) => key),
+        locale: readable("en"),
+        setLocale: vi.fn(),
+    };
+});
+
 // ─── DuckAchievements Unit Tests ──────────────────────────────────────────────
-// DuckLogic.ts itself is not tested here because it requires a live THREE.Scene.
-// The achievement and streak logic is extracted and testable in isolation.
+// Achievement and streak logic is extracted and testable in isolation. The
+// DuckLogic FSM itself needs no WebGL before init() runs, so its handleEvent
+// transitions are covered directly — see "handleEvent transitions" below.
 
 function makeState(overrides: Partial<DuckDaoState> = {}): DuckDaoState {
     return {
@@ -95,17 +116,25 @@ describe("checkNewAchievements", () => {
         expect(unlocked).not.toContain("level_10");
     });
 
+    it("should unlock onboarding_completed when onboardingCompleted is true", () => {
+        const state = makeState({ onboardingCompleted: true });
+        const unlocked = checkNewAchievements(state);
+        expect(unlocked).toContain("onboarding_completed");
+    });
+
     it("should unlock multiple achievements at once", () => {
         const state = makeState({
             totalFeeds: 100,
             level: 20,
             currentStreak: 30,
+            onboardingCompleted: true,
         });
         const unlocked = checkNewAchievements(state);
         expect(unlocked).toContain("first_feed");
         expect(unlocked).toContain("hundred_feeds");
         expect(unlocked).toContain("level_20");
         expect(unlocked).toContain("streak_30");
+        expect(unlocked).toContain("onboarding_completed");
     });
 });
 
@@ -199,5 +228,86 @@ describe("Satiety & Spam Rate calculation", () => {
         expect(recent.length).toBe(5);
         const isSpam = recent.length >= 5;
         expect(isSpam).toBe(true);
+    });
+});
+
+describe("applyOnboardingReward", () => {
+    it("grants the one-time XP reward and recomputes the level", () => {
+        const next = applyOnboardingReward({ xp: 40, level: 1 });
+        expect(next.xp).toBe(40 + ONBOARDING_XP_REWARD);
+        expect(next.level).toBe(Math.floor((40 + ONBOARDING_XP_REWARD) / 50) + 1);
+    });
+
+    it("does not grant XP a second time once onboardingCompleted is true", () => {
+        const first = applyOnboardingReward({ xp: 40, level: 1 });
+        const second = applyOnboardingReward({
+            xp: first.xp,
+            level: first.level,
+            onboardingCompleted: true,
+        });
+        // Tour is re-runnable from Settings — repeat completions farm no XP.
+        expect(second.xp).toBe(first.xp);
+        expect(second.level).toBe(first.level);
+    });
+});
+
+describe("handleEvent transitions", () => {
+    let logic: DuckLogic;
+
+    beforeEach(() => {
+        localStorage.clear();
+        logic = new DuckLogic(new THREE.Scene());
+    });
+
+    it("onboarding_step puts the duck into an attentive PETTING state", () => {
+        expect(logic.getState()).toBe(DuckState.IDLE);
+        logic.handleEvent({ type: "onboarding_step", step: 0 });
+        expect(logic.getState()).toBe(DuckState.PETTING);
+        expect(logic.isActive()).toBe(true);
+    });
+
+    it("first onboarding_complete celebrates and grants the one-time reward", () => {
+        logic.handleEvent({ type: "onboarding_complete" });
+        expect(logic.getState()).toBe(DuckState.CELEBRATING);
+        expect(logic.getXp()).toBe(ONBOARDING_XP_REWARD);
+        // 25 XP stay below the first level-up threshold.
+        expect(logic.getLevel()).toBe(1);
+        expect(logic.hasCompletedOnboarding()).toBe(true);
+    });
+
+    it("repeat completions never farm XP again, but still celebrate", () => {
+        logic.handleEvent({ type: "onboarding_complete" });
+        const xpAfterFirst = logic.getXp();
+        logic.handleEvent({ type: "onboarding_complete" });
+        expect(logic.getXp()).toBe(xpAfterFirst);
+        expect(logic.getState()).toBe(DuckState.CELEBRATING);
+    });
+
+    it("CELEBRATING outranks a step's PETTING nudge while it is running", () => {
+        logic.handleEvent({ type: "onboarding_complete" });
+        expect(logic.getState()).toBe(DuckState.CELEBRATING);
+        logic.handleEvent({ type: "onboarding_step", step: 2 });
+        // PETTING (2) may not interrupt CELEBRATING (6).
+        expect(logic.getState()).toBe(DuckState.CELEBRATING);
+        expect(DUCK_STATE_PRIORITY[DuckState.PETTING]).toBeLessThan(
+            DUCK_STATE_PRIORITY[DuckState.CELEBRATING],
+        );
+    });
+
+    /*
+     * Pinned by decision (review follow-up, option A): wiping duck data via
+     * the Danger Zone resets `onboardingCompleted` with everything else, so a
+     * replayed tour legitimately re-earns +25 XP. Fresh pet, fresh reward.
+     */
+    it("a deliberate duck-data reset re-enables the reward — fresh pet, fresh reward", () => {
+        logic.handleEvent({ type: "onboarding_complete" });
+        expect(logic.getXp()).toBe(ONBOARDING_XP_REWARD);
+
+        localStorage.removeItem("duck_dao_state");
+        const reborn = new DuckLogic(new THREE.Scene());
+        expect(reborn.hasCompletedOnboarding()).toBe(false);
+
+        reborn.handleEvent({ type: "onboarding_complete" });
+        expect(reborn.getXp()).toBe(ONBOARDING_XP_REWARD);
     });
 });

@@ -1665,6 +1665,8 @@
       "backupDesc": "Backup your journal, presets & settings. Password encryption includes API credentials.",
       "cacheCleared": "Cache cleared.",
       "clearCache": "Clear Cache",
+      "startOnboardingTour": "Start Onboarding Tour",
+      "onboardingTourDesc": "Start the interactive 4-step walkthrough of the Cachy trading workstation.",
       "dangerZone": "Danger Zone",
       "dashboard": "Dashboard",
       "dangerZoneDesc": "Warning: Use these functions only if you know what you're doing",
@@ -2748,7 +2750,34 @@
       "level_10_name": "Duck Master",
       "level_10_desc": "Reached Level 10 — rocking the crown.",
       "level_20_name": "Legendary Quacker",
-      "level_20_desc": "Reached Level 20 — the cape flows."
+      "level_20_desc": "Reached Level 20 — the cape flows.",
+      "onboarding_completed_name": "Ready to Trade! 🦆",
+      "onboarding_completed_desc": "Successfully completed the onboarding walkthrough."
+    }
+  },
+  "onboarding": {
+    "badge": "Cachy Quickstart",
+    "start": "Start tour",
+    "skip": "Skip",
+    "skipAria": "Skip onboarding tour",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish Tour",
+    "step1": {
+      "title": "Position size from your risk",
+      "desc": "Enter account size, maximum risk (%) and stop-loss — Cachy calculates the position size for you. Your downside is capped from the very first trade."
+    },
+    "step2": {
+      "title": "Scale out, keep R:R in view",
+      "desc": "Set up to three take-profit levels (TP1–TP3). Your risk-to-reward ratio updates live for every exit."
+    },
+    "step3": {
+      "title": "Connect live market data",
+      "desc": "This indicator shows your data connection. Bitunix or Bitget API keys go in Settings — encrypted, and they never leave your device."
+    },
+    "step4": {
+      "title": "Everything local. Really.",
+      "desc": "Setups, presets, keys and your trade journal stay on this device (Local-First, Class A). No server, no cloud. Document your setups in the journal."
     }
   },
   "header": {

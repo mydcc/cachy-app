@@ -3303,6 +3303,68 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0285-credential-transit-boundary.md"
   },
   {
+    "id": "FEAT-0299",
+    "title": "Epic: First-Time User Onboarding & Interactive Walkthrough",
+    "type": "feature",
+    "status": "in-progress",
+    "assignee": "human",
+    "branch": "feat/cachy-onboarding",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0299-epic-first-time-user-onboarding.md"
+  },
+  {
+    "id": "FEAT-0300",
+    "title": "Onboarding spotlight walkthrough UI, state engine, and data-driven steps",
+    "type": "feature",
+    "status": "in-progress",
+    "assignee": "human",
+    "branch": "feat/cachy-onboarding",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0300-onboarding-spotlight-ui-and-content.md"
+  },
+  {
+    "id": "FEAT-0301",
+    "title": "Active 3D Duck companion integration and onboarding achievement",
+    "type": "feature",
+    "status": "in-progress",
+    "assignee": "human",
+    "branch": "feat/cachy-onboarding",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "mascot",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0300"
+    ],
+    "file": "features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",

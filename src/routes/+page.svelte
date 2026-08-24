@@ -56,6 +56,7 @@
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import QuizButton from "../components/shared/QuizButton.svelte";
   import FlashCard from "../components/shared/FlashCard.svelte";
+  import OnboardingSpotlight from "../components/shared/OnboardingSpotlight.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
   import { effectsState } from "../stores/effects.svelte";
 
@@ -317,7 +318,9 @@
     class:panel-tilt={isProPanelTilt}
     onanimationend={handleTiltAnimationEnd}
   >
-    <ConnectionStatus />
+    <div id="market-overview-widget">
+      <ConnectionStatus />
+    </div>
     <div
       class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4"
     >
@@ -329,7 +332,7 @@
           </h1>
         </div>
         <button
-          id="view-journal-btn-mobile"
+          id="journal-toggle-btn"
           class="text-sm md:hidden bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg"
           title={$_("app.journalButtonTitle")}
           onclick={() => uiState.toggleJournalModal(true)}
@@ -419,7 +422,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-      <div>
+      <div id="trade-setup-card">
         <GeneralInputs
           bind:tradeType={tradeState.tradeType}
           bind:leverage={tradeState.leverage}
@@ -465,12 +468,14 @@
           showSymbolSuggestions={uiState.showSymbolSuggestions}
         />
 
-        <TakeProfitTargets
-          bind:targets={tradeState.targets}
-          on:change={handleTargetsChange}
-          on:remove={handleTpRemove}
-          calculatedTpDetails={resultsState.calculatedTpDetails}
-        />
+        <div id="tp-targets-card">
+          <TakeProfitTargets
+            bind:targets={tradeState.targets}
+            on:change={handleTargetsChange}
+            on:remove={handleTpRemove}
+            calculatedTpDetails={resultsState.calculatedTpDetails}
+          />
+        </div>
 
         <TagInputs tags={tradeState.tags} />
       </div>
@@ -865,6 +870,7 @@
 <!-- No ModalFrames for Guide/Changelog/Academy etc. anymore - they are managed by WindowManager -->
 
 <FlashCard />
+<OnboardingSpotlight />
 
 <style>
   /* Brief 3D tilt + accent gloss sweep on the calculator panel when the
@@ -927,3 +933,4 @@
     }
   }
 </style>
+

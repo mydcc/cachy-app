@@ -28,6 +28,7 @@
     import { toastService } from "../../../services/toastService.svelte";
     import { applyTelemetryConsent } from "../../../services/trackingService";
     import { autoBackupState, triggerAutoBackup } from "../../../services/autoBackupService.svelte";
+    import { onboardingState } from "../../../stores/onboarding.svelte";
     import {
         fileTargetState,
         isFileSystemAccessSupported,
@@ -541,8 +542,35 @@
             </section>
         {/if}
 
-        <!-- Danger Zone -->
+        <!-- Onboarding Tour -->
         {#if activeSubTab === "maintenance"}
+            <section class="settings-section animate-fade-in mb-6">
+                <h3 class="section-title mb-4">
+                    {$_("settings.system.startOnboardingTour") || "Onboarding Tour"}
+                </h3>
+
+                <div
+                    class="p-4 border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-between gap-4"
+                >
+                    <div class="flex items-center gap-2">
+                        <span aria-hidden="true">🧭</span>
+                        <div class="text-xs sm:text-sm text-[var(--text-secondary)]">
+                            {$_("settings.system.onboardingTourDesc") ||
+                                "Start the interactive 4-step walkthrough of the Cachy trading workstation."}
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        id="start-onboarding-tour-btn"
+                        class="px-4 py-2 rounded-lg text-xs font-bold bg-[var(--btn-accent-bg)] text-[var(--btn-accent-text)] hover:bg-[var(--btn-accent-hover-bg)] shadow transition-all shrink-0"
+                        onclick={() => onboardingState.triggerStartWithDelay(2000)}
+                    >
+                        {$_("onboarding.start") || "Start tour"}
+                    </button>
+                </div>
+            </section>
+
+            <!-- Danger Zone -->
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title text-red-500 mb-4">
                     {$_("settings.system.dangerZone") || "Danger Zone"}

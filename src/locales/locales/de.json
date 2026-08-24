@@ -1429,6 +1429,8 @@
       "clearCache": "Cache leeren",
       "reloadApp": "App neu laden",
       "cacheCleared": "Cache wurde geleert.",
+      "startOnboardingTour": "Onboarding-Tour starten",
+      "onboardingTourDesc": "Starte die interaktive 4-Schritte-Führung durch die Cachy-Trading-Workstation.",
       "dataMaintenance": "Daten & Backup",
       "autoBackupTitle": "Automatisches OPFS-Backup",
       "active": "Aktiv",
@@ -2748,7 +2750,34 @@
       "level_10_name": "Duck Master",
       "level_10_desc": "Level 10 erreicht — die Krone sitzt.",
       "level_20_name": "Legendary Quacker",
-      "level_20_desc": "Level 20 erreicht — das Cape weht."
+      "level_20_desc": "Level 20 erreicht — das Cape weht.",
+      "onboarding_completed_name": "Startklar! 🦆",
+      "onboarding_completed_desc": "Das Onboarding erfolgreich abgeschlossen."
+    }
+  },
+  "onboarding": {
+    "badge": "Cachy Quickstart",
+    "start": "Tour starten",
+    "skip": "Überspringen",
+    "skipAria": "Onboarding-Tour überspringen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "finish": "Tour abschließen",
+    "step1": {
+      "title": "Positionsgröße aus deinem Risiko",
+      "desc": "Gib Kontogröße, maximales Risiko (%) und Stop-Loss ein — Cachy rechnet dir die passende Positionsgröße aus. Dein Downside ist von der ersten Order an begrenzt."
+    },
+    "step2": {
+      "title": "Gewinne staffeln, R:R im Blick",
+      "desc": "Lege bis zu drei Take-Profits fest (TP1–TP3). Das Chance-Risiko-Verhältnis aktualisiert sich live für jeden Ausstieg."
+    },
+    "step3": {
+      "title": "Live-Marktdaten verbinden",
+      "desc": "Dieser Status zeigt deine Datenverbindung. Bitunix- oder Bitget-Keys hinterlegst du verschlüsselt in den Einstellungen — sie bleiben ausschließlich auf deinem Gerät."
+    },
+    "step4": {
+      "title": "Alles lokal. Wirklich.",
+      "desc": "Setups, Presets, Keys und dein Trade Journal bleiben auf diesem Gerät (Local-First, Klasse A). Kein Server, keine Cloud. Deine Setups dokumentierst du im Journal."
     }
   },
   "header": {
