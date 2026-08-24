@@ -931,7 +931,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0282",
     "title": "AI assistant sends journal, portfolio and trade setup to servers without explicit consent",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3512,7 +3512,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0287",
     "title": "Issued client tokens never expire and the token map grows without bound",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0287-client-token-ttl",
     "priority": "P3",
     "milestone": "none",
     "editions": [
