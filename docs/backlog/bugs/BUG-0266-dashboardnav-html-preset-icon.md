@@ -2,7 +2,9 @@
 id: BUG-0266
 title: DashboardNav renders preset.icon through unsanitized {@html}
 type: bug
-status: ready
+status: in-progress
+assignee: opencode
+branch: fix/bug-0266-sanitize-nav-icon
 priority: P3
 milestone: none
 editions: [community, pro, private]
