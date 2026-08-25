@@ -871,6 +871,23 @@ describe("Chart settings — scale mode & time scale propagation", () => {
             .map((o) => o.timeScale as { secondsVisible?: boolean });
         expect(tsCalls.length).toBeGreaterThan(0);
         expect(tsCalls.at(-1)?.secondsVisible).toBe(true);
+
+        // The stock secondsVisible is a no-op at >=1m timeframes (it only
+        // affects Second-weight ticks), so the fix wires formatters that
+        // append :SS - they must be attached together with the toggle.
+        const withFormatters = appliedChartOptions().find(
+            (o) => o.timeScale && (o.timeScale as Record<string, unknown>).tickMarkFormatter,
+        );
+        expect(withFormatters).toBeDefined();
+        expect(
+            typeof (withFormatters!.timeScale as Record<string, unknown>).tickMarkFormatter,
+        ).toBe("function");
+
+        const locCalls = appliedChartOptions()
+            .filter((o) => o.localization)
+            .map((o) => o.localization as { timeFormatter?: unknown });
+        expect(locCalls.length).toBeGreaterThan(0);
+        expect(typeof locCalls.at(-1)?.timeFormatter).toBe("function");
         settingsState.chartSecondsVisible = false;
     });
 });

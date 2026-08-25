@@ -44,6 +44,7 @@
     import { appFetch } from "../../appAuth";
     import { unwrapApiEnvelope, formatDynamicDecimal, deriveTickSizeFromPrice } from "../../../utils/utils";
     import {
+        buildAxisFormatters,
         formatCountdown,
         mapPriceScaleMode,
         nextCandleCloseTime,
@@ -526,6 +527,12 @@
             quotePrecision,
         );
         const minMove = new Decimal(10).pow(-decimals).toNumber();
+        // The stock secondsVisible only affects Second-weight ticks, which
+        // never occur at >=1m timeframes - the formatters make the toggle
+        // real (UTC labels with :SS appended when enabled).
+        const axisFormatters = buildAxisFormatters(
+            settingsState.chartSecondsVisible,
+        );
 
         chart.applyOptions({
             grid: {
@@ -547,6 +554,10 @@
                 secondsVisible: settingsState.chartSecondsVisible,
                 fixLeftEdge: settingsState.chartFixEdges,
                 fixRightEdge: settingsState.chartFixEdges,
+                tickMarkFormatter: axisFormatters.tickMarkFormatter,
+            },
+            localization: {
+                timeFormatter: axisFormatters.timeFormatter,
             },
         });
 
@@ -1031,6 +1042,13 @@
 
     .chart-container :global(.tv-lightweight-charts) {
         border-radius: 0 0 12px 12px;
+        /* Pin the chart above the optional watermark overlay: when the
+           watermark {#if} block mounts later than the chart, Svelte inserts
+           it before the template anchors - i.e. after the chart's appended
+           canvas in DOM order - so without an explicit stacking context the
+           watermark would tint the candles instead of sitting behind them. */
+        position: relative;
+        z-index: 1;
     }
 
     .loading-spinner {
