@@ -371,6 +371,10 @@ pub struct PivotState {
     pub basis_h: Decimal,
     pub basis_l: Decimal,
     pub basis_c: Decimal,
+    /// Unused — no pivot formula (classic/woodie/camarilla/fibonacci) needs
+    /// the open. Kept for struct parity with the TS basis shape; a future
+    /// pivot type that requires `open` MUST extend `compute_pivot_levels`
+    /// and thread it through initialize()/shift() as well.
     pub basis_o: Decimal,
     initialized: bool,
 }
@@ -1836,7 +1840,8 @@ impl TechnicalsCalculator {
                     }
                 }
 
-                out.volatility                    .insert(format!("SuperTrend_{}", key), Decimal::from(trend));
+                out.volatility
+                    .insert(format!("SuperTrend_{}", key), Decimal::from(trend));
                 out.volatility
                     .insert(format!("SuperTrend_{}_upper", key), final_upper);
                 out.volatility
