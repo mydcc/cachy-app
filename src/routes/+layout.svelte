@@ -18,6 +18,11 @@
 <script lang="ts">
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
+  import type MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
+  import type AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
+  import type AutoBackupRestoreModal from "../components/shared/AutoBackupRestoreModal.svelte";
+  import type OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
+
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { onMount, type Component } from "svelte";
@@ -59,10 +64,10 @@ import { afterNavigate } from "$app/navigation";
   let FXOverlayComponent: Component | null = $state(null);
 
   // Lazy-loaded modals
-  let MarketDashboardModalComponent: Component<any, any, any> | null = $state(null);
-  let AlertDefinitionsModalComponent: Component<any, any, any> | null = $state(null);
-  let AutoBackupRestoreModalComponent: Component<any, any, any> | null = $state(null);
-  let OrderDetailsTooltipComponent: Component<any, any, any> | null = $state(null);
+  let MarketDashboardModalComponent: typeof MarketDashboardModal | null = $state(null);
+  let AlertDefinitionsModalComponent: typeof AlertDefinitionsModal | null = $state(null);
+  let AutoBackupRestoreModalComponent: typeof AutoBackupRestoreModal | null = $state(null);
+  let OrderDetailsTooltipComponent: typeof OrderDetailsTooltip | null = $state(null);
 
   $effect(() => {
     if (uiState.showMarketDashboardModal && !MarketDashboardModalComponent) {
