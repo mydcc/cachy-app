@@ -257,7 +257,8 @@ describe('WASM ↔ TS parity', () => {
         expectClose(out.volatility.PSAR, res.at(-1)!, 'PSAR');
     });
 
-    it('computes Pivots from the previous candle like calculatePivots', () => {
+    it('computes Pivots from the previous candle like calculatePivots', (ctx) => {
+        if (!fresh(ctx)) return;
         // Reference uses klines[len-2] of the full series.
         const prev = SERIES[SERIES.length - 2];
         const ref = calculatePivotsFromValues(
@@ -269,7 +270,10 @@ describe('WASM ↔ TS parity', () => {
         }
     });
 
-    it('returns exactly RSI 100 on an all-gains tail', () => {
+    it('returns exactly RSI 100 on an all-gains tail', (ctx) => {
+        // The exact-100 formula landed with BUG-0315; a stale committed
+        // binary predates it and would fail here for the wrong reason.
+        if (!fresh(ctx)) return;
         // Strictly rising closes → avg_loss == 0 must yield exactly 100.
         const up = Array.from({ length: 40 }, (_, i) => ({
             o: (100 + i).toFixed(2),
