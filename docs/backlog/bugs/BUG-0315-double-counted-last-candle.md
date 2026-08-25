@@ -70,7 +70,7 @@ the full series as history instead of `history[:-1]`.
 - [x] RSI returns exactly `"100"` for an all-gains window.
 - [x] Existing Rust tests still pass; extended tests document init+update
       exactness.
-- [ ] `npm run check` and targeted vitests pass.
+- [x] `npm run check` and targeted vitests pass.
 
 ## Out of scope
 
