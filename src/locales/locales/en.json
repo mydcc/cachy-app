@@ -1376,8 +1376,7 @@
       "scaleMode": "Scale Mode",
       "scaleLinear": "Linear",
       "scaleLog": "Logarithmic",
-      "scalePercent": "Percentage",
-      "scaleIndexed": "Indexed to 100",
+      "scaleHint": "Logarithmic treats equal percentage price distances equally - recommended for large price ranges.",
       "decimalsMode": "Decimal Places",
       "decimalsAuto": "Auto (Exchange)",
       "decimalsFixed": "Fixed",
@@ -1386,8 +1385,6 @@
       "autoScaleDesc": "Y-axis automatically fits the price range",
       "invertScale": "Invert Scale",
       "invertScaleDesc": "Flip the price axis (0 on top)",
-      "leftScale": "Left Price Scale",
-      "leftScaleDesc": "Show the scale on the left instead of the right",
       "displaySection": "Display",
       "showGrid": "Grid Lines",
       "lastValueVisible": "Last Price Label",
@@ -1410,7 +1407,8 @@
       "fixEdges": "Fix Edges",
       "fixEdgesDesc": "Prevent scrolling past the left/right chart edge",
       "countdownEnabled": "Candle Close Countdown",
-      "countdownDesc": "Remaining time until the current candle closes"
+      "countdownDesc": "Remaining time until the current candle closes",
+      "reset": "Reset"
     },
     "tabs": {
       "general": "General",
