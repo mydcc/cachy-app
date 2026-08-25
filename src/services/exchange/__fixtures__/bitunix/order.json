@@ -1,0 +1,13 @@
+{
+    "ch": "order",
+    "data": [{
+        "orderId": 1234567890123456789,
+        "symbol": "BTCUSDT",
+        "side": "BUY",
+        "type": "LIMIT",
+        "price": "50000",
+        "qty": "1",
+        "dealAmount": "0",
+        "orderStatus": "NEW"
+    }]
+}

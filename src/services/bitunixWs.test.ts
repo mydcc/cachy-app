@@ -1,0 +1,314 @@
+// @vitest-environment happy-dom
+/*
+ * Copyright (C) 2026 MYDCT
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { Decimal } from 'decimal.js';
+import { bitunixWs, type TradeData } from '../../src/services/bitunixWs';
+import { marketState } from '../../src/stores/market.svelte';
+import { mdaService } from '../../src/services/mdaService';
+
+// Private members accessed directly to drive internal batching/throttling
+// behavior without a real WebSocket connection.
+interface BitunixWsInternals {
+    throttleMap?: Map<string, number>;
+    handleMessage: (message: unknown, type: "public" | "private") => void;
+    subscribeTrade: (symbol: string, callback: (trade: TradeData) => void) => () => void;
+    subscribe: (symbol: string, channel: string) => void;
+    unsubscribe: (symbol: string, channel: string) => void;
+    sendPublicMessage: (payload: unknown) => void;
+    wsPublic: WebSocket | null;
+    isDestroyed: boolean;
+    pendingSubscribes: { symbol: string; ch: string }[];
+    pendingUnsubscribes: { symbol: string; ch: string }[];
+    publicMessageQueue: string[];
+    batchTimer: ReturnType<typeof setTimeout> | null;
+    publicMessageTimer: ReturnType<typeof setTimeout> | null;
+    lastPublicSendTime: number;
+    pendingSubscriptions: Map<string, number>;
+}
+
+// Mock mdaService
+vi.mock('../../src/services/mdaService', () => ({
+    mdaService: {
+        normalizeTicker: vi.fn(() => ({ lastPrice: '100', high: '105', low: '95', volume: '1000' })),
+        normalizeKlines: vi.fn(() => [])
+    }
+}));
+
+// Mock logger
+vi.mock('../../src/services/logger', () => ({
+    logger: {
+        warn: vi.fn(),
+        error: vi.fn(),
+        log: vi.fn(),
+        debug: vi.fn()
+    }
+}));
+
+// Mock marketState
+vi.mock('../../src/stores/market.svelte', () => ({
+    marketState: {
+        updateSymbol: vi.fn(),
+        updateDepth: vi.fn(),
+        updateSymbolKlines: vi.fn(),
+        updateTelemetry: vi.fn(),
+        connectionStatus: 'connected'
+    }
+}));
+
+describe('BitunixWS Fast Path Fallback', () => {
+    const wsService = bitunixWs as unknown as BitunixWsInternals;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        // Clear throttle map to prevent cross-test contamination
+        if (wsService.throttleMap) {
+            wsService.throttleMap.clear();
+        }
+    });
+
+    it('should use Fast Path for valid price message (Price Channel updates Index Price)', () => {
+        const msg = {
+            ch: 'price',
+            symbol: 'BTCUSDT',
+            data: { lastPrice: '50000', fr: '0.01', ip: '50001' }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        // Price channel updates Index Price, NOT Last Price (to avoid flickering).
+        // fundingRate is intentionally NOT set from `fr` here: it's undocumented
+        // and scaled differently from Bitunix's REST funding-rate endpoints, which
+        // are the sole source of truth for fundingRate (see fundingRateService.ts).
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
+            indexPrice: new Decimal('50001'),
+        });
+    });
+
+    it('should parse mark price from the price channel (BUG-0055)', () => {
+        const msg = {
+            ch: 'price',
+            symbol: 'BTCUSDT',
+            data: { lastPrice: '50000', fr: '0.01', ip: '50001', mp: '50002' }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
+            indexPrice: new Decimal('50001'),
+            markPrice: new Decimal('50002'),
+        });
+    });
+
+    it('should execute trade listeners exactly once for each trade', () => {
+        const symbol = 'BTCUSDT';
+        const callback = vi.fn();
+        wsService.subscribeTrade(symbol, callback);
+
+        const msg = {
+            ch: 'trade',
+            symbol: symbol,
+            data: {
+                p: '50000',
+                v: '0.1',
+                t: 1600000000000,
+                s: 'buy'
+            }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should use Fast Path for valid ticker message (Ticker Channel updates LastPrice)', () => {
+        const msg = {
+            ch: 'ticker',
+            symbol: 'BTCUSDT',
+            data: { lastPrice: '50000', volume: '1000' }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({
+            lastPrice: '100' // From mock
+        }));
+    });
+
+    it('should handle topic alias for channel', () => {
+        const msg = {
+            topic: 'ticker', // Using topic instead of ch
+            symbol: 'SOLUSDT',
+            data: { lastPrice: '150' }
+        };
+
+        wsService.handleMessage(msg, 'public');
+
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('SOLUSDT', expect.objectContaining({
+            lastPrice: '100' // From mock
+        }));
+    });
+
+    it('should FALLBACK to standard validation if Fast Path throws (using Ticker channel)', () => {
+        // Force throw in fast path
+        const normalizeMock = vi.mocked(mdaService.normalizeTicker);
+        normalizeMock.mockImplementationOnce(() => {
+            throw new Error('Fast Path Crash');
+        });
+
+        // Use different symbol or clear throttle (done in beforeEach)
+        const msg = {
+            ch: 'ticker', // Must use Ticker to trigger normalizeTicker in Fast Path
+            symbol: 'ETHUSDT',
+            data: { lastPrice: '3000' },
+            event: 'push' // Valid structure for Zod fallback
+        };
+
+        // Execution
+        wsService.handleMessage(msg, 'public');
+
+        // Verification:
+        // 1. Fast Path called shouldThrottle with read-only
+        // 2. Fast Path called normalizeTicker -> Threw Error
+        // 3. Catch block caught it
+        // 4. Fallback (slow path) ran, successfully calling normalizeTicker again
+        // 5. marketState was updated
+
+        expect(normalizeMock).toHaveBeenCalledTimes(2);
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT', expect.any(Object));
+    });
+
+    it('should handle missing fields in Fast Path gracefully without crashing', () => {
+        const msg = {
+            ch: 'price',
+            symbol: 'SOLUSDT',
+            data: { random: 'field' },
+            event: 'push'
+        };
+
+        wsService.handleMessage(msg, 'public');
+        expect(true).toBe(true);
+    });
+
+    it('should resolve synthetic timeframe kline_3m to base kline_1m subscription', () => {
+        vi.useFakeTimers();
+        const mockWs = {
+            readyState: 1,
+            send: vi.fn()
+        };
+        wsService.wsPublic = mockWs as unknown as WebSocket;
+        wsService.pendingSubscribes = [];
+
+        wsService.subscribe('BTCUSDT', 'kline_3m');
+        vi.advanceTimersByTime(50);
+
+        expect(mockWs.send).toHaveBeenCalledTimes(1);
+        const payload = JSON.parse(mockWs.send.mock.calls[0][0]);
+        expect(payload.op).toBe('subscribe');
+        expect(payload.args).toContainEqual({ symbol: 'BTCUSDT', ch: 'market_kline_1min' });
+
+        vi.useRealTimers();
+    });
+
+    describe('Batching and Rate Limiting Queue', () => {
+        let mockWs: { readyState: number; send: ReturnType<typeof vi.fn> };
+
+        beforeEach(() => {
+            mockWs = {
+                readyState: 1, // WebSocket.OPEN
+                send: vi.fn()
+            };
+            wsService.wsPublic = mockWs as unknown as WebSocket;
+            wsService.isDestroyed = false;
+            wsService.pendingSubscribes = [];
+            wsService.pendingUnsubscribes = [];
+            wsService.publicMessageQueue = [];
+            if (wsService.batchTimer) clearTimeout(wsService.batchTimer);
+            wsService.batchTimer = null;
+            if (wsService.publicMessageTimer) clearTimeout(wsService.publicMessageTimer);
+            wsService.publicMessageTimer = null;
+            wsService.lastPublicSendTime = 0;
+        });
+
+        // Fake timers are only switched back at the end of each test body, so
+        // an assertion failure leaks them into the next test. Reset them after
+        // every test instead; beforeEach then clears timers with the real API.
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('should batch multiple subscribe calls in the same tick', async () => {
+            vi.useFakeTimers();
+
+            wsService.subscribe('BTCUSDT', 'ticker');
+            wsService.subscribe('ETHUSDT', 'ticker');
+
+            // Fast-forward 50ms batch window
+            vi.advanceTimersByTime(50);
+
+            expect(mockWs.send).toHaveBeenCalledTimes(1);
+            const payload = JSON.parse(mockWs.send.mock.calls[0][0]);
+            expect(payload.op).toBe('subscribe');
+            expect(payload.args).toHaveLength(2);
+            expect(payload.args).toContainEqual({ symbol: 'BTCUSDT', ch: 'ticker' });
+            expect(payload.args).toContainEqual({ symbol: 'ETHUSDT', ch: 'ticker' });
+
+            vi.useRealTimers();
+        });
+
+        it('should enforce rate limits on outgoing public messages', async () => {
+            vi.useFakeTimers();
+
+            // Send multiple messages
+            wsService.sendPublicMessage({ op: 'msg1' });
+            wsService.sendPublicMessage({ op: 'msg2' });
+
+            // First message sent immediately
+            expect(mockWs.send).toHaveBeenCalledTimes(1);
+            expect(JSON.parse(mockWs.send.mock.calls[0][0]).op).toBe('msg1');
+
+            // Fast-forward 150ms (less than 300ms MIN_SEND_INTERVAL)
+            vi.advanceTimersByTime(150);
+            expect(mockWs.send).toHaveBeenCalledTimes(1);
+
+            // Fast-forward remaining 150ms
+            vi.advanceTimersByTime(150);
+            expect(mockWs.send).toHaveBeenCalledTimes(2);
+            expect(JSON.parse(mockWs.send.mock.calls[1][0]).op).toBe('msg2');
+
+            vi.useRealTimers();
+        });
+
+        it('should perform mutual cancellation of subscribe and unsubscribe in the same batch', async () => {
+            vi.useFakeTimers();
+
+            // Simulate unsubscribe then subscribe in same tick
+            wsService.pendingSubscriptions.set('ticker:BTCUSDT', 1);
+            wsService.unsubscribe('BTCUSDT', 'ticker'); // Queues unsubscribe
+            wsService.subscribe('BTCUSDT', 'ticker'); // Queues subscribe
+
+            // Fast-forward 50ms batch window
+            vi.advanceTimersByTime(50);
+
+            // They should cancel each other out, so no send is called
+            expect(mockWs.send).not.toHaveBeenCalled();
+
+            vi.useRealTimers();
+        });
+    });
+});
