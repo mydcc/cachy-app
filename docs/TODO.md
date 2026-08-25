@@ -200,7 +200,13 @@ GPU path's CHOP output to `result.advanced.choppiness` to match, or decide
 `volatility.CHOP` is the intended home and update the WASM path and the
 `TechnicalsData` type to match instead.
 
-## 5. `src/utils/WasmTechnicalsCalculator.ts` appears to be unreachable
+## 5. ✅ `src/utils/WasmTechnicalsCalculator.ts` appears to be unreachable
+
+**RESOLVED** (2026-08-25). Tracked as
+[`BUG-0313`](backlog/bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md).
+**Decision:** deleted (together with `src/utils/wasmTechnicals.ts`, item 9),
+confirmed safe by the audit behind that item — no importer existed anywhere
+in `src/`, and the live WASM path is `src/services/wasmCalculator.ts`.
 
 **Roadmap item 21.** Found while typing this file's `any` casts — worth
 recording before the typing work makes it look more alive than it is.
@@ -318,7 +324,13 @@ deleted. `ModalWindow`/`IframeWindow` already cover every case it was meant
 for — the props-forwarding gap only mattered if something needed it, and
 nothing ever did, in the whole time it existed unreferenced.
 
-## 9. `src/utils/wasmTechnicals.ts` appears to be unreachable
+## 9. ✅ `src/utils/wasmTechnicals.ts` appears to be unreachable
+
+**RESOLVED** (2026-08-25). Tracked as
+[`BUG-0313`](backlog/bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md)
+alongside item 5. **Decision:** deleted; the single remaining loader path is
+`src/services/wasmCalculator.ts`, which now also consumes freshly generated
+bindings instead of a hand-copied raw binary.
 
 **Roadmap item 21.** Found while typing this file's `any` casts during a
 lint pass — the same shape of finding as items 5 and 8
