@@ -37,6 +37,9 @@ interface BitgetWSOrderData {
   accFillSize?: string;
   price?: string;
   priceAvg?: string;
+  size?: string;
+  side?: string;
+  orderType?: string;
 }
 
 interface BitgetWSPositionData {
@@ -276,11 +279,11 @@ class BitgetWebSocketService {
           marketState.updateTelemetry({ activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1) });
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
+            this.cleanup();
           } else {
             marketState.connectionStatus = "reconnecting";
             this.scheduleReconnect();
           }
-          this.cleanup();
         }
       };
 
@@ -677,8 +680,10 @@ class BitgetWebSocketService {
       symbol: order.instId,
       orderStatus: order.status,
       price: order.price,
-      qty: order.accFillSize,
+      qty: order.size,
       dealAmount: order.accFillSize,
+      side: order.side,
+      type: order.orderType,
       ctime: undefined,
     };
   }
