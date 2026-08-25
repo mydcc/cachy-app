@@ -2,7 +2,7 @@
 id: BUG-0313
 title: WASM build ships an artifact that production never loads
 type: bug
-status: ready
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,7 @@ area: build
 data_class: none
 adr: none
 depends_on: []
-# assignee:            # required while status: in-progress (who is working this)
+assignee: opencode
 ---
 
 # BUG-0313 — WASM build ships an artifact that production never loads
@@ -81,3 +81,4 @@ no consumer reads.
 - `src/services/wasmCalculator.ts`, `src/services/alertEngine/alertEngine.ts`
 - `docs/TODO.md` (dead-loader section)
 - Related: BUG-0314, BUG-0315, BUG-0317
+- Branch: fix/wasm-build-robustness
