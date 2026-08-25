@@ -120,8 +120,7 @@
         <label class="toggle-card mb-2">
             <div class="flex flex-col">
                 <span class="text-sm font-medium"
-                    >{$_("settings.chart.invertScale")
-                        || "Achse invertieren"}</span
+                    >{$_("settings.chart.invertScale")}</span
                 >
                 <span class="text-[10px] text-[var(--text-secondary)]"
                     >{$_("settings.chart.invertScaleDesc")
@@ -138,8 +137,7 @@
                         || "Linke Preisachse"}</span
                 >
                 <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.leftScaleDesc")
-                        || "Skala links statt rechts anzeigen"}</span
+                    >{$_("settings.chart.leftScaleDesc")}</span
                 >
             </div>
             <Toggle bind:checked={settingsState.chartShowLeftScale} />
@@ -178,8 +176,7 @@
         <label class="toggle-card mb-2">
             <div class="flex flex-col">
                 <span class="text-sm font-medium"
-                    >{$_("settings.chart.candleBorders")
-                        || "Kerzenrahmen"}</span
+                    >{$_("settings.chart.candleBorders")}</span
                 >
             </div>
             <Toggle bind:checked={settingsState.chartCandleBorders} />
@@ -188,8 +185,7 @@
         <label class="toggle-card">
             <div class="flex flex-col">
                 <span class="text-sm font-medium"
-                    >{$_("settings.chart.watermark")
-                        || "Wasserzeichen"}</span
+                    >{$_("settings.chart.watermark")}</span
                 >
                 <span class="text-[10px] text-[var(--text-secondary)]"
                     >{$_("settings.chart.watermarkDesc")
@@ -252,8 +248,7 @@
         <label class="toggle-card mb-2">
             <div class="flex flex-col">
                 <span class="text-sm font-medium"
-                    >{$_("settings.chart.secondsVisible")
-                        || "Sekunden anzeigen"}</span
+                    >{$_("settings.chart.secondsVisible")}</span
                 >
                 <span class="text-[10px] text-[var(--text-secondary)]"
                     >{$_("settings.chart.secondsVisibleDesc")
