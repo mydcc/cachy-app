@@ -2,7 +2,7 @@
 id: FEAT-0316
 title: Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm
 type: feature
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -72,3 +72,7 @@ None blocking; semantics source is the existing TS implementation.
 - `src/services/wasmCalculator.ts` (settings mapping)
 - BUG-0317 (parity proof), BUG-0313 (fresh binary must actually load first)
 - Branch: fix/wasm-indicator-parity
+
+## Shipped
+
+Merged in 1.6.0-beta.154 via #2330 (FEAT-0316).
