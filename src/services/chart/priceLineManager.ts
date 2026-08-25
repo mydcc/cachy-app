@@ -142,14 +142,35 @@ function snap(price: Decimal, tickSize: Decimal): Decimal {
     return roundToTick(price, tickSize);
 }
 
+/**
+ * Signed fixed-decimal label that refuses to collapse a non-zero magnitude
+ * into "+0.00": when the minimum precision would round the value away, the
+ * precision is extended step by step (up to maxDp) until digits show.
+ * Normal magnitudes keep exactly minDp decimals, so existing labels like
+ * "+20.00%" are unchanged.
+ */
+function formatSigned(value: Decimal, minDp = 2, maxDp = 8): string {
+    // The sign is applied explicitly because the magnitude is formatted
+    // through abs(): negatives need their own "-", everything else "+".
+    const sign = value.isNegative() ? "-" : "+";
+    const abs = value.abs();
+    let dp = minDp;
+    while (
+        dp < maxDp &&
+        abs.toDecimalPlaces(dp, Decimal.ROUND_HALF_UP).isZero()
+    ) {
+        dp++;
+    }
+    return `${sign}${abs.toDecimalPlaces(dp, Decimal.ROUND_HALF_UP).toFixed(dp)}`;
+}
+
 /** `+pct% / +$pnl` — the sign always shows, so a loss reads unambiguously. */
 function formatDistance(from: Decimal, to: Decimal, side: "long" | "short", size: Decimal): string {
     if (from.isZero()) return "";
     const pct = to.minus(from).dividedBy(from).times(100);
     const directional = side === "long" ? to.minus(from) : from.minus(to);
     const pnl = directional.times(size);
-    const sign = (d: Decimal) => (d.isNegative() ? "" : "+");
-    return `${sign(pct)}${pct.toFixed(2)}% / ${sign(pnl)}${pnl.toFixed(2)}`;
+    return `${formatSigned(pct)}% / ${formatSigned(pnl)}`;
 }
 
 /**
