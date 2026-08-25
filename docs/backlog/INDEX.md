@@ -246,7 +246,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 8 · 🟡 in-pro
 | [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | 🟢 ready | ui |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | ui |
 | [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 📋 specced | services |
-| [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | 🟢 ready | settings |
+| [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | ✅ done | settings |
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | tooling |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | pwa |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | tooling |
@@ -436,7 +436,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 8 · 🟡 in-pro
 | [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | none | community, pro, private | none | none | — |
