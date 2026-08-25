@@ -65,7 +65,14 @@ export type HeatmapMode =
   | "coinank_new_tab"
   | "coinank_popup";
 
-export type ChartPriceScaleMode = "linear" | "log" | "percent" | "indexed";
+/**
+ * Scale mode of the candlestick chart's price axis. Deliberately limited to
+ * Linear and Logarithmic: the rebasing modes (Percentage / IndexedTo100)
+ * re-render every value relative to the first visible bar, which makes
+ * absolute price lines (Entry/Liquidation/TP/SL) unreadable on an execution
+ * chart - see the "%" scale confusion that shipped with them.
+ */
+export type ChartPriceScaleMode = "linear" | "log";
 export type ChartCrosshairMode = "normal" | "magnet" | "hidden";
 export type ChartCrosshairStyle = "solid" | "dashed" | "dotted";
 export type ChartDecimalsMode = "auto" | "fixed";
@@ -360,7 +367,6 @@ export interface Settings {
   chartPriceScaleMode: ChartPriceScaleMode;
   chartAutoScale: boolean;
   chartInvertScale: boolean;
-  chartShowLeftScale: boolean;
   chartDecimalsMode: ChartDecimalsMode;
   chartFixedDecimals: number; // Used when chartDecimalsMode === "fixed" (0-8)
   chartShowGrid: boolean;
@@ -594,7 +600,6 @@ const defaultSettings: Settings = {
   chartPriceScaleMode: "log",
   chartAutoScale: true,
   chartInvertScale: false,
-  chartShowLeftScale: false,
   chartDecimalsMode: "auto",
   chartFixedDecimals: 2,
   chartShowGrid: true,
@@ -878,6 +883,24 @@ export class SettingsManager {
     };
   }
 
+  /** Restores every Settings → Chart field to its default (reset button). */
+  resetChartSettings() {
+    this.chartPriceScaleMode = defaultSettings.chartPriceScaleMode;
+    this.chartAutoScale = defaultSettings.chartAutoScale;
+    this.chartInvertScale = defaultSettings.chartInvertScale;
+    this.chartDecimalsMode = defaultSettings.chartDecimalsMode;
+    this.chartFixedDecimals = defaultSettings.chartFixedDecimals;
+    this.chartShowGrid = defaultSettings.chartShowGrid;
+    this.chartLastValueVisible = defaultSettings.chartLastValueVisible;
+    this.chartCandleBorders = defaultSettings.chartCandleBorders;
+    this.chartWatermark = defaultSettings.chartWatermark;
+    this.chartCrosshairMode = defaultSettings.chartCrosshairMode;
+    this.chartCrosshairStyle = defaultSettings.chartCrosshairStyle;
+    this.chartSecondsVisible = defaultSettings.chartSecondsVisible;
+    this.chartFixEdges = defaultSettings.chartFixEdges;
+    this.chartCountdownEnabled = defaultSettings.chartCountdownEnabled;
+  }
+
   // Market & Performance State
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
   analyzeAllFavorites = $state<boolean>(defaultSettings.analyzeAllFavorites);
@@ -906,7 +929,6 @@ export class SettingsManager {
   );
   chartAutoScale = $state<boolean>(defaultSettings.chartAutoScale);
   chartInvertScale = $state<boolean>(defaultSettings.chartInvertScale);
-  chartShowLeftScale = $state<boolean>(defaultSettings.chartShowLeftScale);
   chartDecimalsMode = $state<ChartDecimalsMode>(
     defaultSettings.chartDecimalsMode,
   );
@@ -1484,13 +1506,17 @@ export class SettingsManager {
     this.repairTimeframe =
       merged.repairTimeframe || defaultSettings.repairTimeframe;
 
+    // Migration: the rebasing modes shipped briefly with #2310 and made
+    // absolute price lines unreadable ("%" scale confusion). Fold any stored
+    // legacy value back to the previous hard-coded behavior.
     this.chartPriceScaleMode =
-      merged.chartPriceScaleMode ?? defaultSettings.chartPriceScaleMode;
+      merged.chartPriceScaleMode === "linear" ||
+      merged.chartPriceScaleMode === "log"
+        ? merged.chartPriceScaleMode
+        : defaultSettings.chartPriceScaleMode;
     this.chartAutoScale = merged.chartAutoScale ?? defaultSettings.chartAutoScale;
     this.chartInvertScale =
       merged.chartInvertScale ?? defaultSettings.chartInvertScale;
-    this.chartShowLeftScale =
-      merged.chartShowLeftScale ?? defaultSettings.chartShowLeftScale;
     this.chartDecimalsMode =
       merged.chartDecimalsMode ?? defaultSettings.chartDecimalsMode;
     this.chartFixedDecimals =
@@ -1874,7 +1900,6 @@ export class SettingsManager {
       chartPriceScaleMode: this.chartPriceScaleMode,
       chartAutoScale: this.chartAutoScale,
       chartInvertScale: this.chartInvertScale,
-      chartShowLeftScale: this.chartShowLeftScale,
       chartDecimalsMode: this.chartDecimalsMode,
       chartFixedDecimals: this.chartFixedDecimals,
       chartShowGrid: this.chartShowGrid,

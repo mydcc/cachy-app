@@ -1,11 +1,31 @@
 import { describe, expect, it } from "vitest";
 import {
     formatCountdown,
+    mapPriceScaleMode,
     nextCandleCloseTime,
     parseTimeframe,
     resolveChartPriceDecimals,
     timeframeDurationMs,
 } from "./chartDisplay";
+
+describe("mapPriceScaleMode", () => {
+    it("maps linear to Normal (0)", () => {
+        expect(mapPriceScaleMode("linear")).toBe(0);
+    });
+
+    it("maps log to Logarithmic (1) - the long-standing default", () => {
+        expect(mapPriceScaleMode("log")).toBe(1);
+    });
+
+    it("never yields the removed rebasing modes", () => {
+        // Percentage = 2 / IndexedTo100 = 3 were removed from settings on
+        // purpose; the mapper's return type makes them unreachable, but this
+        // assertion documents the contract for future readers.
+        const allowed = new Set([0, 1]);
+        expect(allowed.has(mapPriceScaleMode("linear"))).toBe(true);
+        expect(allowed.has(mapPriceScaleMode("log"))).toBe(true);
+    });
+});
 
 describe("parseTimeframe", () => {
     it("parses every unit used by ALL_TIMEFRAMES", () => {

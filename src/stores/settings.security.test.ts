@@ -264,3 +264,80 @@ describe("SettingsManager AI keys do not come from the build environment", () =>
     expect(JSON.stringify(json)).not.toContain("sk-operator-openai");
   });
 });
+
+/**
+ * Chart settings: the rebasing price-scale modes (Percentage/IndexedTo100)
+ * shipped briefly with #2310 and made absolute Entry/Liquidation/TP/SL
+ * labels unreadable ("% scale confusion"). They were removed from the type;
+ * these tests pin that stored legacy values fold back to the previous
+ * hard-coded Logarithmic behavior and that the reset button restores every
+ * chart field.
+ */
+describe("SettingsManager chart settings (scale modes & reset)", () => {
+  const STORAGE_KEY = "cryptoCalculatorSettings";
+  let settingsState: SettingsManager;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+    settingsState = new SettingsManager();
+  });
+
+  it("normalizes a stored 'percent' mode back to logarithmic on load", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ chartPriceScaleMode: "percent" }),
+    );
+
+    const reloaded = new SettingsManager();
+
+    expect(reloaded.chartPriceScaleMode).toBe("log");
+  });
+
+  it("normalizes a stored 'indexed' mode back to logarithmic on load", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ chartPriceScaleMode: "indexed" }),
+    );
+
+    const reloaded = new SettingsManager();
+
+    expect(reloaded.chartPriceScaleMode).toBe("log");
+  });
+
+  it("keeps explicit linear/log values", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ chartPriceScaleMode: "linear" }),
+    );
+    expect(new SettingsManager().chartPriceScaleMode).toBe("linear");
+
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ chartPriceScaleMode: "log" }),
+    );
+    expect(new SettingsManager().chartPriceScaleMode).toBe("log");
+  });
+
+  it("resetChartSettings restores every chart field to its default", () => {
+    settingsState.chartPriceScaleMode = "linear";
+    settingsState.chartInvertScale = true;
+    settingsState.chartDecimalsMode = "fixed";
+    settingsState.chartFixedDecimals = 7;
+    settingsState.chartShowGrid = false;
+    settingsState.chartWatermark = true;
+    settingsState.chartSecondsVisible = true;
+    settingsState.chartCountdownEnabled = true;
+
+    settingsState.resetChartSettings();
+
+    expect(settingsState.chartPriceScaleMode).toBe("log");
+    expect(settingsState.chartInvertScale).toBe(false);
+    expect(settingsState.chartDecimalsMode).toBe("auto");
+    expect(settingsState.chartFixedDecimals).toBe(2);
+    expect(settingsState.chartShowGrid).toBe(true);
+    expect(settingsState.chartWatermark).toBe(false);
+    expect(settingsState.chartSecondsVisible).toBe(false);
+    expect(settingsState.chartCountdownEnabled).toBe(false);
+  });
+});

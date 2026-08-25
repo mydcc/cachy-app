@@ -23,8 +23,6 @@
     const priceScaleModes = [
         { value: "linear", labelKey: "settings.chart.scaleLinear" },
         { value: "log", labelKey: "settings.chart.scaleLog" },
-        { value: "percent", labelKey: "settings.chart.scalePercent" },
-        { value: "indexed", labelKey: "settings.chart.scaleIndexed" },
     ] as const;
 
     const crosshairModes = [
@@ -43,9 +41,18 @@
 <div class="flex flex-col gap-6">
     <!-- Price Scale -->
     <section class="settings-section animate-fade-in">
-        <h3 class="section-title">
-            {$_("settings.chart.scaleSection") || "Skalierung"}
-        </h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="section-title mb-0">
+                {$_("settings.chart.scaleSection") || "Skalierung"}
+            </h3>
+            <button
+                type="button"
+                class="text-xs text-[var(--accent-color)] hover:underline"
+                onclick={() => settingsState.resetChartSettings()}
+            >
+                {$_("settings.chart.reset") || "Zurücksetzen"}
+            </button>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div class="field-group">
@@ -83,6 +90,11 @@
                 </select>
             </div>
         </div>
+
+        <p class="text-[10px] text-[var(--text-secondary)] mb-4">
+            {$_("settings.chart.scaleHint")
+                || "Logarithmisch bewertet Preisabstände prozentual gleich - empfohlen für große Kursbereiche."}
+        </p>
 
         {#if settingsState.chartDecimalsMode === "fixed"}
             <div class="field-group mb-4">
@@ -128,19 +140,6 @@
                 >
             </div>
             <Toggle bind:checked={settingsState.chartInvertScale} />
-        </label>
-
-        <label class="toggle-card">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.leftScale")
-                        || "Linke Preisachse"}</span
-                >
-                <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.leftScaleDesc")}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartShowLeftScale} />
         </label>
     </section>
 
