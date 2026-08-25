@@ -134,6 +134,7 @@ jobs:
           model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
+          use_github_token: true
 
       - name: Run opencode (fallback 1)
         id: oc_fallback_1
@@ -146,6 +147,7 @@ jobs:
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_1 }}
           share: false
+          use_github_token: true
 
       - name: Run opencode (fallback 2)
         id: oc_fallback_2
@@ -157,6 +159,7 @@ jobs:
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
           share: false
+          use_github_token: true
 
   # Automated review of every non-draft PR against the Cachy checklist
   # (AGENTS.md -> Code Review Standard). Read-only towards the codebase: it only
@@ -214,6 +217,7 @@ jobs:
           model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
+          use_github_token: true
           prompt: ${{ env.REVIEW_PROMPT }}
 
       - name: Run opencode review (fallback 1)
@@ -227,6 +231,7 @@ jobs:
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_1 }}
           share: false
+          use_github_token: true
           prompt: ${{ env.REVIEW_PROMPT }}
 
       - name: Run opencode review (fallback 2)
@@ -239,6 +244,7 @@ jobs:
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
           share: false
+          use_github_token: true
           prompt: ${{ env.REVIEW_PROMPT }}
 
       # One review run leaves two comments: the full review (posted as
@@ -314,6 +320,7 @@ jobs:
           model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
+          use_github_token: true
           prompt: ${{ env.WEEKLY_PROMPT }}
 
       - name: Run opencode weekly maintenance (fallback 1)
@@ -327,6 +334,7 @@ jobs:
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_1 }}
           share: false
+          use_github_token: true
           prompt: ${{ env.WEEKLY_PROMPT }}
 
       - name: Run opencode weekly maintenance (fallback 2)
@@ -339,6 +347,7 @@ jobs:
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
           share: false
+          use_github_token: true
           prompt: ${{ env.WEEKLY_PROMPT }}
 
   # Manual run from the Actions tab (workflow_dispatch): the task text entered
@@ -385,6 +394,7 @@ jobs:
           model: ${{ env.OPENCODE_MODEL }}
           # Keep the session private even on this public repo.
           share: false
+          use_github_token: true
           prompt: ${{ inputs.task }}
 
       - name: Run opencode manual task (fallback 1)
@@ -398,6 +408,7 @@ jobs:
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_1 }}
           share: false
+          use_github_token: true
           prompt: ${{ inputs.task }}
 
       - name: Run opencode manual task (fallback 2)
@@ -410,4 +421,5 @@ jobs:
         with:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
           share: false
+          use_github_token: true
           prompt: ${{ inputs.task }}

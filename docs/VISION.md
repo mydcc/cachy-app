@@ -104,14 +104,6 @@ configuration task rather than a rewrite.
 forms a view, selects a strategy — and eventually executes it. This is the
 long-term goal and it is last for the reason given under commitment 2.
 
-What that layer is made of is settled, because the shape decides whether
-commitment 2 survives it: a strategy is a rule the trader can read, not code and
-not a model's opinion. The same rule that raises an alert is the one a backtest
-replays and the one an agent would execute, so "it tested well" and "it ran well"
-stay comparable. The model proposes; a person arms; the execution gate is the
-same one a manual click passes through. See
-[ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md).
-
 Collaboration features (chat, copy trading) sit alongside these rather than
 between them: they are optional modules, they never gate the core, and each one
 needs its data boundary decided before it is built rather than after.
