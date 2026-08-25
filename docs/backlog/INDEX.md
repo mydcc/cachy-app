@@ -4,7 +4,7 @@
 
 189 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-progress 9 · ✅ done 132
+Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 8 · 🟡 in-progress 6 · ✅ done 136
 
 ---
 
@@ -44,7 +44,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [BUG-0297](bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) | An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built | P1 | 🟡 in-progress | execution |
+| [BUG-0297](bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) | An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built | P1 | ✅ done | execution |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | exchange |
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | ✅ done | exchange |
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | 📋 specced | exchange |
@@ -196,7 +196,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | calculator |
 | [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | ✅ done | security |
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | security |
-| [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | security |
+| [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | ✅ done | security |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | ✅ done | security |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | ✅ done | security |
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | core |
@@ -219,7 +219,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | ✅ done | ui |
 | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) | Keep three.js off the startup path behind lazily loaded effect overlays | P2 | ✅ done | ui |
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | 🟢 ready | services |
-| [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | 🟢 ready | i18n |
+| [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | ✅ done | i18n |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | 📋 specced | security |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
@@ -228,7 +228,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | ✅ done | ui |
 | [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | ui |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | ui |
-| [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟡 in-progress | ui |
+| [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | ✅ done | ui |
 | [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | api |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | api |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | security |
@@ -303,7 +303,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | ✅ done | none | community, pro, private | A | required | — |
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | ✅ done | M3 | community, pro, private | A | none | — |
-| [BUG-0297](bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) | An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built | P1 | 🟡 in-progress | M2 | community, pro, private | none | none | — |
+| [BUG-0297](bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) | An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built | P1 | ✅ done | M2 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -362,7 +362,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | none | community, pro, private | C | none | — |
-| [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
+| [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -406,7 +406,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) |
 | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) | Keep three.js off the startup path behind lazily loaded effect overlays | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | 🟢 ready | none | community, pro, private | A | none | — |
-| [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | 📋 specced | none | community, pro, private | A | required | — |
 | [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
@@ -418,7 +418,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0206](bugs/BUG-0206-quiz-flashcard-close-button.md) | Quiz flashcard close button is misplaced | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | none | community | none | none | — |
-| [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
