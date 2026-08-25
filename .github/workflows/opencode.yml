@@ -53,16 +53,6 @@ env:
     - If the PR touches area: execution, security, exchange, or priority
       P0, add a gentle note that human review is recommended before merge
       (no alarms, no uppercase shouting).
-    - If the PR author is Google Jules (`google-labs-jules[bot]`), Jules
-      supports Critic-Augmented Generation (CAG / Reactive Mode) and can
-      react to PR comments to fix issues in a new commit. In that case:
-      1. Include an explicit task block addressed to Jules:
-         "### 🤖 Tasks for @google-labs-jules[bot]"
-      2. Formulate findings as clear, imperative, numbered action items specifying
-         the file paths, line numbers, and exact code changes required.
-      3. For sensitive areas (execution/security/exchange/P0), preserve the
-         "👤 Human review recommended before merge" note so sensitive logic is
-         never merged without human oversight.
     - Only post a comment when you have findings. Start it with
       "Code Review for <short-sha>" so it is recognized on re-runs.
   WEEKLY_PROMPT: |
