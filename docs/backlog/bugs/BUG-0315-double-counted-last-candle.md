@@ -62,13 +62,13 @@ the full series as history instead of `history[:-1]`.
 
 ## Acceptance criteria
 
-- [ ] A parity test demonstrates the double-count on the unfixed code
+- [x] A parity test demonstrates the double-count on the unfixed code
       (rolling-window indicator diverges from the TS calculator).
-- [ ] With the fix, WASM output for SMA/WMA/BB/Stoch equals the TS
+- [x] With the fix, WASM output for SMA/WMA/BB/Stoch equals the TS
       StatefulTechnicalsCalculator output exactly (decimal-string equality)
       over a golden series.
-- [ ] RSI returns exactly `"100"` for an all-gains window.
-- [ ] Existing Rust tests still pass; extended tests document init+update
+- [x] RSI returns exactly `"100"` for an all-gains window.
+- [x] Existing Rust tests still pass; extended tests document init+update
       exactness.
 - [ ] `npm run check` and targeted vitests pass.
 

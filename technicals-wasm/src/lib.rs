@@ -1808,18 +1808,21 @@ impl TechnicalsCalculator {
                 let basic_upper = (h + l) / Decimal::TWO + mult * atr;
                 let basic_lower = (h + l) / Decimal::TWO - mult * atr;
 
-                let final_upper;
-                let final_lower;
-
-                final_upper = if basic_upper < s.upper || s.prev_close > s.upper {
-                    s.upper
-                } else {
+                // Band consolidation must mirror the initialize() replay:
+                // tighten to basic while it stays on the trend side, reset to
+                // basic when the close broke through the old band. The previous
+                // branches were inverted, letting bands widen forever and
+                // diverging streaming from batch state (found by the streaming
+                // equivalence test).
+                let final_upper = if basic_upper < s.upper || s.prev_close > s.upper {
                     basic_upper
-                };
-                final_lower = if basic_lower > s.lower || s.prev_close < s.lower {
-                    s.lower
                 } else {
+                    s.upper
+                };
+                let final_lower = if basic_lower > s.lower || s.prev_close < s.lower {
                     basic_lower
+                } else {
+                    s.lower
                 };
 
                 let mut trend = s.trend;
@@ -1833,8 +1836,7 @@ impl TechnicalsCalculator {
                     }
                 }
 
-                out.volatility
-                    .insert(format!("SuperTrend_{}", key), Decimal::from(trend));
+                out.volatility                    .insert(format!("SuperTrend_{}", key), Decimal::from(trend));
                 out.volatility
                     .insert(format!("SuperTrend_{}_upper", key), final_upper);
                 out.volatility
@@ -2270,33 +2272,31 @@ impl TechnicalsCalculator {
                 let basic_upper = (h + l) / Decimal::TWO + mult * s.atr;
                 let basic_lower = (h + l) / Decimal::TWO - mult * s.atr;
 
-                let final_upper;
-                let final_lower;
-
-                final_upper = if basic_upper < s.upper || s.prev_close > s.upper {
-                    s.upper
-                } else {
+                // Same consolidation rule as initialize() and update(): tighten
+                // toward basic while it stays on the trend side, reset to basic
+                // on a close through the old band (see streaming test).
+                s.upper = if basic_upper < s.upper || s.prev_close > s.upper {
                     basic_upper
-                };
-                final_lower = if basic_lower > s.lower || s.prev_close < s.lower {
-                    s.lower
                 } else {
+                    s.upper
+                };
+                s.lower = if basic_lower > s.lower || s.prev_close < s.lower {
                     basic_lower
+                } else {
+                    s.lower
                 };
 
                 let mut trend = s.trend;
                 if trend == 1 {
-                    if c < final_lower {
+                    if c < s.lower {
                         trend = -1;
                     }
                 } else {
-                    if c > final_upper {
+                    if c > s.upper {
                         trend = 1;
                     }
                 }
 
-                s.upper = final_upper;
-                s.lower = final_lower;
                 s.trend = trend;
                 s.prev_close = c;
             }
@@ -2925,6 +2925,137 @@ mod tests {
             "0".into(),
         );
         serde_json::from_str::<serde_json::Value>(&json).expect("valid JSON");
+    }
+
+    /// Streaming protocol equivalence: feeding candles one by one via
+    /// update() [read] + shift() [commit] must produce byte-identical output
+    /// to batch-initializing on the same history and updating with the final
+    /// candle. This pins the update/shift contract for every family at once —
+    /// in particular PSAR's state machine and Stochastic's smoothing windows,
+    /// where a double-advance or off-by-one window would diverge immediately.
+    #[test]
+    fn test_streaming_update_shift_equals_batch() {
+        let n = 80usize;
+        let closes: Vec<String> = (0..n).map(|i| format!("{}", 90 + (i * 7) % 29)).collect();
+        let highs: Vec<String> = (0..n).map(|i| format!("{}", 95 + (i * 5) % 31)).collect();
+        let lows: Vec<String> = (0..n).map(|i| format!("{}", 85 + (i * 3) % 27)).collect();
+        let vols: Vec<String> = (0..n).map(|i| format!("{}", 500 + i * 13)).collect();
+        // Cross a UTC-day boundary every 25 candles so session VWAP resets
+        // are part of the streamed path too.
+        let times: Vec<String> = (0..n)
+            .map(|i| format!("{}", (i / 25) as f64 * 86_400_000.0 + (i % 25) as f64 * 60_000.0))
+            .collect();
+        let times_f64: Vec<f64> = times.iter().map(|t| t.parse().unwrap()).collect();
+
+        let settings = r#"{
+            "ema": [{ "length": 10 }],
+            "sma": [{ "length": 9 }],
+            "wma": [{ "length": 12 }],
+            "vwma": [{ "length": 8 }],
+            "hma": [{ "length": 9 }],
+            "rsi": [{ "length": 14 }],
+            "macd": [{ "fast": 12, "slow": 26, "signal": 9 }],
+            "bb": [{ "length": 20, "std_dev": "2" }],
+            "atr": [{ "length": 14 }],
+            "stoch": [{ "k": 14, "d": 3, "smooth": 3 }],
+            "cci": [{ "length": 20 }],
+            "adx": [{ "length": 14 }],
+            "supertrend": [{ "length": 10, "multiplier": 3 }],
+            "mom": [{ "length": 10 }],
+            "wr": [{ "length": 14 }],
+            "volma": [{ "length": 12 }],
+            "chop": [{ "length": 14 }],
+            "mfi": [{ "length": 14 }],
+            "vwap": [{ "anchor": "session" }],
+            "psar": [{ "start": 0.02, "increment": 0.02, "max": 0.2 }],
+            "pivots": [{ "type_": "classic" }]
+        }"#;
+
+        let candle_args = |i: usize| -> (String, String, String, String, String, String) {
+            (
+                closes[i].clone(),
+                highs[i].clone(),
+                lows[i].clone(),
+                closes[i].clone(),
+                vols[i].clone(),
+                times[i].clone(),
+            )
+        };
+
+        // Streaming: initialize on history[0..hist_len), then per candle
+        // update() to read and shift() to commit.
+        let hist_len = 40;
+        let mut stream = TechnicalsCalculator::new();
+        stream.initialize(
+            closes[0..hist_len].to_vec(),
+            highs[0..hist_len].to_vec(),
+            lows[0..hist_len].to_vec(),
+            vols[0..hist_len].to_vec(),
+            &times_f64[0..hist_len],
+            settings,
+        );
+        let mut streaming_last = String::new();
+        for i in hist_len..n {
+            let (o, h, l, c, v, t) = candle_args(i);
+            streaming_last = stream.update(o.clone(), h.clone(), l.clone(), c.clone(), v.clone(), t.clone());
+            stream.shift(o, h, l, c, v, t);
+        }
+
+        // Batch reference: same total history minus the last candle, then a
+        // single update with it — the exact production call shape.
+        let mut batch = TechnicalsCalculator::new();
+        batch.initialize(
+            closes[0..n - 1].to_vec(),
+            highs[0..n - 1].to_vec(),
+            lows[0..n - 1].to_vec(),
+            vols[0..n - 1].to_vec(),
+            &times_f64[0..n - 1],
+            settings,
+        );
+        let (_, h, l, c, v, t) = candle_args(n - 1);
+        let batch_last = batch.update(closes[n - 1].clone(), h, l, c, v, t);
+
+        // HashMap iteration order differs between instances — compare parsed
+        // values so key order is ignored while every decimal string stays exact.
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&streaming_last).unwrap(),
+            serde_json::from_str::<serde_json::Value>(&batch_last).unwrap(),
+            "streamed update/shift output must equal the batch path exactly"
+        );
+
+        // Probe with one FRESH candle beyond the series: if shift() had
+        // double-advanced any state machine (PSAR) or used wrong smoothing
+        // windows (Stochastic), the committed state now differs from a batch
+        // calculator built over all n candles, and this read diverges.
+        let probe_c = format!("{}", 90 + (n * 7) % 29);
+        let probe_h = format!("{}", 95 + (n * 5) % 31);
+        let probe_l = format!("{}", 85 + (n * 3) % 27);
+        let probe_v = format!("{}", 500 + n * 13);
+        let probe_t = format!("{}", (n / 25) as f64 * 86_400_000.0 + (n % 25) as f64 * 60_000.0);
+
+        let streamed_probe = stream.update(
+            probe_c.clone(), probe_h.clone(), probe_l.clone(),
+            probe_c.clone(), probe_v.clone(), probe_t.clone(),
+        );
+
+        let mut batch_full = TechnicalsCalculator::new();
+        batch_full.initialize(
+            closes.clone(),
+            highs.clone(),
+            lows.clone(),
+            vols.clone(),
+            &times_f64,
+            settings,
+        );
+        let batch_probe = batch_full.update(
+            probe_c.clone(), probe_h, probe_l,
+            probe_c, probe_v, probe_t,
+        );
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&streamed_probe).unwrap(),
+            serde_json::from_str::<serde_json::Value>(&batch_probe).unwrap(),
+            "state after streamed commits must be indistinguishable from batch state"
+        );
     }
 }
 pub mod alert_engine;

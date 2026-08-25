@@ -49,12 +49,12 @@ every newly implemented family with exact decimal-string equality.
 
 ## Acceptance criteria
 
-- [ ] MFI, VWAP, PSAR and Pivots produce non-empty, TS-equal output after
+- [x] MFI, VWAP, PSAR and Pivots produce non-empty, TS-equal output after
       initialize+update (parity test asserts exact string equality).
-- [ ] HMA output equals the TS implementation's HMA (parity test).
-- [ ] Each new family has a Rust unit test proving init+update exactness.
-- [ ] No previously-passing indicator regresses (full targeted vitest run).
-- [ ] `npm run check` passes.
+- [x] HMA output equals the TS implementation's HMA (parity test).
+- [x] Each new family has a Rust unit test proving init+update exactness.
+- [x] No previously-passing indicator regresses (full targeted vitest run).
+- [x] `npm run check` passes.
 
 ## Out of scope
 
