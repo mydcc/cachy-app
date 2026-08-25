@@ -2,7 +2,7 @@
 id: BUG-0315
 title: wasmCalculator double-counts the last candle in initialize and update
 type: bug
-status: ready
+status: in-progress
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,7 @@ area: calculation
 data_class: none
 adr: none
 depends_on: []
-# assignee:            # required while status: in-progress (who is working this)
+assignee: opencode
 ---
 
 # BUG-0315 — wasmCalculator double-counts the last candle in initialize and update
@@ -83,3 +83,4 @@ the full series as history instead of `history[:-1]`.
 - `src/services/wasmCalculator.ts`
 - `technicals-wasm/src/lib.rs` (initialize/update/shift, RSI block)
 - Depends conceptually on BUG-0317 for proof; both land together.
+- Branch: fix/wasm-indicator-parity

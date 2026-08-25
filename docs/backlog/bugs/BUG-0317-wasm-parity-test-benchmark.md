@@ -2,7 +2,7 @@
 id: BUG-0317
 title: No automated WASM-to-TS parity verification or benchmark
 type: bug
-status: specced
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,7 @@ area: calculation
 data_class: none
 adr: none
 depends_on: [BUG-0313]
-# assignee:            # required while status: in-progress (who is working this)
+assignee: opencode
 ---
 
 # BUG-0317 — No automated WASM-to-TS parity verification or benchmark
@@ -66,3 +66,4 @@ case was added when the WASM path landed.
 
 - `tests/integration/wasm_parity.test.ts`, `tests/benchmarks/`
 - Depends on BUG-0313 so the tested binary is the freshly built one.
+- Branch: fix/wasm-indicator-parity
