@@ -2,7 +2,7 @@
 id: BUG-0317
 title: No automated WASM-to-TS parity verification or benchmark
 type: bug
-status: ready
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]

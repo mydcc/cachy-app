@@ -2,7 +2,7 @@
 id: FEAT-0316
 title: Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm
 type: feature
-status: ready
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]
