@@ -226,6 +226,29 @@ export function formatDynamicDecimal(
 }
 
 /**
+ * Derives a price tick size from an observed price by its decimal places —
+ * the fallback for symbols whose trading-pair metadata (`quotePrecision`)
+ * has not loaded yet, so chart drag-snapping degrades to "the precision the
+ * exchange actually sends" instead of a blind 0.01 that collapses
+ * low-priced symbols onto zero. Returns null for invalid/non-positive
+ * input; decimal places are clamped to the 0-8 range the chart renders.
+ */
+export function deriveTickSizeFromPrice(
+  price: Decimal | string | number | null | undefined,
+): Decimal | null {
+  if (price === null || price === undefined) return null;
+  let dec: Decimal;
+  try {
+    dec = price instanceof Decimal ? price : new Decimal(price);
+  } catch {
+    return null;
+  }
+  if (dec.isNaN() || !dec.gt(0)) return null;
+  const places = Math.min(8, Math.max(0, dec.dp()));
+  return new Decimal(10).pow(-places);
+}
+
+/**
  * Parses a date string which might be in German format (DD.MM.YYYY) into a Date object.
  * @param dateStr Date string (e.g., "23.12.2025" or "2025-12-23")
  * @param timeStr Time string (e.g., "19:40:08")
