@@ -65,6 +65,11 @@ export type HeatmapMode =
   | "coinank_new_tab"
   | "coinank_popup";
 
+export type ChartPriceScaleMode = "linear" | "log" | "percent" | "indexed";
+export type ChartCrosshairMode = "normal" | "magnet" | "hidden";
+export type ChartCrosshairStyle = "solid" | "dashed" | "dotted";
+export type ChartDecimalsMode = "auto" | "fixed";
+
 export const TECHNICALS_UPDATE_PRESETS = {
   realtime: {
     interval: 100,
@@ -349,6 +354,25 @@ export interface Settings {
   chartRenderIntervalMs: number; // Candle chart render update interval in ms (20-500)
   repairTimeframe: string; // Timeframe used for ATR/MFE/MAE repair (default: 15m)
 
+  // Chart view appearance/behavior (Settings → Chart). Defaults mirror the
+  // options previously hard-coded in CandleChartView so existing users see
+  // no visual change.
+  chartPriceScaleMode: ChartPriceScaleMode;
+  chartAutoScale: boolean;
+  chartInvertScale: boolean;
+  chartShowLeftScale: boolean;
+  chartDecimalsMode: ChartDecimalsMode;
+  chartFixedDecimals: number; // Used when chartDecimalsMode === "fixed" (0-8)
+  chartShowGrid: boolean;
+  chartLastValueVisible: boolean;
+  chartCandleBorders: boolean;
+  chartWatermark: boolean;
+  chartCrosshairMode: ChartCrosshairMode;
+  chartCrosshairStyle: ChartCrosshairStyle;
+  chartSecondsVisible: boolean;
+  chartFixEdges: boolean;
+  chartCountdownEnabled: boolean;
+
   // Individual Indicator Toggles
   // Removed enabledIndicators (handled via indicatorState instead)
   // Window Docking
@@ -565,6 +589,23 @@ const defaultSettings: Settings = {
   chartHistoryLimit: 2000,
   chartRenderIntervalMs: 0,
   repairTimeframe: "15m",
+
+  // Chart view defaults = the previous hard-coded CandleChartView behavior
+  chartPriceScaleMode: "log",
+  chartAutoScale: true,
+  chartInvertScale: false,
+  chartShowLeftScale: false,
+  chartDecimalsMode: "auto",
+  chartFixedDecimals: 2,
+  chartShowGrid: true,
+  chartLastValueVisible: true,
+  chartCandleBorders: false,
+  chartWatermark: false,
+  chartCrosshairMode: "normal",
+  chartCrosshairStyle: "solid",
+  chartSecondsVisible: false,
+  chartFixEdges: false,
+  chartCountdownEnabled: false,
 
   // Core indicators enabled by default
   // Removed enabledIndicators (handled via indicatorState instead)
@@ -858,6 +899,35 @@ export class SettingsManager {
   chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
   chartRenderIntervalMs = $state<number>(defaultSettings.chartRenderIntervalMs);
   repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
+
+  // Chart view state
+  chartPriceScaleMode = $state<ChartPriceScaleMode>(
+    defaultSettings.chartPriceScaleMode,
+  );
+  chartAutoScale = $state<boolean>(defaultSettings.chartAutoScale);
+  chartInvertScale = $state<boolean>(defaultSettings.chartInvertScale);
+  chartShowLeftScale = $state<boolean>(defaultSettings.chartShowLeftScale);
+  chartDecimalsMode = $state<ChartDecimalsMode>(
+    defaultSettings.chartDecimalsMode,
+  );
+  chartFixedDecimals = $state<number>(defaultSettings.chartFixedDecimals);
+  chartShowGrid = $state<boolean>(defaultSettings.chartShowGrid);
+  chartLastValueVisible = $state<boolean>(
+    defaultSettings.chartLastValueVisible,
+  );
+  chartCandleBorders = $state<boolean>(defaultSettings.chartCandleBorders);
+  chartWatermark = $state<boolean>(defaultSettings.chartWatermark);
+  chartCrosshairMode = $state<ChartCrosshairMode>(
+    defaultSettings.chartCrosshairMode,
+  );
+  chartCrosshairStyle = $state<ChartCrosshairStyle>(
+    defaultSettings.chartCrosshairStyle,
+  );
+  chartSecondsVisible = $state<boolean>(defaultSettings.chartSecondsVisible);
+  chartFixEdges = $state<boolean>(defaultSettings.chartFixEdges);
+  chartCountdownEnabled = $state<boolean>(
+    defaultSettings.chartCountdownEnabled,
+  );
   autoTrading = $state<boolean>(defaultSettings.autoTrading);
   multiAccount = $state<boolean>(defaultSettings.multiAccount);
 
@@ -1413,6 +1483,33 @@ export class SettingsManager {
       merged.chartRenderIntervalMs ?? defaultSettings.chartRenderIntervalMs;
     this.repairTimeframe =
       merged.repairTimeframe || defaultSettings.repairTimeframe;
+
+    this.chartPriceScaleMode =
+      merged.chartPriceScaleMode ?? defaultSettings.chartPriceScaleMode;
+    this.chartAutoScale = merged.chartAutoScale ?? defaultSettings.chartAutoScale;
+    this.chartInvertScale =
+      merged.chartInvertScale ?? defaultSettings.chartInvertScale;
+    this.chartShowLeftScale =
+      merged.chartShowLeftScale ?? defaultSettings.chartShowLeftScale;
+    this.chartDecimalsMode =
+      merged.chartDecimalsMode ?? defaultSettings.chartDecimalsMode;
+    this.chartFixedDecimals =
+      merged.chartFixedDecimals ?? defaultSettings.chartFixedDecimals;
+    this.chartShowGrid = merged.chartShowGrid ?? defaultSettings.chartShowGrid;
+    this.chartLastValueVisible =
+      merged.chartLastValueVisible ?? defaultSettings.chartLastValueVisible;
+    this.chartCandleBorders =
+      merged.chartCandleBorders ?? defaultSettings.chartCandleBorders;
+    this.chartWatermark = merged.chartWatermark ?? defaultSettings.chartWatermark;
+    this.chartCrosshairMode =
+      merged.chartCrosshairMode ?? defaultSettings.chartCrosshairMode;
+    this.chartCrosshairStyle =
+      merged.chartCrosshairStyle ?? defaultSettings.chartCrosshairStyle;
+    this.chartSecondsVisible =
+      merged.chartSecondsVisible ?? defaultSettings.chartSecondsVisible;
+    this.chartFixEdges = merged.chartFixEdges ?? defaultSettings.chartFixEdges;
+    this.chartCountdownEnabled =
+      merged.chartCountdownEnabled ?? defaultSettings.chartCountdownEnabled;
   }
 
   /** Display/UI, background customization and Burning Borders fields. Part of load()'s merge+assign step. */
@@ -1774,6 +1871,21 @@ export class SettingsManager {
       chartHistoryLimit: this.chartHistoryLimit,
       chartRenderIntervalMs: this.chartRenderIntervalMs,
       repairTimeframe: this.repairTimeframe,
+      chartPriceScaleMode: this.chartPriceScaleMode,
+      chartAutoScale: this.chartAutoScale,
+      chartInvertScale: this.chartInvertScale,
+      chartShowLeftScale: this.chartShowLeftScale,
+      chartDecimalsMode: this.chartDecimalsMode,
+      chartFixedDecimals: this.chartFixedDecimals,
+      chartShowGrid: this.chartShowGrid,
+      chartLastValueVisible: this.chartLastValueVisible,
+      chartCandleBorders: this.chartCandleBorders,
+      chartWatermark: this.chartWatermark,
+      chartCrosshairMode: this.chartCrosshairMode,
+      chartCrosshairStyle: this.chartCrosshairStyle,
+      chartSecondsVisible: this.chartSecondsVisible,
+      chartFixEdges: this.chartFixEdges,
+      chartCountdownEnabled: this.chartCountdownEnabled,
       enableDockingCentered: this.enableDockingCentered,
       dockingPosition: this.dockingPosition,
     };

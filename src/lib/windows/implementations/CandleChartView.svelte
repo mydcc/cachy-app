@@ -42,7 +42,12 @@
     import { activeExchange } from "../../../services/exchange";
     import { toastService } from "../../../services/toastService.svelte";
     import { appFetch } from "../../appAuth";
-    import { unwrapApiEnvelope } from "../../../utils/utils";
+    import { unwrapApiEnvelope, formatDynamicDecimal } from "../../../utils/utils";
+    import {
+        formatCountdown,
+        nextCandleCloseTime,
+        resolveChartPriceDecimals,
+    } from "../../../utils/chartDisplay";
     import type { NormalizedPosition, NormalizedOrder } from "../../../types/exchange";
     import {
         PriceLineManager,
@@ -499,6 +504,93 @@
         if (ema3Series) ema3Series.applyOptions({ color: warning });
     }
 
+    // Reactive chart options driven by the Chart settings tab. Mirrors the
+    // initial createChart options; updateColors() above only owns colors,
+    // this effect owns structure (scale mode, grid, crosshair, time scale,
+    // price format). The defaults equal the previously hard-coded values, so
+    // a fresh install renders exactly as before.
+    $effect(() => {
+        if (!chart || !candleSeries) return;
+
+        const priceScaleModeMap = { linear: 0, log: 1, percent: 2, indexed: 3 } as const;
+        const crosshairModeMap = { normal: 0, magnet: 1, hidden: 2 } as const;
+        // lightweight-charts LineStyle: Solid=0, Dotted=1, Dashed=2
+        const crosshairStyleMap = { solid: 0, dotted: 1, dashed: 2 } as const;
+
+        const normalized = normalizeSymbol(symbol, "bitunix");
+        const quotePrecision =
+            marketState?.symbolMeta?.[normalized]?.quotePrecision;
+        const decimals = resolveChartPriceDecimals(
+            settingsState.chartDecimalsMode,
+            settingsState.chartFixedDecimals,
+            quotePrecision,
+        );
+        const minMove = new Decimal(10).pow(-decimals).toNumber();
+        const leftScale = settingsState.chartShowLeftScale;
+        const scaleId = leftScale ? "left" : "right";
+
+        chart.applyOptions({
+            grid: {
+                vertLines: { visible: settingsState.chartShowGrid },
+                horzLines: { visible: settingsState.chartShowGrid },
+            },
+            rightPriceScale: {
+                visible: !leftScale && (win.showRightScale ?? true),
+                mode: priceScaleModeMap[settingsState.chartPriceScaleMode],
+                autoScale: settingsState.chartAutoScale,
+                invertScale: settingsState.chartInvertScale,
+            },
+            leftPriceScale: { visible: leftScale },
+            crosshair: {
+                mode: crosshairModeMap[settingsState.chartCrosshairMode],
+                vertLine: { style: crosshairStyleMap[settingsState.chartCrosshairStyle] },
+                horzLine: { style: crosshairStyleMap[settingsState.chartCrosshairStyle] },
+            },
+            timeScale: {
+                secondsVisible: settingsState.chartSecondsVisible,
+                fixLeftEdge: settingsState.chartFixEdges,
+                fixRightEdge: settingsState.chartFixEdges,
+            },
+        });
+
+        candleSeries.applyOptions({
+            borderVisible: settingsState.chartCandleBorders,
+            lastValueVisible: settingsState.chartLastValueVisible,
+            priceFormat: { type: "price", precision: decimals, minMove },
+            priceScaleId: scaleId,
+        });
+        if (ema1Series) ema1Series.applyOptions({ priceScaleId: scaleId });
+        if (ema2Series) ema2Series.applyOptions({ priceScaleId: scaleId });
+        if (ema3Series) ema3Series.applyOptions({ priceScaleId: scaleId });
+    });
+
+    // Candle-close countdown: a cheap interval only runs while the feature
+    // is enabled; the derived text recomputes from the latest kline open
+    // time so it survives timeframe/symbol switches without extra state.
+    let countdownNow = $state(Date.now());
+
+    $effect(() => {
+        if (!settingsState.chartCountdownEnabled) return;
+        const id = setInterval(() => {
+            countdownNow = Date.now();
+        }, 500);
+        return () => clearInterval(id);
+    });
+
+    const countdownText = $derived.by(() => {
+        if (!settingsState.chartCountdownEnabled) return null;
+        void countdownNow; // interval tick driver
+        const klines =
+            marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines?.[
+                timeframe
+            ];
+        const last = klines?.[klines.length - 1];
+        if (!last?.time) return null;
+        const closeTime = nextCandleCloseTime(last.time, timeframe);
+        if (closeTime === null) return null;
+        return formatCountdown(closeTime - countdownNow);
+    });
+
     // Registration for real-time data
     $effect(() => {
         if (!symbol || !timeframe) return;
@@ -546,7 +638,21 @@
                             candleSeries.update(update);
 
                             if (win.currentPrice !== undefined) {
-                                win.currentPrice = update.close.toFixed(2);
+                                // Format from the raw kline string via
+                                // Decimal: a hard-coded toFixed(2) truncated
+                                // low-priced symbols (PEPE etc.) to 0.00.
+                                // Same precision source as the price axis.
+                                const decimals = resolveChartPriceDecimals(
+                                    settingsState.chartDecimalsMode,
+                                    settingsState.chartFixedDecimals,
+                                    marketState?.symbolMeta?.[
+                                        normalizeSymbol(symbol, "bitunix")
+                                    ]?.quotePrecision,
+                                );
+                                win.currentPrice = formatDynamicDecimal(
+                                    currentLastKline.close,
+                                    decimals,
+                                );
                             }
                             lastRenderTimestamp = Date.now();
                         } catch (e) {
@@ -794,7 +900,7 @@
 </script>
 
 <div
-    class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[rgba(255,255,255,0.05)] relative"
+    class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[var(--border-color)] relative"
 >
     {#if showTimeframeDropdown}
         <div
@@ -849,6 +955,35 @@
         bind:this={chartContainer}
         class="chart-container flex-1 min-h-0 w-full relative"
     >
+        {#if settingsState.chartWatermark}
+            <!-- Painted before the chart mounts, so the canvas stacks above it
+                 naturally; pointer-events-none keeps scroll/zoom untouched. -->
+            <div
+                class="absolute inset-0 z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
+                aria-hidden="true"
+            >
+                <span
+                    class="text-[6rem] md:text-[8rem] font-extrabold uppercase tracking-widest text-[var(--text-primary)] opacity-[0.05] whitespace-nowrap"
+                >
+                    {symbol}
+                </span>
+            </div>
+        {/if}
+
+        {#if countdownText}
+            <div
+                class="absolute top-2 right-16 z-20 pointer-events-none"
+                role="timer"
+                aria-label={$_("chartView.countdownLabel")}
+            >
+                <div
+                    class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-md px-2 py-0.5 shadow font-mono text-xs text-[var(--text-primary)]"
+                >
+                    {countdownText}
+                </div>
+            </div>
+        {/if}
+
         {#if isLoadingHistory}
             <div
                 class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none"
@@ -861,7 +996,7 @@
                     ></div>
                     <span
                         class="text-[10px] text-[var(--text-secondary)] font-mono"
-                        >LOADING HISTORY</span
+                        >{$_("chartView.loadingHistory")}</span
                     >
                 </div>
             </div>
@@ -877,7 +1012,7 @@
                     ></div>
                     <span
                         class="text-xs font-mono tracking-widest text-[var(--text-secondary)]"
-                        >FETCHING MARKET DATA...</span
+                        >{$_("chartView.fetchingMarketData")}</span
                     >
                 </div>
             </div>
