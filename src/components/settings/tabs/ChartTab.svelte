@@ -116,31 +116,35 @@
             </div>
         {/if}
 
-        <label class="toggle-card mb-2">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.autoScale") || "Auto-Skalierung"}</span
-                >
-                <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.autoScaleDesc")
-                        || "Y-Achse passt sich automatisch dem Kurs an"}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartAutoScale} />
-        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.autoScale") || "Auto-Skalierung"}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.autoScaleDesc")
+                            || "Y-Achse passt sich automatisch dem Kurs an"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartAutoScale} />
+            </label>
 
-        <label class="toggle-card mb-2">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.invertScale")}</span
-                >
-                <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.invertScaleDesc")
-                        || "Preisachse umkehren (0 oben)"}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartInvertScale} />
-        </label>
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.invertScale")}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.invertScaleDesc")
+                            || "Preisachse umkehren (0 oben)"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartInvertScale} />
+            </label>
+        </div>
     </section>
 
     <!-- Display -->
@@ -149,50 +153,64 @@
             {$_("settings.chart.displaySection") || "Darstellung"}
         </h3>
 
-        <label class="toggle-card mb-2">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.showGrid") || "Gitterlinien"}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartShowGrid} />
-        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.showGrid") || "Gitterlinien"}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.showGridDesc")
+                            || "Hilfslinien im Chart-Hintergrund"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartShowGrid} />
+            </label>
 
-        <label class="toggle-card mb-2">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.lastValueVisible")
-                        || "Aktuelle-Preis-Label"}</span
-                >
-                <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.lastValueDesc")
-                        || "Letzter Kurs an der Preisachse"}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartLastValueVisible} />
-        </label>
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.candleBorders")}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.candleBordersDesc")
+                            || "Rahmenlinie um jeden Kerzenkörper"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartCandleBorders} />
+            </label>
 
-        <label class="toggle-card mb-2">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.candleBorders")}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartCandleBorders} />
-        </label>
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.lastValueVisible")
+                            || "Aktuelle-Preis-Label"}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.lastValueDesc")
+                            || "Letzter Kurs an der Preisachse"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartLastValueVisible} />
+            </label>
 
-        <label class="toggle-card">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.watermark")}</span
-                >
-                <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.watermarkDesc")
-                        || "Symbol-Name im Chart-Hintergrund"}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartWatermark} />
-        </label>
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.watermark")}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.watermarkDesc")
+                            || "Symbol-Name im Chart-Hintergrund"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartWatermark} />
+            </label>
+        </div>
     </section>
 
     <!-- Crosshair -->
@@ -244,45 +262,50 @@
             {$_("settings.chart.timeSection") || "Zeitachse & Countdown"}
         </h3>
 
-        <label class="toggle-card mb-2">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.secondsVisible")}</span
-                >
-                <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.secondsVisibleDesc")
-                        || "Sekunden in den Zeitstempeln der Zeitachse"}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartSecondsVisible} />
-        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.secondsVisible")}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.secondsVisibleDesc")
+                            || "Sekunden in den Zeitstempeln der Zeitachse"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartSecondsVisible} />
+            </label>
 
-        <label class="toggle-card mb-2">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.fixEdges")
-                        || "Ränder fixieren"}</span
-                >
-                <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.fixEdgesDesc")
-                        || "Chart kann nicht über linken/rechten Rand hinaus gescrollt werden"}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartFixEdges} />
-        </label>
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.fixEdges")
+                            || "Ränder fixieren"}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.fixEdgesDesc")
+                            || "Chart kann nicht über linken/rechten Rand hinaus gescrollt werden"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartFixEdges} />
+            </label>
 
-        <label class="toggle-card">
-            <div class="flex flex-col">
-                <span class="text-sm font-medium"
-                    >{$_("settings.chart.countdownEnabled")
-                        || "Countdown zur Kerzenschließung"}</span
-                >
-                <span class="text-[10px] text-[var(--text-secondary)]"
-                    >{$_("settings.chart.countdownDesc")
-                        || "Verbleibende Zeit bis die aktuelle Kerze schließt"}</span
-                >
-            </div>
-            <Toggle bind:checked={settingsState.chartCountdownEnabled} />
-        </label>
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.chart.countdownEnabled")
+                            || "Countdown zur Kerzenschließung"}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_("settings.chart.countdownDesc")
+                            || "Verbleibende Zeit bis die aktuelle Kerze schließt"}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.chartCountdownEnabled} />
+            </label>
+        </div>
     </section>
 </div>
