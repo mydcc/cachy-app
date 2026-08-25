@@ -3326,7 +3326,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0259",
     "title": "Load locale dictionaries on demand instead of eagerly at startup",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [

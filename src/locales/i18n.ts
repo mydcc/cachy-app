@@ -25,9 +25,6 @@ import type { TranslationKey } from "./schema";
 import { writable, get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
 
-import * as en from "./locales/en.json";
-import * as de from "./locales/de.json";
-
 // List of keys that should always be English if "Force English Technical Terms" is enabled.
 // We use dot notation strings which we will resolve against the English dictionary.
 const TECHNICAL_KEYS = [
@@ -152,27 +149,29 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
   }
 }
 
-// Prepare the base dictionaries (we might need to clone them to avoid mutating imports if they are frozen)
-// We use structuredClone which is more efficient than JSON.parse/stringify
-const enDict = structuredClone({ ...en });
-const deDict = structuredClone({ ...de });
-
 // Register standard locales
-register("en", () => Promise.resolve(enDict));
-register("de", () => Promise.resolve(deDict));
+register("en", () => import("./locales/en.json").then(m => m.default || m));
+register("de", () => import("./locales/de.json").then(m => m.default || m));
 
 // Create a special "de-tech" locale that is German + English Technical Terms
-const deTechDict = structuredClone(deDict);
+register("de-tech", async () => {
+  const [enMod, deMod] = await Promise.all([
+    import("./locales/en.json"),
+    import("./locales/de.json")
+  ]);
+  const enDict = enMod.default || enMod;
+  const deDict = deMod.default || deMod;
 
-// Overwrite technical keys in deTechDict with values from enDict
-TECHNICAL_KEYS.forEach((key) => {
-  const enValue = getNestedValue(enDict, key);
-  if (enValue) {
-    setNestedValue(deTechDict, key, enValue);
-  }
+  const deTechDict = structuredClone(deDict);
+  TECHNICAL_KEYS.forEach((key) => {
+    const enValue = getNestedValue(enDict as Record<string, unknown>, key);
+    if (enValue) {
+      setNestedValue(deTechDict as Record<string, unknown>, key, enValue);
+    }
+  });
+
+  return deTechDict;
 });
-
-register("de-tech", () => Promise.resolve(deTechDict));
 
 const storedLocale =
   typeof localStorage !== "undefined" ? localStorage.getItem("locale") : null;
