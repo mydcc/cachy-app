@@ -42,7 +42,7 @@
     import { activeExchange } from "../../../services/exchange";
     import { toastService } from "../../../services/toastService.svelte";
     import { appFetch } from "../../appAuth";
-    import { unwrapApiEnvelope, formatDynamicDecimal } from "../../../utils/utils";
+    import { unwrapApiEnvelope, formatDynamicDecimal, deriveTickSizeFromPrice } from "../../../utils/utils";
     import {
         formatCountdown,
         nextCandleCloseTime,
@@ -853,10 +853,17 @@
             return lines;
         });
         const meta = marketState?.symbolMeta?.[normalized];
+        // Read outside the reactive graph: tracking the kline array would
+        // re-run this whole price-lines effect on every live tick. The
+        // fallback only needs a reasonably fresh close to estimate the tick.
+        const lastClose = untrack(() => {
+            const klines = marketState.data[normalized]?.klines?.[timeframe];
+            return klines?.[klines.length - 1]?.close;
+        });
         const tickSize =
             meta?.quotePrecision !== undefined
                 ? new Decimal(10).pow(-meta.quotePrecision)
-                : new Decimal("0.01");
+                : deriveTickSizeFromPrice(lastClose) ?? new Decimal("0.01");
         const readOnly = activeExchange().supports.tpSl === false;
 
         untrack(() => {
