@@ -1,0 +1,60 @@
+# Deploy Staging via xyOps: läuft NACH dem bestehenden "Deploy Build"-
+# Workflow, wenn er erfolgreich war und der Push nach develop ging.
+# So ist das CI-Artifact garantiert frisch, wenn deploy.sh --ci es lädt.
+# Benötigt Repo-Secret: XYOPS_API_KEY (xyOps Key nur mit "Run Jobs").
+
+name: Deploy Staging (dev.cachy.app)
+
+on:
+  workflow_run:
+    workflows: ["Deploy Build"]
+    types: [completed]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger xyOps deploy job
+        id: trigger
+        env:
+          XYOPS_KEY: ${{ secrets.XYOPS_API_KEY }}
+        run: |
+          RESP=$(curl -sf -X POST \
+            -H "X-API-Key: $XYOPS_KEY" \
+            -H 'Content-Type: application/json' \
+            http://162.55.39.50:5522/api/app/run_event/v1 \
+            -d '{"id":"emt8vskf33hnc6pa"}')
+          echo "$RESP"
+          JOB_ID=$(echo "$RESP" | jq -r '.id // empty')
+          [ -n "$JOB_ID" ] || { echo "::error::xyOps trigger failed"; exit 1; }
+          echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for xyOps job to finish
+        env:
+          XYOPS_KEY: ${{ secrets.XYOPS_API_KEY }}
+          JOB_ID: ${{ steps.trigger.outputs.job_id }}
+        run: |
+          for i in $(seq 1 90); do
+            sleep 10
+            STATUS=$(curl -sf -H "X-API-Key: $XYOPS_KEY" \
+              "http://162.55.39.50:5522/api/app/get_job/v1?id=$JOB_ID")
+            COMPLETE=$(echo "$STATUS" | jq -r '.job.complete // false')
+            if [ "$COMPLETE" != "false" ]; then
+              echo "$STATUS" | jq '{code: .job.code, description: .job.description}'
+              [ "$(echo "$STATUS" | jq -r '.job.code')" = "0" ] || {
+                echo "::error::Deploy fehlgeschlagen - Logs in xyOps Job $JOB_ID"
+                exit 1
+              }
+              echo "Staging-Deploy erfolgreich (Job $JOB_ID)"
+              exit 0
+            fi
+          done
+          echo "::error::Timeout beim Warten auf xyOps Job $JOB_ID"
+          exit 1
