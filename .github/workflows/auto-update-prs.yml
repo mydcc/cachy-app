@@ -68,13 +68,20 @@ jobs:
 
             echo "API update failed for PR #$pr. Attempting automatic backlog conflict resolution..."
 
+            # Ensure clean develop baseline before checking out PR branch
+            git checkout develop --force 2>/dev/null || true
+
             # Fetch branch and try git merge
-            git fetch origin "$branch":"$branch" || continue
+            if ! git fetch origin "$branch":"$branch" 2>/dev/null; then
+              echo "⚠ Could not fetch branch $branch, skipping."
+              continue
+            fi
+
             git checkout "$branch"
 
             if git merge origin/develop -m "chore: merge develop into $branch"; then
               echo "Merged cleanly locally, pushing..."
-              git push origin "$branch"
+              git push origin "$branch" || echo "⚠ Failed to push to $branch"
               git checkout develop
               continue
             fi
@@ -87,6 +94,7 @@ jobs:
             # Check if conflicts are ONLY in generated backlog files
             non_backlog_conflicts=0
             while IFS= read -r file; do
+              [ -z "$file" ] && continue
               case "$file" in
                 docs/backlog/INDEX.md|docs/backlog/backlog.generated.ts|docs/backlog/backlog.generated.json)
                   ;;
@@ -96,17 +104,17 @@ jobs:
               esac
             done <<< "$conflicts"
 
-            if [ "$non_backlog_conflicts" -eq 0 ]; then
+            if [ "$non_backlog_conflicts" -eq 0 ] && [ -n "$conflicts" ]; then
               echo "Conflicts are only in generated backlog index files. Resolving automatically..."
               # Re-generate backlog index
               node scripts/backlog-index.mjs
               git add docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json
               git commit -m "chore(backlog): auto-resolve backlog index conflict with develop"
-              git push origin "$branch"
+              git push origin "$branch" || echo "⚠ Failed to push auto-resolved $branch"
               echo "✓ Successfully auto-resolved backlog conflict and updated PR #$pr"
             else
-              echo "⚠ PR #$pr has non-backlog code conflicts. Aborting merge."
-              git merge --abort
+              echo "⚠ PR #$pr has non-backlog code conflicts or empty diff. Aborting merge."
+              git merge --abort || true
             fi
 
             git checkout develop
