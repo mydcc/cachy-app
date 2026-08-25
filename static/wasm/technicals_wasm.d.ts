@@ -23,7 +23,7 @@ export class TechnicalsCalculator {
      * `_times` stays numeric — it is a millisecond timestamp, not a financial
      * value, and is currently unused.
      */
-    initialize(closes_arr: string[], highs_arr: string[], lows_arr: string[], volumes_arr: string[], _times: Float64Array, settings_json: string): void;
+    initialize(closes_arr: string[], highs_arr: string[], lows_arr: string[], volumes_arr: string[], times: Float64Array, settings_json: string): void;
     constructor();
     shift(_o_str: string, h_str: string, l_str: string, c_str: string, v_str: string, _t_str: string): void;
     update(_o_str: string, h_str: string, l_str: string, c_str: string, v_str: string, _t_str: string): string;
