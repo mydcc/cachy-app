@@ -34,7 +34,7 @@ import { createServer, type Server } from 'http';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
+import { pathToFileURL } from 'url';
 import { JSIndicators, calculatePivotsFromValues } from '../../src/utils/indicators';
 
 const STATIC_DIR = path.resolve(__dirname, '../../static/wasm');
