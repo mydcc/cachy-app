@@ -2,7 +2,7 @@
 id: BUG-0313
 title: WASM build ships an artifact that production never loads
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -88,3 +88,7 @@ no consumer reads.
 - `docs/TODO.md` (dead-loader section)
 - Related: BUG-0314, BUG-0315, BUG-0317
 - Branch: fix/wasm-build-robustness
+
+## Shipped
+
+Merged in 1.6.0-beta.154 via #2329 (BUG-0313, BUG-0314).

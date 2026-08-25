@@ -2,7 +2,7 @@
 id: BUG-0314
 title: WASM module traps silently on malformed input and keeps the poisoned instance
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -80,3 +80,7 @@ degradation.
 - `src/services/wasmCalculator.ts` (`ensureLoaded`)
 - Related: BUG-0313 (same build scripts)
 - Branch: fix/wasm-build-robustness
+
+## Shipped
+
+Merged in 1.6.0-beta.154 via #2329 (BUG-0314).
