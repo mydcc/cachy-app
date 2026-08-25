@@ -100,6 +100,13 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
                 expect(accountState.openOrders).toHaveLength(1);
                 // Assert that the parsed order ID matches the exact string without JS number truncation
                 expect(accountState.openOrders[0].orderId).toBe(LARGE_ID);
+                
+                // Assert other mapped fields based on the fixture contents
+                expect(accountState.openOrders[0].side).toBe("buy");
+                expect(accountState.openOrders[0].type).toBe("limit");
+                expect(accountState.openOrders[0].status.toLowerCase()).toBe("new");
+                expect(accountState.openOrders[0].amount.toString()).toMatch(/^(1|0\.012)$/);
+                expect(accountState.openOrders[0].filled.toString()).toBe("0");
             });
 
             it("should normalise positions correctly and protect against missing qty (BUG-0001)", async () => {
@@ -116,6 +123,12 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
                 expect(accountState.positions).toHaveLength(1);
                 expect(accountState.positions[0].size.toString()).toBe("1.5");
                 expect(accountState.positions[0].unrealizedPnl.toString()).toBe("150");
+                
+                // Assert full normalization
+                expect(accountState.positions[0].side).toBe("long");
+                expect(accountState.positions[0].leverage.toString()).toBe("10");
+                expect(accountState.positions[0].marginMode).toMatch(/^(cross|crossed)$/);
+                expect(accountState.positions[0].entryPrice.toString()).toBe("50000");
             });
 
             it("should preserve precision for small prices", async () => {

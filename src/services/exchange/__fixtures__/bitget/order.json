@@ -6,6 +6,6 @@
         "orderId": "1234567890123456789",
         "status": "new",
         "accFillSize": "0",
-        "price": "50000"
+        "price": "50000", "size": "0.012", "side": "buy", "orderType": "limit"
     }]
 }
