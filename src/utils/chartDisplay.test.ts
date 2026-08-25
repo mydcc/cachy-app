@@ -1,12 +1,65 @@
 import { describe, expect, it } from "vitest";
 import {
+    buildAxisFormatters,
     formatCountdown,
+    formatUtcIntradayTime,
     mapPriceScaleMode,
     nextCandleCloseTime,
     parseTimeframe,
     resolveChartPriceDecimals,
     timeframeDurationMs,
 } from "./chartDisplay";
+
+describe("formatUtcIntradayTime", () => {
+    const MS = Date.UTC(2024, 0, 15, 10, 5, 9); // 2024-01-15T10:05:09Z
+
+    it("formats HH:MM without seconds", () => {
+        expect(formatUtcIntradayTime(MS, false)).toBe("10:05");
+    });
+
+    it("formats HH:MM:SS with seconds", () => {
+        expect(formatUtcIntradayTime(MS, true)).toBe("10:05:09");
+    });
+
+    it("pads single digits", () => {
+        expect(formatUtcIntradayTime(Date.UTC(2024, 0, 1, 3, 7, 0), true)).toBe(
+            "03:07:00",
+        );
+    });
+});
+
+describe("buildAxisFormatters", () => {
+    // TickMarkType: Year=0, Month=1, Day=2, Time=3, TimeWithSeconds=4
+    it("returns null for date-ish ticks so native labels stay intact", () => {
+        const f = buildAxisFormatters(true).tickMarkFormatter;
+        expect(f(Date.UTC(2024, 0, 1) / 1000, 0)).toBeNull(); // Year
+        expect(f(Date.UTC(2024, 0, 1) / 1000, 2)).toBeNull(); // Day
+    });
+
+    it("appends seconds on time ticks when enabled", () => {
+        const f = buildAxisFormatters(true).tickMarkFormatter;
+        const t = Date.UTC(2024, 0, 15, 10, 5, 9) / 1000;
+        expect(f(t, 3)).toBe("10:05:09");
+        expect(f(t, 4)).toBe("10:05:09");
+    });
+
+    it("returns null for everything when seconds are disabled", () => {
+        const { tickMarkFormatter } = buildAxisFormatters(false);
+        const t = Date.UTC(2024, 0, 15, 10, 5, 9) / 1000;
+        expect(tickMarkFormatter(t, 3)).toBeNull();
+        expect(tickMarkFormatter(t, 4)).toBeNull();
+    });
+
+    it("timeFormatter mirrors the toggle and keeps non-numeric input", () => {
+        const on = buildAxisFormatters(true);
+        const off = buildAxisFormatters(false);
+        const t = Date.UTC(2024, 0, 15, 10, 5, 9) / 1000;
+
+        expect(on.timeFormatter(t)).toBe("10:05:09");
+        expect(off.timeFormatter(t)).toBe("10:05");
+        expect(on.timeFormatter("2024-01-15")).toBe("2024-01-15");
+    });
+});
 
 describe("mapPriceScaleMode", () => {
     it("maps linear to Normal (0)", () => {
