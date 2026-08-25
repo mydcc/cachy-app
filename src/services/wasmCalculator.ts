@@ -64,6 +64,13 @@ class WasmCalculator {
   private wasmModule: WasmModule | null = null;
   private instance: WasmTechnicalsInstance | null = null;
   private loadingPromise: Promise<void> | null = null;
+
+  // Seam for unit tests: stubbing this avoids the real dynamic import of the
+  // runtime URL (which only resolves against the served static directory).
+  // Production behavior is unchanged — it is the same dynamic import.
+  private loadGlueModule(path: string): Promise<WasmModule> {
+    return import(/* @vite-ignore */ path);
+  }
   
   async ensureLoaded(): Promise<void> {
     if (this.wasmModule) return;
@@ -82,7 +89,7 @@ class WasmCalculator {
 
                 // We use dynamic import on the static URL. 
                 // In SvelteKit/Vite, /static/ maps to / at runtime.
-                const mod = await import(/* @vite-ignore */ wasmJsPath);
+                const mod = await this.loadGlueModule(wasmJsPath);
                 
                 // Initialize with the explicit path to the binary
                 await mod.default(wasmBinaryPath);
@@ -123,6 +130,30 @@ class WasmCalculator {
   }
 
   async calculate(klines: Kline[], settings: IndicatorSettings): Promise<TechnicalsData> {
+    try {
+      return await this.runCalculation(klines, settings);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+
+      // A trapped WASM instance cannot be reused — every further call would
+      // rethrow until page reload (BUG-0314). Drop the poisoned instance and
+      // the module handle, then retry exactly once against a fresh load.
+      const isRuntimeTrap =
+        err.message.includes('RuntimeError') ||
+        err.message.includes('unreachable') ||
+        err.name === 'RuntimeError';
+      if (isRuntimeTrap) {
+        console.warn('[WASM] Runtime trap detected, recreating instance:', err.message);
+        this.instance = null;
+        this.wasmModule = null;
+        this.loadingPromise = null;
+        return this.runCalculation(klines, settings);
+      }
+      throw err;
+    }
+  }
+
+  private async runCalculation(klines: Kline[], settings: IndicatorSettings): Promise<TechnicalsData> {
     await this.ensureLoaded();
     if (!this.wasmModule) throw new Error('WASM unavailable');
 

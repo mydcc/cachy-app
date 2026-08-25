@@ -25,6 +25,17 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::str::FromStr;
 
+/// Called once by wasm-bindgen when the module instantiates.
+///
+/// Installs the console error panic hook so that a trap inside WASM shows up
+/// in the browser console with a Rust backtrace instead of disappearing as an
+/// anonymous `RuntimeError`. Without this, a malformed candle string could
+/// kill the calculator silently and leave the consumer guessing (BUG-0314).
+#[wasm_bindgen(start)]
+pub fn wasm_start() {
+    crate::utils::set_panic_hook();
+}
+
 /// `Decimal` division panics on a zero divisor, where the `f64` arithmetic this
 /// engine replaced produced `NaN`/`Inf` and simply rendered a garbage
 /// indicator. A panic inside WASM tears down the calculator instance and takes
@@ -1548,13 +1559,17 @@ impl TechnicalsCalculator {
             self.price_history_lows.pop_front();
             popped_v = self.price_history_volumes.pop_front();
         }
-        let c = Decimal::from_str(&c_str).unwrap();
+        // House policy is unwrap_or(ZERO) for untrusted boundary strings,
+        // matching parse_decimals/update below: one malformed candle must not
+        // trap the instance (BUG-0314). The pushed ZERO shifts window math by
+        // one bar at worst; a panic here would take down every later call.
+        let c = Decimal::from_str(&c_str).unwrap_or(Decimal::ZERO);
         self.price_history_closes.push_back(c);
-        let h = Decimal::from_str(&h_str).unwrap();
+        let h = Decimal::from_str(&h_str).unwrap_or(Decimal::ZERO);
         self.price_history_highs.push_back(h);
-        let l = Decimal::from_str(&l_str).unwrap();
+        let l = Decimal::from_str(&l_str).unwrap_or(Decimal::ZERO);
         self.price_history_lows.push_back(l);
-        let v = Decimal::from_str(&v_str).unwrap();
+        let v = Decimal::from_str(&v_str).unwrap_or(Decimal::ZERO);
         self.price_history_volumes.push_back(v);
 
         // ... Core Shifts ...
@@ -2118,7 +2133,44 @@ mod tests {
         );
         serde_json::from_str::<serde_json::Value>(&json).expect("valid JSON");
     }
+
+    #[test]
+    fn test_shift_survives_malformed_input() {
+        let mut calc = TechnicalsCalculator::new();
+        calc.initialize(
+            series(&["100", "101", "102"]),
+            series(&["101", "102", "103"]),
+            series(&["99", "100", "101"]),
+            series(&["1000", "1100", "1200"]),
+            &[0.0, 1.0, 2.0],
+            r#"{ "sma": [{ "length": 3 }] }"#,
+        );
+
+        // A malformed candle must not trap (panic) the instance — house
+        // policy is unwrap_or(ZERO) on boundary strings, so the calculator
+        // degrades by one bar instead of dying (BUG-0314).
+        calc.shift(
+            "garbage".into(),
+            "not-a-number".into(),
+            "".into(),
+            "x".into(),
+            "?".into(),
+            "0".into(),
+        );
+        let json = calc.update("103".into(), "104".into(), "102".into(), "103".into(), "1300".into(), "3".into());
+        serde_json::from_str::<serde_json::Value>(&json).expect("instance still emits valid JSON after malformed shift");
+
+        // A well-formed candle afterwards keeps producing sane values.
+        calc.shift("103".into(), "104".into(), "102".into(), "103".into(), "1300".into(), "3".into());
+        let json = calc.update("104".into(), "105".into(), "103".into(), "104".into(), "1400".into(), "4".into());
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+        assert!(
+            parsed.get("movingAverages").is_some(),
+            "SMA output present after recovery"
+        );
+    }
 }
 pub mod alert_engine;
 pub mod alert_engine_tests;
 pub mod alert_exports;
+mod utils;

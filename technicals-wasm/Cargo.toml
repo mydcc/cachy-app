@@ -28,5 +28,15 @@ rust_decimal_macros = "1.32"
 wasm-bindgen-test = "0.3.76"
 
 [profile.release]
-# Tell `rustc` to optimize for small code size.
+# Optimize for small code size; measured against opt-level = "z" when this
+# profile was completed for BUG-0314 (see that item's PR for the numbers).
 opt-level = "s"
+# Fat LTO + single codegen unit: the crate is tiny and cold-start matters
+# more than link time.
+lto = true
+codegen-units = 1
+# Unwinding across the FFI boundary is undefined behaviour territory anyway;
+# abort keeps landing-pad machinery out of the binary and makes every panic
+# an immediate, visible trap instead of a silent cross-boundary unwind.
+panic = "abort"
+strip = true
