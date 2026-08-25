@@ -1401,8 +1401,7 @@
       "scaleMode": "Preisskala",
       "scaleLinear": "Linear",
       "scaleLog": "Logarithmisch",
-      "scalePercent": "Prozent",
-      "scaleIndexed": "Indexiert (auf 100)",
+      "scaleHint": "Logarithmisch bewertet Preisabstände prozentual gleich - empfohlen für große Kursbereiche.",
       "decimalsMode": "Dezimalstellen",
       "decimalsAuto": "Auto (Börse)",
       "decimalsFixed": "Fest",
@@ -1411,8 +1410,6 @@
       "autoScaleDesc": "Y-Achse passt sich automatisch dem Kurs an",
       "invertScale": "Achse invertieren",
       "invertScaleDesc": "Preisachse umkehren (0 oben)",
-      "leftScale": "Linke Preisachse",
-      "leftScaleDesc": "Skala links statt rechts anzeigen",
       "displaySection": "Darstellung",
       "showGrid": "Gitterlinien",
       "lastValueVisible": "Aktuelle-Preis-Label",
@@ -1435,7 +1432,8 @@
       "fixEdges": "Ränder fixieren",
       "fixEdgesDesc": "Chart kann nicht über linken/rechten Rand hinaus gescrollt werden",
       "countdownEnabled": "Countdown zur Kerzenschließung",
-      "countdownDesc": "Verbleibende Zeit bis die aktuelle Kerze schließt"
+      "countdownDesc": "Verbleibende Zeit bis die aktuelle Kerze schließt",
+      "reset": "Zurücksetzen"
     },
     "tabs": {
       "general": "Allgemein",

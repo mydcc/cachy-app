@@ -45,6 +45,7 @@
     import { unwrapApiEnvelope, formatDynamicDecimal, deriveTickSizeFromPrice } from "../../../utils/utils";
     import {
         formatCountdown,
+        mapPriceScaleMode,
         nextCandleCloseTime,
         resolveChartPriceDecimals,
     } from "../../../utils/chartDisplay";
@@ -512,7 +513,6 @@
     $effect(() => {
         if (!chart || !candleSeries) return;
 
-        const priceScaleModeMap = { linear: 0, log: 1, percent: 2, indexed: 3 } as const;
         const crosshairModeMap = { normal: 0, magnet: 1, hidden: 2 } as const;
         // lightweight-charts LineStyle: Solid=0, Dotted=1, Dashed=2
         const crosshairStyleMap = { solid: 0, dotted: 1, dashed: 2 } as const;
@@ -526,8 +526,6 @@
             quotePrecision,
         );
         const minMove = new Decimal(10).pow(-decimals).toNumber();
-        const leftScale = settingsState.chartShowLeftScale;
-        const scaleId = leftScale ? "left" : "right";
 
         chart.applyOptions({
             grid: {
@@ -535,12 +533,11 @@
                 horzLines: { visible: settingsState.chartShowGrid },
             },
             rightPriceScale: {
-                visible: !leftScale && (win.showRightScale ?? true),
-                mode: priceScaleModeMap[settingsState.chartPriceScaleMode],
+                visible: win.showRightScale ?? true,
+                mode: mapPriceScaleMode(settingsState.chartPriceScaleMode),
                 autoScale: settingsState.chartAutoScale,
                 invertScale: settingsState.chartInvertScale,
             },
-            leftPriceScale: { visible: leftScale },
             crosshair: {
                 mode: crosshairModeMap[settingsState.chartCrosshairMode],
                 vertLine: { style: crosshairStyleMap[settingsState.chartCrosshairStyle] },
@@ -557,11 +554,7 @@
             borderVisible: settingsState.chartCandleBorders,
             lastValueVisible: settingsState.chartLastValueVisible,
             priceFormat: { type: "price", precision: decimals, minMove },
-            priceScaleId: scaleId,
         });
-        if (ema1Series) ema1Series.applyOptions({ priceScaleId: scaleId });
-        if (ema2Series) ema2Series.applyOptions({ priceScaleId: scaleId });
-        if (ema3Series) ema3Series.applyOptions({ priceScaleId: scaleId });
     });
 
     // Candle-close countdown: a cheap interval only runs while the feature
