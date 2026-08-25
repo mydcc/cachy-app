@@ -250,7 +250,14 @@ struct VwmaState {
 struct HmaState {
     wma_half: Decimal,
     wma_full: Decimal,
+    /// Latest WMA(sqrt(n)) over the raw hull series — maintained by shift()
+    /// so state stays warm between updates; update() computes its own
+    /// prospective value including the current candle.
     _sqrt_wma: Decimal,
+    /// Rolling raw-hull series (2·WMA(n/2) − WMA(n)), capped at sqrt(n).
+    sqrt_buf: VecDeque<Decimal>,
+    half_len: usize,
+    sqrt_len: usize,
     initialized: bool,
 }
 struct RsiState {
@@ -280,10 +287,16 @@ struct AtrState {
     initialized: bool,
 }
 struct StochState {
+    /// Raw %K values — feeds the D line (SMA of raw K).
     k_buffer: VecDeque<Decimal>,
+    /// Smoothed %K values — the reference applies SMA(kSmoothing) to raw K
+    /// before emitting Stoch.K; D is the SMA over that smoothed series
+    /// (BUG-0315: the smoothing was previously ignored).
+    smoothed_buf: VecDeque<Decimal>,
     d_val: Decimal,
     k_len: usize,
     d_len: usize,
+    smooth: usize,
     initialized: bool,
 }
 struct MomState {
@@ -333,7 +346,6 @@ struct ChopState {
     prev_close: Decimal,
     initialized: bool,
 }
-#[allow(dead_code)]
 struct MfiState {
     pos_flow: VecDeque<Decimal>,
     neg_flow: VecDeque<Decimal>,
@@ -342,13 +354,11 @@ struct MfiState {
     prev_tp: Decimal,
     initialized: bool,
 }
-#[allow(dead_code)]
 struct VwapState {
     cum_vol: Decimal,
     cum_pv: Decimal,
     last_t: Decimal,
 }
-#[allow(dead_code)]
 #[derive(Default, Clone, Copy)]
 pub struct PivotState {
     pub p: Decimal,
@@ -375,6 +385,10 @@ pub struct PsarState {
     pub inc_af: Decimal,
     pub prev_high: Decimal,
     pub prev_low: Decimal,
+    /// Second-previous bar range, needed for the two-bar SAR clamp that the
+    /// reference implementation applies (i > 1 branch).
+    pub prev2_high: Decimal,
+    pub prev2_low: Decimal,
     initialized: bool,
 }
 
@@ -385,6 +399,191 @@ struct OutputData {
     oscillators: HashMap<String, Decimal>,
     volatility: HashMap<String, Decimal>,
     pivots: HashMap<String, Decimal>,
+}
+
+/// One Parabolic SAR step, mirroring `JSIndicators.psar` in
+/// `src/utils/indicators.ts` exactly — including the two-bar clamp quirk and
+/// the reversal order of assignments. Takes the previous state plus the two
+/// previous bars' ranges explicitly (during history replay those come from
+/// the arrays, once seeded they live in the state). Returns the advanced
+/// state and the new SAR value.
+#[allow(clippy::too_many_arguments)]
+fn psar_step(
+    mut st: PsarState,
+    h: Decimal,
+    l: Decimal,
+    prev1_high: Decimal,
+    prev1_low: Decimal,
+    apply_second_clamp: bool,
+    prev2_high: Decimal,
+    prev2_low: Decimal,
+) -> (PsarState, Decimal) {
+    let start = st.inc_af; // JS calls it `start`; same value as initial AF
+    let increment = st.inc_af;
+    let max = st.max_af;
+
+    // Next SAR = Prior SAR + Prior AF * (Prior EP - Prior SAR)
+    let mut next_sar = st.sar + st.af * (st.ep - st.sar);
+
+    // Constraint: SAR cannot be within previous bars' range
+    if st.is_long {
+        if next_sar > prev1_low {
+            next_sar = prev1_low;
+        }
+        if apply_second_clamp && next_sar > prev2_low {
+            next_sar = prev2_low;
+        }
+    } else {
+        if next_sar < prev1_high {
+            next_sar = prev1_high;
+        }
+        if apply_second_clamp && next_sar < prev2_high {
+            next_sar = prev2_high;
+        }
+    }
+
+    // Check for Reversal
+    let mut reversed = false;
+    if st.is_long {
+        if l < next_sar {
+            st.is_long = false;
+            reversed = true;
+            next_sar = st.ep;
+            st.ep = l;
+            st.af = start;
+        }
+    } else {
+        if h > next_sar {
+            st.is_long = true;
+            reversed = true;
+            next_sar = st.ep;
+            st.ep = h;
+            st.af = start;
+        }
+    }
+
+    if !reversed {
+        if st.is_long {
+            if h > st.ep {
+                st.ep = h;
+                st.af = std::cmp::min(st.af + increment, max);
+            }
+        } else {
+            if l < st.ep {
+                st.ep = l;
+                st.af = std::cmp::min(st.af + increment, max);
+            }
+        }
+    }
+
+    st.sar = next_sar;
+    (st, st.sar)
+}
+
+/// Classic pivot-level formulas, mirroring `calculatePivotsFromValues` in
+/// `src/utils/indicators.ts`. Returns (p, r1, r2, r3, s1, s2, s3).
+fn compute_pivot_levels(
+    type_: &str,
+    high: Decimal,
+    low: Decimal,
+    close: Decimal,
+) -> (Decimal, Decimal, Decimal, Decimal, Decimal, Decimal, Decimal) {
+    match type_ {
+        "woodie" => {
+            let p = (high + low + close * Decimal::TWO) / Decimal::from(4);
+            (
+                p,
+                p * Decimal::TWO - low,
+                p + high - low,
+                high + (p - low) * Decimal::TWO,
+                p * Decimal::TWO - high,
+                p - high + low,
+                low - (high - p) * Decimal::TWO,
+            )
+        }
+        "camarilla" => {
+            let range = high - low;
+            let k = Decimal::new(11, 1); // 1.1
+            (
+                close,
+                close + range * k / Decimal::from(4),
+                close + range * k / Decimal::from(6),
+                close + range * k / Decimal::from(12),
+                close - range * k / Decimal::from(12),
+                close - range * k / Decimal::from(6),
+                close - range * k / Decimal::from(4),
+            )
+        }
+        "fibonacci" => {
+            let p = (high + low + close) / Decimal::from(3);
+            let range = high - low;
+            (
+                p,
+                p + range * Decimal::new(382, 3),
+                p + range * Decimal::new(618, 3),
+                p + range,
+                p - range * Decimal::new(382, 3),
+                p - range * Decimal::new(618, 3),
+                p - range,
+            )
+        }
+        // classic (default)
+        _ => {
+            let p = (high + low + close) / Decimal::from(3);
+            (
+                p,
+                p * Decimal::TWO - low,
+                p + (high - low),
+                high + (p - low) * Decimal::TWO,
+                p * Decimal::TWO - high,
+                p - (high - low),
+                low - (high - p) * Decimal::TWO,
+            )
+        }
+    }
+}
+
+/// UTC calendar-day bucket of a millisecond timestamp as a Decimal.
+/// Two timestamps share a `getUTCDate()` change boundary iff their epoch-day
+/// buckets differ (UTC has no DST), so this matches the reference's session
+/// reset logic.
+fn utc_day_bucket(t_ms: Decimal) -> Decimal {
+    (t_ms / Decimal::from(86_400_000u64)).floor()
+}
+
+fn dec_from_f64(x: f64) -> Decimal {
+    Decimal::from_str(&x.to_string()).unwrap_or(Decimal::ZERO)
+}
+
+/// Linearly weighted average of a window (oldest weight 1, newest weight n).
+/// Accepts anything that yields `&Decimal` in order — slices and `VecDeque`s.
+fn wma_of<'a>(window: impl IntoIterator<Item = &'a Decimal>) -> Decimal {    let mut n: usize = 0;
+    let mut weights_sum: usize = 0;
+    let mut acc = Decimal::ZERO;
+    for (i, p) in window.into_iter().enumerate() {
+        acc += *p * Decimal::from(i + 1);
+        n += 1;
+        weights_sum += i + 1;
+    }
+    if n == 0 {
+        return Decimal::ZERO;
+    }
+    acc / Decimal::from(weights_sum)
+}
+
+/// Simple average over an iterator of `&Decimal`.
+fn sma_of<'a>(vals: impl IntoIterator<Item = &'a Decimal>) -> Decimal {
+    let mut sum = Decimal::ZERO;
+    let mut n: usize = 0;
+    for v in vals {
+        sum += *v;
+        n += 1;
+    }
+    if n == 0 {
+        Decimal::ZERO
+    } else {
+        sum / Decimal::from(n)
+    }
 }
 
 #[wasm_bindgen]
@@ -419,13 +618,9 @@ pub struct TechnicalsCalculator {
     st_states: HashMap<String, SuperTrendState>,
     #[allow(dead_code)]
     chop_states: HashMap<usize, ChopState>,
-    #[allow(dead_code)]
     mfi_states: HashMap<usize, MfiState>,
-    #[allow(dead_code)]
     vwap_states: HashMap<String, VwapState>,
-    #[allow(dead_code)]
     psar_states: HashMap<String, PsarState>,
-    #[allow(dead_code)]
     pivots_state: PivotState,
 }
 
@@ -480,7 +675,7 @@ impl TechnicalsCalculator {
         highs_arr: Vec<String>,
         lows_arr: Vec<String>,
         volumes_arr: Vec<String>,
-        _times: &[f64],
+        times: &[f64],
         settings_json: &str,
     ) {
         let closes: Vec<Decimal> = parse_decimals(&closes_arr);
@@ -596,37 +791,39 @@ impl TechnicalsCalculator {
         }
 
         // HMA Init (Hull Moving Average) - WMA(2*WMA(n/2) - WMA(n), sqrt(n))
+        // Full chain, mirroring JSIndicators.hma: the raw hull series is
+        // replayed over history and smoothed by a WMA over the last
+        // sqrt(n) raw values.
         for s in &self.settings.hma {
             let half_len = s.length / 2;
             let sqrt_len = (s.length as f64).sqrt() as usize;
-            let mut wma_half = Decimal::ZERO;
-            let mut wma_full = Decimal::ZERO;
-            let mut _sqrt_wma = Decimal::ZERO;
+            let mut sqrt_buf: VecDeque<Decimal> = VecDeque::new();
             let mut init = false;
 
-            if len >= s.length + sqrt_len {
-                // Calculate WMA(n/2)
-                let weights_half = (half_len * (half_len + 1)) / 2;
-                for i in 0..half_len {
-                    wma_half += closes[len - half_len + i] * Decimal::from(i + 1);
+            if s.length >= 2 && half_len >= 1 && len >= s.length + sqrt_len.saturating_sub(1) {
+                // Replay: recompute both windowed WMAs per bar. O(len · n)
+                // with n ≤ max_history_size — acceptable at init time.
+                for i in (s.length - 1)..len {
+                    let end = i + 1;
+                    let wh = wma_of(&closes[end - half_len..end]);
+                    let wf = wma_of(&closes[end - s.length..end]);
+                    sqrt_buf.push_back(wh * Decimal::TWO - wf);
+                    if sqrt_buf.len() > sqrt_len {
+                        sqrt_buf.pop_front();
+                    }
                 }
-                wma_half /= Decimal::from(weights_half);
-
-                // Calculate WMA(n)
-                let weights_full = (s.length * (s.length + 1)) / 2;
-                for i in 0..s.length {
-                    wma_full += closes[len - s.length + i] * Decimal::from(i + 1);
-                }
-                wma_full /= Decimal::from(weights_full);
-
                 init = true;
             }
+            let _sqrt_wma = wma_of(&sqrt_buf);
             self.hma_states.insert(
                 s.length,
                 HmaState {
-                    wma_half,
-                    wma_full,
+                    wma_half: Decimal::ZERO,
+                    wma_full: Decimal::ZERO,
                     _sqrt_wma,
+                    sqrt_buf,
+                    half_len,
+                    sqrt_len,
                     initialized: init,
                 },
             );
@@ -762,16 +959,16 @@ impl TechnicalsCalculator {
             );
         }
         for s in &self.settings.stoch {
-            let mut k_buf = VecDeque::new();
+            let smooth = s.smooth.max(1);
+            let mut raw_buf: VecDeque<Decimal> = VecDeque::new();
+            let mut smoothed_buf: VecDeque<Decimal> = VecDeque::new();
             let mut init = false;
             let mut d_val = Decimal::ZERO;
-            if len >= s.k + s.smooth {
+            if len >= s.k + smooth {
                 for i in 0..len {
                     if i >= s.k - 1 {
                         // Find MaxH and MinL over last K periods
                         let start = i + 1 - s.k;
-                        // Optimization: Slice is faster than iter loop if possible, but VecDeque doesn't slice easily.
-                        // Using manual loop for now or global buffers? Init uses slice 'highs'.
                         let mut max_h = Decimal::MIN;
                         let mut min_l = Decimal::MAX;
                         for j in start..=i {
@@ -784,13 +981,21 @@ impl TechnicalsCalculator {
                         } else {
                             (closes[i] - min_l) / (max_h - min_l) * dec!(100.0)
                         };
-                        k_buf.push_back(k);
-                        if k_buf.len() > s.d {
-                            k_buf.pop_front();
+
+                        raw_buf.push_back(k);
+                        if raw_buf.len() > smooth {
+                            raw_buf.pop_front();
                         }
-                        if k_buf.len() == s.d {
-                            d_val = k_buf.iter().sum::<Decimal>() / Decimal::from(s.d);
+                        // Reference applies SMA(kSmoothing) to raw K before
+                        // emitting Stoch.K.
+                        let smoothed =
+                            sma_of(raw_buf.iter().rev().take(smooth));
+                        smoothed_buf.push_back(smoothed);
+                        if smoothed_buf.len() > s.d {
+                            smoothed_buf.pop_front();
                         }
+                        d_val = smoothed_buf.iter().sum::<Decimal>()
+                            / Decimal::from(smoothed_buf.len().max(1));
                     }
                 }
                 init = true;
@@ -798,10 +1003,12 @@ impl TechnicalsCalculator {
             self.stoch_states.insert(
                 format!("{}-{}-{}", s.k, s.d, s.smooth),
                 StochState {
-                    k_buffer: k_buf,
+                    k_buffer: raw_buf,
+                    smoothed_buf,
                     d_val,
                     k_len: s.k,
                     d_len: s.d,
+                    smooth,
                     initialized: init,
                 },
             );
@@ -1094,6 +1301,155 @@ impl TechnicalsCalculator {
                 },
             );
         }
+
+        // MFI Init — replay typical-price money flows over history so the
+        // rolling buffers in update()/shift() start warm (FEAT-0316).
+        for s in &self.settings.mfi {
+            let mut pos_buf: VecDeque<Decimal> = VecDeque::new();
+            let mut neg_buf: VecDeque<Decimal> = VecDeque::new();
+            let mut sum_p = Decimal::ZERO;
+            let mut sum_n = Decimal::ZERO;
+            let mut prev_tp = (highs[0] + lows[0] + closes[0]) / dec!(3.0);
+            let mut init = false;
+
+            if len >= s.length + 1 {
+                for i in 1..len {
+                    let tp = (highs[i] + lows[i] + closes[i]) / dec!(3.0);
+                    let rmf = tp * volumes[i];
+                    let (p, n) = if tp > prev_tp {
+                        (rmf, Decimal::ZERO)
+                    } else if tp < prev_tp {
+                        (Decimal::ZERO, rmf)
+                    } else {
+                        (Decimal::ZERO, Decimal::ZERO)
+                    };
+
+                    pos_buf.push_back(p);
+                    sum_p += p;
+                    if pos_buf.len() > s.length {
+                        sum_p -= pos_buf.pop_front().unwrap();
+                    }
+                    neg_buf.push_back(n);
+                    sum_n += n;
+                    if neg_buf.len() > s.length {
+                        sum_n -= neg_buf.pop_front().unwrap();
+                    }
+                    prev_tp = tp;
+                }
+                init = true;
+            }
+            self.mfi_states.insert(
+                s.length,
+                MfiState {
+                    pos_flow: pos_buf,
+                    neg_flow: neg_buf,
+                    sum_p,
+                    sum_n,
+                    prev_tp,
+                    initialized: init,
+                },
+            );
+        }
+
+        // VWAP Init — seed the cumulative sums from history, honouring the
+        // session reset on UTC-day boundaries like JSIndicators.vwap.
+        for s in &self.settings.vwap {
+            let session = s.anchor == "session";
+            let mut cum_pv = Decimal::ZERO;
+            let mut cum_vol = Decimal::ZERO;
+            let mut last_day: Option<Decimal> = None;
+
+            for i in 0..len {
+                let t = times.get(i).copied().unwrap_or(0.0);
+                let day = utc_day_bucket(dec_from_f64(t));
+                if session {
+                    if let Some(prev_day) = last_day {
+                        if day != prev_day {
+                            cum_pv = Decimal::ZERO;
+                            cum_vol = Decimal::ZERO;
+                        }
+                    }
+                    last_day = Some(day);
+                }
+                let tp = (highs[i] + lows[i] + closes[i]) / dec!(3.0);
+                cum_pv += tp * volumes[i];
+                cum_vol += volumes[i];
+            }
+            self.vwap_states.insert(
+                s.anchor.clone(),
+                VwapState {
+                    cum_vol,
+                    cum_pv,
+                    last_t: times
+                        .last()
+                        .map(|t| dec_from_f64(*t))
+                        .unwrap_or(Decimal::ZERO),
+                },
+            );
+        }
+
+        // PSAR Init — replay the exact reference state machine over history.
+        for s in &self.settings.psar {
+            if len < 2 {
+                continue;
+            }
+            let mut st = PsarState {
+                sar: lows[0],
+                ep: highs[0],
+                af: s.start,
+                is_long: true,
+                max_af: s.max,
+                inc_af: s.start,
+                prev_high: Decimal::ZERO,
+                prev_low: Decimal::ZERO,
+                prev2_high: Decimal::ZERO,
+                prev2_low: Decimal::ZERO,
+                initialized: false,
+            };
+            for i in 1..len {
+                let apply_second_clamp = i >= 2;
+                (st, _) = psar_step(
+                    st,
+                    highs[i],
+                    lows[i],
+                    highs[i - 1],
+                    lows[i - 1],
+                    apply_second_clamp,
+                    if apply_second_clamp { highs[i - 2] } else { Decimal::ZERO },
+                    if apply_second_clamp { lows[i - 2] } else { Decimal::ZERO },
+                );
+            }
+            st.prev_high = highs[len - 1];
+            st.prev_low = lows[len - 1];
+            st.prev2_high = highs[len - 2];
+            st.prev2_low = lows[len - 2];
+            st.initialized = true;
+            self.psar_states.insert("psar".to_string(), st);
+        }
+
+        // Pivots Init — the reference computes levels from the candle BEFORE
+        // the latest one. With the initialize/update split, the last
+        // initialize candle IS that "previous" candle once update() runs.
+        if let Some(ps) = self.settings.pivots.first() {
+            if len >= 1 {
+                let (p, r1, r2, r3, s1, s2, s3) =
+                    compute_pivot_levels(&ps.type_, highs[len - 1], lows[len - 1], closes[len - 1]);
+                self.pivots_state = PivotState {
+                    p,
+                    r1,
+                    r2,
+                    r3,
+                    s1,
+                    s2,
+                    s3,
+                    basis_h: highs[len - 1],
+                    basis_l: lows[len - 1],
+                    basis_c: closes[len - 1],
+                    basis_o: Decimal::ZERO,
+                    initialized: true,
+                };
+            }
+        }
     }
 
     pub fn update(
@@ -1167,18 +1523,37 @@ impl TechnicalsCalculator {
         }
 
         // HMA Update
+        // HMA Update — proper chain WMA(2·WMA(n/2) − WMA(n), sqrt(n)),
+        // computed prospectively so the incoming candle is included
+        // without being committed to state yet (FEAT-0316).
         for (len, s) in &self.hma_states {
-            if s.initialized && self.price_history_closes.len() >= *len {
-                let _half = *len / 2;
-                let _sqrt_len = (*len as f64).sqrt() as usize;
-
-                // Simplified HMA calculation (proper implementation requires more state)
-                // HMA = WMA(2 * WMA(n/2) - WMA(n), sqrt(n))
-                out.moving_averages.insert(
-                    format!("HMA{}", len),
-                    s.wma_half * Decimal::TWO - s.wma_full,
-                );
+            if !s.initialized || s.half_len == 0 || s.sqrt_len == 0 {
+                continue;
             }
+            let hist = &self.price_history_closes;
+            let n = hist.len();
+            if n + 1 < *len {
+                continue;
+            }
+            let window_with_current = |take: usize| -> Vec<Decimal> {
+                let need = take.saturating_sub(1);
+                let mut v: Vec<Decimal> = Vec::with_capacity(take);
+                if need > 0 {
+                    v.extend(hist.iter().skip(n - need));
+                }
+                v.push(c);
+                v
+            };
+            let half_window = window_with_current(s.half_len.max(1));
+            let full_window = window_with_current(*len);
+            let raw = wma_of(&half_window) * Decimal::TWO - wma_of(&full_window);
+
+            let mut buf = s.sqrt_buf.clone();
+            if buf.len() >= s.sqrt_len {
+                buf.pop_front();
+            }
+            buf.push_back(raw);
+            out.moving_averages.insert(format!("HMA{}", len), wma_of(&buf));
         }
 
         for (len, s) in &self.rsi_states {
@@ -1198,15 +1573,15 @@ impl TechnicalsCalculator {
                     (s.avg_gain * (Decimal::from(*len) - Decimal::ONE) + g) / Decimal::from(*len);
                 let al =
                     (s.avg_loss * (Decimal::from(*len) - Decimal::ONE) + l_) / Decimal::from(*len);
-                let rs = if al == Decimal::ZERO {
+                // Mirror the reference exactly: an all-gains window is RSI 100,
+                // not ~99.01 via rs=100 (BUG-0315).
+                let rsi_val = if al == Decimal::ZERO {
                     dec!(100.0)
                 } else {
-                    ag / al
+                    let rs = ag / al;
+                    dec!(100.0) - (dec!(100.0) / (Decimal::ONE + rs))
                 };
-                out.oscillators.insert(
-                    format!("RSI{}", len),
-                    dec!(100.0) - (dec!(100.0) / (Decimal::ONE + rs)),
-                );
+                out.oscillators.insert(format!("RSI{}", len), rsi_val);
             }
         }
         for (k, s) in &self.macd_states {
@@ -1255,13 +1630,18 @@ impl TechnicalsCalculator {
             }
         }
         for (key, s) in &self.stoch_states {
-            if s.initialized && self.price_history_highs.len() >= s.k_len {
-                let start = self.price_history_highs.len() - s.k_len;
+            if s.initialized && self.price_history_highs.len() + 1 >= s.k_len {
+                let hist_h = &self.price_history_highs;
+                let hist_l = &self.price_history_lows;
+                let n = hist_h.len();
+                // Prospective raw %K over the last k_len-1 committed bars
+                // plus the incoming candle.
+                let start = (n + 1).saturating_sub(s.k_len);
                 let mut max_h = h;
                 let mut min_l = l;
-                for i in start..self.price_history_highs.len() {
-                    max_h = std::cmp::max(max_h, self.price_history_highs[i]);
-                    min_l = std::cmp::min(min_l, self.price_history_lows[i]);
+                for i in start..n {
+                    max_h = std::cmp::max(max_h, hist_h[i]);
+                    min_l = std::cmp::min(min_l, hist_l[i]);
                 }
                 let k = if max_h == min_l {
                     dec!(50.0)
@@ -1269,20 +1649,26 @@ impl TechnicalsCalculator {
                     (c - min_l) / (max_h - min_l) * dec!(100.0)
                 };
 
-                // Calculate D (SMA of K)
-                let mut k_sum: Decimal = s.k_buffer.iter().sum();
-                if !s.k_buffer.is_empty() && s.k_buffer.len() >= s.d_len {
-                    k_sum = k_sum - *s.k_buffer.front().unwrap() + k;
-                    out.oscillators
-                        .insert(format!("STOCH_{}.d", key), k_sum / Decimal::from(s.d_len));
-                } else {
-                    k_sum += k;
-                    out.oscillators.insert(
-                        format!("STOCH_{}.d", key),
-                        k_sum / Decimal::from(s.k_buffer.len() + 1),
-                    );
-                }
-                out.oscillators.insert(format!("STOCH_{}.k", key), k);
+                // Smooth the candidate against the last (smooth-1) committed
+                // raw values — mirrors SMA(kSmoothing) on the raw series.
+                let smoothed = sma_of(
+                    s.k_buffer
+                        .iter()
+                        .rev()
+                        .take(s.smooth.saturating_sub(1))
+                        .chain(std::iter::once(&k)),
+                );
+
+                // D is the SMA of the smoothed series including the candidate.
+                let d = sma_of(
+                    s.smoothed_buf
+                        .iter()
+                        .rev()
+                        .take(s.d_len.saturating_sub(1))
+                        .chain(std::iter::once(&smoothed)),
+                );
+                out.oscillators.insert(format!("STOCH_{}.d", key), d);
+                out.oscillators.insert(format!("STOCH_{}.k", key), smoothed);
             }
         }
 
@@ -1516,14 +1902,55 @@ impl TechnicalsCalculator {
         // VWAP Update
         for (key, s) in &self.vwap_states {
             let tp = (h + l + c) / dec!(3.0);
-            let cum_pv = s.cum_pv + tp * v;
-            let cum_vol = s.cum_vol + v;
+            let mut cum_pv = s.cum_pv;
+            let mut cum_vol = s.cum_vol;
+            // Session reset on a UTC-day boundary, mirroring the reference.
+            if key == "session" {
+                let day = utc_day_bucket(Decimal::from_str(&_t_str).unwrap_or(Decimal::ZERO));
+                let prev_day = utc_day_bucket(s.last_t);
+                if !s.last_t.is_zero() && day != prev_day {
+                    cum_pv = Decimal::ZERO;
+                    cum_vol = Decimal::ZERO;
+                }
+            }
+            cum_pv += tp * v;
+            cum_vol += v;
             let vwap = if cum_vol == Decimal::ZERO {
                 Decimal::ZERO
             } else {
                 cum_pv / cum_vol
             };
             out.volatility.insert(format!("VWAP_{}", key), vwap);
+        }
+
+        // PSAR Update — one prospective step against the incoming candle;
+        // the committed state advances in shift() (FEAT-0316).
+        for (_, st) in &self.psar_states {
+            if !st.initialized {
+                continue;
+            }
+            let (_, sar_now) = psar_step(
+                *st,
+                h,
+                l,
+                st.prev_high,
+                st.prev_low,
+                true,
+                st.prev2_high,
+                st.prev2_low,
+            );
+            out.volatility.insert("PSAR".to_string(), sar_now);
+        }
+
+        // Pivots Update — levels from the stored previous-candle basis.
+        if self.pivots_state.initialized {
+            out.pivots.insert("P".to_string(), self.pivots_state.p);
+            out.pivots.insert("R1".to_string(), self.pivots_state.r1);
+            out.pivots.insert("R2".to_string(), self.pivots_state.r2);
+            out.pivots.insert("R3".to_string(), self.pivots_state.r3);
+            out.pivots.insert("S1".to_string(), self.pivots_state.s1);
+            out.pivots.insert("S2".to_string(), self.pivots_state.s2);
+            out.pivots.insert("S3".to_string(), self.pivots_state.s3);
         }
 
         serde_json::to_string(&out).unwrap_or(String::from("{}"))
@@ -1632,6 +2059,17 @@ impl TechnicalsCalculator {
                     wma_full += self.price_history_closes[idx] * Decimal::from(i + 1);
                 }
                 s.wma_full = wma_full / Decimal::from(weights_full);
+
+                // Advance the raw hull series and its sqrt(n) smoothing so
+                // state stays warm for the next update (FEAT-0316).
+                let raw = s.wma_half * Decimal::TWO - s.wma_full;
+                if s.sqrt_len > 0 {
+                    s.sqrt_buf.push_back(raw);
+                    if s.sqrt_buf.len() > s.sqrt_len {
+                        s.sqrt_buf.pop_front();
+                    }
+                    s._sqrt_wma = wma_of(&s.sqrt_buf);
+                }
             }
         }
 
@@ -1709,11 +2147,17 @@ impl TechnicalsCalculator {
                 };
 
                 s.k_buffer.push_back(k);
-                if s.k_buffer.len() > s.d_len {
+                if s.k_buffer.len() > s.smooth {
                     s.k_buffer.pop_front();
                 }
-                s.d_val =
-                    s.k_buffer.iter().sum::<Decimal>() / Decimal::from(s.k_buffer.len().max(1));
+                let smoothed =
+                    sma_of(s.k_buffer.iter().rev().take(s.smooth));
+                s.smoothed_buf.push_back(smoothed);
+                if s.smoothed_buf.len() > s.d_len {
+                    s.smoothed_buf.pop_front();
+                }
+                s.d_val = s.smoothed_buf.iter().sum::<Decimal>()
+                    / Decimal::from(s.smoothed_buf.len().max(1));
             }
         }
 
@@ -1916,13 +2360,64 @@ impl TechnicalsCalculator {
         }
 
         // VWAP Shift
-        for (_key, s) in &mut self.vwap_states {
+        for (key, s) in &mut self.vwap_states {
+            let t_dec = Decimal::from_str(&_t_str).unwrap_or(Decimal::ZERO);
+            if key == "session" && !s.last_t.is_zero() {
+                let day = utc_day_bucket(t_dec);
+                let prev_day = utc_day_bucket(s.last_t);
+                if day != prev_day {
+                    s.cum_pv = Decimal::ZERO;
+                    s.cum_vol = Decimal::ZERO;
+                }
+            }
             let tp = (h + l + c) / dec!(3.0);
             s.cum_pv += tp * v;
             s.cum_vol += v;
-            // s.last_t = t; // t is not Decimal::from(passed) in shift sig in all versions?
-            // Check shift sig: shift(&mut self, _o: Decimal, h: Decimal, l: Decimal, c: Decimal, v: Decimal, _t: Decimal)
-            s.last_t = Decimal::from_str(&_t_str).unwrap_or(Decimal::ZERO);
+            s.last_t = t_dec;
+        }
+
+        // PSAR Shift — commit the step for the candle that just closed
+        // (FEAT-0316). The clamp uses this bar as the new prev range.
+        for (_, st) in &mut self.psar_states {
+            if !st.initialized {
+                continue;
+            }
+            let (mut advanced, _) = psar_step(
+                *st,
+                h,
+                l,
+                st.prev_high,
+                st.prev_low,
+                true,
+                st.prev2_high,
+                st.prev2_low,
+            );
+            advanced.prev2_high = advanced.prev_high;
+            advanced.prev2_low = advanced.prev_low;
+            advanced.prev_high = h;
+            advanced.prev_low = l;
+            *st = advanced;
+        }
+
+        // Pivots Shift — the just-closed candle becomes the pivot basis of
+        // the next call, matching the reference's "previous candle" rule.
+        if self.pivots_state.initialized {
+            if let Some(ps) = self.settings.pivots.first() {
+                let mut next = self.pivots_state;
+                let (p, r1, r2, r3, s1, s2, s3) =
+                    compute_pivot_levels(&ps.type_, h, l, c);
+                next.p = p;
+                next.r1 = r1;
+                next.r2 = r2;
+                next.r3 = r3;
+                next.s1 = s1;
+                next.s2 = s2;
+                next.s3 = s3;
+                next.basis_h = h;
+                next.basis_l = l;
+                next.basis_c = c;
+                self.pivots_state = next;
+            }
         }
     }
 }
@@ -2036,6 +2531,319 @@ mod tests {
             "indicator values must serialize as strings, got {}",
             sma
         );
+    }
+
+    // ---- FEAT-0316 / BUG-0315 regression tests ----
+    //
+    // Each reference implementation below mirrors the TypeScript source in
+    // src/utils/indicators.ts line for line, so a divergence between the
+    // engines shows up as an exact-value failure here.
+
+    fn hma_reference(closes: &[Decimal], period: usize) -> Decimal {
+        let half = period / 2;
+        let sqrt_p = (period as f64).sqrt() as usize;
+        let mut combined: Vec<Decimal> = Vec::new();
+        for i in (period - 1)..closes.len() {
+            let wh = wma_of(&closes[i + 1 - half..i + 1]);
+            let wf = wma_of(&closes[i + 1 - period..i + 1]);
+            combined.push(wh * Decimal::TWO - wf);
+        }
+        wma_of(&combined[combined.len() - sqrt_p..])
+    }
+
+    #[test]
+    fn test_hma_is_the_full_wma_chain() {
+        let closes = series(&[
+            "10", "11", "12", "11", "13", "14", "15", "14", "16", "17", "18", "17", "19", "20",
+            "21", "20", "22", "23", "24", "25",
+        ]);
+        let highs = series(&["11"; 20]);
+        let lows = series(&["9"; 20]);
+        let vols = series(&["1000"; 20]);
+        let times = vec![0.0; 20];
+
+        let mut calc = TechnicalsCalculator::new();
+        calc.initialize(
+            closes.clone(),
+            highs.clone(),
+            lows.clone(),
+            vols.clone(),
+            &times,
+            r#"{"hma":[{"length":9}]}"#,
+        );
+
+        // Feed one more candle through update() — protocol: initialize on
+        // history, update with the new candle.
+        let json = calc.update(
+            "26".into(),
+            "27".into(),
+            "25".into(),
+            "26".into(),
+            "1100".into(),
+            "1".into(),
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+
+        let mut full: Vec<Decimal> = closes.iter().map(|s| Decimal::from_str(s).unwrap()).collect();
+        full.push(Decimal::from(26));
+        let expected = hma_reference(&full, 9);
+
+        assert_eq!(
+            parsed["movingAverages"]["HMA9"].as_str().unwrap(),
+            expected.to_string(),
+            "HMA must equal WMA(2·WMA(n/2) − WMA(n), sqrt(n)) over the full chain"
+        );
+    }
+
+    #[test]
+    fn test_mfi_matches_window_reference() {
+        let n = 30usize;
+        let closes: Vec<String> = (0..n)
+            .map(|i| ((i * 7) % 23 + 90).to_string())
+            .collect();
+        let highs: Vec<String> = (0..n)
+            .map(|i| ((i * 7) % 23 + 91).to_string())
+            .collect();
+        let lows: Vec<String> = (0..n)
+            .map(|i| ((i * 7) % 23 + 89).to_string())
+            .collect();
+        let vols: Vec<String> = (0..n).map(|i| (500 + i * 13).to_string()).collect();
+        let times = vec![0.0; n];
+        let period = 14;
+
+        let mut calc = TechnicalsCalculator::new();
+        calc.initialize(
+            closes.clone(),
+            highs.clone(),
+            lows.clone(),
+            vols.clone(),
+            &times,
+            r#"{"mfi":[{"length":14}]}"#,
+        );
+
+        let json = calc.update(
+            "120".into(),
+            "121".into(),
+            "119".into(),
+            "120".into(),
+            "900".into(),
+            "1".into(),
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+
+        // Reference: TS calculateMFI over the last `period` changes,
+        // including the updated candle.
+        let dec = |v: &str| Decimal::from_str(v).unwrap();
+        let tp = |i: usize| (dec(&highs[i]) + dec(&lows[i]) + dec(&closes[i])) / dec!(3);
+        let mut all_closes = closes.clone();
+        all_closes.push("120".into());
+        let mut all_highs = highs.clone();
+        all_highs.push("121".into());
+        let mut all_lows = lows.clone();
+        all_lows.push("119".into());
+        let mut all_vols = vols.clone();
+        all_vols.push("900".into());
+        let m = all_closes.len();
+
+        let mut pos_flow = Decimal::ZERO;
+        let mut neg_flow = Decimal::ZERO;
+        let start = m - period;
+        let mut prev_tp =
+            (dec(&all_highs[start - 1]) + dec(&all_lows[start - 1]) + dec(&all_closes[start - 1]))
+                / dec!(3);
+        for i in start..m {
+            let t = (dec(&all_highs[i]) + dec(&all_lows[i]) + dec(&all_closes[i])) / dec!(3);
+            let rmf = t * dec(&all_vols[i]);
+            if t > prev_tp {
+                pos_flow += rmf;
+            } else if t < prev_tp {
+                neg_flow += rmf;
+            }
+            prev_tp = t;
+        }
+        let expected = if neg_flow == Decimal::ZERO {
+            dec!(100)
+        } else {
+            dec!(100) - (dec!(100) / (Decimal::ONE + pos_flow / neg_flow))
+        };
+
+        assert_eq!(
+            parsed["oscillators"][format!("MFI{}", period)].as_str().unwrap(),
+            expected.to_string(),
+            "rolling MFI must equal the windowed reference"
+        );
+        let _ = tp(0); // silence unused helper in case of refactors
+    }
+
+    #[test]
+    fn test_rsi_all_gains_is_exactly_100() {
+        let closes = series(&["10", "11", "12", "13", "14", "15"]);
+        let times = vec![0.0; 6];
+        let mut calc = TechnicalsCalculator::new();
+        calc.initialize(
+            closes.clone(),
+            closes.clone(),
+            closes.clone(),
+            closes.clone(),
+            &times,
+            r#"{"rsi":[{"length":4}]}"#,
+        );
+        let json = calc.update("16".into(), "16".into(), "16".into(), "16".into(), "1".into(), "2".into());
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+        let got = Decimal::from_str(parsed["oscillators"]["RSI4"].as_str().unwrap()).unwrap();
+        assert_eq!(
+            got,
+            Decimal::from(100),
+            "an all-gains window must yield exactly RSI 100"
+        );
+    }
+
+    #[test]
+    fn test_vwap_session_resets_on_utc_day_change() {
+        // Two candles on day 0, two candles on day 1 (UTC).
+        let day_ms = 86_400_000f64;
+        let times = vec![1_000.0, 2_000.0, day_ms + 1_000.0, day_ms + 2_000.0];
+        let closes = series(&["100", "102", "104", "106"]);
+        let highs = series(&["101", "103", "105", "107"]);
+        let lows = series(&["99", "101", "103", "105"]);
+        let vols = series(&["10", "10", "10", "10"]);
+
+        let mut calc = TechnicalsCalculator::new();
+        calc.initialize(
+            closes,
+            highs.clone(),
+            lows.clone(),
+            vols.clone(),
+            &times,
+            r#"{"vwap":[{"anchor":"session"}]}"#,
+        );
+        // Update with a fifth candle still on day 1.
+        let json = calc.update("108".into(), "109".into(), "107".into(), "108".into(), "10".into(), (day_ms + 3_000.0).to_string());
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+
+        // Expected: only day-2 candles contribute.
+        let dec = Decimal::from_str;
+        let tp = |h: &str, l: &str, c: &str| (dec(h).unwrap() + dec(l).unwrap() + dec(c).unwrap()) / dec!(3);
+        let cum_pv = tp("105", "103", "104") * dec("10").unwrap()
+            + tp("107", "105", "106") * dec("10").unwrap()
+            + tp("109", "107", "108") * dec("10").unwrap();
+        let cum_vol = dec("30").unwrap();
+        let expected = cum_pv / cum_vol;
+
+        let got = Decimal::from_str(parsed["volatility"]["VWAP_session"].as_str().unwrap())
+            .expect("VWAP must serialize as decimal string");
+        assert_eq!(
+            got,
+            expected,
+            "session VWAP must reset its cumulative sums at UTC midnight"
+        );
+    }
+
+    /// The TS psar loop from src/utils/indicators.ts, reimplemented on f64 —
+    /// the WASM engine runs the same state machine on Decimal, so values are
+    /// compared with a small float tolerance.
+    #[test]
+    fn test_psar_matches_reference_replay() {
+        let n = 40usize;
+        let highs: Vec<String> = (0..n).map(|i| format!("{}", 100 + (i * 5) % 31)).collect();
+        let lows: Vec<String> = (0..n).map(|i| format!("{}", 90 + (i * 3) % 27)).collect();
+        let closes: Vec<String> = (0..n).map(|i| format!("{}", 95 + (i * 7) % 29)).collect();
+        let vols: Vec<String> = vec!["1000".to_string(); n];
+        let times = vec![0.0; n];
+
+        let mut calc = TechnicalsCalculator::new();
+        calc.initialize(
+            closes,
+            highs.clone(),
+            lows.clone(),
+            vols,
+            &times,
+            r#"{"psar":[{"start":0.02,"increment":0.02,"max":0.2}]}"#,
+        );
+        let json = calc.update("130".into(), "131".into(), "129".into(), "130".into(), "1000".into(), "1".into());
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+        let got: f64 = parsed["volatility"]["PSAR"]
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        // f64 reference replay (JSIndicators.psar), extended by the updated candle.
+        let h: Vec<f64> = highs.iter().chain(std::iter::once(&"131".to_string())).map(|s| s.parse().unwrap()).collect();
+        let l: Vec<f64> = lows.iter().chain(std::iter::once(&"129".to_string())).map(|s| s.parse().unwrap()).collect();
+        let (start, inc, max) = (0.02f64, 0.02f64, 0.2f64);
+        let mut is_long = true;
+        let mut af = start;
+        let mut ep = h[0];
+        let mut sar = l[0];
+        for i in 1..h.len() {
+            let mut next_sar = sar + af * (ep - sar);
+            if is_long {
+                if next_sar > l[i - 1] { next_sar = l[i - 1]; }
+                if i > 1 && next_sar > l[i - 2] { next_sar = l[i - 2]; }
+            } else {
+                if next_sar < h[i - 1] { next_sar = h[i - 1]; }
+                if i > 1 && next_sar < h[i - 2] { next_sar = h[i - 2]; }
+            }
+            let mut reversed = false;
+            if is_long {
+                if l[i] < next_sar { is_long = false; reversed = true; next_sar = ep; ep = l[i]; af = start; }
+            } else {
+                if h[i] > next_sar { is_long = true; reversed = true; next_sar = ep; ep = h[i]; af = start; }
+            }
+            if !reversed {
+                if is_long {
+                    if h[i] > ep { ep = h[i]; af = af + inc; if af > max { af = max; } }
+                } else {
+                    if l[i] < ep { ep = l[i]; af = af + inc; if af > max { af = max; } }
+                }
+            }
+            sar = next_sar;
+        }
+
+        let tolerance = sar.abs() * 1e-9 + 1e-9;
+        assert!(
+            (got - sar).abs() <= tolerance,
+            "PSAR replay diverged from reference: got {}, expected {}",
+            got,
+            sar
+        );
+    }
+
+    #[test]
+    fn test_pivots_use_previous_candle_classic() {
+        let closes = series(&["10", "20", "30"]);
+        let highs = series(&["12", "22", "32"]);
+        let lows = series(&["8", "18", "28"]);
+        let vols = series(&["100", "100", "100"]);
+        let times = vec![0.0, 1.0, 2.0];
+
+        let mut calc = TechnicalsCalculator::new();
+        calc.initialize(closes, highs, lows, vols, &times, r#"{"pivots":[{"type_":"classic"}]}"#);
+
+        let json = calc.update("40".into(), "42".into(), "38".into(), "40".into(), "100".into(), "3".into());
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
+
+        // Basis is candle index len-2 of the full series = ("32","28","30").
+        let d = |v: &str| Decimal::from_str(v).unwrap();
+        let p = (d("32") + d("28") + d("30")) / dec!(3);
+        let expected = [
+            ("P", p),
+            ("R1", p * dec!(2) - d("28")),
+            ("R2", p + (d("32") - d("28"))),
+            ("R3", d("32") + (p - d("28")) * dec!(2)),
+            ("S1", p * dec!(2) - d("32")),
+            ("S2", p - (d("32") - d("28"))),
+            ("S3", d("28") - (d("32") - p) * dec!(2)),
+        ];
+        for (key, want) in expected {
+            assert_eq!(
+                parsed["pivots"][key].as_str().unwrap(),
+                want.to_string(),
+                "pivot level {} must come from the previous candle",
+                key
+            );
+        }
     }
 
     /// Most period inputs in the settings UI have no lower bound. Under f64 a
