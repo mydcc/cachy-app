@@ -1371,6 +1371,47 @@
       "switchToCustom": "Switch to Custom Configuration",
       "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?"
     },
+    "chart": {
+      "scaleSection": "Price Scale",
+      "scaleMode": "Scale Mode",
+      "scaleLinear": "Linear",
+      "scaleLog": "Logarithmic",
+      "scalePercent": "Percentage",
+      "scaleIndexed": "Indexed to 100",
+      "decimalsMode": "Decimal Places",
+      "decimalsAuto": "Auto (Exchange)",
+      "decimalsFixed": "Fixed",
+      "fixedDecimals": "Fixed Decimal Places",
+      "autoScale": "Auto Scaling",
+      "autoScaleDesc": "Y-axis automatically fits the price range",
+      "invertScale": "Invert Scale",
+      "invertScaleDesc": "Flip the price axis (0 on top)",
+      "leftScale": "Left Price Scale",
+      "leftScaleDesc": "Show the scale on the left instead of the right",
+      "displaySection": "Display",
+      "showGrid": "Grid Lines",
+      "lastValueVisible": "Last Price Label",
+      "lastValueDesc": "Show the latest price on the price axis",
+      "candleBorders": "Candle Borders",
+      "watermark": "Watermark",
+      "watermarkDesc": "Symbol name in the chart background",
+      "crosshairSection": "Crosshair",
+      "crosshairMode": "Mode",
+      "crosshairNormal": "Normal",
+      "crosshairMagnet": "Magnet",
+      "crosshairHidden": "Hidden",
+      "crosshairStyle": "Line Style",
+      "styleSolid": "Solid",
+      "styleDashed": "Dashed",
+      "styleDotted": "Dotted",
+      "timeSection": "Time Scale & Countdown",
+      "secondsVisible": "Show Seconds",
+      "secondsVisibleDesc": "Include seconds in time axis stamps",
+      "fixEdges": "Fix Edges",
+      "fixEdgesDesc": "Prevent scrolling past the left/right chart edge",
+      "countdownEnabled": "Candle Close Countdown",
+      "countdownDesc": "Remaining time until the current candle closes"
+    },
     "tabs": {
       "general": "General",
       "api": "API & Connection",
@@ -1383,6 +1424,7 @@
       "data": "Data Maintenance",
       "visuals": "Visuals & Design",
       "trading": "Trading & Market",
+      "chart": "Chart",
       "connections": "Connections",
       "ai_assistant": "AI Assistant",
       "analysis": "Analysis Logic",
@@ -2852,5 +2894,10 @@
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
     },
     "timeInForceNone": "—"
+  },
+  "chartView": {
+    "loadingHistory": "LOADING HISTORY ...",
+    "fetchingMarketData": "FETCHING MARKET DATA ...",
+    "countdownLabel": "Countdown to candle close"
   }
 }

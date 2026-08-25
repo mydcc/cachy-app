@@ -1396,6 +1396,47 @@
       "switchToCustom": "Zur benutzerdefinierten Konfiguration wechseln",
       "confirmOverwrite": "\"{newCombo}\" wird von \"{existingLabel}\" verwendet. Überschreiben?"
     },
+    "chart": {
+      "scaleSection": "Skalierung",
+      "scaleMode": "Preisskala",
+      "scaleLinear": "Linear",
+      "scaleLog": "Logarithmisch",
+      "scalePercent": "Prozent",
+      "scaleIndexed": "Indexiert (auf 100)",
+      "decimalsMode": "Dezimalstellen",
+      "decimalsAuto": "Auto (Börse)",
+      "decimalsFixed": "Fest",
+      "fixedDecimals": "Feste Dezimalstellen",
+      "autoScale": "Auto-Skalierung",
+      "autoScaleDesc": "Y-Achse passt sich automatisch dem Kurs an",
+      "invertScale": "Achse invertieren",
+      "invertScaleDesc": "Preisachse umkehren (0 oben)",
+      "leftScale": "Linke Preisachse",
+      "leftScaleDesc": "Skala links statt rechts anzeigen",
+      "displaySection": "Darstellung",
+      "showGrid": "Gitterlinien",
+      "lastValueVisible": "Aktuelle-Preis-Label",
+      "lastValueDesc": "Letzter Kurs an der Preisachse",
+      "candleBorders": "Kerzenrahmen",
+      "watermark": "Wasserzeichen",
+      "watermarkDesc": "Symbol-Name im Chart-Hintergrund",
+      "crosshairSection": "Fadenkreuz",
+      "crosshairMode": "Modus",
+      "crosshairNormal": "Normal",
+      "crosshairMagnet": "Magnet",
+      "crosshairHidden": "Ausgeblendet",
+      "crosshairStyle": "Linienstil",
+      "styleSolid": "Durchgezogen",
+      "styleDashed": "Gestrichelt",
+      "styleDotted": "Gepunktet",
+      "timeSection": "Zeitachse & Countdown",
+      "secondsVisible": "Sekunden anzeigen",
+      "secondsVisibleDesc": "Sekunden in den Zeitstempeln der Zeitachse",
+      "fixEdges": "Ränder fixieren",
+      "fixEdgesDesc": "Chart kann nicht über linken/rechten Rand hinaus gescrollt werden",
+      "countdownEnabled": "Countdown zur Kerzenschließung",
+      "countdownDesc": "Verbleibende Zeit bis die aktuelle Kerze schließt"
+    },
     "tabs": {
       "general": "Allgemein",
       "api": "API & Verbindung",
@@ -1408,6 +1449,7 @@
       "data": "Datenpflege",
       "visuals": "Optik & Design",
       "trading": "Handel & Markt",
+      "chart": "Chart",
       "connections": "Verbindungen",
       "ai_assistant": "KI-Assistent",
       "analysis": "Analyse-Logik",
@@ -2852,5 +2894,10 @@
       "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max})."
     },
     "timeInForceNone": "—"
+  },
+  "chartView": {
+    "loadingHistory": "LADE HISTORIE ...",
+    "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
+    "countdownLabel": "Countdown bis zur Kerzenschließung"
   }
 }
