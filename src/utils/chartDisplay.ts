@@ -147,3 +147,71 @@ export function resolveChartPriceDecimals(
 export function mapPriceScaleMode(mode: "linear" | "log"): 0 | 1 {
     return mode === "linear" ? 0 : 1;
 }
+
+function pad2(n: number): string {
+    return String(n).padStart(2, "0");
+}
+
+/**
+ * UTC wall-clock time label for intraday ticks/crosshair. UTC on purpose:
+ * lightweight-charts renders its default axis in UTC too, so honoring the
+ * seconds toggle must not silently switch the axis to browser-local time.
+ */
+export function formatUtcIntradayTime(
+    ms: number,
+    withSeconds: boolean,
+): string {
+    const d = new Date(ms);
+    const hm = `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}`;
+    return withSeconds ? `${hm}:${pad2(d.getUTCSeconds())}` : hm;
+}
+
+/** TickMarkType values that carry a wall-clock time component. */
+const TICK_MARK_TYPE_TIME = 3;
+const TICK_MARK_TYPE_TIME_WITH_SECONDS = 4;
+
+export interface AxisFormatters {
+    /**
+     * Compatible with `TimeScaleOptions.tickMarkFormatter`
+     * (`(time, tickMarkType, locale) => string | null`). Returning `null`
+     * keeps the native Year/Month/Day labels untouched.
+     */
+    tickMarkFormatter: (
+        time: unknown,
+        tickMarkType: number,
+        locale?: string,
+    ) => string | null;
+    /** Compatible with `localization.timeFormatter` (crosshair label). */
+    timeFormatter: (time: unknown) => string;
+}
+
+/**
+ * Builds axis/crosshair formatters that honor the "Show Seconds" toggle.
+ *
+ * Why this exists: lightweight-charts only applies its built-in
+ * `secondsVisible` to ticks of weight Second/LessThanSecond — Cachy's
+ * smallest timeframe is 1m, so adjacent marks are always >=60s apart and the
+ * stock option is a no-op for every supported timeframe. Appending the
+ * seconds via formatters makes the toggle behave as labelled at any density.
+ * When seconds are off, `tickMarkFormatter` returns `null` everywhere so the
+ * library's native formatting is used unchanged.
+ */
+export function buildAxisFormatters(seconds: boolean): AxisFormatters {
+    return {
+        tickMarkFormatter: (time, tickMarkType) => {
+            if (!seconds) return null;
+            if (typeof time !== "number") return null;
+            if (
+                tickMarkType !== TICK_MARK_TYPE_TIME &&
+                tickMarkType !== TICK_MARK_TYPE_TIME_WITH_SECONDS
+            ) {
+                return null;
+            }
+            return formatUtcIntradayTime(time * 1000, true);
+        },
+        timeFormatter: (time) => {
+            if (typeof time !== "number") return String(time);
+            return formatUtcIntradayTime(time * 1000, seconds);
+        },
+    };
+}
