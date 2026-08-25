@@ -17,20 +17,16 @@
  */
 
 /**
- * Rejects a pull request description that closes more than the issue it
- * declares.
+ * Enforces both closing-reference rules on a pull request description.
  *
- * `scripts/lint-commit-refs.mjs` (BUG-0220) covers commit messages, where no
- * closing keyword is ever legitimate — the link belongs in the PR description
- * instead, per `CLAUDE.md`. That leaves the description itself unchecked, and
- * it is exactly where the rule was broken twice on the same day, in the pull
- * request written to fix the first incident: `Fixes #<own-issue>` at the top,
- * followed later by prose using a past-tense keyword in passing (BUG-0221).
- *
- * The rule here is narrower than "no closing keyword at all", because
- * `CLAUDE.md` requires exactly one: `Fixes #<own-issue>` is expected and
- * accounted for. `checkBodyForStrayClosingRefs` treats the first closing
- * reference as that declaration and only rejects a *second, different* one.
+ * 1. Presence (BUG-0307): the description must carry exactly one closing
+ *    reference, `Fixes #<own-issue>` — or an explicit `[no issue]` marker for
+ *    the rare PR that genuinely links to nothing. Before this check existed,
+ *    docs PRs merged with no reference at all: GitHub closed nothing while the
+ *    backlog markdown said `done`, and the issues stayed open for days.
+ * 2. No strays (BUG-0221): beyond that one declared reference, no other
+ *    closing keyword may appear — GitHub closes every issue such a keyword
+ *    points at when the PR merges.
  *
  * Reads the body from the `PR_BODY` environment variable rather than a CLI
  * argument or `${{ github.event.pull_request.body }}` interpolated directly
@@ -39,17 +35,35 @@
  * `env:` mapping hands it to the process as data instead.
  */
 
-import { checkBodyForStrayClosingRefs } from "./lib/pr-issue-match";
+import { checkBodyForStrayClosingRefs, checkBodyHasClosingRef } from "./lib/pr-issue-match";
 
 const body = process.env.PR_BODY ?? "";
+
+const presence = checkBodyHasClosingRef(body);
+if (!presence.ok) {
+    console.error(
+        `❌ PR description carries no closing reference.\n`,
+    );
+    console.error(`
+AGENTS.md requires \`Fixes #<issue>\` at the start of every PR description so
+GitHub links the PR to its backlog issue and closes it on merge — a merge
+without one closes nothing, and the issue silently stays open.
+
+Add the missing line (the number of the issue this PR fixes), or, only if this
+PR genuinely links to no issue at all, put \`${"[no issue]"}\` on its own line
+to opt out explicitly. Silence is not an opt-out.
+`);
+    process.exit(1);
+}
+
 const result = checkBodyForStrayClosingRefs(body);
 
 if (result.ok) {
-    console.log(
-        result.declared === null
-            ? "✅ PR description carries no closing reference. (Separate concern: CLAUDE.md still requires one.)"
-            : `✅ PR description closes only #${result.declared}.`,
-    );
+    if (presence.optedOut) {
+        console.log("✅ PR description opted out with `[no issue]`.");
+    } else {
+        console.log(`✅ PR description closes only #${presence.declared}.`);
+    }
     process.exit(0);
 }
 
