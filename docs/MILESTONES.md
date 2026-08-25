@@ -220,6 +220,16 @@ Because of this, [`FEAT-0027`](backlog/features/FEAT-0027-alert-engine.md)'s
 evaluation core is **Rust compiled to WASM** from the start, extending the
 existing `technicals-wasm/` toolchain — the same crate cross-compiles for
 Android, so the companion needs no second implementation.
+**Note on scope.** M4 is where the rule format is settled, not just where alerts
+ship. "RSI below 30 on the 4h close" is one sentence that M4 notifies on, a
+backtest replays, and M9's agent would execute — built three times it will
+eventually disagree with itself, and it will disagree between what was tested and
+what was sent. [ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md)
+settles it: a strategy is a versioned rule document, evaluated on closed candles,
+never executable code. [`FEAT-0303`](backlog/features/FEAT-0303-strategy-rule-schema.md)
+builds that schema here, where it is cheap; at M9 it would mean migrating armed
+rules on live accounts.
+
 
 **Optional: Android alert companion.** M4 itself (in-browser alerting) is complete
 and ships as a PWA. Whether to build a native Android companion app is a separate
@@ -340,6 +350,17 @@ proposals are reviewable against outcomes.
 **Boundary.** M8 proposes. It does not place orders. That is M9, and the
 separation is the point.
 
+**What a proposal is.** Not prose the trader retypes: a rule document in
+[`FEAT-0303`](backlog/features/FEAT-0303-strategy-rule-schema.md)'s schema,
+validated like any hand-built rule and inert until a person arms it
+([`FEAT-0304`](backlog/features/FEAT-0304-model-proposes-rules.md)). That is what
+makes a proposal reviewable afterwards against what actually happened. Per
+[ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md),
+nothing here trains or ships a model — what accumulates is a local register of
+proposals and outcomes. External aggregates (heatmaps, funding, sentiment) may
+inform or veto a signal, never trigger one
+([`IDEA-0305`](backlog/ideas/IDEA-0305-external-market-context-as-veto.md)).
+
 ---
 
 ## M9 — Autonomous execution
@@ -350,10 +371,20 @@ separation is the point.
 this document: an agent that can place orders on an unverified execution path is
 a way to lose money faster than a human can react.
 
+**What executes is a rule document**, evaluated on closed candles
+([ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md)).
+M9 evaluates the same documents M4 tests and M8 proposes. Arbitrary code execution
+is not on the roadmap.
+
 **What it contains.** A strategy definition the user approves; a capital
 allocation the agent cannot exceed; execution through M1's gate with no bypass;
 a decision log recording what it did and why; and a stop that halts it
 mid-strategy without unwinding positions unexpectedly.
+
+**The autonomy ADR.** M9 is the one milestone that mandates its own ADR before a
+line of code is written. ADR-0012 settled what a strategy evaluates; M9's ADR
+must settle what it costs: the autonomy envelope, capital limits, and failure
+modes. See [`FEAT-0035`](backlog/features/FEAT-0035-autonomous-execution-agent.md).
 
 **Exit criterion.** The agent runs a full strategy in paper mode for a sustained
 period with a complete decision log; every limit is proven enforced by a test
