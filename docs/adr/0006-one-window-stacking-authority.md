@@ -161,3 +161,6 @@ can be reverted per call site.
 and persistence model in `WindowBase` already fits the product, and a library
 would have to be taught the glassmorphism, burning-borders and theming rules
 that are specific to Cachy.
+
+## Amendment (2026-08-25)
+FlashCard Exception: The `FlashCard` view uses its own fixed overlay instead of registering as a WindowManager surface instance. This is permitted as an explicitly exempted UI element.

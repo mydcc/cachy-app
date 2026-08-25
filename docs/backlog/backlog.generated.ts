@@ -1105,7 +1105,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0018",
     "title": "One conformance test suite every exchange adapter must pass",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "feat-0018",
     "priority": "P1",
     "milestone": "M2",
     "editions": [
@@ -2465,6 +2467,119 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "M",
     "estimate": "2",
     "file": "bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md"
+  },
+  {
+    "id": "BUG-0307",
+    "title": "Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "repo",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "start_date": "2026-08-25",
+    "target_date": "2026-08-25",
+    "size": "S",
+    "estimate": "2",
+    "assignee": "opencode",
+    "file": "bugs/BUG-0307-backlog-sync-cannot-close-issues.md"
+  },
+  {
+    "id": "BUG-0308",
+    "type": "bug",
+    "title": "calculation-engine docs list non-existent features",
+    "status": "done",
+    "priority": "P2",
+    "area": "docs",
+    "created": "2026-08-25",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0308-docs-calculation-engine.md"
+  },
+  {
+    "id": "BUG-0309",
+    "type": "bug",
+    "title": "ADR violations in code vs docs",
+    "status": "done",
+    "priority": "P2",
+    "area": "docs",
+    "created": "2026-08-25",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0309-docs-adr-conflicts.md"
+  },
+  {
+    "id": "BUG-0310",
+    "type": "bug",
+    "title": "bitunix-api INTEGRATION_STATUS is stale",
+    "status": "done",
+    "priority": "P2",
+    "area": "docs",
+    "created": "2026-08-25",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0310-docs-bitunix-api.md"
+  },
+  {
+    "id": "BUG-0311",
+    "type": "bug",
+    "title": "Backlog infra docs and generated index are out of sync",
+    "status": "done",
+    "priority": "P2",
+    "area": "docs",
+    "created": "2026-08-25",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0311-docs-backlog-infra.md"
+  },
+  {
+    "id": "BUG-0312",
+    "type": "bug",
+    "title": "Stale code references in done backlog items",
+    "status": "done",
+    "priority": "P2",
+    "area": "docs",
+    "created": "2026-08-25",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0312-docs-backlog-items.md"
   },
   {
     "id": "FEAT-0019",
