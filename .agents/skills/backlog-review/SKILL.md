@@ -70,15 +70,28 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
    - Is the item's claim consistent? An `in-progress` item needs `assignee` + branch name (missing `assignee` also fails `npm run backlog:check`).
    - If the PR merges the work: was cleanup done — worktree removed, branch deletable, item moved to `done` (or a state note left when abandoning)? Gently flag leftovers per "Agent Lifecycle" in `AGENTS.md`.
 
-8. **Post a Comment** (only if findings exist).
+8. **Critic-Augmented Generation (CAG / Reactive Mode) for Jules.**
+   - If the PR author is Google Jules (`google-labs-jules[bot]`), Jules can react to PR review comments in Reactive Mode and automatically fix findings in a new commit.
+   - Do not merely state findings passively. Add an explicit directive block:
+     ```markdown
+     ### 🤖 Tasks for @google-labs-jules[bot]
+     Please address the following items in a new commit:
+     1. In `<file-path>`, <imperative instruction specifying exact fix>.
+     2. ...
+     3. Verify with `npm run check` and relevant tests.
+     ```
+   - For sensitive areas (`area: execution`, `security`, `exchange`, `P0`), always preserve the gentle `👤 Human review recommended before merge` note.
+
+9. **Post a Comment** (only if findings exist).
    - Use `add_issue_comment` with this structure:
      - **Header:** `Code Review for <sha>` (short SHA is fine) — this marker lets step 1 skip if already reviewed.
      - **Verdict:** One-line summary (e.g., "Clean by CLAUDE.md rules, but acceptance criterion #2 not met").
      - **Findings:** Grouped by the checks above (Acceptance Criteria, CI-independent findings, Non-Negotiable Rules, Correctness, Sensitive Areas).
+     - **Reactive Tasks (if Jules PR):** `### 🤖 Tasks for @google-labs-jules[bot]` with clear, numbered directives.
      - **Footer:** Friendly tone, collegial ("Looks good!" or "Worth a quick human double-check on the decimal.js usage here"). A light, humorous closing line is welcome, especially in back-and-forth threads between agents. No tool-attribution line required.
    - If the diff is clean and no backlog item exists, skip the comment entirely (no noise).
 
-## Example Comment
+## Example Comment (Standard)
 
 ```
 Code Review for a1b2c3d
@@ -97,6 +110,26 @@ Code Review for a1b2c3d
 **Sensitivity Check:** `area: execution` applies here. 👤 Human review recommended before merge (the position calc is core-critical).
 
 Nice work on this one — the fractional-contract edge case is easy to miss. 🎯
+```
+
+## Example Comment for Jules PR (Critic-Augmented Reactive Mode)
+
+```
+Code Review for f4a8b1c
+
+**Verdict:** Clean overall, but 2 rule violations found in new components.
+
+**Findings:**
+- `src/components/RiskPanel.svelte:45`: Native `number` arithmetic used instead of `decimal.js`.
+- `src/components/RiskPanel.svelte:88`: `$effect` missing cleanup return.
+
+### 🤖 Tasks for @google-labs-jules[bot]
+Please address the following items in a new commit:
+1. In `src/components/RiskPanel.svelte` (line 45), convert price calculation to `decimal.js`: `new Decimal(entryPrice).minus(stopLoss)`.
+2. In `src/components/RiskPanel.svelte` (line 88), return a cleanup function inside the `$effect` that removes the window listener.
+3. Run `npm run check` and `npm run test:unit` to verify.
+
+Thanks for the solid start @jules — looking forward to the updated commit! 🚀
 ```
 
 ## Notes
