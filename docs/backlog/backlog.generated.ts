@@ -3869,7 +3869,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0260",
     "title": "Dynamic-import rarely opened heavyweight modals in the root layout",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "jules",
     "priority": "P3",
     "milestone": "none",
     "editions": [

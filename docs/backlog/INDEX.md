@@ -243,7 +243,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 8 · 🟡 in-pro
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
 | [FEAT-0224](features/FEAT-0224-typescript-7-update.md) | Evaluate and migrate to TypeScript 7 | P3 | 📋 specced | tooling |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | calculator |
-| [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | 🟢 ready | ui |
+| [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | ✅ done | ui |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | ui |
 | [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 📋 specced | services |
 | [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | 🟢 ready | settings |
@@ -433,7 +433,7 @@ Counts by status: 💡 idea 18 · 📋 specced 21 · 🟢 ready 8 · 🟡 in-pro
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
 | [FEAT-0224](features/FEAT-0224-typescript-7-update.md) | Evaluate and migrate to TypeScript 7 | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | none | community, pro, private | none | none | — |
-| [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | 🟢 ready | none | community, pro, private | none | none | — |
