@@ -1,6 +1,10 @@
 # Deploy Staging via xyOps: läuft NACH dem bestehenden "Deploy Build"-
 # Workflow, wenn er erfolgreich war und der Push nach develop ging.
 # So ist das CI-Artifact garantiert frisch, wenn deploy.sh --ci es lädt.
+# Guard: Endet "Deploy Build" per [skip ci] als (leerer) Erfolg, hat das
+# deploy-beta-Release noch den alten Commit als target_commitish - dann
+# wird der Staging-Deploy ausgelassen, statt ein veraltetes Artifact
+# neu auszurollen.
 # Benötigt Repo-Secret: XYOPS_API_KEY (xyOps Key nur mit "Run Jobs").
 
 name: Deploy Staging (dev.cachy.app)
@@ -20,16 +24,33 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'develop'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # deploy-beta-Release auf Artifact-Frische prüfen
     steps:
+      - name: Check CI artifact matches triggering commit
+        id: artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          TAG_SHA=$(gh api "repos/${{ github.repository }}/releases/tags/deploy-beta" \
+            --jq '.target_commitish')
+          echo "deploy-beta target_commitish=$TAG_SHA"
+          if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+            echo "::notice::Artifact ($TAG_SHA) != Trigger-Commit ($HEAD_SHA) - Deploy Build wurde uebersprungen ([skip ci]). Staging-Deploy ausgelassen."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Trigger xyOps deploy job
         id: trigger
+        if: steps.artifact.outputs.skip != 'true'
         env:
           XYOPS_KEY: ${{ secrets.XYOPS_API_KEY }}
         run: |
           RESP=$(curl -sf -X POST \
             -H "X-API-Key: $XYOPS_KEY" \
             -H 'Content-Type: application/json' \
-            http://162.55.39.50:5522/api/app/run_event/v1 \
+            https://xyops.heinze-media.com/api/app/run_event/v1 \
             -d '{"id":"emt8vskf33hnc6pa"}')
           echo "$RESP"
           JOB_ID=$(echo "$RESP" | jq -r '.id // empty')
@@ -37,6 +58,7 @@ jobs:
           echo "job_id=$JOB_ID" >> "$GITHUB_OUTPUT"
 
       - name: Wait for xyOps job to finish
+        if: steps.artifact.outputs.skip != 'true'
         env:
           XYOPS_KEY: ${{ secrets.XYOPS_API_KEY }}
           JOB_ID: ${{ steps.trigger.outputs.job_id }}
@@ -44,7 +66,7 @@ jobs:
           for i in $(seq 1 90); do
             sleep 10
             STATUS=$(curl -sf -H "X-API-Key: $XYOPS_KEY" \
-              "http://162.55.39.50:5522/api/app/get_job/v1?id=$JOB_ID")
+              "https://xyops.heinze-media.com/api/app/get_job/v1?id=$JOB_ID")
             COMPLETE=$(echo "$STATUS" | jq -r '.job.complete // false')
             if [ "$COMPLETE" != "false" ]; then
               echo "$STATUS" | jq '{code: .job.code, description: .job.description}'
