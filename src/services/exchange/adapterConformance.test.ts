@@ -22,7 +22,10 @@ class MockWebSocket {
         wsInstances.push(this);
     }
     send = vi.fn();
-    close = vi.fn();
+    close = vi.fn(() => {
+        this.readyState = 3; // CLOSED
+        if (this.onclose) this.onclose();
+    });
 }
 
 describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
@@ -113,6 +116,52 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
                 expect(accountState.positions).toHaveLength(1);
                 expect(accountState.positions[0].size.toString()).toBe("1.5");
                 expect(accountState.positions[0].unrealizedPnl.toString()).toBe("150");
+            });
+
+            it("should preserve precision for small prices", async () => {
+                const payload = loadFixture(adapter.id, 'order_small_price');
+                injectWsMessageString(payload);
+
+                expect(accountState.openOrders).toHaveLength(1);
+                expect(accountState.openOrders[0].price.toFixed()).toBe("0.00000000123456789");
+            });
+
+            it("should deduplicate WebSocket updates", async () => {
+                const payload = loadFixture(adapter.id, 'order');
+                injectWsMessageString(payload);
+                injectWsMessageString(payload); // Duplicate message
+
+                expect(accountState.openOrders).toHaveLength(1);
+            });
+
+            it("should resubscribe to channels on reconnect", async () => {
+                const initialSocket = wsInstances[wsInstances.length - 1];
+                initialSocket.send.mockClear();
+
+                // Make navigator online so it actually reconnects instead of waiting
+                vi.stubGlobal('navigator', { onLine: true });
+
+                // Trigger a socket close
+                initialSocket.close();
+                
+                // Fast-forward past the reconnect backoff
+                await vi.advanceTimersByTimeAsync(35000);
+
+                // Bitunix might also reconnect public socket due to watchdog, so find the actual new socket for private/bitget
+                const newSocket = adapter.id === 'bitunix' 
+                    // @ts-expect-error bypass private visibility
+                    ? bitunixWs.wsPrivate 
+                    : wsInstances[wsInstances.length - 1];
+                
+                expect(newSocket).not.toBe(initialSocket);
+                
+                if (newSocket.onopen) newSocket.onopen();
+
+                // Simulate login success so it subscribes to private channels
+                injectWsMessageString(JSON.stringify({ event: "login", code: "00000", msg: "success" }));
+
+                // Check that subscriptions were replayed
+                expect(newSocket.send).toHaveBeenCalled();
             });
         });
     });

@@ -276,11 +276,11 @@ class BitgetWebSocketService {
           marketState.updateTelemetry({ activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1) });
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
+            this.cleanup();
           } else {
             marketState.connectionStatus = "reconnecting";
             this.scheduleReconnect();
           }
-          this.cleanup();
         }
       };
 
