@@ -3326,7 +3326,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0259",
     "title": "Load locale dictionaries on demand instead of eagerly at startup",
     "type": "feature",
-    "status": "done",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3868,7 +3868,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0260",
     "title": "Dynamic-import rarely opened heavyweight modals in the root layout",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "jules",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3923,7 +3924,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0263",
     "title": "Remove the settings cross-tab storage listener in destroy",
     "type": "feature",
-    "status": "done",
+    "status": "ready",
     "priority": "P3",
     "milestone": "none",
     "editions": [

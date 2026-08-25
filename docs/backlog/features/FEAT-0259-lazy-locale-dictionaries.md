@@ -2,7 +2,7 @@
 id: FEAT-0259
 title: Load locale dictionaries on demand instead of eagerly at startup
 type: feature
-status: done
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -41,15 +41,15 @@ locale first so `init({ initialLocale })` can handle the load window. Keep the
 
 ## Acceptance criteria
 
-- [x] Only the active locale's dictionary is fetched at startup (build-manifest /
+- [ ] Only the active locale's dictionary is fetched at startup (build-manifest /
       network evidence).
-- [x] While a dictionary loads asynchronously, the fallback locale renders —
+- [ ] While a dictionary loads asynchronously, the fallback locale renders —
       no raw `$key` identifiers visible.
-- [x] Switching language at runtime lazy-loads the other locale and re-renders
+- [ ] Switching language at runtime lazy-loads the other locale and re-renders
       translated strings correctly.
-- [x] `deTechDict` is built only when the technical-terms setting requires it.
-- [x] Key type safety preserved (`schema.d.ts`).
-- [x] `npm run check` and i18n-related tests pass; DE/EN parity checks stay green.
+- [ ] `deTechDict` is built only when the technical-terms setting requires it.
+- [ ] Key type safety preserved (`schema.d.ts`).
+- [ ] `npm run check` and i18n-related tests pass; DE/EN parity checks stay green.
 
 ## Out of scope
 

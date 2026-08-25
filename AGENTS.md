@@ -130,8 +130,7 @@ Every agent doing code review follows the same checklist in `/backlog-review`:
 4. **Non-negotiable rules** — Svelte 5 runes only, no hardcoded colors, every `$effect` has cleanup, decimal.js for all financial math.
 5. **Plain correctness** — Logic errors, unhandled edge cases, system boundary violations (swallowed exceptions, silent failures).
 6. **Sensitive areas flag** — If `area: execution`, `area: security`, `area: exchange`, or `priority: P0`, flag **gently** as "👤 Human review recommended before merge" (no alarms, no uppercase shouting).
-7. **Critic-Augmented Generation / Reactive Directives for Jules** — If the PR author is Google Jules (`google-labs-jules[bot]`), do not just list findings passively. Jules supports Critic-Augmented Generation (CAG / Reactive Mode) and can resolve review feedback automatically in a new commit. Include an explicit `### 🤖 Tasks for @google-labs-jules[bot]` section with imperative, numbered tasks (specifying file paths, lines, and exact fixes).
-8. **Comment marker** — Post one PR comment (only if findings exist or for explicit tracking). Mark it `Code Review for <sha>` so it's recognized on re-runs.
+7. **Comment marker** — Post one PR comment (only if findings exist or for explicit tracking). Mark it `Code Review for <sha>` so it's recognized on re-runs.
 
 Reviewers are any agent with access to the PR and codebase; this is not Jules-specific.
 
@@ -141,7 +140,6 @@ When agents (Jules, Antigravity/Gemini, Claude Code, Codex, Cursor, etc.) review
 
 - **Language:** All PR comments MUST be written in **English**.
 - **Tone:** Relaxed, friendly, and collegial ("Peer-to-Peer Agent Collaboration"). No authoritative, preachy, or alarmist language. At the end of a review, agents are encouraged to leave a friendly one-liner or greet/thank fellow agents (e.g. `@jules thanks for restoring the test assertions!`, `Looks neat, good job!`).
-- **Jules Reactive Loop (CAG):** When reviewing PRs authored by `google-labs-jules[bot]`, format review findings as concrete, numbered tasks addressing `@google-labs-jules[bot]`. Jules will parse the directives and push fixes autonomously.
 - **Human Review Flag (Gentle Note, No Alarms):** If a PR touches sensitive areas (`area: execution`, `area: security`, `area: exchange`, or `priority: P0`), flag this **without red dots (no 🔴 / ⚠️)** and **without shouting/uppercase titles** (`NEEDS HUMAN REVIEW BEFORE MERGE` or German equivalents are strictly forbidden). Use a friendly, unobtrusive note with neutral/friendly emojis (e.g. `👤` or `👀`), such as:
   - `👤 Note: Human review recommended before merge`
   - `👀 Quick human check suggested`
