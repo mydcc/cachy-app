@@ -35,7 +35,7 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
         // Ensure capabilities and keys are present so private sockets connect
         settingsState.entitlement = {
             capabilities: { marketData: true }
-        } as any;
+        } as unknown as typeof settingsState.entitlement;
         settingsState.apiKeys = {
             bitunix: { key: "k", secret: "s" },
             bitget: { key: "k", secret: "s", passphrase: "p" }
@@ -47,7 +47,7 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
         vi.unstubAllGlobals();
     });
 
-    const injectWsMessage = (payload: any) => {
+    const injectWsMessage = (payload: Record<string, unknown>) => {
         wsInstances.forEach(ws => {
             if (ws.onmessage) {
                 ws.onmessage({ data: JSON.stringify(payload) });
@@ -69,10 +69,10 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
                 settingsState.apiProvider = adapter.id;
                 
                 if (adapter.id === 'bitunix') {
-                    // @ts-ignore
+                    // @ts-expect-error bypass private visibility for test
                     bitunixWs.connect(true);
                 } else {
-                    // @ts-ignore
+                    // @ts-expect-error bypass private visibility for test
                     bitgetWs.connect(true);
                 }
                 
