@@ -31,6 +31,8 @@
 
 import { Decimal } from "decimal.js";
 
+import { roundToTick } from "../../lib/calculators/tpsl";
+
 /** The subset of `ISeriesApi<"Candlestick">` this manager actually needs. */
 export interface PriceLineHostSeries {
     createPriceLine(options: {
@@ -130,9 +132,14 @@ const COLORS = {
 const LINE_STYLE_DASHED = 2;
 const HIT_TEST_PX = 6;
 
+/**
+ * Snap to the exchange's tick grid via the canonical `roundToTick` helper
+ * (decimal-exact, explicit ROUND_HALF_UP) so chart drags round exactly like
+ * every other order-price mutation in the app. `roundToTick` also guards a
+ * zero/negative tick by returning the price untouched.
+ */
 function snap(price: Decimal, tickSize: Decimal): Decimal {
-    if (tickSize.isZero() || tickSize.isNegative()) return price;
-    return price.dividedBy(tickSize).round().times(tickSize);
+    return roundToTick(price, tickSize);
 }
 
 /** `+pct% / +$pnl` — the sign always shows, so a loss reads unambiguously. */
@@ -172,6 +179,13 @@ export class PriceLineManager {
         kind: TpSlKind;
         orderId: string;
         originalPrice: Decimal;
+        /**
+         * The exact decimal-exact snapped price of the last accepted drag
+         * move. Kept in Decimal form so the drop callback never has to
+         * re-read the float64 back out of the line options (which would
+         * reintroduce a Decimal -> Number -> Decimal round trip).
+         */
+        snappedPrice: Decimal;
         line: PriceLineHandle;
     } | null = null;
     private hoveredKind: TpSlKind | null = null;
@@ -388,7 +402,13 @@ export class PriceLineManager {
         const line = this.draggableLineFor(kind);
         if (!plan || !line) return;
 
-        this.drag = { kind, orderId: plan.orderId, originalPrice: plan.triggerPrice, line };
+        this.drag = {
+            kind,
+            orderId: plan.orderId,
+            originalPrice: plan.triggerPrice,
+            snappedPrice: plan.triggerPrice,
+            line,
+        };
         this.callbacks.onDragStart?.(kind);
         e.preventDefault();
     }
@@ -400,7 +420,18 @@ export class PriceLineManager {
         if (this.drag) {
             const rawPrice = this.series.coordinateToPrice(y);
             if (rawPrice === null) return;
-            const snapped = snap(new Decimal(rawPrice), this.lastInput?.tickSize ?? new Decimal(0));
+            const snapped = snap(
+                new Decimal(rawPrice),
+                this.lastInput?.tickSize ?? new Decimal(0),
+            );
+            // A coarse or wrong tick fallback can snap tiny prices onto 0 —
+            // an order modification with trigger price 0 would be rejected
+            // by the exchange. Ignore the move and keep the last valid
+            // snapped price instead of letting the line collapse onto 0.
+            // Strictly greater than zero on purpose: Decimal#isPositive()
+            // only inspects the sign bit, so it returns true for 0.
+            if (!snapped.gt(0)) return;
+            this.drag.snappedPrice = snapped;
             this.drag.line.applyOptions({ price: snapped.toNumber() });
             this.callbacks.onDragMove?.(this.drag.kind, snapped);
             return;
@@ -415,8 +446,11 @@ export class PriceLineManager {
 
     private onMouseUp(): void {
         if (!this.drag) return;
-        const { kind, orderId, line } = this.drag;
-        const snappedPrice = new Decimal(line.options().price);
+        // Use the exact Decimal we snapped to instead of re-reading the
+        // float64 back out of the line options — a Decimal -> Number ->
+        // Decimal round trip is the BUG-0184 pattern and can pick up binary
+        // representation noise for prices beyond ~15 significant digits.
+        const { kind, orderId, snappedPrice } = this.drag;
         this.drag = null;
         this.callbacks.onDrop?.(kind, orderId, snappedPrice);
     }

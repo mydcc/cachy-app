@@ -228,6 +228,62 @@ describe("PriceLineManager — hover and drag", () => {
         expect(onDrop).not.toHaveBeenCalled();
     });
 
+    it("reports the exact snapped Decimal on drop instead of re-reading the float from the line", () => {
+        const { series, lines } = makeFakeSeries();
+        const onDrop = vi.fn();
+        const manager = new PriceLineManager(series, { onDrop });
+        manager.attach(container);
+        manager.update(baseInput({ tickSize: new Decimal("0.001") }));
+
+        // TP line sits at price/coordinate 120. A drag to a coordinate that
+        // carries binary-float noise must drop the decimal-exact snapped
+        // value, not the noise round-tripped through Number.
+        container.dispatchEvent(mouseEvent("mousedown", 120));
+        container.dispatchEvent(mouseEvent("mousemove", 120.14500000000002));
+
+        const tpLine = [...lines.entries()].find(([, l]) => l.title.startsWith("TP"))![0];
+        expect(tpLine.options().price).toBe(120.145);
+
+        window.dispatchEvent(new MouseEvent("mouseup"));
+        expect(onDrop).toHaveBeenCalledTimes(1);
+        const [kind, orderId, price] = onDrop.mock.calls[0];
+        expect(kind).toBe("takeProfit");
+        expect(orderId).toBe("tp-1");
+        expect(price).toBeInstanceOf(Decimal);
+        expect(price.toString()).toBe("120.145");
+    });
+
+    it("keeps the last valid snapped price when a move would snap onto zero", () => {
+        const { series, lines } = makeFakeSeries();
+        const onDrop = vi.fn();
+        const onDragMove = vi.fn();
+        const manager = new PriceLineManager(series, { onDrop, onDragMove });
+        manager.attach(container);
+        manager.update(
+            baseInput({
+                position: null,
+                takeProfit: { orderId: "tp-tiny", triggerPrice: new Decimal("0.4") },
+                stopLoss: null,
+                tickSize: new Decimal("0.5"),
+            }),
+        );
+
+        // TP at 0.4, tick 0.5: dragging towards 0.2 would snap to 0, which
+        // the exchange would reject as a trigger price — the move is
+        // ignored and the line stays put.
+        container.dispatchEvent(mouseEvent("mousedown", 0.4));
+        container.dispatchEvent(mouseEvent("mousemove", 0.2));
+
+        const tpLine = [...lines.entries()].find(([, l]) => l.title.startsWith("TP"))![0];
+        expect(tpLine.options().price).toBe(0.4);
+        expect(onDragMove).not.toHaveBeenCalled();
+
+        window.dispatchEvent(new MouseEvent("mouseup"));
+        expect(onDrop).toHaveBeenCalledTimes(1);
+        const [, , price] = onDrop.mock.calls[0];
+        expect(price.toString()).toBe("0.4");
+    });
+
     it("ignores a mousedown that isn't near any draggable line", () => {
         const { series } = makeFakeSeries();
         const onDragStart = vi.fn();
