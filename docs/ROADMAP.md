@@ -276,6 +276,7 @@ module boundary.
 | [FEAT-0034](backlog/features/FEAT-0034-copy-trading.md) | P2 | Live setup sharing — price levels only |
 | [FEAT-0304](backlog/features/FEAT-0304-model-proposes-rules.md) | P2 | Let the assistant propose a rule the trader arms |
 | [IDEA-0305](backlog/ideas/IDEA-0305-external-market-context-as-veto.md) | P3 | Use external market context as a veto, never as a trigger |
+| [FEAT-0306](backlog/features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | P2 | Allow custom baseUrl configuration for all AI providers |
 | [FEAT-0019](backlog/features/FEAT-0019-agentic-web-search.md) | P2 | The assistant researches the web |
 
 **Two of these are not the feature that was asked for, and the difference is

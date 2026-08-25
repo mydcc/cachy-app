@@ -2,9 +2,9 @@
 
 # Backlog index
 
-192 items. How to read and add them: [README.md](README.md).
+193 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 8 · 🟡 in-progress 6 · ✅ done 136
+Counts by status: 💡 idea 20 · 📋 specced 23 · 🟢 ready 8 · 🟡 in-progress 6 · ✅ done 136
 
 ---
 
@@ -149,6 +149,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 8 · 🟡 in-pro
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | ai |
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | ai |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | ai |
+| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | 📋 specced | ai |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | ai |
 
 ### M9
@@ -416,6 +417,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 8 · 🟡 in-pro
 | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | M8 | pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0019](features/FEAT-0019-agentic-web-search.md) |
+| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | 📋 specced | M8 | community, pro, private | none | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -458,4 +460,4 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 8 · 🟡 in-pro
 
 ---
 
-Next free number: **0306**
+Next free number: **0307**

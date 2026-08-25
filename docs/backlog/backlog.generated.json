@@ -3441,6 +3441,27 @@
       "file": "features/FEAT-0304-model-proposes-rules.md"
     },
     {
+      "id": "FEAT-0306",
+      "title": "Allow custom baseUrl configuration for all AI providers",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M8",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "start_date": "2026-08-25",
+      "size": "S",
+      "estimate": "1",
+      "file": "features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md"
+    },
+    {
       "id": "BUG-0007",
       "title": "Several UI strings are hardcoded instead of translated",
       "type": "bug",
@@ -4234,5 +4255,5 @@
       "file": "ideas/IDEA-0305-external-market-context-as-veto.md"
     }
   ],
-  "count": 192
+  "count": 193
 }
