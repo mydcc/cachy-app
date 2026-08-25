@@ -21,6 +21,10 @@ jobs:
       issues: write
       contents: write
       repository-projects: write
+      # The sync's auto-linker (ensurePRsAreLinked) PATCHes open PR bodies to
+      # prepend `Fixes #N`. Without this scope that PATCH is rejected and the
+      # PR merges with no closing reference — closing nothing (BUG-0307).
+      pull-requests: write
 
     steps:
       - name: Checkout Repository
