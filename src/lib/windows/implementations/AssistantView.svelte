@@ -189,7 +189,7 @@
                             class:left={msg.role === "user"}
                             class:right={msg.role !== "user"}
                             onclick={() => copyToClipboard(msg.content)}
-                            title="Copy Content"
+                            title={$_("sidePanel.copyContent" as TranslationKey)}
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -463,21 +463,21 @@
                         onclick={() => {
                             messageText = $_("sidePanel.quickActions.techAnalysis", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>🧪 Tech Analysis</button
+                        }}>🧪 {$_("sidePanel.techAnalysis" as TranslationKey)}</button
                     >
                     <button
                         class="qa-btn"
                         onclick={() => {
                             messageText = $_("sidePanel.quickActions.riskAudit", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>⚠️ Risk Audit</button
+                        }}>⚠️ {$_("sidePanel.riskAudit" as TranslationKey)}</button
                     >
                     <button
                         class="qa-btn"
                         onclick={() => {
                             messageText = $_("sidePanel.quickActions.newsCheck", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>📰 News Check</button
+                        }}>📰 {$_("sidePanel.newsCheck" as TranslationKey)}</button
                     >
                 </div>
             {/if}
@@ -535,7 +535,7 @@
                     class:is-terminal={isTerminal}
                     class:is-bubble={isBubble}
                     class:is-standard={!isTerminal}
-                    placeholder="Type here..."
+                    placeholder={$_("sidePanel.typeHere" as TranslationKey)}
                     bind:value={messageText}
                     onkeydown={handleKeydown}
                     disabled={isSending}
@@ -547,7 +547,7 @@
                     class="send-btn"
                     onclick={handleSend}
                     disabled={!messageText.trim()}
-                    title="Send message"
+                    title={$_("sidePanel.sendMessage" as TranslationKey)}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"

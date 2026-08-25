@@ -134,7 +134,17 @@
       "techAnalysis": "Erstelle eine technische Analyse für {symbol}",
       "riskAudit": "Prüfe mein Setup auf Fehler und Risiken.",
       "newsCheck": "Gibt es wichtige News?"
-    }
+    },
+    "copyContent": "Inhalt kopieren",
+    "typeHere": "Hier tippen...",
+    "sendMessage": "Nachricht senden",
+    "techAnalysis": "Tech. Analyse",
+    "riskAudit": "Risikoprüfung",
+    "newsCheck": "Nachrichten-Check",
+    "modeStandard": "Standard",
+    "modeDeFi": "DeFi",
+    "modeTrading": "Trading",
+    "modeAgent": "Agent"
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",
