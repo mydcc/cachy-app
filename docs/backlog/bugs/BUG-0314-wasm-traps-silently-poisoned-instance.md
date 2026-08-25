@@ -59,15 +59,15 @@ degradation.
 
 ## Acceptance criteria
 
-- [ ] A Rust unit test feeds malformed candle strings through `shift()` and
+- [x] A Rust unit test feeds malformed candle strings through `shift()` and
       asserts no trap occurs (or a clean Result error path, whichever was chosen).
-- [ ] The panic hook is installed at module start (testable via console output
+- [x] The panic hook is installed at module start (testable via console output
       capture or code assertion).
-- [ ] TS-side recovery: after a simulated RuntimeError, subsequent calls
+- [x] TS-side recovery: after a simulated RuntimeError, subsequent calls
       succeed against a fresh instance (unit test with mocked instantiation).
-- [ ] Release-profile flags are present; build succeeds and produced binary
+- [x] Release-profile flags are present; build succeeds and produced binary
       size before/after is recorded in the PR description.
-- [ ] `npm run check` and targeted vitests pass.
+- [x] `npm run check` and targeted vitests pass.
 
 ## Out of scope
 
