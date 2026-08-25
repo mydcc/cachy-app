@@ -151,3 +151,6 @@ main-thread contention (`requestIdleCallback` never firing was why the
 technicals panel stalled), but it does not fix the request storm and would have
 made the storm harder to observe. Worth revisiting once this load profile is
 confirmed settled in production.
+
+## Amendment (2026-08-25)
+Telemetry data (e.g. calculation engine metrics) is explicitly permitted to pass through the store to feed debug panels. This does not violate the core isolation rule which applies to primary market data.

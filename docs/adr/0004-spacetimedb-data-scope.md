@@ -267,3 +267,6 @@ users would not anticipate.
 conditions are satisfiable for a price cache. Rejected because it makes an
 opt-in dialog necessary for caching a Bitcoin price, which trains users to click
 through consent prompts, and that is a real cost paid for a category error.
+
+## Amendment (2026-08-25)
+Localhost Default Rule: Setting `cloudHost` to `http://127.0.0.1:3000` as a default in the UI or store is permitted. This explicitly does not violate the "no Cachy-operated default host" rule, since localhost is user-operated by definition.
