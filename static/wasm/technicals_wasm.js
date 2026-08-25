@@ -112,10 +112,10 @@ export class TechnicalsCalculator {
      * @param {string[]} highs_arr
      * @param {string[]} lows_arr
      * @param {string[]} volumes_arr
-     * @param {Float64Array} _times
+     * @param {Float64Array} times
      * @param {string} settings_json
      */
-    initialize(closes_arr, highs_arr, lows_arr, volumes_arr, _times, settings_json) {
+    initialize(closes_arr, highs_arr, lows_arr, volumes_arr, times, settings_json) {
         const ptr0 = passArrayJsValueToWasm0(closes_arr, wasm.__wbindgen_export);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArrayJsValueToWasm0(highs_arr, wasm.__wbindgen_export);
@@ -124,7 +124,7 @@ export class TechnicalsCalculator {
         const len2 = WASM_VECTOR_LEN;
         const ptr3 = passArrayJsValueToWasm0(volumes_arr, wasm.__wbindgen_export);
         const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passArrayF64ToWasm0(_times, wasm.__wbindgen_export);
+        const ptr4 = passArrayF64ToWasm0(times, wasm.__wbindgen_export);
         const len4 = WASM_VECTOR_LEN;
         const ptr5 = passStringToWasm0(settings_json, wasm.__wbindgen_export, wasm.__wbindgen_export2);
         const len5 = WASM_VECTOR_LEN;

@@ -162,15 +162,22 @@ class WasmCalculator {
     // Prices and volumes cross the boundary as decimal strings so the WASM
     // side can parse them straight into rust_decimal. Only `times` stays
     // numeric — it is a timestamp, not a financial value.
-    const len = klines.length;
-    const closes = new Array<string>(len);
-    const highs = new Array<string>(len);
-    const lows = new Array<string>(len);
-    const volumes = new Array<string>(len);
-    const times = new Float64Array(len);
+    //
+    // Module protocol (see the Rust test_initialize_and_update_are_exact):
+    // initialize() receives the HISTORY and update() receives the newest
+    // candle. Passing the last candle to both double-counts it in every
+    // rolling-window indicator, so the history here is everything except the
+    // final kline (BUG-0315).
+    const history = klines.slice(0, -1);
+    const hLen = history.length;
+    const closes = new Array<string>(hLen);
+    const highs = new Array<string>(hLen);
+    const lows = new Array<string>(hLen);
+    const volumes = new Array<string>(hLen);
+    const times = new Float64Array(hLen);
 
-    for (let i = 0; i < len; i++) {
-      const k = klines[i];
+    for (let i = 0; i < hLen; i++) {
+      const k = history[i];
       closes[i] = k.close.toString();
       highs[i] = k.high.toString();
       lows[i] = k.low.toString();
@@ -215,7 +222,7 @@ class WasmCalculator {
     // Pass the Decimal values straight through as strings. Reading them back
     // out of the Float64Arrays above would round-trip them through f64 first
     // and throw away the precision the string boundary exists to preserve.
-    const last = klines[len - 1];
+    const last = klines[klines.length - 1];
     const resultJson = this.instance.update(
         last.open.toString(),
         last.high.toString(),
@@ -396,9 +403,11 @@ class WasmCalculator {
                  }
              } else if (key.startsWith("CHOP")) {
                   data.advanced.choppiness = deriveChoppinessState(val);
-             } else if (key.startsWith("VWAP")) {
-                  data.advanced.vwap = val;
-             }
+              } else if (key === "PSAR") {
+                  data.advanced.parabolicSar = val;
+              } else if (key.startsWith("VWAP")) {
+                   data.advanced.vwap = val;
+              }
         }
         
         // Finalize BB
