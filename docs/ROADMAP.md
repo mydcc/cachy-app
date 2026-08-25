@@ -188,6 +188,7 @@ exchanges without opening the exchange's own UI.
 | [FEAT-0027](backlog/features/FEAT-0027-alert-engine.md) | P1 | Local alert engine, price alerts |
 | [FEAT-0028](backlog/features/FEAT-0028-indicator-alerts.md) | P2 | MACD, RSI, Bollinger, volume, MA crosses |
 | [FEAT-0030](backlog/features/FEAT-0030-combined-alerts.md) | P2 | AND/OR conditions with a validity window |
+| [FEAT-0303](backlog/features/FEAT-0303-strategy-rule-schema.md) | P1 | One rule schema alerts, backtests and bots all read |
 | [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) | P2 | Alerts bound to chart drawings |
 
 [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) is last and still an
@@ -273,6 +274,8 @@ module boundary.
 | --- | --- | --- |
 | [FEAT-0033](backlog/features/FEAT-0033-chat-hardening-and-reputation.md) | P2 | Chat moderation, rate limiting, peer reputation |
 | [FEAT-0034](backlog/features/FEAT-0034-copy-trading.md) | P2 | Live setup sharing — price levels only |
+| [FEAT-0304](backlog/features/FEAT-0304-model-proposes-rules.md) | P2 | Let the assistant propose a rule the trader arms |
+| [IDEA-0305](backlog/ideas/IDEA-0305-external-market-context-as-veto.md) | P3 | Use external market context as a veto, never as a trigger |
 | [FEAT-0019](backlog/features/FEAT-0019-agentic-web-search.md) | P2 | The assistant researches the web |
 
 **Two of these are not the feature that was asked for, and the difference is

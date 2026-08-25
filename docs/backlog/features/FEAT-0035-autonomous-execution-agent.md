@@ -29,6 +29,12 @@ executes it without a human in the loop.
 An agent that, within a user-approved strategy and a user-set capital
 allocation, opens and manages positions on its own.
 
+**What executes is a rule document ([ADR-0012](../../adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md)).**
+The agent evaluates the exact same rule document format that powers alerts in M4
+([`FEAT-0303`](FEAT-0303-strategy-rule-schema.md)) and that M8 proposed
+([`FEAT-0304`](FEAT-0304-model-proposes-rules.md)). The evaluation point is a
+closed candle. Code execution is not supported and not planned.
+
 **Everything about this item is downstream of its constraints, so they come
 first:**
 
