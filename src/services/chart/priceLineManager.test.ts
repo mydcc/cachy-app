@@ -121,6 +121,32 @@ describe("PriceLineManager — rendering", () => {
         expect(titles.some((t) => t.includes("SL") && t.includes("-10.00%") && t.includes("-10.00"))).toBe(true);
     });
 
+    it("extends label precision instead of reading '+0.00%' on micro distances", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        // Entry 100 -> TP 100.001: a real, non-zero bracket of +0.001%
+        // (+0.001 PnL at size 1). The old toFixed(2) labels collapsed this
+        // to "+0.00% / +0.00".
+        manager.update(
+            baseInput({
+                position: {
+                    side: "long",
+                    entryPrice: new Decimal(100),
+                    liquidationPrice: new Decimal(80),
+                    breakEvenPrice: new Decimal("100.0005"),
+                    size: new Decimal(1),
+                },
+                takeProfit: { orderId: "tp-micro", triggerPrice: new Decimal("100.001") },
+            }),
+        );
+
+        const tpTitle = [...lines.values()].find((l) => l.title.startsWith("TP"))!.title;
+        expect(tpTitle).toContain("+0.001%");
+        expect(tpTitle).toContain("+0.001");
+        expect(tpTitle).not.toContain("+0.00%");
+    });
+
     it("removes a line when its plan disappears", () => {
         const { series, lines } = makeFakeSeries();
         const manager = new PriceLineManager(series);
