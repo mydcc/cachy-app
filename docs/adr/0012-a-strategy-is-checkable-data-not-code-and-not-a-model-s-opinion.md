@@ -24,7 +24,7 @@ Two further forces make the decision due now rather than at M9.
 
 **The assistant already exists and the obvious next step is the unauditable
 one.** Five provider proxies are live under
-[`src/routes/api/ai/`](../../src/routes/api/ai/) behind one request shape
+`src/routes/api/ai/` behind one request shape
 (`AiRequestSchema`, [`src/types/ai.ts:33`](../../src/types/ai.ts)).
 [ADR-0011](0011-ai-context-consent-and-local-boundary.md) settled what data may
 reach a model. It did not settle what a model's *output* is allowed to be. If the
