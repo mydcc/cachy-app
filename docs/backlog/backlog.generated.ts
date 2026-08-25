@@ -3924,7 +3924,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0263",
     "title": "Remove the settings cross-tab storage listener in destroy",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
