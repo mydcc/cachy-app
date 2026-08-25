@@ -902,6 +902,7 @@ export class SettingsManager {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private effectCleanup: (() => void) | null = null;
   private saveLock = false; // Prevents concurrent saves
+  private storageListener: ((e: StorageEvent) => void) | null = null;
 
   /**
    * True while the obfuscation-mode background decryption of
@@ -999,7 +1000,7 @@ export class SettingsManager {
       }
 
       // 3. Listen for changes from other tabs
-      window.addEventListener("storage", (e) => {
+      this.storageListener = (e: StorageEvent) => {
         if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
           // Only sync if not currently saving (prevents overwriting)
           if (!this.saveLock) {
@@ -1018,7 +1019,8 @@ export class SettingsManager {
             }
           }
         }
-      });
+      };
+      window.addEventListener("storage", this.storageListener);
     }
   }
 
@@ -1787,6 +1789,10 @@ export class SettingsManager {
 
   destroy() {
     this.effectActive = false;
+    if (this.storageListener) {
+      window.removeEventListener("storage", this.storageListener);
+      this.storageListener = null;
+    }
     if (this.effectCleanup) {
       this.effectCleanup();
       this.effectCleanup = null;
