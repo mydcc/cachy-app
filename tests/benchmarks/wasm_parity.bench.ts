@@ -95,8 +95,20 @@ beforeAll(async () => {
     if (!existsSync(path.join(STATIC_DIR, 'technicals_wasm_bg.wasm'))) {
         throw new Error('static/wasm/technicals_wasm_bg.wasm missing — run `npm run build:wasm`');
     }
+    // Whitelist the generated artifacts — request URLs never reach the fs.
+    const ALLOWED = new Set([
+        '/technicals_wasm_bg.wasm',
+        '/technicals_wasm.js',
+        '/technicals_wasm.d.ts',
+    ]);
     server = createServer(async (req, res) => {
-        const bytes = await readFile(path.join(STATIC_DIR, req.url ?? '/'));
+        const file = req.url ?? '';
+        if (!ALLOWED.has(file)) {
+            res.writeHead(404);
+            res.end('not found');
+            return;
+        }
+        const bytes = await readFile(path.join(STATIC_DIR, file));
         res.writeHead(200, { 'content-type': 'application/wasm' });
         res.end(bytes);
     });
