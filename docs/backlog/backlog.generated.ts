@@ -989,8 +989,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0297",
     "title": "An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "claude",
+    "status": "done",
     "branch": "bug-0297-entry-gate-deadlock",
     "priority": "P1",
     "milestone": "M2",
@@ -1586,6 +1585,30 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "start_date": "2026-08-23",
     "target_date": "2026-09-20",
     "file": "features/FEAT-0256-partial-close-position.md"
+  },
+  {
+    "id": "FEAT-0303",
+    "title": "One rule schema alerts, backtests and bots all read",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0027"
+    ],
+    "start_date": "2026-08-25",
+    "target_date": "2027-03-15",
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0303-strategy-rule-schema.md"
   },
   {
     "id": "BUG-0005",
@@ -2310,8 +2333,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0272",
     "title": "Proxy routes drift on credential transport schema validation and error redaction",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "antigravity",
+    "status": "done",
     "branch": "fix-bug-0272",
     "priority": "P2",
     "milestone": "none",
@@ -2552,7 +2574,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [
-      "FEAT-0028"
+      "FEAT-0028",
+      "FEAT-0303"
     ],
     "start_date": "2026-08-01",
     "target_date": "2027-03-15",
@@ -3423,6 +3446,51 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md"
   },
   {
+    "id": "FEAT-0304",
+    "title": "Let the assistant propose a rule the trader arms",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P2",
+    "milestone": "M8",
+    "editions": [
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0303",
+      "FEAT-0019"
+    ],
+    "start_date": "2026-08-25",
+    "target_date": "2027-12-31",
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0304-model-proposes-rules.md"
+  },
+  {
+    "id": "FEAT-0306",
+    "title": "Allow custom baseUrl configuration for all AI providers",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M8",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "start_date": "2026-08-25",
+    "size": "S",
+    "estimate": "1",
+    "file": "features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
@@ -3575,8 +3643,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0266",
     "title": "DashboardNav renders preset.icon through unsanitized {@html}",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
+    "status": "done",
     "branch": "fix/bug-0266-sanitize-nav-icon",
     "priority": "P3",
     "milestone": "none",
@@ -3871,7 +3938,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0260",
     "title": "Dynamic-import rarely opened heavyweight modals in the root layout",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "jules",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -4191,6 +4259,29 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "ideas/IDEA-0255-order-quantity-percent-slider.md"
+  },
+  {
+    "id": "IDEA-0305",
+    "title": "Use external market context as a veto, never as a trigger",
+    "type": "idea",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "M8",
+    "editions": [
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "C",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0303"
+    ],
+    "start_date": "2026-08-25",
+    "target_date": "2027-12-31",
+    "size": "M",
+    "estimate": "3",
+    "file": "ideas/IDEA-0305-external-market-context-as-veto.md"
   }
 ] as const;
 
