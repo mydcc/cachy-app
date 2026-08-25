@@ -135,6 +135,14 @@ Zum Abschalten (z. B. um den Diff zu sehen, bevor er zum PR wird):
 Jules-Doku bereits standardmäßig auto-approved; das war nie der blockierende
 Schritt.
 
+### Critic-Augmented Generation (Reactive Mode)
+
+Google Jules kann auf Kommentare und Reviews in seinen Pull Requests im **Reactive Mode** (Critic-Augmented Generation) reagieren und Findings automatisch per Folge-Commit korrigieren.
+
+- **Automatisierte Review-Bots & Agenten:** Review-Workflows (`.github/workflows/opencode.yml`, `/backlog-review`) erkennen PRs von Jules (`google-labs-jules[bot]`) und formulieren gefundene Mängel als strukturierte Aufgabenblöcke (`### 🤖 Tasks for @google-labs-jules[bot]`).
+- **Iterative Nachbesserung:** Jules liest diese Anweisungen, wendet die Korrekturen (z. B. Umstellung auf `decimal.js`, Svelte 5 Rune-Cleanups, Edge-Case-Fixes) direkt auf seinem PR-Branch an und pusht einen neuen Commit.
+- **Sicherheitsgrenze:** Sensitive Bereiche (`area: execution`, `security`, `exchange`, `priority: P0`) bleiben weiterhin durch den sanften Hinweis `👤 Human review recommended before merge` geschützt und werden vor dem Merge menschlich geprüft.
+
 ## Wiederkehrende Agenten-Prompts (`prompts/`)
 
 Vier spezialisierte Prompts für wiederkehrende Jules-Tasks, die **in der
