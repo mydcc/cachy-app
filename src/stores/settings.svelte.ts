@@ -226,14 +226,18 @@ export interface Settings {
   aiProvider: AiProvider;
   openaiApiKey: string;
   openaiModel: string;
+  openaiBaseUrl: string;
   geminiApiKey: string;
   geminiModel: string;
+  geminiBaseUrl: string;
   anthropicApiKey: string;
   anthropicModel: string;
+  anthropicBaseUrl: string;
   ollamaBaseUrl: string;
   ollamaModel: string;
   openrouterApiKey: string;
   openrouterModel: string;
+  openrouterBaseUrl: string;
   analysisDepth: AnalysisDepth;
   aiConfirmActions: boolean;
   aiAllowSettingsChanges: boolean;
@@ -446,14 +450,18 @@ const defaultSettings: Settings = {
   aiProvider: "gemini",
   openaiApiKey: "",
   openaiModel: "gpt-4o",
+  openaiBaseUrl: "",
   geminiApiKey: "",
   geminiModel: "gemini-1.5-flash",
+  geminiBaseUrl: "",
   anthropicApiKey: "",
   anthropicModel: "claude-sonnet-5",
+  anthropicBaseUrl: "",
   ollamaBaseUrl: "http://localhost:11434",
   ollamaModel: "",
   openrouterApiKey: "",
   openrouterModel: "",
+  openrouterBaseUrl: "",
   analysisDepth: "standard",
   aiConfirmActions: false,
   aiAllowSettingsChanges: false,
@@ -715,15 +723,19 @@ export class SettingsManager {
   // that browser. See docs/archive/engineering-log-2026-h1.md item 24a.
   openaiApiKey = $state<string>(defaultSettings.openaiApiKey);
   openaiModel = $state<string>(defaultSettings.openaiModel);
+  openaiBaseUrl = $state<string>(defaultSettings.openaiBaseUrl);
   geminiApiKey = $state<string>(defaultSettings.geminiApiKey);
   geminiModel = $state<string>(defaultSettings.geminiModel);
+  geminiBaseUrl = $state<string>(defaultSettings.geminiBaseUrl);
   anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey);
   anthropicModel = $state<string>(defaultSettings.anthropicModel);
+  anthropicBaseUrl = $state<string>(defaultSettings.anthropicBaseUrl);
   // No API key: Ollama is the user's own local (or self-hosted) instance.
   ollamaBaseUrl = $state<string>(defaultSettings.ollamaBaseUrl);
   ollamaModel = $state<string>(defaultSettings.ollamaModel);
   openrouterApiKey = $state<string>(defaultSettings.openrouterApiKey);
   openrouterModel = $state<string>(defaultSettings.openrouterModel);
+  openrouterBaseUrl = $state<string>(defaultSettings.openrouterBaseUrl);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
@@ -1463,14 +1475,18 @@ export class SettingsManager {
     this.multiAccount = merged.multiAccount;
     this.openaiApiKey = merged.openaiApiKey;
     this.openaiModel = merged.openaiModel;
+    this.openaiBaseUrl = merged.openaiBaseUrl ?? defaultSettings.openaiBaseUrl;
     this.geminiApiKey = merged.geminiApiKey;
     this.geminiModel = resolveGeminiModel(merged.geminiModel);
+    this.geminiBaseUrl = merged.geminiBaseUrl ?? defaultSettings.geminiBaseUrl;
     this.anthropicApiKey = merged.anthropicApiKey;
     this.anthropicModel = resolveAnthropicModel(merged.anthropicModel);
+    this.anthropicBaseUrl = merged.anthropicBaseUrl ?? defaultSettings.anthropicBaseUrl;
     this.ollamaBaseUrl = merged.ollamaBaseUrl || defaultSettings.ollamaBaseUrl;
     this.ollamaModel = merged.ollamaModel ?? defaultSettings.ollamaModel;
     this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
     this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
+    this.openrouterBaseUrl = merged.openrouterBaseUrl ?? defaultSettings.openrouterBaseUrl;
     this.analysisDepth = merged.analysisDepth;
     this.aiConfirmActions = merged.aiConfirmActions;
     this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
@@ -1806,14 +1822,18 @@ export class SettingsManager {
       aiProvider: this.aiProvider,
       openaiApiKey: this.openaiApiKey,
       openaiModel: this.openaiModel,
+      openaiBaseUrl: this.openaiBaseUrl,
       geminiApiKey: this.geminiApiKey,
       geminiModel: this.geminiModel,
+      geminiBaseUrl: this.geminiBaseUrl,
       anthropicApiKey: this.anthropicApiKey,
       anthropicModel: this.anthropicModel,
+      anthropicBaseUrl: this.anthropicBaseUrl,
       ollamaBaseUrl: this.ollamaBaseUrl,
       ollamaModel: this.ollamaModel,
       openrouterApiKey: this.openrouterApiKey,
       openrouterModel: this.openrouterModel,
+      openrouterBaseUrl: this.openrouterBaseUrl,
       analysisDepth: this.analysisDepth,
       aiConfirmActions: this.aiConfirmActions,
       aiAllowSettingsChanges: this.aiAllowSettingsChanges,

@@ -217,18 +217,22 @@ class AiManager {
       if (provider === "openai") {
         apiKey = settings.openaiApiKey;
         model = settings.openaiModel;
+        baseUrl = settings.openaiBaseUrl;
       }
       if (provider === "gemini") {
         apiKey = settings.geminiApiKey;
         model = settings.geminiModel;
+        baseUrl = settings.geminiBaseUrl;
       }
       if (provider === "anthropic") {
         apiKey = settings.anthropicApiKey;
         model = settings.anthropicModel;
+        baseUrl = settings.anthropicBaseUrl;
       }
       if (provider === "openrouter") {
         apiKey = settings.openrouterApiKey;
         model = settings.openrouterModel;
+        baseUrl = settings.openrouterBaseUrl;
       }
       if (provider === "ollama") {
         // Local (or self-hosted) instance — no API key required.
@@ -236,7 +240,7 @@ class AiManager {
         baseUrl = settings.ollamaBaseUrl;
       }
 
-      if (!apiKey && provider !== "ollama") {
+      if (!apiKey && provider !== "ollama" && !baseUrl?.trim()) {
         throw new Error(`API Key for ${provider} is missing in Settings.`);
       }
       if (!model) {
@@ -301,7 +305,7 @@ class AiManager {
             body: JSON.stringify({
               messages: payloadMessages,
               model: model,
-              ...(provider === "ollama" ? { baseUrl } : {}),
+              ...(baseUrl?.trim() ? { baseUrl: baseUrl.trim() } : {}),
             }),
           });
 

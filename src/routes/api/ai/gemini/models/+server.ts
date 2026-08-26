@@ -19,6 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
+import { resolveProviderEndpoint } from "../../../../../lib/server/aiEndpoint";
 
 interface GeminiModel {
   name: string;
@@ -27,19 +28,26 @@ interface GeminiModel {
   supportedGenerationMethods?: string[];
 }
 
-export const GET: RequestHandler = async ({ request, getClientAddress }) => {
+export const GET: RequestHandler = async ({ url, request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   const apiKey = request.headers.get("x-api-key");
-  if (!apiKey) {
+  const baseUrl = url.searchParams.get("baseUrl");
+
+  if (!apiKey && !baseUrl?.trim()) {
     return json({ error: "Missing API Key" }, { status: 401 });
   }
 
+  const keyParam = apiKey ? `?key=${encodeURIComponent(apiKey)}` : "";
+  const targetUrl = resolveProviderEndpoint(
+    baseUrl,
+    `https://generativelanguage.googleapis.com/v1beta/models${keyParam}`,
+    `v1beta/models${keyParam}`,
+  );
+
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
-    );
+    const response = await fetch(targetUrl);
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
