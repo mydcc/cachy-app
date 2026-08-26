@@ -22,6 +22,7 @@ import { RaindropsEngine } from './engines/RaindropsEngine';
 import { SonarEngine } from './engines/SonarEngine';
 import { BlockEngine } from './engines/BlockEngine';
 import { type BaseEngine, type EngineContext } from './engines/BaseEngine';
+import { VolumeNormalizer } from './engines/volumeScale';
 
 // Camera/mode fields this worker itself reads; each engine also reads its
 // own settings (gridWidth, spread, size, ...) via BaseEngine's generic
@@ -47,6 +48,10 @@ let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
 let activeEngine: BaseEngine | null = null;
 let settings: FlowSettings;
+
+// One shared calibration window for whichever engine is active. Lives here so
+// a symbol change resets it exactly once via the 'resetVolume' message.
+const volumeNormalizer = new VolumeNormalizer();
 
 let colorUp = new THREE.Color(0x00ff88);
 let colorDown = new THREE.Color(0xff4444);
@@ -164,6 +169,11 @@ self.onmessage = (event) => {
             break;
         case 'switchMode':
             switchMode(data.mode);
+            break;
+        case 'resetVolume':
+            // Symbol changed: drop the old symbol's notionals from the
+            // calibration window so sizes re-learn for the new market.
+            volumeNormalizer.reset();
             break;
     }
 };
@@ -351,6 +361,7 @@ function switchMode(mode: string | undefined) {
         camera,
         renderer,
         settings,
+        volumeNormalizer,
         colorUp,
         colorDown,
         currentAtmosphere: colorBg

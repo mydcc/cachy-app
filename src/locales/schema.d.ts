@@ -905,6 +905,8 @@ export type TranslationKey =
   | "settings.visuals.tradeFlow.tooltipGridWidth"
   | "settings.visuals.tradeFlow.tooltipGridLength"
   | "settings.visuals.tradeFlow.tooltipSpeed"
+  | "settings.visuals.tradeFlow.sceneRotation"
+  | "settings.visuals.tradeFlow.tooltipRotation"
   | "settings.visuals.coordinates.x"
   | "settings.visuals.coordinates.y"
   | "settings.visuals.coordinates.z"

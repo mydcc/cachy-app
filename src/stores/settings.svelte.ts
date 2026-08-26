@@ -147,6 +147,12 @@ export interface TradeFlowSettings {
   volumeScale: number; // Factor to scale volume mapping
   flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "block";
   persistenceDuration: number;
+  /**
+   * Slow scene rotation, purely decorative. Off by default: it destroys the
+   * readability of the time/price axes (a block's height can only be compared
+   * against the grid while the frame stands still).
+   */
+  enableRotation: boolean;
   cameraHeight: number;
   cameraDistance: number;
   cameraPositionX: number;
@@ -520,6 +526,7 @@ const defaultSettings: Settings = {
     gridWidth: 80,
     gridLength: 160,
     enableAtmosphere: true,
+    enableRotation: false,
     volumeScale: 1.0,
     persistenceDuration: 60,
     cameraHeight: 80,
@@ -994,6 +1001,7 @@ export class SettingsManager {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private effectCleanup: (() => void) | null = null;
   private saveLock = false; // Prevents concurrent saves
+  private storageListener: ((e: StorageEvent) => void) | null = null;
 
   /**
    * True while the obfuscation-mode background decryption of
@@ -1091,7 +1099,7 @@ export class SettingsManager {
       }
 
       // 3. Listen for changes from other tabs
-      window.addEventListener("storage", (e) => {
+      this.storageListener = (e: StorageEvent) => {
         if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
           // Only sync if not currently saving (prevents overwriting)
           if (!this.saveLock) {
@@ -1110,7 +1118,8 @@ export class SettingsManager {
             }
           }
         }
-      });
+      };
+      if (typeof window !== "undefined") window.addEventListener("storage", this.storageListener);
     }
   }
 
@@ -1923,6 +1932,12 @@ export class SettingsManager {
   }
 
   destroy() {
+    // Prevent memory leaks during HMR cycles by ensuring the cross-tab
+    // storage listener is removed when the singleton is disposed.
+    if (this.storageListener && typeof window !== "undefined") {
+      window.removeEventListener("storage", this.storageListener);
+      this.storageListener = null;
+    }
     this.effectActive = false;
     if (this.effectCleanup) {
       this.effectCleanup();
