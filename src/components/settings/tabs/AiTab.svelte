@@ -54,10 +54,10 @@
     ];
 </script>
 
-<div class="ai-tab h-full flex flex-col" role="tabpanel" id="tab-ai">
+<div class="ai-tab h-full flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-ai">
     <!-- Sub-Navigation -->
     <div
-        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 mb-4 shrink-0"
+        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 shrink-0"
     >
         {#each subTabs as tab}
             <button
