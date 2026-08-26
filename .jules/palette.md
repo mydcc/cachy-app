@@ -27,3 +27,7 @@
 ## 2025-02-23 - GitHub Actions setup corrections (Follow-up 2)
 **Learning:** `google/gemini-3-flash` is invalid; it must be `google/gemini-3.6-flash`.
 **Action:** Replaced `google/gemini-3-flash` with `google/gemini-3.6-flash` in `.github/workflows/opencode.yml`.
+
+## 2026-08-26 - Journal Table and Dashboard Localization
+**Learning:** Hardcoded English `alt` attributes on images and `title`/`aria-label`s on navigation links represent accessibility failures for non-English users. When migrating these, it is essential to ensure that any variable interpolations are correctly passed to Svelte-i18n using the `values` option, e.g., `$_('key', { values: { symbol: 'BTCUSDT' } })`.
+**Action:** Replaced hardcoded "GitHub" and "Deepwiki" string literals with translation keys in `src/routes/+page.svelte`, the "Background" `alt` tag in `src/components/shared/BackgroundRenderer.svelte`, the "Confluence score" `title` in `src/components/shared/CalculationDashboard.svelte`, and various chart `alt` strings in `src/components/shared/journal/JournalTable.svelte`. Regenerated the i18n type schema to prevent TypeScript errors.

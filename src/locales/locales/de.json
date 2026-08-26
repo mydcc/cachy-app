@@ -548,6 +548,9 @@
       "gross": "Brutto",
       "net": "Netto",
       "screenshotAlt": "Trade Screenshot",
+      "chartAlt": "{symbol} Chart",
+      "chartPreviewAlt": "{symbol} Chart Vorschau",
+      "chartFullAlt": "{symbol} Vollbild Chart",
       "mostProfitableStrategy": "Beste Strategie",
       "topAsset": "Top Asset"
     },
@@ -1982,6 +1985,8 @@
   },
   "common": {
     "windowMenu": "Fenstermenü",
+    "github": "GitHub",
+    "deepwiki": "Deepwiki",
     "toggleVideoTooltip": "Linksklick: Genesis umschalten | Rechtsklick: Weitere Kanäle",
     "channels": "Kanäle",
     "save": "Speichern",

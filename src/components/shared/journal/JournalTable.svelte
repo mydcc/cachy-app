@@ -694,7 +694,7 @@
                                         >
                                             <img
                                                 src={entryItem.screenshot}
-                                                alt="{entryItem.symbol} Chart"
+                                                alt={$_("journal.labels.chartAlt", { values: { symbol: entryItem.symbol } })}
                                                 class="w-12 h-7 object-cover transition-transform duration-200 group-hover:scale-110"
                                                 loading="lazy"
                                             />
@@ -919,7 +919,7 @@
                                                 >
                                                     <img
                                                         src={subTrade.screenshot}
-                                                        alt="{subTrade.symbol} Chart"
+                                                        alt={$_("journal.labels.chartAlt", { values: { symbol: subTrade.symbol } })}
                                                         class="w-12 h-7 object-cover transition-transform duration-200 group-hover:scale-110"
                                                         loading="lazy"
                                                     />
@@ -1020,7 +1020,7 @@
     >
         <img
             src={activeHoverScreenshot.url}
-            alt="{activeHoverScreenshot.symbol} Chart Preview"
+            alt={$_("journal.labels.chartPreviewAlt", { values: { symbol: activeHoverScreenshot.symbol } })}
             class="w-full h-auto max-h-[300px] object-cover block bg-black"
         />
         <div class="px-3 py-1.5 bg-[var(--bg-secondary)] flex items-center justify-between text-xs border-t border-[var(--border-color)]">
@@ -1066,7 +1066,7 @@
             <div class="p-2 overflow-auto flex items-center justify-center bg-black/20">
                 <img
                     src={activeLightboxScreenshot.url}
-                    alt="{activeLightboxScreenshot.symbol} Full Chart"
+                    alt={$_("journal.labels.chartFullAlt", { values: { symbol: activeLightboxScreenshot.symbol } })}
                     class="max-w-full max-h-[80vh] object-contain rounded-lg"
                 />
             </div>

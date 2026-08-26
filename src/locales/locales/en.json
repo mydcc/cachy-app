@@ -548,6 +548,9 @@
       "gross": "Gross",
       "net": "Net",
       "screenshotAlt": "Trade Screenshot",
+      "chartAlt": "{symbol} Chart",
+      "chartPreviewAlt": "{symbol} Chart Preview",
+      "chartFullAlt": "{symbol} Full Chart",
       "mostProfitableStrategy": "Best Strategy",
       "topAsset": "Top Asset"
     },
@@ -1971,6 +1974,8 @@
   },
   "common": {
     "windowMenu": "Window menu",
+    "github": "GitHub",
+    "deepwiki": "Deepwiki",
     "toggleVideoTooltip": "Left-Click: Toggle Genesis | Right-Click: More Channels",
     "channels": "Channels",
     "save": "Save",
