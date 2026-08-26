@@ -387,6 +387,21 @@ export class IndicatorLayer {
             }
         }
 
+        // MFI
+        if (s.mfi.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                this.addLine(
+                    rows,
+                    JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, s.mfi.length ?? 14),
+                    idx,
+                    "--accent-color",
+                    "#2962ff",
+                );
+                this.setPaneHeight(idx);
+            }
+        }
+
         // ADX
         if (s.adx.enabled !== false) {
             const idx = this.openSubPane();
@@ -406,13 +421,7 @@ export class IndicatorLayer {
         if (s.ao.enabled !== false) {
             const idx = this.openSubPane();
             if (idx !== null) {
-                const hl2 = getSourceData(rows, "hl2");
-                const fast = JSIndicators.sma(hl2, s.ao.fastLength ?? 5);
-                const slow = JSIndicators.sma(hl2, s.ao.slowLength ?? 34);
-                const ao = new Float64Array(rows.length);
-                for (let i = 0; i < rows.length; i++) {
-                    ao[i] = isNaN(fast[i]) || isNaN(slow[i]) ? NaN : fast[i] - slow[i];
-                }
+                const ao = JSIndicators.ao(a.highs, a.lows, s.ao.fastLength ?? 5, s.ao.slowLength ?? 34);
                 this.addLine(rows, ao, idx, "--warning-color", "#ffb300");
                 this.setPaneHeight(idx);
             }
