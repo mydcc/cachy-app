@@ -237,6 +237,9 @@
     if (!browser || lifecycleState !== LifecycleState.READY) return;
     
     const currentSymbol = tradeState.symbol || "BTCUSDT";
+    // New symbol => the volume calibration window must forget the old
+    // market's notionals before the first trade of this symbol arrives.
+    worker?.postMessage({ type: 'resetVolume' });
     // Use the returned cleanup function for guaranteed unsubscription
     const cleanup = activeExchange().marketData.subscribeTrades(currentSymbol, onTrade);
     

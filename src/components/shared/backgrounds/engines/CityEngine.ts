@@ -17,11 +17,9 @@
 
 import * as THREE from 'three';
 import { BaseEngine } from './BaseEngine';
-import { VolumeNormalizer, scaleToRange } from './volumeScale';
+import { scaleToRange } from './volumeScale';
 
 export class CityEngine extends BaseEngine {
-	/** Shared adaptive volume normalisation — see volumeScale.ts. */
-	private readonly volume = new VolumeNormalizer();
 	private readonly MIN_STEP = 1.5;
 	private readonly MAX_STEP = 14.0;
 	private readonly MAX_HEIGHT = 50.0;
@@ -179,7 +177,7 @@ export class CityEngine extends BaseEngine {
 		// Shared notional normalisation (see volumeScale.ts) so a building of a
 		// given height means the same amount of money here as a block of a given
 		// size does in BlockEngine.
-		const normalized = this.volume.push(trade.price, trade.amount);
+		const normalized = this.context.volumeNormalizer.push(trade.price, trade.amount);
 
 		// Ensure we handle existing buildings correctly. Repeated trades on the
 		// same cell keep accumulating (hot spots grow), capped at MAX_HEIGHT.

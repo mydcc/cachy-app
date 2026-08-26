@@ -17,11 +17,9 @@
 
 import * as THREE from 'three';
 import { BaseEngine, type EngineContext } from './BaseEngine';
-import { VolumeNormalizer, scaleToRange } from './volumeScale';
+import { scaleToRange } from './volumeScale';
 
 export class SonarEngine extends BaseEngine {
-	/** Shared adaptive volume normalisation — see volumeScale.ts. */
-	private readonly volume = new VolumeNormalizer();
 	private readonly MIN_INTENSITY = 1.0;
 	private readonly MAX_INTENSITY = 5.0;
 
@@ -208,7 +206,7 @@ export class SonarEngine extends BaseEngine {
         const volScale = s.volumeScale || 1.0;
 
         // Shared notional normalisation (see volumeScale.ts).
-        const normalized = this.volume.push(trade.price, trade.amount);
+        const normalized = this.context.volumeNormalizer.push(trade.price, trade.amount);
         const absIntensity = scaleToRange(
         	normalized,
         	this.MIN_INTENSITY,

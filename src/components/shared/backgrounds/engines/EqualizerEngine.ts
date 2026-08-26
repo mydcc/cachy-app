@@ -17,11 +17,9 @@
 
 import * as THREE from 'three';
 import { BaseEngine } from './BaseEngine';
-import { VolumeNormalizer, scaleToRange } from './volumeScale';
+import { scaleToRange } from './volumeScale';
 
 export class EqualizerEngine extends BaseEngine {
-	/** Shared adaptive volume normalisation — see volumeScale.ts. */
-	private readonly volume = new VolumeNormalizer();
 	private readonly MIN_AMPLITUDE = 0.8;
 	private readonly MAX_AMPLITUDE = 12.0;
 
@@ -172,7 +170,7 @@ export class EqualizerEngine extends BaseEngine {
 
         // Shared notional normalisation (see volumeScale.ts). Amplitude is the
         // volume channel; splash count stays a coarse size tier on top of it.
-        const normalized = this.volume.push(trade.price, trade.amount);
+        const normalized = this.context.volumeNormalizer.push(trade.price, trade.amount);
         const intensity = scaleToRange(
         	normalized,
         	this.MIN_AMPLITUDE,

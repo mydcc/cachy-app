@@ -17,11 +17,9 @@
 
 import * as THREE from 'three';
 import { BaseEngine, type EngineContext } from './BaseEngine';
-import { VolumeNormalizer, scaleToRange } from './volumeScale';
+import { scaleToRange } from './volumeScale';
 
 export class RaindropsEngine extends BaseEngine {
-	/** Shared adaptive volume normalisation — see volumeScale.ts. */
-	private readonly volume = new VolumeNormalizer();
 	private readonly MIN_MAGNITUDE = 1.0;
 	private readonly MAX_MAGNITUDE = 8.0;
 
@@ -197,7 +195,7 @@ export class RaindropsEngine extends BaseEngine {
 
         // Shared notional normalisation (see volumeScale.ts) so a ripple of a
         // given strength means the same amount of money as in every other mode.
-        const normalized = this.volume.push(trade.price, trade.amount);
+        const normalized = this.context.volumeNormalizer.push(trade.price, trade.amount);
         const magnitude = scaleToRange(
         	normalized,
         	this.MIN_MAGNITUDE,
