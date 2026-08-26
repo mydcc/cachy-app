@@ -13,6 +13,7 @@ import {
     zipToLine,
     buildVolumeData,
 } from "./seriesMap";
+import { VolumeProfilePrimitive } from "./volumeProfile";
 
 type ColorResolver = (name: string) => string | null;
 
@@ -36,6 +37,8 @@ interface ManagedSeries {
 export class IndicatorLayer {
     private chart: IChartApi;
     private getColor: ColorResolver;
+    private candleSeries: ISeriesApi<"Candlestick"> | null = null;
+    private volumeProfile: VolumeProfilePrimitive | null = null;
 
     private managed: ManagedSeries[] = [];
     private createdPaneIndices: number[] = [];
@@ -43,9 +46,10 @@ export class IndicatorLayer {
     private availableHeight = MIN_CHART_HEIGHT;
     private lastRows: ChartRow[] | null = null;
 
-    constructor(chart: IChartApi, getColor: ColorResolver) {
+    constructor(chart: IChartApi, getColor: ColorResolver, candleSeries?: ISeriesApi<"Candlestick"> | null) {
         this.chart = chart;
         this.getColor = getColor;
+        this.candleSeries = candleSeries ?? null;
     }
 
     /** Height of the chart container in CSS px; triggers re-render on compact change. */
@@ -108,6 +112,14 @@ export class IndicatorLayer {
         }
         this.createdPaneIndices = [];
         this.subPaneCursor = 1;
+        if (this.volumeProfile) {
+            try {
+                this.chart.panes()[0].detachPrimitive(this.volumeProfile);
+            } catch {
+                /* already detached */
+            }
+            this.volumeProfile = null;
+        }
     }
 
     // ---- helpers --------------------------------------------------------
@@ -284,6 +296,16 @@ export class IndicatorLayer {
             );
             this.addLine(rows, ats.buyStop, P0, "--success-color", "#26a69a", { lineWidth: 1 });
             this.addLine(rows, ats.sellStop, P0, "--danger-color", "#ef5350", { lineWidth: 1 });
+        }
+
+        // Volume Profile (pane primitive overlay, off by default)
+        if (s.volumeProfile.enabled !== false && this.candleSeries) {
+            if (!this.volumeProfile) {
+                this.volumeProfile = new VolumeProfilePrimitive(this.candleSeries, this.getColor);
+                this.chart.panes()[0].attachPrimitive(this.volumeProfile);
+            }
+            const vp = JSIndicators.volumeProfile(a.highs, a.lows, a.closes, a.volume, s.volumeProfile.rows ?? 24);
+            if (vp) this.volumeProfile.setData(vp.rows, vp.poc, vp.vaHigh, vp.vaLow);
         }
     }
 

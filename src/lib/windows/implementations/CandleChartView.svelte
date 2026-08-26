@@ -269,7 +269,7 @@
         // Indicator overlay/sub-pane layer (EMA, SMA, oscillators, volume…).
         // Replaces the old EMA-only trio. Height-gated sub-panes keep a small
         // chart window from being cluttered with unusable mini-panes.
-        indicatorLayer = new IndicatorLayer(chart, getVar);
+        indicatorLayer = new IndicatorLayer(chart, getVar, candleSeries);
         untrack(() => updateColors());
 
         priceLineManager = new PriceLineManager(candleSeries, {
