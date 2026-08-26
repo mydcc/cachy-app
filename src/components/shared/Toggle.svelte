@@ -36,9 +36,18 @@
 </script>
 
 <div class="toggle-wrapper" class:disabled>
-  <input type="checkbox" {id} bind:checked {disabled} onchange={handleChange} />
-  <label for={id}>
-    <span class="toggle-slider"></span>
+  <label>
+    <input
+      type="checkbox"
+      {id}
+      bind:checked
+      {disabled}
+      onchange={handleChange}
+      class="sr-only peer"
+      role="switch"
+      aria-checked={checked}
+    />
+    <div class="atr-toggle-track relative w-[36px] h-[12px] peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-0 after:left-0 after:border after:rounded-full after:h-[12px] after:w-[24px]"></div>
   </label>
 </div>
 
@@ -46,53 +55,6 @@
   .toggle-wrapper {
     display: inline-block;
     position: relative;
-    width: 36px;
-    height: 20px;
-  }
-
-  .toggle-wrapper input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .toggle-wrapper label {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    transition: 0.4s;
-    border-radius: 20px;
-  }
-
-  .toggle-slider {
-    position: absolute;
-    height: 14px;
-    width: 14px;
-    left: 2px;
-    bottom: 2px;
-    background-color: var(--text-secondary);
-    transition: 0.4s;
-    border-radius: 50%;
-  }
-
-  input:checked + label {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-  }
-
-  input:checked + label .toggle-slider {
-    transform: translateX(16px);
-    background-color: var(--btn-accent-text);
-  }
-
-  input:focus-visible + label {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-color);
   }
 
   .disabled {
