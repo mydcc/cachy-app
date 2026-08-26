@@ -33,6 +33,11 @@ if (!GITHUB_REPOSITORY) {
     console.error("Error: GITHUB_REPOSITORY environment variable is required.");
     process.exit(1);
 }
+const REPO_NAME_PATTERN = /^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$/;
+if (!REPO_NAME_PATTERN.test(GITHUB_REPOSITORY)) {
+    console.error(`Error: GITHUB_REPOSITORY must be in format "owner/repo", got "${GITHUB_REPOSITORY}"`);
+    process.exit(1);
+}
 
 const BASE_URL = `https://api.github.com/repos/${GITHUB_REPOSITORY}/issues`;
 const STATUS_LABEL_PREFIX = "status:";
