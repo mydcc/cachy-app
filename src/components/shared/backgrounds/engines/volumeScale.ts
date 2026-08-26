@@ -220,7 +220,7 @@ function percentileOfSorted(sorted: Float64Array, p: number): number {
 	return sorted[lowIdx] + (sorted[highIdx] - sorted[lowIdx]) * frac;
 }
 
-function clamp01(v: number): number {
+export function clamp01(v: number): number {
 	if (!Number.isFinite(v)) return 0;
 	if (v < 0) return 0;
 	if (v > 1) return 1;
@@ -234,13 +234,30 @@ function clamp01(v: number): number {
  * Keeping this in one place is what makes the modes comparable: every engine
  * declares `min`/`max` in its own units and the curve between them is shared.
  */
-export function scaleToRange(
-	normalized: number,
-	min: number,
-	max: number,
-	userScale = 1.0
-): number {
-	const scale = Number.isFinite(userScale) && userScale > 0 ? userScale : 1.0;
-	const t = clamp01(normalized * scale);
-	return min + (max - min) * t;
+	export function scaleToRange(
+		normalized: number,
+		min: number,
+		max: number,
+		userScale = 1.0
+	): number {
+		const scale = Number.isFinite(userScale) && userScale > 0 ? userScale : 1.0;
+		const t = clamp01(normalized * scale);
+		return min + (max - min) * t;
+	}
+
+/**
+ * Maps a market-activity snapshot to a single 0..1 "heat" used by the dynamic
+ * atmosphere. Each signal is normalised against a characteristic full-scale and
+ * the strongest wins, so a burst of small trades and a single whale both light
+ * up the scene.
+ *
+ * @param rate         trades in the rolling window (trades/sec)
+ * @param volume       total notional (price * amount) in the rolling window, quote currency
+ * @param volatilityRel relative price volatility (stdev / mean) over the window
+ */
+export function marketHeat(input: { rate: number; volume: number; volatilityRel: number }): number {
+	const rate = clamp01(input.rate / 20);
+	const volume = clamp01(input.volume / 5_000_000);
+	const volatilityRel = clamp01(input.volatilityRel / 0.02);
+	return Math.max(rate, volume, volatilityRel);
 }

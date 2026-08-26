@@ -994,7 +994,12 @@
         "tooltipGridLength": "Number of points along the Z-axis of the visualization grid. More points = finer detail but higher GPU load.",
         "tooltipSpeed": "How fast the visualization elements animate and move. Higher values create a more energetic appearance.",
         "sceneRotation": "Scene rotation",
-        "tooltipRotation": "Slow, purely decorative spin of the scene. Off by default: rotation makes the time (depth) and price (height) axes unreadable."
+        "tooltipRotation": "Slow, purely decorative spin of the scene. Off by default: rotation makes the time (depth) and price (height) axes unreadable.",
+        "source": "Data source",
+        "sourceLive": "Live trades only",
+        "sourceAmbient": "Ambient (fill silence)",
+        "sourceReplay": "Replay recent trades",
+        "tooltipSource": "Keeps the background alive when the live feed goes quiet. 'Live' shows only real trades. 'Ambient' injects subtle synthetic ticks after a pause. 'Replay' continuously replays the most recent trades as synthetic ticks."
       },
       "coordinates": {
         "x": "X",

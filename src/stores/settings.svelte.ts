@@ -159,6 +159,15 @@ export interface TradeFlowSettings {
   cameraRotationX: number;
   cameraRotationY: number;
   cameraRotationZ: number;
+  /**
+   * How the background stays alive when the live trade feed goes quiet.
+   * - "live": only real trades (default).
+   * - "ambient": inject subtle synthetic ticks when no real trade arrived
+   *   for a while, so the effect never freezes completely.
+   * - "replay": continuously replay the most recent real trades as synthetic
+   *   ticks even while the live feed is active.
+   */
+  tradeFlowSource: "live" | "ambient" | "replay";
 }
 
 export interface Settings {
@@ -543,6 +552,7 @@ const defaultSettings: Settings = {
     cameraRotationX: 0,
     cameraRotationY: 0,
     cameraRotationZ: 0,
+    tradeFlowSource: "live",
   } as TradeFlowSettings,
   galaxySettings: {
     particleCount: 20000,
