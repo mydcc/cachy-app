@@ -1,10 +1,11 @@
 import type {
     IChartApi,
+    IPriceLine,
     ISeriesApi,
     UTCTimestamp,
 } from "lightweight-charts";
 import { LineSeries, HistogramSeries } from "lightweight-charts";
-import { JSIndicators } from "../../utils/indicators";
+import { JSIndicators, calculatePivotsFromValues } from "../../utils/indicators";
 import { indicatorState } from "../../stores/indicator.svelte";
 import {
     type ChartRow,
@@ -97,9 +98,11 @@ interface ManagedSeries {
 export class IndicatorLayer {
     private chart: IChartApi;
     private getColor: ColorResolver;
+    private candleSeries: ISeriesApi<"Candlestick"> | null;
 
     private managed: ManagedSeries[] = [];
     private createdPaneIndices: number[] = [];
+    private priceLines: IPriceLine[] = [];
     private subPaneCursor = 1;
     private availableHeight = MIN_CHART_HEIGHT;
     private lastRows: ChartRow[] | null = null;
@@ -110,10 +113,12 @@ export class IndicatorLayer {
     constructor(
         chart: IChartApi,
         getColor: ColorResolver,
+        candleSeries?: ISeriesApi<"Candlestick"> | null,
         onPanesChanged?: (panes: IndicatorPaneInfo[]) => void,
     ) {
         this.chart = chart;
         this.getColor = getColor;
+        this.candleSeries = candleSeries ?? null;
         this.onPanesChanged = onPanesChanged;
     }
 
@@ -193,6 +198,14 @@ export class IndicatorLayer {
             }
         }
         this.managed = [];
+        for (const pl of this.priceLines) {
+            try {
+                this.candleSeries?.removePriceLine(pl);
+            } catch {
+                /* price line may already be gone */
+            }
+        }
+        this.priceLines = [];
         const indices = [...this.createdPaneIndices].sort((a, b) => b - a);
         for (const idx of indices) {
             try {
@@ -315,6 +328,41 @@ export class IndicatorLayer {
     ): void {
         const s = indicatorState;
         const P0 = 0;
+
+        // Pivot points (horizontal levels on the price pane, from prior bar)
+        if (s.pivots.enabled !== false && this.candleSeries && rows.length >= 2) {
+            const prev = rows[rows.length - 2];
+            const res = calculatePivotsFromValues(
+                prev.high,
+                prev.low,
+                prev.close,
+                prev.open,
+                s.pivots.type ?? "classic",
+            );
+            const lv = res.pivots.classic;
+            const levels: Array<{ key: keyof typeof lv; title: string; primary: boolean }> = [
+                { key: "r3", title: "R3", primary: false },
+                { key: "r2", title: "R2", primary: false },
+                { key: "r1", title: "R1", primary: false },
+                { key: "p", title: "P", primary: true },
+                { key: "s1", title: "S1", primary: false },
+                { key: "s2", title: "S2", primary: false },
+                { key: "s3", title: "S3", primary: false },
+            ];
+            for (const { key, title, primary } of levels) {
+                const price = lv[key];
+                if (typeof price !== "number" || Number.isNaN(price)) continue;
+                const line = this.candleSeries.createPriceLine({
+                    price,
+                    title,
+                    color: this.color(primary ? "--accent-color" : "--text-tertiary", primary ? "#2962ff" : "#9aa0a6"),
+                    lineWidth: primary ? 2 : 1,
+                    lineStyle: primary ? 0 : 2,
+                    axisLabelVisible: true,
+                });
+                this.priceLines.push(line);
+            }
+        }
 
         // EMA (1-3)
         if (s.ema.enabled !== false) {

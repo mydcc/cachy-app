@@ -276,7 +276,7 @@
         // Indicator overlay/sub-pane layer (EMA, SMA, oscillators, volume…).
         // Replaces the old EMA-only trio. Height-gated sub-panes keep a small
         // chart window from being cluttered with unusable mini-panes.
-        indicatorLayer = new IndicatorLayer(chart, getVar, syncPaneHeaders);
+        indicatorLayer = new IndicatorLayer(chart, getVar, candleSeries, syncPaneHeaders);
         // Seed the real height straight away: the layer defaults to the
         // minimum, and waiting for the ResizeObserver's first callback means
         // the initial render can lay out sub-panes for a chart far shorter
