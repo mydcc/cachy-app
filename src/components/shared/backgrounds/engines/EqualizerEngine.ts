@@ -17,8 +17,12 @@
 
 import * as THREE from 'three';
 import { BaseEngine } from './BaseEngine';
+import { scaleToRange } from './volumeScale';
 
 export class EqualizerEngine extends BaseEngine {
+	private readonly MIN_AMPLITUDE = 0.8;
+	private readonly MAX_AMPLITUDE = 12.0;
+
     private pointCloud: THREE.Points | null = null;
     private material: THREE.ShaderMaterial | null = null;
     private activeSplashes = new Map<number, { amount: number, expiresAt: number, colorValue: number }[]>();
@@ -162,10 +166,18 @@ export class EqualizerEngine extends BaseEngine {
         const s = this.context.settings;
         const width = s.gridWidth || 80;
         const length = s.gridLength || 160;
-        const tradeValue = trade.price * trade.amount;
         const volScale = s.volumeScale || 1.0;
-        let intensity = Math.min(volScale * (0.5 + Math.log10(tradeValue + 1)), 5.0);
-        const splashCount = Math.max(1, Math.floor(Math.log10(tradeValue + 1) * 3));
+
+        // Shared notional normalisation (see volumeScale.ts). Amplitude is the
+        // volume channel; splash count stays a coarse size tier on top of it.
+        const normalized = this.context.volumeNormalizer.push(trade.price, trade.amount);
+        const intensity = scaleToRange(
+        	normalized,
+        	this.MIN_AMPLITUDE,
+        	this.MAX_AMPLITUDE,
+        	volScale
+        );
+        const splashCount = 1 + Math.floor(normalized * 2);
         const now = performance.now() * 0.001;
         const expiresAt = now + (s.persistenceDuration || 60);
 

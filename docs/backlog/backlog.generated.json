@@ -204,6 +204,25 @@
       "file": "bugs/BUG-0293-tpsl-modify-wire-format.md"
     },
     {
+      "id": "BUG-0315",
+      "title": "wasmCalculator double-counts the last candle in initialize and update",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0315-double-counted-last-candle.md"
+    },
+    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -976,6 +995,46 @@
       "file": "bugs/BUG-0297-bitget-entry-order-gate-deadlock.md"
     },
     {
+      "id": "BUG-0313",
+      "title": "WASM build ships an artifact that production never loads",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "build",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md"
+    },
+    {
+      "id": "BUG-0317",
+      "title": "No automated WASM-to-TS parity verification or benchmark",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0313"
+      ],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0317-wasm-parity-test-benchmark.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -1583,6 +1642,27 @@
       "size": "M",
       "estimate": "5",
       "file": "features/FEAT-0303-strategy-rule-schema.md"
+    },
+    {
+      "id": "FEAT-0316",
+      "title": "Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm",
+      "type": "feature",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0313"
+      ],
+      "assignee": "opencode",
+      "file": "features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md"
     },
     {
       "id": "BUG-0005",
@@ -2553,6 +2633,25 @@
       "file": "bugs/BUG-0312-docs-backlog-items.md"
     },
     {
+      "id": "BUG-0314",
+      "title": "WASM module traps silently on malformed input and keeps the poisoned instance",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md"
+    },
+    {
       "id": "FEAT-0019",
       "title": "Let the assistant research the web when it needs to",
       "type": "feature",
@@ -3456,7 +3555,9 @@
       "id": "FEAT-0285",
       "title": "Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop",
       "type": "feature",
-      "status": "specced",
+      "status": "done",
+      "assignee": "antigravity",
+      "branch": "feat/feat-0285-client-side-signing",
       "priority": "P2",
       "milestone": "none",
       "editions": [
@@ -4063,7 +4164,9 @@
       "id": "FEAT-0262",
       "title": "Decide the fate of the unused workerPool service",
       "type": "feature",
-      "status": "specced",
+      "status": "in-progress",
+      "assignee": "antigravity",
+      "branch": "feat/feat-0262-workerpool-delete",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -4081,7 +4184,7 @@
       "id": "FEAT-0263",
       "title": "Remove the settings cross-tab storage listener in destroy",
       "type": "feature",
-      "status": "ready",
+      "status": "done",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -4369,7 +4472,27 @@
       "size": "M",
       "estimate": "3",
       "file": "ideas/IDEA-0305-external-market-context-as-veto.md"
+    },
+    {
+      "id": "IDEA-0318",
+      "title": "Post-measurement WASM performance tuning",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0317"
+      ],
+      "file": "ideas/IDEA-0318-post-measurement-wasm-performance.md"
     }
   ],
-  "count": 199
+  "count": 205
 }

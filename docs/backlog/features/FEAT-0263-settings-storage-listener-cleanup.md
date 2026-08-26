@@ -2,7 +2,7 @@
 id: FEAT-0263
 title: Remove the settings cross-tab storage listener in destroy
 type: feature
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -34,10 +34,10 @@ for parity with sibling stores.
 
 ## Acceptance criteria
 
-- [ ] `destroy()` removes the storage listener (test proves a dispatched
+- [x] `destroy()` removes the storage listener (test proves a dispatched
       `storage` event after `destroy()` does not reach the handler).
-- [ ] Cross-tab settings sync still works while the store is alive.
-- [ ] `npm run check` + existing settings-store tests pass.
+- [x] Cross-tab settings sync still works while the store is alive.
+- [x] `npm run check` + existing settings-store tests pass.
 
 ## Out of scope
 

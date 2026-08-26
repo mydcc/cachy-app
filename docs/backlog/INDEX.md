@@ -2,9 +2,9 @@
 
 # Backlog index
 
-199 items. How to read and add them: [README.md](README.md).
+205 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-progress 8 · ✅ done 142
+Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-progress 9 · ✅ done 149
 
 ---
 
@@ -162,6 +162,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | calculation |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -179,7 +180,10 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0281](bugs/BUG-0281-theme-cookie-html-injection.md) | Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection | P1 | ✅ done | security |
 | [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | ✅ done | ai |
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | security |
+| [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) | WASM build ships an artifact that production never loads | P1 | ✅ done | build |
+| [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | calculation |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
+| [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
@@ -213,6 +217,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0310](bugs/BUG-0310-docs-bitunix-api.md) | bitunix-api INTEGRATION_STATUS is stale | P2 | ✅ done | docs |
 | [BUG-0311](bugs/BUG-0311-docs-backlog-infra.md) | Backlog infra docs and generated index are out of sync | P2 | ✅ done | docs |
 | [BUG-0312](bugs/BUG-0312-docs-backlog-items.md) | Stale code references in done backlog items | P2 | ✅ done | docs |
+| [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | calculation |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -230,7 +235,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) | Keep three.js off the startup path behind lazily loaded effect overlays | P2 | ✅ done | ui |
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | 🟢 ready | services |
 | [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | 🟢 ready | i18n |
-| [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | 📋 specced | security |
+| [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | security |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -255,14 +260,15 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | calculator |
 | [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | ✅ done | ui |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | ui |
-| [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 📋 specced | services |
-| [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | 🟢 ready | settings |
+| [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 🟡 in-progress | services |
+| [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | ✅ done | settings |
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | tooling |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | pwa |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | tooling |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
+| [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | calculation |
 
 ---
 
@@ -279,6 +285,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) |
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
 | [BUG-0293](bugs/BUG-0293-tpsl-modify-wire-format.md) | modifyTpSlOrder sent a wire body the venue's modify_order does not document | P0 | ✅ done | M3 | community, pro, private | A | none | — |
+| [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -314,6 +321,8 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [BUG-0297](bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) | An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built | P1 | ✅ done | M2 | community, pro, private | none | none | — |
+| [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) | WASM build ships an artifact that production never loads | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -340,6 +349,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | M3 | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
+| [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -386,6 +396,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0310](bugs/BUG-0310-docs-bitunix-api.md) | bitunix-api INTEGRATION_STATUS is stale | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0311](bugs/BUG-0311-docs-backlog-infra.md) | Backlog infra docs and generated index are out of sync | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0312](bugs/BUG-0312-docs-backlog-items.md) | Stale code references in done backlog items | P2 | ✅ done | none | community | none | none | — |
+| [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -424,7 +435,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) | Keep three.js off the startup path behind lazily loaded effect overlays | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | 🟢 ready | none | community, pro, private | none | none | — |
-| [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | 📋 specced | none | community, pro, private | A | required | — |
+| [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | none | community, pro, private | A | required | — |
 | [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
@@ -454,8 +465,8 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | none | community, pro, private | none | none | — |
@@ -469,7 +480,8 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | M3 | community, pro, private | none | none | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) |
 | [IDEA-0255](ideas/IDEA-0255-order-quantity-percent-slider.md) | Add a 0/25/50/75/100% quantity slider to the order-entry form | P3 | 💡 idea | M3 | community, pro, private | none | none | — |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | M8 | pro, private | C | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
+| [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | none | community, pro, private | none | none | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) |
 
 ---
 
-Next free number: **0313**
+Next free number: **0319**
