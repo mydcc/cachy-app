@@ -1164,7 +1164,7 @@
       "ollamaBaseUrl": "Ollama Server-Adresse",
       "ollamaBaseUrlDesc": "Lokale Ollama-Installation, z. B. http://localhost:11434. Verlässt nie dein Gerät.",
       "customBaseUrl": "API-Endpunkt überschreiben (Base URL)",
-      "customBaseUrlDesc": "Optionaler eigener Endpunkt oder lokales Gateway (z. B. OmniRoute, LiteLLM, Firmen-Proxy).",
+      "customBaseUrlDesc": "Optionaler eigener Endpunkt oder lokales Gateway (z. B. OmniRoute, LiteLLM, Firmen-Proxy). Ein API-Schlüssel entfällt nur, wenn das Gateway die Authentifizierung übernimmt.",
       "geminiCustomBaseUrlDesc": "Optionaler eigener Endpunkt oder lokales Gateway. Hinweis: Die Gemini-API benötigt auch bei eigenem Endpunkt einen API-Schlüssel.",
       "openrouterApiKey": "OpenRouter API Schlüssel",
       "contextTitle": "Kontext & Datenzugriff",
