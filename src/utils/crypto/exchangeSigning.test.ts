@@ -126,13 +126,7 @@ describe("FEAT-0285: WebCrypto Client-Side Exchange Signing Conformance", () => 
         { nonce: FIXED_NONCE, timestamp: FIXED_TIMESTAMP },
       );
 
-      const serverVector = generateBitunixSignature(
-        "test_bitunix_key_001",
-        "test_bitunix_secret_002",
-        { symbol: "SOLUSDT", limit: "10" },
-        { reduceOnly: false },
-      );
-      // Calculate server with same nonce & timestamp
+      // Calculate expected signature directly with fixed nonce & timestamp
       const crypto = await import("crypto");
       const digestInput =
         FIXED_NONCE +
