@@ -1525,14 +1525,6 @@
                                         {$_("settings.visuals.tradeFlow.tooltipMinVolume")}
                                     </p>
                                 </div>
-
-                                <!-- Scene Rotation (Block only, decorative) -->
-                                {#if settingsState.tradeFlowSettings.flowMode === 'block'}
-                                <div class="field-group flex items-center justify-between gap-2 md:col-span-2">
-                                    <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipRotation")}>{$_("settings.visuals.tradeFlow.sceneRotation")}</span>
-                                    <Toggle bind:checked={settingsState.tradeFlowSettings.enableRotation} />
-                                </div>
-                                {/if}
                             </div>
                         </div>
 

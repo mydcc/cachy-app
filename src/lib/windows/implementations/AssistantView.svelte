@@ -119,10 +119,10 @@
 
     let hasApiKey = $derived.by(() => {
         const provider = settingsState.aiProvider;
-        if (provider === "gemini") return !!settingsState.geminiApiKey || !!settingsState.geminiBaseUrl?.trim();
-        if (provider === "openai") return !!settingsState.openaiApiKey || !!settingsState.openaiBaseUrl?.trim();
-        if (provider === "anthropic") return !!settingsState.anthropicApiKey || !!settingsState.anthropicBaseUrl?.trim();
-        if (provider === "openrouter") return !!settingsState.openrouterApiKey || !!settingsState.openrouterBaseUrl?.trim();
+        if (provider === "gemini") return !!settingsState.geminiApiKey;
+        if (provider === "openai") return !!settingsState.openaiApiKey;
+        if (provider === "anthropic") return !!settingsState.anthropicApiKey;
+        if (provider === "openrouter") return !!settingsState.openrouterApiKey;
         if (provider === "ollama") return true;
         return false;
     });

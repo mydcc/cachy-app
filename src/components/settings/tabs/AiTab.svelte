@@ -160,22 +160,9 @@
                                     placeholder="sk-or-..."
                                 />
                             </div>
-                            <div class="field-group">
-                                <label for="openrouter-base-url">{$_("settings.ai.customBaseUrl")}</label>
-                                <input
-                                    id="openrouter-base-url"
-                                    bind:value={settingsState.openrouterBaseUrl}
-                                    class="input-field"
-                                    placeholder="https://openrouter.ai/api"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.customBaseUrlDesc")}
-                                </span>
-                            </div>
                             <AiModelPicker
                                 provider="openrouter"
                                 apiKey={settingsState.openrouterApiKey}
-                                baseUrl={settingsState.openrouterBaseUrl}
                                 bind:model={settingsState.openrouterModel}
                             />
                         </div>
@@ -191,22 +178,9 @@
                                     placeholder="sk-..."
                                 />
                             </div>
-                            <div class="field-group">
-                                <label for="openai-base-url">{$_("settings.ai.customBaseUrl")}</label>
-                                <input
-                                    id="openai-base-url"
-                                    bind:value={settingsState.openaiBaseUrl}
-                                    class="input-field"
-                                    placeholder="http://localhost:8000/v1"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.customBaseUrlDesc")}
-                                </span>
-                            </div>
                             <AiModelPicker
                                 provider="openai"
                                 apiKey={settingsState.openaiApiKey}
-                                baseUrl={settingsState.openaiBaseUrl}
                                 bind:model={settingsState.openaiModel}
                             />
                         </div>
@@ -222,22 +196,9 @@
                                     placeholder="AIza..."
                                 />
                             </div>
-                            <div class="field-group">
-                                <label for="gemini-base-url">{$_("settings.ai.customBaseUrl")}</label>
-                                <input
-                                    id="gemini-base-url"
-                                    bind:value={settingsState.geminiBaseUrl}
-                                    class="input-field"
-                                    placeholder="https://generativelanguage.googleapis.com"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.geminiCustomBaseUrlDesc")}
-                                </span>
-                            </div>
                             <AiModelPicker
                                 provider="gemini"
                                 apiKey={settingsState.geminiApiKey}
-                                baseUrl={settingsState.geminiBaseUrl}
                                 bind:model={settingsState.geminiModel}
                             />
                         </div>
@@ -253,22 +214,9 @@
                                     placeholder="sk-ant-..."
                                 />
                             </div>
-                            <div class="field-group">
-                                <label for="anthropic-base-url">{$_("settings.ai.customBaseUrl")}</label>
-                                <input
-                                    id="anthropic-base-url"
-                                    bind:value={settingsState.anthropicBaseUrl}
-                                    class="input-field"
-                                    placeholder="https://api.anthropic.com"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.customBaseUrlDesc")}
-                                </span>
-                            </div>
                             <AiModelPicker
                                 provider="anthropic"
                                 apiKey={settingsState.anthropicApiKey}
-                                baseUrl={settingsState.anthropicBaseUrl}
                                 bind:model={settingsState.anthropicModel}
                             />
                         </div>

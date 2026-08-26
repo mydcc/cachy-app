@@ -22,6 +22,7 @@
         createChart,
         ColorType,
         CandlestickSeries,
+        LineSeries,
         type IChartApi,
         type ISeriesApi,
         type CandlestickData,
@@ -30,8 +31,7 @@
     } from "lightweight-charts";
     import { Decimal } from "decimal.js";
     import { get } from "svelte/store";
-    import { IndicatorLayer } from "../../../lib/chart/indicatorLayer";
-    import type { ChartRow } from "../../../lib/chart/seriesMap";
+    import { JSIndicators } from "../../../utils/indicators";
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -103,8 +103,10 @@
     let chart: IChartApi | null = $state(null);
     let candleSeries: ISeriesApi<"Candlestick"> | null = $state(null);
 
-    // Indicator Layer (overlays + sub-panes; replaces the old EMA series trio)
-    let indicatorLayer: IndicatorLayer | null = null;
+    // Indicator Series
+    let ema1Series: ISeriesApi<"Line"> | null = $state(null);
+    let ema2Series: ISeriesApi<"Line"> | null = $state(null);
+    let ema3Series: ISeriesApi<"Line"> | null = $state(null);
 
     let isInitialLoad = $state(true);
     let isLoadingHistory = $state(false);
@@ -266,10 +268,29 @@
             priceLineVisible: false,
         });
 
-        // Indicator overlay/sub-pane layer (EMA, SMA, oscillators, volume…).
-        // Replaces the old EMA-only trio. Height-gated sub-panes keep a small
-        // chart window from being cluttered with unusable mini-panes.
-        indicatorLayer = new IndicatorLayer(chart, getVar);
+        // Initialize EMA Series
+        // Harmonized colors using semantic theme variables
+        ema1Series = chart.addSeries(LineSeries, {
+            color: getVar("--success-color") || "#26a69a",
+            lineWidth: 2,
+            crosshairMarkerVisible: false,
+            // Each EMA's default last-value price line cluttered the chart
+            // alongside the position/order price lines — the line series
+            // itself is enough, it doesn't need its own axis line too.
+            priceLineVisible: false,
+        });
+        ema2Series = chart.addSeries(LineSeries, {
+            color: getVar("--danger-color") || "#ef5350",
+            lineWidth: 2,
+            crosshairMarkerVisible: false,
+            priceLineVisible: false,
+        });
+        ema3Series = chart.addSeries(LineSeries, {
+            color: getVar("--warning-color") || "#ffb300",
+            lineWidth: 2,
+            crosshairMarkerVisible: false,
+            priceLineVisible: false,
+        });
         untrack(() => updateColors());
 
         priceLineManager = new PriceLineManager(candleSeries, {
@@ -294,7 +315,6 @@
                     width: chartContainer.clientWidth,
                     height: chartContainer.clientHeight,
                 });
-                indicatorLayer?.setAvailableHeight(chartContainer.clientHeight);
             }
         };
 
@@ -350,8 +370,6 @@
             if (chartContainer) resizeObserver.unobserve(chartContainer);
             priceLineManager?.destroy();
             priceLineManager = null;
-            indicatorLayer?.destroy();
-            indicatorLayer = null;
             if (chart) chart.remove();
         };
     });
@@ -446,6 +464,7 @@
 
         const success = getVar("--success-color") || "#26a69a";
         const danger = getVar("--danger-color") || "#ef5350";
+        const warning = getVar("--warning-color") || "#ffb300";
         const text = getVar("--text-secondary") || "#d1d4dc";
         const accent = getVar("--accent-color") || "#2962ff";
         const border = getVar("--border-color") || "rgba(255, 255, 255, 0.1)";
@@ -481,8 +500,10 @@
             wickDownColor: danger,
         });
 
-        // Indicator series are re-colored by re-rendering from the last data.
-        indicatorLayer?.applyTheme();
+        // EMA Colors
+        if (ema1Series) ema1Series.applyOptions({ color: success });
+        if (ema2Series) ema2Series.applyOptions({ color: danger });
+        if (ema3Series) ema3Series.applyOptions({ color: warning });
     }
 
     // Reactive chart options driven by the Chart settings tab. Mirrors the
@@ -595,9 +616,8 @@
         const _lastUpdated = marketData?.lastUpdated;
         const klines = marketData?.klines?.[timeframe];
 
-        // Track the full indicator toggle/param state so toggling any
-        // indicator re-renders the layer.
-        void indicatorState.toJSON();
+        const settings = indicatorState.ema;
+        const indicatorsEnabled = settings.enabled !== false;
 
         if (klines) {
             if (klines.length > 0) {
@@ -695,27 +715,6 @@
                         }
                     }
 
-                    // Align volume to each candle by time so the indicator
-                    // layer (volume pane, VWAP, OBV, MFI…) gets correct input.
-                    const volByTime = new Map<number, number>();
-                    for (const k of klines) {
-                        const t = Number(k.time / 1000);
-                        if (!volByTime.has(t)) {
-                            volByTime.set(t, Number(k.volume));
-                        }
-                    }
-                    const rows: ChartRow[] = unique.map((c) => {
-                        const t = Number(c.time);
-                        return {
-                            time: c.time,
-                            open: c.open,
-                            high: c.high,
-                            low: c.low,
-                            close: c.close,
-                            volume: volByTime.get(t) ?? 0,
-                        };
-                    });
-
                     try {
                         candleSeries.setData(unique);
 
@@ -733,10 +732,66 @@
                         lastRenderTimestamp = 0;
                         isInitialLoad = false;
 
-                        // Render the full indicator layer (overlays + sub-panes).
-                        // The layer reads indicatorState itself, so no extra
-                        // wiring beyond passing the aligned candle rows.
-                        indicatorLayer?.render(rows);
+                        // Update Indicators if enabled
+                        if (
+                            indicatorsEnabled &&
+                            ema1Series &&
+                            ema2Series &&
+                            ema3Series
+                        ) {
+                            const closes = unique.map((c) => c.close);
+                            // Ensure we have enough data
+                            if (closes.length > 5) {
+                                const ema1 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema1.length,
+                                );
+                                const ema2 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema2.length,
+                                );
+                                const ema3 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema3.length,
+                                );
+
+                                const mapToSeries = (arr: number[] | Float64Array) => {
+                                    const result = [];
+                                    // Use standard loop to handle both Array and Float64Array
+                                    for (let i = 0; i < arr.length; i++) {
+                                        const val = arr[i];
+                                        if (unique[i]) {
+                                            if (
+                                                val !== null &&
+                                                val !== undefined &&
+                                                typeof val === "number" &&
+                                                !isNaN(val)
+                                            ) {
+                                                result.push({
+                                                    time: unique[i].time,
+                                                    value: val,
+                                                });
+                                            }
+                                        }
+                                    }
+                                    return result;
+                                };
+
+                                ema1Series.setData(mapToSeries(ema1));
+                                ema2Series.setData(mapToSeries(ema2));
+                                ema3Series.setData(mapToSeries(ema3));
+
+                                // Visible
+                                ema1Series.applyOptions({ visible: true });
+                                ema2Series.applyOptions({ visible: true });
+                                ema3Series.applyOptions({ visible: true });
+                            }
+                        } else if (ema1Series && ema2Series && ema3Series) {
+                            // Hide if disabled
+                            ema1Series.applyOptions({ visible: false });
+                            ema2Series.applyOptions({ visible: false });
+                            ema3Series.applyOptions({ visible: false });
+                        }
                     } catch (e) {
                         console.error("[CandleChartView] Render error:", e);
                         // Disarm so the next cycle retries the slow path

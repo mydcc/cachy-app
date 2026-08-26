@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { exchangeAdapters } from "./registry";
-import { adapterTestHarnesses } from "./adapterConformance.harness";
 import { accountState } from "../../stores/account.svelte";
 import { settingsState } from "../../stores/settings.svelte";
+import { bitgetWs } from "../bitgetWs";
+import { bitunixWs } from "../bitunixWs";
 import fs from "fs";
 import path from "path";
 
@@ -67,11 +68,14 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
             beforeEach(async () => {
                 settingsState.apiProvider = adapter.id;
 
-                // Drive the transport exclusively through the harness — no
-                // adapter-specific branching, so a new adapter only adds a
-                // harness entry plus fixtures (FEAT-0018 AC).
-                const harness = adapterTestHarnesses[adapter.id];
-                harness.connect(true);
+                // Initialize the correct singleton dynamically
+                if (adapter.id === 'bitunix') {
+                    // @ts-expect-error bypass private visibility for test
+                    bitunixWs.connect(true);
+                } else {
+                    // @ts-expect-error bypass private visibility for test
+                    bitgetWs.connect(true);
+                }
 
                 await vi.advanceTimersByTimeAsync(100);
 
@@ -80,9 +84,11 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
                     if (ws.onopen) ws.onopen();
                 });
 
-                // Feed the login-success frame the adapter expects (no-op for
-                // adapters that log in autonomously).
-                harness.simulateLogin(injectWsMessageString);
+                // If bitget, simulate login success so it subscribes to private channels
+                // (Bitunix connects private socket seamlessly)
+                if (adapter.id === 'bitget') {
+                    injectWsMessageString(JSON.stringify({ event: "login", code: "00000" }));
+                }
             });
 
             it("should preserve 19-digit order IDs unrounded", async () => {
@@ -142,7 +148,6 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
             });
 
             it("should resubscribe to channels on reconnect", async () => {
-                const harness = adapterTestHarnesses[adapter.id];
                 const initialSocket = wsInstances[wsInstances.length - 1];
                 initialSocket.send.mockClear();
 
@@ -152,21 +157,24 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
                 // Trigger a socket close
                 initialSocket.close();
 
-                // Fast-forward past the reconnect backoff (harness-owned constant)
-                await vi.advanceTimersByTimeAsync(harness.reconnectBackoffMs);
+                // Fast-forward past the reconnect backoff
+                await vi.advanceTimersByTimeAsync(35000);
 
-                // The harness returns the adapter's new private socket after reconnect
-                const newSocket = harness.getPrivateSocket();
+                // Bitunix might also reconnect public socket due to watchdog, so find the actual new socket for private/bitget
+                const newSocket = adapter.id === 'bitunix'
+                    // @ts-expect-error bypass private visibility
+                    ? bitunixWs.wsPrivate
+                    : wsInstances[wsInstances.length - 1];
 
                 expect(newSocket).not.toBe(initialSocket);
 
-                if (newSocket?.onopen) newSocket.onopen();
+                if (newSocket.onopen) newSocket.onopen();
 
                 // Simulate login success so it subscribes to private channels
                 injectWsMessageString(JSON.stringify({ event: "login", code: "00000", msg: "success" }));
 
                 // Check that subscriptions were replayed
-                expect(newSocket!.send).toHaveBeenCalled();
+                expect(newSocket.send).toHaveBeenCalled();
             });
         });
     });

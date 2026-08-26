@@ -19,47 +19,25 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getErrorMessage } from "../../../../utils/errorUtils";
 import { checkClientToken } from "../../../../lib/server/clientToken";
-import { AiRequestSchema } from "../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   try {
-    const rawBody = await request.json();
-    const parseResult = AiRequestSchema.safeParse(rawBody);
-
-    if (!parseResult.success) {
-      return json(
-        { error: "Invalid request body", details: parseResult.error.format() },
-        { status: 400 },
-      );
-    }
-
-    const { messages, model, tools, baseUrl } = parseResult.data;
+    const { messages, model, tools } = await request.json();
     const apiKey = request.headers.get("x-api-key");
 
-    if (!apiKey && !baseUrl?.trim()) {
+    if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 401 });
     }
 
-    const targetUrl = resolveProviderEndpoint(
-      baseUrl,
-      "https://api.openai.com/v1/chat/completions",
-      "v1/chat/completions",
-    );
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (apiKey) {
-      headers.Authorization = `Bearer ${apiKey}`;
-    }
-
-    const response = await fetch(targetUrl, {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
         model: model || "gpt-4o",
         messages: messages,

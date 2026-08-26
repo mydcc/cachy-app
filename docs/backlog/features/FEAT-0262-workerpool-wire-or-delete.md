@@ -2,9 +2,7 @@
 id: FEAT-0262
 title: Decide the fate of the unused workerPool service
 type: feature
-status: in-progress
-assignee: antigravity
-branch: feat/feat-0262-workerpool-delete
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -28,21 +26,27 @@ Evidence basis: text search over import statements (Architect review,
 2026-08-23). A string-built dynamic `import()` cannot be fully ruled out by
 search alone — verify before acting.
 
-## Proposal & Decision
+## Proposal
 
-Decision: **Delete** (Option 2) — human sign-off confirmed on 2026-08-26.
-`src/services/workerPool.ts` and `src/services/workerPool.test.ts` removed
-after verifying zero callers repo-wide.
+Make a deliberate call, recorded in this item:
+
+1. **Wire it up** — candidate workload: parallel bulk indicator backfill across
+   symbols; or
+2. **Delete** file + test after verifying no references (including string-built
+   dynamic imports).
+
+Deletion requires explicit human sign-off per project rules ("Do not delete
+code of unclear purpose").
 
 ## Acceptance criteria
 
 Either outcome satisfies this item:
 
-- [x] Decision (wire vs delete) is recorded in this item's body.
-- [x] If deleted: no remaining references anywhere (incl. string-built
+- [ ] Decision (wire vs delete) is recorded in this item's body.
+- [ ] If deleted: no remaining references anywhere (incl. string-built
       `import()`); test file removed with it; `npm run check` green.
 - [ ] If wired: a real consumer uses the pool under load with tests; no
-      regression in existing `technicalsService` worker paths. (N/A)
+      regression in existing `technicalsService` worker paths.
 
 ## Out of scope
 
@@ -50,9 +54,10 @@ Either outcome satisfies this item:
 
 ## Open questions
 
-None (resolved).
+- **Blocking:** wire-or-delete is a human decision — the item stays `specced`
+  until decided.
 
 ## Links
 
-- `src/services/workerPool.ts`, `src/services/workerPool.test.ts` (deleted)
+- `src/services/workerPool.ts`, `src/services/workerPool.test.ts`
 - Source: Autonomous Optimization Architect review, 2026-08-23.

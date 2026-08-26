@@ -19,7 +19,6 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { AiRequestSchema } from "../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
 
 interface AnthropicMessageParam {
   role: "user" | "assistant";
@@ -41,10 +40,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       );
     }
 
-    const { messages, model, tools, baseUrl } = parseResult.data;
+    const { messages, model, tools } = parseResult.data;
     const apiKey = request.headers.get("x-api-key");
 
-    if (!apiKey && !baseUrl?.trim()) {
+    if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 401 });
     }
 
@@ -83,23 +82,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       }
     }
 
-    const targetUrl = resolveProviderEndpoint(
-      baseUrl,
-      "https://api.anthropic.com/v1/messages",
-      "v1/messages",
-    );
-
-    const headers: Record<string, string> = {
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    };
-    if (apiKey) {
-      headers["x-api-key"] = apiKey;
-    }
-
-    const response = await fetch(targetUrl, {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers,
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
       body: JSON.stringify({
         // claude-3-5-sonnet-20240620 was retired 2025-10-28 — see
         // shared/model-migration.md. This fallback only fires if the client

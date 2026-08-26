@@ -398,12 +398,29 @@ to resolve with `false` instead of `null` to match the existing
 fixed inline because it changes a return type/call contract other code
 depends on, not something safe to guess at without checking every caller.
 
-## 11. ✅ `src/services/workerPool.ts` appears to be unreachable
+## 11. `src/services/workerPool.ts` appears to be unreachable
 
-**Roadmap item 21.** **RESOLVED.** Tracked as
-[`FEAT-0262`](backlog/features/FEAT-0262-workerpool-wire-or-delete.md). The unused
-`WorkerPool` service and its unit test were deleted after confirming zero callers in
-production code.
+**Roadmap item 21.** Found while typing this file's `any` casts during a
+lint pass — the same shape of finding as items 5, 8, and 9.
+
+Nothing in `src/` imports or instantiates `WorkerPool` — `grep -rln
+"workerPool\b" src` (excluding the file's own definition and its test)
+comes back empty. Its own test file (`workerPool.test.ts`) exercises it
+directly, but no production code ever constructs a pool or calls
+`execute()`. The class is a complete, generic wrapper for
+`technicals.worker.ts` (a fixed pool of workers, task queuing, timeout-
+based recycling), structurally ready to use but not wired into anything
+that calculates technicals today — that path currently goes through
+different code (see `technicalsService.ts`/`wasmCalculator.ts`, the
+files item 5 already identified as what's actually used).
+
+**The decision:** either wire `WorkerPool` in somewhere (it looks built
+for exactly the multi-symbol-dashboard parallelism `engineBenchmark.ts`'s
+docstring describes), or delete it if the calculation path it was meant
+to accelerate is already covered elsewhere. Left in place and merely
+typed here per this repo's defensive-deletion rule: code whose purpose
+isn't fully clear doesn't get deleted without a person confirming it's
+safe to.
 
 ## 12. ✅ Legacy AES-CBC blobs may no longer be decryptable — `LEGACY_ITERATIONS` was dropped in the Web Crypto rewrite
 

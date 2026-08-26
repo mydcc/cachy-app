@@ -19,7 +19,6 @@ import * as THREE from 'three';
 import { GalaxyEngine } from './engines/GalaxyEngine';
 import { StarDustEngine } from './engines/StarDustEngine';
 import type { EngineContext } from './engines/BaseEngine';
-import { VolumeNormalizer } from './engines/volumeScale';
 
 // Settings shape as read by this worker. GalaxyEngine/StarDustEngine take
 // context.settings as `any` themselves (BaseEngine's own declared field type),
@@ -134,10 +133,7 @@ function init(data: InitMessageData) {
         scene,
         camera,
         renderer,
-        settings,
-        // Galaxy/StarDust never receive trades, so this stays unused here —
-        // the field is required because the trading engines depend on it.
-        volumeNormalizer: new VolumeNormalizer()
+        settings
     };
 
     galaxyEngine = new GalaxyEngine(context);

@@ -16,19 +16,11 @@
  */
 
 import * as THREE from 'three';
-import { VolumeNormalizer } from './volumeScale';
 
 export interface EngineContext {
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     renderer: THREE.WebGLRenderer;
-    /**
-     * Shared trade-volume normalizer, owned by the worker and deliberately
-     * per-worker rather than per-engine: one market stream feeds whichever
-     * engine is active, and a symbol change must clear the calibration window
-     * exactly once (`volumeScale.ts` explains the normalization itself).
-     */
-    volumeNormalizer: VolumeNormalizer;
     // Deliberately `any`: every BaseEngine subclass (CityEngine, BlockEngine,
     // EqualizerEngine, GalaxyEngine, RaindropsEngine, SonarEngine,
     // StarDustEngine) and galaxy.worker.ts reads arbitrary numeric/string

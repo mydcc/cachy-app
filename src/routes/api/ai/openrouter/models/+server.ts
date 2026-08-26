@@ -19,7 +19,6 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../../lib/server/aiEndpoint";
 
 interface OpenRouterModel {
   id: string;
@@ -30,26 +29,12 @@ interface OpenRouterModel {
 
 // OpenRouter's model catalog is a public marketplace listing — no API key
 // required to read it, unlike the actual chat completions.
-export const GET: RequestHandler = async ({ url, request, getClientAddress }) => {
+export const GET: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  const apiKey = request.headers.get("x-api-key");
-  const baseUrl = url.searchParams.get("baseUrl");
-
-  const targetUrl = resolveProviderEndpoint(
-    baseUrl,
-    "https://openrouter.ai/api/v1/models",
-    "v1/models",
-  );
-
-  const headers: Record<string, string> = {};
-  if (apiKey) {
-    headers.Authorization = `Bearer ${apiKey}`;
-  }
-
   try {
-    const response = await fetch(targetUrl, { headers });
+    const response = await fetch("https://openrouter.ai/api/v1/models");
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));

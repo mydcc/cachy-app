@@ -19,7 +19,6 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { AiRequestSchema } from "../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -36,31 +35,21 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       );
     }
 
-    const { messages, model, tools, baseUrl } = parseResult.data;
+    const { messages, model, tools } = parseResult.data;
     const apiKey = request.headers.get("x-api-key");
 
-    if (!apiKey && !baseUrl?.trim()) {
+    if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 401 });
     }
 
-    const targetUrl = resolveProviderEndpoint(
-      baseUrl,
-      "https://openrouter.ai/api/v1/chat/completions",
-      "v1/chat/completions",
-    );
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "X-Title": "Cachy",
-    };
-    if (apiKey) {
-      headers.Authorization = `Bearer ${apiKey}`;
-    }
-
     // OpenRouter speaks the OpenAI chat-completions wire format.
-    const response = await fetch(targetUrl, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "X-Title": "Cachy",
+      },
       body: JSON.stringify({
         model: model || "openrouter/auto",
         messages,

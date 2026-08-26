@@ -992,9 +992,7 @@
         "tooltipDynamicAtmosphere": "Wenn aktiviert, verschieben sich Szenenbeleuchtung, Nebel und Umgebungspartikel farblich basierend auf der Marktstimmung — grün bei bullischer, rot bei bärischer Dynamik.",
         "tooltipGridWidth": "Anzahl der Punkte entlang der X-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
         "tooltipGridLength": "Anzahl der Punkte entlang der Z-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
-        "tooltipSpeed": "Wie schnell sich die Visualisierungselemente animieren und bewegen. Höhere Werte erzeugen ein energetischeres Erscheinungsbild.",
-        "sceneRotation": "Szenenrotation",
-        "tooltipRotation": "Langsame, rein dekorative Drehung der Szene. Standardmäßig aus: Die Drehung macht die Zeit- (Tiefe) und Preisachsen (Höhe) unlesbar."
+        "tooltipSpeed": "Wie schnell sich die Visualisierungselemente animieren und bewegen. Höhere Werte erzeugen ein energetischeres Erscheinungsbild."
       },
       "coordinates": {
         "x": "X",
@@ -1163,9 +1161,6 @@
       },
       "ollamaBaseUrl": "Ollama Server-Adresse",
       "ollamaBaseUrlDesc": "Lokale Ollama-Installation, z. B. http://localhost:11434. Verlässt nie dein Gerät.",
-      "customBaseUrl": "API-Endpunkt überschreiben (Base URL)",
-      "customBaseUrlDesc": "Optionaler eigener Endpunkt oder lokales Gateway (z. B. OmniRoute, LiteLLM, Firmen-Proxy). Ein API-Schlüssel entfällt nur, wenn das Gateway die Authentifizierung übernimmt.",
-      "geminiCustomBaseUrlDesc": "Optionaler eigener Endpunkt oder lokales Gateway. Hinweis: Die Gemini-API benötigt auch bei eigenem Endpunkt einen API-Schlüssel.",
       "openrouterApiKey": "OpenRouter API Schlüssel",
       "contextTitle": "Kontext & Datenzugriff",
       "shareTradeContext": "Trading-Kontext teilen (Journal, Positionen & Setup)",

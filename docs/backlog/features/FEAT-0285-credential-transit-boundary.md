@@ -2,9 +2,7 @@
 id: FEAT-0285
 title: Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop
 type: feature
-status: done
-assignee: antigravity
-branch: feat/feat-0285-client-side-signing
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -44,12 +42,12 @@ plus its smallest honest implementation/documentation step.
 
 ## Acceptance criteria
 
-- [x] An ADR records the chosen option, its reasoning and its failure modes
-- [x] Option A: a test signs a canonical Bitunix and Bitget request in-browser
+- [ ] An ADR records the chosen option, its reasoning and its failure modes
+- [ ] Option A: a test signs a canonical Bitunix and Bitget request in-browser
       and byte-matches a recorded server-signed vector
 - [ ] Option B: ADR-0001 and the data-flow documentation name the hop, what
       transits, retention/logging guarantees, and the review trigger to revisit
-- [x] No third path ships (e.g. "encrypt the secret with a device key before
+- [ ] No third path ships (e.g. "encrypt the secret with a device key before
       transit") without its own ADR
 
 ## Out of scope
@@ -61,13 +59,5 @@ Changing venue signing algorithms themselves.
 ## Links
 
 - [`docs/adr/0001-local-first-boundary.md`](../../adr/0001-local-first-boundary.md)
-- [`docs/adr/0013-client-side-exchange-signing.md`](../../adr/0013-client-side-exchange-signing.md)
 - `src/services/tradeService.ts`, `src/services/syncService.ts`, `src/utils/server/bitunix.ts`
-- `src/utils/crypto/exchangeSigning.ts`, `src/utils/crypto/exchangeSigning.test.ts`
 - Security audit 2026-08-23, finding "raw credentials transit the Cachy server" (Medium-High)
-
-## What shipped
-
-- Chose **Option A** and documented the zero-transit credential boundary in [`ADR-0013`](../../adr/0013-client-side-exchange-signing.md) and referenced in [`ADR-0001`](../../adr/0001-local-first-boundary.md).
-- Implemented client-side WebCrypto signing engine for Bitunix and Bitget in `src/utils/crypto/exchangeSigning.ts`.
-- Added byte-matching conformance and parity test suite in `src/utils/crypto/exchangeSigning.test.ts` asserting exact parity against recorded and server-signed test vectors.
