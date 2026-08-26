@@ -132,6 +132,23 @@ vi.mock("../../../stores/indicator.svelte", () => ({
             ema2: { length: 21 },
             ema3: { length: 50 },
         },
+        // The component effect tracks the full indicator state via toJSON();
+        // the layer itself is mocked below so this regression suite stays
+        // focused on live-tick reactivity, not indicator rendering.
+        toJSON: () => ({}),
+    },
+}));
+
+// The IndicatorLayer owns the indicator overlays/sub-panes; in this component
+// regression suite it is mocked to a no-op so heavyweight chart-series
+// construction (panes, addSeries, JSIndicators) never runs under happy-dom.
+vi.mock("../../../lib/chart/indicatorLayer", () => ({
+    IndicatorLayer: class {
+        constructor(_chart: unknown, _getColor: unknown) {}
+        render(): void {}
+        applyTheme(): void {}
+        setAvailableHeight(): void {}
+        destroy(): void {}
     },
 }));
 
