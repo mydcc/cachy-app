@@ -4191,7 +4191,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0262",
     "title": "Decide the fate of the unused workerPool service",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "feat/feat-0262-workerpool-delete",
     "priority": "P3",
     "milestone": "none",
     "editions": [
