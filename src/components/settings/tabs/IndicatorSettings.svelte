@@ -50,7 +50,7 @@
     ];
 </script>
 
-<div class="flex flex-col h-full bg-[var(--bg-primary)] text-[var(--text-primary)]">
+<div class="flex flex-col gap-3 sm:gap-4 md:gap-6 h-full bg-[var(--bg-primary)] text-[var(--text-primary)]">
     <!-- Tabs -->
     <div class="flex border-b border-[var(--border-color)] overflow-x-auto no-scrollbar bg-[var(--bg-tertiary)] pt-1 px-2">
         {#each tabs as tab}
