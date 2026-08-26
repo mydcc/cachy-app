@@ -65,7 +65,22 @@ let targetAtmosphereColor = new THREE.Color(0x0a0e27);
 // fog / nebula / light intensity can reflect trade RATE + notional VOLUME +
 // PRICE VOLATILITY, not just the buy/sell sentiment ratio.
 interface TradeLogEntry { t: number; notional: number; }
-let tradeLog: TradeLogEntry[] = [];
+// Ring buffer (fixed capacity, no per-frame shift()) so the activity window
+// stays O(1)-amortized even under sustained high-frequency synthetic ticks.
+const TRADE_LOG_CAP = 512;
+const tradeLogBuf: (TradeLogEntry | null)[] = new Array(TRADE_LOG_CAP).fill(null);
+let tradeLogHead = 0;
+let tradeLogCount = 0;
+
+function pushTradeLog(t: number, notional: number) {
+	if (tradeLogCount < TRADE_LOG_CAP) {
+		tradeLogBuf[(tradeLogHead + tradeLogCount) % TRADE_LOG_CAP] = { t, notional };
+		tradeLogCount++;
+	} else {
+		tradeLogBuf[tradeLogHead] = { t, notional };
+		tradeLogHead = (tradeLogHead + 1) % TRADE_LOG_CAP;
+	}
+}
 const tradePriceBuf: number[] = [];
 const tradePriceBufMax = 100;
 let targetActivity = 0;
@@ -86,11 +101,19 @@ function relativePriceVolatility(): number {
 }
 
 function computeActivity(nowMs: number): number {
-  const cutoff = nowMs - ACTIVITY_WINDOW_MS;
-  while (tradeLog.length && tradeLog[0].t < cutoff) tradeLog.shift();
-  let volume = 0;
-  for (const e of tradeLog) volume += e.notional;
-  return marketHeat({ rate: tradeLog.length, volume, volatilityRel: relativePriceVolatility() });
+	const cutoff = nowMs - ACTIVITY_WINDOW_MS;
+	// Drop expired entries from the front of the ring (amortized O(1)).
+	while (tradeLogCount > 0 && (tradeLogBuf[tradeLogHead] as TradeLogEntry).t < cutoff) {
+		tradeLogBuf[tradeLogHead] = null;
+		tradeLogHead = (tradeLogHead + 1) % TRADE_LOG_CAP;
+		tradeLogCount--;
+	}
+	let volume = 0;
+	for (let i = 0; i < tradeLogCount; i++) {
+		const e = tradeLogBuf[(tradeLogHead + i) % TRADE_LOG_CAP] as TradeLogEntry;
+		volume += e.notional;
+	}
+	return marketHeat({ rate: tradeLogCount, volume, volatilityRel: relativePriceVolatility() });
 }
 
 // Atmosphere lighting
@@ -207,7 +230,8 @@ self.onmessage = (event) => {
             // calibration window so sizes re-learn for the new market.
             volumeNormalizer.reset();
             // ...and forget the old market's activity signature.
-            tradeLog.length = 0;
+			tradeLogHead = 0;
+			tradeLogCount = 0;
             tradePriceBuf.length = 0;
             targetActivity = 0;
             currentActivity = 0;
@@ -431,9 +455,9 @@ function onTrade(data: TradeEventData) {
         const trade = data.trade;
         if (trade) {
             const notional = (trade.price || 0) * (trade.amount || 0);
-            if (Number.isFinite(notional)) {
-                tradeLog.push({ t: performance.now(), notional });
-            }
+			if (Number.isFinite(notional)) {
+				pushTradeLog(performance.now(), notional);
+			}
             if (Number.isFinite(trade.price) && trade.price > 0) {
                 tradePriceBuf.push(trade.price);
                 if (tradePriceBuf.length > tradePriceBufMax) tradePriceBuf.shift();
