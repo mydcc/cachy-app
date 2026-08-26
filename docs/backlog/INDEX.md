@@ -2,9 +2,9 @@
 
 # Backlog index
 
-199 items. How to read and add them: [README.md](README.md).
+296 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-progress 8 · ✅ done 142
+Counts by status: 💡 idea 21 · 📋 specced 113 · 🟢 ready 7 · 🟡 in-progress 8 · ✅ done 147
 
 ---
 
@@ -162,6 +162,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | calculation |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -179,7 +180,101 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0281](bugs/BUG-0281-theme-cookie-html-injection.md) | Raw cachy_theme cookie value is interpolated into served HTML and allows markup injection | P1 | ✅ done | security |
 | [BUG-0282](bugs/BUG-0282-ai-context-leaves-device-without-consent.md) | AI assistant sends journal, portfolio and trade setup to servers without explicit consent | P1 | ✅ done | ai |
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | security |
+| [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) | WASM build ships an artifact that production never loads | P1 | ✅ done | build |
+| [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | calculation |
+| [BUG-0321](bugs/BUG-0321-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | charts |
+| [BUG-0322](bugs/BUG-0322-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | charts |
+| [BUG-0323](bugs/BUG-0323-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | charts |
+| [BUG-0324](bugs/BUG-0324-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | charts |
+| [BUG-0325](bugs/BUG-0325-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | charts |
+| [BUG-0326](bugs/BUG-0326-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | charts |
+| [BUG-0327](bugs/BUG-0327-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | charts |
+| [BUG-0328](bugs/BUG-0328-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | journal |
+| [BUG-0329](bugs/BUG-0329-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | journal |
+| [BUG-0330](bugs/BUG-0330-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | journal |
+| [BUG-0331](bugs/BUG-0331-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | journal |
+| [BUG-0332](bugs/BUG-0332-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | journal |
+| [BUG-0333](bugs/BUG-0333-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | journal |
+| [BUG-0334](bugs/BUG-0334-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | journal |
+| [BUG-0335](bugs/BUG-0335-native-arithmetic-AiModelPicker-svelte.md) | Native arithmetic usage found in src/components/settings/AiModelPicker.svelte | P1 | 📋 specced | settings |
+| [BUG-0336](bugs/BUG-0336-native-arithmetic-PaperTradingSettings-svelte.md) | Native arithmetic usage found in src/components/settings/PaperTradingSettings.svelte | P1 | 📋 specced | settings |
+| [BUG-0337](bugs/BUG-0337-native-arithmetic-VisualsTab-svelte.md) | Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte | P1 | 📋 specced | settings |
+| [BUG-0338](bugs/BUG-0338-native-arithmetic-VisualsTab-svelte.md) | Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte | P1 | 📋 specced | settings |
+| [BUG-0339](bugs/BUG-0339-native-arithmetic-VisualsTab-svelte.md) | Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte | P1 | 📋 specced | settings |
+| [BUG-0340](bugs/BUG-0340-native-arithmetic-AlertDefinitionsModal-svelte.md) | Native arithmetic usage found in src/components/alerts/AlertDefinitionsModal.svelte | P1 | 📋 specced | alerts |
+| [BUG-0341](bugs/BUG-0341-native-arithmetic-AccountTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/AccountTooltip.svelte | P1 | 📋 specced | ui |
+| [BUG-0342](bugs/BUG-0342-native-arithmetic-AccountTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/AccountTooltip.svelte | P1 | 📋 specced | ui |
+| [BUG-0343](bugs/BUG-0343-native-arithmetic-PartialCloseInput-svelte.md) | Native arithmetic usage found in src/components/shared/PartialCloseInput.svelte | P1 | 📋 specced | ui |
+| [BUG-0344](bugs/BUG-0344-native-arithmetic-CalendarHeatmap-svelte.md) | Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte | P1 | 📋 specced | charts |
+| [BUG-0345](bugs/BUG-0345-native-arithmetic-CalendarHeatmap-svelte.md) | Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte | P1 | 📋 specced | charts |
+| [BUG-0346](bugs/BUG-0346-native-arithmetic-CalendarHeatmap-svelte.md) | Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte | P1 | 📋 specced | charts |
+| [BUG-0347](bugs/BUG-0347-native-arithmetic-TpSlPriceInput-svelte.md) | Native arithmetic usage found in src/components/shared/TpSlPriceInput.svelte | P1 | 📋 specced | ui |
+| [BUG-0348](bugs/BUG-0348-native-arithmetic-TakeProfitRow-svelte.md) | Native arithmetic usage found in src/components/shared/TakeProfitRow.svelte | P1 | 📋 specced | ui |
+| [BUG-0349](bugs/BUG-0349-native-arithmetic-VisualBar-svelte.md) | Native arithmetic usage found in src/components/shared/VisualBar.svelte | P1 | 📋 specced | ui |
+| [BUG-0350](bugs/BUG-0350-native-arithmetic-VisualBar-svelte.md) | Native arithmetic usage found in src/components/shared/VisualBar.svelte | P1 | 📋 specced | ui |
+| [BUG-0351](bugs/BUG-0351-native-arithmetic-VisualBar-svelte.md) | Native arithmetic usage found in src/components/shared/VisualBar.svelte | P1 | 📋 specced | ui |
+| [BUG-0352](bugs/BUG-0352-native-arithmetic-VisualBar-svelte.md) | Native arithmetic usage found in src/components/shared/VisualBar.svelte | P1 | 📋 specced | ui |
+| [BUG-0353](bugs/BUG-0353-native-arithmetic-MarketOverview-svelte.md) | Native arithmetic usage found in src/components/shared/MarketOverview.svelte | P1 | 📋 specced | ui |
+| [BUG-0354](bugs/BUG-0354-native-arithmetic-PositionsList-svelte.md) | Native arithmetic usage found in src/components/shared/PositionsList.svelte | P1 | 📋 specced | ui |
+| [BUG-0355](bugs/BUG-0355-native-arithmetic-TradeFlowBackground-svelte.md) | Native arithmetic usage found in src/components/shared/backgrounds/TradeFlowBackground.svelte | P1 | 📋 specced | ui |
+| [BUG-0356](bugs/BUG-0356-native-arithmetic-TradeFlowBackground-svelte.md) | Native arithmetic usage found in src/components/shared/backgrounds/TradeFlowBackground.svelte | P1 | 📋 specced | ui |
+| [BUG-0357](bugs/BUG-0357-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | ui |
+| [BUG-0358](bugs/BUG-0358-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | ui |
+| [BUG-0359](bugs/BUG-0359-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | ui |
+| [BUG-0360](bugs/BUG-0360-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | ui |
+| [BUG-0361](bugs/BUG-0361-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | ui |
+| [BUG-0362](bugs/BUG-0362-native-arithmetic-JournalContent-svelte.md) | Native arithmetic usage found in src/components/shared/JournalContent.svelte | P1 | 📋 specced | journal |
+| [BUG-0363](bugs/BUG-0363-native-arithmetic-MarketDashboardModal-svelte.md) | Native arithmetic usage found in src/components/shared/MarketDashboardModal.svelte | P1 | 📋 specced | ui |
+| [BUG-0364](bugs/BUG-0364-native-arithmetic-MarketDashboardModal-svelte.md) | Native arithmetic usage found in src/components/shared/MarketDashboardModal.svelte | P1 | 📋 specced | ui |
+| [BUG-0365](bugs/BUG-0365-native-arithmetic-TradeSetupInputs-svelte.md) | Native arithmetic usage found in src/components/inputs/TradeSetupInputs.svelte | P1 | 📋 specced | ui |
+| [BUG-0366](bugs/BUG-0366-native-arithmetic-TradeSetupInputs-svelte.md) | Native arithmetic usage found in src/components/inputs/TradeSetupInputs.svelte | P1 | 📋 specced | ui |
+| [BUG-0367](bugs/BUG-0367-native-arithmetic-statefulTechnicalsCalculator-ts.md) | Native arithmetic usage found in src/utils/statefulTechnicalsCalculator.ts | P1 | 📋 specced | technicals |
+| [BUG-0368](bugs/BUG-0368-native-arithmetic-statefulTechnicalsCalculator-ts.md) | Native arithmetic usage found in src/utils/statefulTechnicalsCalculator.ts | P1 | 📋 specced | technicals |
+| [BUG-0369](bugs/BUG-0369-native-arithmetic-storageHelper-ts.md) | Native arithmetic usage found in src/utils/storageHelper.ts | P1 | 📋 specced | utils |
+| [BUG-0370](bugs/BUG-0370-native-arithmetic-ai-svelte-ts.md) | Native arithmetic usage found in src/stores/ai.svelte.ts | P1 | 📋 specced | ai |
+| [BUG-0371](bugs/BUG-0371-native-arithmetic-ai-svelte-ts.md) | Native arithmetic usage found in src/stores/ai.svelte.ts | P1 | 📋 specced | ai |
+| [BUG-0372](bugs/BUG-0372-native-arithmetic-ai-svelte-ts.md) | Native arithmetic usage found in src/stores/ai.svelte.ts | P1 | 📋 specced | ai |
+| [BUG-0373](bugs/BUG-0373-native-arithmetic--server-ts.md) | Native arithmetic usage found in src/routes/api/leverage-margin-mode/+server.ts | P1 | 📋 specced | api |
+| [BUG-0374](bugs/BUG-0374-native-arithmetic--server-ts.md) | Native arithmetic usage found in src/routes/api/ai/openrouter/models/+server.ts | P1 | 📋 specced | api |
+| [BUG-0375](bugs/BUG-0375-native-arithmetic--server-ts.md) | Native arithmetic usage found in src/routes/api/positions/+server.ts | P1 | 📋 specced | api |
+| [BUG-0376](bugs/BUG-0376-native-arithmetic-DuckLogic-ts.md) | Native arithmetic usage found in src/lib/pets/DuckLogic.ts | P1 | 📋 specced | pets |
+| [BUG-0377](bugs/BUG-0377-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0378](bugs/BUG-0378-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0379](bugs/BUG-0379-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0380](bugs/BUG-0380-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0381](bugs/BUG-0381-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0382](bugs/BUG-0382-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0383](bugs/BUG-0383-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0384](bugs/BUG-0384-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0385](bugs/BUG-0385-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0386](bugs/BUG-0386-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0387](bugs/BUG-0387-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0388](bugs/BUG-0388-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0389](bugs/BUG-0389-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0390](bugs/BUG-0390-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0391](bugs/BUG-0391-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0392](bugs/BUG-0392-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0393](bugs/BUG-0393-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | calculators |
+| [BUG-0394](bugs/BUG-0394-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | calculators |
+| [BUG-0395](bugs/BUG-0395-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | calculators |
+| [BUG-0396](bugs/BUG-0396-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | calculators |
+| [BUG-0397](bugs/BUG-0397-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | calculators |
+| [BUG-0398](bugs/BUG-0398-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | calculators |
+| [BUG-0399](bugs/BUG-0399-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | calculators |
+| [BUG-0400](bugs/BUG-0400-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | calculators |
+| [BUG-0401](bugs/BUG-0401-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | calculators |
+| [BUG-0402](bugs/BUG-0402-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | windows |
+| [BUG-0403](bugs/BUG-0403-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | windows |
+| [BUG-0404](bugs/BUG-0404-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | windows |
+| [BUG-0405](bugs/BUG-0405-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | windows |
+| [BUG-0406](bugs/BUG-0406-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | windows |
+| [BUG-0407](bugs/BUG-0407-native-arithmetic-apiSchemas-ts.md) | Native arithmetic usage found in src/types/apiSchemas.ts | P1 | 📋 specced | types |
+| [BUG-0408](bugs/BUG-0408-native-arithmetic-indicator-settings-rs.md) | Native arithmetic usage found in technicals-wasm/src/indicator_settings.rs | P1 | 📋 specced | wasm |
+| [BUG-0409](bugs/BUG-0409-native-arithmetic-lib-rs.md) | Native arithmetic usage found in technicals-wasm/src/lib.rs | P1 | 📋 specced | wasm |
+| [BUG-0410](bugs/BUG-0410-native-arithmetic-lib-rs.md) | Native arithmetic usage found in technicals-wasm/src/lib.rs | P1 | 📋 specced | wasm |
+| [BUG-0411](bugs/BUG-0411-native-arithmetic-lib-rs.md) | Native arithmetic usage found in technicals-wasm/src/lib.rs | P1 | 📋 specced | wasm |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
+| [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
@@ -213,6 +308,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0310](bugs/BUG-0310-docs-bitunix-api.md) | bitunix-api INTEGRATION_STATUS is stale | P2 | ✅ done | docs |
 | [BUG-0311](bugs/BUG-0311-docs-backlog-infra.md) | Backlog infra docs and generated index are out of sync | P2 | ✅ done | docs |
 | [BUG-0312](bugs/BUG-0312-docs-backlog-items.md) | Stale code references in done backlog items | P2 | ✅ done | docs |
+| [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | calculation |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -263,6 +359,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
+| [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | calculation |
 
 ---
 
@@ -279,6 +376,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) |
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
 | [BUG-0293](bugs/BUG-0293-tpsl-modify-wire-format.md) | modifyTpSlOrder sent a wire body the venue's modify_order does not document | P0 | ✅ done | M3 | community, pro, private | A | none | — |
+| [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -314,6 +412,99 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [BUG-0297](bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) | An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built | P1 | ✅ done | M2 | community, pro, private | none | none | — |
+| [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) | WASM build ships an artifact that production never loads | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
+| [BUG-0321](bugs/BUG-0321-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0322](bugs/BUG-0322-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0323](bugs/BUG-0323-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0324](bugs/BUG-0324-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0325](bugs/BUG-0325-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0326](bugs/BUG-0326-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0327](bugs/BUG-0327-native-arithmetic-priceLineManager-ts.md) | Native arithmetic usage found in src/services/chart/priceLineManager.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0328](bugs/BUG-0328-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0329](bugs/BUG-0329-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0330](bugs/BUG-0330-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0331](bugs/BUG-0331-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0332](bugs/BUG-0332-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0333](bugs/BUG-0333-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0334](bugs/BUG-0334-native-arithmetic-csvService-ts.md) | Native arithmetic usage found in src/services/csvService.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0335](bugs/BUG-0335-native-arithmetic-AiModelPicker-svelte.md) | Native arithmetic usage found in src/components/settings/AiModelPicker.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0336](bugs/BUG-0336-native-arithmetic-PaperTradingSettings-svelte.md) | Native arithmetic usage found in src/components/settings/PaperTradingSettings.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0337](bugs/BUG-0337-native-arithmetic-VisualsTab-svelte.md) | Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0338](bugs/BUG-0338-native-arithmetic-VisualsTab-svelte.md) | Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0339](bugs/BUG-0339-native-arithmetic-VisualsTab-svelte.md) | Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0340](bugs/BUG-0340-native-arithmetic-AlertDefinitionsModal-svelte.md) | Native arithmetic usage found in src/components/alerts/AlertDefinitionsModal.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0341](bugs/BUG-0341-native-arithmetic-AccountTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/AccountTooltip.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0342](bugs/BUG-0342-native-arithmetic-AccountTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/AccountTooltip.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0343](bugs/BUG-0343-native-arithmetic-PartialCloseInput-svelte.md) | Native arithmetic usage found in src/components/shared/PartialCloseInput.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0344](bugs/BUG-0344-native-arithmetic-CalendarHeatmap-svelte.md) | Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0345](bugs/BUG-0345-native-arithmetic-CalendarHeatmap-svelte.md) | Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0346](bugs/BUG-0346-native-arithmetic-CalendarHeatmap-svelte.md) | Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0347](bugs/BUG-0347-native-arithmetic-TpSlPriceInput-svelte.md) | Native arithmetic usage found in src/components/shared/TpSlPriceInput.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0348](bugs/BUG-0348-native-arithmetic-TakeProfitRow-svelte.md) | Native arithmetic usage found in src/components/shared/TakeProfitRow.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0349](bugs/BUG-0349-native-arithmetic-VisualBar-svelte.md) | Native arithmetic usage found in src/components/shared/VisualBar.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0350](bugs/BUG-0350-native-arithmetic-VisualBar-svelte.md) | Native arithmetic usage found in src/components/shared/VisualBar.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0351](bugs/BUG-0351-native-arithmetic-VisualBar-svelte.md) | Native arithmetic usage found in src/components/shared/VisualBar.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0352](bugs/BUG-0352-native-arithmetic-VisualBar-svelte.md) | Native arithmetic usage found in src/components/shared/VisualBar.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0353](bugs/BUG-0353-native-arithmetic-MarketOverview-svelte.md) | Native arithmetic usage found in src/components/shared/MarketOverview.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0354](bugs/BUG-0354-native-arithmetic-PositionsList-svelte.md) | Native arithmetic usage found in src/components/shared/PositionsList.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0355](bugs/BUG-0355-native-arithmetic-TradeFlowBackground-svelte.md) | Native arithmetic usage found in src/components/shared/backgrounds/TradeFlowBackground.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0356](bugs/BUG-0356-native-arithmetic-TradeFlowBackground-svelte.md) | Native arithmetic usage found in src/components/shared/backgrounds/TradeFlowBackground.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0357](bugs/BUG-0357-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0358](bugs/BUG-0358-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0359](bugs/BUG-0359-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0360](bugs/BUG-0360-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0361](bugs/BUG-0361-native-arithmetic-OrderDetailsTooltip-svelte.md) | Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0362](bugs/BUG-0362-native-arithmetic-JournalContent-svelte.md) | Native arithmetic usage found in src/components/shared/JournalContent.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0363](bugs/BUG-0363-native-arithmetic-MarketDashboardModal-svelte.md) | Native arithmetic usage found in src/components/shared/MarketDashboardModal.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0364](bugs/BUG-0364-native-arithmetic-MarketDashboardModal-svelte.md) | Native arithmetic usage found in src/components/shared/MarketDashboardModal.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0365](bugs/BUG-0365-native-arithmetic-TradeSetupInputs-svelte.md) | Native arithmetic usage found in src/components/inputs/TradeSetupInputs.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0366](bugs/BUG-0366-native-arithmetic-TradeSetupInputs-svelte.md) | Native arithmetic usage found in src/components/inputs/TradeSetupInputs.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0367](bugs/BUG-0367-native-arithmetic-statefulTechnicalsCalculator-ts.md) | Native arithmetic usage found in src/utils/statefulTechnicalsCalculator.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0368](bugs/BUG-0368-native-arithmetic-statefulTechnicalsCalculator-ts.md) | Native arithmetic usage found in src/utils/statefulTechnicalsCalculator.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0369](bugs/BUG-0369-native-arithmetic-storageHelper-ts.md) | Native arithmetic usage found in src/utils/storageHelper.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0370](bugs/BUG-0370-native-arithmetic-ai-svelte-ts.md) | Native arithmetic usage found in src/stores/ai.svelte.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0371](bugs/BUG-0371-native-arithmetic-ai-svelte-ts.md) | Native arithmetic usage found in src/stores/ai.svelte.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0372](bugs/BUG-0372-native-arithmetic-ai-svelte-ts.md) | Native arithmetic usage found in src/stores/ai.svelte.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0373](bugs/BUG-0373-native-arithmetic--server-ts.md) | Native arithmetic usage found in src/routes/api/leverage-margin-mode/+server.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0374](bugs/BUG-0374-native-arithmetic--server-ts.md) | Native arithmetic usage found in src/routes/api/ai/openrouter/models/+server.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0375](bugs/BUG-0375-native-arithmetic--server-ts.md) | Native arithmetic usage found in src/routes/api/positions/+server.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0376](bugs/BUG-0376-native-arithmetic-DuckLogic-ts.md) | Native arithmetic usage found in src/lib/pets/DuckLogic.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0377](bugs/BUG-0377-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0378](bugs/BUG-0378-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0379](bugs/BUG-0379-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0380](bugs/BUG-0380-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0381](bugs/BUG-0381-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0382](bugs/BUG-0382-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0383](bugs/BUG-0383-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0384](bugs/BUG-0384-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0385](bugs/BUG-0385-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0386](bugs/BUG-0386-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0387](bugs/BUG-0387-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0388](bugs/BUG-0388-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0389](bugs/BUG-0389-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0390](bugs/BUG-0390-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0391](bugs/BUG-0391-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0392](bugs/BUG-0392-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0393](bugs/BUG-0393-native-arithmetic-charts-ts.md) | Native arithmetic usage found in src/lib/calculators/charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0394](bugs/BUG-0394-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0395](bugs/BUG-0395-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0396](bugs/BUG-0396-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0397](bugs/BUG-0397-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0398](bugs/BUG-0398-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0399](bugs/BUG-0399-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0400](bugs/BUG-0400-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0401](bugs/BUG-0401-native-arithmetic-stats-ts.md) | Native arithmetic usage found in src/lib/calculators/stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0402](bugs/BUG-0402-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0403](bugs/BUG-0403-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0404](bugs/BUG-0404-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0405](bugs/BUG-0405-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0406](bugs/BUG-0406-native-arithmetic-SymbolPickerView-svelte.md) | Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0407](bugs/BUG-0407-native-arithmetic-apiSchemas-ts.md) | Native arithmetic usage found in src/types/apiSchemas.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0408](bugs/BUG-0408-native-arithmetic-indicator-settings-rs.md) | Native arithmetic usage found in technicals-wasm/src/indicator_settings.rs | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0409](bugs/BUG-0409-native-arithmetic-lib-rs.md) | Native arithmetic usage found in technicals-wasm/src/lib.rs | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0410](bugs/BUG-0410-native-arithmetic-lib-rs.md) | Native arithmetic usage found in technicals-wasm/src/lib.rs | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0411](bugs/BUG-0411-native-arithmetic-lib-rs.md) | Native arithmetic usage found in technicals-wasm/src/lib.rs | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -340,6 +531,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | M3 | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
+| [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -386,6 +578,7 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0310](bugs/BUG-0310-docs-bitunix-api.md) | bitunix-api INTEGRATION_STATUS is stale | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0311](bugs/BUG-0311-docs-backlog-infra.md) | Backlog infra docs and generated index are out of sync | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0312](bugs/BUG-0312-docs-backlog-items.md) | Stale code references in done backlog items | P2 | ✅ done | none | community | none | none | — |
+| [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -469,7 +662,8 @@ Counts by status: 💡 idea 20 · 📋 specced 22 · 🟢 ready 7 · 🟡 in-pro
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | M3 | community, pro, private | none | none | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) |
 | [IDEA-0255](ideas/IDEA-0255-order-quantity-percent-slider.md) | Add a 0/25/50/75/100% quantity slider to the order-entry form | P3 | 💡 idea | M3 | community, pro, private | none | none | — |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | M8 | pro, private | C | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
+| [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | none | community, pro, private | none | none | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) |
 
 ---
 
-Next free number: **0313**
+Next free number: **0412**

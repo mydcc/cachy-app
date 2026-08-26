@@ -204,6 +204,25 @@
       "file": "bugs/BUG-0293-tpsl-modify-wire-format.md"
     },
     {
+      "id": "BUG-0315",
+      "title": "wasmCalculator double-counts the last candle in initialize and update",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0315-double-counted-last-candle.md"
+    },
+    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -976,6 +995,1684 @@
       "file": "bugs/BUG-0297-bitget-entry-order-gate-deadlock.md"
     },
     {
+      "id": "BUG-0313",
+      "title": "WASM build ships an artifact that production never loads",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "build",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md"
+    },
+    {
+      "id": "BUG-0317",
+      "title": "No automated WASM-to-TS parity verification or benchmark",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0313"
+      ],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0317-wasm-parity-test-benchmark.md"
+    },
+    {
+      "id": "BUG-0321",
+      "title": "Native arithmetic usage found in src/services/chart/priceLineManager.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0321-native-arithmetic-priceLineManager-ts.md"
+    },
+    {
+      "id": "BUG-0322",
+      "title": "Native arithmetic usage found in src/services/chart/priceLineManager.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0322-native-arithmetic-priceLineManager-ts.md"
+    },
+    {
+      "id": "BUG-0323",
+      "title": "Native arithmetic usage found in src/services/chart/priceLineManager.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0323-native-arithmetic-priceLineManager-ts.md"
+    },
+    {
+      "id": "BUG-0324",
+      "title": "Native arithmetic usage found in src/services/chart/priceLineManager.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0324-native-arithmetic-priceLineManager-ts.md"
+    },
+    {
+      "id": "BUG-0325",
+      "title": "Native arithmetic usage found in src/services/chart/priceLineManager.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0325-native-arithmetic-priceLineManager-ts.md"
+    },
+    {
+      "id": "BUG-0326",
+      "title": "Native arithmetic usage found in src/services/chart/priceLineManager.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0326-native-arithmetic-priceLineManager-ts.md"
+    },
+    {
+      "id": "BUG-0327",
+      "title": "Native arithmetic usage found in src/services/chart/priceLineManager.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0327-native-arithmetic-priceLineManager-ts.md"
+    },
+    {
+      "id": "BUG-0328",
+      "title": "Native arithmetic usage found in src/services/csvService.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0328-native-arithmetic-csvService-ts.md"
+    },
+    {
+      "id": "BUG-0329",
+      "title": "Native arithmetic usage found in src/services/csvService.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0329-native-arithmetic-csvService-ts.md"
+    },
+    {
+      "id": "BUG-0330",
+      "title": "Native arithmetic usage found in src/services/csvService.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0330-native-arithmetic-csvService-ts.md"
+    },
+    {
+      "id": "BUG-0331",
+      "title": "Native arithmetic usage found in src/services/csvService.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0331-native-arithmetic-csvService-ts.md"
+    },
+    {
+      "id": "BUG-0332",
+      "title": "Native arithmetic usage found in src/services/csvService.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0332-native-arithmetic-csvService-ts.md"
+    },
+    {
+      "id": "BUG-0333",
+      "title": "Native arithmetic usage found in src/services/csvService.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0333-native-arithmetic-csvService-ts.md"
+    },
+    {
+      "id": "BUG-0334",
+      "title": "Native arithmetic usage found in src/services/csvService.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0334-native-arithmetic-csvService-ts.md"
+    },
+    {
+      "id": "BUG-0335",
+      "title": "Native arithmetic usage found in src/components/settings/AiModelPicker.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "settings",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0335-native-arithmetic-AiModelPicker-svelte.md"
+    },
+    {
+      "id": "BUG-0336",
+      "title": "Native arithmetic usage found in src/components/settings/PaperTradingSettings.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "settings",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0336-native-arithmetic-PaperTradingSettings-svelte.md"
+    },
+    {
+      "id": "BUG-0337",
+      "title": "Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "settings",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0337-native-arithmetic-VisualsTab-svelte.md"
+    },
+    {
+      "id": "BUG-0338",
+      "title": "Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "settings",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0338-native-arithmetic-VisualsTab-svelte.md"
+    },
+    {
+      "id": "BUG-0339",
+      "title": "Native arithmetic usage found in src/components/settings/tabs/VisualsTab.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "settings",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0339-native-arithmetic-VisualsTab-svelte.md"
+    },
+    {
+      "id": "BUG-0340",
+      "title": "Native arithmetic usage found in src/components/alerts/AlertDefinitionsModal.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0340-native-arithmetic-AlertDefinitionsModal-svelte.md"
+    },
+    {
+      "id": "BUG-0341",
+      "title": "Native arithmetic usage found in src/components/shared/AccountTooltip.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0341-native-arithmetic-AccountTooltip-svelte.md"
+    },
+    {
+      "id": "BUG-0342",
+      "title": "Native arithmetic usage found in src/components/shared/AccountTooltip.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0342-native-arithmetic-AccountTooltip-svelte.md"
+    },
+    {
+      "id": "BUG-0343",
+      "title": "Native arithmetic usage found in src/components/shared/PartialCloseInput.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0343-native-arithmetic-PartialCloseInput-svelte.md"
+    },
+    {
+      "id": "BUG-0344",
+      "title": "Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0344-native-arithmetic-CalendarHeatmap-svelte.md"
+    },
+    {
+      "id": "BUG-0345",
+      "title": "Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0345-native-arithmetic-CalendarHeatmap-svelte.md"
+    },
+    {
+      "id": "BUG-0346",
+      "title": "Native arithmetic usage found in src/components/shared/charts/CalendarHeatmap.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0346-native-arithmetic-CalendarHeatmap-svelte.md"
+    },
+    {
+      "id": "BUG-0347",
+      "title": "Native arithmetic usage found in src/components/shared/TpSlPriceInput.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0347-native-arithmetic-TpSlPriceInput-svelte.md"
+    },
+    {
+      "id": "BUG-0348",
+      "title": "Native arithmetic usage found in src/components/shared/TakeProfitRow.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0348-native-arithmetic-TakeProfitRow-svelte.md"
+    },
+    {
+      "id": "BUG-0349",
+      "title": "Native arithmetic usage found in src/components/shared/VisualBar.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0349-native-arithmetic-VisualBar-svelte.md"
+    },
+    {
+      "id": "BUG-0350",
+      "title": "Native arithmetic usage found in src/components/shared/VisualBar.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0350-native-arithmetic-VisualBar-svelte.md"
+    },
+    {
+      "id": "BUG-0351",
+      "title": "Native arithmetic usage found in src/components/shared/VisualBar.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0351-native-arithmetic-VisualBar-svelte.md"
+    },
+    {
+      "id": "BUG-0352",
+      "title": "Native arithmetic usage found in src/components/shared/VisualBar.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0352-native-arithmetic-VisualBar-svelte.md"
+    },
+    {
+      "id": "BUG-0353",
+      "title": "Native arithmetic usage found in src/components/shared/MarketOverview.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0353-native-arithmetic-MarketOverview-svelte.md"
+    },
+    {
+      "id": "BUG-0354",
+      "title": "Native arithmetic usage found in src/components/shared/PositionsList.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0354-native-arithmetic-PositionsList-svelte.md"
+    },
+    {
+      "id": "BUG-0355",
+      "title": "Native arithmetic usage found in src/components/shared/backgrounds/TradeFlowBackground.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0355-native-arithmetic-TradeFlowBackground-svelte.md"
+    },
+    {
+      "id": "BUG-0356",
+      "title": "Native arithmetic usage found in src/components/shared/backgrounds/TradeFlowBackground.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0356-native-arithmetic-TradeFlowBackground-svelte.md"
+    },
+    {
+      "id": "BUG-0357",
+      "title": "Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0357-native-arithmetic-OrderDetailsTooltip-svelte.md"
+    },
+    {
+      "id": "BUG-0358",
+      "title": "Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0358-native-arithmetic-OrderDetailsTooltip-svelte.md"
+    },
+    {
+      "id": "BUG-0359",
+      "title": "Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0359-native-arithmetic-OrderDetailsTooltip-svelte.md"
+    },
+    {
+      "id": "BUG-0360",
+      "title": "Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0360-native-arithmetic-OrderDetailsTooltip-svelte.md"
+    },
+    {
+      "id": "BUG-0361",
+      "title": "Native arithmetic usage found in src/components/shared/OrderDetailsTooltip.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0361-native-arithmetic-OrderDetailsTooltip-svelte.md"
+    },
+    {
+      "id": "BUG-0362",
+      "title": "Native arithmetic usage found in src/components/shared/JournalContent.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0362-native-arithmetic-JournalContent-svelte.md"
+    },
+    {
+      "id": "BUG-0363",
+      "title": "Native arithmetic usage found in src/components/shared/MarketDashboardModal.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0363-native-arithmetic-MarketDashboardModal-svelte.md"
+    },
+    {
+      "id": "BUG-0364",
+      "title": "Native arithmetic usage found in src/components/shared/MarketDashboardModal.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0364-native-arithmetic-MarketDashboardModal-svelte.md"
+    },
+    {
+      "id": "BUG-0365",
+      "title": "Native arithmetic usage found in src/components/inputs/TradeSetupInputs.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0365-native-arithmetic-TradeSetupInputs-svelte.md"
+    },
+    {
+      "id": "BUG-0366",
+      "title": "Native arithmetic usage found in src/components/inputs/TradeSetupInputs.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0366-native-arithmetic-TradeSetupInputs-svelte.md"
+    },
+    {
+      "id": "BUG-0367",
+      "title": "Native arithmetic usage found in src/utils/statefulTechnicalsCalculator.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "technicals",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0367-native-arithmetic-statefulTechnicalsCalculator-ts.md"
+    },
+    {
+      "id": "BUG-0368",
+      "title": "Native arithmetic usage found in src/utils/statefulTechnicalsCalculator.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "technicals",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0368-native-arithmetic-statefulTechnicalsCalculator-ts.md"
+    },
+    {
+      "id": "BUG-0369",
+      "title": "Native arithmetic usage found in src/utils/storageHelper.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "utils",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0369-native-arithmetic-storageHelper-ts.md"
+    },
+    {
+      "id": "BUG-0370",
+      "title": "Native arithmetic usage found in src/stores/ai.svelte.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0370-native-arithmetic-ai-svelte-ts.md"
+    },
+    {
+      "id": "BUG-0371",
+      "title": "Native arithmetic usage found in src/stores/ai.svelte.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0371-native-arithmetic-ai-svelte-ts.md"
+    },
+    {
+      "id": "BUG-0372",
+      "title": "Native arithmetic usage found in src/stores/ai.svelte.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0372-native-arithmetic-ai-svelte-ts.md"
+    },
+    {
+      "id": "BUG-0373",
+      "title": "Native arithmetic usage found in src/routes/api/leverage-margin-mode/+server.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "api",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0373-native-arithmetic--server-ts.md"
+    },
+    {
+      "id": "BUG-0374",
+      "title": "Native arithmetic usage found in src/routes/api/ai/openrouter/models/+server.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "api",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0374-native-arithmetic--server-ts.md"
+    },
+    {
+      "id": "BUG-0375",
+      "title": "Native arithmetic usage found in src/routes/api/positions/+server.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "api",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0375-native-arithmetic--server-ts.md"
+    },
+    {
+      "id": "BUG-0376",
+      "title": "Native arithmetic usage found in src/lib/pets/DuckLogic.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "pets",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0376-native-arithmetic-DuckLogic-ts.md"
+    },
+    {
+      "id": "BUG-0377",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0377-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0378",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0378-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0379",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0379-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0380",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0380-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0381",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0381-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0382",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0382-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0383",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0383-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0384",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0384-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0385",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0385-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0386",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0386-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0387",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0387-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0388",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0388-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0389",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0389-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0390",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0390-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0391",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0391-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0392",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0392-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0393",
+      "title": "Native arithmetic usage found in src/lib/calculators/charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0393-native-arithmetic-charts-ts.md"
+    },
+    {
+      "id": "BUG-0394",
+      "title": "Native arithmetic usage found in src/lib/calculators/stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0394-native-arithmetic-stats-ts.md"
+    },
+    {
+      "id": "BUG-0395",
+      "title": "Native arithmetic usage found in src/lib/calculators/stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0395-native-arithmetic-stats-ts.md"
+    },
+    {
+      "id": "BUG-0396",
+      "title": "Native arithmetic usage found in src/lib/calculators/stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0396-native-arithmetic-stats-ts.md"
+    },
+    {
+      "id": "BUG-0397",
+      "title": "Native arithmetic usage found in src/lib/calculators/stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0397-native-arithmetic-stats-ts.md"
+    },
+    {
+      "id": "BUG-0398",
+      "title": "Native arithmetic usage found in src/lib/calculators/stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0398-native-arithmetic-stats-ts.md"
+    },
+    {
+      "id": "BUG-0399",
+      "title": "Native arithmetic usage found in src/lib/calculators/stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0399-native-arithmetic-stats-ts.md"
+    },
+    {
+      "id": "BUG-0400",
+      "title": "Native arithmetic usage found in src/lib/calculators/stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0400-native-arithmetic-stats-ts.md"
+    },
+    {
+      "id": "BUG-0401",
+      "title": "Native arithmetic usage found in src/lib/calculators/stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0401-native-arithmetic-stats-ts.md"
+    },
+    {
+      "id": "BUG-0402",
+      "title": "Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "windows",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0402-native-arithmetic-SymbolPickerView-svelte.md"
+    },
+    {
+      "id": "BUG-0403",
+      "title": "Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "windows",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0403-native-arithmetic-SymbolPickerView-svelte.md"
+    },
+    {
+      "id": "BUG-0404",
+      "title": "Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "windows",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0404-native-arithmetic-SymbolPickerView-svelte.md"
+    },
+    {
+      "id": "BUG-0405",
+      "title": "Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "windows",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0405-native-arithmetic-SymbolPickerView-svelte.md"
+    },
+    {
+      "id": "BUG-0406",
+      "title": "Native arithmetic usage found in src/lib/windows/implementations/SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "windows",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0406-native-arithmetic-SymbolPickerView-svelte.md"
+    },
+    {
+      "id": "BUG-0407",
+      "title": "Native arithmetic usage found in src/types/apiSchemas.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "types",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0407-native-arithmetic-apiSchemas-ts.md"
+    },
+    {
+      "id": "BUG-0408",
+      "title": "Native arithmetic usage found in technicals-wasm/src/indicator_settings.rs",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "wasm",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0408-native-arithmetic-indicator-settings-rs.md"
+    },
+    {
+      "id": "BUG-0409",
+      "title": "Native arithmetic usage found in technicals-wasm/src/lib.rs",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "wasm",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0409-native-arithmetic-lib-rs.md"
+    },
+    {
+      "id": "BUG-0410",
+      "title": "Native arithmetic usage found in technicals-wasm/src/lib.rs",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "wasm",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0410-native-arithmetic-lib-rs.md"
+    },
+    {
+      "id": "BUG-0411",
+      "title": "Native arithmetic usage found in technicals-wasm/src/lib.rs",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "wasm",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0411-native-arithmetic-lib-rs.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -1583,6 +3280,27 @@
       "size": "M",
       "estimate": "5",
       "file": "features/FEAT-0303-strategy-rule-schema.md"
+    },
+    {
+      "id": "FEAT-0316",
+      "title": "Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm",
+      "type": "feature",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0313"
+      ],
+      "assignee": "opencode",
+      "file": "features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md"
     },
     {
       "id": "BUG-0005",
@@ -2551,6 +4269,25 @@
       "adr": "none",
       "depends_on": [],
       "file": "bugs/BUG-0312-docs-backlog-items.md"
+    },
+    {
+      "id": "BUG-0314",
+      "title": "WASM module traps silently on malformed input and keeps the poisoned instance",
+      "type": "bug",
+      "status": "done",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md"
     },
     {
       "id": "FEAT-0019",
@@ -4369,7 +6106,27 @@
       "size": "M",
       "estimate": "3",
       "file": "ideas/IDEA-0305-external-market-context-as-veto.md"
+    },
+    {
+      "id": "IDEA-0318",
+      "title": "Post-measurement WASM performance tuning",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0317"
+      ],
+      "file": "ideas/IDEA-0318-post-measurement-wasm-performance.md"
     }
   ],
-  "count": 199
+  "count": 296
 }
