@@ -39,121 +39,132 @@
 </script>
 
 <div class="flex flex-col gap-6">
-    <!-- Price Scale -->
+    <!-- Header with Reset Button -->
+    <div class="flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-[var(--text-primary)]">
+            Chart Einstellungen
+        </h2>
+        <button
+            type="button"
+            class="text-xs text-[var(--accent-color)] hover:underline transition-colors"
+            onclick={() => settingsState.resetChartSettings()}
+        >
+            {$_("settings.chart.reset") || "Alle zurücksetzen"}
+        </button>
+    </div>
+
+    <!-- Scale Settings -->
     <section class="settings-section animate-fade-in">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="section-title mb-0">
-                {$_("settings.chart.scaleSection") || "Skalierung"}
-            </h3>
-            <button
-                type="button"
-                class="text-xs text-[var(--accent-color)] hover:underline"
-                onclick={() => settingsState.resetChartSettings()}
-            >
-                {$_("settings.chart.reset") || "Zurücksetzen"}
-            </button>
-        </div>
+        <h3 class="section-title">
+            {$_("settings.chart.scaleSection") || "Skalierung"}
+        </h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div class="field-group">
-                <label for="chart-scale-mode">
-                    {$_("settings.chart.scaleMode") || "Preisskala"}
-                </label>
-                <select
-                    id="chart-scale-mode"
-                    bind:value={settingsState.chartPriceScaleMode}
-                    class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
-                >
-                    {#each priceScaleModes as mode (mode.value)}
-                        <option value={mode.value}>
-                            {$_(mode.labelKey) || mode.value}
+        <div class="space-y-4">
+            <!-- Scale Mode & Decimals Mode -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="field-group">
+                    <label for="chart-scale-mode">
+                        {$_("settings.chart.scaleMode") || "Preisskala"}
+                    </label>
+                    <select
+                        id="chart-scale-mode"
+                        bind:value={settingsState.chartPriceScaleMode}
+                        class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
+                    >
+                        {#each priceScaleModes as mode (mode.value)}
+                            <option value={mode.value}>
+                                {$_(mode.labelKey) || mode.value}
+                            </option>
+                        {/each}
+                    </select>
+                </div>
+
+                <div class="field-group">
+                    <label for="chart-decimals-mode">
+                        {$_("settings.chart.decimalsMode") || "Dezimalstellen"}
+                    </label>
+                    <select
+                        id="chart-decimals-mode"
+                        bind:value={settingsState.chartDecimalsMode}
+                        class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
+                    >
+                        <option value="auto">
+                            {$_("settings.chart.decimalsAuto") || "Auto (Börse)"}
                         </option>
-                    {/each}
-                </select>
-            </div>
-
-            <div class="field-group">
-                <label for="chart-decimals-mode">
-                    {$_("settings.chart.decimalsMode") || "Dezimalstellen"}
-                </label>
-                <select
-                    id="chart-decimals-mode"
-                    bind:value={settingsState.chartDecimalsMode}
-                    class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
-                >
-                    <option value="auto">
-                        {$_("settings.chart.decimalsAuto") || "Auto (Börse)"}
-                    </option>
-                    <option value="fixed">
-                        {$_("settings.chart.decimalsFixed") || "Fest"}
-                    </option>
-                </select>
-            </div>
-        </div>
-
-        <p class="text-[10px] text-[var(--text-secondary)] mb-4">
-            {$_("settings.chart.scaleHint")
-                || "Logarithmisch bewertet Preisabstände prozentual gleich - empfohlen für große Kursbereiche."}
-        </p>
-
-        {#if settingsState.chartDecimalsMode === "fixed"}
-            <div class="field-group mb-4">
-                <label for="chart-fixed-decimals">
-                    {$_("settings.chart.fixedDecimals") || "Feste Dezimalstellen"}
-                    <span class="text-[var(--accent-color)] font-mono ml-auto"
-                        >{settingsState.chartFixedDecimals}</span
-                    >
-                </label>
-                <input
-                    id="chart-fixed-decimals"
-                    type="range"
-                    min="0"
-                    max="8"
-                    step="1"
-                    bind:value={settingsState.chartFixedDecimals}
-                    class="w-full accent-[var(--accent-color)] cursor-pointer"
-                />
-            </div>
-        {/if}
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label class="toggle-card h-full">
-                <div class="flex flex-col">
-                    <span class="text-sm font-medium"
-                        >{$_("settings.chart.autoScale") || "Auto-Skalierung"}</span
-                    >
-                    <span
-                        class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.autoScaleDesc")
-                            || "Y-Achse passt sich automatisch dem Kurs an"}</span
-                    >
+                        <option value="fixed">
+                            {$_("settings.chart.decimalsFixed") || "Fest"}
+                        </option>
+                    </select>
                 </div>
-                <Toggle bind:checked={settingsState.chartAutoScale} />
-            </label>
+            </div>
 
-            <label class="toggle-card h-full">
-                <div class="flex flex-col">
-                    <span class="text-sm font-medium"
-                        >{$_("settings.chart.invertScale")}</span
-                    >
-                    <span
-                        class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.invertScaleDesc")
-                            || "Preisachse umkehren (0 oben)"}</span
-                    >
+            <!-- Hint Text -->
+            <p class="text-[10px] text-[var(--text-secondary)]">
+                {$_("settings.chart.scaleHint")
+                    || "Logarithmisch bewertet Preisabstände prozentual gleich - empfohlen für große Kursbereiche."}
+            </p>
+
+            <!-- Fixed Decimals Slider -->
+            {#if settingsState.chartDecimalsMode === "fixed"}
+                <div class="field-group">
+                    <label for="chart-fixed-decimals">
+                        {$_("settings.chart.fixedDecimals") || "Feste Dezimalstellen"}
+                        <span class="text-[var(--accent-color)] font-mono ml-auto"
+                            >{settingsState.chartFixedDecimals}</span
+                        >
+                    </label>
+                    <input
+                        id="chart-fixed-decimals"
+                        type="range"
+                        min="0"
+                        max="8"
+                        step="1"
+                        bind:value={settingsState.chartFixedDecimals}
+                        class="w-full accent-[var(--accent-color)] cursor-pointer"
+                    />
                 </div>
-                <Toggle bind:checked={settingsState.chartInvertScale} />
-            </label>
+            {/if}
+
+            <!-- Scale Toggles -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label class="toggle-card h-full">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium"
+                            >{$_("settings.chart.autoScale") || "Auto-Skalierung"}</span
+                        >
+                        <span
+                            class="text-[10px] text-[var(--text-secondary)]"
+                            >{$_("settings.chart.autoScaleDesc")
+                                || "Y-Achse passt sich automatisch dem Kurs an"}</span
+                        >
+                    </div>
+                    <Toggle bind:checked={settingsState.chartAutoScale} />
+                </label>
+
+                <label class="toggle-card h-full">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium"
+                            >{$_("settings.chart.invertScale")}</span
+                        >
+                        <span
+                            class="text-[10px] text-[var(--text-secondary)]"
+                            >{$_("settings.chart.invertScaleDesc")
+                                || "Preisachse umkehren (0 oben)"}</span
+                        >
+                    </div>
+                    <Toggle bind:checked={settingsState.chartInvertScale} />
+                </label>
+            </div>
         </div>
     </section>
 
-    <!-- Display -->
+    <!-- Display Settings -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
             {$_("settings.chart.displaySection") || "Darstellung"}
         </h3>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label class="toggle-card h-full">
                 <div class="flex flex-col">
                     <span class="text-sm font-medium"
@@ -213,7 +224,7 @@
         </div>
     </section>
 
-    <!-- Crosshair -->
+    <!-- Crosshair Settings -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
             {$_("settings.chart.crosshairSection") || "Fadenkreuz"}
@@ -256,13 +267,13 @@
         </div>
     </section>
 
-    <!-- Time Scale -->
+    <!-- Time Scale Settings -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
             {$_("settings.chart.timeSection") || "Zeitachse & Countdown"}
         </h3>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <label class="toggle-card h-full">
                 <div class="flex flex-col">
                     <span class="text-sm font-medium"
