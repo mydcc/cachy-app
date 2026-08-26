@@ -38,7 +38,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// Let SvelteKit handle everything else, including static files
+// Serve static files to ensure they get compression and security headers
+// SvelteKit's built-in static server (sirv) bypasses Express middleware for these.
+app.use(express.static('build/client', {
+  setHeaders: (res, path) => {
+    if (path.includes('/_app/immutable/')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+}));
+
+// Let SvelteKit handle everything else, including SSR and dynamic routes
 app.use(handler);
 
 const port = process.env.PORT || "3001";
