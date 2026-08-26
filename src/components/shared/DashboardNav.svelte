@@ -32,27 +32,27 @@
       {
         id: "performance",
         label: $_("journal.deepDive.performance") || "Performance",
-        icon: icons.chart,
+        icon: "chart",
       },
       {
         id: "quality",
         label: $_("journal.deepDive.systemQuality") || "Quality",
-        icon: icons.check,
+        icon: "check",
       },
       {
         id: "direction",
         label: $_("journal.deepDive.charts.labels.trends") || "Direction",
-        icon: icons.exchange,
+        icon: "exchange",
       },
       {
         id: "discipline",
         label: $_("journal.deepDive.behavior") || "Discipline",
-        icon: icons.lockClosed,
+        icon: "lockClosed",
       },
       {
         id: "costs",
         label: $_("journal.deepDive.charts.labels.fees") || "Costs",
-        icon: icons.settings,
+        icon: "settings",
       },
     ],
     onselect,
@@ -71,7 +71,8 @@
       onclick={() => onselect?.(preset.id)}
     >
       {#if preset.icon}
-        {@html preset.icon}
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+        {@html icons[preset.icon as keyof typeof icons] ?? ""}
       {/if}
       <span>{preset.label}</span>
     </button>

@@ -2,7 +2,7 @@
 id: BUG-0266
 title: DashboardNav renders preset.icon through unsanitized {@html}
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -36,9 +36,9 @@ narrow the prop to an icon ID looked up from a fixed map. Prefer whichever
 
 ## Acceptance criteria
 
-- [ ] A component test passes `<img src=x onerror=...>` as `preset.icon` and
+- [x] A component test passes `<img src=x onerror=...>` as `preset.icon` and
       asserts no executable markup survives rendering — failing before the fix
-- [ ] Existing nav rendering is pixel/behaviour-identical for current callers
+- [x] Existing nav rendering is pixel/behaviour-identical for current callers
 
 ## Out of scope
 

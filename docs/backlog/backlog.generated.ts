@@ -3436,7 +3436,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0266",
     "title": "DashboardNav renders preset.icon through unsanitized {@html}",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
