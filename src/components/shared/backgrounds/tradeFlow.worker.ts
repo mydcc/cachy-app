@@ -83,12 +83,8 @@ function pushTradeLog(t: number, notional: number) {
 }
 const tradePriceBuf: number[] = [];
 const tradePriceBufMax = 100;
-let targetActivity = 0;
 let currentActivity = 0;
 const ACTIVITY_WINDOW_MS = 2000;
-const ACTIVITY_RATE_FULL = 20;       // trades/sec that means "max heat"
-const ACTIVITY_VOL_FULL = 5_000_000; // notional/window that means "max heat"
-const ACTIVITY_VOLAT_FULL = 0.02;    // relative price volatility that means "max heat"
 
 function relativePriceVolatility(): number {
   if (tradePriceBuf.length < 2) return 0;
