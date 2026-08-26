@@ -112,6 +112,65 @@ export function validateBitgetKeys(
 }
 
 /**
+ * Asynchronously validates Bitunix API credentials with a structural signature test.
+ * Returns null if valid, or an error message string if invalid.
+ */
+export async function validateBitunixKeysAsync(
+  apiKey: unknown,
+  apiSecret: unknown,
+): Promise<string | null> {
+  const syncError = validateBitunixKeys(apiKey, apiSecret);
+  if (syncError) return syncError;
+
+  try {
+    const testResult = await signBitunixRequest(
+      apiKey as string,
+      apiSecret as string,
+      {},
+      null,
+    );
+
+    if (!testResult.signature || testResult.signature.length < 10) {
+      return "Signature generation failed (check credentials)";
+    }
+    return null;
+  } catch (e) {
+    return `Credential validation error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+}
+
+/**
+ * Asynchronously validates Bitget API credentials with a structural signature test.
+ * Full parity with server-side validateBitgetKeys (structural HMAC generation).
+ * Returns null if valid, or an error message string if invalid.
+ */
+export async function validateBitgetKeysAsync(
+  apiKey: unknown,
+  apiSecret: unknown,
+  passphrase: unknown,
+): Promise<string | null> {
+  const syncError = validateBitgetKeys(apiKey, apiSecret, passphrase);
+  if (syncError) return syncError;
+
+  try {
+    const testResult = await signBitgetRequest(
+      apiSecret as string,
+      "GET",
+      "/api/v5/account/balance",
+      {},
+      null,
+    );
+
+    if (!testResult.signature || testResult.signature.length < 10) {
+      return "Signature generation failed (check credentials)";
+    }
+    return null;
+  } catch (e) {
+    return `Credential validation error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+}
+
+/**
  * Generates the headers and signature required for Bitunix API calls using WebCrypto.
  * Implements standard Bitunix signing:
  * 1. Digest = SHA256(nonce + timestamp + apiKey + queryParamsStr + bodyStr)

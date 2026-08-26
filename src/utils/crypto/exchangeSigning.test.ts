@@ -21,6 +21,8 @@ import {
   signBitgetRequest,
   validateBitunixKeys,
   validateBitgetKeys,
+  validateBitunixKeysAsync,
+  validateBitgetKeysAsync,
 } from "./exchangeSigning";
 import { generateBitunixSignature } from "../server/bitunix";
 import { generateBitgetSignature } from "../server/bitget";
@@ -246,6 +248,33 @@ describe("FEAT-0285: WebCrypto Client-Side Exchange Signing Conformance", () => 
       expect(validateBitgetKeys("valid_key", "123", "pass123")).toContain("Invalid API Secret");
       expect(validateBitgetKeys("valid_key", "valid_secret", "")).toContain("Invalid Passphrase");
       expect(validateBitgetKeys("valid_key", "valid_secret", null)).toContain("Invalid Passphrase");
+    });
+
+    it("validates Bitunix keys asynchronously with structural signature test", async () => {
+      await expect(
+        validateBitunixKeysAsync("valid_api_key", "valid_api_secret"),
+      ).resolves.toBeNull();
+      await expect(
+        validateBitunixKeysAsync("abc", "valid_api_secret"),
+      ).resolves.toContain("Invalid API Key");
+      await expect(
+        validateBitunixKeysAsync("valid_api_key", "123"),
+      ).resolves.toContain("Invalid API Secret");
+    });
+
+    it("validates Bitget keys asynchronously with structural signature test", async () => {
+      await expect(
+        validateBitgetKeysAsync("valid_key", "valid_secret", "pass123"),
+      ).resolves.toBeNull();
+      await expect(
+        validateBitgetKeysAsync("abc", "valid_secret", "pass123"),
+      ).resolves.toContain("Invalid API Key");
+      await expect(
+        validateBitgetKeysAsync("valid_key", "123", "pass123"),
+      ).resolves.toContain("Invalid API Secret");
+      await expect(
+        validateBitgetKeysAsync("valid_key", "valid_secret", ""),
+      ).resolves.toContain("Invalid Passphrase");
     });
   });
 });
