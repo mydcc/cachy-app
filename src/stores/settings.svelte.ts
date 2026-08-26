@@ -147,6 +147,12 @@ export interface TradeFlowSettings {
   volumeScale: number; // Factor to scale volume mapping
   flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "block";
   persistenceDuration: number;
+  /**
+   * Slow scene rotation, purely decorative. Off by default: it destroys the
+   * readability of the time/price axes (a block's height can only be compared
+   * against the grid while the frame stands still).
+   */
+  enableRotation: boolean;
   cameraHeight: number;
   cameraDistance: number;
   cameraPositionX: number;
@@ -520,6 +526,7 @@ const defaultSettings: Settings = {
     gridWidth: 80,
     gridLength: 160,
     enableAtmosphere: true,
+    enableRotation: false,
     volumeScale: 1.0,
     persistenceDuration: 60,
     cameraHeight: 80,
