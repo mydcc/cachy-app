@@ -6,23 +6,39 @@
 name: jules-greeting-cleanup
 
 on:
+  pull_request_target:
+    types: [opened, synchronize, ready_for_review, reopened]
   issue_comment:
     types: [created]
 
 permissions:
+  pull-requests: write
   issues: write
 
 jobs:
   remove-greeting:
-    if: |-
-      github.event.comment.user.login == 'google-labs-jules[bot]' &&
-      startsWith(github.event.comment.body, '👋 Jules, reporting for duty!')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Remove Jules greeting comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
         run: |
-          gh api -X DELETE \
-            "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}"
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR or Issue number available in payload, skipping."
+            exit 0
+          fi
+
+          COMMENT_IDS=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" --paginate \
+            -q '.[] | select(.user.login == "google-labs-jules[bot]" and (.body | startswith("👋 Jules, reporting for duty!"))) | .id')
+
+          if [ -z "$COMMENT_IDS" ]; then
+            echo "No Jules greeting comments found on #${PR_NUMBER}."
+            exit 0
+          fi
+
+          for ID in $COMMENT_IDS; do
+            echo "Deleting Jules greeting comment ID: $ID on #${PR_NUMBER}"
+            gh api -X DELETE "repos/${{ github.repository }}/issues/comments/${ID}"
+          done
