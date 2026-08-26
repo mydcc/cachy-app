@@ -446,7 +446,6 @@
 
         const success = getVar("--success-color") || "#26a69a";
         const danger = getVar("--danger-color") || "#ef5350";
-        const warning = getVar("--warning-color") || "#ffb300";
         const text = getVar("--text-secondary") || "#d1d4dc";
         const accent = getVar("--accent-color") || "#2962ff";
         const border = getVar("--border-color") || "rgba(255, 255, 255, 0.1)";

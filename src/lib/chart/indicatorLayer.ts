@@ -1,7 +1,6 @@
 import type {
     IChartApi,
     ISeriesApi,
-    Time,
     UTCTimestamp,
 } from "lightweight-charts";
 import { LineSeries, HistogramSeries } from "lightweight-charts";
