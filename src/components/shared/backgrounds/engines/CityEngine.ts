@@ -17,9 +17,16 @@
 
 import * as THREE from 'three';
 import { BaseEngine } from './BaseEngine';
+import { VolumeNormalizer, scaleToRange } from './volumeScale';
 
 export class CityEngine extends BaseEngine {
-    private cityMesh: THREE.InstancedMesh | null = null;
+	/** Shared adaptive volume normalisation — see volumeScale.ts. */
+	private readonly volume = new VolumeNormalizer();
+	private readonly MIN_STEP = 1.5;
+	private readonly MAX_STEP = 14.0;
+	private readonly MAX_HEIGHT = 50.0;
+
+	private cityMesh: THREE.InstancedMesh | null = null;
     private buildings = new Map<number, { height: number, targetHeight: number, type?: 'buy' | 'sell' }>();
     private dummyObj = new THREE.Object3D();
     private _tempColor = new THREE.Color();
@@ -160,20 +167,30 @@ export class CityEngine extends BaseEngine {
     }
 
     public onTrade(trade: { type: 'buy' | 'sell', price: number, amount: number }): void {
-        const s = this.context.settings;
-        const width = s.gridWidth || 80;
-        const length = s.gridLength || 160;
-        const tradeValue = trade.price * trade.amount;
-        const volScale = s.volumeScale || 1.0;
-        
-        const rx = Math.floor(Math.random() * width);
-        const rz = Math.floor(Math.random() * length);
-        const idx = rx * length + rz;
-        
-        // Ensure we handle existing buildings correctly
-        const data = this.buildings.get(idx) || { height: 0.1, targetHeight: 0.1, type: trade.type };
-        data.targetHeight += Math.log10(tradeValue + 1) * 3.0 * volScale;
-        data.targetHeight = Math.min(data.targetHeight, 50.0);
+		const s = this.context.settings;
+		const width = s.gridWidth || 80;
+		const length = s.gridLength || 160;
+		const volScale = s.volumeScale || 1.0;
+
+		const rx = Math.floor(Math.random() * width);
+		const rz = Math.floor(Math.random() * length);
+		const idx = rx * length + rz;
+
+		// Shared notional normalisation (see volumeScale.ts) so a building of a
+		// given height means the same amount of money here as a block of a given
+		// size does in BlockEngine.
+		const normalized = this.volume.push(trade.price, trade.amount);
+
+		// Ensure we handle existing buildings correctly. Repeated trades on the
+		// same cell keep accumulating (hot spots grow), capped at MAX_HEIGHT.
+		const data = this.buildings.get(idx) || { height: 0.1, targetHeight: 0.1, type: trade.type };
+		const step = scaleToRange(
+			normalized,
+			this.MIN_STEP,
+			this.MAX_STEP,
+			volScale
+		);
+		data.targetHeight = Math.min(data.targetHeight + step, this.MAX_HEIGHT);
         data.type = trade.type; // Store last trade type for color
         this.buildings.set(idx, data);
     }
