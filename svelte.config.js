@@ -41,6 +41,7 @@ const config = {
         ],
         "style-src": [
           "self",
+          "unsafe-inline",
         ],
         "img-src": [
           "self",
