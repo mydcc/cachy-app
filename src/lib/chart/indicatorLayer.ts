@@ -310,118 +310,140 @@ export class IndicatorLayer {
         }
 
         // RSI
-        let idx = this.openSubPane();
-        if (idx !== null && s.rsi.enabled !== false) {
-            const d = getSourceData(rows, this.src(s.rsi.source));
-            this.addLine(rows, JSIndicators.rsi(d, s.rsi.length ?? 14), idx, "--accent-color", "#2962ff");
-            this.setPaneHeight(idx);
+        if (s.rsi.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                const d = getSourceData(rows, this.src(s.rsi.source));
+                this.addLine(rows, JSIndicators.rsi(d, s.rsi.length ?? 14), idx, "--accent-color", "#2962ff");
+                this.setPaneHeight(idx);
+            }
         }
 
         // MACD
-        idx = this.openSubPane();
-        if (idx !== null && s.macd.enabled !== false) {
-            const d = getSourceData(rows, this.src(s.macd.source));
-            const m = JSIndicators.macd(d, s.macd.fastLength, s.macd.slowLength, s.macd.signalLength);
-            this.addLine(rows, m.macd, idx, "--accent-color", "#2962ff");
-            this.addLine(rows, m.signal, idx, "--warning-color", "#ffb300");
-            this.setPaneHeight(idx);
+        if (s.macd.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                const d = getSourceData(rows, this.src(s.macd.source));
+                const m = JSIndicators.macd(d, s.macd.fastLength, s.macd.slowLength, s.macd.signalLength);
+                this.addLine(rows, m.macd, idx, "--accent-color", "#2962ff");
+                this.addLine(rows, m.signal, idx, "--warning-color", "#ffb300");
+                this.setPaneHeight(idx);
+            }
         }
 
         // StochRSI
-        idx = this.openSubPane();
-        if (idx !== null && s.stochRsi.enabled !== false) {
-            const d = getSourceData(rows, this.src(s.stochRsi.source));
-            const rsiPeriod = s.stochRsi.rsiLength || s.stochRsi.length || 14;
-            const sr = JSIndicators.stochRsi(d, rsiPeriod, s.stochRsi.kPeriod, s.stochRsi.dPeriod, 3);
-            this.addLine(rows, sr.k, idx, "--accent-color", "#2962ff");
-            this.addLine(rows, sr.d, idx, "--warning-color", "#ffb300");
-            this.setPaneHeight(idx);
+        if (s.stochRsi.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                const d = getSourceData(rows, this.src(s.stochRsi.source));
+                const rsiPeriod = s.stochRsi.rsiLength || s.stochRsi.length || 14;
+                const sr = JSIndicators.stochRsi(d, rsiPeriod, s.stochRsi.kPeriod, s.stochRsi.dPeriod, 3);
+                this.addLine(rows, sr.k, idx, "--accent-color", "#2962ff");
+                this.addLine(rows, sr.d, idx, "--warning-color", "#ffb300");
+                this.setPaneHeight(idx);
+            }
         }
 
         // CCI
-        idx = this.openSubPane();
-        if (idx !== null && s.cci.enabled !== false) {
-            const d = getSourceData(rows, this.src(s.cci.source));
-            this.addLine(rows, JSIndicators.cci(d, s.cci.length ?? 20), idx, "--accent-color", "#2962ff");
-            this.setPaneHeight(idx);
+        if (s.cci.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                const d = getSourceData(rows, this.src(s.cci.source));
+                this.addLine(rows, JSIndicators.cci(d, s.cci.length ?? 20), idx, "--accent-color", "#2962ff");
+                this.setPaneHeight(idx);
+            }
         }
 
         // Momentum
-        idx = this.openSubPane();
-        if (idx !== null && s.momentum.enabled !== false) {
-            const d = getSourceData(rows, this.src(s.momentum.source));
-            this.addLine(rows, JSIndicators.mom(d, s.momentum.length ?? 10), idx, "--success-color", "#26a69a");
-            this.setPaneHeight(idx);
+        if (s.momentum.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                const d = getSourceData(rows, this.src(s.momentum.source));
+                this.addLine(rows, JSIndicators.mom(d, s.momentum.length ?? 10), idx, "--success-color", "#26a69a");
+                this.setPaneHeight(idx);
+            }
         }
 
         // Williams %R
-        idx = this.openSubPane();
-        if (idx !== null && s.williamsR.enabled !== false) {
-            this.addLine(
-                rows,
-                JSIndicators.williamsR(a.highs, a.lows, a.closes, s.williamsR.length ?? 14),
-                idx,
-                "--danger-color",
-                "#ef5350",
-            );
-            this.setPaneHeight(idx);
+        if (s.williamsR.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                this.addLine(
+                    rows,
+                    JSIndicators.williamsR(a.highs, a.lows, a.closes, s.williamsR.length ?? 14),
+                    idx,
+                    "--danger-color",
+                    "#ef5350",
+                );
+                this.setPaneHeight(idx);
+            }
         }
 
         // OBV
-        idx = this.openSubPane();
-        if (idx !== null && s.obv.enabled !== false) {
-            this.addLine(rows, JSIndicators.obv(a.closes, a.volume), idx, "--text-tertiary", "#9aa0a6");
-            this.setPaneHeight(idx);
+        if (s.obv.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                this.addLine(rows, JSIndicators.obv(a.closes, a.volume), idx, "--text-tertiary", "#9aa0a6");
+                this.setPaneHeight(idx);
+            }
         }
 
         // ADX
-        idx = this.openSubPane();
-        if (idx !== null && s.adx.enabled !== false) {
-            this.addLine(
-                rows,
-                JSIndicators.adx(a.highs, a.lows, a.closes, s.adx.diLength ?? s.adx.adxSmoothing ?? 14),
-                idx,
-                "--accent-color",
-                "#2962ff",
-            );
-            this.setPaneHeight(idx);
+        if (s.adx.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                this.addLine(
+                    rows,
+                    JSIndicators.adx(a.highs, a.lows, a.closes, s.adx.diLength ?? s.adx.adxSmoothing ?? 14),
+                    idx,
+                    "--accent-color",
+                    "#2962ff",
+                );
+                this.setPaneHeight(idx);
+            }
         }
 
         // Awesome Oscillator
-        idx = this.openSubPane();
-        if (idx !== null && s.ao.enabled !== false) {
-            const hl2 = getSourceData(rows, "hl2");
-            const fast = JSIndicators.sma(hl2, s.ao.fastLength ?? 5);
-            const slow = JSIndicators.sma(hl2, s.ao.slowLength ?? 34);
-            const ao = new Float64Array(rows.length);
-            for (let i = 0; i < rows.length; i++) {
-                ao[i] = isNaN(fast[i]) || isNaN(slow[i]) ? NaN : fast[i] - slow[i];
+        if (s.ao.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                const hl2 = getSourceData(rows, "hl2");
+                const fast = JSIndicators.sma(hl2, s.ao.fastLength ?? 5);
+                const slow = JSIndicators.sma(hl2, s.ao.slowLength ?? 34);
+                const ao = new Float64Array(rows.length);
+                for (let i = 0; i < rows.length; i++) {
+                    ao[i] = isNaN(fast[i]) || isNaN(slow[i]) ? NaN : fast[i] - slow[i];
+                }
+                this.addLine(rows, ao, idx, "--warning-color", "#ffb300");
+                this.setPaneHeight(idx);
             }
-            this.addLine(rows, ao, idx, "--warning-color", "#ffb300");
-            this.setPaneHeight(idx);
         }
 
         // Choppiness
-        idx = this.openSubPane();
-        if (idx !== null && s.choppiness.enabled !== false) {
-            this.addLine(
-                rows,
-                JSIndicators.choppiness(a.highs, a.lows, a.closes, s.choppiness.length ?? 14),
-                idx,
-                "--text-tertiary",
-                "#9aa0a6",
-            );
-            this.setPaneHeight(idx);
+        if (s.choppiness.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                this.addLine(
+                    rows,
+                    JSIndicators.choppiness(a.highs, a.lows, a.closes, s.choppiness.length ?? 14),
+                    idx,
+                    "--text-tertiary",
+                    "#9aa0a6",
+                );
+                this.setPaneHeight(idx);
+            }
         }
 
         // Stochastic
-        idx = this.openSubPane();
-        if (idx !== null && s.stochastic.enabled !== false) {
-            const k = JSIndicators.stoch(a.highs, a.lows, a.closes, s.stochastic.kPeriod ?? 14);
-            const d = JSIndicators.sma(k, s.stochastic.dPeriod ?? 3);
-            this.addLine(rows, k, idx, "--accent-color", "#2962ff");
-            this.addLine(rows, d, idx, "--warning-color", "#ffb300");
-            this.setPaneHeight(idx);
+        if (s.stochastic.enabled !== false) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                const k = JSIndicators.stoch(a.highs, a.lows, a.closes, s.stochastic.kPeriod ?? 14);
+                const d = JSIndicators.sma(k, s.stochastic.dPeriod ?? 3);
+                this.addLine(rows, k, idx, "--accent-color", "#2962ff");
+                this.addLine(rows, d, idx, "--warning-color", "#ffb300");
+                this.setPaneHeight(idx);
+            }
         }
     }
 }
