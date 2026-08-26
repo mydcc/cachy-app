@@ -992,7 +992,9 @@
         "tooltipDynamicAtmosphere": "Wenn aktiviert, verschieben sich Szenenbeleuchtung, Nebel und Umgebungspartikel farblich basierend auf der Marktstimmung — grün bei bullischer, rot bei bärischer Dynamik.",
         "tooltipGridWidth": "Anzahl der Punkte entlang der X-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
         "tooltipGridLength": "Anzahl der Punkte entlang der Z-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
-        "tooltipSpeed": "Wie schnell sich die Visualisierungselemente animieren und bewegen. Höhere Werte erzeugen ein energetischeres Erscheinungsbild."
+        "tooltipSpeed": "Wie schnell sich die Visualisierungselemente animieren und bewegen. Höhere Werte erzeugen ein energetischeres Erscheinungsbild.",
+        "sceneRotation": "Szenenrotation",
+        "tooltipRotation": "Langsame, rein dekorative Drehung der Szene. Standardmäßig aus: Die Drehung macht die Zeit- (Tiefe) und Preisachsen (Höhe) unlesbar."
       },
       "coordinates": {
         "x": "X",

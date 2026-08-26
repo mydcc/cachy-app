@@ -992,7 +992,9 @@
         "tooltipDynamicAtmosphere": "When enabled, the scene lighting, fog, and ambient particles shift color based on market sentiment — green for bullish, red for bearish momentum.",
         "tooltipGridWidth": "Number of points along the X-axis of the visualization grid. More points = finer detail but higher GPU load.",
         "tooltipGridLength": "Number of points along the Z-axis of the visualization grid. More points = finer detail but higher GPU load.",
-        "tooltipSpeed": "How fast the visualization elements animate and move. Higher values create a more energetic appearance."
+        "tooltipSpeed": "How fast the visualization elements animate and move. Higher values create a more energetic appearance.",
+        "sceneRotation": "Scene rotation",
+        "tooltipRotation": "Slow, purely decorative spin of the scene. Off by default: rotation makes the time (depth) and price (height) axes unreadable."
       },
       "coordinates": {
         "x": "X",
