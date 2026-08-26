@@ -69,7 +69,8 @@ server.
 secrets, presets, private notes, and trade drafts. These live in `localStorage`
 only. No feature may transmit them to any Cachy-operated server, and none may be
 sent to a third party except as the credential of a user-initiated exchange
-request (see the proxy description in the whitepaper, which stays accurate).
+request (see the proxy description in the whitepaper, which stays accurate;
+and ADR-0013 for client-side request signing).
 
 **Class B — may reside on a Cachy-operated server, under all four conditions.**
 Currently only Global Chat message content.

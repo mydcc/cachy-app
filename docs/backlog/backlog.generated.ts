@@ -3584,7 +3584,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0285",
     "title": "Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "antigravity",
+    "branch": "feat/feat-0285-client-side-signing",
     "priority": "P2",
     "milestone": "none",
     "editions": [
