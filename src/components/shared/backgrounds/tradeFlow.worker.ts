@@ -229,7 +229,6 @@ self.onmessage = (event) => {
 			tradeLogHead = 0;
 			tradeLogCount = 0;
             tradePriceBuf.length = 0;
-            targetActivity = 0;
             currentActivity = 0;
             break;
     }
