@@ -999,7 +999,8 @@
         "sourceLive": "Nur Live-Trades",
         "sourceAmbient": "Ambient (Stille füllen)",
         "sourceReplay": "Letzte Trades wiederholen",
-        "tooltipSource": "Hält den Hintergrund lebendig, wenn der Live-Feed ruht. 'Live' zeigt nur echte Trades. 'Ambient' fügt nach einer Pause dezente synthetische Ticks ein. 'Replay' spielt die letzten Trades fortlaufend als synthetische Ticks ab."
+        "tooltipSource": "Hält den Hintergrund lebendig, wenn der Live-Feed ruht. 'Live' zeigt nur echte Trades. 'Ambient' fügt nach einer Pause dezente synthetische Ticks ein. 'Replay' spielt die letzten Trades fortlaufend als synthetische Ticks ab.",
+        "tooltipBlock": "Jeder Block = ein Trade. Höhe = Preis, Tiefe = Alter (vorne = jetzt), Größe = Volumen (Notional). Grün = Kauf, Rot = Verkauf. Fibonacci-Ebenen + Price-Spine sind feste Preis-Referenzen. Rotation (opt-in) dreht die ganze Szene — standardmäßig aus, damit Achsen lesbar bleiben."
       },
       "coordinates": {
         "x": "X",
