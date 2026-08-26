@@ -2,7 +2,9 @@
 id: FEAT-0228
 title: Move the venue branches out of the proxy routes into per-venue modules
 type: feature
-status: ready
+status: in-progress
+assignee: claude
+branch: feat/feat-0228-venue-gateway
 priority: P2
 milestone: M2
 editions: [community, pro, private]
@@ -54,6 +56,28 @@ with the client-side boundary would have put two risks in one review.
 - [ ] The order route's Zod validation and gate-related fields behave
       identically, proven by the existing `orders_*` tests
 - [ ] Adding a venue means adding one module and one registry entry
+
+## State (2026-08-27)
+
+Implemented on `feat/feat-0228-venue-gateway`, awaiting review.
+
+Two routes beyond the four named above turned out to branch on the venue too —
+`routes/api/positions/+server.ts:108` and `routes/api/tickers/+server.ts:52`.
+They are in the change: the fourth criterion below is not true while a venue
+route still has to be edited to add a venue, so stopping at four would have
+left the item half-done rather than smaller.
+
+`resolveVenue` uses `Object.hasOwn` rather than a plain lookup. The klines and
+tickers routes pass an unfiltered `provider` query parameter to it, and a plain
+`VENUES[id]` also reaches `Object.prototype` — `?provider=toString` returned a
+truthy function, skipped the default-venue fallback and turned a request that
+used to serve Bitunix data into a 500. Caught by the registry test, not in
+review.
+
+The three copies of Bitunix's request signing are now gathered in one file but
+still three; merging them would change wire bytes if they have drifted, which
+this item's "contract is unchanged" criterion forbids. Split off as
+[`FEAT-0319`](FEAT-0319-single-bitunix-request-signer.md).
 
 ## Out of scope
 
