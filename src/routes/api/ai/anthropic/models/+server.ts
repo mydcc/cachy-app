@@ -19,6 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
+import { resolveProviderEndpoint } from "../../../../../lib/server/aiEndpoint";
 
 interface AnthropicModel {
   id: string;
@@ -26,22 +27,32 @@ interface AnthropicModel {
   max_input_tokens?: number;
 }
 
-export const GET: RequestHandler = async ({ request, getClientAddress }) => {
+export const GET: RequestHandler = async ({ url, request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   const apiKey = request.headers.get("x-api-key");
-  if (!apiKey) {
+  const baseUrl = url.searchParams.get("baseUrl");
+
+  if (!apiKey && !baseUrl?.trim()) {
     return json({ error: "Missing API Key" }, { status: 401 });
   }
 
+  const targetUrl = resolveProviderEndpoint(
+    baseUrl,
+    "https://api.anthropic.com/v1/models?limit=100",
+    "v1/models?limit=100",
+  );
+
+  const headers: Record<string, string> = {
+    "anthropic-version": "2023-06-01",
+  };
+  if (apiKey) {
+    headers["x-api-key"] = apiKey;
+  }
+
   try {
-    const response = await fetch("https://api.anthropic.com/v1/models?limit=100", {
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-    });
+    const response = await fetch(targetUrl, { headers });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));

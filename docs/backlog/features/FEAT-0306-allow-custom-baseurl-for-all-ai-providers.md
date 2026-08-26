@@ -2,7 +2,8 @@
 id: FEAT-0306
 title: Allow custom baseUrl configuration for all AI providers
 type: feature
-status: specced
+status: in-progress
+assignee: antigravity
 priority: P2
 milestone: M8
 editions: [community, pro, private]
@@ -11,6 +12,7 @@ data_class: none
 adr: none
 depends_on: []
 start_date: 2026-08-25
+branch: feat/feat-0306-custom-baseurl
 size: S
 estimate: 1
 ---
