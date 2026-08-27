@@ -60,20 +60,17 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
         if (!response.ok) {
           const errorText = await response.text();
+          let data: unknown;
           try {
-            const data = safeJsonParse(errorText);
-            if (
-              data.code === 2 ||
-              data.code === "2" ||
-              (data.msg && data.msg.toLowerCase().includes("system error"))
-            ) {
-               
-              throw { status: 404, message: "Symbol not found" };
-            }
-          } catch (e: unknown) {
-            if (isStatusError(e) && e.status === 404) throw e;
+            data = safeJsonParse(errorText);
+          } catch {
+            // Upstream body wasn't JSON; fall through to the generic error below.
           }
-           
+
+          if (venue.isSymbolNotFoundBody(data)) {
+            throw { status: 404, message: "Symbol not found" };
+          }
+
           throw { status: response.status, message: errorText };
         }
 
