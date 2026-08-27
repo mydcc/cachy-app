@@ -52,6 +52,7 @@ import { normalizeSymbol } from "../../utils/symbolUtils";
 import { logger } from "../logger";
 import type {
     ExchangeAdapter,
+    ConnectionPort,
     MarketDataPort,
     AccountPort,
     TradingPort,
@@ -60,6 +61,33 @@ import type {
 } from "./types";
 import { ExchangeUnsupportedError } from "./errors";
 import type { Decimal } from "decimal.js";
+
+/**
+ * Bitget's own channel vocabulary (FEAT-0227). Narrower than Bitunix's, and
+ * the gaps are declared rather than guessed:
+ *
+ *   - `depth` is `books5` here, not Bitunix's `depth_book5`. One shared table
+ *     handing Bitunix's spelling to both venues is what FEAT-0227 came to
+ *     remove.
+ *   - `price` is absent. Bitget has no separate price channel — the ticker
+ *     carries it — and `getBitgetChannel` drops the name, so claiming it here
+ *     would open a subscription that never delivers. That is the BUG-0001
+ *     failure mode, and an empty array is the honest answer.
+ *   - `positions` and `orders` are absent although `getBitgetChannel` accepts
+ *     both. They are private channels, and `subscribePrivate` already asks
+ *     for them with `instId: "default"` once the socket has logged in.
+ *     Mapping them here would add a second, per-symbol subscription over the
+ *     top, and every position update would arrive — and be applied — twice.
+ */
+const CHANNELS: Record<string, string[]> = {
+    ticker: ["ticker"],
+    depth: ["books5"],
+};
+
+const connection: ConnectionPort = {
+    connect: (force) => bitgetWs.connect(force),
+    destroy: () => bitgetWs.destroy(),
+};
 
 const marketData: MarketDataPort = {
     normalizeSymbol: (symbol) => normalizeSymbol(symbol, "bitget"),
@@ -94,6 +122,13 @@ const marketData: MarketDataPort = {
             `[BitgetAdapter] Trade stream not available; ignoring subscription for ${symbol}`,
         );
         return () => { };
+    },
+
+    channelsForRequirement: (requirement) => {
+        if (!requirement || typeof requirement !== "string") return [];
+        if (requirement.startsWith("kline_")) return [requirement];
+        // `Object.hasOwn`, not a plain lookup — see the Bitunix adapter.
+        return Object.hasOwn(CHANNELS, requirement) ? CHANNELS[requirement] : [];
     },
 };
 
@@ -175,6 +210,7 @@ export const bitgetAdapter: ExchangeAdapter = {
     capabilities: bitgetCapabilities,
     streams: { ticker: true, trades: false },
     supports: SUPPORTS,
+    connection,
     marketData,
     account,
     trading,

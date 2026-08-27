@@ -83,6 +83,29 @@ export function generateBitunixSignature(
     }
   }
 
+  // CodeQL `js/insufficient-password-hash` fires here on `apiKey`. It is a
+  // false positive, and the suggested fix would break the integration:
+  //
+  //   - Nothing is stored. This is a per-request signature, not a password
+  //     at rest, so the threat the query models — an attacker who has stolen
+  //     a hash database and brute-forces it offline — has no target. The
+  //     digest lives for the length of one HTTP request.
+  //   - The algorithm is Bitunix's, not ours. `docs/bitunix-api/01_sign.md`
+  //     specifies `digest = SHA256(nonce + timestamp + api-key + queryParams
+  //     + body)` then `sign = SHA256(digest + secretKey)`, and the exchange
+  //     recomputes exactly that to verify. bcrypt, scrypt, PBKDF2 or Argon2
+  //     here would make every signed request fail authentication.
+  //
+  // The construction is worth naming honestly: `H(digest || secret)` is a
+  // secret-suffix MAC rather than HMAC, which is weaker in principle because
+  // a collision in the underlying hash is a MAC forgery. Against SHA-256 that
+  // is not a practical attack today, and it is not Cachy's to change — see
+  // Bitget's `generateBitgetSignature`, which does use HMAC, for the contrast.
+  //
+  // No suppression comment here on purpose: GitHub code scanning does not
+  // honour source-level `// codeql[...]` markers (that was an LGTM feature and
+  // did not carry over), so one would only look handled while the alert stayed
+  // open. The dismissal lives in the repository's Security tab.
   const digestInput = nonce + timestamp + apiKey + queryParamsStr + bodyStr;
   const digest = createHash("sha256").update(digestInput).digest("hex");
   const signInput = digest + apiSecret;
