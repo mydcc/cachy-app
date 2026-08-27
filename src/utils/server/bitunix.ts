@@ -101,11 +101,14 @@ export function generateBitunixSignature(
   // a collision in the underlying hash is a MAC forgery. Against SHA-256 that
   // is not a practical attack today, and it is not Cachy's to change — see
   // Bitget's `generateBitgetSignature`, which does use HMAC, for the contrast.
+  //
+  // No suppression comment here on purpose: GitHub code scanning does not
+  // honour source-level `// codeql[...]` markers (that was an LGTM feature and
+  // did not carry over), so one would only look handled while the alert stayed
+  // open. The dismissal lives in the repository's Security tab.
   const digestInput = nonce + timestamp + apiKey + queryParamsStr + bodyStr;
-  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
   const signInput = digest + apiSecret;
-  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   return {

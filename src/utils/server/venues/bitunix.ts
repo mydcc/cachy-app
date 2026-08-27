@@ -700,13 +700,16 @@ async function fetchBitunixBalance(
   // a collision in the underlying hash is a MAC forgery. Against SHA-256 that
   // is not a practical attack today, and it is not Cachy's to change — see
   // Bitget's `generateBitgetSignature`, which does use HMAC, for the contrast.
+  //
+  // No suppression comment here on purpose: GitHub code scanning does not
+  // honour source-level `// codeql[...]` markers (that was an LGTM feature and
+  // did not carry over), so one would only look handled while the alert stayed
+  // open. The dismissal lives in the repository's Security tab.
   // 4. Calculate Digest (SHA256)
-  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
 
   // 5. Calculate Signature (SHA256 of digest + secret)
   const signInput = digest + apiSecret;
-  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   // 6. Build Query String for URL (standard format key=value)
@@ -1011,13 +1014,16 @@ async function fetchBitunixPositions(
   // a collision in the underlying hash is a MAC forgery. Against SHA-256 that
   // is not a practical attack today, and it is not Cachy's to change — see
   // Bitget's `generateBitgetSignature`, which does use HMAC, for the contrast.
+  //
+  // No suppression comment here on purpose: GitHub code scanning does not
+  // honour source-level `// codeql[...]` markers (that was an LGTM feature and
+  // did not carry over), so one would only look handled while the alert stayed
+  // open. The dismissal lives in the repository's Security tab.
   // 4. Calculate Digest (SHA256)
-  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
 
   // 5. Calculate Signature (SHA256 of digest + secret)
   const signInput = digest + apiSecret;
-  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   const queryString = new URLSearchParams(params).toString();
