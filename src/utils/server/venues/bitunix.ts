@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createHash, randomBytes } from "crypto";
 import { Decimal } from "decimal.js";
 import {
   generateBitunixSignature,
@@ -666,54 +665,15 @@ async function fetchBitunixBalance(
     marginCoin: "USDT",
   };
 
-  // 1. Generate Nonce and Timestamp
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
-
-  // 2. Sort and Concatenate Query Params (keyvaluekeyvalue...)
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
-
-  // 3. Construct Digest Input
-  // digestInput = nonce + timestamp + apiKey + queryParams + body
-  // Body is empty for GET
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-
-  // CodeQL `js/insufficient-password-hash` fires here on `apiKey`. It is a
-  // false positive, and the suggested fix would break the integration:
-  //
-  //   - Nothing is stored. This is a per-request signature, not a password
-  //     at rest, so the threat the query models — an attacker who has stolen
-  //     a hash database and brute-forces it offline — has no target. The
-  //     digest lives for the length of one HTTP request.
-  //   - The algorithm is Bitunix's, not ours. `docs/bitunix-api/01_sign.md`
-  //     specifies `digest = SHA256(nonce + timestamp + api-key + queryParams
-  //     + body)` then `sign = SHA256(digest + secretKey)`, and the exchange
-  //     recomputes exactly that to verify. bcrypt, scrypt, PBKDF2 or Argon2
-  //     here would make every signed request fail authentication.
-  //
-  // The construction is worth naming honestly: `H(digest || secret)` is a
-  // secret-suffix MAC rather than HMAC, which is weaker in principle because
-  // a collision in the underlying hash is a MAC forgery. Against SHA-256 that
-  // is not a practical attack today, and it is not Cachy's to change — see
-  // Bitget's `generateBitgetSignature`, which does use HMAC, for the contrast.
-  //
-  // No suppression comment here on purpose: GitHub code scanning does not
-  // honour source-level `// codeql[...]` markers (that was an LGTM feature and
-  // did not carry over), so one would only look handled while the alert stayed
-  // open. The dismissal lives in the repository's Security tab.
-  // 4. Calculate Digest (SHA256)
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-
-  // 5. Calculate Signature (SHA256 of digest + secret)
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  // 6. Build Query String for URL (standard format key=value)
-  const queryString = new URLSearchParams(params).toString();
+  // FEAT-0321: this path used to hand-roll the signing algorithm inline. It
+  // signed byte-for-byte identically to `generateBitunixSignature`, which
+  // `src/utils/server/bitunix.test.ts` records and now guards.
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    "",
+  );
 
   const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
@@ -982,51 +942,16 @@ async function fetchBitunixPositions(
   // Params for the request
   const params: Record<string, string> = {};
 
-  // 1. Generate Nonce and Timestamp
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
+  // FEAT-0321: this path used to hand-roll the signing algorithm inline. It
+  // signed byte-for-byte identically to `generateBitunixSignature`, which
+  // `src/utils/server/bitunix.test.ts` records and now guards.
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    "",
+  );
 
-  // 2. Sort and Concatenate Query Params (keyvaluekeyvalue...)
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
-
-  // 3. Construct Digest Input
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-
-  // CodeQL `js/insufficient-password-hash` fires here on `apiKey`. It is a
-  // false positive, and the suggested fix would break the integration:
-  //
-  //   - Nothing is stored. This is a per-request signature, not a password
-  //     at rest, so the threat the query models — an attacker who has stolen
-  //     a hash database and brute-forces it offline — has no target. The
-  //     digest lives for the length of one HTTP request.
-  //   - The algorithm is Bitunix's, not ours. `docs/bitunix-api/01_sign.md`
-  //     specifies `digest = SHA256(nonce + timestamp + api-key + queryParams
-  //     + body)` then `sign = SHA256(digest + secretKey)`, and the exchange
-  //     recomputes exactly that to verify. bcrypt, scrypt, PBKDF2 or Argon2
-  //     here would make every signed request fail authentication.
-  //
-  // The construction is worth naming honestly: `H(digest || secret)` is a
-  // secret-suffix MAC rather than HMAC, which is weaker in principle because
-  // a collision in the underlying hash is a MAC forgery. Against SHA-256 that
-  // is not a practical attack today, and it is not Cachy's to change — see
-  // Bitget's `generateBitgetSignature`, which does use HMAC, for the contrast.
-  //
-  // No suppression comment here on purpose: GitHub code scanning does not
-  // honour source-level `// codeql[...]` markers (that was an LGTM feature and
-  // did not carry over), so one would only look handled while the alert stayed
-  // open. The dismissal lives in the repository's Security tab.
-  // 4. Calculate Digest (SHA256)
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-
-  // 5. Calculate Signature (SHA256 of digest + secret)
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  const queryString = new URLSearchParams(params).toString();
   const url = queryString
     ? `${baseUrl}${path}?${queryString}`
     : `${baseUrl}${path}`;

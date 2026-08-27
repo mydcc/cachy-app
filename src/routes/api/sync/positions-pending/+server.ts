@@ -17,7 +17,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHash, randomBytes } from "crypto";
+import { generateBitunixSignature } from "../../../../utils/server/bitunix";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { z } from "zod";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
@@ -93,29 +93,16 @@ async function fetchBitunixPendingPositions(
   // Params for the request (empty for all pending positions)
   const params: Record<string, string> = {};
 
-  // 1. Generate Nonce and Timestamp
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
+  // FEAT-0321: this route used to hand-roll the signing algorithm inline. It
+  // signed byte-for-byte identically to `generateBitunixSignature`, which
+  // `src/utils/server/bitunix.test.ts` records and now guards.
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    "",
+  );
 
-  // 2. Sort and Concatenate Query Params
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
-
-  // 3. Construct Digest Input
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-
-  // 4. Calculate Digest (SHA256)
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-
-  // 5. Calculate Signature (SHA256 of digest + secret)
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  // 6. Build Query String for URL (might be empty)
-  const queryString = new URLSearchParams(params).toString();
   const url = queryString
     ? `${baseUrl}${path}?${queryString}`
     : `${baseUrl}${path}`;
