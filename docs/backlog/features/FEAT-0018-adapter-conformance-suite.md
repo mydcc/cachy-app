@@ -2,8 +2,7 @@
 id: FEAT-0018
 title: One conformance test suite every exchange adapter must pass
 type: feature
-status: in-progress
-assignee: antigravity
+status: done
 branch: feat-0018
 priority: P1
 milestone: M2
