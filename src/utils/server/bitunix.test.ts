@@ -236,8 +236,8 @@ describe("FEAT-0321: the three Bitunix signers agree", () => {
     const nonce = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
     const timestamp = "1724673600000";
 
+    // codeql[js/insufficient-password-hash]
     const digest = createHash("sha256")
-      // codeql[js/insufficient-password-hash]
       .update(`${nonce}${timestamp}${API_KEY}marginCoinUSDT`)
       .digest("hex");
     // codeql[js/insufficient-password-hash]
