@@ -2,7 +2,9 @@
 id: FEAT-0321
 title: Sign every Bitunix request through one signer instead of three copies
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: worktree-bitunix-single-signer-3a0669
 priority: P3
 milestone: M2
 editions: [community, pro, private]
@@ -12,6 +14,7 @@ adr: ADR-0007
 depends_on: [FEAT-0228]
 estimate: 2
 size: S
+start_date: 2026-08-27
 ---
 
 
@@ -46,12 +49,43 @@ and is worth having regardless of what it finds. If they agree, delete the two
 inline copies in favour of `generateBitunixSignature`. If they disagree, the
 difference is a bug and gets its own item before anything is deleted.
 
+## What the merge actually found
+
+There were five copies, not three. Beyond the three this item named, the same
+algorithm was hand-rolled inline a fourth and fifth time in
+`src/routes/api/sync/positions-pending/+server.ts` and
+`src/routes/api/sync/order-detail/+server.ts` — routes
+[`FEAT-0228`](FEAT-0228-venue-modules-in-proxy-routes.md) never touched, which
+is why the count taken from that item's file was short. Both were folded in
+under the same criterion ("only one implementation remains"); leaving them
+would have preserved exactly the drift risk this item exists to remove.
+
+All five agreed on every signature byte. The single divergence is cosmetic and
+outside the digest: the four inline copies built the URL's query string with
+`new URLSearchParams(params)` (insertion order) while
+`generateBitunixSignature` sorts the entries first. It could never have changed
+a signature — the digest is built from a separately sorted `key + value`
+concatenation — and never showed on the wire either, since every inline site
+passed at most one query parameter. Sorted is the surviving behaviour, and
+`src/utils/server/bitunix.test.ts` records the difference explicitly.
+
+One further stale copy sits in `src/routes/api/positions/+server.ts.bak`, a
+tracked backup file that nothing imports and no build compiles. Left alone
+here under the repo's defensive-deletion rule; it wants its own item.
+
+`src/utils/crypto/exchangeSigning.ts` is deliberately *not* folded in. It is
+the client-side WebCrypto signer from FEAT-0285 — a different runtime, async
+where this one is synchronous — and `exchangeSigning.test.ts` already holds the
+two in byte parity.
+
 ## Acceptance criteria
 
-- [ ] A test proves the three signers agree (or records precisely how they
-      differ) for the same nonce, timestamp, key, params and body
-- [ ] Only one Bitunix signing implementation remains
-- [ ] The balance and positions paths still pass their existing tests
+- [x] A test proves the three signers agree (or records precisely how they
+      differ) for the same nonce, timestamp, key, params and body —
+      `src/utils/server/bitunix.test.ts`, which keeps the deleted copies as
+      executable characterisations rather than losing the proof with the code
+- [x] Only one Bitunix signing implementation remains
+- [x] The balance and positions paths still pass their existing tests
       untouched
 
 ## Note on the CodeQL alert
