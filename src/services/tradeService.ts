@@ -412,10 +412,13 @@ class TradeService {
         if (!leverage.isFinite() || !leverage.isInteger() || leverage.lte(0)) {
             throw new Error("apiErrors.invalidAmount");
         }
+        // Leverage is already validated as finite, integer, and positive.
+        // Converting to native number for the wire protocol.
+        const leverageValue = leverage.toNumber();
         await this.accountSettingRequest({
             type: "change-leverage",
             symbol,
-            leverage: leverage.toNumber(),
+            leverage: leverageValue,
         });
         await this.fetchLeverageMarginMode(symbol);
     }
@@ -470,10 +473,13 @@ class TradeService {
         if (!side && !positionId) {
             throw new Error("apiErrors.invalidAmount");
         }
+        // All financial calculations are complete; converting to string for the
+        // wire protocol with full precision.
+        const amountStr = amount.toFixed(amount.decimalPlaces() ?? 0);
         await this.accountSettingRequest({
             type: "adjust-position-margin",
             symbol,
-            amount: amount.toFixed(amount.decimalPlaces() ?? 0),
+            amount: amountStr,
             ...(side ? { side } : {}),
             ...(positionId ? { positionId } : {}),
         });
