@@ -1305,6 +1305,8 @@
       "displayPreferences": "Display Preferences",
       "calculationMode": "Calculation Mode",
       "obvNoParams": "On Balance Volume has no configurable parameters.",
+      "volume": "Volume",
+      "volumeNoParams": "The volume bars have no configurable parameters.",
       "awesomeOsc": "Awesome Osc.",
       "anchor": "Anchor",
       "rows": "Rows",
