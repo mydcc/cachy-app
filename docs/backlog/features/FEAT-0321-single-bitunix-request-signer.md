@@ -15,7 +15,7 @@ size: S
 ---
 
 
-# FEAT-0319 — Sign every Bitunix request through one signer instead of three copies
+# FEAT-0321 — Sign every Bitunix request through one signer instead of three copies
 
 ## Problem
 
