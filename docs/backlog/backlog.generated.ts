@@ -1164,8 +1164,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0018",
     "title": "One conformance test suite every exchange adapter must pass",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "antigravity",
+    "status": "done",
     "branch": "feat-0018",
     "priority": "P1",
     "milestone": "M2",
@@ -3407,7 +3406,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0227",
     "title": "Move each venue's socket and subscription ref-counting behind its adapter",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/feat-0227-adapter-owns-socket",
     "priority": "P2",
     "milestone": "M2",
     "editions": [
@@ -3432,7 +3433,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0228",
     "title": "Move the venue branches out of the proxy routes into per-venue modules",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/feat-0228-venue-gateway",
     "priority": "P2",
     "milestone": "M2",
     "editions": [
@@ -3690,7 +3693,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0306",
     "title": "Allow custom baseUrl configuration for all AI providers",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P2",
     "milestone": "M8",
     "editions": [
@@ -3703,9 +3707,31 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "start_date": "2026-08-25",
+    "branch": "feat/feat-0306-custom-baseurl",
     "size": "S",
     "estimate": "1",
     "file": "features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md"
+  },
+  {
+    "id": "FEAT-0319",
+    "title": "Make \"destroy forgets subscriptions\" a conformance-suite invariant",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M2",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "ADR-0007",
+    "depends_on": [
+      "FEAT-0018",
+      "FEAT-0227"
+    ],
+    "file": "features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md"
   },
   {
     "id": "BUG-0007",
@@ -4282,6 +4308,50 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "features/FEAT-0269-decimal-audit-coverage.md"
+  },
+  {
+    "id": "FEAT-0320",
+    "title": "Let the venue answer symbol-not-found on the tickers error path too",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "M2",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "ADR-0007",
+    "depends_on": [
+      "FEAT-0228"
+    ],
+    "estimate": "1",
+    "size": "S",
+    "file": "features/FEAT-0320-tickers-error-path-asks-the-venue.md"
+  },
+  {
+    "id": "FEAT-0321",
+    "title": "Sign every Bitunix request through one signer instead of three copies",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "M2",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "ADR-0007",
+    "depends_on": [
+      "FEAT-0228"
+    ],
+    "estimate": "2",
+    "size": "S",
+    "file": "features/FEAT-0321-single-bitunix-request-signer.md"
   },
   {
     "id": "IDEA-0036",

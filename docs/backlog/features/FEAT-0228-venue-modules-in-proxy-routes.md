@@ -77,7 +77,7 @@ review.
 The three copies of Bitunix's request signing are now gathered in one file but
 still three; merging them would change wire bytes if they have drifted, which
 this item's "contract is unchanged" criterion forbids. Split off as
-[`FEAT-0319`](FEAT-0319-single-bitunix-request-signer.md).
+[`FEAT-0321`](FEAT-0321-single-bitunix-request-signer.md).
 
 Review found one venue-specific condition still inline: the tickers route's
 *error* path repeats Bitunix's symbol-not-found heuristic instead of asking the
