@@ -151,7 +151,7 @@
 
     <!-- Recent History -->
     <div class="section">
-        <button class="history-toggle" onclick={() => showHistory = !showHistory}>
+        <button class="history-toggle" onclick={() => showHistory = !showHistory} aria-expanded={showHistory}>
             {showHistory ? '▾' : '▸'} {$_("settings.system.debug.recentHistory")} ({telemetry.performanceHistory.length})
         </button>
         
