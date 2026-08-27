@@ -27,3 +27,6 @@
 ## 2025-02-23 - GitHub Actions setup corrections (Follow-up 2)
 **Learning:** `google/gemini-3-flash` is invalid; it must be `google/gemini-3.6-flash`.
 **Action:** Replaced `google/gemini-3-flash` with `google/gemini-3.6-flash` in `.github/workflows/opencode.yml`.
+## 2026-08-27 - Playwright Navigation Through Nested Modals
+**Learning:** When using Playwright for frontend verification within complex Svelte applications (like Cachy), clicking settings gears and tabs inside modals requires robust fallback locators. Using DOM attribute inspections (e.g., `b.title === 'Settings'`) or text searches inside `page.evaluate()` is more reliable than brittle CSS selectors, as UI stores might not easily expose methods to trigger modals directly from Playwright, and DOM elements might have delayed visibility due to Svelte transition effects or tooltips overlaying them. Furthermore, always close blocking legal overlays or toasts before attempting modal navigation.
+**Action:** Implemented a robust frontend verification script using Playwright capable of gracefully waiting for, accepting legal disclaimers, finding nested setting buttons across the shadow DOM, clicking specific application tabs ("System"), finding hidden components (`.debug-panel`), toggling states and retrieving updated `aria-expanded` attributes successfully.
