@@ -1332,6 +1332,8 @@
       "displayPreferences": "Anzeigeeinstellungen",
       "calculationMode": "Berechnungsmodus",
       "obvNoParams": "On Balance Volume hat keine konfigurierbaren Parameter.",
+      "volume": "Volumen",
+      "volumeNoParams": "Die Volumen-Balken haben keine konfigurierbaren Parameter.",
       "awesomeOsc": "Awesome Osc.",
       "anchor": "Anker",
       "rows": "Reihen",

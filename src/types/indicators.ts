@@ -161,6 +161,7 @@ export interface IndicatorSettings {
     maType: "sma" | "ema" | "wma";
   };
   volumeProfile: { enabled: boolean; rows: number; };
+  volume: { enabled: boolean; };
   bollingerBands: {
     enabled: boolean;
     length: number;
