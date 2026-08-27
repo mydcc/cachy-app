@@ -23,33 +23,42 @@ export class TechnicalsCalculator {
      * `_times` stays numeric — it is a millisecond timestamp, not a financial
      * value, and is currently unused.
      */
-    initialize(closes_arr: string[], highs_arr: string[], lows_arr: string[], volumes_arr: string[], _times: Float64Array, settings_json: string): void;
+    initialize(closes_arr: string[], highs_arr: string[], lows_arr: string[], volumes_arr: string[], times: Float64Array, settings_json: string): void;
     constructor();
     shift(_o_str: string, h_str: string, l_str: string, c_str: string, v_str: string, _t_str: string): void;
     update(_o_str: string, h_str: string, l_str: string, c_str: string, v_str: string, _t_str: string): string;
 }
 
+/**
+ * Called once by wasm-bindgen when the module instantiates.
+ *
+ * Installs the console error panic hook so that a trap inside WASM shows up
+ * in the browser console with a Rust backtrace instead of disappearing as an
+ * anonymous `RuntimeError`. Without this, a malformed candle string could
+ * kill the calculator silently and leave the consumer guessing (BUG-0314).
+ */
+export function wasm_start(): void;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly __wbg_alertenginewasm_free: (a: number, b: number) => void;
     readonly __wbg_technicalscalculator_free: (a: number, b: number) => void;
+    readonly alertenginewasm_add_alert: (a: number, b: number, c: number, d: number) => void;
+    readonly alertenginewasm_evaluate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly alertenginewasm_new: () => number;
+    readonly alertenginewasm_remove_alert: (a: number, b: number, c: number) => void;
+    readonly alertenginewasm_set_alerts: (a: number, b: number, c: number, d: number) => void;
     readonly technicalscalculator_initialize: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
     readonly technicalscalculator_new: () => number;
     readonly technicalscalculator_shift: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
-    readonly technicalscalculator_update: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => [number, number];
-    readonly __wbg_alertenginewasm_free: (a: number, b: number) => void;
-    readonly alertenginewasm_add_alert: (a: number, b: number, c: number) => [number, number];
-    readonly alertenginewasm_evaluate: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
-    readonly alertenginewasm_new: () => number;
-    readonly alertenginewasm_remove_alert: (a: number, b: number, c: number) => void;
-    readonly alertenginewasm_set_alerts: (a: number, b: number, c: number) => [number, number];
-    readonly __wbindgen_malloc: (a: number, b: number) => number;
-    readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbindgen_externrefs: WebAssembly.Table;
-    readonly __externref_table_dealloc: (a: number) => void;
-    readonly __externref_table_alloc: () => number;
-    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+    readonly technicalscalculator_update: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number) => void;
+    readonly wasm_start: () => void;
+    readonly __wbindgen_export: (a: number, b: number) => number;
+    readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export3: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_start: () => void;
 }
 

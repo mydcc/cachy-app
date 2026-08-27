@@ -992,7 +992,14 @@
         "tooltipDynamicAtmosphere": "When enabled, the scene lighting, fog, and ambient particles shift color based on market sentiment — green for bullish, red for bearish momentum.",
         "tooltipGridWidth": "Number of points along the X-axis of the visualization grid. More points = finer detail but higher GPU load.",
         "tooltipGridLength": "Number of points along the Z-axis of the visualization grid. More points = finer detail but higher GPU load.",
-        "tooltipSpeed": "How fast the visualization elements animate and move. Higher values create a more energetic appearance."
+        "tooltipSpeed": "How fast the visualization elements animate and move. Higher values create a more energetic appearance.",
+        "sceneRotation": "Scene rotation",
+        "tooltipRotation": "Slow, purely decorative spin of the scene. Off by default: rotation makes the time (depth) and price (height) axes unreadable.",
+        "source": "Data source",
+        "sourceLive": "Live trades only",
+        "sourceAmbient": "Ambient (fill silence)",
+        "sourceReplay": "Replay recent trades",
+        "tooltipSource": "Keeps the background alive when the live feed goes quiet. 'Live' shows only real trades. 'Ambient' injects subtle synthetic ticks after a pause. 'Replay' continuously replays the most recent trades as synthetic ticks."
       },
       "coordinates": {
         "x": "X",
@@ -1133,6 +1140,9 @@
       },
       "ollamaBaseUrl": "Ollama Server Address",
       "ollamaBaseUrlDesc": "Local Ollama install, e.g. http://localhost:11434. Never leaves your device.",
+      "customBaseUrl": "Override API endpoint (Base URL)",
+      "customBaseUrlDesc": "Optional custom endpoint or local gateway (e.g. OmniRoute, LiteLLM, corporate proxy). Keyless mode works when the gateway handles authentication.",
+      "geminiCustomBaseUrlDesc": "Optional custom endpoint or local gateway. Note: Gemini API requires an API key even when using a custom endpoint.",
       "openrouterApiKey": "OpenRouter API Key",
       "contextTitle": "Context & Data Access",
       "shareTradeContext": "Share Trading Context (Journal, Positions & Setup)",
@@ -1371,6 +1381,47 @@
       "switchToCustom": "Switch to Custom Configuration",
       "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?"
     },
+    "chart": {
+      "scaleSection": "Price Scale",
+      "scaleMode": "Scale Mode",
+      "scaleLinear": "Linear",
+      "scaleLog": "Logarithmic",
+      "scaleHint": "Logarithmic treats equal percentage price distances equally - recommended for large price ranges.",
+      "decimalsMode": "Decimal Places",
+      "decimalsAuto": "Auto (Exchange)",
+      "decimalsFixed": "Fixed",
+      "fixedDecimals": "Fixed Decimal Places",
+      "autoScale": "Auto Scaling",
+      "autoScaleDesc": "Y-axis automatically fits the price range",
+      "invertScale": "Invert Scale",
+      "invertScaleDesc": "Flip the price axis (0 on top)",
+      "displaySection": "Display",
+      "showGrid": "Grid Lines",
+      "showGridDesc": "Helper lines in the chart background",
+      "lastValueVisible": "Last Price Label",
+      "lastValueDesc": "Show the latest price on the price axis",
+      "candleBorders": "Candle Borders",
+      "candleBordersDesc": "Outline around each candle body",
+      "watermark": "Watermark",
+      "watermarkDesc": "Symbol name in the chart background",
+      "crosshairSection": "Crosshair",
+      "crosshairMode": "Mode",
+      "crosshairNormal": "Normal",
+      "crosshairMagnet": "Magnet",
+      "crosshairHidden": "Hidden",
+      "crosshairStyle": "Line Style",
+      "styleSolid": "Solid",
+      "styleDashed": "Dashed",
+      "styleDotted": "Dotted",
+      "timeSection": "Time Scale & Countdown",
+      "secondsVisible": "Show Seconds",
+      "secondsVisibleDesc": "Include seconds in time axis stamps",
+      "fixEdges": "Fix Edges",
+      "fixEdgesDesc": "Prevent scrolling past the left/right chart edge",
+      "countdownEnabled": "Candle Close Countdown",
+      "countdownDesc": "Remaining time until the current candle closes",
+      "reset": "Reset"
+    },
     "tabs": {
       "general": "General",
       "api": "API & Connection",
@@ -1383,6 +1434,7 @@
       "data": "Data Maintenance",
       "visuals": "Visuals & Design",
       "trading": "Trading & Market",
+      "chart": "Chart",
       "connections": "Connections",
       "ai_assistant": "AI Assistant",
       "analysis": "Analysis Logic",
@@ -2852,5 +2904,10 @@
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
     },
     "timeInForceNone": "—"
+  },
+  "chartView": {
+    "loadingHistory": "LOADING HISTORY ...",
+    "fetchingMarketData": "FETCHING MARKET DATA ...",
+    "countdownLabel": "Countdown to candle close"
   }
 }

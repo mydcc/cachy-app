@@ -150,10 +150,6 @@ export type BodyRefCheck =
  * duplicates removed. Anything after that first one is a second, accidental
  * link: exactly the shape of both incidents in BUG-0221, where a `Fixes
  * #<own-issue>` line was followed by prose that used a keyword in passing.
- *
- * A body with no closing reference at all is not this check's concern —
- * whether the required line is present is a different rule — so it passes
- * with `declared: null` rather than failing.
  */
 export function checkBodyForStrayClosingRefs(body: string | null | undefined): BodyRefCheck {
     const refs = closingReferences(body);
@@ -161,6 +157,38 @@ export function checkBodyForStrayClosingRefs(body: string | null | undefined): B
     const [declared, ...conflicts] = refs;
     if (conflicts.length === 0) return { ok: true, declared };
     return { ok: false, declared, conflicts };
+}
+
+/**
+ * A body containing this marker (case-insensitive) opts out of the mandatory
+ * `Fixes #<issue>` rule. For the rare PR that genuinely links to nothing —
+ * pure tooling chores, mass formatting — write it on its own line.
+ */
+export const NO_ISSUE_MARKER = "[no issue]";
+
+/** Outcome of checking that a PR description carries its closing reference. */
+export type ClosingRefPresenceCheck =
+    | { ok: true; declared: number | null; optedOut: boolean }
+    | { ok: false; reason: "missing" };
+
+/**
+ * Does this PR description close anything at all?
+ *
+ * The missing half of the rule. AGENTS.md has always required `Fixes #N`, but
+ * nothing checked for *presence* — only for stray extra references — so the
+ * Jules docs pipeline happily merged PRs like #2297/#2254 with no closing
+ * keyword at all: GitHub closed nothing, the backlog markdown said `done`,
+ * and both issues stayed open until someone noticed by hand (BUG-0307).
+ *
+ * `[no issue]` is the explicit escape hatch; silence is not.
+ */
+export function checkBodyHasClosingRef(body: string | null | undefined): ClosingRefPresenceCheck {
+    if (body && body.toLowerCase().includes(NO_ISSUE_MARKER)) {
+        return { ok: true, declared: null, optedOut: true };
+    }
+    const refs = closingReferences(body);
+    if (refs.length > 0) return { ok: true, declared: refs[0], optedOut: false };
+    return { ok: false, reason: "missing" };
 }
 
 /** What to do about a PR that is missing its `Fixes #<issue>` line. */

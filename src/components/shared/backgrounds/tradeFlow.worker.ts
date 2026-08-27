@@ -22,6 +22,7 @@ import { RaindropsEngine } from './engines/RaindropsEngine';
 import { SonarEngine } from './engines/SonarEngine';
 import { BlockEngine } from './engines/BlockEngine';
 import { type BaseEngine, type EngineContext } from './engines/BaseEngine';
+import { VolumeNormalizer, marketHeat, clamp01 } from './engines/volumeScale';
 
 // Camera/mode fields this worker itself reads; each engine also reads its
 // own settings (gridWidth, spread, size, ...) via BaseEngine's generic
@@ -48,6 +49,10 @@ let camera: THREE.PerspectiveCamera;
 let activeEngine: BaseEngine | null = null;
 let settings: FlowSettings;
 
+// One shared calibration window for whichever engine is active. Lives here so
+// a symbol change resets it exactly once via the 'resetVolume' message.
+const volumeNormalizer = new VolumeNormalizer();
+
 let colorUp = new THREE.Color(0x00ff88);
 let colorDown = new THREE.Color(0xff4444);
 let colorBg = new THREE.Color(0x0a0e27);
@@ -55,6 +60,57 @@ let targetSentiment = 0;
 let currentSentiment = 0;
 let currentAtmosphereColor = new THREE.Color(0x0a0e27);
 let targetAtmosphereColor = new THREE.Color(0x0a0e27);
+
+// Market-activity tracking for the dynamic atmosphere. Logs recent trades so
+// fog / nebula / light intensity can reflect trade RATE + notional VOLUME +
+// PRICE VOLATILITY, not just the buy/sell sentiment ratio.
+interface TradeLogEntry { t: number; notional: number; }
+// Ring buffer (fixed capacity, no per-frame shift()) so the activity window
+// stays O(1)-amortized even under sustained high-frequency synthetic ticks.
+const TRADE_LOG_CAP = 512;
+const tradeLogBuf: (TradeLogEntry | null)[] = new Array(TRADE_LOG_CAP).fill(null);
+let tradeLogHead = 0;
+let tradeLogCount = 0;
+
+function pushTradeLog(t: number, notional: number) {
+	if (tradeLogCount < TRADE_LOG_CAP) {
+		tradeLogBuf[(tradeLogHead + tradeLogCount) % TRADE_LOG_CAP] = { t, notional };
+		tradeLogCount++;
+	} else {
+		tradeLogBuf[tradeLogHead] = { t, notional };
+		tradeLogHead = (tradeLogHead + 1) % TRADE_LOG_CAP;
+	}
+}
+const tradePriceBuf: number[] = [];
+const tradePriceBufMax = 100;
+let currentActivity = 0;
+const ACTIVITY_WINDOW_MS = 2000;
+
+function relativePriceVolatility(): number {
+  if (tradePriceBuf.length < 2) return 0;
+  const mean = tradePriceBuf.reduce((a, b) => a + b, 0) / tradePriceBuf.length;
+  if (mean === 0) return 0;
+  let variance = 0;
+  for (const p of tradePriceBuf) variance += (p - mean) * (p - mean);
+  variance /= tradePriceBuf.length;
+  return Math.sqrt(variance) / mean;
+}
+
+function computeActivity(nowMs: number): number {
+	const cutoff = nowMs - ACTIVITY_WINDOW_MS;
+	// Drop expired entries from the front of the ring (amortized O(1)).
+	while (tradeLogCount > 0 && (tradeLogBuf[tradeLogHead] as TradeLogEntry).t < cutoff) {
+		tradeLogBuf[tradeLogHead] = null;
+		tradeLogHead = (tradeLogHead + 1) % TRADE_LOG_CAP;
+		tradeLogCount--;
+	}
+	let volume = 0;
+	for (let i = 0; i < tradeLogCount; i++) {
+		const e = tradeLogBuf[(tradeLogHead + i) % TRADE_LOG_CAP] as TradeLogEntry;
+		volume += e.notional;
+	}
+	return marketHeat({ rate: tradeLogCount, volume, volatilityRel: relativePriceVolatility() });
+}
 
 // Atmosphere lighting
 let ambientLight: THREE.AmbientLight | null = null;
@@ -165,6 +221,16 @@ self.onmessage = (event) => {
         case 'switchMode':
             switchMode(data.mode);
             break;
+        case 'resetVolume':
+            // Symbol changed: drop the old symbol's notionals from the
+            // calibration window so sizes re-learn for the new market.
+            volumeNormalizer.reset();
+            // ...and forget the old market's activity signature.
+			tradeLogHead = 0;
+			tradeLogCount = 0;
+            tradePriceBuf.length = 0;
+            currentActivity = 0;
+            break;
     }
 };
 
@@ -196,54 +262,58 @@ function animate(time: number) {
     // Smoothing Sentiment
     currentSentiment = currentSentiment + (targetSentiment - currentSentiment) * 0.02;
 
+    // Smoothing market activity (rate + volume + volatility)
+    const activity = computeActivity(time);
+    currentActivity = currentActivity + (activity - currentActivity) * 0.02;
+
     const atmoEnabled = settings.enableAtmosphere;
     const sentimentAbs = Math.abs(currentSentiment);
 
     // === Dynamic Atmosphere ===
     if (atmoEnabled) {
-        // Background color: subtle tint toward sentiment
-        if (currentSentiment > 0.05) {
-            targetAtmosphereColor.copy(colorBg).lerp(colorUp, currentSentiment * 0.12);
-        } else if (currentSentiment < -0.05) {
-            targetAtmosphereColor.copy(colorBg).lerp(colorDown, sentimentAbs * 0.12);
-        } else {
-            targetAtmosphereColor.copy(colorBg);
-        }
+      // Background color: subtle tint toward sentiment
+      if (currentSentiment > 0.05) {
+        targetAtmosphereColor.copy(colorBg).lerp(colorUp, currentSentiment * 0.12);
+      } else if (currentSentiment < -0.05) {
+        targetAtmosphereColor.copy(colorBg).lerp(colorDown, sentimentAbs * 0.12);
+      } else {
+        targetAtmosphereColor.copy(colorBg);
+      }
 
-        // Ambient light: shift color + intensity with sentiment
-        if (ambientLight) {
-            const sentimentColor = currentSentiment > 0 ? colorUp : colorDown;
-            ambientLight.color.copy(colorBg).lerp(sentimentColor, sentimentAbs * 0.4);
-            ambientLight.intensity = 0.3 + sentimentAbs * 0.5;
-        }
+      // Ambient light: shift color + intensity with sentiment AND activity
+      if (ambientLight) {
+        const sentimentColor = currentSentiment > 0 ? colorUp : colorDown;
+        ambientLight.color.copy(colorBg).lerp(sentimentColor, sentimentAbs * 0.4);
+        ambientLight.intensity = 0.3 + sentimentAbs * 0.5 + currentActivity * 0.4;
+      }
 
-        // Directional light: stronger with stronger sentiment
-        if (dirLight) {
-            const sentimentColor = currentSentiment > 0 ? colorUp : colorDown;
-            dirLight.color.copy(sentimentColor);
-            dirLight.intensity = 0.1 + sentimentAbs * 0.6;
-        }
+      // Directional light: stronger with stronger sentiment AND activity
+      if (dirLight) {
+        const sentimentColor = currentSentiment > 0 ? colorUp : colorDown;
+        dirLight.color.copy(sentimentColor);
+        dirLight.intensity = 0.1 + sentimentAbs * 0.6 + currentActivity * 0.5;
+      }
 
-        // Nebula: fade in with sentiment, color follows market mood
-        if (nebulaMaterial) {
-            nebulaMaterial.uniforms.uTime.value = now;
-            const targetOpacity = Math.min(sentimentAbs * 2.0, 1.0);
-            const curOp = nebulaMaterial.uniforms.uOpacity.value as number;
-            nebulaMaterial.uniforms.uOpacity.value = curOp + (targetOpacity - curOp) * 0.03;
-            const nebulaColor = currentSentiment > 0 ? colorUp : colorDown;
-            (nebulaMaterial.uniforms.uColor.value as THREE.Color).lerp(nebulaColor, 0.02);
-        }
+      // Nebula: fade in with sentiment / activity, color follows market mood
+      if (nebulaMaterial) {
+        nebulaMaterial.uniforms.uTime.value = now;
+        const targetOpacity = clamp01(Math.max(sentimentAbs * 2.0, currentActivity * 1.5));
+        const curOp = nebulaMaterial.uniforms.uOpacity.value as number;
+        nebulaMaterial.uniforms.uOpacity.value = curOp + (targetOpacity - curOp) * 0.03;
+        const nebulaColor = currentSentiment > 0 ? colorUp : colorDown;
+        (nebulaMaterial.uniforms.uColor.value as THREE.Color).lerp(nebulaColor, 0.02);
+      }
 
-        // Fog: denser with stronger sentiment for dramatic depth
-        const baseDensity = 0.008;
-        const sentimentDensity = baseDensity + sentimentAbs * 0.015;
-        if (!scene.fog) {
-            scene.fog = new THREE.FogExp2(currentAtmosphereColor.getHex(), sentimentDensity);
-        } else {
-            const fog = scene.fog as THREE.FogExp2;
-            fog.density += (sentimentDensity - fog.density) * 0.02;
-            fog.color.copy(currentAtmosphereColor);
-        }
+      // Fog: denser with stronger sentiment / activity for dramatic depth
+      const baseDensity = 0.008;
+      const sentimentDensity = baseDensity + sentimentAbs * 0.015 + currentActivity * 0.02;
+      if (!scene.fog) {
+        scene.fog = new THREE.FogExp2(currentAtmosphereColor.getHex(), sentimentDensity);
+      } else {
+        const fog = scene.fog as THREE.FogExp2;
+        fog.density += (sentimentDensity - fog.density) * 0.02;
+        fog.color.copy(currentAtmosphereColor);
+      }
     } else {
         targetAtmosphereColor.copy(colorBg);
         // Reset atmosphere elements when disabled
@@ -266,7 +336,11 @@ function animate(time: number) {
 
     if (activeEngine) {
         activeEngine.context.currentAtmosphere = currentAtmosphereColor;
-        activeEngine.update(now, 0.016);
+        try {
+            activeEngine.update(now, 0.016);
+        } catch (err) {
+            console.error('[TradeFlow] engine update error', err);
+        }
         updateSentimentUniforms();
     }
     
@@ -351,6 +425,7 @@ function switchMode(mode: string | undefined) {
         camera,
         renderer,
         settings,
+        volumeNormalizer,
         colorUp,
         colorDown,
         currentAtmosphere: colorBg
@@ -368,8 +443,23 @@ function switchMode(mode: string | undefined) {
 }
 
 function onTrade(data: TradeEventData) {
-    if (data.sentiment !== undefined) {
-        targetSentiment = data.sentiment;
+    try {
+        if (data.sentiment !== undefined) {
+            targetSentiment = data.sentiment;
+        }
+        const trade = data.trade;
+        if (trade) {
+            const notional = (trade.price || 0) * (trade.amount || 0);
+			if (Number.isFinite(notional)) {
+				pushTradeLog(performance.now(), notional);
+			}
+            if (Number.isFinite(trade.price) && trade.price > 0) {
+                tradePriceBuf.push(trade.price);
+                if (tradePriceBuf.length > tradePriceBufMax) tradePriceBuf.shift();
+            }
+        }
+        activeEngine?.onTrade?.(trade);
+    } catch (err) {
+        console.error('[TradeFlow] onTrade error', err);
     }
-    activeEngine?.onTrade?.(data.trade);
 }

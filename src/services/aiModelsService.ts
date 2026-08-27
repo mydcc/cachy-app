@@ -43,9 +43,10 @@ function shortHash(input: string): string {
 }
 
 function cacheScope(provider: string, opts: ModelFetchOptions): string {
-  if (provider === "ollama") return opts.baseUrl || "default";
-  if (provider === "openrouter") return "public";
-  return opts.apiKey || "";
+  const parts = [opts.baseUrl || "", opts.apiKey || ""];
+  if (provider === "openrouter" && !opts.baseUrl && !opts.apiKey) return "public";
+  if (provider === "ollama" && !opts.baseUrl) return "default";
+  return parts.filter(Boolean).join(":") || "default";
 }
 
 function cacheKey(provider: string, scope: string): string {
@@ -78,7 +79,7 @@ async function fetchFromServer(
   opts: ModelFetchOptions,
 ): Promise<AiModelInfo[]> {
   const params = new URLSearchParams();
-  if (provider === "ollama" && opts.baseUrl) params.set("baseUrl", opts.baseUrl);
+  if (opts.baseUrl?.trim()) params.set("baseUrl", opts.baseUrl.trim());
   const qs = params.toString();
 
   const headers: Record<string, string> = {};
@@ -100,9 +101,9 @@ async function fetchFromServer(
  * network otherwise, falling back to a stale cache entry if the network call
  * fails so a temporary outage doesn't empty the dropdown.
  *
- * For `anthropic`/`openai`/`gemini` without a credential yet, this resolves
- * to an empty list without making a request — there's nothing useful to ask
- * the provider until the user has entered a key. Pass `forceRefresh: true`
+ * For `anthropic`/`openai`/`gemini` without a credential or custom baseUrl yet,
+ * this resolves to an empty list without making a request — there's nothing useful
+ * to ask the provider until the user has entered a key or endpoint. Pass `forceRefresh: true`
  * (the manual "test connection" action) to attempt it anyway and surface the
  * resulting error.
  */
@@ -113,7 +114,7 @@ export async function getModels(
 ): Promise<{ models: AiModelInfo[]; fromCache: boolean }> {
   const scope = cacheScope(provider, opts);
 
-  if (!forceRefresh && CREDENTIAL_PROVIDERS.has(provider) && !opts.apiKey) {
+  if (!forceRefresh && CREDENTIAL_PROVIDERS.has(provider) && !opts.apiKey && !opts.baseUrl?.trim()) {
     return { models: [], fromCache: false };
   }
 

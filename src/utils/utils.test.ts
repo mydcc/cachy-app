@@ -17,7 +17,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal, formatDynamicDecimal, unwrapApiEnvelope } from "./utils";
+import { Decimal } from "decimal.js";
+import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal, formatDynamicDecimal, unwrapApiEnvelope, deriveTickSizeFromPrice } from "./utils";
 
 // Regression (BUG-0060): PositionsSidebar.svelte read `data.positions`/
 // `data.error` straight off the response of /api/positions and /api/account,
@@ -287,5 +288,33 @@ describe("formatDynamicDecimal", () => {
     // whatever field an order/position object happens to hold.
     expect(formatDynamicDecimal("MARKET")).toBe("-");
     expect(formatDynamicDecimal("LIMIT")).toBe("-");
+  });
+});
+
+describe("deriveTickSizeFromPrice", () => {
+  it("derives the tick from the price's decimal places", () => {
+    expect(deriveTickSizeFromPrice("0.00000912")?.eq("0.00000001")).toBe(true);
+    expect(deriveTickSizeFromPrice("67123.5")?.eq("0.1")).toBe(true);
+    expect(deriveTickSizeFromPrice(new Decimal(100))?.eq("1")).toBe(true);
+    expect(deriveTickSizeFromPrice("1.0434")?.eq("0.0001")).toBe(true);
+  });
+
+  it("clamps extreme decimal places to the chart-renderable range", () => {
+    expect(
+      deriveTickSizeFromPrice("0.000000001234")?.eq("0.00000001"),
+    ).toBe(true);
+    // Trailing zeros do not count as precision
+    expect(deriveTickSizeFromPrice("100.00000000")?.eq("1")).toBe(true);
+  });
+
+  it("treats zero as invalid (gt 0, not isPositive: Decimal#isPositive is true for 0)", () => {
+    expect(deriveTickSizeFromPrice(0)).toBeNull();
+  });
+
+  it("returns null for invalid or non-positive input", () => {
+    expect(deriveTickSizeFromPrice(undefined)).toBeNull();
+    expect(deriveTickSizeFromPrice(null)).toBeNull();
+    expect(deriveTickSizeFromPrice("MARKET")).toBeNull();
+    expect(deriveTickSizeFromPrice(-5)).toBeNull();
   });
 });

@@ -17,8 +17,12 @@
 
 import * as THREE from 'three';
 import { BaseEngine, type EngineContext } from './BaseEngine';
+import { scaleToRange } from './volumeScale';
 
 export class SonarEngine extends BaseEngine {
+	private readonly MIN_INTENSITY = 1.0;
+	private readonly MAX_INTENSITY = 5.0;
+
     private pointCloud: THREE.Points | null = null;
     private material: THREE.ShaderMaterial | null = null;
     private sonarData: Float32Array;
@@ -200,8 +204,15 @@ export class SonarEngine extends BaseEngine {
         const width = s.gridWidth || 80;
         const length = s.gridLength || 160;
         const volScale = s.volumeScale || 1.0;
-        const tradeValue = trade.price * trade.amount;
-        const absIntensity = Math.min(1.0 + Math.log10(tradeValue + 1) * 0.5 * volScale, 5.0);
+
+        // Shared notional normalisation (see volumeScale.ts).
+        const normalized = this.context.volumeNormalizer.push(trade.price, trade.amount);
+        const absIntensity = scaleToRange(
+        	normalized,
+        	this.MIN_INTENSITY,
+        	this.MAX_INTENSITY,
+        	volScale
+        );
         const signedIntensity = trade.type === 'buy' ? absIntensity : -absIntensity;
         const ptr = this.nextSonarIdx * 4;
         this.sonarData[ptr] = Math.floor(Math.random() * width);

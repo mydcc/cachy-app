@@ -54,7 +54,12 @@ export function parseFrontMatter(text) {
   return data;
 }
 
-/** Replaces (or appends) top-level scalar keys in a front-matter block, leaving the rest of the file untouched. */
+/**
+ * Replaces (or appends) top-level scalar keys in a front-matter block, leaving
+ * the rest of the file untouched. A value of null or undefined REMOVES the key
+ * instead of writing it — e.g. clearing assignee when an agent releases a claim
+ * (AGENTS.md lifecycle rules pair status with assignee, so both must go).
+ */
 export function updateFrontMatter(text, updates) {
   if (!text.startsWith("---\n")) return text;
   const end = text.indexOf("\n---", 4);
@@ -74,15 +79,20 @@ export function updateFrontMatter(text, updates) {
     }
     const key = line.slice(0, sep).trim();
     if (key in updates) {
-      updated.push(`${key}: ${updates[key]}`);
-      seen.add(key);
+      seen.add(key); // also for null/undefined, so the key is not re-appended below
+      const value = updates[key];
+      if (value !== null && value !== undefined) {
+        updated.push(`${key}: ${value}`);
+      }
     } else {
       updated.push(raw);
     }
   }
 
   for (const [key, value] of Object.entries(updates)) {
-    if (!seen.has(key)) updated.push(`${key}: ${value}`);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (value !== null && value !== undefined) updated.push(`${key}: ${value}`);
   }
 
   return `---\n${updated.join("\n")}\n---\n${text.slice(end + 4)}`;

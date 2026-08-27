@@ -1,0 +1,121 @@
+name: Auto-Update PRs
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+# Prevent parallel runs from racing and conflicting on branch updates
+concurrency:
+  group: auto-update-prs
+  cancel-in-progress: false
+
+jobs:
+  update-branches:
+    name: Update open PRs and resolve backlog conflicts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Update PR branches and auto-resolve backlog conflicts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          echo "Fetching open non-draft PRs targeting develop..."
+          prs=$(gh pr list --base develop --state open --json number,isDraft,headRefName,headRepositoryOwner --jq '.[] | select(.isDraft == false) | "\(.number):\(.headRefName):\(.headRepositoryOwner.login)"')
+
+          if [ -z "$prs" ]; then
+            echo "No open PRs to update."
+            exit 0
+          fi
+
+          for item in $prs; do
+            pr=$(echo "$item" | cut -d: -f1)
+            branch=$(echo "$item" | cut -d: -f2)
+            owner=$(echo "$item" | cut -d: -f3)
+
+            echo "=== Processing PR #$pr (branch: $branch, owner: $owner) ==="
+
+            # First, try native GitHub API update-branch
+            if gh api -X PUT "repos/${{ github.repository }}/pulls/$pr/update-branch" > /dev/null 2>&1; then
+              echo "✓ Cleanly updated PR #$pr via GitHub API"
+              continue
+            fi
+
+            # If the PR is from an external fork, skip local git resolution
+            if [ "$owner" != "${{ github.repository_owner }}" ]; then
+              echo "⚠ Cannot auto-resolve fork PR #$pr"
+              continue
+            fi
+
+            echo "API update failed for PR #$pr. Attempting automatic backlog conflict resolution..."
+
+            # Ensure clean develop baseline before checking out PR branch
+            git checkout develop --force 2>/dev/null || true
+
+            # Fetch branch and try git merge
+            if ! git fetch origin "$branch":"$branch" 2>/dev/null; then
+              echo "⚠ Could not fetch branch $branch, skipping."
+              continue
+            fi
+
+            git checkout "$branch"
+
+            if git merge origin/develop -m "chore: merge develop into $branch"; then
+              echo "Merged cleanly locally, pushing..."
+              git push origin "$branch" || echo "⚠ Failed to push to $branch"
+              git checkout develop
+              continue
+            fi
+
+            # Check which files have merge conflicts
+            conflicts=$(git diff --name-only --diff-filter=U)
+            echo "Conflicted files in PR #$pr:"
+            echo "$conflicts"
+
+            # Check if conflicts are ONLY in generated backlog files
+            non_backlog_conflicts=0
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              case "$file" in
+                docs/backlog/INDEX.md|docs/backlog/backlog.generated.ts|docs/backlog/backlog.generated.json)
+                  ;;
+                *)
+                  non_backlog_conflicts=1
+                  ;;
+              esac
+            done <<< "$conflicts"
+
+            if [ "$non_backlog_conflicts" -eq 0 ] && [ -n "$conflicts" ]; then
+              echo "Conflicts are only in generated backlog index files. Resolving automatically..."
+              # Re-generate backlog index
+              node scripts/backlog-index.mjs
+              git add docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json
+              git commit -m "chore(backlog): auto-resolve backlog index conflict with develop"
+              git push origin "$branch" || echo "⚠ Failed to push auto-resolved $branch"
+              echo "✓ Successfully auto-resolved backlog conflict and updated PR #$pr"
+            else
+              echo "⚠ PR #$pr has non-backlog code conflicts or empty diff. Aborting merge."
+              git merge --abort || true
+            fi
+
+            git checkout develop
+          done

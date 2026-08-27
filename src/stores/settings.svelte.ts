@@ -65,6 +65,18 @@ export type HeatmapMode =
   | "coinank_new_tab"
   | "coinank_popup";
 
+/**
+ * Scale mode of the candlestick chart's price axis. Deliberately limited to
+ * Linear and Logarithmic: the rebasing modes (Percentage / IndexedTo100)
+ * re-render every value relative to the first visible bar, which makes
+ * absolute price lines (Entry/Liquidation/TP/SL) unreadable on an execution
+ * chart - see the "%" scale confusion that shipped with them.
+ */
+export type ChartPriceScaleMode = "linear" | "log";
+export type ChartCrosshairMode = "normal" | "magnet" | "hidden";
+export type ChartCrosshairStyle = "solid" | "dashed" | "dotted";
+export type ChartDecimalsMode = "auto" | "fixed";
+
 export const TECHNICALS_UPDATE_PRESETS = {
   realtime: {
     interval: 100,
@@ -135,12 +147,27 @@ export interface TradeFlowSettings {
   volumeScale: number; // Factor to scale volume mapping
   flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "block";
   persistenceDuration: number;
+  /**
+   * Slow scene rotation, purely decorative. Off by default: it destroys the
+   * readability of the time/price axes (a block's height can only be compared
+   * against the grid while the frame stands still).
+   */
+  enableRotation: boolean;
   cameraHeight: number;
   cameraDistance: number;
   cameraPositionX: number;
   cameraRotationX: number;
   cameraRotationY: number;
   cameraRotationZ: number;
+  /**
+   * How the background stays alive when the live trade feed goes quiet.
+   * - "live": only real trades (default).
+   * - "ambient": inject subtle synthetic ticks when no real trade arrived
+   *   for a while, so the effect never freezes completely.
+   * - "replay": continuously replay the most recent real trades as synthetic
+   *   ticks even while the live feed is active.
+   */
+  tradeFlowSource: "live" | "ambient" | "replay";
 }
 
 export interface Settings {
@@ -208,14 +235,18 @@ export interface Settings {
   aiProvider: AiProvider;
   openaiApiKey: string;
   openaiModel: string;
+  openaiBaseUrl: string;
   geminiApiKey: string;
   geminiModel: string;
+  geminiBaseUrl: string;
   anthropicApiKey: string;
   anthropicModel: string;
+  anthropicBaseUrl: string;
   ollamaBaseUrl: string;
   ollamaModel: string;
   openrouterApiKey: string;
   openrouterModel: string;
+  openrouterBaseUrl: string;
   analysisDepth: AnalysisDepth;
   aiConfirmActions: boolean;
   aiAllowSettingsChanges: boolean;
@@ -349,6 +380,24 @@ export interface Settings {
   chartRenderIntervalMs: number; // Candle chart render update interval in ms (20-500)
   repairTimeframe: string; // Timeframe used for ATR/MFE/MAE repair (default: 15m)
 
+  // Chart view appearance/behavior (Settings → Chart). Defaults mirror the
+  // options previously hard-coded in CandleChartView so existing users see
+  // no visual change.
+  chartPriceScaleMode: ChartPriceScaleMode;
+  chartAutoScale: boolean;
+  chartInvertScale: boolean;
+  chartDecimalsMode: ChartDecimalsMode;
+  chartFixedDecimals: number; // Used when chartDecimalsMode === "fixed" (0-8)
+  chartShowGrid: boolean;
+  chartLastValueVisible: boolean;
+  chartCandleBorders: boolean;
+  chartWatermark: boolean;
+  chartCrosshairMode: ChartCrosshairMode;
+  chartCrosshairStyle: ChartCrosshairStyle;
+  chartSecondsVisible: boolean;
+  chartFixEdges: boolean;
+  chartCountdownEnabled: boolean;
+
   // Individual Indicator Toggles
   // Removed enabledIndicators (handled via indicatorState instead)
   // Window Docking
@@ -410,14 +459,18 @@ const defaultSettings: Settings = {
   aiProvider: "gemini",
   openaiApiKey: "",
   openaiModel: "gpt-4o",
+  openaiBaseUrl: "",
   geminiApiKey: "",
   geminiModel: "gemini-1.5-flash",
+  geminiBaseUrl: "",
   anthropicApiKey: "",
   anthropicModel: "claude-sonnet-5",
+  anthropicBaseUrl: "",
   ollamaBaseUrl: "http://localhost:11434",
   ollamaModel: "",
   openrouterApiKey: "",
   openrouterModel: "",
+  openrouterBaseUrl: "",
   analysisDepth: "standard",
   aiConfirmActions: false,
   aiAllowSettingsChanges: false,
@@ -490,6 +543,7 @@ const defaultSettings: Settings = {
     gridWidth: 80,
     gridLength: 160,
     enableAtmosphere: true,
+    enableRotation: false,
     volumeScale: 1.0,
     persistenceDuration: 60,
     cameraHeight: 80,
@@ -498,6 +552,7 @@ const defaultSettings: Settings = {
     cameraRotationX: 0,
     cameraRotationY: 0,
     cameraRotationZ: 0,
+    tradeFlowSource: "live",
   } as TradeFlowSettings,
   galaxySettings: {
     particleCount: 20000,
@@ -565,6 +620,22 @@ const defaultSettings: Settings = {
   chartHistoryLimit: 2000,
   chartRenderIntervalMs: 0,
   repairTimeframe: "15m",
+
+  // Chart view defaults = the previous hard-coded CandleChartView behavior
+  chartPriceScaleMode: "log",
+  chartAutoScale: true,
+  chartInvertScale: false,
+  chartDecimalsMode: "auto",
+  chartFixedDecimals: 2,
+  chartShowGrid: true,
+  chartLastValueVisible: true,
+  chartCandleBorders: false,
+  chartWatermark: false,
+  chartCrosshairMode: "normal",
+  chartCrosshairStyle: "solid",
+  chartSecondsVisible: false,
+  chartFixEdges: false,
+  chartCountdownEnabled: false,
 
   // Core indicators enabled by default
   // Removed enabledIndicators (handled via indicatorState instead)
@@ -662,15 +733,19 @@ export class SettingsManager {
   // that browser. See docs/archive/engineering-log-2026-h1.md item 24a.
   openaiApiKey = $state<string>(defaultSettings.openaiApiKey);
   openaiModel = $state<string>(defaultSettings.openaiModel);
+  openaiBaseUrl = $state<string>(defaultSettings.openaiBaseUrl);
   geminiApiKey = $state<string>(defaultSettings.geminiApiKey);
   geminiModel = $state<string>(defaultSettings.geminiModel);
+  geminiBaseUrl = $state<string>(defaultSettings.geminiBaseUrl);
   anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey);
   anthropicModel = $state<string>(defaultSettings.anthropicModel);
+  anthropicBaseUrl = $state<string>(defaultSettings.anthropicBaseUrl);
   // No API key: Ollama is the user's own local (or self-hosted) instance.
   ollamaBaseUrl = $state<string>(defaultSettings.ollamaBaseUrl);
   ollamaModel = $state<string>(defaultSettings.ollamaModel);
   openrouterApiKey = $state<string>(defaultSettings.openrouterApiKey);
   openrouterModel = $state<string>(defaultSettings.openrouterModel);
+  openrouterBaseUrl = $state<string>(defaultSettings.openrouterBaseUrl);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
@@ -837,6 +912,24 @@ export class SettingsManager {
     };
   }
 
+  /** Restores every Settings → Chart field to its default (reset button). */
+  resetChartSettings() {
+    this.chartPriceScaleMode = defaultSettings.chartPriceScaleMode;
+    this.chartAutoScale = defaultSettings.chartAutoScale;
+    this.chartInvertScale = defaultSettings.chartInvertScale;
+    this.chartDecimalsMode = defaultSettings.chartDecimalsMode;
+    this.chartFixedDecimals = defaultSettings.chartFixedDecimals;
+    this.chartShowGrid = defaultSettings.chartShowGrid;
+    this.chartLastValueVisible = defaultSettings.chartLastValueVisible;
+    this.chartCandleBorders = defaultSettings.chartCandleBorders;
+    this.chartWatermark = defaultSettings.chartWatermark;
+    this.chartCrosshairMode = defaultSettings.chartCrosshairMode;
+    this.chartCrosshairStyle = defaultSettings.chartCrosshairStyle;
+    this.chartSecondsVisible = defaultSettings.chartSecondsVisible;
+    this.chartFixEdges = defaultSettings.chartFixEdges;
+    this.chartCountdownEnabled = defaultSettings.chartCountdownEnabled;
+  }
+
   // Market & Performance State
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
   analyzeAllFavorites = $state<boolean>(defaultSettings.analyzeAllFavorites);
@@ -858,6 +951,34 @@ export class SettingsManager {
   chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
   chartRenderIntervalMs = $state<number>(defaultSettings.chartRenderIntervalMs);
   repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
+
+  // Chart view state
+  chartPriceScaleMode = $state<ChartPriceScaleMode>(
+    defaultSettings.chartPriceScaleMode,
+  );
+  chartAutoScale = $state<boolean>(defaultSettings.chartAutoScale);
+  chartInvertScale = $state<boolean>(defaultSettings.chartInvertScale);
+  chartDecimalsMode = $state<ChartDecimalsMode>(
+    defaultSettings.chartDecimalsMode,
+  );
+  chartFixedDecimals = $state<number>(defaultSettings.chartFixedDecimals);
+  chartShowGrid = $state<boolean>(defaultSettings.chartShowGrid);
+  chartLastValueVisible = $state<boolean>(
+    defaultSettings.chartLastValueVisible,
+  );
+  chartCandleBorders = $state<boolean>(defaultSettings.chartCandleBorders);
+  chartWatermark = $state<boolean>(defaultSettings.chartWatermark);
+  chartCrosshairMode = $state<ChartCrosshairMode>(
+    defaultSettings.chartCrosshairMode,
+  );
+  chartCrosshairStyle = $state<ChartCrosshairStyle>(
+    defaultSettings.chartCrosshairStyle,
+  );
+  chartSecondsVisible = $state<boolean>(defaultSettings.chartSecondsVisible);
+  chartFixEdges = $state<boolean>(defaultSettings.chartFixEdges);
+  chartCountdownEnabled = $state<boolean>(
+    defaultSettings.chartCountdownEnabled,
+  );
   autoTrading = $state<boolean>(defaultSettings.autoTrading);
   multiAccount = $state<boolean>(defaultSettings.multiAccount);
 
@@ -902,6 +1023,7 @@ export class SettingsManager {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private effectCleanup: (() => void) | null = null;
   private saveLock = false; // Prevents concurrent saves
+  private storageListener: ((e: StorageEvent) => void) | null = null;
 
   /**
    * True while the obfuscation-mode background decryption of
@@ -999,7 +1121,7 @@ export class SettingsManager {
       }
 
       // 3. Listen for changes from other tabs
-      window.addEventListener("storage", (e) => {
+      this.storageListener = (e: StorageEvent) => {
         if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
           // Only sync if not currently saving (prevents overwriting)
           if (!this.saveLock) {
@@ -1018,7 +1140,8 @@ export class SettingsManager {
             }
           }
         }
-      });
+      };
+      if (typeof window !== "undefined") window.addEventListener("storage", this.storageListener);
     }
   }
 
@@ -1362,14 +1485,18 @@ export class SettingsManager {
     this.multiAccount = merged.multiAccount;
     this.openaiApiKey = merged.openaiApiKey;
     this.openaiModel = merged.openaiModel;
+    this.openaiBaseUrl = merged.openaiBaseUrl ?? defaultSettings.openaiBaseUrl;
     this.geminiApiKey = merged.geminiApiKey;
     this.geminiModel = resolveGeminiModel(merged.geminiModel);
+    this.geminiBaseUrl = merged.geminiBaseUrl ?? defaultSettings.geminiBaseUrl;
     this.anthropicApiKey = merged.anthropicApiKey;
     this.anthropicModel = resolveAnthropicModel(merged.anthropicModel);
+    this.anthropicBaseUrl = merged.anthropicBaseUrl ?? defaultSettings.anthropicBaseUrl;
     this.ollamaBaseUrl = merged.ollamaBaseUrl || defaultSettings.ollamaBaseUrl;
     this.ollamaModel = merged.ollamaModel ?? defaultSettings.ollamaModel;
     this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
     this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
+    this.openrouterBaseUrl = merged.openrouterBaseUrl ?? defaultSettings.openrouterBaseUrl;
     this.analysisDepth = merged.analysisDepth;
     this.aiConfirmActions = merged.aiConfirmActions;
     this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
@@ -1413,6 +1540,37 @@ export class SettingsManager {
       merged.chartRenderIntervalMs ?? defaultSettings.chartRenderIntervalMs;
     this.repairTimeframe =
       merged.repairTimeframe || defaultSettings.repairTimeframe;
+
+    // Migration: the rebasing modes shipped briefly with #2310 and made
+    // absolute price lines unreadable ("%" scale confusion). Fold any stored
+    // legacy value back to the previous hard-coded behavior.
+    this.chartPriceScaleMode =
+      merged.chartPriceScaleMode === "linear" ||
+      merged.chartPriceScaleMode === "log"
+        ? merged.chartPriceScaleMode
+        : defaultSettings.chartPriceScaleMode;
+    this.chartAutoScale = merged.chartAutoScale ?? defaultSettings.chartAutoScale;
+    this.chartInvertScale =
+      merged.chartInvertScale ?? defaultSettings.chartInvertScale;
+    this.chartDecimalsMode =
+      merged.chartDecimalsMode ?? defaultSettings.chartDecimalsMode;
+    this.chartFixedDecimals =
+      merged.chartFixedDecimals ?? defaultSettings.chartFixedDecimals;
+    this.chartShowGrid = merged.chartShowGrid ?? defaultSettings.chartShowGrid;
+    this.chartLastValueVisible =
+      merged.chartLastValueVisible ?? defaultSettings.chartLastValueVisible;
+    this.chartCandleBorders =
+      merged.chartCandleBorders ?? defaultSettings.chartCandleBorders;
+    this.chartWatermark = merged.chartWatermark ?? defaultSettings.chartWatermark;
+    this.chartCrosshairMode =
+      merged.chartCrosshairMode ?? defaultSettings.chartCrosshairMode;
+    this.chartCrosshairStyle =
+      merged.chartCrosshairStyle ?? defaultSettings.chartCrosshairStyle;
+    this.chartSecondsVisible =
+      merged.chartSecondsVisible ?? defaultSettings.chartSecondsVisible;
+    this.chartFixEdges = merged.chartFixEdges ?? defaultSettings.chartFixEdges;
+    this.chartCountdownEnabled =
+      merged.chartCountdownEnabled ?? defaultSettings.chartCountdownEnabled;
   }
 
   /** Display/UI, background customization and Burning Borders fields. Part of load()'s merge+assign step. */
@@ -1674,14 +1832,18 @@ export class SettingsManager {
       aiProvider: this.aiProvider,
       openaiApiKey: this.openaiApiKey,
       openaiModel: this.openaiModel,
+      openaiBaseUrl: this.openaiBaseUrl,
       geminiApiKey: this.geminiApiKey,
       geminiModel: this.geminiModel,
+      geminiBaseUrl: this.geminiBaseUrl,
       anthropicApiKey: this.anthropicApiKey,
       anthropicModel: this.anthropicModel,
+      anthropicBaseUrl: this.anthropicBaseUrl,
       ollamaBaseUrl: this.ollamaBaseUrl,
       ollamaModel: this.ollamaModel,
       openrouterApiKey: this.openrouterApiKey,
       openrouterModel: this.openrouterModel,
+      openrouterBaseUrl: this.openrouterBaseUrl,
       analysisDepth: this.analysisDepth,
       aiConfirmActions: this.aiConfirmActions,
       aiAllowSettingsChanges: this.aiAllowSettingsChanges,
@@ -1774,6 +1936,20 @@ export class SettingsManager {
       chartHistoryLimit: this.chartHistoryLimit,
       chartRenderIntervalMs: this.chartRenderIntervalMs,
       repairTimeframe: this.repairTimeframe,
+      chartPriceScaleMode: this.chartPriceScaleMode,
+      chartAutoScale: this.chartAutoScale,
+      chartInvertScale: this.chartInvertScale,
+      chartDecimalsMode: this.chartDecimalsMode,
+      chartFixedDecimals: this.chartFixedDecimals,
+      chartShowGrid: this.chartShowGrid,
+      chartLastValueVisible: this.chartLastValueVisible,
+      chartCandleBorders: this.chartCandleBorders,
+      chartWatermark: this.chartWatermark,
+      chartCrosshairMode: this.chartCrosshairMode,
+      chartCrosshairStyle: this.chartCrosshairStyle,
+      chartSecondsVisible: this.chartSecondsVisible,
+      chartFixEdges: this.chartFixEdges,
+      chartCountdownEnabled: this.chartCountdownEnabled,
       enableDockingCentered: this.enableDockingCentered,
       dockingPosition: this.dockingPosition,
     };
@@ -1786,6 +1962,12 @@ export class SettingsManager {
   }
 
   destroy() {
+    // Prevent memory leaks during HMR cycles by ensuring the cross-tab
+    // storage listener is removed when the singleton is disposed.
+    if (this.storageListener && typeof window !== "undefined") {
+      window.removeEventListener("storage", this.storageListener);
+      this.storageListener = null;
+    }
     this.effectActive = false;
     if (this.effectCleanup) {
       this.effectCleanup();
