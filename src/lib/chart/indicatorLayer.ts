@@ -330,7 +330,7 @@ export class IndicatorLayer {
         const P0 = 0;
 
         // Pivot points (horizontal levels on the price pane, from prior bar)
-        if (s.pivots.enabled !== false && this.candleSeries && rows.length >= 2) {
+        if (s.pivots && s.pivots.enabled !== false && this.candleSeries && rows.length >= 2) {
             const prev = rows[rows.length - 2];
             const res = calculatePivotsFromValues(
                 prev.high,

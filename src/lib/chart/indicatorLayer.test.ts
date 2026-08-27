@@ -181,7 +181,7 @@ describe("IndicatorLayer", () => {
 
     it("reports the visible sub-panes, with their settings, via onPanesChanged", () => {
         const onPanesChanged = vi.fn();
-        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(1000);
         Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }));
         layer.render(makeRows(60));
@@ -195,7 +195,7 @@ describe("IndicatorLayer", () => {
 
     it("reports multi-value settings so the label can read like 'MACD 12 26 9'", () => {
         const onPanesChanged = vi.fn();
-        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(1000);
         Object.assign(indicatorState, makeState({
             volume: { enabled: false },
@@ -211,7 +211,7 @@ describe("IndicatorLayer", () => {
 
     it("omits the volume pane from onPanesChanged when volume is disabled", () => {
         const onPanesChanged = vi.fn();
-        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(1000);
         Object.assign(indicatorState, makeState({ volume: { enabled: false } }));
         layer.render(makeRows(60));
@@ -225,7 +225,7 @@ describe("IndicatorLayer", () => {
         // fitted 3 panes and silently dropped StochRSI and CCI even though
         // they were switched on in Settings.
         const onPanesChanged = vi.fn();
-        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(451);
         Object.assign(indicatorState, makeState({
             rsi: on({ length: 14, source: "close" }),
@@ -245,7 +245,7 @@ describe("IndicatorLayer", () => {
 
     it("caps at what fits once the panes would fall below the readable floor", () => {
         const onPanesChanged = vi.fn();
-        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(400); // budget 260 -> floor(260/56) = 4 panes
         Object.assign(indicatorState, makeState({
             rsi: on({ length: 14, source: "close" }),
@@ -266,7 +266,7 @@ describe("IndicatorLayer", () => {
         // threshold was crossed, so enlarging a already-tall chart never
         // gained panes until the next full data render.
         const onPanesChanged = vi.fn();
-        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(400);
         Object.assign(indicatorState, makeState({
             rsi: on({ length: 14, source: "close" }),
@@ -306,7 +306,7 @@ describe("IndicatorLayer", () => {
 
     it("clears reported panes when the indicator layer is destroyed", () => {
         const onPanesChanged = vi.fn();
-        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(1000);
         layer.render(makeRows(60));
         onPanesChanged.mockClear();
