@@ -116,6 +116,8 @@ const SAFE_CONTEXTS = [
     /onclick=/,                 // Svelte 5 events
     /i18n-ignore/,              // Manual Ignore Comment
     /^\s*\*/,                   // JSDoc/Block comments (lines starting with *)
+    /ISeriesApi</,              // TypeScript type parameters (lightweight-charts library types)
+    /:\s*ISeriesApi/,           // Type annotations with ISeriesApi
 ];
 
 let violations = [];
