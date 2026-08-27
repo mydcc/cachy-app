@@ -43,9 +43,9 @@ jobs:
           for file in src/services/tradeService.ts src/services/apiService.ts src/services/orderGate.ts src/lib/calculator.ts; do
             if [ -f "$file" ]; then
               # Check for unsafe number operations: direct Number() calls or parseFloat.
-              # Exclude method calls (.toNumber, .toFixed) which are safe serialization of
-              # Decimal values after all math is complete in Decimal.js.
-              MATCHES=$(grep -n -E '([^.]Number\(|parseFloat\(|parseFloat )' "$file" || true)
+              # Exclude method calls (.toNumber, .toFixed) using identifier anchoring —
+              # Number() must start at line beginning or after a non-identifier character.
+              MATCHES=$(grep -n -E '\bNumber\(|parseFloat\(|parseFloat ' "$file" || true)
               if [ ! -z "$MATCHES" ]; then
                 echo "❌ Unsafe number operations found in $file:"
                 echo "$MATCHES"
