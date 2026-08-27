@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { IChartApi, ISeriesApi, IPaneApi, SeriesType, Time } from "lightweight-charts";
+import type { IChartApi, ISeriesApi, IPaneApi, Time } from "lightweight-charts";
 import { IndicatorLayer } from "./indicatorLayer";
 import type { ChartRow } from "./seriesMap";
 
