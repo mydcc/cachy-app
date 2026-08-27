@@ -682,11 +682,31 @@ async function fetchBitunixBalance(
   const body = "";
   const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
 
+  // CodeQL `js/insufficient-password-hash` fires here on `apiKey`. It is a
+  // false positive, and the suggested fix would break the integration:
+  //
+  //   - Nothing is stored. This is a per-request signature, not a password
+  //     at rest, so the threat the query models — an attacker who has stolen
+  //     a hash database and brute-forces it offline — has no target. The
+  //     digest lives for the length of one HTTP request.
+  //   - The algorithm is Bitunix's, not ours. `docs/bitunix-api/01_sign.md`
+  //     specifies `digest = SHA256(nonce + timestamp + api-key + queryParams
+  //     + body)` then `sign = SHA256(digest + secretKey)`, and the exchange
+  //     recomputes exactly that to verify. bcrypt, scrypt, PBKDF2 or Argon2
+  //     here would make every signed request fail authentication.
+  //
+  // The construction is worth naming honestly: `H(digest || secret)` is a
+  // secret-suffix MAC rather than HMAC, which is weaker in principle because
+  // a collision in the underlying hash is a MAC forgery. Against SHA-256 that
+  // is not a practical attack today, and it is not Cachy's to change — see
+  // Bitget's `generateBitgetSignature`, which does use HMAC, for the contrast.
   // 4. Calculate Digest (SHA256)
+  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
 
   // 5. Calculate Signature (SHA256 of digest + secret)
   const signInput = digest + apiSecret;
+  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   // 6. Build Query String for URL (standard format key=value)
@@ -973,11 +993,31 @@ async function fetchBitunixPositions(
   const body = "";
   const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
 
+  // CodeQL `js/insufficient-password-hash` fires here on `apiKey`. It is a
+  // false positive, and the suggested fix would break the integration:
+  //
+  //   - Nothing is stored. This is a per-request signature, not a password
+  //     at rest, so the threat the query models — an attacker who has stolen
+  //     a hash database and brute-forces it offline — has no target. The
+  //     digest lives for the length of one HTTP request.
+  //   - The algorithm is Bitunix's, not ours. `docs/bitunix-api/01_sign.md`
+  //     specifies `digest = SHA256(nonce + timestamp + api-key + queryParams
+  //     + body)` then `sign = SHA256(digest + secretKey)`, and the exchange
+  //     recomputes exactly that to verify. bcrypt, scrypt, PBKDF2 or Argon2
+  //     here would make every signed request fail authentication.
+  //
+  // The construction is worth naming honestly: `H(digest || secret)` is a
+  // secret-suffix MAC rather than HMAC, which is weaker in principle because
+  // a collision in the underlying hash is a MAC forgery. Against SHA-256 that
+  // is not a practical attack today, and it is not Cachy's to change — see
+  // Bitget's `generateBitgetSignature`, which does use HMAC, for the contrast.
   // 4. Calculate Digest (SHA256)
+  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
 
   // 5. Calculate Signature (SHA256 of digest + secret)
   const signInput = digest + apiSecret;
+  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   const queryString = new URLSearchParams(params).toString();

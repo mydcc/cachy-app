@@ -54,10 +54,24 @@ difference is a bug and gets its own item before anything is deleted.
 - [ ] The balance and positions paths still pass their existing tests
       untouched
 
+## Note on the CodeQL alert
+
+All three sites carry a `// codeql[js/insufficient-password-hash]` suppression
+and a comment explaining why the query is wrong here: nothing is stored, and
+the algorithm is Bitunix's own (`docs/bitunix-api/01_sign.md`), so a
+password-hashing KDF would fail authentication rather than harden anything.
+Consolidating the three must carry that annotation onto the survivor — losing
+it would reopen the alert on the one signer left.
+
+The comment also records what *is* true about the construction: `H(digest ||
+secret)` is a secret-suffix MAC rather than HMAC. Not exploitable against
+SHA-256 today, and not ours to change, but worth stating where the next reader
+of this code will look.
+
 ## Out of scope
 
 Bitget signing, which already has exactly one implementation
-(`generateBitgetSignature`).
+(`generateBitgetSignature`) and correctly uses HMAC.
 
 ## Links
 
