@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
 
       - name: Check for hardcoded strings
         run: node scripts/lint-i18n.js
@@ -68,7 +68,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
 
       # Validates every backlog item's front matter (status, priority, edition,
       # data class, id/filename agreement, duplicate ids/numbers, dependencies
@@ -96,7 +96,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
@@ -123,7 +123,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
@@ -141,7 +141,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
@@ -159,7 +159,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
           cache: "npm"
 
       - name: Install dependencies
