@@ -69,9 +69,9 @@ concatenation — and never showed on the wire either, since every inline site
 passed at most one query parameter. Sorted is the surviving behaviour, and
 `src/utils/server/bitunix.test.ts` records the difference explicitly.
 
-One further stale copy sits in `src/routes/api/positions/+server.ts.bak`, a
-tracked backup file that nothing imports and no build compiles. Left alone
-here under the repo's defensive-deletion rule; it wants its own item.
+A stale backup file `src/routes/api/positions/+server.ts.bak` (tracked but
+unused) was deleted separately in PR #2376, so its removal is not part of this
+item.
 
 `src/utils/crypto/exchangeSigning.ts` is deliberately *not* folded in. It is
 the client-side WebCrypto signer from FEAT-0285 — a different runtime, async
