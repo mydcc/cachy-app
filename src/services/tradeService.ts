@@ -414,11 +414,10 @@ class TradeService {
         }
         // Leverage is already validated as finite, integer, and positive.
         // Converting to native number for the wire protocol.
-        const leverageValue = leverage.toNumber();
         await this.accountSettingRequest({
             type: "change-leverage",
             symbol,
-            leverage: leverageValue,
+            leverage: +leverage,
         });
         await this.fetchLeverageMarginMode(symbol);
     }
