@@ -74,11 +74,9 @@ function signAsBalancePathDid(
 
   const body = "";
   const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
 
   const signInput = digest + apiSecret;
-  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   const queryString = new URLSearchParams(params).toString();
@@ -104,11 +102,9 @@ function signAsPositionsPathDid(
 
   const body = "";
   const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
 
   const signInput = digest + apiSecret;
-  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   const queryString = new URLSearchParams(params).toString();
@@ -236,11 +232,9 @@ describe("FEAT-0321: the three Bitunix signers agree", () => {
     const nonce = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
     const timestamp = "1724673600000";
 
-    // codeql[js/insufficient-password-hash]
     const digest = createHash("sha256")
       .update(`${nonce}${timestamp}${API_KEY}marginCoinUSDT`)
       .digest("hex");
-    // codeql[js/insufficient-password-hash]
     const expected = createHash("sha256")
       .update(digest + API_SECRET)
       .digest("hex");
