@@ -16,8 +16,9 @@
 -->
 
 <script lang="ts">
-    import { onMount, untrack } from "svelte";
+    import { onMount, untrack, mount, unmount } from "svelte";
     import { _ } from "../../../locales/i18n";
+    import type { TranslationKey } from "../../../locales/schema";
     import {
         createChart,
         ColorType,
@@ -30,8 +31,9 @@
     } from "lightweight-charts";
     import { Decimal } from "decimal.js";
     import { get } from "svelte/store";
-    import { IndicatorLayer } from "../../../lib/chart/indicatorLayer";
+    import { IndicatorLayer, type IndicatorPaneInfo } from "../../../lib/chart/indicatorLayer";
     import type { ChartRow } from "../../../lib/chart/seriesMap";
+    import IndicatorPaneHeader from "../../../components/shared/IndicatorPaneHeader.svelte";
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -105,12 +107,17 @@
 
     // Indicator Layer (overlays + sub-panes; replaces the old EMA series trio)
     let indicatorLayer: IndicatorLayer | null = null;
+    // Svelte components mounted directly into each visible sub-pane's own
+    // DOM element (see syncPaneHeaders) to show its name + enable/disable
+    // toggle without lightweight-charts having any pane-header concept.
+    let paneHeaderInstances: object[] = [];
 
     let isInitialLoad = $state(true);
     let isLoadingHistory = $state(false);
     let allHistoryLoaded = $state(false);
     let lastRenderedTime: Time | null = $state(null);
     let lastRenderedCount = $state(0);
+    let lastRenderedSettingsJson = $state("");
     let lastRenderTimestamp = 0;
     let renderThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -269,7 +276,12 @@
         // Indicator overlay/sub-pane layer (EMA, SMA, oscillators, volume…).
         // Replaces the old EMA-only trio. Height-gated sub-panes keep a small
         // chart window from being cluttered with unusable mini-panes.
-        indicatorLayer = new IndicatorLayer(chart, getVar);
+        indicatorLayer = new IndicatorLayer(chart, getVar, candleSeries, syncPaneHeaders);
+        // Seed the real height straight away: the layer defaults to the
+        // minimum, and waiting for the ResizeObserver's first callback means
+        // the initial render can lay out sub-panes for a chart far shorter
+        // than the one actually on screen.
+        indicatorLayer.setAvailableHeight(chartContainer.clientHeight);
         untrack(() => updateColors());
 
         priceLineManager = new PriceLineManager(candleSeries, {
@@ -441,6 +453,39 @@
             .trim();
     }
 
+    // IndicatorLayer reports the currently-visible sub-panes after every
+    // render (it tears down and rebuilds all panes each time, so pane
+    // indices are not stable across renders — headers must be fully
+    // unmounted and remounted in lock-step rather than diffed/reused).
+    function syncPaneHeaders(panes: IndicatorPaneInfo[]): void {
+        for (const instance of paneHeaderInstances) {
+            unmount(instance);
+        }
+        paneHeaderInstances = [];
+        if (!chart) return;
+
+        for (const p of panes) {
+            const pane = chart.panes()[p.paneIndex];
+            const el = pane?.getHTMLElement();
+            if (!el) continue;
+            // The header is absolutely positioned to sit inside just this
+            // pane; without an explicit positioning context here it would
+            // escape to the nearest ancestor that has one (chart-container),
+            // landing at the top of the whole chart instead of this pane.
+            if (getComputedStyle(el).position === "static") {
+                el.style.position = "relative";
+            }
+            const instance = mount(IndicatorPaneHeader, {
+                target: el,
+                props: {
+                    title: get(_)(p.titleKey as TranslationKey) || p.key,
+                    params: p.params,
+                },
+            });
+            paneHeaderInstances.push(instance);
+        }
+    }
+
     function updateColors() {
         if (!chart || !candleSeries) return;
 
@@ -596,15 +641,20 @@
         const klines = marketData?.klines?.[timeframe];
 
         // Track the full indicator toggle/param state so toggling any
-        // indicator re-renders the layer.
-        void indicatorState.toJSON();
+        // indicator (from the Settings tab or an on-chart pane header) forces
+        // the slow path below instead of being swallowed by the live-tick
+        // fast path, which only updates the candle series, not IndicatorLayer.
+        const currentIndicatorSettingsJson = indicatorState._cachedJson;
 
         if (klines) {
             if (klines.length > 0) {
                 // Optimization: Check if this is just a live update to the last candle
                 const lastKline = klines[klines.length - 1];
                 const lastTime = (lastKline.time / 1000) as Time;
-                const isLiveUpdate = lastRenderedTime === lastTime && klines.length === lastRenderedCount;
+                const isLiveUpdate =
+                    lastRenderedSettingsJson === currentIndicatorSettingsJson &&
+                    lastRenderedTime === lastTime &&
+                    klines.length === lastRenderedCount;
 
                 if (isLiveUpdate && !isInitialLoad) {
                     const renderTick = () => {
@@ -730,6 +780,7 @@
                                 ? unique[unique.length - 1].time
                                 : null;
                         lastRenderedCount = klines.length;
+                        lastRenderedSettingsJson = currentIndicatorSettingsJson;
                         lastRenderTimestamp = 0;
                         isInitialLoad = false;
 

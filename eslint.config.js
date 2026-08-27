@@ -68,6 +68,9 @@ export default [
     },
     languageOptions: {
       parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 2021,
+      },
       globals: {
         ...globals.browser, // For things like localStorage, fetch
         ...globals.node, // For things like process, __dirname

@@ -375,6 +375,10 @@
 
         {:else if activeCategory === "volume"}
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
+                <IndicatorCard title={$_("settings.technicals.volume")} bind:enabled={indicatorState.volume.enabled}>
+                    <div class="text-xs text-[var(--text-secondary)] italic">{$_("settings.technicals.volumeNoParams")}</div>
+                </IndicatorCard>
+
                 <IndicatorCard title={$_("settings.technicals.volumeMa.title")} bind:enabled={indicatorState.volumeMa.enabled}>
                      <div class="grid grid-cols-2 gap-2">
                         <Field id="vma-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.volumeMa.length} />

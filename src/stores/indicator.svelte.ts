@@ -123,11 +123,6 @@ const defaultSettings: IndicatorSettings = {
     enabled: false,
     length: 14,
   },
-  bb: {
-    enabled: false,
-    length: 20,
-    stdDev: 2,
-  },
   choppiness: {
     enabled: false,
     length: 14,
@@ -169,6 +164,9 @@ const defaultSettings: IndicatorSettings = {
   volumeProfile: {
     enabled: false,
     rows: 24,
+  },
+  volume: {
+    enabled: true,
   },
   bollingerBands: {
     enabled: true,
@@ -213,7 +211,6 @@ class IndicatorManager {
 
   // Volatility
   atr = $state(defaultSettings.atr);
-  bb = $state(defaultSettings.bb);
   choppiness = $state(defaultSettings.choppiness);
 
   // Volume & Misc
@@ -222,6 +219,7 @@ class IndicatorManager {
   parabolicSar = $state(defaultSettings.parabolicSar);
   volumeProfile = $state(defaultSettings.volumeProfile);
   volumeMa = $state(defaultSettings.volumeMa);
+  volume = $state(defaultSettings.volume);
   bollingerBands = $state(defaultSettings.bollingerBands);
   pivots = $state(defaultSettings.pivots);
 
@@ -250,7 +248,6 @@ class IndicatorManager {
     ema: $state.snapshot(this.ema),
     pivots: $state.snapshot(this.pivots),
     atr: $state.snapshot(this.atr),
-    bb: $state.snapshot(this.bb),
     superTrend: $state.snapshot(this.superTrend),
     atrTrailingStop: $state.snapshot(this.atrTrailingStop),
     obv: $state.snapshot(this.obv),
@@ -261,6 +258,7 @@ class IndicatorManager {
     choppiness: $state.snapshot(this.choppiness),
     volumeProfile: $state.snapshot(this.volumeProfile),
     volumeMa: $state.snapshot(this.volumeMa),
+    volume: $state.snapshot(this.volume),
     bollingerBands: $state.snapshot(this.bollingerBands),
 
     sma: $state.snapshot(this.sma),
@@ -360,9 +358,9 @@ class IndicatorManager {
       this.ichimoku = merge('ichimoku', defaultSettings.ichimoku);
       this.choppiness = merge('choppiness', defaultSettings.choppiness);
       this.volumeProfile = merge('volumeProfile', defaultSettings.volumeProfile);
+      this.volume = merge('volume', defaultSettings.volume);
 
       this.atr = merge('atr', defaultSettings.atr);
-      this.bb = merge('bb', defaultSettings.bb);
       this.bollingerBands = merge('bollingerBands', defaultSettings.bollingerBands);
       this.volumeMa = merge('volumeMa', defaultSettings.volumeMa);
 
@@ -448,7 +446,6 @@ class IndicatorManager {
     this.ema = next.ema;
     this.pivots = next.pivots;
     this.atr = next.atr;
-    this.bb = next.bb;
     this.superTrend = next.superTrend;
     this.atrTrailingStop = next.atrTrailingStop;
     this.obv = next.obv;
@@ -460,6 +457,7 @@ class IndicatorManager {
     this.volumeProfile = next.volumeProfile;
     this.bollingerBands = next.bollingerBands;
     this.volumeMa = next.volumeMa;
+    this.volume = next.volume;
     this.sma = next.sma;
     this.wma = next.wma;
     this.vwma = next.vwma;
@@ -486,7 +484,6 @@ class IndicatorManager {
     this.ema = d.ema;
     this.pivots = d.pivots;
     this.atr = d.atr;
-    this.bb = d.bb;
     this.superTrend = d.superTrend;
     this.atrTrailingStop = d.atrTrailingStop;
     this.obv = d.obv;
@@ -498,6 +495,7 @@ class IndicatorManager {
     this.volumeProfile = d.volumeProfile;
     this.bollingerBands = d.bollingerBands;
     this.volumeMa = d.volumeMa;
+    this.volume = d.volume;
     this.sma = d.sma;
     this.wma = d.wma;
     this.vwma = d.vwma;
