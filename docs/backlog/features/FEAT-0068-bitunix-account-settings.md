@@ -2,11 +2,13 @@
 id: FEAT-0068
 title: Read and change leverage, margin mode and position margin from the trade panel
 type: feature
-status: specced
+status: in-progress
 priority: P1
 milestone: M3
 editions: [community, pro, private]
 area: exchange
+assignee: claude
+branch: worktree-issue-1809-feb78b
 data_class: A
 adr: none
 depends_on: []
@@ -21,10 +23,15 @@ Branch: `feat/bitunix-readonly-data-display`
 
 # FEAT-0068 — Read and change leverage, margin mode and position margin from the trade panel
 
-**Progress note (this branch):** the read side is done — `get_leverage_margin_mode`
+**Progress note:** the read side shipped first — `get_leverage_margin_mode`
 is fetched per symbol and shown in `GeneralInputs.svelte` (leverage sync
 indicator + a margin-mode badge). The four `change_*`/`adjust_*` write actions
-below stay open for the execution milestone.
+followed on `worktree-issue-1809-feb78b`: one proxy route
+(`src/routes/api/account-settings/+server.ts`) resolving a venue module
+(FEAT-0228), four verbs on the adapter's `AccountPort` behind a new
+`supports.accountSettings` flag, and two UI surfaces —
+`ExchangeAccountControls.svelte` in the trade panel (leverage, margin mode,
+position mode) and `AdjustMarginModal.svelte` on isolated positions.
 
 ## Problem
 
@@ -65,17 +72,18 @@ the private WebSocket state rather than trusting the REST response alone.
 
 - [x] The trade panel shows current leverage and margin mode for the active
       symbol, fetched from the API rather than assumed.
-- [ ] Leverage can be changed within the pair's `minLeverage`/`maxLeverage`
+- [x] Leverage can be changed within the pair's `minLeverage`/`maxLeverage`
       range; values outside are rejected client-side.
-- [ ] Margin-mode and position-mode controls are disabled — with a reason —
+- [x] Margin-mode and position-mode controls are disabled — with a reason —
       when the API precondition (open positions/orders) is not met.
-- [ ] Isolated-position margin can be increased and reduced; the position's
+- [x] Isolated-position margin can be increased and reduced; the position's
       updated margin is reflected via WS/refetch, not optimistic-only.
-- [ ] API keys are used only as credentials of the user-initiated request
+- [x] API keys are used only as credentials of the user-initiated request
       through the proxy (ADR-0001 exception); nothing else leaves the device.
-- [ ] `expMoney`, `isolationFrozen` and `crossFrozen` are visible in the
+- [x] `expMoney`, `isolationFrozen` and `crossFrozen` are visible in the
       account UI when non-zero, sourced from the existing `wallet` channel
-      data rather than a new fetch.
+      data rather than a new fetch. (Shipped ahead of this branch — the
+      fields are read by `AccountSummary` and rendered in `AccountTooltip`.)
 
 ## Out of scope
 
@@ -85,8 +93,24 @@ the private WebSocket state rather than trusting the REST response alone.
 
 ## Open questions
 
-- Should changing leverage while a position is open be gated behind an extra
-  confirmation, given it changes liquidation distance immediately?
+- ~~Should changing leverage while a position is open be gated behind an extra
+  confirmation, given it changes liquidation distance immediately?~~ Yes, and
+  only then. `ExchangeAccountControls` shows a confirmation naming the symbol
+  and both leverage values when the symbol carries a position or resting
+  order, and none when it does not — a dialog on every leverage change would
+  train the trader to dismiss the one that matters.
+
+## Notes
+
+- The read stayed in `/api/leverage-margin-mode` rather than moving into the
+  new route. The proposal above asks for "one proxy route for the
+  account-settings endpoint family"; moving a working GET would have put the
+  only shipping account read at risk for a symmetry that buys nothing. Both
+  routes speak the same internal contract.
+- Bitget is declared `accountSettings: false` and refuses these verbs in the
+  adapter (FEAT-0229), with the venue module returning `null` as the
+  server-side backstop. Its endpoints exist; a verified request format does
+  not.
 
 ## Links
 

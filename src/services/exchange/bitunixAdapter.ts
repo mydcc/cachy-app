@@ -112,6 +112,11 @@ const account: AccountPort = {
 
     fetchLeverageMarginMode: (symbol) => tradeService.fetchLeverageMarginMode(symbol),
     fetchTradingPairInfo: (symbol) => tradeService.fetchTradingPairInfo(symbol),
+
+    changeLeverage: (symbol, leverage) => tradeService.changeLeverage(symbol, leverage),
+    changeMarginMode: (symbol, marginMode) => tradeService.changeMarginMode(symbol, marginMode),
+    changePositionMode: (positionMode) => tradeService.changePositionMode(positionMode),
+    adjustPositionMargin: (params) => tradeService.adjustPositionMargin(params),
 };
 
 const trading: TradingPort = {
@@ -139,7 +144,12 @@ export const bitunixAdapter: ExchangeAdapter = {
     id: "bitunix",
     capabilities: bitunixCapabilities,
     streams: { ticker: true, trades: true },
-    supports: { tpSl: true, leverageMarginMode: true, tradingPairInfo: true },
+    supports: {
+        tpSl: true,
+        leverageMarginMode: true,
+        tradingPairInfo: true,
+        accountSettings: true,
+    },
     connection,
     marketData,
     account,

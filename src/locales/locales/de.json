@@ -2207,6 +2207,18 @@
     "import": {
       "title": "Import",
       "message": "{count} Trades importieren?"
+    },
+    "adjustMargin": {
+      "title": "Positions-Margin anpassen",
+      "currentMargin": "Aktuelle Margin",
+      "liquidation": "Liquidation",
+      "add": "Erhöhen",
+      "reduce": "Reduzieren",
+      "amount": "Betrag",
+      "submitAdd": "Margin erhöhen",
+      "submitReduce": "Margin reduzieren",
+      "crossOnly": "Nur isolierte Positionen haben eine eigene Margin. Diese läuft auf Cross-Margin.",
+      "hint": "Mehr Margin schiebt den Liquidationspreis weiter weg, weniger Margin näher heran."
     }
   },
   "ui": {
@@ -2766,7 +2778,8 @@
     "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht.",
     "tierMmr": "Maint.-Margin-Rate (Stufe)",
     "nextTierAt": "Nächste Stufe ab",
-    "tpslActive": "TP/SL"
+    "tpslActive": "TP/SL",
+    "adjustMargin": "Margin"
   },
   "trade": {
     "apiError": "API-Fehler: {error}",
@@ -2846,7 +2859,30 @@
       "tpSl": "Take-Profit- und Stop-Loss-Aufträge sind auf {exchange} nicht verfügbar. Es wurde nichts gesendet.",
       "leverageMarginMode": "{exchange} meldet Hebel und Margin-Modus nicht an Cachy — angezeigt werden deine lokalen Einstellungen.",
       "tradingPairInfo": "{exchange} liefert keine Kontraktdetails an Cachy — Präzision und Größenlimits fallen auf Standardwerte zurück.",
-      "generic": "{exchange} kann das nicht, deshalb hat Cachy die Anfrage nicht gesendet."
+      "generic": "{exchange} kann das nicht, deshalb hat Cachy die Anfrage nicht gesendet.",
+      "accountSettings": "Für {exchange} hat Cachy kein geprüftes Anfrageformat, um Hebel, Margin-Modus oder Positions-Margin zu ändern — es wurde nichts gesendet. Ändere es in der Oberfläche der Börse."
+    },
+    "accountSettings": {
+      "title": "An der Börse",
+      "applyLeverage": "{value}x an der Börse setzen",
+      "leverageInSync": "Die Börse nutzt bereits {value}x",
+      "leverageOutOfRange": "{symbol} akzeptiert {min}x bis {max}x",
+      "leverageNeedsValue": "Zuerst einen ganzzahligen Hebel eingeben",
+      "isolated": "Isoliert",
+      "cross": "Cross",
+      "positionMode": "Positionsmodus",
+      "oneWay": "One-Way",
+      "hedge": "Hedge",
+      "blockedBySymbol": "{exchange} lehnt das ab, solange {symbol} eine offene Position oder Order hat",
+      "blockedByAnyPosition": "{exchange} lehnt das ab, solange irgendeine Position oder Order offen ist",
+      "paperMode": "Paper-Trading ist aktiv — Cachy ändert nichts an der Börse",
+      "confirmLeverageTitle": "Hebel bei offener Position ändern?",
+      "confirmLeverageMessage": "{symbol} hat eine offene Position. Der Wechsel von {from}x auf {to}x verschiebt den Liquidationspreis sofort.",
+      "leverageChanged": "Hebel auf {value}x gesetzt",
+      "marginModeChanged": "Margin-Modus geändert",
+      "positionModeChanged": "Positionsmodus geändert",
+      "marginAdjusted": "Positions-Margin aktualisiert",
+      "pending": "Wird gesendet…"
     }
   },
   "orderEntry": {

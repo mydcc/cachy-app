@@ -33,15 +33,20 @@ Login, Reconnect, Resubscribe).
 | Endpoint | Zweck | Status | Code |
 |---|---|---|---|
 | `GET /api/v1/futures/account` | Balance, frozen, margin, transfer, positionMode, cross/isolation-UPNL, bonus | ✅ | [routes/api/account](../../src/routes/api/account/+server.ts), [routes/api/balance](../../src/routes/api/balance/+server.ts) |
-| `GET …/account/get_leverage_margin_mode` | Hebel & Margin-Mode pro Symbol lesen | ✅ |
-| `POST …/account/change_leverage` | Hebel ändern (je Symbol) | ❌ | — |
-| `POST …/account/change_margin_mode` | ISOLATION/CROSS; nur ohne offene Position/Order auf dem Symbol | ❌ | — |
-| `POST …/account/change_position_mode` | ONE_WAY/HEDGE; nur ohne offene Positionen | ❌ | — |
-| `POST …/account/adjust_position_margin` | Margin erhöhen/reduzieren; nur Isolated | ❌ | — |
+| `GET …/account/get_leverage_margin_mode` | Hebel & Margin-Mode pro Symbol lesen | ✅ | [routes/api/leverage-margin-mode](../../src/routes/api/leverage-margin-mode/+server.ts) |
+| `POST …/account/change_leverage` | Hebel ändern (je Symbol) | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
+| `POST …/account/change_margin_mode` | ISOLATION/CROSS; nur ohne offene Position/Order auf dem Symbol | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
+| `POST …/account/change_position_mode` | ONE_WAY/HEDGE; nur ohne offene Positionen | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
+| `POST …/account/adjust_position_margin` | Margin erhöhen/reduzieren; nur Isolated | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
 
-Hebel, Margin-Mode, Position-Mode und Positions-Margin sind also per API
-änderbar — nichts davon ist bisher integriert. Für ein vollwertiges
-Tradepanel ist das der größte fehlende Block.
+Hebel, Margin-Mode und Position-Mode sind im Tradepanel änderbar
+([ExchangeAccountControls](../../src/components/inputs/ExchangeAccountControls.svelte)),
+die Isolated-Margin einer Position über
+[AdjustMarginModal](../../src/components/shared/AdjustMarginModal.svelte)
+(FEAT-0068). Die dokumentierten Vorbedingungen (Margin-Mode nur ohne
+Position/Order auf dem Symbol, Position-Mode nur ohne offene Positionen)
+deaktivieren den jeweiligen Button mit Begründung; durchgesetzt werden sie
+weiterhin von der Börse.
 
 ### Market (`04_market.md`) — public, kein API-Key nötig
 
@@ -136,7 +141,8 @@ Bereits geholt und angezeigt
 
 Verfügbar und integriert:
 
-- **Hebel + Margin-Mode je Symbol** (`get_leverage_margin_mode`)
+- **Hebel + Margin-Mode je Symbol** (`get_leverage_margin_mode`) — lesend und
+  schreibend (FEAT-0068)
 - Position-Tiers (Maintenance-Margin-Stufen)
 - Trading-Pair-Limits (Präzision, Min-/Max-Ordergrößen, Max-Hebel)
 - `expMoney`, `isolationFrozen`, `crossFrozen` aus dem Wallet-Channel
@@ -146,8 +152,10 @@ Verfügbar und integriert:
 ## 4. Priorisierte Lücken (Empfehlung)
 
 1. **`trading_pairs`** — Order-Validierung/Präzision; Grundlage für alles Weitere
-2. **Account-Settings-Block** — `get_leverage_margin_mode` (lesen) +
-   `change_leverage`, `change_margin_mode`, `adjust_position_margin` (schreiben)
+2. ~~**Account-Settings-Block**~~ — erledigt (FEAT-0068):
+   `get_leverage_margin_mode` (lesen) + `change_leverage`,
+   `change_margin_mode`, `change_position_mode`, `adjust_position_margin`
+   (schreiben). Bitget bleibt offen — kein geprüftes Anfrageformat.
 3. ~~**`place_order` vervollständigen**~~ — erledigt (FEAT-0069): `tpPrice`/`slPrice` atomar, `effect`, `clientId`
 4. ~~**`tpsl/place_order` + `tpsl/position/place_order`**~~ — erledigt (FEAT-0070): TP/SL nachträglich setzen, position-weit und teilweise
 5. **Native Endpoints statt Client-Loops** — `cancel_all_orders`,

@@ -38,6 +38,7 @@ const REQUIRED_METHODS: (keyof VenueModule)[] = [
   "tickersUrl",
   "isSymbolNotFoundBody",
   "executeOrder",
+  "executeAccountSetting",
 ];
 
 describe("venue registry", () => {

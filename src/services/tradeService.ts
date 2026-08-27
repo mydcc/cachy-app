@@ -337,6 +337,149 @@ class TradeService {
         }
     }
 
+    /*
+     * FEAT-0068 — the account-settings write transport.
+     *
+     * Deliberately separate from `signedRequest`: none of these is an order,
+     * so none carries a FEAT-0011 gate pass, and routing them through the
+     * order transport would either need a pass they cannot produce or a hole
+     * in `assertGatePass`. They are still writes, which is why they throw on
+     * failure rather than resolving quietly the way the account *reads* above
+     * do — a leverage change that reported nothing would leave the trader
+     * sizing a position against a number the exchange never accepted.
+     *
+     * Paper mode never reaches the network. `paperExchange` simulates orders,
+     * not account settings; there is nothing on the far side to change, so
+     * this refuses instead of pretending.
+     */
+    private async accountSettingRequest(
+        payload: Record<string, unknown>,
+    ): Promise<unknown> {
+        if (paperState.enabled) {
+            throw new Error("exchange.accountSettings.paperMode");
+        }
+
+        const provider = settingsState.apiProvider;
+        const keys = settingsState.apiKeys[provider];
+        if (!keys?.key || !keys?.secret) {
+            throw new Error("apiErrors.missingCredentials");
+        }
+
+        const response = await appFetch("/api/account-settings", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Provider": provider,
+                "X-Api-Key": keys.key,
+                "X-Api-Secret": keys.secret,
+                ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+            },
+            body: JSON.stringify({ exchange: provider, ...payload }),
+        });
+
+        const text = await response.text();
+        let data: Record<string, unknown> = {};
+        try {
+            data = safeJsonParse(text);
+        } catch {
+            if (!response.ok) throw new BitunixApiError(response.status, "apiErrors.invalidResponse");
+        }
+
+        const code = data.code as string | number | undefined;
+        if (!response.ok || (code !== undefined && String(code) !== "0")) {
+            const rawMsg = String(data.error || data.msg || "Unknown API Error");
+            logger.debug("api", `[TradeService] Account setting rejected: ${rawMsg}`);
+            throw new BitunixApiError(code ?? response.status ?? -1, "apiErrors.generic", rawMsg);
+        }
+
+        return data.data ?? null;
+    }
+
+    /**
+     * Leverage for one symbol, on the exchange (FEAT-0068).
+     *
+     * The range check against the pair's own `minLeverage`/`maxLeverage` is
+     * the caller's — `marketState.symbolMeta` holds it and this service does
+     * not read the UI's stores for validation. What is enforced here is that
+     * the value is a whole number the endpoint can take.
+     *
+     * Confirmation comes from re-reading the exchange, not from the response
+     * body: `fetchLeverageMarginMode` is what updates
+     * `tradeState.remoteLeverage`, so the indicator turns green because the
+     * exchange said so on a second, independent read.
+     */
+    public async changeLeverage(symbol: string, leverage: Decimal): Promise<void> {
+        if (!leverage.isFinite() || !leverage.isInteger() || leverage.lte(0)) {
+            throw new Error("apiErrors.invalidAmount");
+        }
+        await this.accountSettingRequest({
+            type: "change-leverage",
+            symbol,
+            leverage: leverage.toNumber(),
+        });
+        await this.fetchLeverageMarginMode(symbol);
+    }
+
+    /**
+     * Margin mode for one symbol (FEAT-0068). The exchange refuses this while
+     * the symbol carries a position or a resting order; the UI disables the
+     * control in that case, and the refusal below is what happens when the
+     * two disagree.
+     */
+    public async changeMarginMode(
+        symbol: string,
+        marginMode: "ISOLATION" | "CROSS",
+    ): Promise<void> {
+        await this.accountSettingRequest({ type: "change-margin-mode", symbol, marginMode });
+        await this.fetchLeverageMarginMode(symbol);
+    }
+
+    /**
+     * Position mode for the whole futures account (FEAT-0068) — ONE_WAY or
+     * HEDGE. Takes no symbol: the endpoint does not.
+     *
+     * Re-synced through `accountState.requestSync()` rather than a targeted
+     * read, because the mode is reported on the account and on every
+     * position, and both views have to stop disagreeing.
+     */
+    public async changePositionMode(positionMode: "ONE_WAY" | "HEDGE"): Promise<void> {
+        await this.accountSettingRequest({ type: "change-position-mode", positionMode });
+        accountState.requestSync();
+    }
+
+    /**
+     * Adds or withdraws margin on one isolated position (FEAT-0068). A
+     * positive amount adds, a negative one withdraws — the exchange's own
+     * convention, kept rather than split into two verbs so the sign the
+     * trader sees is the sign that travels.
+     *
+     * Nothing is written optimistically. The position's new margin arrives on
+     * the private WebSocket position channel, with `requestSync()` as the
+     * fallback for a socket that is not connected.
+     */
+    public async adjustPositionMargin(params: {
+        symbol: string;
+        amount: Decimal;
+        side?: "LONG" | "SHORT";
+        positionId?: string;
+    }): Promise<void> {
+        const { symbol, amount, side, positionId } = params;
+        if (!amount.isFinite() || amount.isZero()) {
+            throw new Error("apiErrors.invalidAmount");
+        }
+        if (!side && !positionId) {
+            throw new Error("apiErrors.invalidAmount");
+        }
+        await this.accountSettingRequest({
+            type: "adjust-position-margin",
+            symbol,
+            amount: amount.toFixed(amount.decimalPlaces() ?? 0),
+            ...(side ? { side } : {}),
+            ...(positionId ? { positionId } : {}),
+        });
+        accountState.requestSync();
+    }
+
     // Read-only: precision, order-size limits, leverage range and status for
     // a symbol (market/trading_pairs). Public endpoint, no credentials.
     public async fetchTradingPairInfo(symbol: string): Promise<void> {

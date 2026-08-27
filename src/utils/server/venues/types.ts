@@ -17,6 +17,7 @@
 
 import type { NormalizedPosition } from "../../../types/exchange";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
+import type { AccountSettingsPayload } from "../../../types/accountSettingsSchemas";
 
 /**
  * The server-side venue boundary (FEAT-0228, ADR-0007).
@@ -123,5 +124,21 @@ export interface VenueModule {
   executeOrder(
     creds: VenueCredentials,
     payload: OrderRequestPayload,
+  ): Promise<unknown>;
+
+  /**
+   * Runs one account-settings write (FEAT-0068): leverage, margin mode,
+   * position mode or an isolated position's margin.
+   *
+   * Resolves to `null` for a venue that has none of these wired, and the
+   * route answers 400 rather than 200 — unlike `executeOrder`, whose `null`
+   * predates this contract and has to stay a 200 for compatibility. A write
+   * that answered "success, nothing happened" would let a trader believe
+   * their leverage moved when it did not, which is the one outcome this
+   * family must never produce.
+   */
+  executeAccountSetting(
+    creds: VenueCredentials,
+    payload: AccountSettingsPayload,
   ): Promise<unknown>;
 }

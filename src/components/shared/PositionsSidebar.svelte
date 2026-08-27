@@ -42,6 +42,7 @@
   import OrderHistoryList from "./OrderHistoryList.svelte";
   import TpSlList from "./TpSlList.svelte";
   import ClosePositionModal from "./ClosePositionModal.svelte";
+  import AdjustMarginModal from "./AdjustMarginModal.svelte";
   import TpSlCreateModal from "./TpSlCreateModal.svelte";
 
   let isOpen = $state(true);
@@ -494,6 +495,10 @@
           margin: String(data.margin),
           frozen: String(data.frozen),
         });
+        // FEAT-0068: the trade panel offers this as an editable control, and
+        // this snapshot is the only place it arrives. Shared through the
+        // store rather than re-fetched there.
+        accountState.positionMode = data.positionMode || undefined;
       }
     } catch {
       errorAccount = $_("apiErrors.generic");
@@ -693,6 +698,25 @@
 
   /** The position whose TP/SL create dialog is open, or null (FEAT-0070). */
   let tpSlCreatePosition = $state<OMSPosition | null>(null);
+
+  /** The position whose margin dialog is open, or null (FEAT-0068). */
+  let adjustMarginPosition = $state<OMSPosition | null>(null);
+
+  /** FEAT-0068: opens the add/withdraw-margin dialog for a position. */
+  function handleAdjustMargin(pos: OMSPosition) {
+    adjustMarginPosition = pos;
+  }
+
+  /*
+   * The new margin is not written here. `adjustPositionMargin` asks for a
+   * resync and the private position channel pushes the exchange's own
+   * number; a value computed in the dialog would be a second, competing
+   * source for the same field.
+   */
+  function handleAdjustMarginSuccess() {
+    adjustMarginPosition = null;
+    uiState.showToast($_("exchange.accountSettings.marginAdjusted"), "success");
+  }
 </script>
 
 <svelte:window onclick={closeContextMenu} />
@@ -812,6 +836,7 @@
           error={errorPositions}
           onclose={handleClosePosition}
           ontpSl={handleTpSl}
+          onadjustMargin={handleAdjustMargin}
         />
       {:else if activeTab === "orders"}
         <OpenOrdersList oncancel={handleCancelOrder}
@@ -877,5 +902,13 @@
     position={tpSlCreatePosition}
     onclose={() => (tpSlCreatePosition = null)}
     onsuccess={handleTpSlCreateSuccess}
+  />
+{/if}
+
+{#if adjustMarginPosition}
+  <AdjustMarginModal
+    position={adjustMarginPosition}
+    onclose={() => (adjustMarginPosition = null)}
+    onsuccess={handleAdjustMarginSuccess}
   />
 {/if}

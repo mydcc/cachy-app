@@ -28,6 +28,7 @@ import type {
 } from "../../../types/bitunix";
 import type { NormalizedOrder, NormalizedPosition } from "../../../types/exchange";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
+import type { AccountSettingsPayload } from "../../../types/accountSettingsSchemas";
 import { formatApiNum } from "../../utils";
 import { safeJsonParse } from "../../safeJson";
 import { readExchangeJson } from "../exchangeResponse";
@@ -1161,6 +1162,122 @@ async function executeOrder(
   return null;
 }
 
+/*
+ * FEAT-0068 — the account-settings write family.
+ *
+ * All four endpoints are POSTs under `/api/v1/futures/account/` that share
+ * one shape: a JSON body, the standard signature over it, and a response
+ * whose payload nobody needs — success is `code: 0`, and the *state* is read
+ * back from the private WebSocket or a refetch rather than believed from
+ * this echo (see FEAT-0068's acceptance criteria). So the helper returns the
+ * body it sent, and the caller confirms elsewhere.
+ */
+async function postBitunixAccount(
+  apiKey: string,
+  apiSecret: string,
+  path: string,
+  body: Record<string, unknown>,
+): Promise<unknown> {
+  const baseUrl = "https://fapi.bitunix.com";
+  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    {},
+    body,
+  );
+
+  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      timestamp,
+      nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
+    body: bodyStr,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    const error: ApiError = new Error(
+      `Bitunix API error: ${response.status} ${text.slice(0, 200)}`,
+    );
+    error.status = response.status;
+    throw error;
+  }
+
+  const res = await readExchangeJson<BitunixResponse<unknown>>(response);
+  if (String(res.code) !== "0") {
+    // The preconditions this family documents — "not while a position or
+    // order is open" for margin mode and position mode — are enforced by the
+    // exchange, and this is where that refusal becomes an error rather than
+    // a silent success. The UI disables the control beforehand; that is
+    // courtesy, this is the guarantee.
+    const error: ExchangeError = new Error(res.msg || `Bitunix API error code: ${res.code}`);
+    // `code` is a string on `ExchangeError` and `string | number` on the
+    // wire, so it is normalised rather than cast — the route puts it in a
+    // JSON body, where 0 and "0" would read differently to the client.
+    error.code = String(res.code);
+    throw error;
+  }
+
+  return res.data ?? null;
+}
+
+async function adjustBitunixPositionMargin(
+  apiKey: string,
+  apiSecret: string,
+  payload: Extract<AccountSettingsPayload, { type: "adjust-position-margin" }>,
+): Promise<unknown> {
+  // "Entweder `side` oder `positionId` erforderlich" (02_account.md). Checked
+  // here rather than in the Zod union, which cannot hold a refined object —
+  // and checked at all because in HEDGE mode an unaddressed request would let
+  // the exchange pick a side, moving margin on a position the trader was not
+  // looking at.
+  if (!payload.side && !payload.positionId) {
+    const error: ExchangeError = new Error(ORDER_ERRORS.VALIDATION_ERROR);
+    error.code = "VALIDATION_ERROR";
+    throw error;
+  }
+
+  return postBitunixAccount(apiKey, apiSecret, "/api/v1/futures/account/adjust_position_margin", {
+    symbol: payload.symbol,
+    marginCoin: payload.marginCoin,
+    amount: payload.amount,
+    ...(payload.side ? { side: payload.side } : {}),
+    ...(payload.positionId ? { positionId: payload.positionId } : {}),
+  });
+}
+
+async function executeAccountSetting(
+  creds: VenueCredentials,
+  payload: AccountSettingsPayload,
+): Promise<unknown> {
+  const { apiKey, apiSecret } = creds;
+
+  if (payload.type === "change-leverage") {
+    return postBitunixAccount(apiKey, apiSecret, "/api/v1/futures/account/change_leverage", {
+      symbol: payload.symbol,
+      marginCoin: payload.marginCoin,
+      leverage: payload.leverage,
+    });
+  }
+  if (payload.type === "change-margin-mode") {
+    return postBitunixAccount(apiKey, apiSecret, "/api/v1/futures/account/change_margin_mode", {
+      symbol: payload.symbol,
+      marginCoin: payload.marginCoin,
+      marginMode: payload.marginMode,
+    });
+  }
+  if (payload.type === "change-position-mode") {
+    return postBitunixAccount(apiKey, apiSecret, "/api/v1/futures/account/change_position_mode", {
+      positionMode: payload.positionMode,
+    });
+  }
+  return adjustBitunixPositionMargin(apiKey, apiSecret, payload);
+}
+
 export const bitunixVenue: VenueModule = {
   id: "bitunix",
   requiresPassphrase: false,
@@ -1196,4 +1313,6 @@ export const bitunixVenue: VenueModule = {
   isSymbolNotFoundBody: bitunixIsSymbolNotFoundBody,
 
   executeOrder,
+
+  executeAccountSetting,
 };
