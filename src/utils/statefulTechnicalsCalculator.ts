@@ -282,7 +282,7 @@ export class StatefulTechnicalsCalculator {
       // Bollinger Bands use SMA.
 
       // Bollinger Support
-      if (this.enabled("bb") && result.volatility?.bb) {
+      if (this.enabled("bollingerBands") && result.volatility?.bb) {
           // BB uses SMA(20).
           // We need to store the SUM of the last 20 closes.
           // result.volatility.bb.middle is the SMA value.
@@ -370,7 +370,7 @@ export class StatefulTechnicalsCalculator {
 
   private updateSmaGroup(result: TechnicalsData, price: number) {
       // Bollinger Bands Update
-      if (this.state.sma && this.enabled("bb") && result.volatility?.bb) {
+      if (this.state.sma && this.enabled("bollingerBands") && result.volatility?.bb) {
           const len = this.settings?.bollingerBands?.length || 20;
           const stdDev = this.settings?.bollingerBands?.stdDev || 2;
           const state = this.state.sma[len];
