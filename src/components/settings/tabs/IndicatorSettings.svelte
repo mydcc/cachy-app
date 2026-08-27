@@ -50,7 +50,7 @@
     ];
 </script>
 
-<div class="flex flex-col gap-3 sm:gap-4 md:gap-6 h-full bg-[var(--bg-primary)] text-[var(--text-primary)]">
+<div class="flex flex-col h-full bg-[var(--bg-primary)] text-[var(--text-primary)]">
     <!-- Tabs -->
     <div class="flex border-b border-[var(--border-color)] overflow-x-auto no-scrollbar bg-[var(--bg-tertiary)] pt-1 px-2">
         {#each tabs as tab}
@@ -375,10 +375,6 @@
 
         {:else if activeCategory === "volume"}
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 max-w-7xl mx-auto pb-8">
-                <IndicatorCard title={$_("settings.technicals.volume")} bind:enabled={indicatorState.volume.enabled}>
-                    <div class="text-xs text-[var(--text-secondary)] italic">{$_("settings.technicals.volumeNoParams")}</div>
-                </IndicatorCard>
-
                 <IndicatorCard title={$_("settings.technicals.volumeMa.title")} bind:enabled={indicatorState.volumeMa.enabled}>
                      <div class="grid grid-cols-2 gap-2">
                         <Field id="vma-len" label={$_("settings.technicals.labels.length")} type="number" bind:value={indicatorState.volumeMa.length} />

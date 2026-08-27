@@ -9,7 +9,7 @@ editions: [community, pro, private]
 area: alerts
 data_class: A
 adr: none
-depends_on: [FEAT-0028, FEAT-0303]
+depends_on: [FEAT-0028]
 start_date: 2026-08-01
 target_date: 2027-03-15
 size: S

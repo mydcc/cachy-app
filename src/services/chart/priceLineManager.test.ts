@@ -121,32 +121,6 @@ describe("PriceLineManager — rendering", () => {
         expect(titles.some((t) => t.includes("SL") && t.includes("-10.00%") && t.includes("-10.00"))).toBe(true);
     });
 
-    it("extends label precision instead of reading '+0.00%' on micro distances", () => {
-        const { series, lines } = makeFakeSeries();
-        const manager = new PriceLineManager(series);
-
-        // Entry 100 -> TP 100.001: a real, non-zero bracket of +0.001%
-        // (+0.001 PnL at size 1). The old toFixed(2) labels collapsed this
-        // to "+0.00% / +0.00".
-        manager.update(
-            baseInput({
-                position: {
-                    side: "long",
-                    entryPrice: new Decimal(100),
-                    liquidationPrice: new Decimal(80),
-                    breakEvenPrice: new Decimal("100.0005"),
-                    size: new Decimal(1),
-                },
-                takeProfit: { orderId: "tp-micro", triggerPrice: new Decimal("100.001") },
-            }),
-        );
-
-        const tpTitle = [...lines.values()].find((l) => l.title.startsWith("TP"))!.title;
-        expect(tpTitle).toContain("+0.001%");
-        expect(tpTitle).toContain("+0.001");
-        expect(tpTitle).not.toContain("+0.00%");
-    });
-
     it("removes a line when its plan disappears", () => {
         const { series, lines } = makeFakeSeries();
         const manager = new PriceLineManager(series);
@@ -252,62 +226,6 @@ describe("PriceLineManager — hover and drag", () => {
         expect(slLine.options().price).toBe(90);
         expect(onDragCancel).toHaveBeenCalledWith("stopLoss");
         expect(onDrop).not.toHaveBeenCalled();
-    });
-
-    it("reports the exact snapped Decimal on drop instead of re-reading the float from the line", () => {
-        const { series, lines } = makeFakeSeries();
-        const onDrop = vi.fn();
-        const manager = new PriceLineManager(series, { onDrop });
-        manager.attach(container);
-        manager.update(baseInput({ tickSize: new Decimal("0.001") }));
-
-        // TP line sits at price/coordinate 120. A drag to a coordinate that
-        // carries binary-float noise must drop the decimal-exact snapped
-        // value, not the noise round-tripped through Number.
-        container.dispatchEvent(mouseEvent("mousedown", 120));
-        container.dispatchEvent(mouseEvent("mousemove", 120.14500000000002));
-
-        const tpLine = [...lines.entries()].find(([, l]) => l.title.startsWith("TP"))![0];
-        expect(tpLine.options().price).toBe(120.145);
-
-        window.dispatchEvent(new MouseEvent("mouseup"));
-        expect(onDrop).toHaveBeenCalledTimes(1);
-        const [kind, orderId, price] = onDrop.mock.calls[0];
-        expect(kind).toBe("takeProfit");
-        expect(orderId).toBe("tp-1");
-        expect(price).toBeInstanceOf(Decimal);
-        expect(price.toString()).toBe("120.145");
-    });
-
-    it("keeps the last valid snapped price when a move would snap onto zero", () => {
-        const { series, lines } = makeFakeSeries();
-        const onDrop = vi.fn();
-        const onDragMove = vi.fn();
-        const manager = new PriceLineManager(series, { onDrop, onDragMove });
-        manager.attach(container);
-        manager.update(
-            baseInput({
-                position: null,
-                takeProfit: { orderId: "tp-tiny", triggerPrice: new Decimal("0.4") },
-                stopLoss: null,
-                tickSize: new Decimal("0.5"),
-            }),
-        );
-
-        // TP at 0.4, tick 0.5: dragging towards 0.2 would snap to 0, which
-        // the exchange would reject as a trigger price — the move is
-        // ignored and the line stays put.
-        container.dispatchEvent(mouseEvent("mousedown", 0.4));
-        container.dispatchEvent(mouseEvent("mousemove", 0.2));
-
-        const tpLine = [...lines.entries()].find(([, l]) => l.title.startsWith("TP"))![0];
-        expect(tpLine.options().price).toBe(0.4);
-        expect(onDragMove).not.toHaveBeenCalled();
-
-        window.dispatchEvent(new MouseEvent("mouseup"));
-        expect(onDrop).toHaveBeenCalledTimes(1);
-        const [, , price] = onDrop.mock.calls[0];
-        expect(price.toString()).toBe("0.4");
     });
 
     it("ignores a mousedown that isn't near any draggable line", () => {

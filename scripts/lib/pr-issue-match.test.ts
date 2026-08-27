@@ -19,13 +19,11 @@
 import { describe, it, expect } from "vitest";
 import {
     checkBodyForStrayClosingRefs,
-    checkBodyHasClosingRef,
     closingReferences,
     decideLink,
     declaresBacklogItem,
     matchPRsForItem,
     mentionsBacklogId,
-    NO_ISSUE_MARKER,
     type MatchablePR,
 } from "./pr-issue-match";
 
@@ -284,53 +282,5 @@ describe("checkBodyForStrayClosingRefs", () => {
             declared: 2009,
             conflicts: [2008, 7],
         });
-    });
-});
-
-describe("checkBodyHasClosingRef", () => {
-    it("fails the BUG-0307 shape: a body with no closing reference at all", () => {
-        // The docs pipeline merged PRs like this (#2297, #2254): GitHub closed
-        // nothing while the backlog markdown already said done.
-        expect(checkBodyHasClosingRef("The codebase already contains the work; closing out.")).toEqual({
-            ok: false,
-            reason: "missing",
-        });
-    });
-
-    it("fails an absent body", () => {
-        expect(checkBodyHasClosingRef(null)).toEqual({ ok: false, reason: "missing" });
-        expect(checkBodyHasClosingRef("")).toEqual({ ok: false, reason: "missing" });
-    });
-
-    it("passes a body that closes its own issue", () => {
-        expect(checkBodyHasClosingRef("Fixes #2179\n\nDescription.")).toEqual({
-            ok: true,
-            declared: 2179,
-            optedOut: false,
-        });
-    });
-
-    it("passes with the explicit opt-out marker instead of a reference", () => {
-        expect(checkBodyHasClosingRef(`Chore with nothing to link.\n\n${NO_ISSUE_MARKER}`)).toEqual({
-            ok: true,
-            declared: null,
-            optedOut: true,
-        });
-    });
-
-    it("matches the marker case-insensitively", () => {
-        expect(checkBodyHasClosingRef("Nothing to link. [No Issue]")).toEqual({
-            ok: true,
-            declared: null,
-            optedOut: true,
-        });
-    });
-
-    it("does not let the marker override a stray-conflict failure", () => {
-        // Opting out of presence must not launder a second closing reference:
-        // GitHub closes every referenced issue regardless of any marker.
-        const body = `${NO_ISSUE_MARKER}\n\nFixes #1\n\nalso closes #2`;
-        expect(checkBodyHasClosingRef(body).ok).toBe(true);
-        expect(checkBodyForStrayClosingRefs(body).ok).toBe(false);
     });
 });

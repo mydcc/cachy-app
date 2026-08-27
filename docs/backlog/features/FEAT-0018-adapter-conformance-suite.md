@@ -2,8 +2,7 @@
 id: FEAT-0018
 title: One conformance test suite every exchange adapter must pass
 type: feature
-status: done
-branch: feat-0018
+status: specced
 priority: P1
 milestone: M2
 editions: [community, pro, private]

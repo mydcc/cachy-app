@@ -39,7 +39,7 @@ lines), so this is a **class-level** decomposition.
 
 Four responsibilities are interleaved:
 
-1. **LRU cache management** — `getMaxCacheSize`, `touchSymbol`, `evictLRU`,
+1. **LRU cache management** — `getOrCreateSymbol`, `touchSymbol`, `evictLRU`,
    `enforceCacheLimit`, `releaseSymbolBackingBuffers`, `cacheMetadata`,
    `getMaxCacheSize`.
 2. **Batched update flushing** — `updateSymbol`, `flushUpdates`, `applyUpdate`,
@@ -62,7 +62,7 @@ otherwise:
 
 - `src/stores/market/symbolCache.ts` — LRU bookkeeping and eviction
 - `src/stores/market/klineBuffers.ts` — pooled buffer lifecycle
-- `src/stores/market/telemetry.svelte.ts`
+- `src/stores/market/telemetry.ts`
 - `market.svelte.ts` — `$state`, `updateSymbol`/`flushUpdates`/`applyUpdate`
 
 Buffer ownership must stay explicit: whichever unit ends up calling
@@ -90,7 +90,7 @@ already merged on `develop`.
 - [x] `npm run check` passes with 0 errors
 - [x] `npm test` passes
 - [x] The store's exported API is unchanged (callers untouched), or each change
-      is listed and justified here on completion — `MarketManager.getMaxCacheSize`
+      is listed and justified here on completion — `MarketManager.getOrCreateSymbol`
       and `touchSymbol` widened from `private` to `public` so the extracted
       `applyUpdate`/`legacyUpdates` modules can call them. No external
       consumer of `marketState` reached these before or reaches them now, so

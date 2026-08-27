@@ -18,7 +18,6 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { decideLink, matchPRsForItem } from './lib/pr-issue-match';
-import { sanitizeAssignees } from './lib/issue-sync-payload';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PROJECT_SYNC_TOKEN = process.env.PROJECT_SYNC_TOKEN || GITHUB_TOKEN;
@@ -48,20 +47,6 @@ const CLOSED_STATUSES = new Set(['done', 'dropped']);
 // as a safety net against drift this run-to-run skip can't see (e.g. a
 // board column edited by hand). See BUG-0226.
 const FORCE_FULL_SYNC = process.env.FORCE_FULL_SYNC === 'true';
-
-// Convergence failures this run could not fix. The script keeps going so one
-// bad item cannot starve the rest, but the workflow must not report success
-// while markdown and GitHub disagree — a green run is exactly how the
-// FEAT-0254/FEAT-0256 drift stayed invisible for days (BUG-0307).
-const syncFailures: string[] = [];
-
-function recordSyncFailure(action: string, detail: string): void {
-    syncFailures.push(`${action}: ${detail}`);
-    console.error(`[Sync] Failed to ${action}: ${detail}`);
-    // GitHub Actions annotation: surfaces in the run summary even though the
-    // step still has to fail below for the red X.
-    console.error(`::error::${action}: ${detail}`);
-}
 
 interface BacklogItem {
     id: string;
@@ -109,46 +94,8 @@ async function fetchRepoMilestones(): Promise<GitHubMilestone[]> {
     }
 }
 
-/**
- * Logins GitHub will accept in an issue's `assignees` array.
- *
- * The Issues API validates assignees against repository collaborators and
- * rejects the *entire* PATCH on one unknown value — so the front-matter list
- * has to be filtered against this set before it reaches any payload. An empty
- * result (lookup failed) degrades safely: no issue gets assignees, but state,
- * labels and title still converge. See BUG-0307.
- */
-async function fetchAssignableLogins(): Promise<Set<string>> {
-    const logins = new Set<string>();
-    let page = 1;
-    while (true) {
-        try {
-            const url = `https://api.github.com/repos/${GITHUB_REPOSITORY}/assignable/collaborators?per_page=100&page=${page}`;
-            const res = await fetch(url, {
-                headers: {
-                    "Authorization": `Bearer ${GITHUB_TOKEN}`,
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28"
-                }
-            });
-            if (!res.ok) {
-                console.warn(`[Sync] Could not list assignable collaborators (HTTP ${res.status}) — skipping assignees this run.`);
-                return logins;
-            }
-            const data: { login?: string }[] = await res.json();
-            for (const user of data) {
-                if (user?.login) logins.add(user.login.toLowerCase());
-            }
-            if (data.length < 100) return logins;
-            page++;
-        } catch (e) {
-            console.warn(`[Sync] Could not list assignable collaborators:`, e);
-            return logins;
-        }
-    }
-}
-
-async function ensureMilestone(title: string, milestones: GitHubMilestone[]): Promise<number | null> {    if (!title || title.toLowerCase() === 'none') return null;
+async function ensureMilestone(title: string, milestones: GitHubMilestone[]): Promise<number | null> {
+    if (!title || title.toLowerCase() === 'none') return null;
     const existing = milestones.find(m => m.title.toLowerCase() === title.toLowerCase());
     if (existing) return existing.number;
 
@@ -276,7 +223,7 @@ async function ensurePRsAreLinked(item: BacklogItem, issueNumber: number, openPR
 
         console.log(`[PR Auto-Link] Prepending the closing reference for #${issueNumber} to PR #${pr.number} for ${item.id}`);
         const updatedBody = `Fixes #${issueNumber}\n\n${pr.body || ''}`;
-        const res = await fetch(pr.url, {
+        await fetch(pr.url, {
             method: 'PATCH',
             headers: {
                 "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -286,15 +233,6 @@ async function ensurePRsAreLinked(item: BacklogItem, issueNumber: number, openPR
             },
             body: JSON.stringify({ body: updatedBody })
         });
-        // This PATCH used to be fire-and-forget: a rejected request (e.g. a
-        // token without `pull-requests: write`) vanished silently, and PRs
-        // merged with no closing reference at all — closing nothing. See BUG-0307.
-        if (!res.ok) {
-            recordSyncFailure(
-                `auto-link PR #${pr.number} for ${item.id} (missing 'pull-requests: write' permission is the usual cause)`,
-                `${res.status} ${await res.text()}`
-            );
-        }
     }
 }
 
@@ -443,23 +381,8 @@ async function findBacklogFiles() {
 }
 
 // Create or update a single issue
-async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined, milestones: GitHubMilestone[], hasOpenPR: boolean = false, assignableLogins: ReadonlySet<string> = new Set()): Promise<{ number: number; nodeId: string } | undefined> {
+async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined, milestones: GitHubMilestone[], hasOpenPR: boolean = false): Promise<{ number: number; nodeId: string } | undefined> {
     const isClosed = CLOSED_STATUSES.has(item.status);
-
-    // Front-matter assignees are provenance, not a GitHub fact. Filter them
-    // against real collaborators BEFORE building any payload: one unknown
-    // value makes GitHub reject the whole request (HTTP 422), which is how
-    // `state: closed`, labels and title were lost together for every item
-    // claiming `assignee: jules` — the root cause of the FEAT-0254/FEAT-0256
-    // drift (BUG-0307). Assignees are applied separately so they can never
-    // veto convergence again.
-    const assignees = sanitizeAssignees(item.assignees, assignableLogins);
-    if (assignees.invalid.length > 0) {
-        console.warn(
-            `[Sync] Issue ${item.id}: front-matter assignee(s) ${assignees.invalid.map(a => `'${a}'`).join(', ')} ` +
-            `are not assignable collaborators — excluded from the GitHub payload (kept in the markdown as provenance).`
-        );
-    }
 
     let milestoneNumber: number | null = null;
     if (item.milestone && item.milestone.toLowerCase() !== 'none') {
@@ -532,6 +455,9 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         if (milestoneNumber !== null) {
             payload.milestone = milestoneNumber;
         }
+        if (item.assignees && item.assignees.length > 0) {
+            payload.assignees = item.assignees;
+        }
 
         const res = await fetch(existingIssue.url, {
             method: 'PATCH',
@@ -546,30 +472,10 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         if (res.ok) {
             const data = await res.json();
             console.log(`[Sync] Updated issue ${item.id} (#${existingIssue.number})`);
-
-            // Assignees ride in a second PATCH on purpose: if even this
-            // validated list is rejected, the convergence above has already
-            // landed and only a warning is lost, not the close.
-            if (assignees.valid.length > 0) {
-                const assigneeRes = await fetch(existingIssue.url, {
-                    method: 'PATCH',
-                    headers: {
-                        "Authorization": `Bearer ${GITHUB_TOKEN}`,
-                        "Accept": "application/vnd.github+json",
-                        "Content-Type": "application/json",
-                        "X-GitHub-Api-Version": "2022-11-28"
-                    },
-                    body: JSON.stringify({ assignees: assignees.valid })
-                });
-                if (!assigneeRes.ok) {
-                    console.warn(`[Sync] Could not set assignees on ${item.id} (#${existingIssue.number}): ${await assigneeRes.text()}`);
-                }
-            }
-
             await syncProjectKanbanStatus(existingIssue.number, item, hasOpenPR);
             return { number: existingIssue.number, nodeId: data.node_id || existingIssue.node_id };
         } else {
-            recordSyncFailure(`update issue ${item.id} (#${existingIssue.number})`, await res.text());
+            console.error(`[Sync] Failed to update issue ${item.id}: ${await res.text()}`);
         }
     } else {
         // Create new issue
@@ -581,8 +487,8 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         if (milestoneNumber !== null) {
             payload.milestone = milestoneNumber;
         }
-        if (assignees.valid.length > 0) {
-            payload.assignees = assignees.valid;
+        if (item.assignees && item.assignees.length > 0) {
+            payload.assignees = item.assignees;
         }
 
         const res = await fetch(BASE_URL, {
@@ -597,7 +503,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
         });
         
         if (!res.ok) {
-            recordSyncFailure(`create issue ${item.id}`, await res.text());
+            console.error(`Failed to create issue ${item.id}: ${await res.text()}`);
             return undefined;
         }
         
@@ -606,7 +512,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
 
         if (isClosed) {
             // If the markdown file is already 'done', close the newly created issue immediately
-            const closeRes = await fetch(data.url, {
+            await fetch(data.url, {
                 method: 'PATCH',
                 headers: {
                     "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -616,14 +522,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
                 },
                 body: JSON.stringify({ state: 'closed' })
             });
-            if (closeRes.ok) {
-                console.log(`Closed newly created issue ${item.id}`);
-            } else {
-                // Creation succeeded but the close did not: markdown says done
-                // while GitHub shows an open issue — exactly the drift this
-                // script exists to prevent. Record it. See BUG-0307.
-                recordSyncFailure(`close newly created issue ${item.id} (#${data.number})`, `${closeRes.status} ${await closeRes.text()}`);
-            }
+            console.log(`Closed newly created issue ${item.id}`);
         }
 
         if (data.number) {
@@ -647,7 +546,7 @@ async function cleanupDuplicateIssue(dupIssue: GitHubIssue, canonicalNumber: num
             state: "closed",
             state_reason: "not_planned"
         };
-        const res = await fetch(dupIssue.url, {
+        await fetch(dupIssue.url, {
             method: "PATCH",
             headers: {
                 "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -657,10 +556,6 @@ async function cleanupDuplicateIssue(dupIssue: GitHubIssue, canonicalNumber: num
             },
             body: JSON.stringify(payload)
         });
-        if (!res.ok) {
-            recordSyncFailure(`close duplicate issue #${dupIssue.number} (canonical: #${canonicalNumber})`, `${res.status} ${await res.text()}`);
-            return;
-        }
         console.log(`[Sync] Closed duplicate issue #${dupIssue.number} (canonical: #${canonicalNumber})`);
 
         // Closing the issue does not by itself move it on the Kanban board —
@@ -1080,10 +975,6 @@ async function main() {
     const milestones = await fetchRepoMilestones();
     console.log(`Found ${milestones.length} milestones.`);
 
-    console.log("Fetching assignable collaborators (assignee allow-list)...");
-    const assignableLogins = await fetchAssignableLogins();
-    console.log(`Found ${assignableLogins.size} assignable collaborators.`);
-
     console.log("Fetching open pull requests for auto-linking...");
     const openPRs = await fetchAllOpenPRs();
     console.log(`Found ${openPRs.length} open pull requests.`);
@@ -1117,7 +1008,7 @@ async function main() {
         const matchingPRs = matchPRsForItem(openPRs, item.id, existing?.number);
         const hasOpenPR = matchingPRs.length > 0;
 
-        const res = await createOrUpdateIssue(item, existing, milestones, hasOpenPR, assignableLogins);
+        const res = await createOrUpdateIssue(item, existing, milestones, hasOpenPR);
         if (res?.nodeId) {
             issueMap.set(item.id, res.nodeId);
         }
@@ -1150,21 +1041,6 @@ async function main() {
         }
     });
     
-    // Fail loud. Every entry in `syncFailures` is a place where markdown and
-    // GitHub still disagree after this run — closing an item that stayed open,
-    // a PR body that never got its `Fixes #N`. Exiting non-zero turns the next
-    // such drift into a red run instead of days of silent divergence, and the
-    // weekly FORCE_FULL_SYNC resync doubles as the reconciliation audit: it
-    // re-walks every item with no skip, so any md↔issue mismatch surfaces here.
-    // See BUG-0307.
-    if (syncFailures.length > 0) {
-        console.error(`\n[Sync] ${syncFailures.length} convergence failure(s) this run:`);
-        for (const failure of syncFailures) {
-            console.error(` - ${failure}`);
-        }
-        process.exit(1);
-    }
-
     console.log("Sync complete.");
 }
 

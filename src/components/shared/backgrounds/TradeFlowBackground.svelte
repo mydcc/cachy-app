@@ -121,12 +121,6 @@
   const tradeHistorySize = 100;
   let targetSentiment = 0;
 
-  // Recent real trades — used by the "ambient" / "replay" data-source modes to
-  // keep the scene alive with a postable replay when the live feed goes quiet.
-  let recentTrades: { type: 'buy' | 'sell'; price: number; amount: number }[] = [];
-  const recentTradesMax = 60;
-  let lastRealTradeAt = 0;
-
   // Raw trade payload from the WS feed (short Bitunix keys) or the debug
   // injection hook below (longer keys) — both fall back across the two.
   interface RawTradeEvent {
@@ -169,16 +163,11 @@
     const buys = tradeHistory.filter(s => s === 'buy' || s === 'BUY').length;
     targetSentiment = (buys / tradeHistory.length) * 2 - 1;
 
-    const tradeType = (side === 'buy' || side === 'BUY') ? 'buy' : 'sell';
-    recentTrades.push({ type: tradeType, price, amount });
-    if (recentTrades.length > recentTradesMax) recentTrades.shift();
-    lastRealTradeAt = Date.now();
-
     worker.postMessage({
       type: 'onTrade',
       data: {
         trade: {
-          type: tradeType,
+          type: (side === 'buy' || side === 'BUY') ? 'buy' : 'sell',
           price,
           amount
         },
@@ -219,7 +208,6 @@
     const _persist = s.persistenceDuration;
     const _speed = s.speed;
     const _atmo = s.enableAtmosphere;
-    const _rot = s.enableRotation;
     const _camH = s.cameraHeight;
     const _camD = s.cameraDistance;
     const _camPX = s.cameraPositionX;
@@ -234,7 +222,6 @@
         persistenceDuration: _persist,
         speed: _speed,
         enableAtmosphere: _atmo,
-        enableRotation: _rot,
         cameraHeight: _camH,
         cameraDistance: _camD,
         cameraPositionX: _camPX,
@@ -250,38 +237,10 @@
     if (!browser || lifecycleState !== LifecycleState.READY) return;
     
     const currentSymbol = tradeState.symbol || "BTCUSDT";
-    // New symbol => the volume calibration window must forget the old
-    // market's notionals before the first trade of this symbol arrives.
-    worker?.postMessage({ type: 'resetVolume' });
     // Use the returned cleanup function for guaranteed unsubscription
     const cleanup = activeExchange().marketData.subscribeTrades(currentSymbol, onTrade);
-
-    // Ambient / Replay modes keep the scene alive when the live feed goes
-    // quiet: replay a recently seen trade (small price jitter) on a timer.
-    const ticker = setInterval(() => {
-      if (!worker) return;
-      const source = settingsState.tradeFlowSettings.tradeFlowSource;
-      if (source === 'live') return;
-      const silent = Date.now() - lastRealTradeAt > 1500;
-      if (source === 'ambient' && !silent) return;
-      if (recentTrades.length === 0) return;
-      const base = recentTrades[Math.floor(Math.random() * recentTrades.length)];
-      const jitter = 1 + (Math.random() - 0.5) * 0.01; // ±0.5%
-      worker.postMessage({
-        type: 'onTrade',
-        data: {
-          trade: {
-            type: base.type,
-            price: base.price * jitter,
-            amount: base.amount
-          },
-          sentiment: 0
-        }
-      });
-    }, 500);
     
     return () => {
-      clearInterval(ticker);
       cleanup();
     };
   });

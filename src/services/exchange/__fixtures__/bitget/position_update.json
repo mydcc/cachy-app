@@ -1,8 +1,0 @@
-{
-    "action": "snapshot",
-    "arg": { "instType": "mc", "channel": "positions", "instId": "BTCUSDT_UMCBL" },
-    "data": [{
-        "instId": "BTCUSDT_UMCBL",
-        "unrealizedPL": "150"
-    }]
-}

@@ -34,8 +34,8 @@ export const AiRequestSchema = z.object({
   messages: z.array(AiMessageSchema),
   model: z.string().optional(),
   tools: z.array(z.any()).optional(),
-  // Optional custom base URL for the provider endpoint (e.g. OmniRoute,
-  // LiteLLM, local gateways, self-hosted instances, or custom vendor endpoints).
+  // Only used by the Ollama proxy — the user's own local (or self-hosted)
+  // Ollama instance, never a Cachy-operated server.
   baseUrl: z.string().optional(),
 });
 

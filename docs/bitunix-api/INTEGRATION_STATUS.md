@@ -33,7 +33,7 @@ Login, Reconnect, Resubscribe).
 | Endpoint | Zweck | Status | Code |
 |---|---|---|---|
 | `GET /api/v1/futures/account` | Balance, frozen, margin, transfer, positionMode, cross/isolation-UPNL, bonus | ✅ | [routes/api/account](../../src/routes/api/account/+server.ts), [routes/api/balance](../../src/routes/api/balance/+server.ts) |
-| `GET …/account/get_leverage_margin_mode` | Hebel & Margin-Mode pro Symbol lesen | ✅ |
+| `GET …/account/get_leverage_margin_mode` | Hebel + Margin-Mode je Symbol lesen | ❌ | — |
 | `POST …/account/change_leverage` | Hebel ändern (je Symbol) | ❌ | — |
 | `POST …/account/change_margin_mode` | ISOLATION/CROSS; nur ohne offene Position/Order auf dem Symbol | ❌ | — |
 | `POST …/account/change_position_mode` | ONE_WAY/HEDGE; nur ohne offene Positionen | ❌ | — |
@@ -134,7 +134,7 @@ Bereits geholt und angezeigt
 `positionMode`, `crossUnrealizedPNL`, `isolationUnrealizedPNL`,
 `totalPositionSize` (client-berechnet).
 
-Verfügbar und integriert:
+Verfügbar, aber weder geholt noch angezeigt:
 
 - **Hebel + Margin-Mode je Symbol** (`get_leverage_margin_mode`)
 - Position-Tiers (Maintenance-Margin-Stufen)

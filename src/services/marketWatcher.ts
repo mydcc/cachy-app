@@ -65,19 +65,6 @@ export class MarketWatcher {
         this.syncSubscriptions();
     }
 
-    /**
-     * ConnectionManager has destroyed every provider, so the sockets hold
-     * nothing regardless of what the ledger last issued (FEAT-0227). The
-     * following `resync` therefore re-subscribes everything still wanted.
-     *
-     * Before FEAT-0227 the same fact was discovered by reading the venue
-     * socket's internal subscription map from `subscriptionRegistry`, which
-     * is why that file had to know Bitunix was the special one.
-     */
-    public forgetSubscriptions() {
-        this.registry.forgetIssuedSubscriptions();
-    }
-
     private async runPollingLoop() {
         if (!this.isPolling) return;
         try {

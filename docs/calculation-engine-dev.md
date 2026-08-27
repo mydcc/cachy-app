@@ -4,7 +4,7 @@
 
 ```
 technicalsService.ts          ← entry point (routing + caching)
-  ├── calculationStrategy.ts  ← engine selection
+  ├── calculationStrategy.ts  ← engine selection + adaptive learning
   ├── technicalsCalculator.ts ← TypeScript engine (pure math)
   ├── wasmCalculator.ts       ← WASM bridge
   └── webGpuCalculator.ts     ← GPU engine (WGSL shaders)
@@ -69,6 +69,9 @@ const myResult = await this.compute('myIndicator', myShader, [inputData], [perio
 | Method | Purpose |
 |--------|---------|
 | `selectEngine(candleCount, settings)` | Choose optimal engine |
+| `recordPerformance(metrics)` | Log execution time (feeds adaptive learning) |
+| `recordFailure(engine, error)` | Track failures (circuit breaker) |
+| `isEngineHealthy(engine)` | Check circuit breaker state |
 | `exportTelemetry()` | Full debug snapshot |
 
 ### `technicalsService.ts`

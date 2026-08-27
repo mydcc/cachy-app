@@ -19,7 +19,6 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../../lib/server/aiEndpoint";
 
 interface OpenAiModel {
   id: string;
@@ -33,30 +32,19 @@ const CHAT_MODEL_RE = /^(gpt-|o1|o3|o4|chatgpt)/i;
 const EXCLUDE_RE =
   /(embedding|whisper|tts|dall-e|moderation|davinci|babbage|ada|curie|realtime|audio|transcribe|instruct|image)/i;
 
-export const GET: RequestHandler = async ({ url, request, getClientAddress }) => {
+export const GET: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
   const apiKey = request.headers.get("x-api-key");
-  const baseUrl = url.searchParams.get("baseUrl");
-
-  if (!apiKey && !baseUrl?.trim()) {
+  if (!apiKey) {
     return json({ error: "Missing API Key" }, { status: 401 });
   }
 
-  const targetUrl = resolveProviderEndpoint(
-    baseUrl,
-    "https://api.openai.com/v1/models",
-    "v1/models",
-  );
-
-  const headers: Record<string, string> = {};
-  if (apiKey) {
-    headers.Authorization = `Bearer ${apiKey}`;
-  }
-
   try {
-    const response = await fetch(targetUrl, { headers });
+    const response = await fetch("https://api.openai.com/v1/models", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));

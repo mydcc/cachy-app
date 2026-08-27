@@ -17,12 +17,8 @@
 
 import * as THREE from 'three';
 import { BaseEngine, type EngineContext } from './BaseEngine';
-import { scaleToRange } from './volumeScale';
 
 export class RaindropsEngine extends BaseEngine {
-	private readonly MIN_MAGNITUDE = 1.0;
-	private readonly MAX_MAGNITUDE = 8.0;
-
     private pointCloud: THREE.Points | null = null;
     private material: THREE.ShaderMaterial | null = null;
     private rippleData: THREE.Vector4[];
@@ -192,16 +188,8 @@ export class RaindropsEngine extends BaseEngine {
         const width = s.gridWidth || 80;
         const length = s.gridLength || 160;
         const volScale = s.volumeScale || 1.0;
-
-        // Shared notional normalisation (see volumeScale.ts) so a ripple of a
-        // given strength means the same amount of money as in every other mode.
-        const normalized = this.context.volumeNormalizer.push(trade.price, trade.amount);
-        const magnitude = scaleToRange(
-        	normalized,
-        	this.MIN_MAGNITUDE,
-        	this.MAX_MAGNITUDE,
-        	volScale
-        );
+        const tradeValue = trade.price * trade.amount;
+        const magnitude = Math.min(Math.max(Math.log10(tradeValue + 1) * volScale, 1.0), 8.0);
         const signedMagnitude = trade.type === 'buy' ? magnitude : -magnitude;
         
         if (this.rippleData[this.nextRippleIdx]) {

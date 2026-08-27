@@ -204,25 +204,6 @@
       "file": "bugs/BUG-0293-tpsl-modify-wire-format.md"
     },
     {
-      "id": "BUG-0315",
-      "title": "wasmCalculator double-counts the last candle in initialize and update",
-      "type": "bug",
-      "status": "done",
-      "priority": "P0",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "calculation",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "assignee": "opencode",
-      "file": "bugs/BUG-0315-double-counted-last-candle.md"
-    },
-    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -979,7 +960,8 @@
       "id": "BUG-0297",
       "title": "An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built",
       "type": "bug",
-      "status": "done",
+      "status": "in-progress",
+      "assignee": "claude",
       "branch": "bug-0297-entry-gate-deadlock",
       "priority": "P1",
       "milestone": "M2",
@@ -993,46 +975,6 @@
       "adr": "none",
       "depends_on": [],
       "file": "bugs/BUG-0297-bitget-entry-order-gate-deadlock.md"
-    },
-    {
-      "id": "BUG-0313",
-      "title": "WASM build ships an artifact that production never loads",
-      "type": "bug",
-      "status": "done",
-      "priority": "P1",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "build",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "assignee": "opencode",
-      "file": "bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md"
-    },
-    {
-      "id": "BUG-0317",
-      "title": "No automated WASM-to-TS parity verification or benchmark",
-      "type": "bug",
-      "status": "done",
-      "priority": "P1",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "calculation",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [
-        "BUG-0313"
-      ],
-      "assignee": "opencode",
-      "file": "bugs/BUG-0317-wasm-parity-test-benchmark.md"
     },
     {
       "id": "FEAT-0014",
@@ -1135,8 +1077,7 @@
       "id": "FEAT-0018",
       "title": "One conformance test suite every exchange adapter must pass",
       "type": "feature",
-      "status": "done",
-      "branch": "feat-0018",
+      "status": "specced",
       "priority": "P1",
       "milestone": "M2",
       "editions": [
@@ -1596,8 +1537,7 @@
       "id": "FEAT-0256",
       "title": "Close part of a position without closing all of it",
       "type": "feature",
-      "status": "done",
-      "assignee": "jules",
+      "status": "ready",
       "branch": "feat/feat-0256-partial-close",
       "priority": "P1",
       "milestone": "M3",
@@ -1617,51 +1557,6 @@
       "start_date": "2026-08-23",
       "target_date": "2026-09-20",
       "file": "features/FEAT-0256-partial-close-position.md"
-    },
-    {
-      "id": "FEAT-0303",
-      "title": "One rule schema alerts, backtests and bots all read",
-      "type": "feature",
-      "status": "specced",
-      "priority": "P1",
-      "milestone": "M4",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "alerts",
-      "data_class": "A",
-      "adr": "ADR-0012",
-      "depends_on": [
-        "FEAT-0027"
-      ],
-      "start_date": "2026-08-25",
-      "target_date": "2027-03-15",
-      "size": "M",
-      "estimate": "5",
-      "file": "features/FEAT-0303-strategy-rule-schema.md"
-    },
-    {
-      "id": "FEAT-0316",
-      "title": "Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm",
-      "type": "feature",
-      "status": "done",
-      "priority": "P1",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "calculation",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [
-        "BUG-0313"
-      ],
-      "assignee": "opencode",
-      "file": "features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md"
     },
     {
       "id": "BUG-0005",
@@ -2386,7 +2281,8 @@
       "id": "BUG-0272",
       "title": "Proxy routes drift on credential transport schema validation and error redaction",
       "type": "bug",
-      "status": "done",
+      "status": "in-progress",
+      "assignee": "antigravity",
       "branch": "fix-bug-0272",
       "priority": "P2",
       "milestone": "none",
@@ -2519,138 +2415,6 @@
       "file": "bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md"
     },
     {
-      "id": "BUG-0307",
-      "title": "Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator",
-      "type": "bug",
-      "status": "in-progress",
-      "priority": "P2",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "repo",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "start_date": "2026-08-25",
-      "target_date": "2026-08-25",
-      "size": "S",
-      "estimate": "2",
-      "assignee": "opencode",
-      "file": "bugs/BUG-0307-backlog-sync-cannot-close-issues.md"
-    },
-    {
-      "id": "BUG-0308",
-      "type": "bug",
-      "title": "calculation-engine docs list non-existent features",
-      "status": "done",
-      "priority": "P2",
-      "area": "docs",
-      "created": "2026-08-25",
-      "assignee": "opencode",
-      "milestone": "none",
-      "editions": [
-        "community"
-      ],
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "bugs/BUG-0308-docs-calculation-engine.md"
-    },
-    {
-      "id": "BUG-0309",
-      "type": "bug",
-      "title": "ADR violations in code vs docs",
-      "status": "done",
-      "priority": "P2",
-      "area": "docs",
-      "created": "2026-08-25",
-      "assignee": "opencode",
-      "milestone": "none",
-      "editions": [
-        "community"
-      ],
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "bugs/BUG-0309-docs-adr-conflicts.md"
-    },
-    {
-      "id": "BUG-0310",
-      "type": "bug",
-      "title": "bitunix-api INTEGRATION_STATUS is stale",
-      "status": "done",
-      "priority": "P2",
-      "area": "docs",
-      "created": "2026-08-25",
-      "assignee": "opencode",
-      "milestone": "none",
-      "editions": [
-        "community"
-      ],
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "bugs/BUG-0310-docs-bitunix-api.md"
-    },
-    {
-      "id": "BUG-0311",
-      "type": "bug",
-      "title": "Backlog infra docs and generated index are out of sync",
-      "status": "done",
-      "priority": "P2",
-      "area": "docs",
-      "created": "2026-08-25",
-      "assignee": "opencode",
-      "milestone": "none",
-      "editions": [
-        "community"
-      ],
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "bugs/BUG-0311-docs-backlog-infra.md"
-    },
-    {
-      "id": "BUG-0312",
-      "type": "bug",
-      "title": "Stale code references in done backlog items",
-      "status": "done",
-      "priority": "P2",
-      "area": "docs",
-      "created": "2026-08-25",
-      "assignee": "opencode",
-      "milestone": "none",
-      "editions": [
-        "community"
-      ],
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "bugs/BUG-0312-docs-backlog-items.md"
-    },
-    {
-      "id": "BUG-0314",
-      "title": "WASM module traps silently on malformed input and keeps the poisoned instance",
-      "type": "bug",
-      "status": "done",
-      "priority": "P2",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "calculation",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "assignee": "opencode",
-      "file": "bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md"
-    },
-    {
       "id": "FEAT-0019",
       "title": "Let the assistant research the web when it needs to",
       "type": "feature",
@@ -2759,8 +2523,7 @@
       "data_class": "A",
       "adr": "none",
       "depends_on": [
-        "FEAT-0028",
-        "FEAT-0303"
+        "FEAT-0028"
       ],
       "start_date": "2026-08-01",
       "target_date": "2027-03-15",
@@ -3377,9 +3140,7 @@
       "id": "FEAT-0227",
       "title": "Move each venue's socket and subscription ref-counting behind its adapter",
       "type": "feature",
-      "status": "in-progress",
-      "assignee": "claude",
-      "branch": "feat/feat-0227-adapter-owns-socket",
+      "status": "specced",
       "priority": "P2",
       "milestone": "M2",
       "editions": [
@@ -3404,9 +3165,7 @@
       "id": "FEAT-0228",
       "title": "Move the venue branches out of the proxy routes into per-venue modules",
       "type": "feature",
-      "status": "in-progress",
-      "assignee": "claude",
-      "branch": "feat/feat-0228-venue-gateway",
+      "status": "ready",
       "priority": "P2",
       "milestone": "M2",
       "editions": [
@@ -3558,9 +3317,7 @@
       "id": "FEAT-0285",
       "title": "Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop",
       "type": "feature",
-      "status": "done",
-      "assignee": "antigravity",
-      "branch": "feat/feat-0285-client-side-signing",
+      "status": "specced",
       "priority": "P2",
       "milestone": "none",
       "editions": [
@@ -3635,74 +3392,6 @@
         "FEAT-0300"
       ],
       "file": "features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md"
-    },
-    {
-      "id": "FEAT-0304",
-      "title": "Let the assistant propose a rule the trader arms",
-      "type": "feature",
-      "status": "idea",
-      "priority": "P2",
-      "milestone": "M8",
-      "editions": [
-        "pro",
-        "private"
-      ],
-      "area": "ai",
-      "data_class": "A",
-      "adr": "ADR-0012",
-      "depends_on": [
-        "FEAT-0303",
-        "FEAT-0019"
-      ],
-      "start_date": "2026-08-25",
-      "target_date": "2027-12-31",
-      "size": "M",
-      "estimate": "5",
-      "file": "features/FEAT-0304-model-proposes-rules.md"
-    },
-    {
-      "id": "FEAT-0306",
-      "title": "Allow custom baseUrl configuration for all AI providers",
-      "type": "feature",
-      "status": "in-progress",
-      "assignee": "antigravity",
-      "priority": "P2",
-      "milestone": "M8",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "ai",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "start_date": "2026-08-25",
-      "branch": "feat/feat-0306-custom-baseurl",
-      "size": "S",
-      "estimate": "1",
-      "file": "features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md"
-    },
-    {
-      "id": "FEAT-0319",
-      "title": "Make \"destroy forgets subscriptions\" a conformance-suite invariant",
-      "type": "feature",
-      "status": "specced",
-      "priority": "P2",
-      "milestone": "M2",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "exchange",
-      "data_class": "none",
-      "adr": "ADR-0007",
-      "depends_on": [
-        "FEAT-0018",
-        "FEAT-0227"
-      ],
-      "file": "features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md"
     },
     {
       "id": "BUG-0007",
@@ -3857,7 +3546,8 @@
       "id": "BUG-0266",
       "title": "DashboardNav renders preset.icon through unsanitized {@html}",
       "type": "bug",
-      "status": "done",
+      "status": "in-progress",
+      "assignee": "opencode",
       "branch": "fix/bug-0266-sanitize-nav-icon",
       "priority": "P3",
       "milestone": "none",
@@ -4152,8 +3842,7 @@
       "id": "FEAT-0260",
       "title": "Dynamic-import rarely opened heavyweight modals in the root layout",
       "type": "feature",
-      "status": "done",
-      "assignee": "jules",
+      "status": "ready",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -4190,9 +3879,7 @@
       "id": "FEAT-0262",
       "title": "Decide the fate of the unused workerPool service",
       "type": "feature",
-      "status": "in-progress",
-      "assignee": "antigravity",
-      "branch": "feat/feat-0262-workerpool-delete",
+      "status": "specced",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -4210,7 +3897,7 @@
       "id": "FEAT-0263",
       "title": "Remove the settings cross-tab storage listener in destroy",
       "type": "feature",
-      "status": "done",
+      "status": "ready",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -4279,50 +3966,6 @@
       "adr": "none",
       "depends_on": [],
       "file": "features/FEAT-0269-decimal-audit-coverage.md"
-    },
-    {
-      "id": "FEAT-0320",
-      "title": "Let the venue answer symbol-not-found on the tickers error path too",
-      "type": "feature",
-      "status": "specced",
-      "priority": "P3",
-      "milestone": "M2",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "exchange",
-      "data_class": "none",
-      "adr": "ADR-0007",
-      "depends_on": [
-        "FEAT-0228"
-      ],
-      "estimate": "1",
-      "size": "S",
-      "file": "features/FEAT-0320-tickers-error-path-asks-the-venue.md"
-    },
-    {
-      "id": "FEAT-0321",
-      "title": "Sign every Bitunix request through one signer instead of three copies",
-      "type": "feature",
-      "status": "specced",
-      "priority": "P3",
-      "milestone": "M2",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "exchange",
-      "data_class": "none",
-      "adr": "ADR-0007",
-      "depends_on": [
-        "FEAT-0228"
-      ],
-      "estimate": "2",
-      "size": "S",
-      "file": "features/FEAT-0321-single-bitunix-request-signer.md"
     },
     {
       "id": "IDEA-0036",
@@ -4519,50 +4162,7 @@
       "adr": "none",
       "depends_on": [],
       "file": "ideas/IDEA-0255-order-quantity-percent-slider.md"
-    },
-    {
-      "id": "IDEA-0305",
-      "title": "Use external market context as a veto, never as a trigger",
-      "type": "idea",
-      "status": "idea",
-      "priority": "P3",
-      "milestone": "M8",
-      "editions": [
-        "pro",
-        "private"
-      ],
-      "area": "ai",
-      "data_class": "C",
-      "adr": "ADR-0012",
-      "depends_on": [
-        "FEAT-0303"
-      ],
-      "start_date": "2026-08-25",
-      "target_date": "2027-12-31",
-      "size": "M",
-      "estimate": "3",
-      "file": "ideas/IDEA-0305-external-market-context-as-veto.md"
-    },
-    {
-      "id": "IDEA-0318",
-      "title": "Post-measurement WASM performance tuning",
-      "type": "idea",
-      "status": "idea",
-      "priority": "P3",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "calculation",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [
-        "BUG-0317"
-      ],
-      "file": "ideas/IDEA-0318-post-measurement-wasm-performance.md"
     }
   ],
-  "count": 208
+  "count": 189
 }

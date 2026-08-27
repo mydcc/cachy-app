@@ -46,7 +46,5 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0008](0008-refuse-unsupported-verbs-before-they-travel.md) | A verb the venue cannot perform is refused before it travels; reads resolve empty, writes throw | Proposed |
 | [0009](0009-candle-depth-and-background-store-isolation.md) | A candle request delivers the depth it asks for, and background work stays out of the foreground's store | Proposed |
 | [0010](0010-estimates-inform-but-never-determine-what-is-sent.md) | An estimate may inform the trader, but never determines a value sent to an exchange | Proposed |
-| [0011](0011-ai-context-consent-and-local-boundary.md) | AI context consent and the local-first egress boundary | Accepted |
-| [0012](0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md) | A strategy is checkable data, not code and not a model's opinion | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._

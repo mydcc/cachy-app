@@ -18,8 +18,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
-import { AiRequestSchema } from "../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
 
 interface GeminiPart {
   text: string;
@@ -57,20 +55,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   if (authError) return authError;
 
   try {
-    const rawBody = await request.json();
-    const parseResult = AiRequestSchema.safeParse(rawBody);
-
-    if (!parseResult.success) {
-      return json(
-        { error: "Invalid request body", details: parseResult.error.format() },
-        { status: 400 },
-      );
-    }
-
-    const { messages, model, tools, baseUrl } = parseResult.data;
+    const { messages, model, tools } = await request.json();
     const apiKey = request.headers.get("x-api-key");
 
-    if (!apiKey && !baseUrl?.trim()) {
+    if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 401 });
     }
 
@@ -99,12 +87,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
     const encodedModel = encodeURIComponent(selectedModel);
-    const keyParam = apiKey ? `&key=${encodeURIComponent(apiKey)}` : "";
-    const url = resolveProviderEndpoint(
-      baseUrl,
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodedModel}:streamGenerateContent?alt=sse${keyParam}`,
-      `v1beta/models/${encodedModel}:streamGenerateContent?alt=sse${keyParam}`,
-    );
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
 
     // Special handling for Gemma models which don't support systemInstruction
     if (selectedModel.includes("gemma") && systemInstruction) {

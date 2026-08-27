@@ -17,7 +17,8 @@ import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
-import { exchangeAdapters } from "./exchange";
+import { bitunixWs } from "./bitunixWs";
+import { bitgetWs } from "./bitgetWs"; // Import Bitget WS
 import { favoritesState } from "../stores/favorites.svelte";
 import { marketState } from "../stores/market.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
@@ -100,11 +101,8 @@ export const app = {
       tradeCalculator.init(() => app.calculateAndDisplay());
 
       // 2. Register dependencies in ConnectionManager
-      // FEAT-0227: every adapter hands over its own socket, so adding a venue
-      // is a registry entry rather than two more lines here.
-      for (const adapter of exchangeAdapters) {
-        connectionManager.registerProvider(adapter.id, adapter.connection);
-      }
+      connectionManager.registerProvider("bitunix", bitunixWs);
+      connectionManager.registerProvider("bitget", bitgetWs);
       connectionManager.registerPolling(marketWatcher);
 
       // 3. Setup Reactions

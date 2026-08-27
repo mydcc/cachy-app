@@ -2,8 +2,7 @@
 id: FEAT-0256
 title: Close part of a position without closing all of it
 type: feature
-status: done
-assignee: jules
+status: ready
 branch: feat/feat-0256-partial-close
 priority: P1
 milestone: M3
@@ -71,24 +70,24 @@ position amount rather than against the step.
 
 ## Acceptance criteria
 
-- [x] The close action offers a quantity between one step and the full position,
+- [ ] The close action offers a quantity between one step and the full position,
       defaulting to full, with 0/25/50/75/100 % presets.
-- [x] Slider and absolute-quantity field stay in sync in both directions; the
+- [ ] Slider and absolute-quantity field stay in sync in both directions; the
       quantity displayed is the quantity submitted.
-- [x] Every emitted quantity is a `Decimal` rounded to the instrument's step
+- [ ] Every emitted quantity is a `Decimal` rounded to the instrument's step
       size, and never exceeds the position size read back fresh.
-- [x] Selecting 100 % submits a full close — the exact position amount, not a
+- [ ] Selecting 100 % submits a full close — the exact position amount, not a
       rounded approximation of it.
-- [x] `closePosition` passes `stepSize` in its `displayed` block; the gate
+- [ ] `closePosition` passes `stepSize` in its `displayed` block; the gate
       refuses a *partial* reduce whose quantity is not a whole multiple of it,
       and does not apply that rule to a full close.
-- [x] The remaining size and the PnL the close would realise are shown before
+- [ ] The remaining size and the PnL the close would realise are shown before
       commit, computed with `Decimal`.
-- [x] Unit tests cover step rounding, the full-close exemption, the position
+- [ ] Unit tests cover step rounding, the full-close exemption, the position
       ceiling, and the 100 % path.
-- [x] A component test confirms the displayed quantity is the submitted one.
-- [x] German and English strings for every new label.
-- [x] `npm run check` passes; all styling via CSS variables.
+- [ ] A component test confirms the displayed quantity is the submitted one.
+- [ ] German and English strings for every new label.
+- [ ] `npm run check` passes; all styling via CSS variables.
 
 ## Out of scope
 

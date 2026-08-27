@@ -4,14 +4,6 @@ name: Backlog Dispatch (Jules)
 # siehe scripts/jules/dispatch-backlog.mjs für den genauen Filter/Ablauf.
 # execution/security/exchange und P0 bleiben bewusst außen vor (manuell
 # per scripts/jules/create-session.sh --file ...).
-#
-# Die Reihenfolge hier ist bewusst: Erst die Status-Claims committen und
-# pushen (Phase 1/2), DANACH erst die Jules-Sessions erstellen (Phase 3).
-# Jules klont develop zum Zeitpunkt der Session-Erstellung — ohne den Push
-# vorher startet jede Session mit einem Stand, der die in-progress-Markierung
-# noch nicht enthält. Schlägt eine Session-Erstellung danach trotzdem fehl,
-# rollt Phase 4 das Item auf ready zurück, damit keine Geister-Claims auf
-# develop bleiben.
 
 on:
   schedule:
@@ -42,100 +34,24 @@ jobs:
         with:
           node-version: 'lts/*'
 
-      # Phase 1: Auswahl + Claim-Updates (in-progress + assignee) + Index,
-      # aber keine Session. Die gewählten IDs landen im Step-Output 'ids'.
-      - name: Select ready backlog items and mark them in-progress
-        id: select
+      - name: Dispatch ready backlog items
         env:
           JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
           JULES_SOURCE: ${{ vars.JULES_SOURCE }}
         run: |
-          flags="--phase=status --report-file=$RUNNER_TEMP/dispatch-report.json"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            flags="$flags --dry-run"
+            node scripts/jules/dispatch-backlog.mjs --dry-run
+          else
+            node scripts/jules/dispatch-backlog.mjs
           fi
-          node scripts/jules/dispatch-backlog.mjs $flags
-          node -e 'const fs=require("node:fs");const r=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/dispatch-report.json","utf8"));fs.appendFileSync(process.env.GITHUB_OUTPUT,"ids="+r.toDispatch.join(",")+"\n");console.log("Vorgemerkt für Sessions: "+(r.toDispatch.join(", ")||"—"))'
 
-      # Phase 2: Claims + Index auf develop pushen, BEVOR irgendeine Session
-      # existiert. Bounded Retry gegen Push-Races (semantic-release und
-      # sync-backlog.yml pushen ebenfalls direkt auf diesen Branch).
       - name: Commit and push in-progress status updates
-        id: push_status
         if: inputs.dry_run != true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ -z "$(git status --porcelain docs/backlog/)" ]; then
-            echo "Keine Status-Änderungen zu committen."
-            exit 0
+          if [ -n "$(git status --porcelain docs/backlog/)" ]; then
+            git add docs/backlog/
+            git commit -m "chore(backlog): mark dispatched items in-progress [skip ci]"
+            git push origin develop
           fi
-          git add docs/backlog/
-          git commit -m "chore(backlog): mark dispatched items in-progress [skip ci]"
-          attempts=0
-          until git push origin develop; do
-            attempts=$((attempts + 1))
-            if [ "$attempts" -ge 3 ]; then
-              echo "::error::Push der Status-Updates nach 3 Versuchen fehlgeschlagen — Sessions werden absichtlich NICHT erstellt."
-              exit 1
-            fi
-            echo "Push-Versuch $attempts abgelehnt — rebase auf origin/develop, neuer Versuch..."
-            sleep $((attempts * 5))
-            git fetch origin develop
-            git pull --rebase origin develop || { echo "::error::Rebase-Konflikt beim Push-Retry — manuell klären."; exit 1; }
-          done
-
-      # Phase 3: Sessions NUR für die in Phase 1 ausgewählten IDs — und nur,
-      # wenn der Push oben nicht fehlgeschlagen ist. Ein Skip ist okay
-      # (Dry-Run oder Claims bereits aktuell); ein Failure blockt bewusst.
-      - name: Create Jules sessions for pre-selected items
-        id: sessions
-        if: steps.select.outputs.ids != '' && steps.push_status.outcome != 'failure'
-        env:
-          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
-          JULES_SOURCE: ${{ vars.JULES_SOURCE }}
-        run: |
-          dry=""
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            dry="--dry-run"
-          fi
-          set +e
-          node scripts/jules/dispatch-backlog.mjs --phase=sessions --ids="${{ steps.select.outputs.ids }}" --report-file="$RUNNER_TEMP/session-report.json" $dry
-          code=$?
-          set -e
-          node -e 'const fs=require("node:fs");try{const r=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/session-report.json","utf8"));fs.appendFileSync(process.env.GITHUB_OUTPUT,"failed_ids="+r.failed.join(",")+"\n")}catch(e){fs.appendFileSync(process.env.GITHUB_OUTPUT,"failed_ids=\n")}'
-          exit $code
-
-      # Phase 4a: fehlgeschlagene Erstellungen zurück auf ready setzen,
-      # damit keine Geister-Claims auf develop bleiben.
-      - name: Roll back failed dispatches to ready
-        id: rollback
-        if: "!cancelled() && inputs.dry_run != true && steps.sessions.outputs.failed_ids != ''"
-        run: |
-          node scripts/jules/dispatch-backlog.mjs --phase=rollback --ids="${{ steps.sessions.outputs.failed_ids }}" --report-file="$RUNNER_TEMP/rollback-report.json"
-
-      # Phase 4b: den Rollback committen und pushen — gleiche Identität,
-      # gleicher bounded Retry wie in Phase 2.
-      - name: Commit and push rollback
-        if: "!cancelled() && inputs.dry_run != true && steps.rollback.outcome == 'success'"
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ -z "$(git status --porcelain docs/backlog/)" ]; then
-            echo "Keine Rollback-Änderungen zu committen."
-            exit 0
-          fi
-          git add docs/backlog/
-          git commit -m "chore(backlog): reset failed Jules dispatches to ready [skip ci]"
-          attempts=0
-          until git push origin develop; do
-            attempts=$((attempts + 1))
-            if [ "$attempts" -ge 3 ]; then
-              echo "::error::Push des Rollbacks nach 3 Versuchen fehlgeschlagen — Geister-Claims bitte manuell prüfen."
-              exit 1
-            fi
-            echo "Push-Versuch $attempts abgelehnt — rebase auf origin/develop, neuer Versuch..."
-            sleep $((attempts * 5))
-            git fetch origin develop
-            git pull --rebase origin develop || { echo "::error::Rebase-Konflikt beim Rollback-Push — manuell klären."; exit 1; }
-          done

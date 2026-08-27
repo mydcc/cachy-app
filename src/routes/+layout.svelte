@@ -18,15 +18,14 @@
 <script lang="ts">
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
-  import type MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
-  import type AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
-  import type AutoBackupRestoreModal from "../components/shared/AutoBackupRestoreModal.svelte";
-  import type OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
-
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
+  import AutoBackupRestoreModal from "../components/shared/AutoBackupRestoreModal.svelte";
+  import MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
+  import AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
+  import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { onMount, type Component } from "svelte";
-  import { initAutoBackup, autoBackupState } from "../services/autoBackupService.svelte";
+  import { initAutoBackup } from "../services/autoBackupService.svelte";
   import { initFileTargets } from "../services/fileTargetBackupService.svelte";
 import { afterNavigate } from "$app/navigation";
   import { page } from "$app/stores";
@@ -62,44 +61,6 @@ import { afterNavigate } from "$app/navigation";
   let AmbientToplineComponent: Component | null = $state(null);
   let FireOverlayComponent: Component | null = $state(null);
   let FXOverlayComponent: Component | null = $state(null);
-
-  // Lazy-loaded modals
-  let MarketDashboardModalComponent: typeof MarketDashboardModal | null = $state(null);
-  let AlertDefinitionsModalComponent: typeof AlertDefinitionsModal | null = $state(null);
-  let AutoBackupRestoreModalComponent: typeof AutoBackupRestoreModal | null = $state(null);
-  let OrderDetailsTooltipComponent: typeof OrderDetailsTooltip | null = $state(null);
-
-  $effect(() => {
-    if (uiState.showMarketDashboardModal && !MarketDashboardModalComponent) {
-      import("../components/shared/MarketDashboardModal.svelte")
-        .then((m) => (MarketDashboardModalComponent = m.default))
-        .catch((err) => console.error("Failed to load MarketDashboardModal", err));
-    }
-  });
-
-  $effect(() => {
-    if (uiState.showAlertsModal && !AlertDefinitionsModalComponent) {
-      import("../components/alerts/AlertDefinitionsModal.svelte")
-        .then((m) => (AlertDefinitionsModalComponent = m.default))
-        .catch((err) => console.error("Failed to load AlertDefinitionsModal", err));
-    }
-  });
-
-  $effect(() => {
-    if (autoBackupState.pendingRestore && !AutoBackupRestoreModalComponent) {
-      import("../components/shared/AutoBackupRestoreModal.svelte")
-        .then((m) => (AutoBackupRestoreModalComponent = m.default))
-        .catch((err) => console.error("Failed to load AutoBackupRestoreModal", err));
-    }
-  });
-
-  $effect(() => {
-    if (uiState.tooltip.visible && uiState.tooltip.type === "order" && !OrderDetailsTooltipComponent) {
-      import("../components/shared/OrderDetailsTooltip.svelte")
-        .then((m) => (OrderDetailsTooltipComponent = m.default))
-        .catch((err) => console.error("Failed to load OrderDetailsTooltip", err));
-    }
-  });
 
   $effect(() => {
     if (settingsState.enableAmbientTopline && !AmbientToplineComponent) {
@@ -291,22 +252,6 @@ import { afterNavigate } from "$app/navigation";
   });
 
   onMount(() => {
-    // Preload heavy modals when idle to ensure fast opening
-    if (typeof window !== "undefined") {
-      const preloadHeavyModals = () => {
-        import("../components/shared/MarketDashboardModal.svelte");
-        import("../components/alerts/AlertDefinitionsModal.svelte");
-        import("../components/shared/AutoBackupRestoreModal.svelte");
-        import("../components/shared/OrderDetailsTooltip.svelte");
-      };
-
-      if ("requestIdleCallback" in window) {
-        requestIdleCallback(preloadHeavyModals, { timeout: 2000 });
-      } else {
-        setTimeout(preloadHeavyModals, 1000);
-      }
-    }
-
     // Initialize Zoom Plugin (Client-side only)
     initZoomPlugin();
 
@@ -539,12 +484,10 @@ import { afterNavigate } from "$app/navigation";
   {@render children?.()}
 
   <!-- Global Modals -->
-  {#if uiState.showAlertsModal && AlertDefinitionsModalComponent}
-    <AlertDefinitionsModalComponent onClose={() => (uiState.showAlertsModal = false)} />
-  {/if}
-  {#if MarketDashboardModalComponent}
-    <MarketDashboardModalComponent />
-  {/if}
+  {#if uiState.showAlertsModal}
+  <AlertDefinitionsModal onClose={() => (uiState.showAlertsModal = false)} />
+{/if}
+<MarketDashboardModal />
   <!-- ToastManager Removed as not found -->
   <!-- LoadingSpinner Removed as not found -->
 
@@ -554,9 +497,7 @@ import { afterNavigate } from "$app/navigation";
   <DisclaimerModal />
 {/if}
 
-{#if AutoBackupRestoreModalComponent}
-  <AutoBackupRestoreModalComponent />
-{/if}
+<AutoBackupRestoreModal />
 
 <WindowContainer />
 <ToastContainer />
@@ -573,8 +514,8 @@ import { afterNavigate } from "$app/navigation";
     onmouseleave={() => uiState.hideTooltip()}
     role="tooltip"
   >
-    {#if uiState.tooltip.type === "order" && OrderDetailsTooltipComponent}
-      <OrderDetailsTooltipComponent order={uiState.tooltip.data} />
+    {#if uiState.tooltip.type === "order"}
+      <OrderDetailsTooltip order={uiState.tooltip.data} />
     {/if}
   </div>
 {/if}

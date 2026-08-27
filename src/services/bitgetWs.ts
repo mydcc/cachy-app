@@ -37,9 +37,6 @@ interface BitgetWSOrderData {
   accFillSize?: string;
   price?: string;
   priceAvg?: string;
-  size?: string;
-  side?: string;
-  orderType?: string;
 }
 
 interface BitgetWSPositionData {
@@ -169,20 +166,6 @@ class BitgetWebSocketService {
       window.removeEventListener("offline", this.handleOffline);
     }
     this.cleanup();
-
-    // Permanent teardown: drop subscription state only when the service is
-    // being destroyed, never on the transient reconnect-driven `cleanup()`
-    // above — `resubscribe()` replays this map onto the fresh socket.
-    //
-    // FEAT-0227 made this load-bearing. `connectionManager.killAll()` destroys
-    // every provider and then tells the subscription ledger to forget what it
-    // issued, so the next reconcile re-issues every wanted channel. If the
-    // count here survived the destroy, that re-issue would raise it to 2 and
-    // send nothing, and the single `unsubscribe` a consumer eventually sends
-    // would decrement to 1 rather than to 0 — no unsubscribe frame, and the
-    // venue keeps streaming a channel nobody wants. `bitunixWs.destroy()`
-    // clears `pendingSubscriptions` for the same reason.
-    this.subscriptions.clear();
   }
 
   connect(force?: boolean) {
@@ -293,11 +276,11 @@ class BitgetWebSocketService {
           marketState.updateTelemetry({ activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1) });
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
-            this.cleanup();
           } else {
             marketState.connectionStatus = "reconnecting";
             this.scheduleReconnect();
           }
+          this.cleanup();
         }
       };
 
@@ -694,10 +677,8 @@ class BitgetWebSocketService {
       symbol: order.instId,
       orderStatus: order.status,
       price: order.price,
-      qty: order.size,
+      qty: order.accFillSize,
       dealAmount: order.accFillSize,
-      side: order.side,
-      type: order.orderType,
       ctime: undefined,
     };
   }

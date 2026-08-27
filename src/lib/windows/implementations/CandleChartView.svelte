@@ -16,13 +16,13 @@
 -->
 
 <script lang="ts">
-    import { onMount, untrack, mount, unmount } from "svelte";
+    import { onMount, untrack } from "svelte";
     import { _ } from "../../../locales/i18n";
-    import type { TranslationKey } from "../../../locales/schema";
     import {
         createChart,
         ColorType,
         CandlestickSeries,
+        LineSeries,
         type IChartApi,
         type ISeriesApi,
         type CandlestickData,
@@ -31,9 +31,7 @@
     } from "lightweight-charts";
     import { Decimal } from "decimal.js";
     import { get } from "svelte/store";
-    import { IndicatorLayer, type IndicatorPaneInfo } from "../../../lib/chart/indicatorLayer";
-    import type { ChartRow } from "../../../lib/chart/seriesMap";
-    import IndicatorPaneHeader from "../../../components/shared/IndicatorPaneHeader.svelte";
+    import { JSIndicators } from "../../../utils/indicators";
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -44,14 +42,7 @@
     import { activeExchange } from "../../../services/exchange";
     import { toastService } from "../../../services/toastService.svelte";
     import { appFetch } from "../../appAuth";
-    import { unwrapApiEnvelope, formatDynamicDecimal, deriveTickSizeFromPrice } from "../../../utils/utils";
-    import {
-        buildAxisFormatters,
-        formatCountdown,
-        mapPriceScaleMode,
-        nextCandleCloseTime,
-        resolveChartPriceDecimals,
-    } from "../../../utils/chartDisplay";
+    import { unwrapApiEnvelope } from "../../../utils/utils";
     import type { NormalizedPosition, NormalizedOrder } from "../../../types/exchange";
     import {
         PriceLineManager,
@@ -105,19 +96,16 @@
     let chart: IChartApi | null = $state(null);
     let candleSeries: ISeriesApi<"Candlestick"> | null = $state(null);
 
-    // Indicator Layer (overlays + sub-panes; replaces the old EMA series trio)
-    let indicatorLayer: IndicatorLayer | null = null;
-    // Svelte components mounted directly into each visible sub-pane's own
-    // DOM element (see syncPaneHeaders) to show its name + enable/disable
-    // toggle without lightweight-charts having any pane-header concept.
-    let paneHeaderInstances: object[] = [];
+    // Indicator Series
+    let ema1Series: ISeriesApi<"Line"> | null = $state(null);
+    let ema2Series: ISeriesApi<"Line"> | null = $state(null);
+    let ema3Series: ISeriesApi<"Line"> | null = $state(null);
 
     let isInitialLoad = $state(true);
     let isLoadingHistory = $state(false);
     let allHistoryLoaded = $state(false);
     let lastRenderedTime: Time | null = $state(null);
     let lastRenderedCount = $state(0);
-    let lastRenderedSettingsJson = $state("");
     let lastRenderTimestamp = 0;
     let renderThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -273,15 +261,29 @@
             priceLineVisible: false,
         });
 
-        // Indicator overlay/sub-pane layer (EMA, SMA, oscillators, volume…).
-        // Replaces the old EMA-only trio. Height-gated sub-panes keep a small
-        // chart window from being cluttered with unusable mini-panes.
-        indicatorLayer = new IndicatorLayer(chart, getVar, syncPaneHeaders);
-        // Seed the real height straight away: the layer defaults to the
-        // minimum, and waiting for the ResizeObserver's first callback means
-        // the initial render can lay out sub-panes for a chart far shorter
-        // than the one actually on screen.
-        indicatorLayer.setAvailableHeight(chartContainer.clientHeight);
+        // Initialize EMA Series
+        // Harmonized colors using semantic theme variables
+        ema1Series = chart.addSeries(LineSeries, {
+            color: getVar("--success-color") || "#26a69a",
+            lineWidth: 2,
+            crosshairMarkerVisible: false,
+            // Each EMA's default last-value price line cluttered the chart
+            // alongside the position/order price lines — the line series
+            // itself is enough, it doesn't need its own axis line too.
+            priceLineVisible: false,
+        });
+        ema2Series = chart.addSeries(LineSeries, {
+            color: getVar("--danger-color") || "#ef5350",
+            lineWidth: 2,
+            crosshairMarkerVisible: false,
+            priceLineVisible: false,
+        });
+        ema3Series = chart.addSeries(LineSeries, {
+            color: getVar("--warning-color") || "#ffb300",
+            lineWidth: 2,
+            crosshairMarkerVisible: false,
+            priceLineVisible: false,
+        });
         untrack(() => updateColors());
 
         priceLineManager = new PriceLineManager(candleSeries, {
@@ -306,7 +308,6 @@
                     width: chartContainer.clientWidth,
                     height: chartContainer.clientHeight,
                 });
-                indicatorLayer?.setAvailableHeight(chartContainer.clientHeight);
             }
         };
 
@@ -362,8 +363,6 @@
             if (chartContainer) resizeObserver.unobserve(chartContainer);
             priceLineManager?.destroy();
             priceLineManager = null;
-            indicatorLayer?.destroy();
-            indicatorLayer = null;
             if (chart) chart.remove();
         };
     });
@@ -453,44 +452,12 @@
             .trim();
     }
 
-    // IndicatorLayer reports the currently-visible sub-panes after every
-    // render (it tears down and rebuilds all panes each time, so pane
-    // indices are not stable across renders — headers must be fully
-    // unmounted and remounted in lock-step rather than diffed/reused).
-    function syncPaneHeaders(panes: IndicatorPaneInfo[]): void {
-        for (const instance of paneHeaderInstances) {
-            unmount(instance);
-        }
-        paneHeaderInstances = [];
-        if (!chart) return;
-
-        for (const p of panes) {
-            const pane = chart.panes()[p.paneIndex];
-            const el = pane?.getHTMLElement();
-            if (!el) continue;
-            // The header is absolutely positioned to sit inside just this
-            // pane; without an explicit positioning context here it would
-            // escape to the nearest ancestor that has one (chart-container),
-            // landing at the top of the whole chart instead of this pane.
-            if (getComputedStyle(el).position === "static") {
-                el.style.position = "relative";
-            }
-            const instance = mount(IndicatorPaneHeader, {
-                target: el,
-                props: {
-                    title: get(_)(p.titleKey as TranslationKey) || p.key,
-                    params: p.params,
-                },
-            });
-            paneHeaderInstances.push(instance);
-        }
-    }
-
     function updateColors() {
         if (!chart || !candleSeries) return;
 
         const success = getVar("--success-color") || "#26a69a";
         const danger = getVar("--danger-color") || "#ef5350";
+        const warning = getVar("--warning-color") || "#ffb300";
         const text = getVar("--text-secondary") || "#d1d4dc";
         const accent = getVar("--accent-color") || "#2962ff";
         const border = getVar("--border-color") || "rgba(255, 255, 255, 0.1)";
@@ -526,98 +493,11 @@
             wickDownColor: danger,
         });
 
-        // Indicator series are re-colored by re-rendering from the last data.
-        indicatorLayer?.applyTheme();
+        // EMA Colors
+        if (ema1Series) ema1Series.applyOptions({ color: success });
+        if (ema2Series) ema2Series.applyOptions({ color: danger });
+        if (ema3Series) ema3Series.applyOptions({ color: warning });
     }
-
-    // Reactive chart options driven by the Chart settings tab. Mirrors the
-    // initial createChart options; updateColors() above only owns colors,
-    // this effect owns structure (scale mode, grid, crosshair, time scale,
-    // price format). The defaults equal the previously hard-coded values, so
-    // a fresh install renders exactly as before.
-    $effect(() => {
-        if (!chart || !candleSeries) return;
-
-        const crosshairModeMap = { normal: 0, magnet: 1, hidden: 2 } as const;
-        // lightweight-charts LineStyle: Solid=0, Dotted=1, Dashed=2
-        const crosshairStyleMap = { solid: 0, dotted: 1, dashed: 2 } as const;
-
-        const normalized = normalizeSymbol(symbol, "bitunix");
-        const quotePrecision =
-            marketState?.symbolMeta?.[normalized]?.quotePrecision;
-        const decimals = resolveChartPriceDecimals(
-            settingsState.chartDecimalsMode,
-            settingsState.chartFixedDecimals,
-            quotePrecision,
-        );
-        const minMove = new Decimal(10).pow(-decimals).toNumber();
-        // The stock secondsVisible only affects Second-weight ticks, which
-        // never occur at >=1m timeframes - the formatters make the toggle
-        // real (UTC labels with :SS appended when enabled).
-        const axisFormatters = buildAxisFormatters(
-            settingsState.chartSecondsVisible,
-        );
-
-        chart.applyOptions({
-            grid: {
-                vertLines: { visible: settingsState.chartShowGrid },
-                horzLines: { visible: settingsState.chartShowGrid },
-            },
-            rightPriceScale: {
-                visible: win.showRightScale ?? true,
-                mode: mapPriceScaleMode(settingsState.chartPriceScaleMode),
-                autoScale: settingsState.chartAutoScale,
-                invertScale: settingsState.chartInvertScale,
-            },
-            crosshair: {
-                mode: crosshairModeMap[settingsState.chartCrosshairMode],
-                vertLine: { style: crosshairStyleMap[settingsState.chartCrosshairStyle] },
-                horzLine: { style: crosshairStyleMap[settingsState.chartCrosshairStyle] },
-            },
-            timeScale: {
-                secondsVisible: settingsState.chartSecondsVisible,
-                fixLeftEdge: settingsState.chartFixEdges,
-                fixRightEdge: settingsState.chartFixEdges,
-                tickMarkFormatter: axisFormatters.tickMarkFormatter,
-            },
-            localization: {
-                timeFormatter: axisFormatters.timeFormatter,
-            },
-        });
-
-        candleSeries.applyOptions({
-            borderVisible: settingsState.chartCandleBorders,
-            lastValueVisible: settingsState.chartLastValueVisible,
-            priceFormat: { type: "price", precision: decimals, minMove },
-        });
-    });
-
-    // Candle-close countdown: a cheap interval only runs while the feature
-    // is enabled; the derived text recomputes from the latest kline open
-    // time so it survives timeframe/symbol switches without extra state.
-    let countdownNow = $state(Date.now());
-
-    $effect(() => {
-        if (!settingsState.chartCountdownEnabled) return;
-        const id = setInterval(() => {
-            countdownNow = Date.now();
-        }, 500);
-        return () => clearInterval(id);
-    });
-
-    const countdownText = $derived.by(() => {
-        if (!settingsState.chartCountdownEnabled) return null;
-        void countdownNow; // interval tick driver
-        const klines =
-            marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines?.[
-                timeframe
-            ];
-        const last = klines?.[klines.length - 1];
-        if (!last?.time) return null;
-        const closeTime = nextCandleCloseTime(last.time, timeframe);
-        if (closeTime === null) return null;
-        return formatCountdown(closeTime - countdownNow);
-    });
 
     // Registration for real-time data
     $effect(() => {
@@ -640,21 +520,15 @@
         const _lastUpdated = marketData?.lastUpdated;
         const klines = marketData?.klines?.[timeframe];
 
-        // Track the full indicator toggle/param state so toggling any
-        // indicator (from the Settings tab or an on-chart pane header) forces
-        // the slow path below instead of being swallowed by the live-tick
-        // fast path, which only updates the candle series, not IndicatorLayer.
-        const currentIndicatorSettingsJson = indicatorState._cachedJson;
+        const settings = indicatorState.ema;
+        const indicatorsEnabled = settings.enabled !== false;
 
         if (klines) {
             if (klines.length > 0) {
                 // Optimization: Check if this is just a live update to the last candle
                 const lastKline = klines[klines.length - 1];
                 const lastTime = (lastKline.time / 1000) as Time;
-                const isLiveUpdate =
-                    lastRenderedSettingsJson === currentIndicatorSettingsJson &&
-                    lastRenderedTime === lastTime &&
-                    klines.length === lastRenderedCount;
+                const isLiveUpdate = lastRenderedTime === lastTime && klines.length === lastRenderedCount;
 
                 if (isLiveUpdate && !isInitialLoad) {
                     const renderTick = () => {
@@ -672,21 +546,7 @@
                             candleSeries.update(update);
 
                             if (win.currentPrice !== undefined) {
-                                // Format from the raw kline string via
-                                // Decimal: a hard-coded toFixed(2) truncated
-                                // low-priced symbols (PEPE etc.) to 0.00.
-                                // Same precision source as the price axis.
-                                const decimals = resolveChartPriceDecimals(
-                                    settingsState.chartDecimalsMode,
-                                    settingsState.chartFixedDecimals,
-                                    marketState?.symbolMeta?.[
-                                        normalizeSymbol(symbol, "bitunix")
-                                    ]?.quotePrecision,
-                                );
-                                win.currentPrice = formatDynamicDecimal(
-                                    currentLastKline.close,
-                                    decimals,
-                                );
+                                win.currentPrice = update.close.toFixed(2);
                             }
                             lastRenderTimestamp = Date.now();
                         } catch (e) {
@@ -745,27 +605,6 @@
                         }
                     }
 
-                    // Align volume to each candle by time so the indicator
-                    // layer (volume pane, VWAP, OBV, MFI…) gets correct input.
-                    const volByTime = new Map<number, number>();
-                    for (const k of klines) {
-                        const t = Number(k.time / 1000);
-                        if (!volByTime.has(t)) {
-                            volByTime.set(t, Number(k.volume));
-                        }
-                    }
-                    const rows: ChartRow[] = unique.map((c) => {
-                        const t = Number(c.time);
-                        return {
-                            time: c.time,
-                            open: c.open,
-                            high: c.high,
-                            low: c.low,
-                            close: c.close,
-                            volume: volByTime.get(t) ?? 0,
-                        };
-                    });
-
                     try {
                         candleSeries.setData(unique);
 
@@ -780,14 +619,69 @@
                                 ? unique[unique.length - 1].time
                                 : null;
                         lastRenderedCount = klines.length;
-                        lastRenderedSettingsJson = currentIndicatorSettingsJson;
                         lastRenderTimestamp = 0;
                         isInitialLoad = false;
 
-                        // Render the full indicator layer (overlays + sub-panes).
-                        // The layer reads indicatorState itself, so no extra
-                        // wiring beyond passing the aligned candle rows.
-                        indicatorLayer?.render(rows);
+                        // Update Indicators if enabled
+                        if (
+                            indicatorsEnabled &&
+                            ema1Series &&
+                            ema2Series &&
+                            ema3Series
+                        ) {
+                            const closes = unique.map((c) => c.close);
+                            // Ensure we have enough data
+                            if (closes.length > 5) {
+                                const ema1 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema1.length,
+                                );
+                                const ema2 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema2.length,
+                                );
+                                const ema3 = JSIndicators.ema(
+                                    closes,
+                                    settings.ema3.length,
+                                );
+
+                                const mapToSeries = (arr: number[] | Float64Array) => {
+                                    const result = [];
+                                    // Use standard loop to handle both Array and Float64Array
+                                    for (let i = 0; i < arr.length; i++) {
+                                        const val = arr[i];
+                                        if (unique[i]) {
+                                            if (
+                                                val !== null &&
+                                                val !== undefined &&
+                                                typeof val === "number" &&
+                                                !isNaN(val)
+                                            ) {
+                                                result.push({
+                                                    time: unique[i].time,
+                                                    value: val,
+                                                });
+                                            }
+                                        }
+                                    }
+                                    return result;
+                                };
+
+                                ema1Series.setData(mapToSeries(ema1));
+                                ema2Series.setData(mapToSeries(ema2));
+                                ema3Series.setData(mapToSeries(ema3));
+
+                                // Visible
+                                ema1Series.applyOptions({ visible: true });
+                                ema2Series.applyOptions({ visible: true });
+                                ema3Series.applyOptions({ visible: true });
+                            }
+                        } else if (ema1Series && ema2Series && ema3Series) {
+                            // Hide if disabled
+                            ema1Series.applyOptions({ visible: false });
+                            ema2Series.applyOptions({ visible: false });
+                            ema3Series.applyOptions({ visible: false });
+                        }
                     } catch (e) {
                         console.error("[CandleChartView] Render error:", e);
                         // Disarm so the next cycle retries the slow path
@@ -853,17 +747,10 @@
             return lines;
         });
         const meta = marketState?.symbolMeta?.[normalized];
-        // Read outside the reactive graph: tracking the kline array would
-        // re-run this whole price-lines effect on every live tick. The
-        // fallback only needs a reasonably fresh close to estimate the tick.
-        const lastClose = untrack(() => {
-            const klines = marketState.data[normalized]?.klines?.[timeframe];
-            return klines?.[klines.length - 1]?.close;
-        });
         const tickSize =
             meta?.quotePrecision !== undefined
                 ? new Decimal(10).pow(-meta.quotePrecision)
-                : deriveTickSizeFromPrice(lastClose) ?? new Decimal("0.01");
+                : new Decimal("0.01");
         const readOnly = activeExchange().supports.tpSl === false;
 
         untrack(() => {
@@ -907,7 +794,7 @@
 </script>
 
 <div
-    class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[var(--border-color)] relative"
+    class="chart-view h-full w-full flex flex-col overflow-hidden rounded-b-xl border border-[rgba(255,255,255,0.05)] relative"
 >
     {#if showTimeframeDropdown}
         <div
@@ -962,35 +849,6 @@
         bind:this={chartContainer}
         class="chart-container flex-1 min-h-0 w-full relative"
     >
-        {#if settingsState.chartWatermark}
-            <!-- Painted before the chart mounts, so the canvas stacks above it
-                 naturally; pointer-events-none keeps scroll/zoom untouched. -->
-            <div
-                class="absolute inset-0 z-0 flex items-center justify-center pointer-events-none select-none overflow-hidden"
-                aria-hidden="true"
-            >
-                <span
-                    class="text-[6rem] md:text-[8rem] font-extrabold uppercase tracking-widest text-[var(--text-primary)] opacity-[0.05] whitespace-nowrap"
-                >
-                    {symbol}
-                </span>
-            </div>
-        {/if}
-
-        {#if countdownText}
-            <div
-                class="absolute top-2 right-16 z-20 pointer-events-none"
-                role="timer"
-                aria-label={$_("chartView.countdownLabel")}
-            >
-                <div
-                    class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-md px-2 py-0.5 shadow font-mono text-xs text-[var(--text-primary)]"
-                >
-                    {countdownText}
-                </div>
-            </div>
-        {/if}
-
         {#if isLoadingHistory}
             <div
                 class="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none"
@@ -1003,7 +861,7 @@
                     ></div>
                     <span
                         class="text-[10px] text-[var(--text-secondary)] font-mono"
-                        >{$_("chartView.loadingHistory")}</span
+                        >LOADING HISTORY</span
                     >
                 </div>
             </div>
@@ -1019,7 +877,7 @@
                     ></div>
                     <span
                         class="text-xs font-mono tracking-widest text-[var(--text-secondary)]"
-                        >{$_("chartView.fetchingMarketData")}</span
+                        >FETCHING MARKET DATA...</span
                     >
                 </div>
             </div>
@@ -1038,13 +896,6 @@
 
     .chart-container :global(.tv-lightweight-charts) {
         border-radius: 0 0 12px 12px;
-        /* Pin the chart above the optional watermark overlay: when the
-           watermark {#if} block mounts later than the chart, Svelte inserts
-           it before the template anchors - i.e. after the chart's appended
-           canvas in DOM order - so without an explicit stacking context the
-           watermark would tint the candles instead of sitting behind them. */
-        position: relative;
-        z-index: 1;
     }
 
     .loading-spinner {

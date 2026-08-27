@@ -2,43 +2,37 @@
 
 ## Overview
 
-Cachy uses a **static multi-engine architecture** to calculate technical indicators. It selects the fastest available engine based on fixed dataset size thresholds and hardware detection.
+Cachy uses an **adaptive multi-engine architecture** to calculate technical indicators. It automatically selects the fastest available engine based on your device capabilities, dataset size, and real-time performance data.
 
 ## Engines
 
 | Engine | Best For | Requirements |
 |--------|----------|-------------|
-| **TypeScript** | Small datasets, universal fallback | Always available |
-| **WebAssembly** | Medium datasets (WASM median > 500ms -> fallback TS) | Modern browser |
-| **WebGPU** | Large datasets (>5000 candles) | Chrome 113+, hardware GPU |
+| **TypeScript** | Small datasets (<1k candles), universal fallback | Always available |
+| **WebAssembly** | Medium-large datasets (5k-20k) | Modern browser |
+| **WebGPU** | Large datasets (>2k candles), parallelizable work | Chrome 113+, hardware GPU |
 
 ## How Engine Selection Works
 
-1. **Device Detection**: At startup, Cachy detects which engines the browser supports (WASM, SIMD, WebGPU).
-2. **Static Thresholds**: The engine is selected based on the number of candles (e.g., >5000 -> GPU, >1000 -> WASM).
-3. **Preferred Engine Override**: Users can force a specific engine (TS, WASM, WebGPU) via settings.
-4. **Basic Degradation**: If WASM median execution time exceeds 500ms, the system falls back to TypeScript.
+1. **Device Detection**: On startup, Cachy detects which engines your browser supports (WASM, SIMD, WebGPU)
+2. **Context Awareness**: Battery level, available memory, and device type (mobile/desktop) influence selection
+3. **Adaptive Learning**: After enough calculations, Cachy learns which engine is fastest for your specific hardware
+4. **Circuit Breaker**: If an engine fails 3 times consecutively, it's temporarily disabled for 5 minutes
 
 ## Calculation Modes
 
-Configure in **Settings > System Performance > Calculation Settings**:
-- **Light**: Prioritizes resource efficiency (mobile preset).
-- **Balanced** (default): Balances speed and resource usage based on static thresholds.
-- **Pro**: Assumes capable hardware, unlocks more parallel work.
+Configure in **Settings → System → Performance → Calculation Settings**:
 
-## Planned Features (Backlog)
-
-The following advanced features are planned but not yet implemented:
-- **Context Awareness**: Battery level, available memory, device type (mobile/desktop) influencing selection.
-- **Adaptive Learning**: After enough calculations, Cachy learns which engine is actually fastest for the specific hardware.
-- **Circuit Breaker**: If an engine fails 3 times consecutively, it is temporarily disabled for 5 minutes.
-- **Dynamic Quality Modes**: Engine switching based on precision requirements.
+- **Speed**: Prioritizes the fastest engine (GPU for large datasets)
+- **Balanced** (default): Balances speed and resource usage
+- **Quality**: Uses more precise engines, GPU only for very large datasets
 
 ## Debug Panel
 
-Enable **Debug Mode** in Settings > System Performance to see:
-- Which engines are available on the device
+Enable **Debug Mode** in Settings → System → Performance to see:
+- Which engines are available on your device
 - Performance stats per engine (avg/p95 execution time)
+- Circuit breaker health status
 - Recent calculation history
 
 ## Performance
@@ -52,4 +46,4 @@ Typical benchmarks on modern hardware:
 | 10,000 candles | ~86ms | ~25ms |
 | 50,000 candles | ~301ms | ~50ms |
 
-GPU benefits increase with dataset size due to parallel processing.
+> GPU benefits increase with dataset size due to parallel processing.

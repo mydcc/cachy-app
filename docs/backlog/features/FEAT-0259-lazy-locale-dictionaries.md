@@ -64,5 +64,5 @@ locale first so `init({ initialLocale })` can handle the load window. Keep the
 
 ## Links
 
-- `src/locales/i18n.ts`, `src/locales/locales/de.json`, `src/locales/locales/en.json`
+- `src/locales/i18n.ts`, `src/locales/de.json`, `src/locales/en.json`
 - Source: Autonomous Optimization Architect review, 2026-08-23.

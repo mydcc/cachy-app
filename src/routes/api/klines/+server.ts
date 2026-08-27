@@ -17,10 +17,73 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import type { UpstreamApiError } from "../../../utils/server/fetchWithTimeout";
-import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/venues";
+import { safeJsonParse } from "../../../utils/safeJson";
+import {
+  fetchWithTimeout,
+  DEFAULT_UPSTREAM_TIMEOUT_MS,
+  type UpstreamApiError,
+} from "../../../utils/server/fetchWithTimeout";
 
 type ApiError = UpstreamApiError;
+
+// Bitunix kline entry — field names vary across API versions/endpoints,
+// hence the pairs (open/o, id/time, ...).
+interface BitunixRawKline {
+  open?: string | number;
+  o?: string | number;
+  high?: string | number;
+  h?: string | number;
+  low?: string | number;
+  l?: string | number;
+  close?: string | number;
+  c?: string | number;
+  quoteVol?: string | number;
+  q?: string | number;
+  volume?: string | number;
+  vol?: string | number;
+  v?: string | number;
+  amount?: string | number;
+  id?: string | number;
+  time?: string | number;
+  ts?: string | number;
+}
+
+// [timestamp, open, high, low, close, volume, quoteVol]
+type BitgetCandleTuple = [string | number, string | number, string | number, string | number, string | number, string | number, (string | number)?];
+
+// Bitunix occasionally answers a perfectly valid request with a transient
+// 5xx or lets the connection hang. One bounded retry turns those blips into
+// success instead of surfacing a 5xx (and an error toast) to the chart.
+// BUG-0296: the backoff is staged rather than flat, and 429 responses are
+// retried too — honoring Retry-After within a small ceiling so we back off
+// when asked instead of hammering through a rate-limit window.
+const UPSTREAM_RETRY_ATTEMPTS = 3;
+const UPSTREAM_RETRY_BACKOFF_BASE_MS = 250;
+const UPSTREAM_RETRY_BACKOFF_MAX_MS = 2000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableUpstreamStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+function upstreamRetryDelayMs(attempt: number): number {
+  return Math.min(
+    UPSTREAM_RETRY_BACKOFF_BASE_MS * 2 ** (attempt - 1),
+    UPSTREAM_RETRY_BACKOFF_MAX_MS,
+  );
+}
+
+/** Numeric `Retry-After` in seconds, clamped to the retry-delay ceiling. */
+function retryAfterHeaderMs(response: Response): number | null {
+  const raw = response.headers.get("retry-after");
+  if (!raw) return null;
+  const seconds = Number(raw);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  return Math.min(seconds * 1000, UPSTREAM_RETRY_BACKOFF_MAX_MS);
+}
 
 export const GET: RequestHandler = async ({ url }) => {
   const symbol = url.searchParams.get("symbol");
@@ -39,12 +102,13 @@ export const GET: RequestHandler = async ({ url }) => {
     return json({ error: "Symbol is required" }, { status: 400 });
   }
 
-  // An unrecognised provider has always been served Bitunix data rather than
-  // rejected — keeping that fallback is what makes this a refactor.
-  const venue = resolveVenue(provider) ?? VENUES[DEFAULT_VENUE_ID];
-
   try {
-    const klines = await venue.fetchKlines({ symbol, interval, limit, start, end });
+    let klines;
+    if (provider === "bitget") {
+      klines = await fetchBitgetKlines(symbol, interval, limit, start, end);
+    } else {
+      klines = await fetchBitunixKlines(symbol, interval, limit, start, end);
+    }
     return json(klines);
   } catch (e: unknown) {
     console.error(`Error fetching klines from ${provider}:`, e);
@@ -66,3 +130,215 @@ export const GET: RequestHandler = async ({ url }) => {
     return json({ error: message }, { status });
   }
 };
+
+async function fetchBitunixKlines(
+  symbol: string,
+  interval: string,
+  limit: number,
+  start?: number,
+  end?: number,
+) {
+  const baseUrl = "https://fapi.bitunix.com";
+  const path = "/api/v1/futures/market/kline";
+
+  const map: Record<string, string> = {
+    "1m": "1m",
+    "5m": "5m",
+    "15m": "15m",
+    "30m": "30m",
+    "1h": "1h",
+    "4h": "4h",
+    "1d": "1d",
+    "1w": "1w",
+    "1M": "1M",
+  };
+  const mappedInterval = map[interval] || interval;
+
+  const params: Record<string, string> = {
+    symbol: symbol.toUpperCase(),
+    interval: mappedInterval,
+    limit: limit.toString(),
+  };
+  if (start) params.startTime = start.toString();
+  if (end) params.endTime = end.toString();
+
+  const queryString = new URLSearchParams(params).toString();
+  const fullUrl = `${baseUrl}${path}?${queryString}`;
+
+  const requestInit: RequestInit = {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "application/json, text/plain, */*",
+      "Accept-Language": "en-US,en;q=0.9",
+    },
+  };
+
+  let response!: Response;
+  for (let attempt = 1; attempt <= UPSTREAM_RETRY_ATTEMPTS; attempt++) {
+    try {
+      response = await fetchWithTimeout(fullUrl, requestInit, DEFAULT_UPSTREAM_TIMEOUT_MS);
+    } catch (e) {
+      // Timeouts (surfaced as 504) are transient — retry them. Everything
+      // else propagates immediately.
+      if ((e as ApiError)?.status === 504 && attempt < UPSTREAM_RETRY_ATTEMPTS) {
+        await sleep(upstreamRetryDelayMs(attempt));
+        continue;
+      }
+      throw e;
+    }
+    if (response.ok || !isRetryableUpstreamStatus(response.status) || attempt === UPSTREAM_RETRY_ATTEMPTS) {
+      break;
+    }
+    const delay =
+      response.status === 429
+        ? (retryAfterHeaderMs(response) ?? upstreamRetryDelayMs(attempt))
+        : upstreamRetryDelayMs(attempt);
+    await sleep(delay);
+  }
+
+  if (!response.ok) {
+    const text = await response.text();
+    let data;
+    try {
+      data = safeJsonParse(text);
+    } catch {
+      // Leave `data` undefined: the upstream body was not valid JSON.
+      // The shape check below rejects it and returns a proper error response.
+    }
+
+    if (
+      data &&
+      (data.code === 2 ||
+        data.code === "2" ||
+        (data.msg &&
+          typeof data.msg === "string" &&
+          data.msg.toLowerCase().includes("system error")))
+    ) {
+      const error = new Error("Symbol not found") as ApiError;
+      error.status = 404;
+      throw error;
+    }
+
+    const safeText = text.slice(0, 100);
+    console.error(`Bitunix API error ${response.status}: ${safeText}...`);
+    const error = new Error(`Bitunix API error: ${response.status}`) as ApiError;
+    error.status = response.status;
+    throw error;
+  }
+
+  const responseText = await response.text();
+  const data = safeJsonParse(responseText);
+
+  if (data.code !== 0 && data.code !== "0") {
+    if (
+        data.code === 2 ||
+        data.code === "2" ||
+        (data.msg && data.msg.toLowerCase().includes("system error"))
+      ) {
+        const error = new Error("Symbol not found") as ApiError;
+        error.status = 404;
+        throw error;
+      }
+      throw new Error(`Bitunix API error: ${data.msg}`);
+  }
+
+  const results = data.data || [];
+
+  if (limit > 5) {
+      console.log(`[Bitunix API] ${symbol}:${interval} requested ${limit} with end ${end}. Got ${results.length}. FirstTS: ${results[0]?.time || results[0]?.id}, LastTS: ${results[results.length-1]?.time || results[results.length-1]?.id}`);
+  }
+
+  const mapped = results.map((k: BitunixRawKline) => ({
+    open: String(k.open || k.o || 0),
+    high: String(k.high || k.h || 0),
+    low: String(k.low || k.l || 0),
+    close: String(k.close || k.c || 0),
+    volume: String(k.quoteVol || k.q || k.volume || k.vol || k.v || k.amount || 0),
+    timestamp: k.id || k.time || k.ts || 0, // Swapped id and time priority
+  }));
+
+  // Optimization: Bitunix usually returns data in descending order.
+  if (mapped.length > 1 && Number(mapped[0].timestamp) > Number(mapped[mapped.length - 1].timestamp)) {
+    mapped.reverse();
+  }
+
+  return mapped;
+}
+
+async function fetchBitgetKlines(
+  symbol: string,
+  interval: string,
+  limit: number,
+  start?: number,
+  end?: number,
+) {
+  const baseUrl = "https://api.bitget.com";
+  const path = "/api/mix/v1/market/candles";
+
+  // Bitget Granularity: 1m, 5m, 15m, 30m, 1H, 4H, 12H, 1D, 1W
+  const map: Record<string, string> = {
+    "1m": "1m",
+    "5m": "5m",
+    "15m": "15m",
+    "30m": "30m",
+    "1h": "1H",
+    "4h": "4H",
+    "1d": "1D",
+    "1w": "1W",
+  };
+  const mappedInterval = map[interval] || interval;
+
+  // Bitget requires _UMCBL suffix usually for Mix
+  let bitgetSymbol = symbol.toUpperCase();
+  if (!bitgetSymbol.includes("_")) {
+      bitgetSymbol += "_UMCBL";
+  }
+
+  const params: Record<string, string> = {
+    symbol: bitgetSymbol,
+    granularity: mappedInterval,
+    // limit? Bitget doesn't explicitly support 'limit' param in some docs, but we can try.
+    // Usually it relies on startTime/endTime.
+  };
+  if (start) params.startTime = start.toString();
+  if (end) params.endTime = end.toString();
+
+  // If no start/end, Bitget returns latest.
+
+  const queryString = new URLSearchParams(params).toString();
+
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {}, DEFAULT_UPSTREAM_TIMEOUT_MS);
+
+  if (!response.ok) {
+    throw new Error(`Bitget API error: ${response.status}`);
+  }
+
+  const text = await response.text();
+  const data = safeJsonParse(text);
+  // [[timestamp, open, high, low, close, volume, quoteVol], ...]
+  // timestamp is string or number? usually string in response.
+
+  // Hardening: Check if data is actually an array (success) or error object
+  if (!Array.isArray(data)) {
+      if (data && data.code && data.code !== "00000") {
+          throw new Error(`Bitget Error: ${data.msg || data.code}`);
+      }
+      // If valid empty result or unknown structure
+      if (!data) return [];
+      // Fallback if structure is unexpected but not explicit error
+      console.warn("[Klines] Unexpected Bitget response format", data);
+      return [];
+  }
+
+  // Optimize: Return plain strings
+  return data
+    .map((k: BitgetCandleTuple) => ({
+      timestamp: parseInt(String(k[0])),
+      open: k[1],
+      high: k[2],
+      low: k[3],
+      close: k[4],
+      volume: k[5], // base volume
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+}

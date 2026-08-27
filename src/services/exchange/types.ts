@@ -24,20 +24,18 @@
  * no longer reach those services directly, so adding a venue stops meaning
  * "touch all of it".
  *
- * FEAT-0227 closed the first of the two gaps this file used to list. The
- * adapter now owns its socket (`connection`) and its channel vocabulary
- * (`channelsForRequirement`); `connectionManager` keeps the session layer it
- * always had — connect / disconnect / provider-switch / tab-visibility, with
- * `switchProvider` still atomic across venues — and drives it through
- * `adapter.connection` rather than through two imported services. Reference
- * counting moved above the adapters into `subscriptionLedger.ts`.
+ * Deliberately *not* in here, decided 2026-08-17:
  *
- * Deliberately *not* in here:
- *
+ *   - The WebSocket connection lifecycle. `connectionManager` owns connect /
+ *     disconnect / provider-switch / tab-visibility, which is the session
+ *     layer in FIX's sense and spans both providers at once (`switchProvider`
+ *     is atomic across them). The adapter owns the *subscription* verbs. The
+ *     end state — venue adapter owning its own socket, ref-counting above it —
+ *     is a follow-up item that runs on FEAT-0018's conformance suite rather
+ *     than ahead of it.
  *   - The `src/routes/api/` proxy routes. They already speak one internal
- *     contract (`exchange` in the body, `X-Provider` in the header) and
- *     resolve a venue module server-side (FEAT-0228), which is the
- *     venue-gateway split. A
+ *     contract (`exchange` in the body, `X-Provider` in the header) and branch
+ *     to venue dialects server-side, which is the venue-gateway split. A
  *     client adapter cannot be shared with them anyway: it depends on
  *     `settingsState`, `paperExchange` and `orderGate` — Class A browser state.
  */
@@ -100,38 +98,12 @@ export interface MarketDataPort {
     ): Promise<Kline[]>;
 
     /**
-     * Subscribe on a public channel (`"ticker"`, `"kline_5m"`, …). Channel
-     * names are the internal vocabulary; each adapter maps them to its venue's
-     * own (see `getBitunixChannel` / `getBitgetChannel`), and drops one its
-     * venue does not have rather than opening a dead subscription.
-     *
-     * The *consumer-facing* count lives once in `subscriptionLedger`, above
-     * every adapter (FEAT-0227), because "who wants BTCUSDT" is a consumer
-     * question. The ledger therefore calls this exactly once per
-     * symbol+channel and pairs it with exactly one `unsubscribe`.
-     *
-     * That pairing is a requirement, not a courtesy: both venue services keep
-     * a count of their own behind this port as the buffer they replay onto a
-     * fresh socket, so a second `subscribe` sends no frame and the matching
-     * `unsubscribe` only decrements. Call either verb out of pairs and the
-     * venue keeps streaming a channel nobody wants. `destroy()` on the
-     * `ConnectionPort` drops that buffer, which is what makes
-     * `SubscriptionLedger.forgetIssued()` safe to hook to `killAll`.
+     * Ref-counted subscribe on a public channel (`"ticker"`, `"kline_5m"`, …).
+     * Channel names are the internal vocabulary; each adapter maps them to its
+     * venue's own (see `getBitunixChannel` / `getBitgetChannel`).
      */
     subscribe(symbol: string, channel: string): void;
     unsubscribe(symbol: string, channel: string): void;
-
-    /**
-     * The venue's channel names for one internal data requirement
-     * (`"ticker"`, `"depth"`, `"kline_1h"`, …), or an empty array when this
-     * venue has none.
-     *
-     * On the adapter because the answer is venue-specific: `"depth"` is
-     * `depth_book5` on Bitunix and `books5` on Bitget. It used to live in
-     * `types/dataRequirements.ts`, where one venue's spelling was handed to
-     * both — the shared-file half of the problem FEAT-0227 names.
-     */
-    channelsForRequirement(requirement: string): string[];
 
     /**
      * Trade prints for one symbol. Returns its own unsubscribe — call it in an
@@ -141,27 +113,6 @@ export interface MarketDataPort {
      * FEAT-0016; it must not throw, because the callers are decorative.
      */
     subscribeTrades(symbol: string, onTrade: (trade: TradePrint) => void): () => void;
-}
-
-/**
- * The venue's socket, owned by the venue (FEAT-0227).
- *
- * `connectionManager` holds the session concerns that genuinely span both
- * venues and drives them through here, so nothing outside the adapter needs
- * to import a WebSocket service to start or stop one. The shape is the
- * `ManagedService` contract `connectionManager` already registered — the
- * change is who hands it over, not what it is.
- */
-export interface ConnectionPort {
-    /** Opens the venue's sockets. `force` reconnects an already-open one. */
-    connect(force?: boolean): void;
-
-    /**
-     * Tears the venue's sockets and timers down. `switchProvider` calls this
-     * on every registered venue before starting the next, which is what keeps
-     * the switch atomic.
-     */
-    destroy(): void;
 }
 
 /** Account state, in the one normalised shape the stores read. */
@@ -278,8 +229,6 @@ export interface ExchangeAdapter {
     readonly capabilities: ExchangeCapabilities;
     readonly streams: AdapterStreams;
     readonly supports: TradingSupport;
-    /** This venue's socket lifecycle (FEAT-0227). */
-    readonly connection: ConnectionPort;
     readonly marketData: MarketDataPort;
     readonly account: AccountPort;
     readonly trading: TradingPort;

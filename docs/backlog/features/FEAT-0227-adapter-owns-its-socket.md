@@ -2,9 +2,7 @@
 id: FEAT-0227
 title: Move each venue's socket and subscription ref-counting behind its adapter
 type: feature
-status: in-progress
-assignee: claude
-branch: feat/feat-0227-adapter-owns-socket
+status: specced
 priority: P2
 milestone: M2
 editions: [community, pro, private]
@@ -66,43 +64,6 @@ lets a new adapter connect.
 - [ ] The existing reconnect, leak and resync tests pass without being
       rewritten to match new behaviour — a test that had to change is a
       behaviour change and needs saying out loud
-
-## State (2026-08-27)
-
-Implemented on `feat/feat-0227-adapter-owns-socket`, awaiting review.
-
-The blocker recorded here — FEAT-0018 — was already finished: its suite landed
-in #2304 and was reworked into a harness in #2359, but the item's front matter
-still read `in-progress`. Corrected separately so the next reader is not
-stopped by it too.
-
-Three things worth knowing before reading the diff:
-
-**Bitget was never subscribed at all.** `syncSubscriptions` returned early for
-any provider but Bitunix, so nothing the market watcher registered ever
-reached Bitget's socket. Removing that branch is the item's whole point, and
-it means Bitget now receives ticker, depth and kline subscriptions it did not
-before.
-
-**`positions` and `orders` are deliberately absent from both adapters'
-channel vocabulary.** Both services subscribe to their private channels from
-their own login flow. On Bitunix the registry's `positions` requirement was
-always dead (`getBitunixChannel` returns null for it); on Bitget
-`getBitgetChannel` *accepts* it, so mapping it would have put a second,
-per-symbol subscription over the top of the `instId: "default"` one and
-doubled every position update.
-
-**Forgetting issued subscriptions is hooked to `destroy()`, not to
-`connect()`.** `bitunixWs.cleanup()` deliberately keeps its subscription
-buffer across a plain reconnect; re-issuing there would raise the venue's own
-count on every reconnect with nothing to bring it back down. Only
-`ConnectionManager.killAll` clears the ledger's issued set.
-
-One test had to change: `marketWatcher_resync.test.ts` mocked `bitunixWs` and
-drove its scenario by writing into that service's internal map — the
-arrangement this item exists to remove. The behaviour it asserts is unchanged;
-it now mocks the adapter boundary. Every other reconnect, leak and resync test
-passes untouched.
 
 ## Out of scope
 

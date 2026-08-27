@@ -18,16 +18,10 @@
 /**
  * Data Requirements System
  * 
- * Defines what data each UI component needs. This is the SINGLE SOURCE OF
- * TRUTH for component data dependencies.
+ * Defines what data each UI component needs and maps requirements to WebSocket channels.
+ * This is the SINGLE SOURCE OF TRUTH for component data dependencies.
  *
  * Pattern: Components declare requirements → marketWatcher subscribes to channels
- *
- * FEAT-0227: the requirement → channel-name mapping used to live here too,
- * spelled Bitunix's way (`depth_book5`, `price`) and handed to both venues.
- * It now sits on each adapter as `marketData.channelsForRequirement`, because
- * Bitget answers to `books5` and has no price channel at all. What stays here
- * is venue-neutral: which requirements a component has.
  */
 
 /**
@@ -54,6 +48,27 @@ export const DATA_REQUIREMENTS = {
 } as const;
 
 /**
+ * Maps data requirements to WebSocket channels.
+ *
+ * CRITICAL: This is the SINGLE SOURCE OF TRUTH for channel mapping.
+ * If you modify this, update corresponding WebSocket handlers in bitunixWs.ts
+ */
+export const REQUIREMENT_TO_CHANNELS: Record<string, string[]> = {
+  // Public channels
+  'ticker': ['ticker'],
+  'price': ['price'],
+  'depth': ['depth_book5'],
+
+  // Private channels
+  'positions': ['positions'],
+  'orders': ['orders'],
+
+
+  // Kline channels are handled separately (timeframe-specific)
+  // e.g., 'kline_1h', 'kline_5m', etc.
+};
+
+/**
  * Valid data requirement types.
  * Use this for type-safe component declarations.
  */
@@ -64,3 +79,23 @@ export type DataRequirement =
   | 'positions'
   | 'orders'
   | `kline_${string}`;
+
+/**
+ * Helper to get WebSocket channels for a requirement.
+ * @param requirement Data requirement (e.g., 'ticker', 'depth', 'kline_1h')
+ * @returns Array of WebSocket channel names
+ */
+export function getChannelsForRequirement(requirement: string): string[] {
+  // Guard against null/undefined or non-strings from JS land
+  if (!requirement || typeof requirement !== 'string') {
+    return [];
+  }
+
+  // Handle kline specially (timeframe-specific)
+  if (requirement.startsWith('kline_')) {
+    return [requirement]; // e.g., 'kline_1h', 'kline_5m'
+  }
+
+  // Use mapping for standard requirements
+  return REQUIREMENT_TO_CHANNELS[requirement] || [];
+}

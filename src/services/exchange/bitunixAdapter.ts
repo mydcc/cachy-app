@@ -33,7 +33,6 @@ import { bitunixCapabilities } from "./bitunixCapabilities";
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import type {
     ExchangeAdapter,
-    ConnectionPort,
     MarketDataPort,
     AccountPort,
     TradingPort,
@@ -41,28 +40,6 @@ import type {
     TradePrint,
 } from "./types";
 import type { Decimal } from "decimal.js";
-
-/**
- * Bitunix's own channel vocabulary (FEAT-0227). `depth_book5` and `price` go
- * to the wire exactly as spelled here — see `getBitunixChannel` — which is
- * why they must not sit in a file Bitget also reads.
- *
- * Public channels only. `positions` and `orders` are private: the service
- * subscribes to them itself once its authenticated socket has logged in
- * (`subscribePrivate`, which asks for "position"/"order"/"wallet"/"tp_sl").
- * Claiming them here would be the BUG-0001 shape — a subscription the venue
- * accepts and then never delivers on, or worse, delivers twice.
- */
-const CHANNELS: Record<string, string[]> = {
-    ticker: ["ticker"],
-    price: ["price"],
-    depth: ["depth_book5"],
-};
-
-const connection: ConnectionPort = {
-    connect: (force) => bitunixWs.connect(force),
-    destroy: () => bitunixWs.destroy(),
-};
 
 const marketData: MarketDataPort = {
     normalizeSymbol: (symbol) => normalizeSymbol(symbol, "bitunix"),
@@ -89,17 +66,6 @@ const marketData: MarketDataPort = {
 
     subscribeTrades: (symbol, onTrade: (trade: TradePrint) => void) =>
         bitunixWs.subscribeTrade(symbol, onTrade),
-
-    channelsForRequirement: (requirement) => {
-        // Guard against null/undefined or non-strings from JS land.
-        if (!requirement || typeof requirement !== "string") return [];
-        // Klines are timeframe-specific and pass through as-is.
-        if (requirement.startsWith("kline_")) return [requirement];
-        // `Object.hasOwn`, not a plain lookup: a bare `CHANNELS[requirement]`
-        // also reaches Object.prototype, and "toString" would come back as a
-        // function where an array is expected.
-        return Object.hasOwn(CHANNELS, requirement) ? CHANNELS[requirement] : [];
-    },
 };
 
 const account: AccountPort = {
@@ -140,7 +106,6 @@ export const bitunixAdapter: ExchangeAdapter = {
     capabilities: bitunixCapabilities,
     streams: { ticker: true, trades: true },
     supports: { tpSl: true, leverageMarginMode: true, tradingPairInfo: true },
-    connection,
     marketData,
     account,
     trading,

@@ -157,10 +157,10 @@
     };
 </script>
 
-<div class="visuals-tab h-full flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-visuals">
+<div class="visuals-tab h-full flex flex-col" role="tabpanel" id="tab-visuals">
     <!-- Sub-Navigation -->
     <div
-        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 shrink-0"
+        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 mb-4 shrink-0"
     >
         {#each subTabs as tab}
             <button
@@ -1467,20 +1467,6 @@
                         <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
                             <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.flow")}</h3>
 
-                            <!-- Data source (keeps the effect alive when the feed is quiet) -->
-                            <div class="field-group mb-4">
-                                <label for="tf-source" title={$_("settings.visuals.tradeFlow.tooltipSource")}>{$_("settings.visuals.tradeFlow.source")}</label>
-                                <select
-                                    id="tf-source"
-                                    bind:value={settingsState.tradeFlowSettings.tradeFlowSource}
-                                    class="select-input"
-                                >
-                                    <option value="live">{$_("settings.visuals.tradeFlow.sourceLive")}</option>
-                                    <option value="ambient">{$_("settings.visuals.tradeFlow.sourceAmbient")}</option>
-                                    <option value="replay">{$_("settings.visuals.tradeFlow.sourceReplay")}</option>
-                                </select>
-                            </div>
-
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <!-- Volume Scale (Eq, City, Sonar, Block) -->
                                 {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block'].includes(settingsState.tradeFlowSettings.flowMode)}
@@ -1539,14 +1525,6 @@
                                         {$_("settings.visuals.tradeFlow.tooltipMinVolume")}
                                     </p>
                                 </div>
-
-                                <!-- Scene Rotation (Block only, decorative) -->
-                                {#if settingsState.tradeFlowSettings.flowMode === 'block'}
-                                <div class="field-group flex items-center justify-between gap-2 md:col-span-2">
-                                    <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipRotation")}>{$_("settings.visuals.tradeFlow.sceneRotation")}</span>
-                                    <Toggle bind:checked={settingsState.tradeFlowSettings.enableRotation} />
-                                </div>
-                                {/if}
                             </div>
                         </div>
 

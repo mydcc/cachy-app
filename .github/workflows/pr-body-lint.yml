@@ -26,13 +26,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Enforce the closing-reference rules on the description
+      - name: Reject a description that closes more than its own issue
         # A separate job from commit-lint.yml's Conventional Commits check on
         # purpose: that one lints commits, which should never carry a closing
-        # keyword at all (BUG-0220); this one lints the PR description against
-        # both rules — it must close exactly its own issue, no more (BUG-0221)
-        # and no less (BUG-0307: docs PRs merged with no reference at all,
-        # closing nothing while the backlog markdown said done).
+        # keyword at all (BUG-0220); this one lints the PR description, which
+        # CLAUDE.md requires to carry exactly one — `Fixes #<own-issue>` — and
+        # is checking that nothing else slipped in beside it (BUG-0221).
         #
         # Runs on `edited` as well as `opened`/`synchronize`, unlike
         # commit-lint.yml's tip-only check: a description can be rewritten

@@ -17,12 +17,36 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
  */
 
 import type { RequestHandler } from "./$types";
+import {
+  generateBitunixSignature,
+  validateBitunixKeys,
+} from "../../../utils/server/bitunix";
+import {
+  generateBitgetSignature,
+  validateBitgetKeys,
+} from "../../../utils/server/bitget";
+import { Decimal } from "decimal.js";
+import { formatApiNum } from "../../../utils/utils";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { AccountRequestSchema } from "../../../types/accountSchemas";
 import { logger } from "$lib/server/logger";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
-import { resolveVenue } from "../../../utils/server/venues";
+import { fetchWithTimeout } from "../../../utils/server/fetchWithTimeout";
+
+interface ExchangeAccountData {
+  available?: string;
+  margin?: string;
+  totalUnrealizedPnL?: string;
+  marginCoin?: string;
+  frozen?: string;
+  transfer?: string;
+  bonus?: string;
+  positionMode?: string;
+  crossUnrealizedPNL?: string;
+  isolationUnrealizedPNL?: string;
+  equity?: string;
+}
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -54,19 +78,19 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     }
 
   try {
-    const venue = resolveVenue(exchange);
-    if (!venue) {
+    let account = null;
+    if (exchange === "bitunix") {
+      const validationError = validateBitunixKeys(apiKey, apiSecret);
+      if (validationError) return jsonError(validationError, "INVALID_KEYS", 400);
+      account = await fetchBitunixAccount(apiKey, apiSecret);
+    } else if (exchange === "bitget") {
+      if (!passphrase) return jsonError("Missing passphrase", "MISSING_PASSPHRASE", 400);
+      const validationError = validateBitgetKeys(apiKey, apiSecret, passphrase);
+      if (validationError) return jsonError(validationError, "INVALID_KEYS", 400);
+      account = await fetchBitgetAccount(apiKey, apiSecret, passphrase);
+    } else {
         return jsonError("Unsupported exchange", "UNSUPPORTED_EXCHANGE", 400);
     }
-    if (venue.requiresPassphrase && !passphrase) {
-      return jsonError("Missing passphrase", "MISSING_PASSPHRASE", 400);
-    }
-
-    const venueCreds = { apiKey, apiSecret, passphrase };
-    const validationError = venue.validateKeys(venueCreds);
-    if (validationError) return jsonError(validationError, "INVALID_KEYS", 400);
-
-    const account = await venue.fetchAccount(venueCreds);
 
     return jsonSuccess(account);
   } catch (e: unknown) {
@@ -84,3 +108,113 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     return handleApiError(e);
   }
 };
+
+async function fetchBitunixAccount(
+  apiKey: string,
+  apiSecret: string,
+): Promise<ExchangeAccountData> {
+  const baseUrl = "https://fapi.bitunix.com";
+  const path = "/api/v1/futures/account";
+
+  const params: Record<string, string> = {
+    marginCoin: "USDT",
+  };
+
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    null,
+  );
+
+  const url = `${baseUrl}${path}?${queryString}`;
+
+  const response = await fetchWithTimeout(url, {
+    method: "GET",
+    headers: {
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    const safeText = text.slice(0, 200);
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
+  }
+
+  const text = await response.text();
+  const res = safeJsonParse(text);
+
+  if (res.code !== 0 && res.code !== "0") {
+    throw new Error(
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
+    );
+  }
+
+  const data = Array.isArray(res.data) ? res.data[0] : res.data;
+
+  if (!data) throw new Error("No account data found");
+
+  const available = new Decimal(data.available || "0");
+  const margin = new Decimal(data.margin || "0");
+  const crossPnL = new Decimal(data.crossUnrealizedPNL || "0");
+  const isoPnL = new Decimal(data.isolationUnrealizedPNL || "0");
+  const totalPnL = crossPnL.plus(isoPnL);
+
+  return {
+    available: formatApiNum(available),
+    margin: formatApiNum(margin),
+    totalUnrealizedPnL: formatApiNum(totalPnL),
+    marginCoin: data.marginCoin,
+    frozen: formatApiNum(data.frozen),
+    transfer: formatApiNum(data.transfer),
+    bonus: formatApiNum(data.bonus),
+    positionMode: data.positionMode,
+    crossUnrealizedPNL: formatApiNum(crossPnL),
+    isolationUnrealizedPNL: formatApiNum(isoPnL),
+  };
+}
+
+async function fetchBitgetAccount(
+    apiKey: string,
+    apiSecret: string,
+    passphrase: string
+): Promise<ExchangeAccountData> {
+    const baseUrl = "https://api.bitget.com";
+    const path = "/api/mix/v1/account/account";
+    const params = { productType: "umcbl", marginCoin: "USDT" };
+
+    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        }
+    });
+
+    if (!response.ok) throw new Error("Bitget API Error");
+    const text = await response.text();
+    const res = safeJsonParse(text);
+
+    if (res.code !== "00000") throw new Error(res.msg);
+
+    const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
+    if (!data) throw new Error("No account data found");
+
+    return {
+        available: formatApiNum(data.available),
+        margin: formatApiNum(data.locked),
+        totalUnrealizedPnL: formatApiNum(data.unrealizedPL),
+        marginCoin: data.marginCoin,
+        frozen: formatApiNum(data.locked),
+        equity: formatApiNum(data.equity)
+    };
+}

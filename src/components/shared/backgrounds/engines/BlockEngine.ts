@@ -17,7 +17,6 @@
 
 import * as THREE from 'three';
 import { BaseEngine } from './BaseEngine';
-import { scaleToRange } from './volumeScale';
 
 export class BlockEngine extends BaseEngine {
     private blockMesh: THREE.InstancedMesh | null = null;
@@ -28,6 +27,8 @@ export class BlockEngine extends BaseEngine {
     private blockPrices = new Float32Array(this.MAX_BLOCK_POINTS);
     private blockTimestamps = new Float32Array(this.MAX_BLOCK_POINTS);
     private blockX = new Float32Array(this.MAX_BLOCK_POINTS);
+    private blockZ = new Float32Array(this.MAX_BLOCK_POINTS);
+    private blockRot = new Float32Array(this.MAX_BLOCK_POINTS);
     private blockScales = new Float32Array(this.MAX_BLOCK_POINTS);
     private blockTypes = new Uint8Array(this.MAX_BLOCK_POINTS); // 0=Sell, 1=Buy
     private nextBlockIdx = 0;
@@ -35,10 +36,6 @@ export class BlockEngine extends BaseEngine {
     private smoothMin = 0;
     private smoothMax = 100;
     private isFirstTrade = true;
-
-    /** World-space width of the smallest / largest block on the current window. */
-    private readonly MIN_BLOCK_SCALE = 0.35;
-    private readonly MAX_BLOCK_SCALE = 2.6;
     
     private readonly fibLevels = [0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0];
     private dummyObj = new THREE.Object3D();
@@ -173,9 +170,7 @@ export class BlockEngine extends BaseEngine {
         const s = this.context.settings;
         const duration = s.persistenceDuration || 60;
         
-        // Decorative scene spin, opt-in via settings (default off — it makes
-        // the time/price axes unreadable while it moves).
-        const rot = s.enableRotation ? time * 0.05 : 0;
+        const rot = time * 0.05;
         this.blockMesh.rotation.y = rot;
         this.priceSpine.rotation.y = rot;
         this.fibonacciPlanes.rotation.y = rot;
@@ -210,8 +205,6 @@ export class BlockEngine extends BaseEngine {
         const heightScale = worldHeight / range;
         const sizeBase = (s.size || 0.08) * 28.0; // Boosted
         const slabH = sizeBase * 0.15;
-        // Depth extent the age axis is mapped across.
-        const depthSpan = (s.gridLength || 160) * (s.spread || 1.0) * 0.75;
         const ageAttr = this.blockMesh.geometry.getAttribute('aAge') as THREE.BufferAttribute;
         let colorDirty = false;
 
@@ -223,19 +216,11 @@ export class BlockEngine extends BaseEngine {
                 if (age < duration) {
                     const targetY = (rawPrice - this.smoothMin) * heightScale - (worldHeight / 2.0);
                     const lifePercent = age / duration;
+                    let currentScale = this.blockScales[i];
+                    if (lifePercent > 0.8) currentScale *= (1.0 - lifePercent) / 0.2;
 
-                    // Depth = time. A fresh trade enters at the front edge and
-                    // drifts back as it ages, so the Z axis is a readable
-                    // timeline instead of the previous random scatter.
-                    const targetZ = (lifePercent - 0.5) * depthSpan;
-
-                    // Size stays a pure volume encoding for the block's whole
-                    // life — fading is carried by `aAge` in the shader. The old
-                    // end-of-life shrink made an old whale trade look like a
-                    // fresh minnow.
-                    const currentScale = this.blockScales[i];
-
-                    this.dummyObj.position.set(this.blockX[i], targetY, targetZ);
+                    this.dummyObj.position.set(this.blockX[i], targetY, this.blockZ[i]);
+                    this.dummyObj.rotation.y = this.blockRot[i];
                     const slabW = sizeBase * currentScale;
                     this.dummyObj.scale.set(slabW, slabH, slabW);
                     this.dummyObj.updateMatrix();
@@ -293,26 +278,17 @@ export class BlockEngine extends BaseEngine {
         const s = this.context.settings;
         const spacing = s.spread || 1.0;
         const boundX = (s.gridWidth || 80) * 0.5 * spacing;
+        const boundZ = (s.gridLength || 160) * 0.5 * spacing;
 
-        // X is a lane offset only — it carries no data, it exists so that
-        // simultaneous trades do not stack into a single unreadable column.
         const x = (Math.random() - 0.5) * boundX * 1.5;
+        const z = (Math.random() - 0.5) * boundZ * 1.5;
 
         this.blockPrices[idx] = trade.price;
         this.blockTimestamps[idx] = performance.now() * 0.001;
         this.blockX[idx] = x;
-
-        // Notional (price * amount), log-compressed against a rolling window of
-        // recent trades, then expanded into this engine's world-space range.
-        // The normalizer lives on the shared context; the worker resets it when
-        // the symbol changes.
-        const normalized = this.context.volumeNormalizer.push(trade.price, trade.amount);
-        this.blockScales[idx] = scaleToRange(
-            normalized,
-            this.MIN_BLOCK_SCALE,
-            this.MAX_BLOCK_SCALE,
-            s.volumeScale || 1.0
-        );
+        this.blockZ[idx] = z;
+        this.blockRot[idx] = Math.atan2(z, x);
+        this.blockScales[idx] = Math.max(Math.pow(trade.amount, 0.4) * (s.volumeScale || 1.0), 1.0);
         
         // CRITICAL FIX: Snap camera to price on first trade
         if (this.isFirstTrade) {
@@ -355,6 +331,8 @@ export class BlockEngine extends BaseEngine {
         this.blockPrices.fill(0);
         this.blockTimestamps.fill(0);
         this.blockX.fill(0);
+        this.blockZ.fill(0);
+        this.blockRot.fill(0);
         this.blockScales.fill(0);
         this.blockTypes.fill(0);
          if (this.blockMesh) {

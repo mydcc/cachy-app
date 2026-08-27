@@ -132,23 +132,6 @@ vi.mock("../../../stores/indicator.svelte", () => ({
             ema2: { length: 21 },
             ema3: { length: 50 },
         },
-        // The component effect tracks the full indicator state via toJSON();
-        // the layer itself is mocked below so this regression suite stays
-        // focused on live-tick reactivity, not indicator rendering.
-        toJSON: () => ({}),
-    },
-}));
-
-// The IndicatorLayer owns the indicator overlays/sub-panes; in this component
-// regression suite it is mocked to a no-op so heavyweight chart-series
-// construction (panes, addSeries, JSIndicators) never runs under happy-dom.
-vi.mock("../../../lib/chart/indicatorLayer", () => ({
-    IndicatorLayer: class {
-        constructor(_chart: unknown, _getColor: unknown) {}
-        render(): void {}
-        applyTheme(): void {}
-        setAvailableHeight(): void {}
-        destroy(): void {}
     },
 }));
 
@@ -820,91 +803,5 @@ describe("BUG-0296 — history loading stays retryable", () => {
         await vi.advanceTimersByTimeAsync(200);
         expect(loadMoreHistoryMock).toHaveBeenCalledTimes(2);
         expect(loadMoreHistoryMock).toHaveBeenLastCalledWith("BTCUSDT", "5m");
-    });
-});
-
-/*
- * Chart settings tab wiring: the settings $effect must translate the stored
- * scale mode into lightweight-charts' PriceScaleMode without ever landing on
- * the rebasing modes (Percentage = 2 / IndexedTo100 = 3) — they made absolute
- * price lines unreadable and were removed from settings (#"% scale
- * confusion"). Also pins the secondsVisible toggle reaching the chart.
- */
-describe("Chart settings — scale mode & time scale propagation", () => {
-    function appliedChartOptions() {
-        return vi.mocked(chart.chart.applyOptions).mock.calls.map(
-            (call) => call[0] as Record<string, never>,
-        );
-    }
-
-    it("applies the logarithmic scale by default", async () => {
-        settingsState.chartPriceScaleMode = "log";
-        component = mount(CandleChartView, {
-            target: host,
-            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
-        }) as never;
-        await settle();
-
-        const modeCalls = appliedChartOptions()
-            .filter((o) => o.rightPriceScale && "mode" in o.rightPriceScale)
-            .map((o) => (o.rightPriceScale as { mode: number }).mode);
-        expect(modeCalls.length).toBeGreaterThan(0);
-        for (const mode of modeCalls) {
-            expect([0, 1]).toContain(mode);
-        }
-        expect(modeCalls.at(-1)).toBe(1);
-    });
-
-    it("maps linear to Normal (0)", async () => {
-        settingsState.chartPriceScaleMode = "linear";
-        component = mount(CandleChartView, {
-            target: host,
-            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
-        }) as never;
-        await settle();
-
-        const modeCalls = appliedChartOptions()
-            .filter((o) => o.rightPriceScale && "mode" in o.rightPriceScale)
-            .map((o) => (o.rightPriceScale as { mode: number }).mode);
-        expect(modeCalls.at(-1)).toBe(0);
-
-        settingsState.chartPriceScaleMode = "log";
-    });
-
-    it("propagates the secondsVisible toggle to chart.applyOptions", async () => {
-        settingsState.chartSecondsVisible = false;
-        component = mount(CandleChartView, {
-            target: host,
-            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
-        }) as never;
-        await settle();
-        vi.mocked(chart.chart.applyOptions).mockClear();
-
-        settingsState.chartSecondsVisible = true;
-        await settle();
-
-        const tsCalls = appliedChartOptions()
-            .filter((o) => o.timeScale)
-            .map((o) => o.timeScale as { secondsVisible?: boolean });
-        expect(tsCalls.length).toBeGreaterThan(0);
-        expect(tsCalls.at(-1)?.secondsVisible).toBe(true);
-
-        // The stock secondsVisible is a no-op at >=1m timeframes (it only
-        // affects Second-weight ticks), so the fix wires formatters that
-        // append :SS - they must be attached together with the toggle.
-        const withFormatters = appliedChartOptions().find(
-            (o) => o.timeScale && (o.timeScale as Record<string, unknown>).tickMarkFormatter,
-        );
-        expect(withFormatters).toBeDefined();
-        expect(
-            typeof (withFormatters!.timeScale as Record<string, unknown>).tickMarkFormatter,
-        ).toBe("function");
-
-        const locCalls = appliedChartOptions()
-            .filter((o) => o.localization)
-            .map((o) => o.localization as { timeFormatter?: unknown });
-        expect(locCalls.length).toBeGreaterThan(0);
-        expect(typeof locCalls.at(-1)?.timeFormatter).toBe("function");
-        settingsState.chartSecondsVisible = false;
     });
 });

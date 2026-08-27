@@ -10,16 +10,66 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import {
+  generateBitunixSignature,
+  validateBitunixKeys,
+} from "../../../utils/server/bitunix";
+import {
+  generateBitgetSignature,
+  validateBitgetKeys,
+} from "../../../utils/server/bitget";
+import type {
+  BitunixResponse,
+  BitunixOrder,
+  BitunixOrderListWrapper,
+  BitunixOrderPayload,
+} from "../../../types/bitunix";
+import type { NormalizedOrder } from "../../../types/exchange";
+import type {
+  BitgetOrderPayload
+} from "../../../types/bitget";
+import { formatApiNum } from "../../../utils/utils";
 import { OrderRequestSchema } from "../../../types/orderSchemas";
+import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { logger } from "$lib/server/logger";
-import { upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
-import {
-  ORDER_ERRORS,
-  resolveVenue,
-  type ExchangeError,
-} from "../../../utils/server/venues";
+import { fetchWithTimeout, upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
+
+// Raw fields read off Bitget's current/history order list responses. The
+// two endpoints use different field names for fill price and status
+// (priceAvg/state on history, unset on current) — both live here since
+// this is "whatever field either endpoint's raw order carries," not a
+// single canonical shape.
+interface BitgetRawOrder {
+  orderId?: string;
+  symbol?: string;
+  orderType?: string;
+  side?: string;
+  price?: string | number;
+  priceAvg?: string | number;
+  size?: string | number;
+  filledQty?: string | number;
+  status?: string;
+  state?: string;
+  cTime?: string | number;
+  fee?: string | number;
+  totalProfits?: string | number;
+}
+
+// Centralized Error Messages for i18n/consistency
+const ORDER_ERRORS = {
+  INVALID_JSON: "bitunixErrors.INVALID_JSON",
+  VALIDATION_ERROR: "bitunixErrors.VALIDATION_ERROR",
+  PASSPHRASE_REQUIRED: "bitunixErrors.PASSPHRASE_REQUIRED",
+  INVALID_AMOUNT: "bitunixErrors.INVALID_AMOUNT",
+  INVALID_QTY: "bitunixErrors.INVALID_QTY",
+  PRICE_REQUIRED: "bitunixErrors.PRICE_REQUIRED",
+  INVALID_PRICE: "bitunixErrors.INVALID_PRICE",
+  INVALID_TRIGGER: "bitunixErrors.INVALID_TRIGGER",
+  BITUNIX_API_ERROR: "bitunixErrors.BITUNIX_API_ERROR",
+  BITGET_API_ERROR: "bitunixErrors.BITGET_API_ERROR",
+};
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -52,20 +102,153 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       return json({ error: "Missing API Credentials" }, { status: 401 });
   }
 
-  const venue = resolveVenue(exchange);
-  // Unreachable through Zod's ExchangeEnum. Answering `null` with 200 is what
-  // the inline venue branches did when none of them matched.
-  if (!venue) return json(null);
-
   // 2. Key Validation (Additional Check)
-  if (venue.requiresPassphrase && !passphrase) {
-    return json({ error: ORDER_ERRORS.PASSPHRASE_REQUIRED }, { status: 400 });
+  if (exchange === "bitunix") {
+    const err = validateBitunixKeys(apiKey, apiSecret);
+    if (err) return json({ error: err }, { status: 400 });
+  } else if (exchange === "bitget") {
+    if (!passphrase) return json({ error: ORDER_ERRORS.PASSPHRASE_REQUIRED }, { status: 400 });
+    const err = validateBitgetKeys(apiKey, apiSecret, passphrase);
+    if (err) return json({ error: err }, { status: 400 });
   }
-  const keyError = venue.validateKeys({ apiKey, apiSecret, passphrase });
-  if (keyError) return json({ error: keyError }, { status: 400 });
 
   try {
-    const result = await venue.executeOrder({ apiKey, apiSecret, passphrase }, payload);
+    let result: unknown = null;
+
+    // --- BITUNIX ---
+    if (exchange === "bitunix") {
+      if (payload.type === "pending") {
+        const orders = await fetchBitunixPendingOrders(apiKey, apiSecret);
+        result = { orders };
+      }
+      else if (payload.type === "history") {
+        const orders = await fetchBitunixHistoryOrders(
+          apiKey,
+          apiSecret,
+          Number(payload.limit),
+          payload.queryCanceled,
+          payload.startTime,
+          payload.endTime,
+          payload.symbol
+        );
+        result = { orders };
+      }
+      else if (payload.type === "place-order") {
+        const orderPayload: BitunixOrderPayload = {
+          symbol: payload.symbol,
+          side: payload.side,
+          orderType: payload.orderType,
+          qty: payload.qty,
+          price: payload.price,
+          reduceOnly: Boolean(payload.reduceOnly),
+          triggerPrice: payload.triggerPrice || payload.stopPrice,
+          // HEDGE-mode close (BUG-0062) — see PlaceOrderSchema's comment.
+          tradeSide: payload.tradeSide,
+          positionId: payload.positionId,
+          // FEAT-0069. `effect` is documented as required for LIMIT and
+          // meaningless otherwise, so a market order sends none rather than a
+          // value the exchange ignores.
+          effect: payload.orderType === "MARKET" ? undefined : payload.effect,
+          clientId: payload.clientId,
+          tpPrice: payload.tpPrice,
+          tpStopType: payload.tpStopType,
+          tpOrderType: payload.tpOrderType,
+          tpOrderPrice: payload.tpOrderPrice,
+          slPrice: payload.slPrice,
+          slStopType: payload.slStopType,
+          slOrderType: payload.slOrderType,
+          slOrderPrice: payload.slOrderPrice,
+        };
+        // Remove undefined safe
+        const cleanedPayload = cleanPayload(orderPayload);
+
+        result = await placeBitunixOrder(apiKey, apiSecret, cleanedPayload);
+      }
+      else if (payload.type === "close-position") {
+        const safeAmount = formatApiNum(payload.amount);
+        if (!safeAmount || new Decimal(safeAmount).lte(0)) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
+
+        const closeOrder: BitunixOrderPayload = {
+          symbol: payload.symbol,
+          side: payload.side,
+          orderType: "MARKET",
+          qty: safeAmount,
+          reduceOnly: true,
+        };
+        result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
+      }
+      else if (payload.type === "close-all-positions") {
+        result = await closeAllBitunixPositions(apiKey, apiSecret, payload.symbol);
+      }
+      else if (payload.type === "flash-close-position") {
+        result = await flashCloseBitunixPosition(apiKey, apiSecret, payload.positionId);
+      }
+      else if (payload.type === "cancel-all") {
+        result = await cancelAllBitunixOrders(apiKey, apiSecret, payload.symbol);
+      }
+      else if (payload.type === "cancel-order") {
+        result = await cancelBitunixOrder(apiKey, apiSecret, payload.symbol, payload.orderId);
+      }
+      else if (payload.type === "order-detail") {
+        result = await fetchBitunixOrderDetail(apiKey, apiSecret, payload.orderId, payload.clientId);
+      }
+      else if (payload.type === "modify-order") {
+        result = await modifyBitunixOrder(apiKey, apiSecret, payload);
+      }
+    }
+    // --- BITGET ---
+    else if (exchange === "bitget") {
+      if (!passphrase) throw new Error(ORDER_ERRORS.PASSPHRASE_REQUIRED);
+
+      if (payload.type === "pending") {
+        const orders = await fetchBitgetPendingOrders(apiKey, apiSecret, passphrase);
+        result = { orders };
+      }
+      else if (payload.type === "history") {
+         const orders = await fetchBitgetHistoryOrders(
+           apiKey,
+           apiSecret,
+           passphrase,
+           Number(payload.limit),
+           payload.startTime,
+           payload.endTime,
+           payload.symbol
+         );
+         result = { orders };
+      }
+      else if (payload.type === "place-order") {
+         const bitgetPayload: BitgetOrderPayload & { marginCoin?: string } = {
+             symbol: payload.symbol,
+             side: payload.side.toLowerCase(),
+             orderType: payload.orderType.toLowerCase(),
+             size: payload.qty,
+             price: payload.price,
+             force: "normal",
+             reduceOnly: Boolean(payload.reduceOnly),
+             marginCoin: payload.marginCoin
+         };
+
+         result = await placeBitgetOrder(apiKey, apiSecret, passphrase, bitgetPayload);
+      }
+      else if (payload.type === "close-position") {
+         const safeAmount = formatApiNum(payload.amount);
+         if (!safeAmount) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
+
+         const bitgetPayload: BitgetOrderPayload & { marginCoin?: string } = {
+             symbol: payload.symbol,
+             side: payload.side.toLowerCase(), // Schema ensures it's BUY/SELL (opposite of position)
+             orderType: "market",
+             size: safeAmount,
+             force: "normal",
+             reduceOnly: true,
+             marginCoin: payload.marginCoin
+         };
+         result = await placeBitgetOrder(apiKey, apiSecret, passphrase, bitgetPayload);
+      }
+      else if (payload.type === "cancel-order") {
+         result = await cancelBitgetOrder(apiKey, apiSecret, passphrase, payload.symbol, payload.orderId, payload.marginCoin);
+      }
+    }
 
     return json(result);
 
@@ -104,3 +287,781 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     );
   }
 };
+
+// --- Bitunix Helpers ---
+
+async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: string, orderId: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/cancel_orders";
+
+    const payload = { symbol, orderList: [{ orderId }] };
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        // If 404/400, order might already be filled/cancelled. Ignore.
+        const text = await response.text();
+        if (response.status === 400 || response.status === 404) return;
+        throw new Error(`Cancel failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg);
+
+    // cancel_orders reports per-order outcomes rather than failing the whole
+    // call — surface a rejected order (e.g. already filled) as an error
+    // instead of a silent success.
+    const failure = res.data?.failureList?.[0];
+    if (failure) throw new Error(failure.errorMsg || `Cancel failed: ${failure.errorCode}`);
+
+    return res.data;
+}
+
+async function cancelAllBitunixOrders(apiKey: string, apiSecret: string, symbol?: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/cancel_all_orders";
+
+    const payload: Record<string, string> = {};
+    if (symbol) payload.symbol = symbol;
+
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Cancel all failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    // Surface partial failures from failureList if any
+    const failure = res.data?.failureList?.[0];
+    if (failure) {
+        throw new Error(failure.errorMsg || `Cancel failed: ${failure.errorCode}`);
+    }
+
+    return res.data;
+}
+
+async function closeAllBitunixPositions(apiKey: string, apiSecret: string, symbol?: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/close_all_position";
+
+    const payload: Record<string, string> = {};
+    if (symbol) payload.symbol = symbol;
+
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Close all positions failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    return res.data ?? { success: true };
+}
+
+async function flashCloseBitunixPosition(apiKey: string, apiSecret: string, positionId: string) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/flash_close_position";
+
+    const payload = { positionId };
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            "timestamp": timestamp,
+            "nonce": nonce,
+            "sign": signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Flash close failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    return res.data;
+}
+
+async function fetchBitunixOrderDetail(
+    apiKey: string,
+    apiSecret: string,
+    orderId?: string,
+    clientId?: string,
+): Promise<NormalizedOrder> {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/get_order_detail";
+
+    const params: Record<string, string> = {};
+    if (orderId) params.orderId = orderId;
+    if (clientId) params.clientId = clientId;
+
+    const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+        method: "GET",
+        headers: {
+            "api-key": apiKey,
+            timestamp: timestamp,
+            nonce: nonce,
+            sign: signature,
+            "Content-Type": "application/json",
+        },
+    });
+
+    if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
+    const text = await response.text();
+    const res = safeJsonParse(text) as BitunixResponse<BitunixOrder>;
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    const o = res.data;
+    if (!o) throw new Error("Order not found");
+
+    return {
+        id: o.orderId,
+        orderId: o.orderId,
+        clientId: o.clientId,
+        symbol: o.symbol,
+        type: o.type,
+        side: o.side,
+        price: formatApiNum(o.price) || null,
+        amount: formatApiNum(o.qty) || "0",
+        filled: formatApiNum(o.tradeQty) || "0",
+        avgPrice: formatApiNum(o.avgPrice ?? o.averagePrice) || "0",
+        realizedPNL: formatApiNum(o.realizedPNL) || "0",
+        fee: formatApiNum(o.fee) || "0",
+        reduceOnly: Boolean(o.reduceOnly),
+        status: o.status || "UNKNOWN",
+        time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+        mtime: o.mtime,
+        leverage: o.leverage,
+        marginMode: o.marginMode,
+        positionMode: o.positionMode,
+        tpPrice: o.tpPrice,
+        tpStopType: o.tpStopType,
+        tpOrderType: o.tpOrderType,
+        slPrice: o.slPrice,
+        slStopType: o.slStopType,
+        slOrderType: o.slOrderType,
+    };
+}
+
+async function modifyBitunixOrder(
+    apiKey: string,
+    apiSecret: string,
+    modifyData: {
+        orderId?: string;
+        clientId?: string;
+        symbol?: string;
+        qty: string;
+        price?: string;
+        tpPrice?: string;
+        tpStopType?: string;
+        tpOrderType?: string;
+        tpOrderPrice?: string;
+        slPrice?: string;
+        slStopType?: string;
+        slOrderType?: string;
+        slOrderPrice?: string;
+    },
+) {
+    const baseUrl = "https://fapi.bitunix.com";
+    const path = "/api/v1/futures/trade/modify_order";
+
+    const body: Record<string, unknown> = {
+        orderId: modifyData.orderId,
+        clientId: modifyData.clientId,
+        symbol: modifyData.symbol,
+        qty: modifyData.qty,
+        price: modifyData.price,
+        tpPrice: modifyData.tpPrice,
+        tpStopType: modifyData.tpStopType,
+        tpOrderType: modifyData.tpOrderType,
+        tpOrderPrice: modifyData.tpOrderPrice,
+        slPrice: modifyData.slPrice,
+        slStopType: modifyData.slStopType,
+        slOrderType: modifyData.slOrderType,
+        slOrderPrice: modifyData.slOrderPrice,
+    };
+
+    const finalPayload = cleanPayload(body);
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "api-key": apiKey,
+            timestamp: timestamp,
+            nonce: nonce,
+            sign: signature,
+            "Content-Type": "application/json",
+        },
+        body: bodyStr,
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Modify failed: ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
+
+    return res.data;
+}
+
+async function placeBitunixOrder(
+  apiKey: string,
+  apiSecret: string,
+  orderData: BitunixOrderPayload,
+): Promise<BitunixOrder> {
+  const baseUrl = "https://fapi.bitunix.com";
+  const path = "/api/v1/futures/trade/place_order";
+
+  const safeQty = formatApiNum(orderData.qty);
+  if (!safeQty || new Decimal(safeQty).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
+
+  const payload: BitunixOrderPayload = {
+    ...orderData,
+    qty: safeQty,
+  };
+
+  const type = payload.orderType;
+  if (type === "LIMIT" || type === "STOP_LIMIT" || type === "TAKE_PROFIT_LIMIT") {
+    const safePrice = formatApiNum(orderData.price);
+    if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    payload.price = safePrice;
+  }
+
+  if (orderData.triggerPrice) {
+    const safeTrigger = formatApiNum(orderData.triggerPrice as string | number | undefined);
+    if (!safeTrigger) throw new Error(ORDER_ERRORS.INVALID_TRIGGER);
+    payload.triggerPrice = safeTrigger;
+  }
+
+  // FEAT-0069: attached TP/SL levels go through the same Decimal formatting
+  // as every other price. `formatApiNum` is what keeps a low-priced asset
+  // from being serialised as "1e-7", which the exchange rejects.
+  for (const field of [
+    "tpPrice",
+    "tpOrderPrice",
+    "slPrice",
+    "slOrderPrice",
+  ] as const) {
+    const raw = orderData[field] as string | number | undefined;
+    if (raw === undefined) continue;
+    const safe = formatApiNum(raw);
+    if (!safe || new Decimal(safe).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    payload[field] = safe;
+  }
+
+  // A LIMIT take-profit or stop needs the price it will be placed at.
+  // Catching it here costs nothing; learning it from a rejection costs a
+  // round trip with a position already open behind it.
+  if (payload.tpOrderType === "LIMIT" && payload.tpOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+  }
+  if (payload.slOrderType === "LIMIT" && payload.slOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+  }
+
+  const finalPayload = cleanPayload(payload);
+
+  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
+
+  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
+    body: bodyStr,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    let errorMsg = ORDER_ERRORS.BITUNIX_API_ERROR;
+    let details = `${response.status} ${text.slice(0, 200)}`;
+
+    // Attempt to parse JSON error from exchange
+    try {
+        const jsonError = safeJsonParse(text);
+        if (jsonError.msg || jsonError.message || jsonError.error) {
+            errorMsg = jsonError.msg || jsonError.message || jsonError.error;
+        }
+        if (jsonError.code) {
+             details = `Code: ${jsonError.code}`;
+        }
+    } catch {
+        // Ignore JSON parse error, stick to text
+    }
+
+    const err: ExchangeError = new Error(errorMsg);
+    err.details = details;
+    throw err;
+  }
+
+  const text = await response.text();
+  const res: BitunixResponse<BitunixOrder> = safeJsonParse(text);
+  if (String(res.code) !== "0") {
+    // msg as the main error text, for legacy compatibility.
+    const err: ExchangeError = new Error(res.msg);
+    err.code = String(res.code);
+    throw err;
+  }
+
+  return res.data;
+}
+
+async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Promise<NormalizedOrder[]> {
+  const baseUrl = "https://fapi.bitunix.com";
+  const path = "/api/v1/futures/trade/get_pending_orders";
+  const { nonce, timestamp, signature } = generateBitunixSignature(apiKey, apiSecret, {}, "");
+
+  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+    method: "GET",
+    headers: {
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
+  const text = await response.text();
+  const res = safeJsonParse(text) as BitunixResponse<BitunixOrder[] | BitunixOrderListWrapper>;
+  if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
+
+  let listData: BitunixOrder[] = [];
+  if (res.data) {
+    if (Array.isArray(res.data)) listData = res.data;
+    else if ("orderList" in res.data && Array.isArray((res.data as BitunixOrderListWrapper).orderList)) {
+      listData = (res.data as BitunixOrderListWrapper).orderList;
+    }
+  }
+
+  return listData.map((o) => ({
+    id: o.orderId,
+    orderId: o.orderId,
+    clientId: o.clientId,
+    symbol: o.symbol,
+    type: o.type,
+    side: o.side,
+    price: formatApiNum(o.price) || null,
+    amount: formatApiNum(o.qty) || "0",
+    filled: formatApiNum(o.tradeQty) || "0",
+    status: o.status || "UNKNOWN",
+    time: o.ctime || 0,
+    mtime: o.mtime,
+    fee: formatApiNum(o.fee) || "0",
+    realizedPNL: formatApiNum(o.realizedPNL) || "0",
+    // Bitunix documents these on Get Pending Orders too ("Analog zu Get
+    // History Orders", docs/bitunix-api/07_trade.md:500) but they were
+    // never mapped through — the order tooltip's Leverage/Margin Mode/TP-SL
+    // rows always rendered empty regardless of what the exchange sent.
+    leverage: o.leverage,
+    marginMode: o.marginMode,
+    positionMode: o.positionMode,
+    tpPrice: o.tpPrice,
+    tpStopType: o.tpStopType,
+    tpOrderType: o.tpOrderType,
+    slPrice: o.slPrice,
+    slStopType: o.slStopType,
+    slOrderType: o.slOrderType,
+  }));
+}
+
+/**
+ * An Error carrying the exchange's own failure detail alongside the message.
+ *
+ * Both fields are attached at throw sites in this file and read again in the
+ * handler, which is the whole reason `any` was there — naming the shape once
+ * removes it from six places.
+ */
+interface ExchangeError extends Error {
+  code?: string;
+  details?: string;
+}
+
+// --- Helpers ---
+
+function cleanPayload<T extends object>(payload: T): T {
+  // One cast to an index-signature view, rather than one per access.
+  const cleaned = { ...payload } as Record<string, unknown>;
+  Object.keys(cleaned).forEach((key) => {
+    if (cleaned[key] === undefined) {
+      delete cleaned[key];
+    }
+  });
+  return cleaned as T;
+}
+
+async function fetchBitunixHistoryOrders(
+  apiKey: string,
+  apiSecret: string,
+  limit = 20,
+  queryCanceled = false,
+  startTime?: number,
+  endTime?: number,
+  symbol?: string
+): Promise<NormalizedOrder[]> {
+  const baseUrl = "https://fapi.bitunix.com";
+  const path = "/api/v1/futures/trade/get_history_orders";
+  // Bitunix's own split: queryCanceled=false returns everything except
+  // CANCELED (up to 90 days back); true returns ONLY CANCELED (up to 3 days
+  // back). Neither call alone is a complete history.
+  const params: Record<string, string> = { limit: String(limit) };
+  if (queryCanceled) params.queryCanceled = "true";
+  if (symbol) params.symbol = symbol;
+  if (startTime !== undefined && !isNaN(startTime)) params.startTime = String(startTime);
+  if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
+
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+    method: "GET",
+    headers: {
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
+  const text = await response.text();
+  const res = safeJsonParse(text);
+  if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
+
+  let listData: BitunixOrder[] = [];
+  if (res.data) {
+    if (Array.isArray(res.data)) listData = res.data;
+    else if ("orderList" in res.data) listData = res.data.orderList;
+  }
+
+  let mapped: NormalizedOrder[] = listData.map((o) => ({
+    id: o.orderId,
+    orderId: o.orderId,
+    clientId: o.clientId,
+    symbol: o.symbol,
+    type: o.type,
+    side: o.side,
+    price: formatApiNum(o.price) || "0",
+    amount: formatApiNum(o.qty) || "0",
+    filled: formatApiNum(o.tradeQty) || "0",
+    avgPrice: formatApiNum(o.avgPrice ?? o.averagePrice) || "0",
+    realizedPNL: formatApiNum(o.realizedPNL) || "0",
+    fee: formatApiNum(o.fee) || "0",
+    reduceOnly: Boolean(o.reduceOnly),
+    status: o.status || "UNKNOWN",
+    // Hardening: Explicitly validate time, default to 0 only if missing/invalid
+    time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+    mtime: o.mtime,
+    // Bitunix documents all of these on Get History Orders
+    // (docs/bitunix-api/07_trade.md:294-325) but they were never mapped
+    // through — the order tooltip's Leverage/Margin Mode/TP-SL rows always
+    // rendered empty regardless of what the exchange sent.
+    leverage: o.leverage,
+    marginMode: o.marginMode,
+    positionMode: o.positionMode,
+    tpPrice: o.tpPrice,
+    tpStopType: o.tpStopType,
+    tpOrderType: o.tpOrderType,
+    slPrice: o.slPrice,
+    slStopType: o.slStopType,
+    slOrderType: o.slOrderType,
+  }));
+
+  if (startTime !== undefined && !isNaN(startTime)) {
+    mapped = mapped.filter((o) => (o.time ?? 0) >= startTime);
+  }
+  if (endTime !== undefined && !isNaN(endTime)) {
+    mapped = mapped.filter((o) => (o.time ?? 0) <= endTime);
+  }
+
+  return mapped;
+}
+
+// --- Bitget Helpers ---
+
+async function placeBitgetOrder(
+    apiKey: string,
+    apiSecret: string,
+    passphrase: string,
+    payload: BitgetOrderPayload & { marginCoin?: string }
+): Promise<unknown> {
+    const baseUrl = "https://api.bitget.com";
+    const path = "/api/mix/v1/order/placeOrder";
+
+    // 1. Map Side
+    let bitgetSide = "";
+    const rawSide = payload.side.toLowerCase();
+
+    // Robust mapping for One-Way Mode (Standard)
+    if (payload.reduceOnly) {
+        // Closing a position
+        if (rawSide === "buy") bitgetSide = "close_short"; // Buying to close Short
+        else if (rawSide === "sell") bitgetSide = "close_long"; // Selling to close Long
+    } else {
+        // Opening a position
+        if (rawSide === "buy") bitgetSide = "open_long";
+        else if (rawSide === "sell") bitgetSide = "open_short";
+    }
+
+    // 2. Build Payload
+    const bitgetBody = {
+        symbol: payload.symbol,
+        marginCoin: payload.marginCoin || "USDT",
+        side: bitgetSide,
+        orderType: payload.orderType, // limit, market
+        price: payload.price,
+        size: payload.size,
+        timInForceValue: payload.force // normal, gtc, etc
+    };
+
+    const cleanedBody = cleanPayload(bitgetBody);
+
+    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, cleanedBody);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        },
+        body: bodyStr
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        const err = new Error(ORDER_ERRORS.BITGET_API_ERROR);
+        (err as ExchangeError).details = `${response.status} ${text.slice(0, 100)}`;
+        throw err;
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (res.code !== "00000") {
+        let msg = res.msg;
+        if (msg && (msg.toLowerCase().includes("mode") || msg.toLowerCase().includes("position") || msg.toLowerCase().includes("side"))) {
+            msg += " (Possible cause: Mismatch between App (Hedge Mode) and Exchange settings. Check One-Way vs Hedge Mode)";
+        }
+        throw new Error(`Bitget Error: ${res.code} ${msg}`);
+    }
+
+    return res.data;
+}
+
+async function fetchBitgetPendingOrders(
+    apiKey: string,
+    apiSecret: string,
+    passphrase: string
+): Promise<NormalizedOrder[]> {
+    const baseUrl = "https://api.bitget.com";
+    const path = "/api/mix/v1/order/current";
+    // productType: umcbl (USDT-M)
+    const params = { productType: "umcbl" };
+
+    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+        method: "GET",
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        }
+    });
+
+    if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
+
+    const orders = res.data || [];
+    return orders.map((o: BitgetRawOrder) => ({
+        id: o.orderId,
+        orderId: o.orderId,
+        symbol: o.symbol,
+        type: o.orderType,
+        side: o.side, // open_long etc
+        price: formatApiNum(o.price) || "0",
+        amount: formatApiNum(o.size) || "0",
+        filled: formatApiNum(o.filledQty) || "0",
+        status: o.status, // new, partial_fill
+        time: parseInt(String(o.cTime)),
+        fee: formatApiNum(o.fee) || "0",
+        realizedPNL: formatApiNum(o.totalProfits) || "0",
+    }));
+}
+
+async function fetchBitgetHistoryOrders(
+    apiKey: string,
+    apiSecret: string,
+    passphrase: string,
+    limit = 20,
+    startTime?: number,
+    endTime?: number,
+    symbol?: string
+): Promise<NormalizedOrder[]> {
+    const baseUrl = "https://api.bitget.com";
+    const path = "/api/mix/v1/order/history";
+
+    const params: Record<string, string> = {
+        productType: "umcbl",
+        pageSize: String(limit),
+        startTime: startTime !== undefined && !isNaN(startTime)
+            ? String(startTime)
+            : String(Date.now() - 7 * 24 * 3600 * 1000) // Last 7 days default
+    };
+    if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
+    if (symbol) params.symbol = symbol;
+
+    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        }
+    });
+
+    if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
+
+    const orders = res.data || [];
+    let mapped: NormalizedOrder[] = orders.map((o: BitgetRawOrder) => ({
+        id: o.orderId,
+        orderId: o.orderId,
+        symbol: o.symbol,
+        type: o.orderType,
+        side: o.side,
+        price: formatApiNum(o.price) || "0",
+        amount: formatApiNum(o.size) || "0",
+        filled: formatApiNum(o.filledQty) || "0",
+        avgPrice: formatApiNum(o.priceAvg) || "0",
+        status: o.state, // filled, canceled
+        time: parseInt(String(o.cTime)),
+        fee: formatApiNum(o.fee) || "0",
+        realizedPNL: formatApiNum(o.totalProfits) || "0",
+    }));
+
+    if (startTime !== undefined && !isNaN(startTime)) {
+        mapped = mapped.filter((o) => (o.time ?? 0) >= startTime);
+    }
+    if (endTime !== undefined && !isNaN(endTime)) {
+        mapped = mapped.filter((o) => (o.time ?? 0) <= endTime);
+    }
+
+    return mapped;
+}
+
+async function cancelBitgetOrder(
+    apiKey: string,
+    apiSecret: string,
+    passphrase: string,
+    symbol: string,
+    orderId: string,
+    marginCoin = "USDT"
+) {
+    const baseUrl = "https://api.bitget.com";
+    const path = "/api/mix/v1/order/cancel-order";
+
+    const body = {
+        symbol,
+        marginCoin,
+        orderId
+    };
+
+    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, body);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        },
+        body: bodyStr
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Bitget Cancel Error: ${response.status} ${text}`);
+    }
+
+    const text = await response.text();
+    const res = safeJsonParse(text);
+    if (res.code !== "00000") {
+        throw new Error(`Bitget Error: ${res.msg}`);
+    }
+
+    return res.data;
+}

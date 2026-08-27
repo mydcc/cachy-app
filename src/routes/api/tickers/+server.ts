@@ -20,7 +20,6 @@ import { json } from "@sveltejs/kit";
 import { cache } from "$lib/server/cache";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
-import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/venues";
 
 interface StatusError {
   status: number;
@@ -43,18 +42,30 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   const provider = url.searchParams.get("provider") || "bitunix";
   const type = url.searchParams.get("type"); // 'price' (default) or '24hr'
 
-  // As on the klines route, an unrecognised provider is served Bitunix data
-  // rather than rejected. The cache key still keys on the raw parameter, so
-  // caching behaviour is unchanged.
-  const venue = resolveVenue(provider) ?? VENUES[DEFAULT_VENUE_ID];
-
   const cacheKey = `tickers:${provider}:${symbols || "ALL"}:${type || "default"}`;
 
   try {
     const data = await cache.getOrFetch(
       cacheKey,
       async () => {
-        const apiUrl = venue.tickersUrl({ symbols });
+        let apiUrl: string;
+        if (provider === "bitget") {
+          // Bitget Futures API
+          if (symbols) {
+             let sym = symbols.toUpperCase();
+             if (!sym.includes("_")) sym += "_UMCBL";
+             apiUrl = `https://api.bitget.com/api/mix/v1/market/ticker?symbol=${sym}`;
+          } else {
+             // All tickers
+             apiUrl = `https://api.bitget.com/api/mix/v1/market/tickers?productType=umcbl`;
+          }
+        } else {
+          // Default to Bitunix
+          apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/tickers`;
+          if (symbols) {
+            apiUrl += `?symbols=${symbols}`;
+          }
+        }
 
         const response = await fetchWithTimeout(apiUrl, {}, DEFAULT_UPSTREAM_TIMEOUT_MS, fetch);
 
@@ -79,7 +90,13 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
         const text = await response.text();
         const data = safeJsonParse(text);
-        if (venue.isSymbolNotFoundBody(data)) {
+        if (
+          provider !== "bitget" && // Bitget uses code 00000, handled below generally?
+          data &&
+          (data.code === 2 ||
+            data.code === "2" ||
+            (data.msg && data.msg.toLowerCase().includes("system error")))
+        ) {
            
           throw { status: 404, message: "Symbol not found" };
         }

@@ -24,8 +24,6 @@ jobs:
       issues: write
       contents: write
       repository-projects: write
-      # See sync-backlog.yml for why: the auto-linker PATCHes PR bodies.
-      pull-requests: write
 
     steps:
       - name: Checkout Repository

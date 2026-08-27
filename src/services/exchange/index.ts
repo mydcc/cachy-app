@@ -24,13 +24,6 @@
  */
 
 export { activeExchange, getExchangeAdapter, exchangeAdapters } from "./registry";
-
-/*
- * FEAT-0227 — subscription reference counting, once, above the adapters.
- * Exported so `marketWatcher` can hold one without importing a venue.
- */
-export { SubscriptionLedger, subscriptionKey } from "./subscriptionLedger";
-export type { SubscriptionTarget, SubscriptionDelta } from "./subscriptionLedger";
 export { ExchangeUnsupportedError, isExchangeUnsupportedError } from "./errors";
 export type { UnsupportedFeature } from "./errors";
 
@@ -58,7 +51,6 @@ export type {
 export type {
     ExchangeAdapter,
     ExchangeId,
-    ConnectionPort,
     MarketDataPort,
     AccountPort,
     TradingPort,

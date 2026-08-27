@@ -16,22 +16,13 @@
  */
 
 import { untrack } from "svelte";
+import { bitunixWs } from "../bitunixWs";
+import { settingsState } from "../../stores/settings.svelte";
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import { browser } from "$app/environment";
 import { logger } from "../logger";
-import { activeExchange } from "../exchange";
-import type { MarketDataPort } from "../exchange";
-import { SubscriptionLedger } from "../exchange/subscriptionLedger";
+import { getChannelsForRequirement } from "../../types/dataRequirements";
 import { type HistoryFetcher } from "./historyFetcher";
-
-/*
- * FEAT-0227 — this file used to import `bitunixWs`, read its internal
- * subscription map and short-circuit whenever the active provider was not
- * Bitunix. Which symbols are wanted is a consumer question and belongs here;
- * which channel names a venue answers to is a venue question and belongs in
- * the adapter. Both now sit where they belong: the ledger counts, the adapter
- * translates, and this class never learns a venue's name.
- */
 
 export class SubscriptionRegistry {
     constructor(historyFetcher: HistoryFetcher) {
@@ -39,8 +30,6 @@ export class SubscriptionRegistry {
     }
     public historyFetcher!: HistoryFetcher;
     public requests: Map<string, Map<string, Map<string, number>>> = new Map();
-    /** The one reference count of venue channels, above every adapter. */
-    public ledger = new SubscriptionLedger();
     public _subscriptionsDirty: boolean = false;
     public prunedRequestIds: Map<string, number> = new Map();
 
@@ -68,7 +57,7 @@ export class SubscriptionRegistry {
         if (totalChannelCount === 1) {
           this._subscriptionsDirty = true;
           // Start polling/WS immediately
-          this.syncChannelSubscription();
+          this.syncChannelSubscription(normSymbol, channel);
         }
 
         if (requirement === "chart" && channel.startsWith("kline_")) {
@@ -110,72 +99,57 @@ export class SubscriptionRegistry {
         }
     }
 
-    /**
-     * Subscribes immediately for a channel that just gained its first
-     * requester, rather than waiting for the next `syncSubscriptions` tick —
-     * a tile that has just been opened should not sit blank for a loop.
-     *
-     * Deliberately not `browser`-guarded, matching what it replaced: a
-     * `register` outside the browser subscribed then too, and the adapter is
-     * the layer that decides whether it can open a socket.
-     */
-    private syncChannelSubscription() {
+    private syncChannelSubscription(symbol: string, channel: string) {
         untrack(() => {
-            const marketData = activeExchange().marketData;
-            this.applyDelta(marketData, this.reconcileLedger(marketData));
-        });
-    }
-
-    /**
-     * Everything the current requests expand to, in the active venue's own
-     * channel names.
-     */
-    private intendedTargets(marketData: MarketDataPort) {
-        const intended: { symbol: string; channel: string }[] = [];
-        this.requests.forEach((channels, symbol) => {
-            channels.forEach((_reqs, requirement) => {
-                for (const venueChannel of marketData.channelsForRequirement(requirement)) {
-                    intended.push({ symbol, channel: venueChannel });
-                }
-            });
-        });
-        return intended;
-    }
-
-    private reconcileLedger(marketData: MarketDataPort) {
-        return this.ledger.reconcile(this.intendedTargets(marketData));
-    }
-
-    private applyDelta(
-        marketData: MarketDataPort,
-        delta: { subscribe: { symbol: string; channel: string }[]; unsubscribe: { symbol: string; channel: string }[] },
-    ) {
-        for (const { symbol, channel } of delta.unsubscribe) {
-            marketData.unsubscribe(symbol, channel);
+        const provider = settingsState.apiProvider;
+        if (provider === "bitunix") {
+             const wsChannels = getChannelsForRequirement(channel);
+             wsChannels.forEach(ch => {
+               bitunixWs.subscribe(symbol, ch);
+             });
+             // Note: Legacy explicit subscription block removed (W-4).
+             // getChannelsForRequirement() already covers price/ticker/kline channels.
         }
-        for (const { symbol, channel } of delta.subscribe) {
-            marketData.subscribe(symbol, channel);
-        }
+        });
     }
 
     public syncSubscriptions() {
         if (!browser) return;
-        const marketData = activeExchange().marketData;
-        this.applyDelta(marketData, this.reconcileLedger(marketData));
-    }
+        const settings = settingsState;
+        if (settings.apiProvider !== "bitunix") {
+          // If we switched away from Bitunix, clear all WS subscriptions
+          // Use pendingSubscriptions instead of publicSubscriptions
+          Array.from(bitunixWs.pendingSubscriptions.keys()).forEach((key: string) => {
+            const [channel, symbol] = key.split(":");
+            bitunixWs.unsubscribe(symbol, channel);
+          });
+          return;
+        }
 
-    /**
-     * Declares that the active socket holds nothing — a provider reconnected,
-     * or the venue changed. The next reconcile therefore re-issues every
-     * wanted channel instead of assuming the socket still has them.
-     *
-     * A provider's own subscription buffer does not survive its
-     * destroy()/connect() cycle, but the registered interest here does; before
-     * FEAT-0227 this gap was detected by reading the venue socket's internal
-     * map from the outside.
-     */
-    public forgetIssuedSubscriptions() {
-        this.ledger.forgetIssued();
+        const intended = new Map<string, { symbol: string; channel: string }>();
+        this.requests.forEach((channels, symbol) => {
+          channels.forEach((reqs, ch) => {
+            const wsChannels = getChannelsForRequirement(ch);
+            wsChannels.forEach(bitunixChannel => {
+              const key = `${bitunixChannel}:${symbol}`;
+              intended.set(key, { symbol, channel: bitunixChannel });
+            });
+          });
+        });
+        const current = bitunixWs.pendingSubscriptions;
+        const toUnsubscribe: string[] = [];
+        current.forEach((_: number, key: string) => {
+            if (!intended.has(key)) toUnsubscribe.push(key);
+        });
+        toUnsubscribe.forEach(key => {
+            const [channel, symbol] = key.split(":");
+            bitunixWs.unsubscribe(symbol, channel);
+        });
+        intended.forEach(({ symbol, channel }, key) => {
+            if (!current.has(key)) {
+                 bitunixWs.subscribe(symbol, channel);
+            }
+        });
     }
 
     public pruneZombieRequests() {
