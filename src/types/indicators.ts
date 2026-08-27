@@ -137,7 +137,6 @@ export interface IndicatorSettings {
     viewMode: "integrated" | "separated" | "abstract";
   };
   atr: { enabled: boolean; length: number; };
-  bb: { enabled: boolean; length: number; stdDev: number; };
   choppiness: { enabled: boolean; length: number; };
   superTrend: { enabled: boolean; factor: number; period: number; };
   atrTrailingStop: { enabled: boolean; period: number; multiplier: number; };

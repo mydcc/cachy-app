@@ -207,7 +207,7 @@ class WasmCalculator {
         mfi: settings.mfi?.enabled !== false && settings.mfi.length > 0 ? [{ length: settings.mfi.length }] : [],
 
         // Volatility
-        bb: settings.bb?.enabled !== false && settings.bb.length > 0 ? [{ length: settings.bb.length, std_dev: settings.bb.stdDev }] : [],
+        bb: settings.bollingerBands?.enabled !== false && settings.bollingerBands.length > 0 ? [{ length: settings.bollingerBands.length, std_dev: settings.bollingerBands.stdDev }] : [],
         atr: settings.atr?.enabled !== false && settings.atr.length > 0 ? [{ length: settings.atr.length }] : [],
         chop: settings.choppiness?.enabled !== false && settings.choppiness.length > 0 ? [{ length: settings.choppiness.length }] : [],
 
@@ -415,7 +415,7 @@ class WasmCalculator {
              const len = parseInt(params.replace("BB", ""));
              // Only map if it matches the primary BB setting, as TechnicalsData only holds one BB result
              // (Or simplistic logic: take the last one encountered)
-             if (len === settings.bb.length) {
+             if (len === settings.bollingerBands.length) {
                  const upper = vals.upper;
                  const lower = vals.lower;
                  const middle = vals.basis;
