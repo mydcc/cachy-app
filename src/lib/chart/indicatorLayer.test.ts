@@ -88,7 +88,7 @@ function makeState(overrides: Record<string, unknown> = {}) {
         wma: { ...off(), length: 20 },
         hma: { ...off(), length: 20 },
         vwma: { ...off(), length: 20 },
-        bb: { ...off(), length: 20, stdDev: 2 },
+        bollingerBands: { ...off(), length: 20, stdDev: 2, source: "close" },
         vwap: { ...off(), anchor: "session" },
         ichimoku: { ...off(), conversionPeriod: 9, basePeriod: 26, spanBPeriod: 52 },
         superTrend: { ...off(), period: 10, factor: 3 },
