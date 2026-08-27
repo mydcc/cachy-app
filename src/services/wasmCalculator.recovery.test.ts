@@ -49,7 +49,7 @@ function disabledSettings(): IndicatorSettings {
     ema: off, sma: off, wma: off, vwma: off, hma: off,
     superTrend: off, parabolicSar: off, rsi: off, macd: off,
     stochastic: off, cci: off, adx: off, momentum: off,
-    williamsR: off, mfi: off, bb: off, atr: off,
+    williamsR: off, mfi: off, bollingerBands: off, atr: off,
     choppiness: off, volumeMa: off, vwap: off, pivots: off,
   } as unknown as IndicatorSettings;
 }

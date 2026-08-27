@@ -229,8 +229,8 @@ export class IndicatorLayer {
             );
 
         // Bollinger Bands
-        if (s.bb.enabled !== false && s.bb.length) {
-            const bb = JSIndicators.bb(a.closes, s.bb.length, s.bb.stdDev ?? 2);
+        if (s.bollingerBands.enabled !== false && s.bollingerBands.length) {
+            const bb = JSIndicators.bb(a.closes, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
             this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
             this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6", { lineWidth: 1 });
             this.addLine(rows, bb.lower, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
