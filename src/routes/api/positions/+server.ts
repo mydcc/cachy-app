@@ -17,61 +17,13 @@ import { extractApiCredentials } from "../../../utils/server/requestUtils";
  */
 
 import type { RequestHandler } from "./$types";
-import { createHash, randomBytes } from "crypto";
 import { checkClientToken } from "../../../lib/server/clientToken";
-import { generateBitgetSignature } from "../../../utils/server/bitget";
-import { formatApiNum } from "../../../utils/utils";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
-import { readExchangeJson } from "../../../utils/server/exchangeResponse";
-import type { NormalizedPosition } from "../../../types/exchange";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../utils/redact";
-import { fetchWithTimeout } from "../../../utils/server/fetchWithTimeout";
-
-// Raw Bitunix position fields — names vary across API versions/endpoints,
-// hence the fallback chains at each read site below.
-interface BitunixRawPosition {
-  positionId?: string | number;
-  side?: string | number;
-  positionSide?: string;
-  symbol: string;
-  qty?: string | number;
-  positionAmount?: string | number;
-  holdVolume?: string | number;
-  avgOpenPrice?: string | number;
-  openAvgPrice?: string | number;
-  avgPrice?: string | number;
-  liquidationPrice?: string | number;
-  liqPrice?: string | number;
-  markPrice?: string | number;
-  mark_price?: string | number;
-  margin?: string | number;
-  positionMargin?: string | number;
-  maintMargin?: string | number;
-  unrealizedPNL?: string | number;
-  unrealizedPnL?: string | number;
-  openLoss?: string | number;
-  leverage?: string | number;
-  marginMode?: string | number;
-  marginRate?: string | number;
-  realizedPNL?: string | number;
-}
-
-// Raw Bitget position fields (/api/mix/v1/position/allPosition).
-interface BitgetRawPosition {
-  symbol: string;
-  holdSide?: string;
-  total?: string | number;
-  averageOpenPrice?: string | number;
-  markPrice?: string | number;
-  liquidationPrice?: string | number;
-  margin?: string | number;
-  unrealizedPL?: string | number;
-  leverage?: string | number;
-  marginMode?: string;
-}
+import { resolveVenue } from "../../../utils/server/venues";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -103,16 +55,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   }
 
   try {
-    let positions = [];
-
-    if (exchange === "bitunix") {
-      positions = await fetchBitunixPositions(apiKey, apiSecret);
-    } else if (exchange === "bitget") {
-      if (!passphrase) return jsonError("Missing passphrase for Bitget", "MISSING_PASSPHRASE", 400);
-      positions = await fetchBitgetPositions(apiKey, apiSecret, passphrase);
-    } else {
+    const venue = resolveVenue(exchange);
+    if (!venue) {
       return jsonError("Unsupported exchange", "UNSUPPORTED_EXCHANGE", 400);
     }
+    if (venue.requiresPassphrase && !passphrase) {
+      // Bitget is named in the message because it is the message this route
+      // has always returned; only Bitget requires a passphrase today.
+      return jsonError("Missing passphrase for Bitget", "MISSING_PASSPHRASE", 400);
+    }
+
+    const positions = await venue.fetchPositions({ apiKey, apiSecret, passphrase });
 
     return jsonSuccess({ positions });
   } catch (e) {
@@ -121,165 +74,3 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     return handleApiError(e);
   }
 };
-
-async function fetchBitunixPositions(
-  apiKey: string,
-  apiSecret: string,
-): Promise<NormalizedPosition[]> {
-  const baseUrl = "https://fapi.bitunix.com";
-  const path = "/api/v1/futures/position/get_pending_positions";
-
-  // Params for the request
-  const params: Record<string, string> = {};
-
-  // 1. Generate Nonce and Timestamp
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
-
-  // 2. Sort and Concatenate Query Params (keyvaluekeyvalue...)
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
-
-  // 3. Construct Digest Input
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-
-  // 4. Calculate Digest (SHA256)
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-
-  // 5. Calculate Signature (SHA256 of digest + secret)
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  const queryString = new URLSearchParams(params).toString();
-  const url = queryString
-    ? `${baseUrl}${path}?${queryString}`
-    : `${baseUrl}${path}`;
-
-  const response = await fetchWithTimeout(url, {
-    method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-      // Add User-Agent to avoid potential blocking
-      "User-Agent": "CachyApp/1.0",
-    },
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
-  }
-
-  const data = await readExchangeJson(response);
-
-  if (data.code !== 0 && data.code !== "0") {
-    throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
-    );
-  }
-
-  // Normalized Position Object
-  const rawPositions = Array.isArray(data.data) ? data.data : [];
-
-  return rawPositions
-    .map((p: BitunixRawPosition) => {
-      // Robust side detection
-      let side = "SHORT";
-      if (p.side) {
-        const s = p.side.toString().toUpperCase();
-        if (s === "LONG" || s === "BUY" || s === "1") {
-          side = "LONG";
-        }
-      } else if (p.positionSide) {
-        const ps = p.positionSide.toString().toUpperCase();
-        if (ps === "LONG") side = "LONG";
-      }
-
-      return {
-        positionId: p.positionId !== undefined ? String(p.positionId) : undefined,
-        symbol: p.symbol,
-        side: side,
-        // size: "qty" as per docs. Fallback to older fields.
-        size: formatApiNum(p.qty || p.positionAmount || p.holdVolume),
-        // entryPrice: "avgOpenPrice" as per docs.
-        entryPrice: formatApiNum(
-          p.avgOpenPrice || p.openAvgPrice || p.avgPrice,
-        ),
-
-        // Fixed Duplicate Keys Issue:
-        liquidationPrice: formatApiNum(p.liquidationPrice || p.liqPrice),
-        markPrice: formatApiNum(p.markPrice || p.mark_price),
-        margin: formatApiNum(
-          p.margin || p.positionMargin || p.maintMargin,
-        ),
-
-        // unrealizedPnL: "unrealizedPNL" as per docs.
-        unrealizedPnL: formatApiNum(
-          p.unrealizedPNL || p.unrealizedPnL || p.openLoss,
-        ),
-        marginRate: formatApiNum(p.marginRate),
-        realizedPnl: formatApiNum(p.realizedPNL),
-        leverage: formatApiNum(p.leverage),
-        // marginType: "ISOLATION" | "CROSS" as per docs.
-        marginMode:
-          p.marginMode === "CROSS" ||
-          p.marginMode === "cross" ||
-          p.marginMode === 1 ||
-          p.marginMode === "1"
-            ? "cross"
-            : "isolated",
-      };
-    })
-    .filter((p: NormalizedPosition) => parseFloat(p.size || "0") !== 0);
-}
-
-async function fetchBitgetPositions(
-  apiKey: string,
-  apiSecret: string,
-  passphrase: string
-): Promise<NormalizedPosition[]> {
-    const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/position/allPosition";
-    const params = { productType: "umcbl", marginCoin: "USDT" };
-
-    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
-
-    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        }
-    });
-
-    if (!response.ok) throw new Error("Bitget API Error");
-    const res = await readExchangeJson(response);
-    if (res.code !== "00000") throw new Error(res.msg);
-
-    const data = res.data || [];
-
-    return data
-        .filter((p: BitgetRawPosition) => parseFloat(String(p.total || "0")) !== 0) // Filter empty positions
-        .map((p: BitgetRawPosition) => {
-            return {
-                symbol: p.symbol,
-                side: (p.holdSide || "").toUpperCase(),
-                size: formatApiNum(p.total),
-                entryPrice: formatApiNum(p.averageOpenPrice),
-                markPrice: formatApiNum(p.markPrice),
-                liquidationPrice: formatApiNum(p.liquidationPrice),
-                margin: formatApiNum(p.margin),
-                unrealizedPnL: formatApiNum(p.unrealizedPL),
-                leverage: formatApiNum(p.leverage),
-                marginMode: p.marginMode || ""
-            };
-        });
-}
