@@ -20,7 +20,28 @@ import { createHash } from "crypto";
 import { generateBitunixSignature } from "./bitunix";
 
 /*
- * FEAT-0321 — characterisation of the three Bitunix signers.
+ * FEAT-0321 — characterisation of the Bitunix signers.
+ *
+ * CodeQL `js/insufficient-password-hash` fires on all sha256 operations
+ * involving apiKey/apiSecret here. It is a false positive for the same
+ * reasons as in src/utils/server/bitunix.ts:
+ *
+ *   - Nothing is stored. These are per-request signatures, not passwords
+ *     at rest, so the threat the query models — an offline brute-force
+ *     attack against a stolen hash database — has no target. The digest
+ *     lives for the length of one HTTP request.
+ *   - The algorithm is Bitunix's, not ours. `docs/bitunix-api/01_sign.md`
+ *     specifies `digest = SHA256(nonce + timestamp + api-key + queryParams
+ *     + body)` then `sign = SHA256(digest + secretKey)`, and the exchange
+ *     verifies exactly that. bcrypt, scrypt, PBKDF2 or Argon2 here would
+ *     make every signed request fail authentication.
+ *
+ * The construction is worth naming honestly: `H(digest || secret)` is a
+ * secret-suffix MAC rather than HMAC, which is weaker in principle because
+ * a collision in the underlying hash is a MAC forgery. Against SHA-256 that
+ * is not a practical attack today, and it is not Cachy's to change.
+ *
+ * FEAT-0321 — characterisation of the five Bitunix signers.
  *
  * Until this item, the signing algorithm existed three times: as
  * `generateBitunixSignature` here, and hand-rolled inline in the balance and
@@ -53,9 +74,11 @@ function signAsBalancePathDid(
 
   const body = "";
   const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
+  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
 
   const signInput = digest + apiSecret;
+  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   const queryString = new URLSearchParams(params).toString();
@@ -81,9 +104,11 @@ function signAsPositionsPathDid(
 
   const body = "";
   const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
+  // codeql[js/insufficient-password-hash]
   const digest = createHash("sha256").update(digestInput).digest("hex");
 
   const signInput = digest + apiSecret;
+  // codeql[js/insufficient-password-hash]
   const signature = createHash("sha256").update(signInput).digest("hex");
 
   const queryString = new URLSearchParams(params).toString();
@@ -211,9 +236,11 @@ describe("FEAT-0321: the three Bitunix signers agree", () => {
     const nonce = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
     const timestamp = "1724673600000";
 
+    // codeql[js/insufficient-password-hash]
     const digest = createHash("sha256")
       .update(`${nonce}${timestamp}${API_KEY}marginCoinUSDT`)
       .digest("hex");
+    // codeql[js/insufficient-password-hash]
     const expected = createHash("sha256")
       .update(digest + API_SECRET)
       .digest("hex");
