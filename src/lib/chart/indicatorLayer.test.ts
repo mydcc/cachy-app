@@ -29,15 +29,36 @@ function makePane(index: number) {
 function makeChart() {
     const panes = [makePane(0)];
     const chart = {
-        addSeries: vi.fn(() => makeSeries()),
+        // Mirror lightweight-charts: addressing a pane one past the current
+        // count creates it, so the layer's setHeight calls have a real pane
+        // to land on and the assertions below can see them.
+        addSeries: vi.fn((_type: unknown, _opts: unknown, paneIndex?: number) => {
+            if (typeof paneIndex === "number") {
+                while (panes.length <= paneIndex) panes.push(makePane(panes.length));
+            }
+            return makeSeries();
+        }),
         removeSeries: vi.fn(),
-        removePane: vi.fn(),
+        removePane: vi.fn((idx: number) => {
+            if (idx >= 0 && idx < panes.length) panes.splice(idx, 1);
+        }),
         panes: () => panes,
         applyOptions: vi.fn(),
         timeScale: () => ({ applyOptions: vi.fn(), fitContent: vi.fn() }),
         priceScale: () => ({ width: () => 60 }),
     } as unknown as IChartApi<Time>;
     return { chart, panes };
+}
+
+/** Heights the layer assigned to sub-pane `idx`, in call order. */
+function heightsFor(panes: IPaneApi<Time>[], idx: number): number[] {
+    const pane = panes[idx];
+    if (!pane) return [];
+    return (pane.setHeight as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0] as number);
+}
+
+function on(extra: Record<string, unknown> = {}) {
+    return { enabled: true, ...extra };
 }
 
 function makeRows(n: number): ChartRow[] {
@@ -85,6 +106,7 @@ function makeState(overrides: Record<string, unknown> = {}) {
         choppiness: { ...off(), length: 14 },
         stochastic: { ...off(), kPeriod: 14, dPeriod: 3 },
         mfi: { ...off(), length: 14 },
+        volume: { enabled: true },
         ...overrides,
     };
 }
@@ -152,8 +174,145 @@ describe("IndicatorLayer", () => {
         Object.assign(indicatorState, makeState()); // everything off
         layer.render(makeRows(60));
 
-        // Volume is the only sub-pane (it is not behind an enabled toggle here),
-        // and no oscillator sub-panes should be allocated.
+        // Volume is enabled by default, and no oscillator sub-panes should be
+        // allocated.
         expect(subPaneIndices(env.chart).length).toBe(1);
+    });
+
+    it("reports the visible sub-panes, with their settings, via onPanesChanged", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }));
+        layer.render(makeRows(60));
+
+        const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(lastCall).toEqual([
+            { paneIndex: 1, key: "volume", titleKey: "settings.technicals.volume", params: "" },
+            { paneIndex: 2, key: "rsi", titleKey: "settings.technicals.rsi.title", params: "14" },
+        ]);
+    });
+
+    it("reports multi-value settings so the label can read like 'MACD 12 26 9'", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({
+            volume: { enabled: false },
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
+        }));
+        layer.render(makeRows(60));
+
+        const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(lastCall).toEqual([
+            { paneIndex: 1, key: "macd", titleKey: "settings.technicals.macd.title", params: "12 26 9" },
+        ]);
+    });
+
+    it("omits the volume pane from onPanesChanged when volume is disabled", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({ volume: { enabled: false } }));
+        layer.render(makeRows(60));
+
+        const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(lastCall).toEqual([]);
+    });
+
+    it("shrinks the panes so every enabled indicator still gets one", () => {
+        // The reported regression: at this height the old fixed-80px budget
+        // fitted 3 panes and silently dropped StochRSI and CCI even though
+        // they were switched on in Settings.
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        layer.setAvailableHeight(451);
+        Object.assign(indicatorState, makeState({
+            rsi: on({ length: 14, source: "close" }),
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
+            stochRsi: on({ length: 14, rsiLength: 14, kPeriod: 3, dPeriod: 3, source: "close" }),
+            cci: on({ length: 20, source: "close" }),
+        }));
+        layer.render(makeRows(60));
+
+        const panes = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(panes.map((p: { key: string }) => p.key)).toEqual([
+            "volume", "rsi", "macd", "stochRsi", "cci",
+        ]);
+        // (451 - 140 price floor) / 5 panes = 62px each, above the 56px floor.
+        expect(heightsFor(env.panes, 1).at(-1)).toBe(62);
+    });
+
+    it("caps at what fits once the panes would fall below the readable floor", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        layer.setAvailableHeight(400); // budget 260 -> floor(260/56) = 4 panes
+        Object.assign(indicatorState, makeState({
+            rsi: on({ length: 14, source: "close" }),
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
+            stochRsi: on({ length: 14, rsiLength: 14, kPeriod: 3, dPeriod: 3, source: "close" }),
+            cci: on({ length: 20, source: "close" }),
+            mfi: on({ length: 14 }),
+        }));
+        layer.render(makeRows(60));
+
+        const panes = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(panes).toHaveLength(4);
+        expect(heightsFor(env.panes, 1).at(-1)).toBe(65);
+    });
+
+    it("re-renders with more panes when the chart window grows", () => {
+        // Regression: setAvailableHeight only re-rendered when the 360px
+        // threshold was crossed, so enlarging a already-tall chart never
+        // gained panes until the next full data render.
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        layer.setAvailableHeight(400);
+        Object.assign(indicatorState, makeState({
+            rsi: on({ length: 14, source: "close" }),
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
+            stochRsi: on({ length: 14, rsiLength: 14, kPeriod: 3, dPeriod: 3, source: "close" }),
+            cci: on({ length: 20, source: "close" }),
+            mfi: on({ length: 14 }),
+        }));
+        layer.render(makeRows(60));
+        const before = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(before).toHaveLength(4);
+
+        layer.setAvailableHeight(900);
+
+        const after = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(after).toHaveLength(6); // volume + all five, no new candle needed
+    });
+
+    it("resizes existing panes without rebuilding them when only the height changes", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(451);
+        Object.assign(indicatorState, makeState({
+            rsi: on({ length: 14, source: "close" }),
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
+            stochRsi: on({ length: 14, rsiLength: 14, kPeriod: 3, dPeriod: 3, source: "close" }),
+            cci: on({ length: 20, source: "close" }),
+        }));
+        layer.render(makeRows(60));
+        const seriesCallsAfterRender = (env.chart.addSeries as ReturnType<typeof vi.fn>).mock.calls.length;
+
+        layer.setAvailableHeight(471); // same 5 panes, 66px each
+
+        expect(heightsFor(env.panes, 1).at(-1)).toBe(66);
+        // No teardown/rebuild: ResizeObserver fires on every drag frame.
+        expect((env.chart.addSeries as ReturnType<typeof vi.fn>).mock.calls.length).toBe(seriesCallsAfterRender);
+    });
+
+    it("clears reported panes when the indicator layer is destroyed", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, onPanesChanged);
+        layer.setAvailableHeight(1000);
+        layer.render(makeRows(60));
+        onPanesChanged.mockClear();
+
+        layer.destroy();
+
+        expect(onPanesChanged).toHaveBeenCalledWith([]);
     });
 });

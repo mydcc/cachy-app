@@ -170,6 +170,9 @@ const defaultSettings: IndicatorSettings = {
     enabled: false,
     rows: 24,
   },
+  volume: {
+    enabled: true,
+  },
   bollingerBands: {
     enabled: true,
     length: 20,
@@ -222,6 +225,7 @@ class IndicatorManager {
   parabolicSar = $state(defaultSettings.parabolicSar);
   volumeProfile = $state(defaultSettings.volumeProfile);
   volumeMa = $state(defaultSettings.volumeMa);
+  volume = $state(defaultSettings.volume);
   bollingerBands = $state(defaultSettings.bollingerBands);
   pivots = $state(defaultSettings.pivots);
 
@@ -261,6 +265,7 @@ class IndicatorManager {
     choppiness: $state.snapshot(this.choppiness),
     volumeProfile: $state.snapshot(this.volumeProfile),
     volumeMa: $state.snapshot(this.volumeMa),
+    volume: $state.snapshot(this.volume),
     bollingerBands: $state.snapshot(this.bollingerBands),
 
     sma: $state.snapshot(this.sma),
@@ -360,6 +365,7 @@ class IndicatorManager {
       this.ichimoku = merge('ichimoku', defaultSettings.ichimoku);
       this.choppiness = merge('choppiness', defaultSettings.choppiness);
       this.volumeProfile = merge('volumeProfile', defaultSettings.volumeProfile);
+      this.volume = merge('volume', defaultSettings.volume);
 
       this.atr = merge('atr', defaultSettings.atr);
       this.bb = merge('bb', defaultSettings.bb);
@@ -460,6 +466,7 @@ class IndicatorManager {
     this.volumeProfile = next.volumeProfile;
     this.bollingerBands = next.bollingerBands;
     this.volumeMa = next.volumeMa;
+    this.volume = next.volume;
     this.sma = next.sma;
     this.wma = next.wma;
     this.vwma = next.vwma;
@@ -498,6 +505,7 @@ class IndicatorManager {
     this.volumeProfile = d.volumeProfile;
     this.bollingerBands = d.bollingerBands;
     this.volumeMa = d.volumeMa;
+    this.volume = d.volume;
     this.sma = d.sma;
     this.wma = d.wma;
     this.vwma = d.vwma;
