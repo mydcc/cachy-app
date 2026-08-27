@@ -76,7 +76,7 @@ export class IncrementalCache {
       ema: settings.ema,
       rsi: settings.rsi,
       macd: settings.macd,
-      bb: settings.bb,
+      bollingerBands: settings.bollingerBands,
       stochastic: settings.stochastic,
       stochRsi: settings.stochRsi,
       // Add other indicators as needed

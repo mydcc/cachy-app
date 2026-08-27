@@ -123,11 +123,6 @@ const defaultSettings: IndicatorSettings = {
     enabled: false,
     length: 14,
   },
-  bb: {
-    enabled: false,
-    length: 20,
-    stdDev: 2,
-  },
   choppiness: {
     enabled: false,
     length: 14,
@@ -216,7 +211,6 @@ class IndicatorManager {
 
   // Volatility
   atr = $state(defaultSettings.atr);
-  bb = $state(defaultSettings.bb);
   choppiness = $state(defaultSettings.choppiness);
 
   // Volume & Misc
@@ -254,7 +248,6 @@ class IndicatorManager {
     ema: $state.snapshot(this.ema),
     pivots: $state.snapshot(this.pivots),
     atr: $state.snapshot(this.atr),
-    bb: $state.snapshot(this.bb),
     superTrend: $state.snapshot(this.superTrend),
     atrTrailingStop: $state.snapshot(this.atrTrailingStop),
     obv: $state.snapshot(this.obv),
@@ -368,7 +361,6 @@ class IndicatorManager {
       this.volume = merge('volume', defaultSettings.volume);
 
       this.atr = merge('atr', defaultSettings.atr);
-      this.bb = merge('bb', defaultSettings.bb);
       this.bollingerBands = merge('bollingerBands', defaultSettings.bollingerBands);
       this.volumeMa = merge('volumeMa', defaultSettings.volumeMa);
 
@@ -454,7 +446,6 @@ class IndicatorManager {
     this.ema = next.ema;
     this.pivots = next.pivots;
     this.atr = next.atr;
-    this.bb = next.bb;
     this.superTrend = next.superTrend;
     this.atrTrailingStop = next.atrTrailingStop;
     this.obv = next.obv;
@@ -493,7 +484,6 @@ class IndicatorManager {
     this.ema = d.ema;
     this.pivots = d.pivots;
     this.atr = d.atr;
-    this.bb = d.bb;
     this.superTrend = d.superTrend;
     this.atrTrailingStop = d.atrTrailingStop;
     this.obv = d.obv;
