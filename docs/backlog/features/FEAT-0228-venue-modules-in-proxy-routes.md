@@ -79,6 +79,13 @@ still three; merging them would change wire bytes if they have drifted, which
 this item's "contract is unchanged" criterion forbids. Split off as
 [`FEAT-0319`](FEAT-0319-single-bitunix-request-signer.md).
 
+Review found one venue-specific condition still inline: the tickers route's
+*error* path repeats Bitunix's symbol-not-found heuristic instead of asking the
+venue, while its 200 path already asks. Routing it through the module changes
+what a Bitget non-2xx reports, so it is
+[`FEAT-0320`](FEAT-0320-tickers-error-path-asks-the-venue.md) rather than a
+late edit here.
+
 ## Out of scope
 
 Sharing code with the client adapter. The two layers stay separate — the
