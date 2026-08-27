@@ -169,6 +169,20 @@ class BitgetWebSocketService {
       window.removeEventListener("offline", this.handleOffline);
     }
     this.cleanup();
+
+    // Permanent teardown: drop subscription state only when the service is
+    // being destroyed, never on the transient reconnect-driven `cleanup()`
+    // above — `resubscribe()` replays this map onto the fresh socket.
+    //
+    // FEAT-0227 made this load-bearing. `connectionManager.killAll()` destroys
+    // every provider and then tells the subscription ledger to forget what it
+    // issued, so the next reconcile re-issues every wanted channel. If the
+    // count here survived the destroy, that re-issue would raise it to 2 and
+    // send nothing, and the single `unsubscribe` a consumer eventually sends
+    // would decrement to 1 rather than to 0 — no unsubscribe frame, and the
+    // venue keeps streaming a channel nobody wants. `bitunixWs.destroy()`
+    // clears `pendingSubscriptions` for the same reason.
+    this.subscriptions.clear();
   }
 
   connect(force?: boolean) {

@@ -36,6 +36,11 @@ export interface PollingService {
     // Reconciles desired subscriptions against the live connection. Optional
     // so lightweight test doubles for PollingService don't need to implement it.
     resync?: () => void;
+    // Called when every provider has been destroyed, so the subscription
+    // ledger knows the sockets now hold nothing (FEAT-0227). Paired with
+    // `resync` above: this one says "forget", that one says "reconcile".
+    // Optional for the same reason.
+    forgetSubscriptions?: () => void;
 }
 
 // A tab hidden for less than this is ordinary alt-tabbing: WebSocket
@@ -181,6 +186,14 @@ class ConnectionManager {
                 logger.error("governance", `[ConnectionManager] Error destroying ${name}`, e);
             }
         }
+
+        // Every socket is gone, so whatever the ledger believed it had issued
+        // is no longer true. Hooked to the teardown rather than to the next
+        // connect on purpose: a plain reconnect keeps its subscription buffer
+        // (bitunixWs.cleanup deliberately does not clear it), and re-issuing
+        // there would drive the venue's own count up on every reconnect
+        // without anything ever bringing it back down.
+        this.pollingService?.forgetSubscriptions?.();
 
         marketState.connectionStatus = "disconnected";
     }
