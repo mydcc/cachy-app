@@ -909,6 +909,7 @@ export type TranslationKey =
   | "settings.visuals.tradeFlow.sourceAmbient"
   | "settings.visuals.tradeFlow.sourceReplay"
   | "settings.visuals.tradeFlow.tooltipSource"
+  | "settings.visuals.tradeFlow.tooltipBlock"
   | "settings.visuals.coordinates.x"
   | "settings.visuals.coordinates.y"
   | "settings.visuals.coordinates.z"
