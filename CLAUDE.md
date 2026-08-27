@@ -105,6 +105,14 @@ Reserve the full `npm test` for when you touched many files across projects or r
 
 Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository.
 
+**Gortex — Worktree Session Start:** When the working directory is a linked git worktree (not the main checkout), run this **once at the very start of the session** before any other tool call:
+
+```bash
+bash scripts/index-worktree.sh
+```
+
+This registers the worktree with Gortex so all graph tools (`gortex__explore`, `gortex__search`, `gortex__impact`, etc.) resolve correctly. The script is a safe no-op on the main checkout and idempotent on re-run. Skipping this step causes Gortex to report "cwd is not covered by any tracked repo" and fall back to plain file tools — losing all graph-based analysis.
+
 ## Codebase Understanding for All Agents
 
 This CLAUDE.md and `AGENTS.md` apply to **all coding agents** — Claude Code, Jules, Cursor, Codex, Antigravity, etc. Agents following these project rules (not just tool defaults) have deeper understanding:
