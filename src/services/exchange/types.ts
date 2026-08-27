@@ -105,10 +105,18 @@ export interface MarketDataPort {
      * own (see `getBitunixChannel` / `getBitgetChannel`), and drops one its
      * venue does not have rather than opening a dead subscription.
      *
-     * Idempotent, and *not* ref-counted (FEAT-0227): the count lives once in
-     * `subscriptionLedger`, above every adapter, because "who wants BTCUSDT"
-     * is a consumer question. Calling this twice for the same pair leaves one
-     * subscription; calling `unsubscribe` once removes it.
+     * The *consumer-facing* count lives once in `subscriptionLedger`, above
+     * every adapter (FEAT-0227), because "who wants BTCUSDT" is a consumer
+     * question. The ledger therefore calls this exactly once per
+     * symbol+channel and pairs it with exactly one `unsubscribe`.
+     *
+     * That pairing is a requirement, not a courtesy: both venue services keep
+     * a count of their own behind this port as the buffer they replay onto a
+     * fresh socket, so a second `subscribe` sends no frame and the matching
+     * `unsubscribe` only decrements. Call either verb out of pairs and the
+     * venue keeps streaming a channel nobody wants. `destroy()` on the
+     * `ConnectionPort` drops that buffer, which is what makes
+     * `SubscriptionLedger.forgetIssued()` safe to hook to `killAll`.
      */
     subscribe(symbol: string, channel: string): void;
     unsubscribe(symbol: string, channel: string): void;
