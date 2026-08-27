@@ -994,7 +994,12 @@
         "tooltipGridLength": "Number of points along the Z-axis of the visualization grid. More points = finer detail but higher GPU load.",
         "tooltipSpeed": "How fast the visualization elements animate and move. Higher values create a more energetic appearance.",
         "sceneRotation": "Scene rotation",
-        "tooltipRotation": "Slow, purely decorative spin of the scene. Off by default: rotation makes the time (depth) and price (height) axes unreadable."
+        "tooltipRotation": "Slow, purely decorative spin of the scene. Off by default: rotation makes the time (depth) and price (height) axes unreadable.",
+        "source": "Data source",
+        "sourceLive": "Live trades only",
+        "sourceAmbient": "Ambient (fill silence)",
+        "sourceReplay": "Replay recent trades",
+        "tooltipSource": "Keeps the background alive when the live feed goes quiet. 'Live' shows only real trades. 'Ambient' injects subtle synthetic ticks after a pause. 'Replay' continuously replays the most recent trades as synthetic ticks."
       },
       "coordinates": {
         "x": "X",
@@ -1135,6 +1140,9 @@
       },
       "ollamaBaseUrl": "Ollama Server Address",
       "ollamaBaseUrlDesc": "Local Ollama install, e.g. http://localhost:11434. Never leaves your device.",
+      "customBaseUrl": "Override API endpoint (Base URL)",
+      "customBaseUrlDesc": "Optional custom endpoint or local gateway (e.g. OmniRoute, LiteLLM, corporate proxy). Keyless mode works when the gateway handles authentication.",
+      "geminiCustomBaseUrlDesc": "Optional custom endpoint or local gateway. Note: Gemini API requires an API key even when using a custom endpoint.",
       "openrouterApiKey": "OpenRouter API Key",
       "contextTitle": "Context & Data Access",
       "shareTradeContext": "Share Trading Context (Journal, Positions & Setup)",

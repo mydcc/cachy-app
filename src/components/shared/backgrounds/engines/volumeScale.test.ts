@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { VolumeNormalizer, scaleToRange, tradeNotional } from './volumeScale';
+import { VolumeNormalizer, scaleToRange, tradeNotional, marketHeat } from './volumeScale';
 
 describe('tradeNotional', () => {
 	it('multiplies price and amount', () => {
@@ -103,5 +103,34 @@ describe('scaleToRange', () => {
 		// userScale of NaN/0 must not collapse everything to min
 		expect(scaleToRange(0.5, 1, 5, Number.NaN)).toBeCloseTo(3);
 		expect(scaleToRange(0.5, 1, 5, 0)).toBeCloseTo(3);
+	});
+});
+
+describe('marketHeat', () => {
+	it('is 0 when the market is completely quiet', () => {
+		expect(marketHeat({ rate: 0, volume: 0, volatilityRel: 0 })).toBe(0);
+	});
+
+	it('captures a hot market from a high trade rate', () => {
+		expect(marketHeat({ rate: 40, volume: 1e5, volatilityRel: 0.001 })).toBeGreaterThan(0.9);
+	});
+
+	it('captures a hot market from large notional volume', () => {
+		expect(marketHeat({ rate: 1, volume: 1e7, volatilityRel: 0.001 })).toBeGreaterThan(0.9);
+	});
+
+	it('captures a hot market from high relative volatility', () => {
+		expect(marketHeat({ rate: 1, volume: 1e3, volatilityRel: 0.05 })).toBeGreaterThan(0.9);
+	});
+
+	it('stays within 0..1 even when every signal is extreme', () => {
+		const v = marketHeat({ rate: 1e6, volume: 1e12, volatilityRel: 1 });
+		expect(v).toBeGreaterThanOrEqual(0);
+		expect(v).toBeLessThanOrEqual(1);
+	});
+
+	it('is low for a sparse, calm market', () => {
+		// ~1 trade/sec, modest volume, very stable price
+		expect(marketHeat({ rate: 1, volume: 2_000, volatilityRel: 0.001 })).toBeLessThan(0.2);
 	});
 });

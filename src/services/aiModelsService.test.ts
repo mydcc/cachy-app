@@ -55,4 +55,16 @@ describe("aiModelsService", () => {
     const result = await getModels("ollama", { baseUrl: "http://localhost:11434" }, { forceRefresh: true });
     expect(result.models).toEqual([{ id: "phi3:latest", label: "phi3:latest" }]);
   });
+
+  it("fetches OpenAI models when baseUrl is provided without apiKey", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ models: [{ id: "custom-model", label: "custom-model" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const result = await getModels("openai", { baseUrl: "http://localhost:8000/v1" });
+    expect(result.models).toEqual([{ id: "custom-model", label: "custom-model" }]);
+  });
 });
