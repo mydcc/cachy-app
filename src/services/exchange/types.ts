@@ -185,6 +185,47 @@ export interface AccountPort {
 
     /** Contract precision, size limits and leverage range for a symbol. */
     fetchTradingPairInfo(symbol: string): Promise<void>;
+
+    /*
+     * The write half (FEAT-0068). These change exchange state without placing
+     * an order, so they do not pass the FEAT-0011 order gate — that gate
+     * verifies an *order* against what the trader was shown, and there is no
+     * order here to verify. What they do get is the same read-back rule as
+     * the reads above: none of them writes a store from its own response.
+     *
+     * They throw on a venue that declares `supports.accountSettings === false`
+     * rather than resolving, because a settings write that resolves quietly
+     * is indistinguishable from one that worked.
+     */
+
+    /** Sets the venue's leverage for one symbol. Whole numbers only. */
+    changeLeverage(symbol: string, leverage: Decimal): Promise<void>;
+
+    /**
+     * Switches one symbol between isolated and cross margin. The venue
+     * refuses while that symbol carries a position or a resting order.
+     */
+    changeMarginMode(symbol: string, marginMode: "ISOLATION" | "CROSS"): Promise<void>;
+
+    /**
+     * Switches the whole futures account between one-way and hedge mode. No
+     * symbol — the endpoint is account-wide, and the venue refuses while any
+     * position or order is open.
+     */
+    changePositionMode(positionMode: "ONE_WAY" | "HEDGE"): Promise<void>;
+
+    /**
+     * Moves margin on one isolated position: positive adds, negative
+     * withdraws. Either `side` or `positionId` must address the position —
+     * in hedge mode neither alone is optional guesswork the venue should be
+     * left to resolve.
+     */
+    adjustPositionMargin(params: {
+        symbol: string;
+        amount: Decimal;
+        side?: "LONG" | "SHORT";
+        positionId?: string;
+    }): Promise<void>;
 }
 
 /**
@@ -263,6 +304,14 @@ export interface TradingSupport {
     leverageMarginMode: boolean;
     /** Contract metadata (precision, size limits, tiers). */
     tradingPairInfo: boolean;
+    /**
+     * Writing leverage, margin mode, position mode and isolated-position
+     * margin back to the venue (FEAT-0068). Separate from
+     * `leverageMarginMode`, which is only the read: a venue could report its
+     * settings without accepting a change to them, and claiming the write
+     * because the read works is the BUG-0001 shape.
+     */
+    accountSettings: boolean;
 }
 
 /** One exchange, behind one interface. */

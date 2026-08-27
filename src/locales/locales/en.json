@@ -1954,7 +1954,8 @@
     "pnlToggleHint": "Unrealized PnL for this position. Click to switch between value, percent (ROI) and bar view.",
     "tierMmr": "Maint. Margin Rate (Tier)",
     "nextTierAt": "Next Tier at",
-    "tpslActive": "TP/SL"
+    "tpslActive": "TP/SL",
+    "adjustMargin": "Margin"
   },
   "symbolPicker": {
     "title": "Select Symbol",
@@ -2196,6 +2197,18 @@
     "import": {
       "title": "Import",
       "message": "Import {count} trades?"
+    },
+    "adjustMargin": {
+      "title": "Adjust position margin",
+      "currentMargin": "Current margin",
+      "liquidation": "Liquidation",
+      "add": "Add",
+      "reduce": "Reduce",
+      "amount": "Amount",
+      "submitAdd": "Add margin",
+      "submitReduce": "Reduce margin",
+      "crossOnly": "Only isolated positions have their own margin. This one is on cross margin.",
+      "hint": "Adding margin moves the liquidation price away from the mark; reducing moves it closer."
     }
   },
   "ui": {
@@ -2846,7 +2859,30 @@
       "tpSl": "Take-profit and stop-loss orders are not available on {exchange}. Nothing was sent.",
       "leverageMarginMode": "{exchange} does not report leverage and margin mode to Cachy, so the values shown are your local settings.",
       "tradingPairInfo": "{exchange} does not provide contract details to Cachy, so precision and size limits fall back to defaults.",
-      "generic": "{exchange} cannot do that, so Cachy did not send the request."
+      "generic": "{exchange} cannot do that, so Cachy did not send the request.",
+      "accountSettings": "Cachy has no verified request format for changing leverage, margin mode or position margin on {exchange}, so nothing was sent. Change it in the exchange's own interface."
+    },
+    "accountSettings": {
+      "title": "On the exchange",
+      "applyLeverage": "Set {value}x on the exchange",
+      "leverageInSync": "The exchange already uses {value}x",
+      "leverageOutOfRange": "{symbol} accepts {min}x to {max}x",
+      "leverageNeedsValue": "Enter a whole-number leverage first",
+      "isolated": "Isolated",
+      "cross": "Cross",
+      "positionMode": "Position mode",
+      "oneWay": "One-way",
+      "hedge": "Hedge",
+      "blockedBySymbol": "{exchange} refuses this while {symbol} has an open position or order",
+      "blockedByAnyPosition": "{exchange} refuses this while any position or order is open",
+      "paperMode": "Paper trading is on — Cachy changes nothing on the exchange",
+      "confirmLeverageTitle": "Change leverage on an open position?",
+      "confirmLeverageMessage": "{symbol} has an open position. Moving leverage from {from}x to {to}x moves its liquidation price immediately.",
+      "leverageChanged": "Leverage set to {value}x",
+      "marginModeChanged": "Margin mode changed",
+      "positionModeChanged": "Position mode changed",
+      "marginAdjusted": "Position margin updated",
+      "pending": "Sending…"
     }
   },
   "orderEntry": {

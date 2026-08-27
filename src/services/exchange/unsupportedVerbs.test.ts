@@ -64,6 +64,10 @@ const tradeServiceMock = vi.hoisted(() => ({
     placeTpSlOrder: vi.fn(async () => ({ ok: true })),
     fetchLeverageMarginMode: vi.fn(async () => undefined),
     fetchTradingPairInfo: vi.fn(async () => undefined),
+    changeLeverage: vi.fn(async () => undefined),
+    changeMarginMode: vi.fn(async () => undefined),
+    changePositionMode: vi.fn(async () => undefined),
+    adjustPositionMargin: vi.fn(async () => undefined),
 }));
 vi.mock("../tradeService", () => ({ tradeService: tradeServiceMock }));
 
@@ -160,6 +164,8 @@ describe("FEAT-0229 — the guard is reachable only through a false support flag
         // true without wiring the verb, this pairing is what fails first.
         expect(bitget().supports.tpSl).toBe(false);
         expect(bitunix().supports.tpSl).toBe(true);
+        expect(bitget().supports.accountSettings).toBe(false);
+        expect(bitunix().supports.accountSettings).toBe(true);
     });
 
     it("does not refuse the verbs Bitget genuinely has", async () => {
@@ -287,6 +293,34 @@ const ACCOUNT_VERBS: Record<string, VerbSpec> = {
         kind: "read",
         args: ["BTCUSDT"],
         transport: "fetchTradingPairInfo",
+    },
+    // FEAT-0068 — the write half of the account port. Writes, so an
+    // unsupported venue refuses instead of resolving: a leverage change that
+    // resolved quietly would leave the trader sizing against a number the
+    // exchange never took.
+    changeLeverage: {
+        gate: "accountSettings",
+        kind: "write",
+        args: ["BTCUSDT", new Decimal(10)],
+        transport: "changeLeverage",
+    },
+    changeMarginMode: {
+        gate: "accountSettings",
+        kind: "write",
+        args: ["BTCUSDT", "ISOLATION"],
+        transport: "changeMarginMode",
+    },
+    changePositionMode: {
+        gate: "accountSettings",
+        kind: "write",
+        args: ["HEDGE"],
+        transport: "changePositionMode",
+    },
+    adjustPositionMargin: {
+        gate: "accountSettings",
+        kind: "write",
+        args: [{ symbol: "BTCUSDT", amount: new Decimal(10), side: "LONG" }],
+        transport: "adjustPositionMargin",
     },
     // Not gated by `supports`: funding-rate history is a data gap, not a
     // trading capability. Bitunix serves it, Bitget resolves empty, and

@@ -159,15 +159,28 @@ describe("FEAT-0012 — one seam", () => {
     it("branches on the mode exactly once, at the transport", () => {
         const source = readFileSync("src/services/tradeService.ts", "utf8");
 
-        // One behavioural branch. A second would mean the two modes had begun
-        // to diverge above the transport, which is exactly what this feature
-        // promises they do not.
-        expect(source.match(/if \(paperState\.enabled\)/g) ?? []).toHaveLength(1);
+        // Two branches, and the test names both — the count alone would let
+        // a third appear by pushing one of these out of the file.
+        //
+        //   1. The order seam: paper orders go to `paperExchange` instead of
+        //      the network, and everything above it has already run
+        //      identically. A second branch *here* is what this feature
+        //      promises cannot happen.
+        //   2. FEAT-0068's account-settings refusal. Not an order and not a
+        //      seam: `paperExchange` simulates orders and has no notion of
+        //      leverage or margin mode, so there is nothing on the far side
+        //      to change and the write is refused rather than pretended.
+        const branches = source.match(/if \(paperState\.enabled\)[\s\S]{0,220}/g) ?? [];
+        expect(branches).toHaveLength(2);
+        expect(branches.filter((b) => b.includes("paperExchange.handle"))).toHaveLength(1);
+        expect(
+            branches.filter((b) => b.includes("exchange.accountSettings.paperMode")),
+        ).toHaveLength(1);
 
-        // The other two reads are not branches: they record the mode onto the
+        // The remaining reads are not branches: they record the mode onto the
         // intent and onto the gate-pass context so the transport can compare
         // them. Neither changes what the order is.
-        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(3);
+        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(4);
         expect(source.match(/paperMode: paperState\.enabled/g) ?? []).toHaveLength(2);
     });
 

@@ -141,6 +141,11 @@ const SUPPORTS: TradingSupport = {
     tpSl: false,
     leverageMarginMode: false,
     tradingPairInfo: false,
+    // Bitget has these endpoints; Cachy has no verified request format for
+    // them (FEAT-0068 keeps them out of scope until the M2 adapter shape
+    // exists). Declared false so the write is refused here rather than being
+    // built against a guessed wire format.
+    accountSettings: false,
 };
 
 /**
@@ -171,6 +176,26 @@ const account: AccountPort = {
             : undefined,
     fetchTradingPairInfo: async (symbol) =>
         SUPPORTS.tradingPairInfo ? tradeService.fetchTradingPairInfo(symbol) : undefined,
+
+    // Writes (FEAT-0068), so they refuse rather than resolve. A margin
+    // top-up that quietly did nothing would leave a trader believing their
+    // liquidation price had moved away from them.
+    changeLeverage: async (symbol, leverage) =>
+        SUPPORTS.accountSettings
+            ? tradeService.changeLeverage(symbol, leverage)
+            : refuse("accountSettings", "changeLeverage"),
+    changeMarginMode: async (symbol, marginMode) =>
+        SUPPORTS.accountSettings
+            ? tradeService.changeMarginMode(symbol, marginMode)
+            : refuse("accountSettings", "changeMarginMode"),
+    changePositionMode: async (positionMode) =>
+        SUPPORTS.accountSettings
+            ? tradeService.changePositionMode(positionMode)
+            : refuse("accountSettings", "changePositionMode"),
+    adjustPositionMargin: async (params) =>
+        SUPPORTS.accountSettings
+            ? tradeService.adjustPositionMargin(params)
+            : refuse("accountSettings", "adjustPositionMargin"),
 };
 
 const trading: TradingPort = {

@@ -30,6 +30,8 @@
     // Svelte 5 event props
     onclose?: (pos: OMSPosition) => void;
     ontpSl?: (pos: OMSPosition) => void;
+    /** FEAT-0068 — opens the add/withdraw-margin dialog. */
+    onadjustMargin?: (pos: OMSPosition) => void;
   }
 
   let {
@@ -38,7 +40,22 @@
     error = "",
     onclose,
     ontpSl,
+    onadjustMargin,
   }: Props = $props();
+
+  /*
+   * FEAT-0068: only an isolated position has margin of its own to move — a
+   * cross position draws on the account balance, and the exchange refuses an
+   * adjustment on one.
+   *
+   * The prefix test is deliberate: Bitunix says ISOLATION, the mapper
+   * lowercases whatever the venue sent, and `OMSPosition.marginMode` is
+   * typed "cross" | "isolated" — three spellings that would otherwise have
+   * to be kept in step.
+   */
+  function canAdjustMargin(pos: OMSPosition): boolean {
+    return Boolean(onadjustMargin) && (pos.marginMode ?? "").toLowerCase().startsWith("isolat");
+  }
 
   // PnL Logic
   function getPnlDisplay(pos: OMSPosition, mode: "value" | "percent" | "bar") {
@@ -311,6 +328,15 @@
                 >
                   {$_("positionsList.tpsl")}
                 </button>
+                {#if canAdjustMargin(pos)}
+                  <button
+                    class="flex-1 py-1 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
+                    data-track-id="btn-adjust-margin"
+                    onclick={() => onadjustMargin?.(pos)}
+                  >
+                    {$_("positionsList.adjustMargin")}
+                  </button>
+                {/if}
                 <button
                   class="flex-1 py-1 text-[10px] bg-[var(--danger-color)] bg-opacity-10 hover:bg-opacity-20 text-[var(--danger-color)] rounded border border-[var(--danger-color)] border-opacity-30 transition-colors font-bold"
                   onclick={() => handleClose(pos)}

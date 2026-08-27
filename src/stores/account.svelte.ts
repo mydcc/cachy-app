@@ -156,6 +156,17 @@ class AccountManager {
   openOrders = $state<OpenOrder[]>([]);
   assets = $state<Asset[]>([]);
 
+  /**
+   * The account's position mode ("ONE_WAY" / "HEDGE"), as the last
+   * `/api/account` snapshot reported it (FEAT-0068).
+   *
+   * REST-only — no WebSocket channel carries it — and written by whoever
+   * fetches that snapshot, so a second consumer (the trade panel, which lets
+   * the trader change it) reads the value already on hand instead of asking
+   * the exchange again.
+   */
+  positionMode = $state<string | undefined>(undefined);
+
   private syncCallback: (() => void) | null = null;
   // Fired when a WS push closes an open order (FILLED/CANCELED/...) — lets
   // the UI eagerly refresh the (REST-only, non-live) order history instead
@@ -166,6 +177,7 @@ class AccountManager {
     this.positions = [];
     this.openOrders = [];
     this.assets = [];
+    this.positionMode = undefined;
     this.notifyListeners();
   }
 

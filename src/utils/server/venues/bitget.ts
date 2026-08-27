@@ -605,6 +605,20 @@ async function executeOrder(
   return null;
 }
 
+/*
+ * FEAT-0068 — not wired for Bitget.
+ *
+ * Bitget has its own leverage / margin-mode / position-mode endpoints, but
+ * Cachy has no verified request format for them and BUG-0001 is the standing
+ * reminder not to guess an exchange's wire format. `null` is the venue
+ * boundary's "I do not implement this", which the route turns into a refusal
+ * rather than a 200 — and the client adapter refuses one step earlier still,
+ * so this is the backstop, not the message the trader reads.
+ */
+async function executeAccountSetting(): Promise<null> {
+  return null;
+}
+
 export const bitgetVenue: VenueModule = {
   id: "bitget",
   requiresPassphrase: true,
@@ -640,4 +654,6 @@ export const bitgetVenue: VenueModule = {
   isSymbolNotFoundBody: bitgetIsSymbolNotFoundBody,
 
   executeOrder,
+
+  executeAccountSetting,
 };
