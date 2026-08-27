@@ -1268,6 +1268,16 @@ export const JSIndicators = {
     const rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
     return { rsi, avgGain, avgLoss };
   },
+
+  ao(
+    high: NumberArray,
+    low: NumberArray,
+    fastPeriod: number,
+    slowPeriod: number,
+    out?: Float64Array,
+  ): Float64Array {
+    return calculateAwesomeOscillator(high, low, fastPeriod, slowPeriod, out);
+  },
 };
 
 // --- Helpers (Decimals, used by Service/Worker logic requiring precision) ---
