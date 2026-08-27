@@ -17,153 +17,67 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getChannelsForRequirement, DATA_REQUIREMENTS, REQUIREMENT_TO_CHANNELS } from './dataRequirements';
+import { DATA_REQUIREMENTS } from './dataRequirements';
+import { exchangeAdapters } from '../services/exchange';
 
-describe('dataRequirements - getChannelsForRequirement', () => {
+/*
+ * FEAT-0227 moved the requirement → channel-name mapping out of this file and
+ * onto each adapter, because the names were Bitunix's (`depth_book5`, `price`)
+ * and Bitget was being handed them too. The mapping's own tests moved with it,
+ * to `services/exchange/channelVocabulary.test.ts`, where they now run against
+ * every adapter rather than one venue's table.
+ *
+ * What is tested here is what stayed: the venue-neutral declaration of which
+ * requirements a component has.
+ */
 
-    describe('Standard Data Requirements', () => {
-        it('should return correct channel array for "ticker" requirement', () => {
-            const result = getChannelsForRequirement('ticker');
-            expect(result).toBeDefined();
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual(REQUIREMENT_TO_CHANNELS['ticker']);
-        });
+describe('DATA_REQUIREMENTS', () => {
+    it('declares a non-empty requirement list for every component', () => {
+        const entries = Object.entries(DATA_REQUIREMENTS);
+        expect(entries.length).toBeGreaterThan(0);
 
-        it('should return correct channel array for "price" requirement', () => {
-            const result = getChannelsForRequirement('price');
-            expect(result).toBeDefined();
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual(REQUIREMENT_TO_CHANNELS['price']);
-        });
-
-        it('should return correct channel array for "depth" requirement', () => {
-            const result = getChannelsForRequirement('depth');
-            expect(result).toBeDefined();
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual(REQUIREMENT_TO_CHANNELS['depth']);
-        });
-
-        it('should return correct channel array for "positions" requirement', () => {
-            const result = getChannelsForRequirement('positions');
-            expect(result).toBeDefined();
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual(REQUIREMENT_TO_CHANNELS['positions']);
-        });
-
-        it('should return correct channel array for "orders" requirement', () => {
-            const result = getChannelsForRequirement('orders');
-            expect(result).toBeDefined();
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual(REQUIREMENT_TO_CHANNELS['orders']);
-        });
-
-        it('should return correct channels for all REQUIREMENT_TO_CHANNELS entries', () => {
-            const keys = Object.keys(REQUIREMENT_TO_CHANNELS);
-            expect(keys.length).toBeGreaterThan(0);
-
-            keys.forEach(req => {
-                const result = getChannelsForRequirement(req);
-                expect(result, `getChannelsForRequirement('${req}') returned unexpected value`).toEqual(REQUIREMENT_TO_CHANNELS[req]);
-            });
-        });
+        for (const [component, requirements] of entries) {
+            expect(Array.isArray(requirements), `${component} must declare an array`).toBe(true);
+            expect(requirements.length, `${component} declares no requirements`).toBeGreaterThan(0);
+        }
     });
 
-    describe('Dynamic/Kline Requirements', () => {
-        it('should pass-through standard timeframe klines (e.g. kline_1m)', () => {
-            const result = getChannelsForRequirement('kline_1m');
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual(['kline_1m']);
+    /*
+     * `positions` and `orders` are private channels. Both services subscribe
+     * to them from their own login flow rather than through the registry, so
+     * no adapter maps them and a component declaring them is relying on that
+     * login flow — not on a public subscription. Listing them here keeps the
+     * check below honest about which names are expected to resolve.
+     */
+    const PRIVATE_REQUIREMENTS = new Set(['positions', 'orders']);
+
+    it('uses only public requirement names some adapter can resolve', () => {
+        const allRequirements = new Set<string>();
+        Object.values(DATA_REQUIREMENTS).forEach((requirements) => {
+            requirements.forEach((req) => allRequirements.add(req));
         });
 
-        it('should pass-through arbitrary kline definitions (e.g. kline_1h)', () => {
-            const result = getChannelsForRequirement('kline_1h');
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual(['kline_1h']);
-        });
+        for (const requirement of allRequirements) {
+            // Klines are timeframe-specific and pass through on every venue.
+            if (requirement.startsWith('kline_')) continue;
+            if (PRIVATE_REQUIREMENTS.has(requirement)) continue;
 
-        it('should pass-through edge case kline requirements (e.g. kline_custom)', () => {
-            const result = getChannelsForRequirement('kline_custom');
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual(['kline_custom']);
-        });
-    });
-
-    describe('Fallback and Edge Cases', () => {
-        it('should return an empty array for unknown requirements that do not start with "kline_"', () => {
-            const result = getChannelsForRequirement('unknown_requirement');
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toHaveLength(0);
-            expect(result).toEqual([]);
-        });
-
-        it('should return an empty array for an empty string', () => {
-            const result = getChannelsForRequirement('');
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual([]);
-        });
-
-        it('should handle undefined fallback cleanly if passed undefined at runtime via JS', () => {
-            // TypeScript protects against this, but if invoked from pure JS:
-            const result = getChannelsForRequirement(undefined as unknown as string);
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual([]);
-        });
-
-        it('should handle null fallback cleanly if passed null at runtime via JS', () => {
-            // TypeScript protects against this, but if invoked from pure JS:
-            const result = getChannelsForRequirement(null as unknown as string);
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual([]);
-        });
-
-        it('should handle object inputs cleanly without crashing (JS boundary case)', () => {
-            // Simulate JS sending an object
-            const result = getChannelsForRequirement({} as unknown as string);
-            expect(Array.isArray(result)).toBe(true);
-            expect(result).toEqual([]);
-        });
-    });
-
-});
-
-describe('DATA_REQUIREMENTS and REQUIREMENT_TO_CHANNELS consistency', () => {
-    it('should have a mapping for every requirement used in DATA_REQUIREMENTS', () => {
-        const allRequirementsUsed = new Set<string>();
-
-        Object.values(DATA_REQUIREMENTS).forEach(requirements => {
-            requirements.forEach(req => allRequirementsUsed.add(req));
-        });
-
-        allRequirementsUsed.forEach(req => {
-            // Either it's a kline requirement or it must be in REQUIREMENT_TO_CHANNELS
-            if (!req.startsWith('kline_')) {
-                expect(REQUIREMENT_TO_CHANNELS[req], `Missing mapping for ${req}`).toBeDefined();
-                expect(Array.isArray(REQUIREMENT_TO_CHANNELS[req])).toBe(true);
-                expect(REQUIREMENT_TO_CHANNELS[req].length).toBeGreaterThan(0);
-            }
-        });
-    });
-
-    it('should not have orphaned entries in REQUIREMENT_TO_CHANNELS', () => {
-        const allRequirementsUsed = new Set<string>();
-
-        Object.values(DATA_REQUIREMENTS).forEach(requirements => {
-            requirements.forEach(req => allRequirementsUsed.add(req));
-        });
-
-        // Every key in REQUIREMENT_TO_CHANNELS should be referenced by
-        // at least one component in DATA_REQUIREMENTS or used directly
-        // by marketWatcher (e.g., 'price' and 'orders' are registered
-        // programmatically rather than through DATA_REQUIREMENTS).
-        const knownDirectUseChannels = new Set(['price', 'orders']);
-
-        Object.keys(REQUIREMENT_TO_CHANNELS).forEach(key => {
-            const isUsedInDataReqs = allRequirementsUsed.has(key);
-            const isKnownDirectUse = knownDirectUseChannels.has(key);
+            const resolvable = exchangeAdapters.some(
+                (adapter) => adapter.marketData.channelsForRequirement(requirement).length > 0,
+            );
             expect(
-                isUsedInDataReqs || isKnownDirectUse,
-                `Orphaned REQUIREMENT_TO_CHANNELS entry '${key}' is not used in DATA_REQUIREMENTS or known direct-use list`
+                resolvable,
+                `No adapter maps the requirement '${requirement}' to a channel — a component declaring it would subscribe to nothing on every venue`,
             ).toBe(true);
-        });
+        }
+    });
+
+    it('declares no duplicate requirement within one component', () => {
+        for (const [component, requirements] of Object.entries(DATA_REQUIREMENTS)) {
+            expect(
+                new Set(requirements).size,
+                `${component} declares the same requirement twice`,
+            ).toBe(requirements.length);
+        }
     });
 });
