@@ -1,10 +1,11 @@
 import type {
     IChartApi,
+    IPriceLine,
     ISeriesApi,
     UTCTimestamp,
 } from "lightweight-charts";
 import { LineSeries, HistogramSeries } from "lightweight-charts";
-import { JSIndicators } from "../../utils/indicators";
+import { JSIndicators, calculatePivotsFromValues } from "../../utils/indicators";
 import { indicatorState } from "../../stores/indicator.svelte";
 import {
     type ChartRow,
@@ -17,8 +18,64 @@ import {
 type ColorResolver = (name: string) => string | null;
 
 const MIN_CHART_HEIGHT = 360;
-const MIN_PANE_HEIGHT = 80;
-const PRICE_PANE_RESERVED = 140;
+/** Height a sub-pane gets when there is room to spare. */
+const PREFERRED_PANE_HEIGHT = 80;
+/** Below this a sub-pane stops being readable, so panes are dropped instead. */
+const MIN_PANE_HEIGHT = 56;
+/** The candle pane never shrinks below this to make room for sub-panes. */
+const PRICE_PANE_MIN = 140;
+
+/** One currently-visible sub-pane, reported to the caller after each render. */
+export interface IndicatorPaneInfo {
+    paneIndex: number;
+    key: string;
+    titleKey: string;
+    /** Settings shown next to the name, e.g. "14" or "12 26 9"; "" if none. */
+    params: string;
+}
+
+/**
+ * Every indicator that can claim a sub-pane, in the order they claim them,
+ * with the i18n key for its on-chart label.
+ *
+ * Single source of truth: both the pane budget (computeLayout) and the
+ * renderer (renderSubPanes) decide "is this on?" through `isEnabled` over
+ * this list, so the count and what actually gets drawn cannot drift apart.
+ */
+const SUB_PANES: { key: string; titleKey: string }[] = [
+    { key: "volume", titleKey: "settings.technicals.volume" },
+    { key: "rsi", titleKey: "settings.technicals.rsi.title" },
+    { key: "macd", titleKey: "settings.technicals.macd.title" },
+    { key: "stochRsi", titleKey: "settings.technicals.stochRsi.title" },
+    { key: "cci", titleKey: "settings.technicals.cci" },
+    { key: "momentum", titleKey: "settings.technicals.momentum" },
+    { key: "williamsR", titleKey: "settings.technicals.williamsR" },
+    { key: "obv", titleKey: "settings.technicals.obv" },
+    { key: "mfi", titleKey: "settings.technicals.mfi" },
+    { key: "adx", titleKey: "settings.technicals.adx" },
+    { key: "ao", titleKey: "settings.technicals.awesomeOsc" },
+    { key: "choppiness", titleKey: "settings.technicals.choppiness" },
+    { key: "stochastic", titleKey: "settings.technicals.stochasticTitle" },
+];
+
+/**
+ * Reads the same `enabled` field the Settings tab binds to. Settings is the
+ * only place these are switched — the chart deliberately has no on/off
+ * control, because a control living inside the pane it hides cannot be used
+ * to bring that pane back.
+ */
+function isEnabled(key: string): boolean {
+    const s = indicatorState as unknown as Record<string, { enabled?: boolean } | undefined>;
+    const entry = s[key];
+    return entry !== undefined && entry.enabled !== false;
+}
+
+interface PaneLayout {
+    /** How many sub-panes are drawn. */
+    count: number;
+    /** Height in px each of them gets. */
+    height: number;
+}
 
 interface ManagedSeries {
     series: ISeriesApi<"Line"> | ISeriesApi<"Histogram">;
@@ -28,34 +85,71 @@ interface ManagedSeries {
  * Owns every indicator series drawn on top of the candlestick chart:
  * moving-average overlays on the price pane, and oscillator/volume sub-panes.
  *
- * Sub-panes auto-hide when the chart window is too short to be usable — the
- * user endorsed this ("Sub-Panel automatisch ausblenden bei geringer
- * chartfenstergröße") so a tiny window never gets cluttered with unusable
- * mini-panes. Priority order decides which panes survive when height is scarce.
+ * Sub-panes auto-hide entirely when the chart window is too short to be
+ * usable — the user endorsed this ("Sub-Panel automatisch ausblenden bei
+ * geringer chartfenstergröße") so a tiny window never gets cluttered with
+ * unusable mini-panes.
+ *
+ * Above that floor the panes share the space instead: what is switched on in
+ * Settings gets drawn, shrinking together down to MIN_PANE_HEIGHT, and only
+ * what cannot fit even at that height is dropped. Silently omitting an
+ * indicator the user explicitly enabled is the last resort, not the default.
  */
 export class IndicatorLayer {
     private chart: IChartApi;
     private getColor: ColorResolver;
+    private candleSeries: ISeriesApi<"Candlestick"> | null;
 
     private managed: ManagedSeries[] = [];
     private createdPaneIndices: number[] = [];
+    private priceLines: IPriceLine[] = [];
     private subPaneCursor = 1;
     private availableHeight = MIN_CHART_HEIGHT;
     private lastRows: ChartRow[] | null = null;
+    private onPanesChanged?: (panes: IndicatorPaneInfo[]) => void;
+    private panesInfo: IndicatorPaneInfo[] = [];
+    private layout: PaneLayout = { count: 0, height: PREFERRED_PANE_HEIGHT };
 
-    constructor(chart: IChartApi, getColor: ColorResolver) {
+    constructor(
+        chart: IChartApi,
+        getColor: ColorResolver,
+        candleSeries?: ISeriesApi<"Candlestick"> | null,
+        onPanesChanged?: (panes: IndicatorPaneInfo[]) => void,
+    ) {
         this.chart = chart;
         this.getColor = getColor;
+        this.candleSeries = candleSeries ?? null;
+        this.onPanesChanged = onPanesChanged;
     }
 
-    /** Height of the chart container in CSS px; triggers re-render on compact change. */
+    /**
+     * Height of the chart container in CSS px.
+     *
+     * Resizing the window has to actually change the layout: the previous
+     * version only re-rendered when the MIN_CHART_HEIGHT threshold was
+     * crossed, so dragging a chart from 450px to 1200px added no panes at all
+     * until the next full data render happened to come along.
+     *
+     * A changed pane *count* needs the full rebuild; a changed pane *height*
+     * only needs setHeight on the panes that already exist. That split
+     * matters because ResizeObserver fires continuously while dragging, and
+     * tearing every series down on each of those frames visibly stutters.
+     */
     setAvailableHeight(h: number): void {
-        const wasCompact = this.availableHeight < MIN_CHART_HEIGHT;
+        if (h === this.availableHeight) return;
         this.availableHeight = h;
-        const isCompact = h < MIN_CHART_HEIGHT;
-        if (wasCompact !== isCompact && this.lastRows) {
-            this.render(this.lastRows);
+
+        const next = this.computeLayout();
+        const countChanged = next.count !== this.layout.count;
+        const heightChanged = next.height !== this.layout.height;
+        if (!countChanged && !heightChanged) return;
+
+        if (countChanged && this.lastRows) {
+            this.render(this.lastRows); // recomputes and stores the layout
+            return;
         }
+        this.layout = next;
+        if (heightChanged) this.applyPaneHeights();
     }
 
     /** Re-apply theme by rebuilding from the last data set (fresh colors). */
@@ -66,6 +160,7 @@ export class IndicatorLayer {
     destroy(): void {
         this.teardown();
         this.lastRows = null;
+        this.onPanesChanged?.(this.panesInfo);
     }
 
     // ---- public render -------------------------------------------------
@@ -73,7 +168,11 @@ export class IndicatorLayer {
     render(rows: ChartRow[]): void {
         this.lastRows = rows;
         this.teardown();
-        if (rows.length === 0) return;
+        if (rows.length === 0) {
+            this.onPanesChanged?.(this.panesInfo);
+            return;
+        }
+        this.layout = this.computeLayout();
 
         const closes = getSourceData(rows, "close");
         const opens = getSourceData(rows, "open");
@@ -85,6 +184,7 @@ export class IndicatorLayer {
         const ctx = { closes, opens, highs, lows, volume };
         this.renderOverlays(rows, ctx);
         this.renderSubPanes(rows, ctx);
+        this.onPanesChanged?.(this.panesInfo);
     }
 
     // ---- teardown -------------------------------------------------------
@@ -98,6 +198,14 @@ export class IndicatorLayer {
             }
         }
         this.managed = [];
+        for (const pl of this.priceLines) {
+            try {
+                this.candleSeries?.removePriceLine(pl);
+            } catch {
+                /* price line may already be gone */
+            }
+        }
+        this.priceLines = [];
         const indices = [...this.createdPaneIndices].sort((a, b) => b - a);
         for (const idx of indices) {
             try {
@@ -108,23 +216,52 @@ export class IndicatorLayer {
         }
         this.createdPaneIndices = [];
         this.subPaneCursor = 1;
+        this.panesInfo = [];
     }
 
     // ---- helpers --------------------------------------------------------
+
+    private recordPane(paneIndex: number, key: string, params: string): void {
+        const titleKey = SUB_PANES.find((p) => p.key === key)?.titleKey;
+        if (titleKey) this.panesInfo.push({ paneIndex, key, titleKey, params });
+    }
 
     private color(key: string, fallback: string): string {
         return this.getColor(key) || fallback;
     }
 
-    private canAddSubPane(): boolean {
-        if (this.availableHeight < MIN_CHART_HEIGHT) return false;
-        const used = (this.subPaneCursor - 1) * MIN_PANE_HEIGHT;
-        const remaining = this.availableHeight - PRICE_PANE_RESERVED - used;
-        return remaining >= MIN_PANE_HEIGHT;
+    /**
+     * How many sub-panes fit and how tall each one gets, for the indicators
+     * currently switched on in Settings.
+     */
+    private computeLayout(): PaneLayout {
+        const none: PaneLayout = { count: 0, height: PREFERRED_PANE_HEIGHT };
+        if (this.availableHeight < MIN_CHART_HEIGHT) return none;
+
+        const wanted = SUB_PANES.filter((p) => isEnabled(p.key)).length;
+        if (wanted === 0) return none;
+
+        const budget = this.availableHeight - PRICE_PANE_MIN;
+        const capacity = Math.max(0, Math.floor(budget / MIN_PANE_HEIGHT));
+        const count = Math.min(wanted, capacity);
+        if (count === 0) return none;
+
+        const height = Math.min(
+            PREFERRED_PANE_HEIGHT,
+            Math.max(MIN_PANE_HEIGHT, Math.floor(budget / count)),
+        );
+        return { count, height };
+    }
+
+    private applyPaneHeights(): void {
+        for (const idx of this.createdPaneIndices) {
+            const pane = this.chart.panes()[idx];
+            if (pane) pane.setHeight(this.layout.height);
+        }
     }
 
     private openSubPane(): number | null {
-        if (!this.canAddSubPane()) return null;
+        if (this.subPaneCursor > this.layout.count) return null;
         const idx = this.subPaneCursor++;
         this.createdPaneIndices.push(idx);
         return idx;
@@ -170,7 +307,7 @@ export class IndicatorLayer {
 
     private setPaneHeight(idx: number): void {
         const pane = this.chart.panes()[idx];
-        if (pane) pane.setHeight(MIN_PANE_HEIGHT);
+        if (pane) pane.setHeight(this.layout.height);
     }
 
     private src(source?: string): SourceKind {
@@ -191,6 +328,41 @@ export class IndicatorLayer {
     ): void {
         const s = indicatorState;
         const P0 = 0;
+
+        // Pivot points (horizontal levels on the price pane, from prior bar)
+        if (s.pivots && s.pivots.enabled !== false && this.candleSeries && rows.length >= 2) {
+            const prev = rows[rows.length - 2];
+            const res = calculatePivotsFromValues(
+                prev.high,
+                prev.low,
+                prev.close,
+                prev.open,
+                s.pivots.type ?? "classic",
+            );
+            const lv = res.pivots.classic;
+            const levels: Array<{ key: keyof typeof lv; title: string; primary: boolean }> = [
+                { key: "r3", title: "R3", primary: false },
+                { key: "r2", title: "R2", primary: false },
+                { key: "r1", title: "R1", primary: false },
+                { key: "p", title: "P", primary: true },
+                { key: "s1", title: "S1", primary: false },
+                { key: "s2", title: "S2", primary: false },
+                { key: "s3", title: "S3", primary: false },
+            ];
+            for (const { key, title, primary } of levels) {
+                const price = lv[key];
+                if (typeof price !== "number" || Number.isNaN(price)) continue;
+                const line = this.candleSeries.createPriceLine({
+                    price,
+                    title,
+                    color: this.color(primary ? "--accent-color" : "--text-tertiary", primary ? "#2962ff" : "#9aa0a6"),
+                    lineWidth: primary ? 2 : 1,
+                    lineStyle: primary ? 0 : 2,
+                    axisLabelVisible: true,
+                });
+                this.priceLines.push(line);
+            }
+        }
 
         // EMA (1-3)
         if (s.ema.enabled !== false) {
@@ -229,8 +401,8 @@ export class IndicatorLayer {
             );
 
         // Bollinger Bands
-        if (s.bb.enabled !== false && s.bb.length) {
-            const bb = JSIndicators.bb(a.closes, s.bb.length, s.bb.stdDev ?? 2);
+        if (s.bollingerBands.enabled !== false && s.bollingerBands.length) {
+            const bb = JSIndicators.bb(a.closes, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
             this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
             this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6", { lineWidth: 1 });
             this.addLine(rows, bb.lower, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
@@ -302,24 +474,29 @@ export class IndicatorLayer {
         const s = indicatorState;
 
         // Volume pane (highest priority; shown whenever there is room).
-        const idxVol = this.openSubPane();
-        if (idxVol !== null) {
-            this.addVolume(rows, idxVol);
-            this.setPaneHeight(idxVol);
+        if (isEnabled("volume")) {
+            const idxVol = this.openSubPane();
+            if (idxVol !== null) {
+                this.addVolume(rows, idxVol);
+                this.setPaneHeight(idxVol);
+                this.recordPane(idxVol, "volume", "");
+            }
         }
 
         // RSI
-        if (s.rsi.enabled !== false) {
+        if (isEnabled("rsi")) {
             const idx = this.openSubPane();
             if (idx !== null) {
+                const len = s.rsi.length ?? 14;
                 const d = getSourceData(rows, this.src(s.rsi.source));
-                this.addLine(rows, JSIndicators.rsi(d, s.rsi.length ?? 14), idx, "--accent-color", "#2962ff");
+                this.addLine(rows, JSIndicators.rsi(d, len), idx, "--accent-color", "#2962ff");
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "rsi", `${len}`);
             }
         }
 
         // MACD
-        if (s.macd.enabled !== false) {
+        if (isEnabled("macd")) {
             const idx = this.openSubPane();
             if (idx !== null) {
                 const d = getSourceData(rows, this.src(s.macd.source));
@@ -327,11 +504,12 @@ export class IndicatorLayer {
                 this.addLine(rows, m.macd, idx, "--accent-color", "#2962ff");
                 this.addLine(rows, m.signal, idx, "--warning-color", "#ffb300");
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "macd", `${s.macd.fastLength} ${s.macd.slowLength} ${s.macd.signalLength}`);
             }
         }
 
         // StochRSI
-        if (s.stochRsi.enabled !== false) {
+        if (isEnabled("stochRsi")) {
             const idx = this.openSubPane();
             if (idx !== null) {
                 const d = getSourceData(rows, this.src(s.stochRsi.source));
@@ -340,108 +518,137 @@ export class IndicatorLayer {
                 this.addLine(rows, sr.k, idx, "--accent-color", "#2962ff");
                 this.addLine(rows, sr.d, idx, "--warning-color", "#ffb300");
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "stochRsi", `${rsiPeriod} ${s.stochRsi.kPeriod} ${s.stochRsi.dPeriod}`);
             }
         }
 
         // CCI
-        if (s.cci.enabled !== false) {
+        if (isEnabled("cci")) {
             const idx = this.openSubPane();
             if (idx !== null) {
+                const len = s.cci.length ?? 20;
                 const d = getSourceData(rows, this.src(s.cci.source));
-                this.addLine(rows, JSIndicators.cci(d, s.cci.length ?? 20), idx, "--accent-color", "#2962ff");
+                this.addLine(rows, JSIndicators.cci(d, len), idx, "--accent-color", "#2962ff");
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "cci", `${len}`);
             }
         }
 
         // Momentum
-        if (s.momentum.enabled !== false) {
+        if (isEnabled("momentum")) {
             const idx = this.openSubPane();
             if (idx !== null) {
+                const len = s.momentum.length ?? 10;
                 const d = getSourceData(rows, this.src(s.momentum.source));
-                this.addLine(rows, JSIndicators.mom(d, s.momentum.length ?? 10), idx, "--success-color", "#26a69a");
+                this.addLine(rows, JSIndicators.mom(d, len), idx, "--success-color", "#26a69a");
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "momentum", `${len}`);
             }
         }
 
         // Williams %R
-        if (s.williamsR.enabled !== false) {
+        if (isEnabled("williamsR")) {
             const idx = this.openSubPane();
             if (idx !== null) {
+                const len = s.williamsR.length ?? 14;
                 this.addLine(
                     rows,
-                    JSIndicators.williamsR(a.highs, a.lows, a.closes, s.williamsR.length ?? 14),
+                    JSIndicators.williamsR(a.highs, a.lows, a.closes, len),
                     idx,
                     "--danger-color",
                     "#ef5350",
                 );
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "williamsR", `${len}`);
             }
         }
 
         // OBV
-        if (s.obv.enabled !== false) {
+        if (isEnabled("obv")) {
             const idx = this.openSubPane();
             if (idx !== null) {
                 this.addLine(rows, JSIndicators.obv(a.closes, a.volume), idx, "--text-tertiary", "#9aa0a6");
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "obv", "");
             }
         }
 
-        // ADX
-        if (s.adx.enabled !== false) {
+        // MFI
+        if (isEnabled("mfi")) {
             const idx = this.openSubPane();
             if (idx !== null) {
+                const len = s.mfi.length ?? 14;
                 this.addLine(
                     rows,
-                    JSIndicators.adx(a.highs, a.lows, a.closes, s.adx.diLength ?? s.adx.adxSmoothing ?? 14),
+                    JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, len),
                     idx,
                     "--accent-color",
                     "#2962ff",
                 );
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "mfi", `${len}`);
+            }
+        }
+
+        // ADX
+        if (isEnabled("adx")) {
+            const idx = this.openSubPane();
+            if (idx !== null) {
+                const len = s.adx.diLength ?? s.adx.adxSmoothing ?? 14;
+                this.addLine(
+                    rows,
+                    JSIndicators.adx(a.highs, a.lows, a.closes, len),
+                    idx,
+                    "--accent-color",
+                    "#2962ff",
+                );
+                this.setPaneHeight(idx);
+                this.recordPane(idx, "adx", `${len}`);
             }
         }
 
         // Awesome Oscillator
-        if (s.ao.enabled !== false) {
+        if (isEnabled("ao")) {
             const idx = this.openSubPane();
             if (idx !== null) {
-                const hl2 = getSourceData(rows, "hl2");
-                const fast = JSIndicators.sma(hl2, s.ao.fastLength ?? 5);
-                const slow = JSIndicators.sma(hl2, s.ao.slowLength ?? 34);
-                const ao = new Float64Array(rows.length);
-                for (let i = 0; i < rows.length; i++) {
-                    ao[i] = isNaN(fast[i]) || isNaN(slow[i]) ? NaN : fast[i] - slow[i];
-                }
+                const fast = s.ao.fastLength ?? 5;
+                const slow = s.ao.slowLength ?? 34;
+                const ao = JSIndicators.ao(a.highs, a.lows, fast, slow);
                 this.addLine(rows, ao, idx, "--warning-color", "#ffb300");
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "ao", `${fast} ${slow}`);
             }
         }
 
         // Choppiness
-        if (s.choppiness.enabled !== false) {
+        if (isEnabled("choppiness")) {
             const idx = this.openSubPane();
             if (idx !== null) {
+                const len = s.choppiness.length ?? 14;
                 this.addLine(
                     rows,
-                    JSIndicators.choppiness(a.highs, a.lows, a.closes, s.choppiness.length ?? 14),
+                    JSIndicators.choppiness(a.highs, a.lows, a.closes, len),
                     idx,
                     "--text-tertiary",
                     "#9aa0a6",
                 );
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "choppiness", `${len}`);
             }
         }
 
         // Stochastic
-        if (s.stochastic.enabled !== false) {
+        if (isEnabled("stochastic")) {
             const idx = this.openSubPane();
             if (idx !== null) {
-                const k = JSIndicators.stoch(a.highs, a.lows, a.closes, s.stochastic.kPeriod ?? 14);
-                const d = JSIndicators.sma(k, s.stochastic.dPeriod ?? 3);
+                const kPeriod = s.stochastic.kPeriod ?? 14;
+                const dPeriod = s.stochastic.dPeriod ?? 3;
+                const k = JSIndicators.stoch(a.highs, a.lows, a.closes, kPeriod);
+                const d = JSIndicators.sma(k, dPeriod);
                 this.addLine(rows, k, idx, "--accent-color", "#2962ff");
                 this.addLine(rows, d, idx, "--warning-color", "#ffb300");
                 this.setPaneHeight(idx);
+                this.recordPane(idx, "stochastic", `${kPeriod} ${dPeriod}`);
             }
         }
     }

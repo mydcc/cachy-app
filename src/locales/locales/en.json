@@ -999,7 +999,8 @@
         "sourceLive": "Live trades only",
         "sourceAmbient": "Ambient (fill silence)",
         "sourceReplay": "Replay recent trades",
-        "tooltipSource": "Keeps the background alive when the live feed goes quiet. 'Live' shows only real trades. 'Ambient' injects subtle synthetic ticks after a pause. 'Replay' continuously replays the most recent trades as synthetic ticks."
+        "tooltipSource": "Keeps the background alive when the live feed goes quiet. 'Live' shows only real trades. 'Ambient' injects subtle synthetic ticks after a pause. 'Replay' continuously replays the most recent trades as synthetic ticks.",
+        "tooltipBlock": "Each block = one trade. Height = price, depth = age (front = now), size = volume (notional). Green = buy, red = sell. Fibonacci planes + price spine are fixed price references. Rotation (opt-in) spins the whole scene — off by default so axes stay readable."
       },
       "coordinates": {
         "x": "X",
@@ -1304,6 +1305,8 @@
       "displayPreferences": "Display Preferences",
       "calculationMode": "Calculation Mode",
       "obvNoParams": "On Balance Volume has no configurable parameters.",
+      "volume": "Volume",
+      "volumeNoParams": "The volume bars have no configurable parameters.",
       "awesomeOsc": "Awesome Osc.",
       "anchor": "Anchor",
       "rows": "Rows",

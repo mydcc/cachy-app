@@ -1546,6 +1546,7 @@
                                     <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipRotation")}>{$_("settings.visuals.tradeFlow.sceneRotation")}</span>
                                     <Toggle bind:checked={settingsState.tradeFlowSettings.enableRotation} />
                                 </div>
+                                <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed md:col-span-2">{$_("settings.visuals.tradeFlow.tooltipBlock")}</p>
                                 {/if}
                             </div>
                         </div>
