@@ -105,7 +105,7 @@ Reserve the full `npm test` for when you touched many files across projects or r
 
 Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository.
 
-**Gortex — Worktree Session Start:** When the working directory is a linked git worktree (not the main checkout), run this **once at the very start of the session** before any other tool call:
+**Gortex — Worktree Session Start (AUTOMATIC):** Every agent MUST run this before any other tool call — non-negotiable:
 
 ```bash
 bash scripts/index-worktree.sh
