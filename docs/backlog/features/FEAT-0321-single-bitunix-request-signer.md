@@ -4,7 +4,7 @@ title: Sign every Bitunix request through one signer instead of three copies
 type: feature
 status: in-progress
 assignee: claude
-branch: worktree-bitunix-single-signer-3a0669
+branch: feat/bitunix-single-signer
 priority: P3
 milestone: M2
 editions: [community, pro, private]

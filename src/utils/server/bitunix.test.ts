@@ -41,19 +41,19 @@ import { generateBitunixSignature } from "./bitunix";
  * a collision in the underlying hash is a MAC forgery. Against SHA-256 that
  * is not a practical attack today, and it is not Cachy's to change.
  *
- * FEAT-0321 — characterisation of the five Bitunix signers.
+ * FEAT-0321 — characterisation of the Bitunix signers.
  *
- * Until this item, the signing algorithm existed three times: as
- * `generateBitunixSignature` here, and hand-rolled inline in the balance and
- * positions paths of `src/utils/server/venues/bitunix.ts`. The two inline
- * copies are gone; the functions below are those copies, transcribed verbatim
- * except that the nonce and timestamp they used to generate internally are now
- * arguments, so all three can be driven with the same input.
+ * Until this item, the signing algorithm existed five times: `generateBitunixSignature`
+ * in bitunix.ts, plus four hand-rolled copies: balance and positions paths in
+ * venues/bitunix.ts, and positions-pending and order-detail in sync routes.
  *
- * They stay here on purpose. They are the record of what bytes a live Bitunix
- * account accepted from the balance and positions paths before the merge, and
- * a change to `generateBitunixSignature` that would have broken either path now
- * fails here instead of failing as an authentication error against real money.
+ * The functions below document only the balance and positions venues copies (the
+ * first two that FEAT-0228 gathered), transcribed verbatim except that nonce and
+ * timestamp are now arguments. This characterises the core two; the sync routes'
+ * copies were structurally identical and consolidated too, so any drift in the
+ * survivor still fails here where it matters: the digest construction and signing
+ * algorithm itself. The test proves byte-equivalence before deletion and stays as
+ * a permanent regression guard against the one implementation now in production.
  */
 
 /**
