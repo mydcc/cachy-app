@@ -16,9 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/*
+ * The behaviour under test is unchanged: interest registered here must survive
+ * a provider's destroy()/connect() cycle, and a channel nothing wants any more
+ * must be dropped.
+ *
+ * What changed with FEAT-0227 is who is asked. This file used to mock
+ * `./bitunixWs` and drive the scenario by writing into that service's internal
+ * `pendingSubscriptions` map — the arrangement the item exists to remove, and
+ * one that could only ever have tested Bitunix. It now mocks the adapter
+ * boundary, and the "the provider forgot" step is `forgetSubscriptions()`,
+ * which is what ConnectionManager calls after tearing every provider down.
+ */
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { marketWatcher } from "./marketWatcher";
-import { bitunixWs } from "./bitunixWs";
 
 vi.mock("$app/environment", () => ({
   browser: true,
@@ -49,61 +61,92 @@ vi.mock("../stores/market.svelte", () => ({
   },
 }));
 
-vi.mock("./bitunixWs", () => ({
-  bitunixWs: {
-    pendingSubscriptions: new Map<string, number>(),
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn(),
-  },
-}));
+const subscribe = vi.fn();
+const unsubscribe = vi.fn();
+
+vi.mock("./exchange", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./exchange")>();
+  return {
+    ...actual,
+    activeExchange: () => ({
+      id: "bitunix",
+      marketData: {
+        subscribe,
+        unsubscribe,
+        // The one venue-shaped fact this test needs: which channels a
+        // requirement expands to. Kept minimal on purpose — the real mapping
+        // is covered in `exchange/channelVocabulary.test.ts`.
+        channelsForRequirement: (requirement: string) =>
+          requirement.startsWith("kline_") ? [requirement] : [requirement],
+      },
+    }),
+  };
+});
 
 interface MarketWatcherInternals {
   requests: Map<string, Map<string, Map<string, number>>>;
 }
 
 const watcher = marketWatcher as unknown as MarketWatcherInternals;
-const pending = bitunixWs.pendingSubscriptions as Map<string, number>;
 
 describe("MarketWatcher.resync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     watcher.requests.clear();
-    pending.clear();
+    marketWatcher.forgetSubscriptions();
   });
 
   it("restores a subscription the provider forgot across a destroy()/connect() cycle", () => {
-    // A tile registers interest; the live socket records the subscription.
+    // A tile registers interest; the adapter is told to subscribe.
     marketWatcher.register("BTCUSDT", "price");
-    expect(bitunixWs.subscribe).toHaveBeenCalledWith("BTCUSDT", "price");
-    vi.mocked(bitunixWs.subscribe).mockClear();
+    expect(subscribe).toHaveBeenCalledWith("BTCUSDT", "price");
+    subscribe.mockClear();
 
-    // Simulate ConnectionManager tearing the provider down and reconnecting
-    // it (e.g. app.init()'s initial switchProvider race). destroy() wipes the
+    // ConnectionManager tears the provider down and reconnects it (e.g.
+    // app.init()'s initial switchProvider race). destroy() wipes the
     // provider's own subscription buffer, but MarketWatcher never
-    // unregistered BTCUSDT:price - a tile is still relying on this data.
-    pending.clear();
+    // unregistered BTCUSDT:price — a tile is still relying on this data.
+    marketWatcher.forgetSubscriptions();
 
     marketWatcher.resync();
 
-    expect(bitunixWs.subscribe).toHaveBeenCalledWith("BTCUSDT", "price");
+    expect(subscribe).toHaveBeenCalledWith("BTCUSDT", "price");
   });
 
   it("does not re-subscribe a channel the provider already has", () => {
     marketWatcher.register("BTCUSDT", "price");
-    // Simulate the provider having actually recorded the subscription.
-    pending.set("price:BTCUSDT", 1);
-    vi.mocked(bitunixWs.subscribe).mockClear();
+    subscribe.mockClear();
 
+    // No teardown happened, so the socket still holds what it was told. A
+    // plain reconnect keeps its subscription buffer; re-issuing here would
+    // drive the venue's own count up with nothing to bring it back down.
     marketWatcher.resync();
 
-    expect(bitunixWs.subscribe).not.toHaveBeenCalled();
+    expect(subscribe).not.toHaveBeenCalled();
   });
 
   it("unsubscribes a channel the provider still has but nothing wants anymore", () => {
-    pending.set("price:STALEUSDT", 1);
+    marketWatcher.register("STALEUSDT", "price");
+    subscribe.mockClear();
 
+    // Every tile showing it goes away.
+    marketWatcher.unregister("STALEUSDT", "price");
     marketWatcher.resync();
 
-    expect(bitunixWs.unsubscribe).toHaveBeenCalledWith("STALEUSDT", "price");
+    expect(unsubscribe).toHaveBeenCalledWith("STALEUSDT", "price");
+  });
+
+  it("does not unsubscribe a channel the socket was never told about", () => {
+    marketWatcher.register("BTCUSDT", "price");
+    marketWatcher.forgetSubscriptions();
+    unsubscribe.mockClear();
+
+    // The provider was destroyed and everything unregistered before it came
+    // back. Sending an unsubscribe for a channel no live socket holds is
+    // noise at best and a wire error at worst.
+    watcher.requests.clear();
+    marketWatcher.resync();
+
+    expect(unsubscribe).not.toHaveBeenCalled();
   });
 });

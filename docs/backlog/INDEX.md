@@ -2,9 +2,9 @@
 
 # Backlog index
 
-205 items. How to read and add them: [README.md](README.md).
+208 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-progress 9 · ✅ done 149
+Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-progress 11 · ✅ done 150
 
 ---
 
@@ -47,11 +47,14 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0297](bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) | An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built | P1 | ✅ done | execution |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | exchange |
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | ✅ done | exchange |
-| [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | 🟡 in-progress | exchange |
+| [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | ✅ done | exchange |
 | [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | exchange |
 | [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | ✅ done | ui |
-| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 📋 specced | exchange |
-| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 🟢 ready | exchange |
+| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 🟡 in-progress | exchange |
+| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 🟡 in-progress | exchange |
+| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 📋 specced | exchange |
+| [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | 📋 specced | exchange |
+| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 📋 specced | exchange |
 
 ### M3
 
@@ -149,7 +152,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | ai |
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | ai |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | ai |
-| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | 📋 specced | ai |
+| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | 🟡 in-progress | ai |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | ai |
 
 ### M9
@@ -327,7 +330,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | ✅ done | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
-| [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | 🟡 in-progress | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
+| [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | ✅ done | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md), [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0021](features/FEAT-0021-order-types.md) |
@@ -427,8 +430,8 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0214](features/FEAT-0214-pr-preview-deployments.md) | Automated PR preview deployments for visual and mobile testing | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | ✅ done | M0 | community, pro, private | none | none | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) |
-| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) |
-| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 🟢 ready | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
+| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) |
+| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | ✅ done | none | community, pro, private | C | none | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md), [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) |
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) |
@@ -440,7 +443,8 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | M8 | pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0019](features/FEAT-0019-agentic-web-search.md) |
-| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | 📋 specced | M8 | community, pro, private | none | none | — |
+| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | 🟡 in-progress | M8 | community, pro, private | none | none | — |
+| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -470,6 +474,8 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
+| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -484,4 +490,4 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 
 ---
 
-Next free number: **0319**
+Next free number: **0322**
