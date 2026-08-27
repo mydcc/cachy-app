@@ -193,7 +193,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 - In the item's front matter set `status: in-progress`, `assignee: <agent-name>` (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …), and note the branch name in the item. `npm run backlog:check` fails while an `in-progress` item has no `assignee` — that is intentional, so stale claims surface immediately.
 
 **3. After finishing (mandatory cleanup — also when abandoning):**
-- Remove your worktree: `git worktree remove .worktrees/<branch>` (`--force` only after saving uncommitted work as a patch outside the repo).
+- Retire your worktree — **both halves**: `bash scripts/worktree-cleanup.sh <branch>` from the main checkout removes the directory, untracks it from Gortex and deletes the merged branch in one step. `git worktree remove` alone untracks nothing, and a leftover tracked worktree is a full repo in the graph (~31k nodes), so a handful of them slows every graph query until `explore` hits its deadline. The script refuses anything dirty, unmerged or in use — never pass `--force` to work around that (`--force` only after saving uncommitted work as a patch outside the repo).
 - Delete the branch once merged or abandoned; push first if its commits should be preserved.
 - Update the item: `status: done` (+ shipped version) when merged; otherwise leave a short state note ("what exists, what is open") so the next agent can continue instead of doing archaeology.
 - Never leave uncommitted changes behind: commit them to the branch or save a patch.
