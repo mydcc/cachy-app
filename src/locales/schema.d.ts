@@ -110,6 +110,7 @@ export type TranslationKey =
   | "app.launchApp"
   | "app.academy"
   | "app.deepwiki"
+  | "app.github"
   | "app.yes"
   | "app.no"
   | "app.autoBackup.restoreTitle"
