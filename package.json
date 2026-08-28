@@ -1,6 +1,6 @@
 {
   "name": "cachy-app",
-  "version": "1.6.0-beta.177",
+  "version": "1.6.0-beta.178",
   "description": "Local-first position size and risk management calculator for crypto traders.",
   "license": "AGPL-3.0-or-later",
   "private": true,
