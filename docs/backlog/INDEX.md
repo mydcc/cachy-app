@@ -2,9 +2,9 @@
 
 # Backlog index
 
-209 items. How to read and add them: [README.md](README.md).
+212 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 5 · 🟡 in-progress 13 · ✅ done 151
+Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 5 · 🟡 in-progress 15 · ✅ done 151
 
 ---
 
@@ -256,6 +256,7 @@ Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 5 · 🟡 in-pro
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | execution |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | security |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | api |
+| [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | 📋 specced | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -269,6 +270,8 @@ Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | pwa |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | tooling |
 | [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | exchange |
+| [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | 🟡 in-progress | ui |
+| [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | 🟡 in-progress | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -463,6 +466,7 @@ Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 5 · 🟡 in-pro
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
+| [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -478,6 +482,8 @@ Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
 | [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
 | [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | 🟡 in-progress | none | community, pro, private | none | none | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -492,4 +498,4 @@ Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 5 · 🟡 in-pro
 
 ---
 
-Next free number: **0323**
+Next free number: **0326**
