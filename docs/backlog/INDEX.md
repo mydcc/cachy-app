@@ -2,9 +2,9 @@
 
 # Backlog index
 
-208 items. How to read and add them: [README.md](README.md).
+209 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-progress 11 · ✅ done 150
+Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 5 · 🟡 in-progress 13 · ✅ done 151
 
 ---
 
@@ -54,7 +54,7 @@ Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 🟡 in-progress | exchange |
 | [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 📋 specced | exchange |
 | [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | 📋 specced | exchange |
-| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 📋 specced | exchange |
+| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 🟡 in-progress | exchange |
 
 ### M3
 
@@ -81,7 +81,7 @@ Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | trade-panel |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | trade-panel |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | ✅ done | exchange |
-| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | exchange |
+| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 🟡 in-progress | exchange |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | execution |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | ✅ done | execution |
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | trade-panel |
@@ -268,6 +268,7 @@ Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | tooling |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | pwa |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | tooling |
+| [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | exchange |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -341,7 +342,7 @@ Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | ✅ done | M3 | community, pro, private | C | none | — |
-| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
+| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 🟡 in-progress | M3 | community, pro, private | A | none | — |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | M2 | community, pro, private | none | ADR-0008 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
@@ -475,7 +476,8 @@ Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
-| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
+| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
+| [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -490,4 +492,4 @@ Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-pro
 
 ---
 
-Next free number: **0322**
+Next free number: **0323**
