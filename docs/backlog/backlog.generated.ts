@@ -1423,7 +1423,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0068",
     "title": "Read and change leverage, margin mode and position margin from the trade panel",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -1432,6 +1432,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "private"
     ],
     "area": "exchange",
+    "assignee": "claude",
+    "branch": "worktree-issue-1809-feb78b",
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
@@ -4335,7 +4337,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0321",
     "title": "Sign every Bitunix request through one signer instead of three copies",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/bitunix-single-signer",
     "priority": "P3",
     "milestone": "M2",
     "editions": [
@@ -4351,7 +4355,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "estimate": "2",
     "size": "S",
+    "start_date": "2026-08-27",
     "file": "features/FEAT-0321-single-bitunix-request-signer.md"
+  },
+  {
+    "id": "FEAT-0322",
+    "title": "Remove stale backup files from the repository",
+    "type": "feature",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "version": "1.6.0-beta.163",
+    "file": "features/FEAT-0322-remove-stale-backup-files.md"
   },
   {
     "id": "IDEA-0036",
