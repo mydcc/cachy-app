@@ -1025,7 +1025,7 @@
         "indicatorTimeframe": "Indicator interval",
         "tooltipIndicatorTimeframe": "Candle interval the ATR and RSI are read from. If a chart is already open on this symbol and interval, the values are shared and cost nothing extra.",
         "atrBands": "ATR reference rings",
-        "tooltipAtrBands": "Draws three rings on the price axis: the last traded price, and ±1 ATR around it. Lets you see at a glance whether a trade's shockwave sits inside the market's normal range or is breaking out of it. Needs the radial price axis and an available ATR reading; if ±1 ATR is wider than everything traded recently, both rings pin to the edges — which is itself the answer."
+        "tooltipAtrBands": "Draws three rings on the price axis: the last traded price, and ±1 ATR around it. Lets you see at a glance whether a trade's shockwave sits inside the market's normal range or is breaking out of it. Needs the radial price axis and an available ATR reading; with the 2× ATR axis span, ±1 ATR rings sit near the 1/4 and 3/4 points, moving only if price wanders 1+ ATR from the recent centre — which is itself the answer."
       },
       "coordinates": {
         "x": "X",

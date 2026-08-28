@@ -1025,7 +1025,7 @@
         "indicatorTimeframe": "Indikator-Intervall",
         "tooltipIndicatorTimeframe": "Kerzenintervall, aus dem ATR und RSI gelesen werden. Ist für dieses Symbol und Intervall bereits ein Chart offen, werden die Werte geteilt und kosten nichts zusätzlich.",
         "atrBands": "ATR-Referenzringe",
-        "tooltipAtrBands": "Zeichnet drei Ringe auf die Preisachse: den zuletzt gehandelten Preis und ±1 ATR darum. So ist auf einen Blick erkennbar, ob die Schockwelle eines Trades innerhalb der normalen Marktspanne liegt oder daraus ausbricht. Benötigt die radiale Preisachse und einen verfügbaren ATR-Wert; ist ±1 ATR breiter als alles kürzlich Gehandelte, liegen beide Ringe an den Rändern — was selbst schon die Antwort ist."
+        "tooltipAtrBands": "Zeichnet drei Ringe auf die Preisachse: den zuletzt gehandelten Preis und ±1 ATR darum. So ist auf einen Blick erkennbar, ob die Schockwelle eines Trades innerhalb der normalen Marktspanne liegt oder daraus ausbricht. Benötigt die radiale Preisachse und einen verfügbaren ATR-Wert; mit der 2× ATR-Achsenspanne sitzen ±1 ATR-Ringe nahe den 1/4- und 3/4-Positionen, bewegen sich nur, wenn der Preis um 1+ ATR von der aktuellen Mitte abweicht — was selbst schon die Antwort ist."
       },
       "coordinates": {
         "x": "X",
