@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: claude-code
+branch: worktree-galaxy-3d-tradeflow-integration-3dcae5
 ---
 
 # FEAT-0323 — Add a market-driven Galaxy mode to the Trade Flow background

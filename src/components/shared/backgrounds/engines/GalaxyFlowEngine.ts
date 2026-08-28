@@ -398,7 +398,7 @@ export class GalaxyFlowEngine extends BaseEngine {
 	 *
 	 * The prices run through the very same normaliser and radius curve the
 	 * shockwaves use, so a ring and a wave born at the same price land on the
-	 * same circle. Because the axis spans 1.5 ATR either side of the last price,
+	 * same circle. Because the axis spans 2.0 ATR either side of the last price,
 	 * the ±1 ATR rings always sit well inside the disc rather than clamping to
 	 * its ends.
 	 */

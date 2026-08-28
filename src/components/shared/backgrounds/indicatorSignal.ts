@@ -91,7 +91,7 @@ export function readIndicatorSignal(
 	// it pairs with the ATR exactly. The live price is only a fallback for
 	// snapshots that carry no basis.
 	const price = tech.pivotBasis?.close ?? lastPrice;
-	const rsiEntry = tech.oscillators?.find((o) => o.name === 'RSI');
+	const rsiEntry = tech.oscillators?.find((o) => o.name.startsWith('RSI'));
 
 	return {
 		volatilityRel: relativeAtr(tech.volatility?.atr, price),

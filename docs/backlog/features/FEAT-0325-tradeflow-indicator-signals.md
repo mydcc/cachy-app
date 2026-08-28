@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: [FEAT-0323]
 assignee: claude-code
+branch: worktree-galaxy-3d-tradeflow-integration-3dcae5
 ---
 
 # FEAT-0325 — Drive the Trade Flow background from ATR and RSI, not only from trades
