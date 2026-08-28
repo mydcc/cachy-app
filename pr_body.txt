@@ -1,0 +1,16 @@
+[no issue]
+
+💡 What
+Localized the aria-label and title attributes for the GitHub and DeepWiki links in the footer.
+🎯 Why
+All user-facing strings must be bilingual to respect the user's chosen language. Hardcoded strings violate Trap 1 (bilingual aria labels).
+♿ Accessibility
+WCAG 1.3.1 (Info and Relationships) and 4.1.2 (Name, Role, Value) by ensuring aria-labels are accessible and language-consistent for screen readers.
+🌍 i18n
+Added 'github' key to de.json and en.json.
+🎨 Theming
+No hardcoded colors were used.
+📸 Before/After
+N/A
+✅ Verification
+npm run check, lint and test all pass.
