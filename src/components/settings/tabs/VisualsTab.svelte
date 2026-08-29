@@ -24,10 +24,17 @@
     import Toggle from "../../shared/Toggle.svelte";
     import Tooltip from "../../shared/Tooltip.svelte";
     import { toastService } from "../../../services/toastService.svelte";
+    import { tradeState } from "../../../stores/trade.svelte";
 
     let { themes } = $props<{
         themes: Array<{ value: string; label: string }>;
     }>();
+
+    // Shared with the Technicals panel — panel options plus any custom interval
+    // the panel currently holds, so a panel-set value never renders unselected.
+    let indicatorTimeframeOptions = $derived([
+        ...new Set(['5m', '15m', '30m', '1h', '4h', '1d', tradeState.analysisTimeframe]),
+    ]);
 
     // iOS 13+ Safari-specific extension, not in the standard DOM lib types.
     interface DeviceOrientationEventiOS {
@@ -1474,7 +1481,7 @@
                                 <select
                                     id="tf-source"
                                     bind:value={settingsState.tradeFlowSettings.tradeFlowSource}
-                                    class="select-input"
+                                    class="input-field w-full"
                                 >
                                     <option value="live">{$_("settings.visuals.tradeFlow.sourceLive")}</option>
                                     <option value="ambient">{$_("settings.visuals.tradeFlow.sourceAmbient")}</option>
@@ -1496,6 +1503,9 @@
                                         step="0.1"
                                         class="range-input"
                                     />
+                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                                        {$_("settings.visuals.tradeFlow.tooltipVolumeScale")}
+                                    </p>
                                 </div>
                                 {/if}
 
@@ -1529,6 +1539,9 @@
                                     <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
                                         bind:value={settingsState.tradeFlowSettings.speed}
                                         class="range-input" />
+                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                                        {$_("settings.visuals.tradeFlow.tooltipSpeed")}
+                                    </p>
                                 </div>
                                 {/if}
                                 
@@ -1549,6 +1562,7 @@
                                     <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipRotation")}>{$_("settings.visuals.tradeFlow.sceneRotation")}</span>
                                     <Toggle bind:checked={settingsState.tradeFlowSettings.enableRotation} />
                                 </div>
+                                <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed md:col-span-2">{$_("settings.visuals.tradeFlow.tooltipRotation")}</p>
                                 <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed md:col-span-2">{$_("settings.visuals.tradeFlow.tooltipBlock")}</p>
                                 {/if}
                             </div>
@@ -1562,7 +1576,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="field-group">
                                     <label for="tf-volsource" title={$_("settings.visuals.tradeFlow.tooltipVolatilitySource")}>{$_("settings.visuals.tradeFlow.volatilitySource")}</label>
-                                    <select id="tf-volsource" bind:value={settingsState.tradeFlowSettings.volatilitySource} class="select-input">
+                                    <select id="tf-volsource" bind:value={settingsState.tradeFlowSettings.volatilitySource} class="input-field w-full">
                                         <option value="atr">{$_("settings.visuals.tradeFlow.volatilityAtr")}</option>
                                         <option value="trades">{$_("settings.visuals.tradeFlow.volatilityTrades")}</option>
                                     </select>
@@ -1571,7 +1585,7 @@
 
                                 <div class="field-group">
                                     <label for="tf-moodsource" title={$_("settings.visuals.tradeFlow.tooltipMoodSource")}>{$_("settings.visuals.tradeFlow.moodSource")}</label>
-                                    <select id="tf-moodsource" bind:value={settingsState.tradeFlowSettings.moodSource} class="select-input">
+                                    <select id="tf-moodsource" bind:value={settingsState.tradeFlowSettings.moodSource} class="input-field w-full">
                                         <option value="sentiment">{$_("settings.visuals.tradeFlow.moodSentiment")}</option>
                                         <option value="rsi">{$_("settings.visuals.tradeFlow.moodRsi")}</option>
                                     </select>
@@ -1581,8 +1595,8 @@
                                 {#if settingsState.tradeFlowSettings.volatilitySource === 'atr' || settingsState.tradeFlowSettings.moodSource === 'rsi'}
                                 <div class="field-group md:col-span-2">
                                     <label for="tf-indicator-tf" title={$_("settings.visuals.tradeFlow.tooltipIndicatorTimeframe")}>{$_("settings.visuals.tradeFlow.indicatorTimeframe")}</label>
-                                    <select id="tf-indicator-tf" bind:value={settingsState.tradeFlowSettings.indicatorTimeframe} class="select-input">
-                                        {#each ['1m', '5m', '15m', '30m', '1h', '4h', '1d'] as tf}
+                                    <select id="tf-indicator-tf" bind:value={tradeState.analysisTimeframe} class="input-field w-full">
+                                        {#each indicatorTimeframeOptions as tf}
                                             <option value={tf}>{tf}</option>
                                         {/each}
                                     </select>
@@ -1604,6 +1618,9 @@
                                         value={settingsState.tradeFlowSettings.gridWidth}
                                         oninput={handleWidthChange}
                                         class="range-input" />
+                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                                        {$_("settings.visuals.tradeFlow.tooltipGridWidth")}
+                                    </p>
                                 </div>
                                 <div class="field-group">
                                     <label for="tf-length" title={$_("settings.visuals.tradeFlow.tooltipGridLength")}>{$_("settings.visuals.tradeFlow.gridPointsZ")}: {settingsState.tradeFlowSettings.gridLength}</label>
@@ -1611,6 +1628,9 @@
                                         value={settingsState.tradeFlowSettings.gridLength}
                                         oninput={handleLengthChange}
                                         class="range-input" />
+                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                                        {$_("settings.visuals.tradeFlow.tooltipGridLength")}
+                                    </p>
                                 </div>
                                 <div class="field-group">
                                     <label for="tf-spread">{$_("settings.visuals.tradeFlow.pointSpacing")}: {settingsState.tradeFlowSettings.spread.toFixed(2)}</label>
