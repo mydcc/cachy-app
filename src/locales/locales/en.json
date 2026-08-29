@@ -1774,6 +1774,7 @@
       "avoidTranslating": "Avoid translating technical words",
       "quickActions": "Quick Actions",
       "debug": {
+        "title": "Engine Debug Panel",
         "capabilities": "Capabilities",
         "context": "Context",
         "engineStats": "Engine Stats",

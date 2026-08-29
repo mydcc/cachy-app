@@ -1556,6 +1556,7 @@
       "avoidTranslating": "Vermeide die Übersetzung von Fachwörtern",
       "quickActions": "Schnellaktionen",
       "debug": {
+        "title": "Engine Debug Panel",
         "capabilities": "Fähigkeiten",
         "context": "Kontext",
         "engineStats": "Engine Status",

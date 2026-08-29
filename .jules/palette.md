@@ -27,3 +27,7 @@
 ## 2025-02-23 - GitHub Actions setup corrections (Follow-up 2)
 **Learning:** `google/gemini-3-flash` is invalid; it must be `google/gemini-3.6-flash`.
 **Action:** Replaced `google/gemini-3-flash` with `google/gemini-3.6-flash` in `.github/workflows/opencode.yml`.
+## 2025-02-18 - Replacing Hardcoded English Text
+
+**Learning:** Hardcoded text is severely frowned upon (e.g. Trap 1) but continues to persist in older legacy UI files (e.g., EngineDebugPanel.svelte). Replacing hardcoded english labels with properly typed i18n variables ensures proper localization, but also requires adding the correct key mappings for `en.json` and `de.json`.
+**Action:** When finding a hardcoded label, implement translation mapping strings in both `de.json` and `en.json` under corresponding hierarchies. Then properly regenerate typescript types with `node scripts/generate-i18n-types.js` to avoid build breakages when rendering the templates.

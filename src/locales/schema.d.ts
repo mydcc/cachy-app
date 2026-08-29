@@ -1587,6 +1587,7 @@ export type TranslationKey =
   | "settings.system.englishTechnicalTerms"
   | "settings.system.avoidTranslating"
   | "settings.system.quickActions"
+  | "settings.system.debug.title"
   | "settings.system.debug.capabilities"
   | "settings.system.debug.context"
   | "settings.system.debug.engineStats"
