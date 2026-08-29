@@ -99,6 +99,7 @@
     "launchApp": "App Starten",
     "academy": "Akademie",
     "deepwiki": "DeepWiki",
+    "github": "GitHub",
     "yes": "Ja",
     "no": "Nein",
     "autoBackup": {
@@ -986,13 +987,13 @@
         "initializing": "Neuraler Kern wird gestartet...",
         "error": "Visuelle Effekte deaktiviert",
         "tooltipMode": "Wähle den Visualisierungsstil für Echtzeit-Trades. Jeder Modus stellt Kauf- und Verkaufsaufträge unterschiedlich dar — probiere aus, welcher am besten zu deinem Workflow passt.",
-        "tooltipVolumeScale": "Bestimmt, wie stark die Visualisierung auf das Handelsvolumen reagiert. Höhere Werte = dramatischere Reaktionen auf große Orders. Niedrigere Werte = gleichmäßigeres Erscheinungsbild.",
+        "tooltipVolumeScale": "Verstärkt oder dämpft, wie heftig die Szene auf jedes Trade-Volumen reagiert. 1.0 = neutral; Werte darunter wirken ruhiger, Werte darüber betonen große Orders bis zum Fünffachen.",
         "tooltipTimeWindow": "Wie lange vergangene Trades sichtbar bleiben, bevor sie ausblenden. Längere Zeitfenster zeigen mehr historischen Kontext, können aber unübersichtlich wirken.",
         "tooltipMinVolume": "Filtert Trades unter diesem Dollarwert heraus. Nutze dies, um dich auf große Wal-Orders zu fokussieren. Achtung: Hohe Werte bei kleineren Handelspaaren können alle Trades ausblenden.",
         "tooltipDynamicAtmosphere": "Wenn aktiviert, verschieben sich Szenenbeleuchtung, Nebel und Umgebungspartikel farblich basierend auf der Marktstimmung — grün bei bullischer, rot bei bärischer Dynamik.",
         "tooltipGridWidth": "Anzahl der Punkte entlang der X-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
         "tooltipGridLength": "Anzahl der Punkte entlang der Z-Achse des Visualisierungsrasters. Mehr Punkte = feinere Details, aber höhere GPU-Last.",
-        "tooltipSpeed": "Wie schnell sich die Visualisierungselemente animieren und bewegen. Höhere Werte erzeugen ein energetischeres Erscheinungsbild.",
+        "tooltipSpeed": "Tempo des Sonar-Rings: Wie schnell der Sweep über die Szene läuft. Unter 1 entschleunigt, bis 5 beschleunigt. Betrifft nur den Sonar-Modus.",
         "sceneRotation": "Szenenrotation",
         "tooltipRotation": "Langsame, rein dekorative Drehung der Szene. Standardmäßig aus: Die Drehung macht die Zeit- (Tiefe) und Preisachsen (Höhe) unlesbar.",
         "source": "Datenquelle",
@@ -1000,7 +1001,32 @@
         "sourceAmbient": "Ambient (Stille füllen)",
         "sourceReplay": "Letzte Trades wiederholen",
         "tooltipSource": "Hält den Hintergrund lebendig, wenn der Live-Feed ruht. 'Live' zeigt nur echte Trades. 'Ambient' fügt nach einer Pause dezente synthetische Ticks ein. 'Replay' spielt die letzten Trades fortlaufend als synthetische Ticks ab.",
-        "tooltipBlock": "Jeder Block = ein Trade. Höhe = Preis, Tiefe = Alter (vorne = jetzt), Größe = Volumen (Notional). Grün = Kauf, Rot = Verkauf. Fibonacci-Ebenen + Price-Spine sind feste Preis-Referenzen. Rotation (opt-in) dreht die ganze Szene — standardmäßig aus, damit Achsen lesbar bleiben."
+        "tooltipBlock": "Jeder Block = ein Trade. Höhe = Preis, Tiefe = Alter (vorne = jetzt), Größe = Volumen (Notional). Grün = Kauf, Rot = Verkauf. Fibonacci-Ebenen + Price-Spine sind feste Preis-Referenzen. Rotation (opt-in) dreht die ganze Szene — standardmäßig aus, damit Achsen lesbar bleiben.",
+        "galaxySection": "Galaxie",
+        "marketCoupling": "Marktkopplung",
+        "marketReactivity": "Trade-Reaktivität",
+        "sentimentTint": "Sentiment-Färbung",
+        "activityRotation": "Aktivitäts-Drehung",
+        "tooltipGalaxy": "Eine Kopie des Galaxy-3D-Hintergrunds, verkabelt mit dem Live-Trade-Feed. Jeder Trade sendet eine Schockwelle vom Kern nach außen — Käufe heben die Sterne an und färben sie in der Kauffarbe, Verkäufe drücken sie nach unten. Die Wellengröße folgt dem Handelsvolumen. Diese Galaxie wird unabhängig vom eigenständigen Galaxy-3D-Hintergrund eingestellt.",
+        "tooltipMarketReactivity": "Wie stark ein einzelner Trade die Galaxie verformt. 0 schaltet die Trade-Schockwellen vollständig ab und lässt eine rein dekorative Galaxie zurück.",
+        "tooltipSentimentTint": "Wie weit die Sternfarben zur Kauf- oder Verkaufsfarbe wandern, wenn sich das gleitende Kauf/Verkauf-Verhältnis verschiebt. 0 behält immer die Galaxie-Palette des Themes bei.",
+        "tooltipActivityRotation": "Wie stark Marktaktivität (Trade-Rate, Nominalvolumen und Preisvolatilität) die Rotation der Galaxie beschleunigt. 0 hält die Rotation konstant.",
+        "priceAxis": "Radiale Preisachse",
+        "tooltipPriceAxis": "Macht den Radius der Scheibe zur Preisskala: Die Schockwelle eines Trades beginnt dort, wo dieser Trade in der jüngsten Preisspanne liegt — kernnah am unteren Ende, randnah am oberen — und Käufe laufen nach außen, Verkäufe nach innen. Aus: Jede Welle startet im Kern, der Radius trägt keine Bedeutung.",
+        "indicators": "Indikatoren",
+        "tooltipIndicators": "Trades sind Ereignisse, ATR und RSI sind Zustände. Diese beiden speisen die Amplitude und die Farbstimmung der Szene statt einzelner Trades. Beide fallen auf das trade-basierte Signal zurück, sobald kein Indikatorwert vorliegt — der Hintergrund wird also nie flach.",
+        "volatilitySource": "Szenen-Amplitude",
+        "volatilityAtr": "ATR (echte Volatilität)",
+        "volatilityTrades": "Trade-Streuung (Schätzung)",
+        "tooltipVolatilitySource": "Steuert Nebeldichte, Lichtintensität, Nebel und Galaxie-Drehung. „ATR\" nutzt die echte Average True Range geteilt durch den Preis — ein ruhiger Markt sieht dadurch wirklich ruhig aus und nicht bloß trade-arm. „Trade-Streuung\" nutzt die Preisstreuung der letzten ~100 Prints: immer verfügbar, aber gröber.",
+        "moodSource": "Farbstimmung",
+        "moodSentiment": "Trade-Sentiment (Sekunden)",
+        "moodRsi": "RSI (Chart-Intervall)",
+        "tooltipMoodSource": "Steuert die Kauf/Verkauf-Färbung von Licht, Nebel und Galaxie-Armen. „Trade-Sentiment\" ist das Kauf/Verkauf-Verhältnis der letzten 100 Trades — ein Blick auf wenige Sekunden. „RSI\" beantwortet dieselbe Frage über das gewählte Kerzenintervall: überkauft färbt zur Kauffarbe, überverkauft zur Verkaufsfarbe.",
+        "indicatorTimeframe": "Indikator-Intervall",
+        "tooltipIndicatorTimeframe": "Geteilt mit dem Technicals Panel: Hier und dort einstellbar, gilt immer für beide. ATR und RSI des Hintergrunds werden aus diesem Intervall gelesen — ist dafür bereits ein Chart offen, kosten die Werte nichts zusätzlich.",
+        "atrBands": "ATR-Referenzringe",
+        "tooltipAtrBands": "Zeichnet drei Ringe auf die Preisachse: den zuletzt gehandelten Preis und ±1 ATR darum. So ist auf einen Blick erkennbar, ob die Schockwelle eines Trades innerhalb der normalen Marktspanne liegt oder daraus ausbricht. Benötigt die radiale Preisachse und einen verfügbaren ATR-Wert; mit der 2× ATR-Achsenspanne sitzen ±1 ATR-Ringe nahe den 1/4- und 3/4-Positionen, bewegen sich nur, wenn der Preis um 1+ ATR von der aktuellen Mitte abweicht — was selbst schon die Antwort ist."
       },
       "coordinates": {
         "x": "X",
@@ -2158,10 +2184,9 @@
     "invalidTrade": "Ungültiger Trade.",
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
-    "saveFailed": "Speichern des Journals fehlgeschlagen.",
+    "saveFailed": "Speichern fehlgeschlagen.",
     "modifyFailed": "Änderung der Order fehlgeschlagen.",
-    "createFailed": "Order konnte nicht erstellt werden.",
-    "saveError": "Fehler beim Speichern des Journals."
+    "createFailed": "Order konnte nicht erstellt werden."
   },
   "modals": {
     "editTP": {
@@ -2955,7 +2980,6 @@
     "performanceWarning": "Performance-Warnung: {missing} fehlt. Verwende Fallback-Engine."
   },
   "storage": {
-    "quotaExceeded": "Speicher voll! Bitte löschen Sie alte Daten oder erstellen Sie ein Backup.",
-    "journalSaveFailed": "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert."
+    "quotaExceeded": "Speicher voll! Bitte löschen Sie alte Daten oder erstellen Sie ein Backup."
   }
 }
