@@ -16,13 +16,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-	VolumeNormalizer,
-	PriceRangeTracker,
-	scaleToRange,
-	tradeNotional,
-	marketHeat
-} from './volumeScale';
+import { VolumeNormalizer, scaleToRange, tradeNotional, marketHeat } from './volumeScale';
 
 describe('tradeNotional', () => {
 	it('multiplies price and amount', () => {
@@ -138,105 +132,5 @@ describe('marketHeat', () => {
 	it('is low for a sparse, calm market', () => {
 		// ~1 trade/sec, modest volume, very stable price
 		expect(marketHeat({ rate: 1, volume: 2_000, volatilityRel: 0.001 })).toBeLessThan(0.2);
-	});
-});
-
-describe('PriceRangeTracker', () => {
-	it('puts the very first price mid-range, not at an edge', () => {
-		// With nothing to compare against, "at the bottom of the range" would be
-		// a claim the tracker cannot support.
-		expect(new PriceRangeTracker().push(90_000)).toBeCloseTo(0.5, 5);
-	});
-
-	it('positions prices monotonically within the window', () => {
-		const t = new PriceRangeTracker();
-		for (let p = 90_000; p <= 90_500; p += 10) t.push(p);
-		expect(t.normalize(90_050)).toBeLessThan(t.normalize(90_250));
-		expect(t.normalize(90_250)).toBeLessThan(t.normalize(90_450));
-	});
-
-	it('maps the extremes of a settled range near 0 and 1', () => {
-		const t = new PriceRangeTracker({ adaptRate: 1 });
-		for (let i = 0; i < 200; i++) t.push(90_000 + (i % 101) * 10); // 90000..91000
-		expect(t.normalize(90_000)).toBeLessThan(0.1);
-		expect(t.normalize(91_000)).toBeGreaterThan(0.9);
-	});
-
-	it('does not turn a flat market into full-scale swings', () => {
-		// Every print identical: without a minimum spread the window collapses
-		// and one tick of noise would sweep the whole axis.
-		const t = new PriceRangeTracker();
-		for (let i = 0; i < 50; i++) t.push(90_000);
-		const range = t.getRange();
-		expect(range.high).toBeGreaterThan(range.low);
-		expect(t.normalize(90_000)).toBeCloseTo(0.5, 2);
-	});
-
-	it('clamps an outlier instead of letting it run off the scale', () => {
-		const t = new PriceRangeTracker();
-		for (let p = 90_000; p <= 90_500; p += 10) t.push(p);
-		expect(t.normalize(10_000_000)).toBe(1);
-		expect(t.normalize(1)).toBe(0);
-	});
-
-	it('survives a single bad print, unlike a raw min/max window', () => {
-		const t = new PriceRangeTracker();
-		for (let p = 90_000; p <= 90_500; p += 10) t.push(p);
-		t.push(9_000_000); // one nonsense print
-		for (let p = 90_000; p <= 90_500; p += 10) t.push(p);
-		// A raw max would have pinned the top at 9M and squashed every real
-		// trade to ~0. The percentile anchor discards it.
-		const mid = t.normalize(90_250);
-		expect(mid).toBeGreaterThan(0.15);
-		expect(mid).toBeLessThan(0.85);
-	});
-
-	it('re-learns from scratch after a symbol change', () => {
-		const t = new PriceRangeTracker();
-		for (let p = 90_000; p <= 90_500; p += 10) t.push(p);
-		t.reset();
-		// A price from a completely different market must not clamp to an edge.
-		expect(t.push(2_400)).toBeCloseTo(0.5, 5);
-		expect(t.getRange().low).toBeGreaterThan(0);
-	});
-
-	it('ignores non-finite and non-positive prices', () => {
-		const t = new PriceRangeTracker();
-		expect(t.push(Number.NaN)).toBe(0.5);
-		expect(t.push(0)).toBe(0.5);
-		expect(t.push(-5)).toBe(0.5);
-		expect(t.getRange()).toEqual({ low: 0, high: 0 });
-	});
-
-	it('follows a trending market instead of leaving the window behind', () => {
-		const t = new PriceRangeTracker();
-		for (let p = 90_000; p <= 90_500; p += 10) t.push(p);
-		const before = t.getRange();
-		for (let p = 90_500; p <= 92_000; p += 10) t.push(p);
-		const after = t.getRange();
-		expect(after.high).toBeGreaterThan(before.high);
-		expect(after.low).toBeGreaterThan(before.low);
-	});
-
-	it('saturates at the top while the trend runs, then releases once it stalls', () => {
-		// In a monotonic rally every new print IS the high of its own window, so
-		// pinning at 1 is the honest answer — but it must not be permanent.
-		const t = new PriceRangeTracker();
-		let last = 0;
-		for (let p = 90_000; p <= 92_000; p += 10) last = t.push(p);
-		expect(last).toBeCloseTo(1, 2);
-
-		// Trend stalls and the market oscillates around the new level.
-		for (let i = 0; i < 300; i++) t.push(92_000 + (i % 2 ? 40 : -40));
-		expect(t.normalize(92_000)).toBeLessThan(0.95);
-		expect(t.normalize(92_000)).toBeGreaterThan(0.05);
-	});
-
-	it('feeds the window without moving it via normalize()', () => {
-		const t = new PriceRangeTracker();
-		for (let p = 90_000; p <= 90_500; p += 10) t.push(p);
-		const before = t.getRange();
-		t.normalize(95_000);
-		expect(t.getRange()).toEqual(before);
 	});
 });

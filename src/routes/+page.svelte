@@ -800,8 +800,8 @@
       target="_blank"
       rel="noopener noreferrer"
       class="text-link flex items-center justify-center hover:text-[var(--accent-color)] transition-all duration-300 hover:scale-110"
-      title={$_("app.github")}
-      aria-label={$_("app.github")}
+      title="GitHub"
+      aria-label="GitHub"
       use:trackClick={{
         category: "Navigation",
         action: "Click",
@@ -815,8 +815,8 @@
       target="_blank"
       rel="noopener noreferrer"
       class="text-link flex items-center justify-center hover:text-[var(--accent-color)] transition-all duration-300 hover:scale-110"
-      title={$_("app.deepwiki")}
-      aria-label={$_("app.deepwiki")}
+      title="Deepwiki"
+      aria-label="Deepwiki"
       use:trackClick={{
         category: "Navigation",
         action: "Click",

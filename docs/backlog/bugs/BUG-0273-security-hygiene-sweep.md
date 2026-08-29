@@ -2,7 +2,8 @@
 id: BUG-0273
 title: Security hygiene sweep for three low-severity findings from the identity audit
 type: bug
-status: done
+status: in-progress
+assignee: antigravity
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -59,4 +60,3 @@ Per sub-item as described above; keep each change minimal.
   [BUG-0266](BUG-0266-dashboardnav-html-preset-icon.md).
 - Anything else covered by the companion items from the 2026-08-23 audit
   batches (BUG-0266–BUG-0268, BUG-0282–BUG-0291, BUG-0270–BUG-0272, BUG-0280, BUG-0281).
-- Shipped in [PR #2237](https://github.com/mydcc/cachy-app/pull/2237).

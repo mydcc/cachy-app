@@ -24,17 +24,10 @@
     import Toggle from "../../shared/Toggle.svelte";
     import Tooltip from "../../shared/Tooltip.svelte";
     import { toastService } from "../../../services/toastService.svelte";
-    import { tradeState } from "../../../stores/trade.svelte";
 
     let { themes } = $props<{
         themes: Array<{ value: string; label: string }>;
     }>();
-
-    // Shared with the Technicals panel — panel options plus any custom interval
-    // the panel currently holds, so a panel-set value never renders unselected.
-    let indicatorTimeframeOptions = $derived([
-        ...new Set(['5m', '15m', '30m', '1h', '4h', '1d', tradeState.analysisTimeframe]),
-    ]);
 
     // iOS 13+ Safari-specific extension, not in the standard DOM lib types.
     interface DeviceOrientationEventiOS {
@@ -160,8 +153,7 @@
         raindrops: "Raindrops",
         city: "Digital City",
         sonar: "Sonar",
-        block: "Block",
-        galaxy: "Galaxy"
+        block: "Block"
     };
 </script>
 
@@ -1392,7 +1384,7 @@
                         <div class="field-group mb-4">
                             <label for="tf-mode" title={$_("settings.visuals.tradeFlow.tooltipMode")}>{$_("settings.visuals.tradeFlow.mode")}</label>
                             <div class="flex flex-wrap gap-2">
-                                {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block', 'galaxy'] as const as mode}
+                                {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block'] as const as mode}
                                     <button
                                         class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.flowMode === mode
                                             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
@@ -1481,7 +1473,7 @@
                                 <select
                                     id="tf-source"
                                     bind:value={settingsState.tradeFlowSettings.tradeFlowSource}
-                                    class="input-field w-full"
+                                    class="select-input"
                                 >
                                     <option value="live">{$_("settings.visuals.tradeFlow.sourceLive")}</option>
                                     <option value="ambient">{$_("settings.visuals.tradeFlow.sourceAmbient")}</option>
@@ -1491,7 +1483,7 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <!-- Volume Scale (Eq, City, Sonar, Block) -->
-                                {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block', 'galaxy'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
                                     <label for="tf-volscale" title={$_("settings.visuals.tradeFlow.tooltipVolumeScale")}>{$_("settings.visuals.tradeFlow.volumeScale")}: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
                                     <input
@@ -1503,16 +1495,11 @@
                                         step="0.1"
                                         class="range-input"
                                     />
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
-                                        {$_("settings.visuals.tradeFlow.tooltipVolumeScale")}
-                                    </p>
                                 </div>
                                 {/if}
 
                                 <!-- Persistence Duration (All Modes) -->
-                                <!-- Only EqualizerEngine and BlockEngine read persistenceDuration;
-                                     the other modes fade on their own fixed schedule. -->
-                                {#if ['equalizer', 'block'].includes(settingsState.tradeFlowSettings.flowMode)}
+                                {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block'].includes(settingsState.tradeFlowSettings.flowMode)}
                                 <div class="field-group">
                                     <label for="tf-persistence">{$_("settings.visuals.tradeFlow.timeWindow")}: {
                                         settingsState.tradeFlowSettings.persistenceDuration < 60 
@@ -1539,9 +1526,6 @@
                                     <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
                                         bind:value={settingsState.tradeFlowSettings.speed}
                                         class="range-input" />
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
-                                        {$_("settings.visuals.tradeFlow.tooltipSpeed")}
-                                    </p>
                                 </div>
                                 {/if}
                                 
@@ -1562,52 +1546,12 @@
                                     <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipRotation")}>{$_("settings.visuals.tradeFlow.sceneRotation")}</span>
                                     <Toggle bind:checked={settingsState.tradeFlowSettings.enableRotation} />
                                 </div>
-                                <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed md:col-span-2">{$_("settings.visuals.tradeFlow.tooltipRotation")}</p>
                                 <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed md:col-span-2">{$_("settings.visuals.tradeFlow.tooltipBlock")}</p>
                                 {/if}
                             </div>
                         </div>
 
-                        <!-- Section: Indicators (ATR / RSI) -->
-                        <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
-                            <h3 class="text-sm font-semibold mb-1 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.indicators")}</h3>
-                            <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed mb-3">{$_("settings.visuals.tradeFlow.tooltipIndicators")}</p>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="field-group">
-                                    <label for="tf-volsource" title={$_("settings.visuals.tradeFlow.tooltipVolatilitySource")}>{$_("settings.visuals.tradeFlow.volatilitySource")}</label>
-                                    <select id="tf-volsource" bind:value={settingsState.tradeFlowSettings.volatilitySource} class="input-field w-full">
-                                        <option value="atr">{$_("settings.visuals.tradeFlow.volatilityAtr")}</option>
-                                        <option value="trades">{$_("settings.visuals.tradeFlow.volatilityTrades")}</option>
-                                    </select>
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipVolatilitySource")}</p>
-                                </div>
-
-                                <div class="field-group">
-                                    <label for="tf-moodsource" title={$_("settings.visuals.tradeFlow.tooltipMoodSource")}>{$_("settings.visuals.tradeFlow.moodSource")}</label>
-                                    <select id="tf-moodsource" bind:value={settingsState.tradeFlowSettings.moodSource} class="input-field w-full">
-                                        <option value="sentiment">{$_("settings.visuals.tradeFlow.moodSentiment")}</option>
-                                        <option value="rsi">{$_("settings.visuals.tradeFlow.moodRsi")}</option>
-                                    </select>
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipMoodSource")}</p>
-                                </div>
-
-                                {#if settingsState.tradeFlowSettings.volatilitySource === 'atr' || settingsState.tradeFlowSettings.moodSource === 'rsi'}
-                                <div class="field-group md:col-span-2">
-                                    <label for="tf-indicator-tf" title={$_("settings.visuals.tradeFlow.tooltipIndicatorTimeframe")}>{$_("settings.visuals.tradeFlow.indicatorTimeframe")}</label>
-                                    <select id="tf-indicator-tf" bind:value={tradeState.analysisTimeframe} class="input-field w-full">
-                                        {#each indicatorTimeframeOptions as tf}
-                                            <option value={tf}>{tf}</option>
-                                        {/each}
-                                    </select>
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipIndicatorTimeframe")}</p>
-                                </div>
-                                {/if}
-                            </div>
-                        </div>
-
-                        <!-- Section: Grid Layout (grid-based modes only; the galaxy has no grid) -->
-                        {#if settingsState.tradeFlowSettings.flowMode !== 'galaxy'}
+                        <!-- Section: Grid Layout -->
                         <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
                             <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.gridLayout")}</h3>
                             
@@ -1618,9 +1562,6 @@
                                         value={settingsState.tradeFlowSettings.gridWidth}
                                         oninput={handleWidthChange}
                                         class="range-input" />
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
-                                        {$_("settings.visuals.tradeFlow.tooltipGridWidth")}
-                                    </p>
                                 </div>
                                 <div class="field-group">
                                     <label for="tf-length" title={$_("settings.visuals.tradeFlow.tooltipGridLength")}>{$_("settings.visuals.tradeFlow.gridPointsZ")}: {settingsState.tradeFlowSettings.gridLength}</label>
@@ -1628,9 +1569,6 @@
                                         value={settingsState.tradeFlowSettings.gridLength}
                                         oninput={handleLengthChange}
                                         class="range-input" />
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
-                                        {$_("settings.visuals.tradeFlow.tooltipGridLength")}
-                                    </p>
                                 </div>
                                 <div class="field-group">
                                     <label for="tf-spread">{$_("settings.visuals.tradeFlow.pointSpacing")}: {settingsState.tradeFlowSettings.spread.toFixed(2)}</label>
@@ -1648,139 +1586,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        {/if}
-
-                        <!-- Section: Galaxy (galaxy mode only) -->
-                        {#if settingsState.tradeFlowSettings.flowMode === 'galaxy'}
-                        <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
-                            <h3 class="text-sm font-semibold mb-1 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.galaxySection")}</h3>
-                            <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed mb-3">{$_("settings.visuals.tradeFlow.tooltipGalaxy")}</p>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div class="field-group">
-                                    <label for="tfg-count">{$_("settings.visuals.particles")}: {settingsState.tradeFlowSettings.galaxyFlow.particleCount}</label>
-                                    <input id="tfg-count" type="range" min="1000" max="100000" step="1000"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.particleCount}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-size">{$_("settings.visuals.size")}: {settingsState.tradeFlowSettings.galaxyFlow.particleSize.toFixed(1)}</label>
-                                    <input id="tfg-size" type="range" min="0.5" max="20" step="0.1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.particleSize}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-radius">{$_("settings.visuals.radius")}: {settingsState.tradeFlowSettings.galaxyFlow.radius}</label>
-                                    <input id="tfg-radius" type="range" min="5" max="200" step="1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.radius}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-branches">{$_("settings.visuals.branches")}: {settingsState.tradeFlowSettings.galaxyFlow.branches}</label>
-                                    <input id="tfg-branches" type="range" min="2" max="10" step="1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.branches}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-spin">{$_("settings.visuals.spinSpeed")}: {settingsState.tradeFlowSettings.galaxyFlow.spin.toFixed(2)}</label>
-                                    <input id="tfg-spin" type="range" min="-5" max="5" step="0.1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.spin}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-randomness">{$_("settings.visuals.randomness")}: {settingsState.tradeFlowSettings.galaxyFlow.randomness.toFixed(2)}</label>
-                                    <input id="tfg-randomness" type="range" min="0" max="3" step="0.05"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.randomness}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-rpower">{$_("settings.visuals.spread")}: {settingsState.tradeFlowSettings.galaxyFlow.randomnessPower.toFixed(1)}</label>
-                                    <input id="tfg-rpower" type="range" min="1" max="10" step="0.1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.randomnessPower}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-concentration">{$_("settings.visuals.concentration")}: {settingsState.tradeFlowSettings.galaxyFlow.concentrationPower.toFixed(1)}</label>
-                                    <input id="tfg-concentration" type="range" min="0.5" max="5" step="0.1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.concentrationPower}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-rotspeed">{$_("settings.visuals.rotationSpeed")}: {settingsState.tradeFlowSettings.galaxyFlow.rotationSpeed.toFixed(2)}</label>
-                                    <input id="tfg-rotspeed" type="range" min="0" max="2" step="0.05"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.rotationSpeed}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group flex items-center justify-between gap-2">
-                                    <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.autoCenterDesc")}>{$_("settings.visuals.autoCenter")}</span>
-                                    <Toggle bind:checked={settingsState.tradeFlowSettings.galaxyFlow.autoCenter} />
-                                </div>
-                            </div>
-
-                            <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.rotation")}</span>
-                            <div class="grid grid-cols-3 gap-2 mb-4">
-                                <div class="field-group">
-                                    <label for="tfg-rot-x">{$_("settings.visuals.coordinates.x")}: {settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.x}</label>
-                                    <input id="tfg-rot-x" type="range" min="-180" max="180" step="1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.x}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-rot-y">{$_("settings.visuals.coordinates.y")}: {settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.y}</label>
-                                    <input id="tfg-rot-y" type="range" min="-180" max="180" step="1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.y}
-                                        class="range-input" />
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-rot-z">{$_("settings.visuals.coordinates.z")}: {settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.z}</label>
-                                    <input id="tfg-rot-z" type="range" min="-180" max="180" step="1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.z}
-                                        class="range-input" />
-                                </div>
-                            </div>
-
-                            <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)] pt-3 border-t border-[var(--border-color)]">{$_("settings.visuals.tradeFlow.marketCoupling")}</h3>
-
-                            <div class="field-group flex items-center justify-between gap-2 mb-3">
-                                <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipPriceAxis")}>{$_("settings.visuals.tradeFlow.priceAxis")}</span>
-                                <Toggle bind:checked={settingsState.tradeFlowSettings.galaxyFlow.priceAxis} />
-                            </div>
-                            <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed mb-4">{$_("settings.visuals.tradeFlow.tooltipPriceAxis")}</p>
-
-                            {#if settingsState.tradeFlowSettings.galaxyFlow.priceAxis}
-                            <div class="field-group flex items-center justify-between gap-2 mb-3">
-                                <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipAtrBands")}>{$_("settings.visuals.tradeFlow.atrBands")}</span>
-                                <Toggle bind:checked={settingsState.tradeFlowSettings.galaxyFlow.atrBands} />
-                            </div>
-                            <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed mb-4">{$_("settings.visuals.tradeFlow.tooltipAtrBands")}</p>
-                            {/if}
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="field-group">
-                                    <label for="tfg-reactivity" title={$_("settings.visuals.tradeFlow.tooltipMarketReactivity")}>{$_("settings.visuals.tradeFlow.marketReactivity")}: {settingsState.tradeFlowSettings.galaxyFlow.marketReactivity.toFixed(1)}x</label>
-                                    <input id="tfg-reactivity" type="range" min="0" max="3" step="0.1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.marketReactivity}
-                                        class="range-input" />
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipMarketReactivity")}</p>
-                                </div>
-                                <div class="field-group">
-                                    <label for="tfg-tint" title={$_("settings.visuals.tradeFlow.tooltipSentimentTint")}>{$_("settings.visuals.tradeFlow.sentimentTint")}: {(settingsState.tradeFlowSettings.galaxyFlow.sentimentTint * 100).toFixed(0)}%</label>
-                                    <input id="tfg-tint" type="range" min="0" max="1" step="0.05"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.sentimentTint}
-                                        class="range-input" />
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipSentimentTint")}</p>
-                                </div>
-                                <div class="field-group md:col-span-2">
-                                    <label for="tfg-activity" title={$_("settings.visuals.tradeFlow.tooltipActivityRotation")}>{$_("settings.visuals.tradeFlow.activityRotation")}: {settingsState.tradeFlowSettings.galaxyFlow.activityRotation.toFixed(1)}x</label>
-                                    <input id="tfg-activity" type="range" min="0" max="5" step="0.1"
-                                        bind:value={settingsState.tradeFlowSettings.galaxyFlow.activityRotation}
-                                        class="range-input" />
-                                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipActivityRotation")}</p>
-                                </div>
-                            </div>
-                        </div>
-                        {/if}
 
                         <!-- Section: Camera Control -->
                         <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
@@ -1812,10 +1617,6 @@
                             </div>
 
                             <!-- Rotation -->
-                            <!-- Galaxy mode aims the camera with lookAt() while auto-center is on,
-                                 which overrides these three angles entirely. Hidden rather than shown
-                                 dead: the galaxy section has its own Rotation control that does work. -->
-                            {#if !(settingsState.tradeFlowSettings.flowMode === 'galaxy' && settingsState.tradeFlowSettings.galaxyFlow.autoCenter)}
                              <div class="grid grid-cols-3 gap-2 mb-4">
                                 <div class="field-group">
                                     <label for="tf-cam-rx">{$_("settings.visuals.tradeFlow.rotationX")}: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
@@ -1839,7 +1640,6 @@
                                         class="range-input" />
                                 </div>
                             </div>
-                            {/if}
                         </div>
                     </div>
                 {/if}

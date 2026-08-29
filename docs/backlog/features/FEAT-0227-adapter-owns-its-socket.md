@@ -2,7 +2,9 @@
 id: FEAT-0227
 title: Move each venue's socket and subscription ref-counting behind its adapter
 type: feature
-status: done
+status: in-progress
+assignee: claude
+branch: feat/feat-0227-adapter-owns-socket
 priority: P2
 milestone: M2
 editions: [community, pro, private]
@@ -67,7 +69,7 @@ lets a new adapter connect.
 
 ## State (2026-08-27)
 
-Implemented on `feat/feat-0227-adapter-owns-socket`; merged as PR #2369.
+Implemented on `feat/feat-0227-adapter-owns-socket`, awaiting review.
 
 The blocker recorded here — FEAT-0018 — was already finished: its suite landed
 in #2304 and was reworked into a harness in #2359, but the item's front matter
@@ -111,4 +113,3 @@ the way gets its own bug.
 
 - [`ADR-0007`](../../adr/0007-exchange-adapter-boundary.md) — why this was split off
 - `src/services/connectionManager.ts`, `src/services/bitunixWs.ts`, `src/services/bitgetWs.ts`, `src/services/marketWatcher/subscriptionRegistry.ts`
-- Shipped in [PR #2369](https://github.com/mydcc/cachy-app/pull/2369).

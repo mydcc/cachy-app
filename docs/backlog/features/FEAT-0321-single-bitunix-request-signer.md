@@ -2,7 +2,9 @@
 id: FEAT-0321
 title: Sign every Bitunix request through one signer instead of three copies
 type: feature
-status: done
+status: in-progress
+assignee: claude
+branch: feat/bitunix-single-signer
 priority: P3
 milestone: M2
 editions: [community, pro, private]
@@ -111,4 +113,3 @@ Bitget signing, which already has exactly one implementation
   copies into one file and recorded why it stopped short of merging them
 - [`ADR-0007`](../../adr/0007-exchange-adapter-boundary.md)
 - `src/utils/server/bitunix.ts`, `src/utils/server/venues/bitunix.ts`
-- Shipped in [PR #2378](https://github.com/mydcc/cachy-app/pull/2378).

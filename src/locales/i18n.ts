@@ -25,7 +25,8 @@ import type { TranslationKey } from "./schema";
 import { writable, get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
 
-
+import * as en from "./locales/en.json";
+import * as de from "./locales/de.json";
 
 // List of keys that should always be English if "Force English Technical Terms" is enabled.
 // We use dot notation strings which we will resolve against the English dictionary.
@@ -151,46 +152,27 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
   }
 }
 
-type BaseLocale = "en" | "de";
-type Dict = Record<string, unknown>;
-// Lazy loaders: a locale's dictionary JSON is only fetched when that locale is
-// actually needed. Vite turns each dynamic import into its own hashed chunk,
-// so the startup bundle ships no dictionary bytes at all.
-const localeLoaders: Record<BaseLocale, () => Promise<Dict>> = {
-  en: () => import("./locales/en.json").then((m) => m.default as Dict),
-  de: () => import("./locales/de.json").then((m) => m.default as Dict),
-};
-const dictCache = new Map<BaseLocale, Dict>();
-export async function loadDict(localeKey: BaseLocale): Promise<Dict> {
-  const cached = dictCache.get(localeKey);
-  if (cached) return cached;
-  const dict = await localeLoaders[localeKey]();
-  dictCache.set(localeKey, dict);
-  return dict;
-}
-// Pure helper (exported for tests): German base dictionary with the English
-// values of TECHNICAL_KEYS overlaid.
-export function buildDeTechDict(deDict: Dict, enDict: Dict): Dict {
-  const dict = structuredClone(deDict);
-  // Overwrite technical keys in the German dict with values from the English one
-  TECHNICAL_KEYS.forEach((key) => {
-    const enValue = getNestedValue(enDict, key);
-    if (enValue) {
-      setNestedValue(dict, key, enValue);
-    }
-  });
-  return dict;
-}
-// Register standard locales — dictionaries resolve lazily through the cache.
-// svelte-i18n receives a clone so the shared cache can never be mutated.
-register("en", async () => structuredClone(await loadDict("en")));
-register("de", async () => structuredClone(await loadDict("de")));
-// Create a special "de-tech" locale that is German + English Technical Terms.
-// Both dictionaries (de AND en) are only fetched when this locale is used.
-register(
-  "de-tech",
-  async () => buildDeTechDict(await loadDict("de"), await loadDict("en")),
-);
+// Prepare the base dictionaries (we might need to clone them to avoid mutating imports if they are frozen)
+// We use structuredClone which is more efficient than JSON.parse/stringify
+const enDict = structuredClone({ ...en });
+const deDict = structuredClone({ ...de });
+
+// Register standard locales
+register("en", () => Promise.resolve(enDict));
+register("de", () => Promise.resolve(deDict));
+
+// Create a special "de-tech" locale that is German + English Technical Terms
+const deTechDict = structuredClone(deDict);
+
+// Overwrite technical keys in deTechDict with values from enDict
+TECHNICAL_KEYS.forEach((key) => {
+  const enValue = getNestedValue(enDict, key);
+  if (enValue) {
+    setNestedValue(deTechDict, key, enValue);
+  }
+});
+
+register("de-tech", () => Promise.resolve(deTechDict));
 
 const storedLocale =
   typeof localStorage !== "undefined" ? localStorage.getItem("locale") : null;
@@ -208,40 +190,23 @@ init({
   initialLocale: initialLocaleValue,
 });
 
-// Resolves once the dictionary of the initially active locale has loaded.
-// Exactly one dictionary is fetched at startup (AC: only the active locale).
-export const i18nReady: Promise<void> = loadDict(
-  initialLocaleValue as BaseLocale,
-).then(() => undefined);
-
 export const locale = writable<string | null>(initialLocaleValue);
 
-// Async: awaits the target dictionary before applying it. A sequence token
-// makes superseded switches a no-op, so the previously loaded dictionary keeps
-// rendering while the new one streams in — no raw $key flashes.
-let applySeq = 0;
-async function updateEffectiveLocale() {
+// Logic to determine the effective locale based on user preference and settings
+function updateEffectiveLocale() {
   if (typeof window === "undefined") return;
   const currentLocale = get(locale);
   const settings = settingsState;
 
-  let target: string | null = currentLocale;
   if (currentLocale === "de" && settings.forceEnglishTechnicalTerms) {
     // If user wants German but with English tech terms, switch to our hybrid locale
-    target = "de-tech";
-  }
-  if (!target) return;
-
-  const seq = ++applySeq;
-  if (target === "de-tech") {
-    await loadDict("de");
-    await loadDict("en");
+    svelteLocale.set("de-tech");
   } else {
-    await loadDict(target as BaseLocale);
+    // Otherwise just use the selected locale (en or de)
+    if (currentLocale) {
+      svelteLocale.set(currentLocale);
+    }
   }
-  // Superseded while loading — never apply; the newer switch will.
-  if (seq !== applySeq) return;
-  svelteLocale.set(target);
 }
 
 // Subscribe to the public 'locale' store

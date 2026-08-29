@@ -2,9 +2,9 @@
 
 # Backlog index
 
-212 items. How to read and add them: [README.md](README.md).
+208 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-progress 2 · ✅ done 163
+Counts by status: 💡 idea 21 · 📋 specced 21 · 🟢 ready 5 · 🟡 in-progress 11 · ✅ done 150
 
 ---
 
@@ -50,11 +50,11 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | ✅ done | exchange |
 | [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | exchange |
 | [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | ✅ done | ui |
-| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | ✅ done | exchange |
-| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | ✅ done | exchange |
+| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 🟡 in-progress | exchange |
+| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 🟡 in-progress | exchange |
 | [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 📋 specced | exchange |
 | [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | 📋 specced | exchange |
-| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | ✅ done | exchange |
+| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 📋 specced | exchange |
 
 ### M3
 
@@ -81,7 +81,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | trade-panel |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | trade-panel |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | ✅ done | exchange |
-| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | ✅ done | exchange |
+| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | exchange |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | execution |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | ✅ done | execution |
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | trade-panel |
@@ -95,9 +95,9 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | execution |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | ✅ done | exchange |
 | [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | ✅ done | trade-panel |
-| [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | ✅ done | ui |
-| [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | ✅ done | ui |
-| [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | mascot |
+| [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | 🟡 in-progress | ui |
+| [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | 🟡 in-progress | ui |
+| [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | 🟡 in-progress | mascot |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
 | [IDEA-0255](ideas/IDEA-0255-order-quantity-percent-slider.md) | Add a 0/25/50/75/100% quantity slider to the order-entry form | P3 | 💡 idea | trade-panel |
@@ -152,7 +152,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | ai |
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | ai |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | ai |
-| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | ✅ done | ai |
+| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | 🟡 in-progress | ai |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | ai |
 
 ### M9
@@ -206,7 +206,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | ✅ done | exchange |
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | calculator |
 | [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | ✅ done | security |
-| [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | ✅ done | security |
+| [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | security |
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | ✅ done | security |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | ✅ done | security |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | ✅ done | security |
@@ -214,7 +214,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | exchange |
 | [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | 📋 specced | security |
 | [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | security |
-| [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | repo |
+| [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | 🟡 in-progress | repo |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | docs |
 | [BUG-0309](bugs/BUG-0309-docs-adr-conflicts.md) | ADR violations in code vs docs | P2 | ✅ done | docs |
 | [BUG-0310](bugs/BUG-0310-docs-bitunix-api.md) | bitunix-api INTEGRATION_STATUS is stale | P2 | ✅ done | docs |
@@ -247,16 +247,15 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | ui |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | ui |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | ✅ done | ui |
-| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟢 ready | api |
+| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | api |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | api |
-| [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | ✅ done | security |
+| [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | security |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | ✅ done | api |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | security |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | ✅ done | services |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | execution |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | security |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | api |
-| [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | 📋 specced | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -264,14 +263,11 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | calculator |
 | [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | ✅ done | ui |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | ui |
-| [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | ✅ done | services |
+| [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 🟡 in-progress | services |
 | [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | ✅ done | settings |
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | tooling |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | pwa |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | tooling |
-| [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | exchange |
-| [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | 🟡 in-progress | ui |
-| [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | 🟡 in-progress | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -345,7 +341,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | ✅ done | M3 | community, pro, private | C | none | — |
-| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | ✅ done | M3 | community, pro, private | A | none | — |
+| [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | 📋 specced | M3 | community, pro, private | A | none | — |
 | [FEAT-0069](features/FEAT-0069-bitunix-place-order-completion.md) | Send TP/SL, time-in-force and a client order ID with Bitunix order placement | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | M2 | community, pro, private | none | ADR-0008 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
@@ -389,7 +385,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0250](bugs/BUG-0250-offline-banner-buttons-unresponsive.md) | OfflineBanner buttons are unresponsive and non-functional when connection is lost | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0252](bugs/BUG-0252-calculator-required-margin-precision-mismatch.md) | Summary's Required Margin, Max Net Loss and Entry Fee ignore the position-size rounding shown right below them | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0270](bugs/BUG-0270-csp-script-src-allows-inline-and-eval-scripts.md) | CSP script-src permits inline and eval'd scripts so the header stops no XSS | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | ✅ done | none | community, pro, private | C | none | — |
+| [BUG-0271](bugs/BUG-0271-ssrf-encoded-host-bypasses.md) | URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks | P2 | 🟡 in-progress | none | community, pro, private | C | none | — |
 | [BUG-0272](bugs/BUG-0272-proxy-route-credential-transport-drift.md) | Proxy routes drift on credential transport schema validation and error redaction | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0283](bugs/BUG-0283-backup-export-plaintext-credentials.md) | Unencrypted backup exports contain plaintext exchange credentials | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | ✅ done | none | community, pro, private | A | none | — |
@@ -397,7 +393,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0309](bugs/BUG-0309-docs-adr-conflicts.md) | ADR violations in code vs docs | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0310](bugs/BUG-0310-docs-bitunix-api.md) | bitunix-api INTEGRATION_STATUS is stale | P2 | ✅ done | none | community | none | none | — |
@@ -434,8 +430,8 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0214](features/FEAT-0214-pr-preview-deployments.md) | Automated PR preview deployments for visual and mobile testing | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) | Apply low-risk major dependency updates (OpenAI, JSDOM, Undici) | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [FEAT-0223](features/FEAT-0223-spacetimedb-major-update.md) | SpacetimeDB SDK major version update | P2 | ✅ done | M0 | community, pro, private | none | none | [FEAT-0222](features/FEAT-0222-major-dependency-updates.md) |
-| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) |
-| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
+| [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) |
+| [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | ✅ done | none | community, pro, private | C | none | [BUG-0230](bugs/BUG-0230-market-analyst-fetch-storm.md), [BUG-0232](bugs/BUG-0232-divergent-favourites-stores.md) |
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) |
@@ -443,11 +439,11 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | none | community, pro, private | A | required | — |
-| [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | ✅ done | M3 | community, pro, private | none | none | — |
-| [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | ✅ done | M3 | community, pro, private | none | none | — |
-| [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
+| [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
+| [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
+| [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | M8 | pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0019](features/FEAT-0019-agentic-web-search.md) |
-| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | ✅ done | M8 | community, pro, private | none | none | — |
+| [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | 🟡 in-progress | M8 | community, pro, private | none | none | — |
 | [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -457,16 +453,15 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
-| [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -474,16 +469,13 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) |
 | [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
-| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
-| [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
-| [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | 🟡 in-progress | none | community, pro, private | none | none | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) |
+| [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -498,4 +490,4 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 
 ---
 
-Next free number: **0326**
+Next free number: **0322**

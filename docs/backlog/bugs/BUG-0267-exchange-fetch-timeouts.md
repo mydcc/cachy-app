@@ -2,7 +2,9 @@
 id: BUG-0267
 title: Server-side exchange fetches run without timeout or abort
 type: bug
-status: ready
+status: in-progress
+assignee: opencode
+branch: fix/bug-0267-exchange-fetch-timeouts
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -48,7 +50,3 @@ Retry/backoff policy changes. Credential transit itself
 
 - `src/routes/api/orders/+server.ts`, `src/utils/server/bitunix.ts`, `src/utils/server/bitget.ts`
 - Security audit 2026-08-23, finding "no timeout/abort on exchange-bound requests" (Medium)
-
-## State
-
-- Shipped in [PR #2234](https://github.com/mydcc/cachy-app/pull/2234) (commit 56a54128): shared `fetchWithTimeout` helper (`DEFAULT_UPSTREAM_TIMEOUT_MS = 8000`), rolled out to every venue-bound route and `venues/bitunix.ts`/`bitget.ts`; typed 504 on timeout proven by a never-responding-upstream test.

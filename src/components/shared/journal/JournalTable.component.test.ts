@@ -147,7 +147,7 @@ describe("FEAT-0251: JournalTable Component Tests", () => {
         });
         flushSync();
 
-        const detailBtn = target.querySelector("button[title=\"Trade Details\"]");
+        const detailBtn = target.querySelector("button[aria-label=\"Trade Details\"]");
         expect(detailBtn).not.toBeNull();
         detailBtn?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         flushSync();

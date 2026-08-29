@@ -2,7 +2,9 @@
 id: FEAT-0301
 title: Active 3D Duck companion integration and onboarding achievement
 type: feature
-status: done
+status: in-progress
+assignee: human
+branch: feat/cachy-onboarding
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -61,7 +63,3 @@ Integrate onboarding lifecycle events into `DuckLogic` and add a first-steps ach
 - [`FEAT-0300`](FEAT-0300-onboarding-spotlight-ui-and-content.md)
 - [`src/lib/pets/DuckLogic.ts`](../../../src/lib/pets/DuckLogic.ts)
 - [`src/lib/pets/DuckAchievements.ts`](../../../src/lib/pets/DuckAchievements.ts)
-
-## State
-
-- Shipped in [PR #2218](https://github.com/mydcc/cachy-app/pull/2218) (squash commit 2ff4dabe on develop).

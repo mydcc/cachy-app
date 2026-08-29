@@ -2,7 +2,9 @@
 id: FEAT-0262
 title: Decide the fate of the unused workerPool service
 type: feature
-status: done
+status: in-progress
+assignee: antigravity
+branch: feat/feat-0262-workerpool-delete
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -54,4 +56,3 @@ None (resolved).
 
 - `src/services/workerPool.ts`, `src/services/workerPool.test.ts` (deleted)
 - Source: Autonomous Optimization Architect review, 2026-08-23.
-- Shipped in [PR #2349](https://github.com/mydcc/cachy-app/pull/2349).

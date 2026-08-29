@@ -19,7 +19,6 @@ import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle } from "@sveltejs/kit";
 import { building } from "$app/environment";
 import { logger } from "$lib/server/logger";
-import { i18nReady } from "./locales/i18n";
 
 // --- Global Console Interceptor for CachyLog ---
 // Redirects all server-side console logs to the centralized logger and SSE stream
@@ -53,9 +52,6 @@ if (!globalWithPatchFlag._isConsolePatched) {
 }
 
 const loggingHandler: Handle = async ({ event, resolve }) => {
-  // SSR initialLocale is always "en"; ensure the dictionary is loaded before
-  // the first server render so no raw $keys leak into the HTML response.
-  await i18nReady;
   const start = Date.now();
   const { method } = event.request;
   const path = event.url.pathname;

@@ -1423,7 +1423,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0068",
     "title": "Read and change leverage, margin mode and position margin from the trade panel",
     "type": "feature",
-    "status": "done",
+    "status": "specced",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -2393,7 +2393,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0271",
     "title": "URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks",
     "type": "bug",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "fix-bug-0271",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -2549,7 +2551,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0307",
     "title": "Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator",
     "type": "bug",
-    "status": "done",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -2565,6 +2567,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "target_date": "2026-08-25",
     "size": "S",
     "estimate": "2",
+    "assignee": "opencode",
     "file": "bugs/BUG-0307-backlog-sync-cannot-close-issues.md"
   },
   {
@@ -3403,7 +3406,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0227",
     "title": "Move each venue's socket and subscription ref-counting behind its adapter",
     "type": "feature",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/feat-0227-adapter-owns-socket",
     "priority": "P2",
     "milestone": "M2",
     "editions": [
@@ -3428,7 +3433,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0228",
     "title": "Move the venue branches out of the proxy routes into per-venue modules",
     "type": "feature",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/feat-0228-venue-gateway",
     "priority": "P2",
     "milestone": "M2",
     "editions": [
@@ -3600,7 +3607,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0299",
     "title": "Epic: First-Time User Onboarding & Interactive Walkthrough",
     "type": "feature",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "human",
+    "branch": "feat/cachy-onboarding",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -3618,7 +3627,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0300",
     "title": "Onboarding spotlight walkthrough UI, state engine, and data-driven steps",
     "type": "feature",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "human",
+    "branch": "feat/cachy-onboarding",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -3636,7 +3647,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0301",
     "title": "Active 3D Duck companion integration and onboarding achievement",
     "type": "feature",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "human",
+    "branch": "feat/cachy-onboarding",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -3680,7 +3693,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0306",
     "title": "Allow custom baseUrl configuration for all AI providers",
     "type": "feature",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P2",
     "milestone": "M8",
     "editions": [
@@ -3693,6 +3707,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "start_date": "2026-08-25",
+    "branch": "feat/feat-0306-custom-baseurl",
     "size": "S",
     "estimate": "1",
     "file": "features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md"
@@ -3890,7 +3905,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0267",
     "title": "Server-side exchange fetches run without timeout or abort",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0267-exchange-fetch-timeouts",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3926,7 +3943,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0273",
     "title": "Security hygiene sweep for three low-severity findings from the identity audit",
     "type": "bug",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -4055,24 +4073,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0291"
     ],
     "file": "bugs/BUG-0295-ollama-default-url.md"
-  },
-  {
-    "id": "BUG-0324",
-    "title": "Galaxy 3D disables blending instead of switching to normal blending on light themes",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "ui",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0324-galaxy-light-theme-noblending.md"
   },
   {
     "id": "FEAT-0022",
@@ -4219,7 +4219,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0262",
     "title": "Decide the fate of the unused workerPool service",
     "type": "feature",
-    "status": "done",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "feat/feat-0262-workerpool-delete",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -4333,7 +4335,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0321",
     "title": "Sign every Bitunix request through one signer instead of three copies",
     "type": "feature",
-    "status": "done",
+    "status": "specced",
     "priority": "P3",
     "milestone": "M2",
     "editions": [
@@ -4349,69 +4351,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "estimate": "2",
     "size": "S",
-    "start_date": "2026-08-27",
     "file": "features/FEAT-0321-single-bitunix-request-signer.md"
-  },
-  {
-    "id": "FEAT-0322",
-    "title": "Remove stale backup files from the repository",
-    "type": "feature",
-    "status": "done",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "exchange",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "version": "1.6.0-beta.163",
-    "file": "features/FEAT-0322-remove-stale-backup-files.md"
-  },
-  {
-    "id": "FEAT-0323",
-    "title": "Add a market-driven Galaxy mode to the Trade Flow background",
-    "type": "feature",
-    "status": "in-progress",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "ui",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "assignee": "claude-code",
-    "branch": "worktree-galaxy-3d-tradeflow-integration-3dcae5",
-    "file": "features/FEAT-0323-galaxy-tradeflow-mode.md"
-  },
-  {
-    "id": "FEAT-0325",
-    "title": "Drive the Trade Flow background from ATR and RSI, not only from trades",
-    "type": "feature",
-    "status": "in-progress",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "ui",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [
-      "FEAT-0323"
-    ],
-    "assignee": "claude-code",
-    "branch": "worktree-galaxy-3d-tradeflow-integration-3dcae5",
-    "file": "features/FEAT-0325-tradeflow-indicator-signals.md"
   },
   {
     "id": "IDEA-0036",

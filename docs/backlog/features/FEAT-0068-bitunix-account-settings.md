@@ -2,11 +2,13 @@
 id: FEAT-0068
 title: Read and change leverage, margin mode and position margin from the trade panel
 type: feature
-status: done
+status: in-progress
 priority: P1
 milestone: M3
 editions: [community, pro, private]
 area: exchange
+assignee: claude
+branch: worktree-issue-1809-feb78b
 data_class: A
 adr: none
 depends_on: []
@@ -115,4 +117,3 @@ the private WebSocket state rather than trusting the REST response alone.
 - [`docs/bitunix-api/INTEGRATION_STATUS.md`](../../bitunix-api/INTEGRATION_STATUS.md)
 - [`docs/bitunix-api/02_account.md`](../../bitunix-api/02_account.md)
 - [`docs/MILESTONES.md`](../../MILESTONES.md) — M3
-- Shipped in [PR #2381](https://github.com/mydcc/cachy-app/pull/2381).

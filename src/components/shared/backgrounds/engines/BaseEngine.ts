@@ -59,27 +59,6 @@ export abstract class BaseEngine {
     
     // Optional methods for interactivity
     public onTrade?(trade: { type: 'buy' | 'sell', price: number, amount: number }): void;
-    /**
-     * Smoothed market heat (0..1) from `marketHeat()`, pushed once per frame by
-     * the worker. Separate from `onTrade` because it is a continuous signal, not
-     * an event: engines that only want "how busy is this market right now"
-     * should not have to re-derive it from the trade stream themselves.
-     */
-    public onMarketActivity?(activity: number): void;
-    /**
-     * The streamed symbol changed. Engines holding any per-market calibration
-     * of their own (a price window, in-flight geometry positioned on the old
-     * market's scale) must drop it here. The shared `volumeNormalizer` is reset
-     * by the worker itself and needs no engine cooperation.
-     */
-    public onSymbolChange?(): void;
-    /**
-     * Latest computed indicator readings for the streamed symbol, or nulls when
-     * none are available. Separate from `onMarketActivity` because these are raw
-     * per-indicator values an engine may want to draw against (an ATR band, an
-     * RSI level), not the single blended heat that drives the atmosphere.
-     */
-    public onIndicators?(signal: { volatilityRel: number | null; rsi: number | null }): void;
     public onMouseMove?(x: number, y: number): void;
     public updateThemeColors?(colorUp: THREE.Color, colorDown: THREE.Color, atmosphere: THREE.Color): void;
 

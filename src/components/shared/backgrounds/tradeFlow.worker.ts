@@ -21,21 +21,14 @@ import { CityEngine } from './engines/CityEngine';
 import { RaindropsEngine } from './engines/RaindropsEngine';
 import { SonarEngine } from './engines/SonarEngine';
 import { BlockEngine } from './engines/BlockEngine';
-import { GalaxyFlowEngine } from './engines/GalaxyFlowEngine';
 import { type BaseEngine, type EngineContext } from './engines/BaseEngine';
 import { VolumeNormalizer, marketHeat, clamp01 } from './engines/volumeScale';
-import { pickVolatility, pickMood } from './indicatorSignal';
-import type { VolatilitySource, MoodSource } from './indicatorSignal';
 
 // Camera/mode fields this worker itself reads; each engine also reads its
 // own settings (gridWidth, spread, size, ...) via BaseEngine's generic
 // `settings: any` context field, which this passes through unchanged.
 interface FlowSettings {
     flowMode?: string;
-    /** Galaxy-mode tunables; only `autoCenter` is read here, the engine reads the rest. */
-    galaxyFlow?: { autoCenter?: boolean; [key: string]: unknown };
-    volatilitySource?: VolatilitySource;
-    moodSource?: MoodSource;
     cameraPositionX?: number;
     cameraHeight?: number;
     cameraDistance?: number;
@@ -48,21 +41,6 @@ interface FlowSettings {
 interface TradeEventData {
     sentiment?: number;
     trade: { type: 'buy' | 'sell'; price: number; amount: number };
-}
-
-interface ColorMessageData {
-    colorUp: string;
-    colorDown: string;
-    background: string;
-    /** Star palette for the galaxy mode; absent for every other mode. */
-    galaxy?: {
-        inside: string;
-        out1: string;
-        out2: string;
-        out3: string;
-        blending: THREE.Blending;
-        cutoff: number;
-    };
 }
 
 let renderer: THREE.WebGLRenderer;
@@ -108,12 +86,6 @@ const tradePriceBufMax = 100;
 let currentActivity = 0;
 const ACTIVITY_WINDOW_MS = 2000;
 
-// Latest indicator readings, pushed from the main thread. Null means "not
-// available", which every consumer below treats as "fall back", never as zero —
-// a missing indicator must not read as a dead-flat market.
-let indicatorVolatilityRel: number | null = null;
-let indicatorRsi: number | null = null;
-
 function relativePriceVolatility(): number {
   if (tradePriceBuf.length < 2) return 0;
   const mean = tradePriceBuf.reduce((a, b) => a + b, 0) / tradePriceBuf.length;
@@ -137,15 +109,7 @@ function computeActivity(nowMs: number): number {
 		const e = tradeLogBuf[(tradeLogHead + i) % TRADE_LOG_CAP] as TradeLogEntry;
 		volume += e.notional;
 	}
-	// The real ATR (relative to price) is exactly the `volatilityRel` marketHeat
-	// wants, so the indicator drops straight into the slot the trade-derived
-	// estimate used to fill.
-	const volatilityRel = pickVolatility(
-		indicatorVolatilityRel,
-		relativePriceVolatility(),
-		(settings?.volatilitySource as VolatilitySource) || 'trades'
-	);
-	return marketHeat({ rate: tradeLogCount, volume, volatilityRel });
+	return marketHeat({ rate: tradeLogCount, volume, volatilityRel: relativePriceVolatility() });
 }
 
 // Atmosphere lighting
@@ -249,17 +213,13 @@ self.onmessage = (event) => {
             updateLightSettings(data);
             break;
         case 'updateColors':
-            updateColors(data);
+            updateColors(data.colorUp, data.colorDown, data.background);
             break;
         case 'onTrade':
             onTrade(data);
             break;
-        case 'indicator':
-            indicatorVolatilityRel = typeof data?.volatilityRel === 'number' ? data.volatilityRel : null;
-            indicatorRsi = typeof data?.rsi === 'number' ? data.rsi : null;
-            // Engines that draw against a raw indicator (the galaxy's ATR bands)
-            // need the value itself, not the blended heat.
-            activeEngine?.onIndicators?.({ volatilityRel: indicatorVolatilityRel, rsi: indicatorRsi });
+        case 'switchMode':
+            switchMode(data.mode);
             break;
         case 'resetVolume':
             // Symbol changed: drop the old symbol's notionals from the
@@ -270,15 +230,6 @@ self.onmessage = (event) => {
 			tradeLogCount = 0;
             tradePriceBuf.length = 0;
             currentActivity = 0;
-            // Engines with their own per-market calibration (the galaxy's price
-            // axis) drop theirs too — a BTC price window would clamp every ETH
-            // trade to one end of the scale.
-            activeEngine?.onSymbolChange?.();
-            // The previous symbol's ATR and RSI say nothing about the new one,
-            // and the replacements arrive one calculation later.
-            indicatorVolatilityRel = null;
-            indicatorRsi = null;
-            activeEngine?.onIndicators?.({ volatilityRel: null, rsi: null });
             break;
     }
 };
@@ -305,24 +256,11 @@ function init(canvas: OffscreenCanvas, width: number, height: number, pixelRatio
     requestAnimationFrame(animate);
 }
 
-let lastFrameTime = 0;
-
 function animate(time: number) {
     const now = time * 0.001;
-    // Real frame delta, clamped so a tab switch or GC pause cannot make
-    // engines jump. Replaces the old fixed 0.016, which tied animation speed
-    // to the display's refresh rate (2x fast on 120 Hz).
-    const dt = Math.min(now - lastFrameTime || 0.016, 0.1);
-    lastFrameTime = now;
     
-    // Smoothing the mood. Which signal it chases is the user's choice; both are
-    // in the same -1..+1 space, so everything downstream is unchanged.
-    const moodTarget = pickMood(
-        targetSentiment,
-        indicatorRsi,
-        (settings?.moodSource as MoodSource) || 'sentiment'
-    );
-    currentSentiment = currentSentiment + (moodTarget - currentSentiment) * 0.02;
+    // Smoothing Sentiment
+    currentSentiment = currentSentiment + (targetSentiment - currentSentiment) * 0.02;
 
     // Smoothing market activity (rate + volume + volatility)
     const activity = computeActivity(time);
@@ -398,11 +336,8 @@ function animate(time: number) {
 
     if (activeEngine) {
         activeEngine.context.currentAtmosphere = currentAtmosphereColor;
-        // Continuous market heat, for engines that drive motion from it rather
-        // than from individual trades.
-        activeEngine.onMarketActivity?.(currentActivity);
         try {
-            activeEngine.update(now, dt);
+            activeEngine.update(now, 0.016);
         } catch (err) {
             console.error('[TradeFlow] engine update error', err);
         }
@@ -418,21 +353,10 @@ interface ObjectWithSentimentUniform {
 }
 
 function updateSentimentUniforms() {
-    // Uniform references are cached after each engine build (see
-    // collectSentimentUniforms) so the per-frame update avoids a scene.traverse.
-    for (const uniform of sentimentUniforms) {
-        uniform.value = currentSentiment;
-    }
-}
-
-let sentimentUniforms: { value: number }[] = [];
-
-function collectSentimentUniforms() {
-    sentimentUniforms = [];
     scene.traverse((obj) => {
         const uniforms = (obj as unknown as ObjectWithSentimentUniform).material?.uniforms;
         if (uniforms?.uSentiment) {
-            sentimentUniforms.push(uniforms.uSentiment);
+            uniforms.uSentiment.value = currentSentiment;
         }
     });
 }
@@ -469,40 +393,14 @@ function updateLightSettings(data: Record<string, unknown>) {
 function updateCamera() {
     if (!camera) return;
     camera.position.set(settings.cameraPositionX || 0, settings.cameraHeight || 20, settings.cameraDistance || 40);
-
-    // Grid modes lay their content out in front of a fixed-rotation camera. The
-    // galaxy instead sits at the origin, so it aims the camera at itself — the
-    // same `autoCenter` behaviour the standalone Galaxy 3D background has, which
-    // is what keeps the position sliders usable there (a raw rotation would let
-    // the user push the galaxy out of frame with one slider).
-    if (settings.flowMode === 'galaxy' && settings.galaxyFlow?.autoCenter !== false) {
-        camera.lookAt(0, 0, 0);
-    } else {
-        // The VisualsTab rotation sliders are labelled in degrees (-180..180)
-        // and send their raw values, so convert here. Nullish (not falsy) so a
-        // deliberate 0 - the default - is honoured instead of hiding a pitch.
-        camera.rotation.set(
-            (settings.cameraRotationX ?? 0) * Math.PI / 180,
-            (settings.cameraRotationY ?? 0) * Math.PI / 180,
-            (settings.cameraRotationZ ?? 0) * Math.PI / 180
-        );
-    }
+    camera.rotation.set(settings.cameraRotationX || -0.5, settings.cameraRotationY || 0, settings.cameraRotationZ || 0);
     camera.updateProjectionMatrix();
 }
 
-function updateColors(data: ColorMessageData) {
-    colorUp.set(data.colorUp);
-    colorDown.set(data.colorDown);
-    colorBg.set(data.background);
-
-    // Galaxy mode additionally carries the theme's star palette, resolved from
-    // the same `--galaxy-*` variables the standalone background reads, so both
-    // galaxies stay the same object across all themes. Every other mode simply
-    // has no use for these fields.
-    if (activeEngine instanceof GalaxyFlowEngine && data.galaxy) {
-        const g = data.galaxy;
-        activeEngine.updateGalaxyPalette(g.inside, g.out1, g.out2, g.out3, g.blending, g.cutoff);
-    }
+function updateColors(up: string, down: string, bg: string) {
+    colorUp.set(up);
+    colorDown.set(down);
+    colorBg.set(bg);
 
     if (activeEngine) {
         activeEngine.context.colorUp = colorUp;
@@ -539,22 +437,9 @@ function switchMode(mode: string | undefined) {
         case 'raindrops': activeEngine = new RaindropsEngine(context); break;
         case 'sonar': activeEngine = new SonarEngine(context); break;
         case 'block': activeEngine = new BlockEngine(context); break;
-        case 'galaxy': activeEngine = new GalaxyFlowEngine(context); break;
     }
 
-    // The galaxy is centred on the origin and aims the camera at itself, so a
-    // mode switch has to re-run the camera setup rather than keep the grid
-    // modes' fixed rotation.
-    updateCamera();
-
-    if (activeEngine) {
-        activeEngine.init();
-        // A newly built engine has missed every indicator message so far; hand it
-        // the current readings rather than making it wait for the next one.
-        activeEngine.onIndicators?.({ volatilityRel: indicatorVolatilityRel, rsi: indicatorRsi });
-    }
-    // New engine, new meshes: refresh the cached sentiment uniform references.
-    collectSentimentUniforms();
+    if (activeEngine) activeEngine.init();
 }
 
 function onTrade(data: TradeEventData) {
