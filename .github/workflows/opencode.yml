@@ -6,7 +6,7 @@ on:
   pull_request_review_comment:
     types: [created]
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, ready_for_review]
     # Doc-only PRs (backlog audits, markdown edits), CI-only PRs and pure
     # lockfile bumps get no automated agent review — it burns tokens without
     # any code to check. Human reviewers can still read those diffs themselves.
@@ -15,6 +15,7 @@ on:
       - "**.md"
       - ".github/**"
       - "package-lock.json"
+      - "package.json"
   # Weekly maintenance scan (needs its own prompt job, see "scheduled").
   schedule:
     - cron: "0 9 * * 1"
@@ -53,10 +54,11 @@ env:
     - If the PR touches area: execution, security, exchange, or priority
       P0, add a gentle note that human review is recommended before merge
       (no alarms, no uppercase shouting).
-    - Always post exactly one review comment for the commit you reviewed —
-      with findings or, when there are none, a short Clean verdict. Start it
-      with "Code Review for <short-sha>" so re-runs are recognizable per
-      commit.
+    - Do not post, edit, or reply to any GitHub comment yourself — bash is
+      denied for this run. Return the complete review as your final message;
+      the workflow posts it as the single review comment. If there are no
+      findings, return exactly "LGTM". Start the message with
+      "Code Review for <short-sha>" so re-runs are recognizable per commit.
   WEEKLY_PROMPT: |
     Weekly maintenance scan:
     - Scan the codebase for TODO/FIXME/HACK comments and summarize the
@@ -127,7 +129,7 @@ jobs:
       # then the fallbacks. Only the last attempt may fail the job.
       - name: Run opencode
         id: oc_primary
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -140,7 +142,7 @@ jobs:
       - name: Run opencode (fallback 1)
         id: oc_fallback_1
         if: steps.oc_primary.outcome == 'failure'
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -152,7 +154,7 @@ jobs:
       - name: Run opencode (fallback 2)
         id: oc_fallback_2
         if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -160,28 +162,75 @@ jobs:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
           share: false
 
-  # Automated review of every non-draft PR against the Cachy checklist
-  # (AGENTS.md -> Code Review Standard). Read-only towards the codebase: it
-  # posts exactly one comment per reviewed commit — findings or a Clean
-  # verdict — marked "Code Review for <sha>" so re-runs are recognizable
-  # per commit.
+  # Automated review of code-bearing non-draft PRs against the Cachy
+  # checklist (AGENTS.md -> Code Review Standard). Read-only towards the
+  # codebase: bash is denied for the agent, so it cannot post comments itself
+  # — the action posts the agent’s final message as the single comment per
+  # run. Re-reviews after new commits are opt-in: comment "/review" on the PR
+  # (repo owner only).
   #
   # Only PRs from branches in this repo are reviewed. Fork PRs are skipped:
   # GitHub does not pass secrets to fork-triggered workflows, so the opencode
   # action would fail without OPENCODE_API_KEY, and external PRs should not
   # drive the agent.
+  # Noise control (learned from PR #2413; pattern from anomalyco/opencode):
+  # - Auto-review fires on opened/ready_for_review only; synchronize pushes
+  #   (including message-only commit amendments) no longer re-trigger it.
+  # - The changes gate below skips the agent when none of the checklist-relevant
+  #   code areas changed (docs, lockfiles, configs).
+  # - No prune/deletion step: nothing extra is posted in the first place.
+
+  # Cheap pre-flight gate before any model call: skip the agent entirely when
+  # the PR touches none of the code areas the checklist applies to.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.gate.outputs.code }}
+
+    steps:
+      - name: Detect code changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+        run: |
+          code=false
+          while IFS= read -r f; do
+            case "$f" in
+              src/*|scripts/*|technicals-wasm/*) code=true; break ;;
+            esac
+          done < <(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files?per_page=100" --paginate --jq '.[].filename')
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   review:
-    if: |
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.draft != true &&
-      github.event.pull_request.head.repo.full_name == github.repository
+    needs: changes
+    if: >-
+      !cancelled() && (
+        (github.event_name == 'pull_request' &&
+         github.event.pull_request.draft != true &&
+         github.event.pull_request.head.repo.full_name == github.repository &&
+         needs.changes.outputs.code == 'true') ||
+        (github.event_name == 'issue_comment' &&
+         github.event.issue.pull_request &&
+         contains(fromJson('["mydcc"]'), github.event.comment.user.login) &&
+         startsWith(github.event.comment.body, '/review'))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 35
     # Per-PR group: rapid push sequences cancel the stale review instead of
     # spending tokens/minutes on an outdated diff.
     concurrency:
-      group: opencode-review-${{ github.event.pull_request.number }}
+      group: opencode-review-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: true
+    # The review agent must not post anything itself (PR #2413: duplicated
+    # comments via two bot identities). It returns the review as its final
+    # message; the action machinery posts it.
+    env:
+      OPENCODE_PERMISSION: '{"bash": "deny"}'
+
     permissions:
       id-token: write
       contents: read
@@ -208,7 +257,7 @@ jobs:
       # attempt may fail the job.
       - name: Run opencode review
         id: oc_primary
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -222,7 +271,7 @@ jobs:
       - name: Run opencode review (fallback 1)
         id: oc_fallback_1
         if: steps.oc_primary.outcome == 'failure'
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -235,7 +284,7 @@ jobs:
       - name: Run opencode review (fallback 2)
         id: oc_fallback_2
         if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -243,37 +292,6 @@ jobs:
           model: ${{ env.OPENCODE_MODEL_FALLBACK_2 }}
           share: false
           prompt: ${{ env.REVIEW_PROMPT }}
-
-      # One review run leaves two comments: the full review (posted as
-      # github-actions[bot] via GITHUB_TOKEN) plus an opencode-agent[bot]
-      # "Review posted:" pointer that only repeats the findings. Reviews are
-      # meant to stay as one entry per commit, so this step also runs after
-      # failed review attempts and collapses the noise: drop all pointer
-      # comments and remove same-commit duplicates, keeping the newest
-      # comment for each "Code Review for <sha>".
-      - name: Prune duplicate bot review comments
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          comments_url="repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments?per_page=100"
-
-          gh api "$comments_url" --jq '.[]
-            | select(.user.login == "opencode-agent[bot]"
-                     and (.body | startswith("Review posted:")))
-            | .id' | while read -r id; do
-            gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id"
-          done
-
-          ids=$(gh api "$comments_url" --jq '[
-            .[]
-            | select(.user.login == "github-actions[bot]"
-                     and (.body | startswith("Code Review for")))
-            | {id, sha: (.body | split("\n")[0] | split(" ")[3])}
-          ] | group_by(.sha) | map(.[:-1][] | .id)[]')
-          for id in $ids; do
-            gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id"
-          done
 
   # Weekly maintenance scan (schedule event): read-only — scans for TODOs and
   # backlog hygiene, only opens issues to track worthwhile findings. Never
@@ -311,7 +329,7 @@ jobs:
       # attempt may fail the job.
       - name: Run opencode weekly maintenance
         id: oc_primary
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -325,7 +343,7 @@ jobs:
       - name: Run opencode weekly maintenance (fallback 1)
         id: oc_fallback_1
         if: steps.oc_primary.outcome == 'failure'
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -338,7 +356,7 @@ jobs:
       - name: Run opencode weekly maintenance (fallback 2)
         id: oc_fallback_2
         if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -382,7 +400,7 @@ jobs:
       # attempt may fail the job.
       - name: Run opencode manual task
         id: oc_primary
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -396,7 +414,7 @@ jobs:
       - name: Run opencode manual task (fallback 1)
         id: oc_fallback_1
         if: steps.oc_primary.outcome == 'failure'
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         continue-on-error: true
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
@@ -409,7 +427,7 @@ jobs:
       - name: Run opencode manual task (fallback 2)
         id: oc_fallback_2
         if: steps.oc_primary.outcome == 'failure' && steps.oc_fallback_1.outcome == 'failure'
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@2c14fc5586fe0b88e5c04732d2e846769cc35671 # latest, pinned
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
