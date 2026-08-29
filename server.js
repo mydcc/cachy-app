@@ -38,7 +38,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Let SvelteKit handle everything else, including static files
+// Explicitly serve static assets via Express so compression and security headers apply,
+// before SvelteKit's handler (which uses sirv internally and bypasses Express middleware).
+app.use(express.static('build/client', { immutable: true, maxAge: '31536000000' }));
+
+// Let SvelteKit handle everything else
 app.use(handler);
 
 const port = process.env.PORT || "3001";
