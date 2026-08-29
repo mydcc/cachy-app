@@ -56,6 +56,11 @@ vi.mock('$lib/server/logger', () => ({
   }
 }));
 
+// Keep the settings-store graph out of SSR tests; the hook only awaits this promise.
+vi.mock('./locales/i18n', () => ({
+  i18nReady: Promise.resolve()
+}));
+
 // Save original console methods before the import patches them
 const originalWarn = console.warn;
 const originalError = console.error;

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import "./locales/i18n";
+import { i18nReady } from "./locales/i18n";
 import { dev } from "$app/environment";
 import type { HandleClientError } from "@sveltejs/kit";
 import {
@@ -31,6 +31,10 @@ import {
 if (!dev && typeof window !== "undefined") {
   installStaleDeploymentRecovery();
 }
+
+// Wait for the active locale dictionary before hydration so components never
+// render raw $keys. Mount anyway if it fails — keys beat a blank app.
+await i18nReady.catch(() => {});
 
 export const handleError: HandleClientError = async ({ error }) => {
   // Log the error to the console (default behavior)
