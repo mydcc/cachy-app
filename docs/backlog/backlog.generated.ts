@@ -3562,7 +3562,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0259",
     "title": "Load locale dictionaries on demand instead of eagerly at startup",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4000,7 +4000,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0290",
     "title": "Stop-protection retry loop retries through a documented no-op placeholder",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
