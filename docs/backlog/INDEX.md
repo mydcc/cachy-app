@@ -4,7 +4,7 @@
 
 212 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-progress 5 · ✅ done 160
+Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-progress 2 · ✅ done 163
 
 ---
 
@@ -95,9 +95,9 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0071](features/FEAT-0071-bitunix-native-bulk-endpoints.md) | Replace client-side cancel and close loops with native Bitunix endpoints | P2 | ✅ done | execution |
 | [FEAT-0072](features/FEAT-0072-bitunix-tpsl-ws-channel.md) | Subscribe the private Bitunix TP/SL WebSocket channel | P2 | ✅ done | exchange |
 | [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | ✅ done | trade-panel |
-| [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | 🟡 in-progress | ui |
-| [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | 🟡 in-progress | ui |
-| [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | 🟡 in-progress | mascot |
+| [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | ✅ done | ui |
+| [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | ✅ done | ui |
+| [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | mascot |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
 | [IDEA-0255](ideas/IDEA-0255-order-quantity-percent-slider.md) | Add a 0/25/50/75/100% quantity slider to the order-entry form | P3 | 💡 idea | trade-panel |
@@ -443,9 +443,9 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | none | community, pro, private | A | required | — |
-| [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
-| [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
-| [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
+| [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | ✅ done | M3 | community, pro, private | none | none | — |
+| [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | ✅ done | M3 | community, pro, private | none | none | — |
+| [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | M8 | pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0019](features/FEAT-0019-agentic-web-search.md) |
 | [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
