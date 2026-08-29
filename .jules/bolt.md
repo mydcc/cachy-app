@@ -14,7 +14,8 @@ Checking `pending[pending.length - 1].time === k.time` and replacing the last el
 ## Vitest Environment Overhead
 
 Configuring `environment: "happy-dom"` globally causes happy-dom window/DOM context instantiation overhead for all tests, including pure logic/math unit tests. Annotating pure-logic test files with `// @vitest-environment node` and using lazy polyfills for IndexedDB in `vitest.setup.ts` reduced Vitest environment setup duration from 102.65s to 89.80s across the test suite.
-## YYYY-MM-DD - Hoist template array mapping
+
+## 2026-08-29 - Hoist template array mapping
 
 **Learning:** Svelte 5 `$derived` prevents `O(N log N)` re-evaluations for complex operations inside `{#each}` blocks when unrelated variables trigger a tick.
 **Action:** Extract operations like `array.slice(x).sort(...)` into a derived property when an interval triggers refresh loops inside the same component to prevent template layout thrashing.
