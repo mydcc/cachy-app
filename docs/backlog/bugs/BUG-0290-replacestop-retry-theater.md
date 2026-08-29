@@ -2,7 +2,7 @@
 id: BUG-0290
 title: Stop-protection retry loop retries through a documented no-op placeholder
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -89,3 +89,7 @@ Keep the loud UNPROTECTED surfacing exactly as is.
 - [`FEAT-0070`](../features/FEAT-0070-bitunix-tpsl-placement.md)
 - [`INTEGRATION_STATUS.md`](../../bitunix-api/INTEGRATION_STATUS.md)
 - Security audit 2026-08-23, finding "stop-retry loop calls a no-op placeholder" (Low)
+
+## State
+
+- Shipped in [PR #2405](https://github.com/mydcc/cachy-app/pull/2405): replaceStop resolves the position id (bounded polls + requestSync), gates on the venue TP/SL capability and calls placePositionTpSl; honest UNPROTECTED surfacing and retry delays unchanged.

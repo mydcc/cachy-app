@@ -130,6 +130,53 @@ export interface GalaxySettings {
   rotationSpeed: number;
 }
 
+/**
+ * Galaxy tunables for the Trade Flow "galaxy" mode.
+ *
+ * Deliberately a separate shape from {@link GalaxySettings} even though the
+ * first block of fields is identical: the standalone Galaxy 3D background and
+ * the market-driven Trade Flow galaxy are two independent effects, and tuning
+ * one must never move the other. It is nested inside `TradeFlowSettings` rather
+ * than flattened because `particleCount` and `size` already exist there with a
+ * completely different meaning (grid particles, not stars).
+ *
+ * The defaults are scaled for the Trade Flow camera (height 80, distance 120),
+ * which sits ~28x further out than the standalone galaxy's camera — hence
+ * `radius: 60` instead of 5 and `particleSize: 6` instead of 0.5.
+ */
+export interface GalaxyFlowSettings {
+  particleCount: number;
+  particleSize: number;
+  radius: number;
+  branches: number;
+  spin: number;
+  randomness: number;
+  randomnessPower: number;
+  concentrationPower: number;
+  rotationSpeed: number;
+  galaxyRot: { x: number; y: number; z: number };
+  /** Point the camera at the galaxy core instead of using the raw camera rotation. */
+  autoCenter: boolean;
+  /** Scales every trade shockwave. 0 = the galaxy ignores trades entirely. */
+  marketReactivity: number;
+  /** How strongly the rolling buy/sell ratio tints the arms. */
+  sentimentTint: number;
+  /** How much market heat (rate + notional + volatility) speeds the galaxy up. */
+  activityRotation: number;
+  /**
+   * Turns the disc's radius into a price axis: a trade's shockwave is born at
+   * its position in the recent price range (core = bottom of the range, rim =
+   * top) instead of always at the core, and buys sweep outward while sells
+   * sweep inward. Off reproduces the plain radial burst.
+   */
+  priceAxis: boolean;
+  /**
+   * Reference rings at the last price and at ±1 ATR around it, drawn on the
+   * radial price axis. Needs `priceAxis` and an available ATR reading.
+   */
+  atrBands: boolean;
+}
+
 export interface TradeFlowSettings {
   speed: number;
   particleCount: number; // Legacy total count, might derive from width/height
@@ -145,8 +192,10 @@ export interface TradeFlowSettings {
   gridLength: number;
   enableAtmosphere: boolean;
   volumeScale: number; // Factor to scale volume mapping
-  flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "block";
+  flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "block" | "galaxy";
   persistenceDuration: number;
+  /** Tunables for the "galaxy" flow mode. Independent of `galaxySettings`. */
+  galaxyFlow: GalaxyFlowSettings;
   /**
    * Slow scene rotation, purely decorative. Off by default: it destroys the
    * readability of the time/price axes (a block's height can only be compared
@@ -168,6 +217,22 @@ export interface TradeFlowSettings {
    *   ticks even while the live feed is active.
    */
   tradeFlowSource: "live" | "ambient" | "replay";
+  /**
+   * What drives the scene's amplitude (fog, lights, nebula, galaxy spin).
+   * - "atr": the real Average True Range of the shared analysis timeframe, divided by
+   *   price so it is comparable across symbols.
+   * - "trades": the price spread of the last ~100 trade prints, computed in the
+   *   worker. Always available, but a cruder stand-in for volatility.
+   * ATR falls back to the trade estimate whenever no indicator value exists yet.
+   */
+  volatilitySource: "trades" | "atr";
+  /**
+   * What drives the scene's colour mood.
+   * - "sentiment": rolling buy/sell ratio of the last 100 trades (seconds of history).
+   * - "rsi": RSI of the shared analysis timeframe — a far longer view of the same question.
+   * RSI falls back to sentiment whenever no indicator value exists yet.
+   */
+  moodSource: "sentiment" | "rsi";
 }
 
 export interface Settings {
@@ -553,6 +618,26 @@ const defaultSettings: Settings = {
     cameraRotationY: 0,
     cameraRotationZ: 0,
     tradeFlowSource: "live",
+    volatilitySource: "atr",
+    moodSource: "sentiment",
+    galaxyFlow: {
+      particleCount: 20000,
+      particleSize: 6.0,
+      radius: 60,
+      branches: 3,
+      spin: 1.0,
+      randomness: 1.0,
+      randomnessPower: 3.0,
+      concentrationPower: 1.5,
+      rotationSpeed: 0.1,
+      galaxyRot: { x: 0, y: 0, z: 0 },
+      autoCenter: true,
+      marketReactivity: 1.0,
+      sentimentTint: 0.35,
+      activityRotation: 1.0,
+      priceAxis: true,
+      atrBands: true,
+    },
   } as TradeFlowSettings,
   galaxySettings: {
     particleCount: 20000,
@@ -646,8 +731,13 @@ const defaultSettings: Settings = {
 };
 
 export class SettingsManager {
+  // Cloned, not aliased: `$state` proxies the object it is handed, so passing
+  // `defaultSettings.tradeFlowSettings` directly would let every slider write
+  // through into the defaults and leave the reset button restoring the user's
+  // own edits. The nested `galaxyFlow` object makes that failure permanent,
+  // since a shallow spread elsewhere would keep sharing it by reference.
   tradeFlowSettings = $state<TradeFlowSettings>(
-    defaultSettings.tradeFlowSettings,
+    structuredClone(defaultSettings.tradeFlowSettings),
   );
   // Using $state for all properties
   private _apiProvider = $state<"bitunix" | "bitget">(
@@ -907,9 +997,7 @@ export class SettingsManager {
   }
 
   resetTradeFlowSettings() {
-    this.tradeFlowSettings = {
-      ...defaultSettings.tradeFlowSettings,
-    };
+    this.tradeFlowSettings = structuredClone(defaultSettings.tradeFlowSettings);
   }
 
   /** Restores every Settings → Chart field to its default (reset button). */
@@ -1644,10 +1732,16 @@ export class SettingsManager {
       ...(merged.galaxySettings || {}),
     };
 
-    // Deep merge TradeFlow settings for persistence
+    // Deep merge TradeFlow settings for persistence. `galaxyFlow` is merged
+    // one level deeper: a spread would otherwise hand the live state the very
+    // same object as `defaultSettings` whenever storage predates that field.
     this.tradeFlowSettings = {
-      ...defaultSettings.tradeFlowSettings,
+      ...structuredClone(defaultSettings.tradeFlowSettings),
       ...(merged.tradeFlowSettings || {}),
+      galaxyFlow: {
+        ...structuredClone(defaultSettings.tradeFlowSettings.galaxyFlow),
+        ...(merged.tradeFlowSettings?.galaxyFlow || {}),
+      },
     };
 
     this.enableTelemetry =

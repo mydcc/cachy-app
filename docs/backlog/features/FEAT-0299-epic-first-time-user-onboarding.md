@@ -2,9 +2,7 @@
 id: FEAT-0299
 title: "Epic: First-Time User Onboarding & Interactive Walkthrough"
 type: feature
-status: in-progress
-assignee: human
-branch: feat/cachy-onboarding
+status: done
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -54,3 +52,7 @@ flowchart TD
 - [`FEAT-0300`](FEAT-0300-onboarding-spotlight-ui-and-content.md)
 - [`FEAT-0301`](FEAT-0301-ducklogic-onboarding-companion-and-achievement.md)
 - [`docs/adr/0001-local-first-boundary.md`](../../adr/0001-local-first-boundary.md)
+
+## State
+
+- Shipped in [PR #2218](https://github.com/mydcc/cachy-app/pull/2218) (squash commit 2ff4dabe on develop).

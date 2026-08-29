@@ -1,4 +1,0 @@
-Additional files identified that contain hardcoded strings requiring internationalization in a future run:
-- src/services/calculationStrategy.ts (Critical Lag / Slow Calc English hardcodes despite translation strings being passed to it - though it actually uses the translation strings, the string fallback logic might need checking).
-- src/lib/pets/DuckLogic.ts (Hardcoded trophy emoji/duck variables in success toasts).
-- src/stores/ui.svelte.ts (Hardcoded storage quota/error logs).

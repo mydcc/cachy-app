@@ -2,9 +2,7 @@
 id: BUG-0271
 title: URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks
 type: bug
-status: in-progress
-assignee: antigravity
-branch: fix-bug-0271
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -82,3 +80,4 @@ covered separately in
 - `src/routes/api/external/article-content/+server.ts`
 - `src/routes/api/rss-fetch/+server.ts`
 - `src/routes/api/external/check-frame-support/+server.ts`
+- Shipped in [PR #2224](https://github.com/mydcc/cachy-app/pull/2224).

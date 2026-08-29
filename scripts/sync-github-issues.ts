@@ -684,7 +684,7 @@ async function cleanupDuplicateIssue(dupIssue: GitHubIssue, canonicalNumber: num
             filepath: "",
         }, false);
     } catch (e) {
-        console.warn(`[Sync] Failed to cleanup duplicate issue #${dupIssue.number}:`, e);
+        recordSyncFailure(`cleanup duplicate issue #${dupIssue.number}`, e instanceof Error ? e.message : String(e));
     }
 }
 
