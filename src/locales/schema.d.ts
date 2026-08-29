@@ -1723,6 +1723,7 @@ export type TranslationKey =
   | "settings.audit.outcome.sent"
   | "settings.audit.outcome.refused"
   | "settings.audit.outcome.failed"
+  | "settings.apiKeysRequired"
   | "positionsList.noOpenPositions"
   | "positionsList.size"
   | "positionsList.close"
@@ -1911,6 +1912,7 @@ export type TranslationKey =
   | "errors.saveFailed"
   | "errors.modifyFailed"
   | "errors.createFailed"
+  | "errors.saveError"
   | "modals.editTP.title"
   | "modals.editSL.title"
   | "modals.createTpSl.title"
@@ -2474,4 +2476,7 @@ export type TranslationKey =
   | "orderEntry.timeInForceNone"
   | "chartView.loadingHistory"
   | "chartView.fetchingMarketData"
-  | "chartView.countdownLabel";
+  | "chartView.countdownLabel"
+  | "technicals.performanceWarning"
+  | "storage.quotaExceeded"
+  | "storage.journalSaveFailed";

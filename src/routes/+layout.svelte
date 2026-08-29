@@ -335,7 +335,7 @@ import { afterNavigate } from "$app/navigation";
         return;
       }
 
-      uiState.showError(event.message || "An unexpected error occurred.");
+      uiState.showError(event.message || $_("errors.unknown"));
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {

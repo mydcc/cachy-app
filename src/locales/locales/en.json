@@ -1933,7 +1933,8 @@
         "refused": "Refused",
         "failed": "Failed"
       }
-    }
+    },
+    "apiKeysRequired": "API keys are required."
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -2147,9 +2148,10 @@
     "invalidTrade": "Invalid trade.",
     "priceFetchFailed": "Price fetch failed.",
     "atrFetchFailed": "ATR fetch failed.",
-    "saveFailed": "Save failed.",
+    "saveFailed": "Failed to save journal.",
     "modifyFailed": "Failed to modify order.",
-    "createFailed": "Failed to create order."
+    "createFailed": "Failed to create order.",
+    "saveError": "Error saving journal."
   },
   "modals": {
     "editTP": {
@@ -2948,5 +2950,12 @@
     "loadingHistory": "LOADING HISTORY ...",
     "fetchingMarketData": "FETCHING MARKET DATA ...",
     "countdownLabel": "Countdown to candle close"
+  },
+  "technicals": {
+    "performanceWarning": "Performance Warning: Missing {missing}. Using fallback engine."
+  },
+  "storage": {
+    "quotaExceeded": "Storage full! Please delete old data or create a backup.",
+    "journalSaveFailed": "Failed to save journal. The local storage might be full or blocked."
   }
 }

@@ -1933,7 +1933,8 @@
         "refused": "Abgelehnt",
         "failed": "Fehlgeschlagen"
       }
-    }
+    },
+    "apiKeysRequired": "API-Schlüssel sind erforderlich."
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -2157,9 +2158,10 @@
     "invalidTrade": "Ungültiger Trade.",
     "priceFetchFailed": "Preisabruf fehlgeschlagen.",
     "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
-    "saveFailed": "Speichern fehlgeschlagen.",
+    "saveFailed": "Speichern des Journals fehlgeschlagen.",
     "modifyFailed": "Änderung der Order fehlgeschlagen.",
-    "createFailed": "Order konnte nicht erstellt werden."
+    "createFailed": "Order konnte nicht erstellt werden.",
+    "saveError": "Fehler beim Speichern des Journals."
   },
   "modals": {
     "editTP": {
@@ -2948,5 +2950,12 @@
     "loadingHistory": "LADE HISTORIE ...",
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
     "countdownLabel": "Countdown bis zur Kerzenschließung"
+  },
+  "technicals": {
+    "performanceWarning": "Performance-Warnung: {missing} fehlt. Verwende Fallback-Engine."
+  },
+  "storage": {
+    "quotaExceeded": "Speicher voll! Bitte löschen Sie alte Daten oder erstellen Sie ein Backup.",
+    "journalSaveFailed": "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert."
   }
 }

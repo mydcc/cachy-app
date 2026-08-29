@@ -27,6 +27,8 @@ import { calculationStrategy } from "./calculationStrategy";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { getCapabilities } from "./capabilityDetection";
 import { toastService } from "./toastService.svelte";
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
 
 export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
@@ -192,7 +194,7 @@ async function notifyCapabilityStatus() {
     
     if (missing.length > 0) {
         // Warning, not error - app still works via fallbacks
-        const msg = `Performance Warning: Missing ${missing.join(", ")}. Using fallback engine.`;
+        const msg = get(_)("technicals.performanceWarning" as import("../locales/schema").TranslationKey, { values: { missing: missing.join(", ") } });
         logger.warn('technicals', msg);
         toastService.warning(msg, 8000);
         

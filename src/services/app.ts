@@ -230,7 +230,7 @@ export const app = {
                json,
              );
            } catch {
-             uiState.showError("Speichern fehlgeschlagen.");
+             uiState.showError(get(_)("errors.saveFailed"));
            }
         }
         saveJournalTask = null;

@@ -67,9 +67,13 @@ class SafeLocalStorage {
         if (options.showError) {
           // Dynamically import to avoid circular dependency
           import("../stores/ui.svelte").then(({ uiState }) => {
-            uiState.showError(
-              "Speicher voll! Bitte löschen Sie alte Daten oder erstellen Sie ein Backup.",
-            );
+            import("../locales/i18n").then(({ _ }) => {
+              import("svelte/store").then(({ get }) => {
+                uiState.showError(
+                  get(_)("storage.quotaExceeded"),
+                );
+              });
+            });
           });
         }
       } else {

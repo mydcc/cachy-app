@@ -110,11 +110,11 @@ class JournalManager {
 
       if (!success) {
         console.error("[Journal] Failed to save after retry");
-        uiState.showError("journal.saveFailed");
+        uiState.showError("errors.saveFailed");
       }
     } catch (e) {
       console.error("[Journal] Save error:", e);
-      uiState.showError("journal.saveError");
+      uiState.showError("errors.saveError");
     }
   }
 
