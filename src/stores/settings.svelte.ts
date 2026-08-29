@@ -219,7 +219,7 @@ export interface TradeFlowSettings {
   tradeFlowSource: "live" | "ambient" | "replay";
   /**
    * What drives the scene's amplitude (fog, lights, nebula, galaxy spin).
-   * - "atr": the real Average True Range of `indicatorTimeframe`, divided by
+   * - "atr": the real Average True Range of the shared analysis timeframe, divided by
    *   price so it is comparable across symbols.
    * - "trades": the price spread of the last ~100 trade prints, computed in the
    *   worker. Always available, but a cruder stand-in for volatility.
@@ -229,12 +229,10 @@ export interface TradeFlowSettings {
   /**
    * What drives the scene's colour mood.
    * - "sentiment": rolling buy/sell ratio of the last 100 trades (seconds of history).
-   * - "rsi": RSI of `indicatorTimeframe` — a far longer view of the same question.
+   * - "rsi": RSI of the shared analysis timeframe — a far longer view of the same question.
    * RSI falls back to sentiment whenever no indicator value exists yet.
    */
   moodSource: "sentiment" | "rsi";
-  /** Candle interval the ATR and RSI above are read from. */
-  indicatorTimeframe: string;
 }
 
 export interface Settings {
@@ -622,7 +620,6 @@ const defaultSettings: Settings = {
     tradeFlowSource: "live",
     volatilitySource: "atr",
     moodSource: "sentiment",
-    indicatorTimeframe: "15m",
     galaxyFlow: {
       particleCount: 20000,
       particleSize: 6.0,
