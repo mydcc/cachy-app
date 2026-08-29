@@ -4,7 +4,7 @@
 
 212 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-progress 2 · ✅ done 163
+Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 3 · 🟡 in-progress 2 · ✅ done 166
 
 ---
 
@@ -237,7 +237,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0233](features/FEAT-0233-market-dashboard-readable-signal.md) | Make the Market Dashboard signal readable and distinguish missing data from a sell signal | P2 | ✅ done | ui |
 | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) | Keep three.js off the startup path behind lazily loaded effect overlays | P2 | ✅ done | ui |
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | 🟢 ready | services |
-| [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | 🟢 ready | i18n |
+| [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | ✅ done | i18n |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | security |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
@@ -247,13 +247,13 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | ui |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | ui |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | ✅ done | ui |
-| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟢 ready | api |
+| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | ✅ done | api |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | api |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | ✅ done | security |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | ✅ done | api |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | security |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | ✅ done | services |
-| [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | execution |
+| [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | ✅ done | execution |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | security |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | api |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | 📋 specced | ui |
@@ -441,7 +441,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0247](features/FEAT-0247-chart-position-tpsl-drag.md) | Interactive chart positions and draggable TP/SL lines | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) |
 | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) | Keep three.js off the startup path behind lazily loaded effect overlays | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | 🟢 ready | none | community, pro, private | A | none | — |
-| [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | none | community, pro, private | A | required | — |
 | [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | ✅ done | M3 | community, pro, private | none | none | — |
@@ -457,13 +457,13 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0208](bugs/BUG-0208-rss-news-modal-iframe.md) | RSS Market Sentiment news open in new tab instead of modal iframe | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0210](bugs/BUG-0210-settings-security-warning-prominence.md) | Security Warning in settings is too prominent and misplaced | P3 | ✅ done | none | community | none | none | — |
 | [BUG-0266](bugs/BUG-0266-dashboardnav-html-preset-icon.md) | DashboardNav renders preset.icon through unsanitized {@html} | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0267](bugs/BUG-0267-exchange-fetch-timeouts.md) | Server-side exchange fetches run without timeout or abort | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0268](bugs/BUG-0268-bitget-history-silent-empty.md) | Bitget history errors return an empty list indistinguishable from no orders | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0273](bugs/BUG-0273-security-hygiene-sweep.md) | Security hygiene sweep for three low-severity findings from the identity audit | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0287](bugs/BUG-0287-client-token-map-no-ttl.md) | Issued client tokens never expire and the token map grows without bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) | App reset clears localStorage but leaves the IndexedDB device key and caches behind | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0289](bugs/BUG-0289-symbol-debounce-effect-cleanup.md) | Symbol debounce effect arms a setTimeout without returning cleanup | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | 📋 specced | none | community, pro, private | none | none | — |

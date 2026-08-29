@@ -2,7 +2,7 @@
 id: BUG-0267
 title: Server-side exchange fetches run without timeout or abort
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
