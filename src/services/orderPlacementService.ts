@@ -44,6 +44,7 @@
 
 import { Decimal } from "decimal.js";
 import { tradeService } from "./tradeService";
+import { accountState } from "../stores/account.svelte";
 import { tpSlState } from "../stores/tpsl.svelte";
 import { capabilitiesOf, type OrderEntryType, type TimeInForce } from "./exchangeCapabilities";
 import { logger } from "./logger";
@@ -105,6 +106,15 @@ export interface EntryPlan {
     accountStateAt?: number;
     timeInForce?: TimeInForce;
 }
+
+/** How often replaceStop looks for the fresh position's id before giving up. */
+const POSITION_ID_POLLS = 3;
+/** Pause between position-id polls; requestSync is fire-and-forget. */
+const POSITION_ID_POLL_MS = 300;
+
+/** Total fake-clock budget re-placement may spend polling for the position id. */
+export const POSITION_ID_RESOLVE_BUDGET_MS =
+    (POSITION_ID_POLLS - 1) * POSITION_ID_POLL_MS;
 
 /** How many times a missing stop is re-placed before it is called failed. */
 export const STOP_RETRY_ATTEMPTS = 2;
@@ -300,17 +310,61 @@ class OrderPlacementService {
      * Places a stop on its own, for the retry path and for exchanges that
      * cannot attach one at entry.
      *
-     * Bitunix's `tpsl/place_order` is not integrated yet — that is
-     * FEAT-0070 — so there is currently nothing to call. Rather than pretend
-     * otherwise, this records the gap and lets the caller reach the
-     * UNPROTECTED result, which is the honest outcome: the retry could not be
-     * performed, so the stop is not there.
+     * Goes through the position-wide TP/SL placement (`tpsl/place_order`,
+     * FEAT-0070). Venues whose capabilities do not declare TP/SL support
+     * cannot take a position plan either, so they skip straight to the honest
+     * UNPROTECTED outcome instead of guessing at an unverified request format.
      */
     private async replaceStop(plan: EntryPlan): Promise<void> {
-        logger.error(
-            "market",
-            `[Placement] Cannot re-place stop for ${plan.symbol}: tpsl/place_order is not integrated (FEAT-0070)`,
-        );
+        if (!capabilitiesOf(plan.exchange).tpSlAtEntry) {
+            return;
+        }
+
+        const positionId = await this.resolvePositionId(plan);
+        if (positionId === null) {
+            logger.warn(
+                "market",
+                `[Placement] No position id for ${plan.symbol}, cannot re-place stop`,
+            );
+            return;
+        }
+
+        try {
+            await tradeService.placePositionTpSl({
+                symbol: plan.symbol,
+                positionId,
+                stopLoss: { price: plan.stopLossPrice },
+            });
+        } catch (error) {
+            // The retry window ends in the loud UNPROTECTED result either way;
+            // this only explains why the re-place did not go through.
+            logger.warn(
+                "market",
+                `[Placement] Re-placing stop for ${plan.symbol} failed: ${getDisplayMessage(error)}`,
+            );
+        }
+    }
+
+    /**
+     * Finds the fresh position's exchange id for a symbol/side. The positions
+     * list is WS/REST-hydrated; if the entry has not shown up yet, nudge a
+     * sync and poll briefly — requestSync is fire-and-forget, so there is
+     * nothing to await directly.
+     */
+    private async resolvePositionId(plan: EntryPlan): Promise<string | null> {
+        for (let attempt = 0; attempt < POSITION_ID_POLLS; attempt++) {
+            const position = accountState.positions.find(
+                (p) => p.symbol === plan.symbol && p.side === plan.tradeType,
+            );
+            if (position) {
+                return position.positionId;
+            }
+            if (attempt < POSITION_ID_POLLS - 1) {
+                accountState.requestSync();
+                await new Promise((resolve) => setTimeout(resolve, POSITION_ID_POLL_MS));
+            }
+        }
+        return null;
     }
 }
 
