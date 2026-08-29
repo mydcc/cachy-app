@@ -2,9 +2,7 @@
 id: FEAT-0300
 title: Onboarding spotlight walkthrough UI, state engine, and data-driven steps
 type: feature
-status: in-progress
-assignee: human
-branch: feat/cachy-onboarding
+status: done
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -76,3 +74,7 @@ Build a lightweight, accessible Svelte 5 spotlight walkthrough with data-driven 
 
 - [`FEAT-0299`](FEAT-0299-epic-first-time-user-onboarding.md)
 - [`FEAT-0301`](FEAT-0301-ducklogic-onboarding-companion-and-achievement.md)
+
+## State
+
+- Shipped in [PR #2218](https://github.com/mydcc/cachy-app/pull/2218) (squash commit 2ff4dabe on develop).

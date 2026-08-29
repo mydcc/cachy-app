@@ -3600,9 +3600,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0299",
     "title": "Epic: First-Time User Onboarding & Interactive Walkthrough",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "human",
-    "branch": "feat/cachy-onboarding",
+    "status": "done",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -3620,9 +3618,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0300",
     "title": "Onboarding spotlight walkthrough UI, state engine, and data-driven steps",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "human",
-    "branch": "feat/cachy-onboarding",
+    "status": "done",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -3640,9 +3636,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0301",
     "title": "Active 3D Duck companion integration and onboarding achievement",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "human",
-    "branch": "feat/cachy-onboarding",
+    "status": "done",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
