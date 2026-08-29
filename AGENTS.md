@@ -215,3 +215,5 @@ A Jules session starts from a frozen sandbox clone that can be far behind `devel
 - **Before pushing:** compare the PR's changed-file list against the task's intended files. If the list is larger, the sandbox is stale — abort the task instead of pushing.
 
 Further documentation: `docs/README.md` (map), `docs/adr/` (binding decisions), `docs/backlog/INDEX.md` (open tasks).
+
+Architecture overview: `docs/architecture/cachy-architecture.dataflow.html` (source of truth is the JSON next to it; regenerate with `npm run arch`). Read it first when touching services, exchange integrations, or anything that changes data flows or the Local-First boundary — and update the diagram in the same PR when your change moves data between device, cloud, or exchanges.

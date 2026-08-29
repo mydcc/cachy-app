@@ -1,0 +1,491 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Cachy — Local-First Trading Data Flow",
+    "subtitle": "Bitunix / Bitget market data → local computation → localStorage (Class A) → order execution",
+    "locale": "en",
+    "viewBox": [
+      1080,
+      820
+    ],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "market-path",
+        "label": "Market data path",
+        "focus": [
+          "bitunix",
+          "bitget",
+          "cmc",
+          "ws-feeds",
+          "rest-api",
+          "aggregator",
+          "indicators"
+        ],
+        "note": "Public Class C data streams from the exchanges into local indicator computation."
+      },
+      {
+        "id": "local-first-boundary",
+        "label": "Local-First boundary",
+        "focus": [
+          "journal",
+          "presets",
+          "local-store",
+          "rest-api",
+          "calculator",
+          "trade-exec"
+        ],
+        "note": "Class A data (journal, settings, API keys, presets) stays in localStorage and never leaves the device."
+      },
+      {
+        "id": "execution-path",
+        "label": "Execution path",
+        "focus": [
+          "calculator",
+          "trade-exec",
+          "bitunix"
+        ],
+        "note": "Planned position sizes become signed orders on the exchange."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "Public Sources"
+    },
+    {
+      "label": "Ingest"
+    },
+    {
+      "label": "Process"
+    },
+    {
+      "label": "Local-First Store"
+    },
+    {
+      "label": "Consume & Execute"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "bitunix",
+      "type": "external",
+      "label": "Bitunix",
+      "sublabel": "REST + WebSocket",
+      "stage": 0,
+      "row": 0,
+      "tag": "CEX"
+    },
+    {
+      "id": "bitget",
+      "type": "external",
+      "label": "Bitget",
+      "sublabel": "REST + WebSocket",
+      "stage": 0,
+      "row": 2,
+      "tag": "CEX"
+    },
+    {
+      "id": "cmc",
+      "type": "external",
+      "label": "CMC",
+      "sublabel": "CoinMarketCap REST",
+      "stage": 0,
+      "row": 4,
+      "tag": "REST"
+    },
+    {
+      "id": "ws-feeds",
+      "type": "backend",
+      "label": "WS Feeds",
+      "sublabel": "bitgetWs / bitunixWs",
+      "stage": 1,
+      "row": 1,
+      "tag": "wss"
+    },
+    {
+      "id": "rest-api",
+      "type": "backend",
+      "label": "REST API",
+      "sublabel": "apiService · signing",
+      "stage": 1,
+      "row": 3,
+      "tag": "signed"
+    },
+    {
+      "id": "aggregator",
+      "type": "backend",
+      "label": "Aggregator",
+      "sublabel": "aggregatorService",
+      "stage": 2,
+      "row": 1,
+      "tag": "merge"
+    },
+    {
+      "id": "indicators",
+      "type": "backend",
+      "label": "Technicals",
+      "sublabel": "technicals · WASM worker",
+      "stage": 2,
+      "row": 3,
+      "tag": "WASM"
+    },
+    {
+      "id": "journal",
+      "type": "database",
+      "label": "Journal",
+      "sublabel": "trade journal",
+      "stage": 3,
+      "row": 0,
+      "tag": "Class A"
+    },
+    {
+      "id": "local-store",
+      "type": "database",
+      "label": "localStorage",
+      "sublabel": "storageService · Class A",
+      "stage": 3,
+      "row": 2,
+      "tag": "never leaves device"
+    },
+    {
+      "id": "presets",
+      "type": "database",
+      "label": "Presets",
+      "sublabel": "calc presets",
+      "stage": 3,
+      "row": 4,
+      "tag": "Class A"
+    },
+    {
+      "id": "calculator",
+      "type": "frontend",
+      "label": "Calculator UI",
+      "sublabel": "position sizing · risk",
+      "stage": 4,
+      "row": 0,
+      "tag": "Class A"
+    },
+    {
+      "id": "trade-exec",
+      "type": "backend",
+      "label": "Trade Execution",
+      "sublabel": "tradeService · sync",
+      "stage": 4,
+      "row": 2,
+      "tag": "orders"
+    },
+    {
+      "id": "chat-spacetime",
+      "type": "cloud",
+      "label": "Chat Cloud",
+      "sublabel": "SpacetimeDB · opt-in",
+      "stage": 4,
+      "row": 4,
+      "tag": "Class B"
+    }
+  ],
+  "flows": [
+    {
+      "id": "ticks-bitunix",
+      "from": "bitunix",
+      "to": "ws-feeds",
+      "label": "live ticks",
+      "classification": "Class C — public",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "ticks-bitget",
+      "from": "bitget",
+      "to": "ws-feeds",
+      "label": "live ticks",
+      "classification": "Class C — public",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "candles-bitget",
+      "from": "bitget",
+      "to": "rest-api",
+      "label": "candles",
+      "classification": "Class C",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "cmc-rest",
+      "from": "cmc",
+      "to": "rest-api",
+      "label": "cmc metadata",
+      "classification": "Class C — public",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          180,
+          613
+        ],
+        [
+          180,
+          385
+        ],
+        [
+          315,
+          385
+        ],
+        [
+          315,
+          470
+        ]
+      ],
+      "labelAt": [
+        270,
+        404
+      ]
+    },
+    {
+      "id": "feed-agg",
+      "from": "ws-feeds",
+      "to": "aggregator",
+      "label": "live ticks",
+      "classification": "realtime",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight",
+      "labelAt": [
+        422,
+        250
+      ]
+    },
+    {
+      "id": "rest-agg",
+      "from": "rest-api",
+      "to": "aggregator",
+      "label": "candles",
+      "classification": "historical",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        422,
+        442
+      ]
+    },
+    {
+      "id": "agg-ind",
+      "from": "aggregator",
+      "to": "indicators",
+      "label": "candle arrays",
+      "classification": "in-memory",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [
+        468,
+        385
+      ]
+    },
+    {
+      "id": "ind-calc",
+      "from": "indicators",
+      "to": "calculator",
+      "label": "indicator values",
+      "classification": "computed locally",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          610,
+          499
+        ],
+        [
+          610,
+          110
+        ],
+        [
+          852,
+          110
+        ],
+        [
+          852,
+          157
+        ]
+      ],
+      "labelAt": [
+        610,
+        360
+      ]
+    },
+    {
+      "id": "keys-rest",
+      "from": "local-store",
+      "to": "rest-api",
+      "label": "API keys",
+      "classification": "Class A — device only",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "bottom",
+      "via": [
+        [
+          640,
+          385
+        ],
+        [
+          640,
+          560
+        ],
+        [
+          315,
+          560
+        ]
+      ],
+      "labelAt": [
+        530,
+        576
+      ]
+    },
+    {
+      "id": "journal-store",
+      "from": "journal",
+      "to": "local-store",
+      "label": "entries",
+      "classification": "Class A",
+      "variant": "default",
+      "fromSide": "left",
+      "toSide": "top",
+      "via": [
+        [
+          640,
+          157
+        ],
+        [
+          640,
+          326
+        ],
+        [
+          745,
+          326
+        ]
+      ],
+      "labelAt": [
+        640,
+        240
+      ]
+    },
+    {
+      "id": "presets-store",
+      "from": "presets",
+      "to": "local-store",
+      "label": "presets",
+      "classification": "Class A — device only",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "straight",
+      "labelAt": [
+        745,
+        499
+      ]
+    },
+    {
+      "id": "store-exec",
+      "from": "local-store",
+      "to": "trade-exec",
+      "label": "journal sync",
+      "classification": "Class A",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight",
+      "labelAt": [
+        852,
+        385
+      ]
+    },
+    {
+      "id": "calc-exec",
+      "from": "calculator",
+      "to": "trade-exec",
+      "label": "size · TP/SL",
+      "classification": "user intent",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [
+        898,
+        271
+      ]
+    },
+    {
+      "id": "exec-bitunix",
+      "from": "trade-exec",
+      "to": "bitunix",
+      "label": "signed orders",
+      "classification": "money-moving",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          1040,
+          385
+        ],
+        [
+          1040,
+          100
+        ],
+        [
+          100,
+          100
+        ]
+      ],
+      "labelAt": [
+        560,
+        84
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Primary Market Path",
+      "items": [
+        "Live ticks stream over WebSocket from Bitunix and Bitget into the aggregator",
+        "technicalsService computes indicators in a WASM worker, off the main thread",
+        "cmcService adds CoinMarketCap metadata; SMC and chart patterns share this pipeline",
+        "Public Class C data never carries user identity"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Local-First Boundary (ADR 0001)",
+      "items": [
+        "Class A data — journal, settings, API keys, presets — lives only in localStorage",
+        "Calculator and trade-exec read journal and presets straight from localStorage (read paths not charted)",
+        "Core code never imports SpacetimeDB or cloudService",
+        "API keys leave the device only inside signed exchange requests"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Support Services (not charted as flows)",
+      "items": [
+        "Backup and auto-backup services export the same local store on demand",
+        "toast, tracking (consent-gated) and AI model services are orthogonal UI concerns",
+        "Chat Cloud (SpacetimeDB) is opt-in, authenticated, non-essential — core never touches it"
+      ]
+    }
+  ]
+}
