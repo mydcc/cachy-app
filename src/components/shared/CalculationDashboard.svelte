@@ -30,6 +30,14 @@
     let nextCycleIn = $state(0);
     let cycleProgress = $state(0); // 0-100%
 
+    // Hoisting this sort/slice out of the {#each} block prevents layout thrashing
+    // and O(N log N) re-evaluation on every UI refresh tick.
+    let recentSymbols = $derived(
+        Object.entries(analysisState.results)
+            .slice(0, 8)
+            .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    );
+
     // Update every 1 second
     $effect(() => {
         const interval = setInterval(() => {
@@ -195,9 +203,7 @@
             </p>
         {:else}
             <div class="symbols-list">
-                {#each Object.entries(analysisState.results)
-                    .slice(0, 8)
-                    .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0)) as [symbol, data] (symbol)}
+                {#each recentSymbols as [symbol, data] (symbol)}
                     <div class="symbol-item">
                         <div class="symbol-name">{symbol}</div>
                         <div class="symbol-info">
