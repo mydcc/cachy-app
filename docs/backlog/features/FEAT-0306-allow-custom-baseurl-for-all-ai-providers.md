@@ -2,8 +2,7 @@
 id: FEAT-0306
 title: Allow custom baseUrl configuration for all AI providers
 type: feature
-status: in-progress
-assignee: antigravity
+status: done
 priority: P2
 milestone: M8
 editions: [community, pro, private]
@@ -12,7 +11,6 @@ data_class: none
 adr: none
 depends_on: []
 start_date: 2026-08-25
-branch: feat/feat-0306-custom-baseurl
 size: S
 estimate: 1
 ---
@@ -62,3 +60,4 @@ instead of traveling to `api.openai.com`.
 
 - `src/types/ai.ts:33` (`AiRequestSchema`)
 - `src/routes/api/ai/openai/+server.ts`
+- Shipped in [PR #2351](https://github.com/mydcc/cachy-app/pull/2351).

@@ -2,7 +2,7 @@
 id: BUG-0307
 title: Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -14,7 +14,6 @@ start_date: 2026-08-25
 target_date: 2026-08-25
 size: S
 estimate: 2
-assignee: opencode
 ---
 
 # BUG-0307 — Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator
@@ -97,3 +96,7 @@ design) → the final convergence update dies on the 422 → drift forever.
   they stay in the markdown as provenance; only the API payload filters them.
 - Kanban Projects v2 field mapping beyond what this fix touches.
 - Commit-message reference linting (BUG-0220's territory, already covered).
+
+## State
+
+- Shipped in [PR #2303](https://github.com/mydcc/cachy-app/pull/2303) (commit 1003f107); issue-closing nit fixed alongside the item close.

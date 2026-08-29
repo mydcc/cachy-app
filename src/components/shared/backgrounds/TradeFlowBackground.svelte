@@ -21,6 +21,9 @@
   import { settingsState } from "../../../stores/settings.svelte";
   import { tradeState } from "../../../stores/trade.svelte";
   import { activeExchange } from "../../../services/exchange";
+  import { marketState } from "../../../stores/market.svelte";
+  import { activeTechnicalsManager } from "../../../services/activeTechnicalsManager.svelte";
+  import { readIndicatorSignal } from "./indicatorSignal";
   import { _ } from "../../../locales/i18n";
   import TradeFlowWorker from "./tradeFlow.worker?worker";
 
@@ -56,16 +59,72 @@
     return trimmed || fallback;
   };
 
+  /** Hex or rgb() to an RGB triple. Used only to tell a light theme from a dark one. */
+  function parseColorToRgb(colorStr: string): [number, number, number] | null {
+    const trimmed = colorStr.trim();
+    if (trimmed.startsWith("#")) {
+      const hex = trimmed.slice(1);
+      if (hex.length === 3) {
+        return [
+          parseInt(hex[0] + hex[0], 16),
+          parseInt(hex[1] + hex[1], 16),
+          parseInt(hex[2] + hex[2], 16),
+        ];
+      } else if (hex.length >= 6) {
+        return [
+          parseInt(hex.slice(0, 2), 16),
+          parseInt(hex.slice(2, 4), 16),
+          parseInt(hex.slice(4, 6), 16),
+        ];
+      }
+    }
+    const match = trimmed.match(/\d+/g);
+    if (match && match.length >= 3) {
+      return [parseInt(match[0], 10), parseInt(match[1], 10), parseInt(match[2], 10)];
+    }
+    return null;
+  }
+
+  /**
+   * The galaxy mode's star palette, read from the same `--galaxy-*` theme
+   * variables the standalone Galaxy 3D background uses. Additive blending turns
+   * to normal on a light theme, otherwise the stars wash the page out — the
+   * standalone background makes the same switch.
+   */
+  function resolveGalaxyPalette() {
+    const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
+    const rgb = parseColorToRgb(bgStr);
+    let light = false;
+    if (rgb) {
+      const [r, g, b] = [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255];
+      light = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 > 0.5;
+    }
+    return {
+      inside: resolveColor("--galaxy-stars-core") || "#6366f1",
+      out1: resolveColor("--galaxy-stars-edge") || "#8b5cf6",
+      out2: resolveColor("--galaxy-stars-edge-2") || "#8b5cf6",
+      out3: resolveColor("--galaxy-stars-edge-3") || "#6366f1",
+      // THREE.NormalBlending = 1, THREE.AdditiveBlending = 2.
+      blending: light ? 1 : 2,
+      cutoff: light ? 0.6 : 0.2,
+    };
+  }
+
   function updateColors() {
     if (!worker || lifecycleState !== LifecycleState.READY) return;
 
-    const colorUp = resolveColor("--color-up") || "#00ff88";
-    const colorDown = resolveColor("--color-down") || "#ff4444";
+    // `colorMode: "custom"` picks the user's own buy/sell colours over the
+    // theme's. Every mode reads these two through the worker, so the switch
+    // applies to all of them, galaxy included.
+    const s = settingsState.tradeFlowSettings;
+    const custom = s.colorMode === "custom";
+    const colorUp = (custom ? s.customColorUp : resolveColor("--color-up")) || "#00ff88";
+    const colorDown = (custom ? s.customColorDown : resolveColor("--color-down")) || "#ff4444";
     const bg = resolveColor("--color-bg-primary") || "#000000";
 
     worker.postMessage({
       type: 'updateColors',
-      data: { colorUp, colorDown, background: bg }
+      data: { colorUp, colorDown, background: bg, galaxy: resolveGalaxyPalette() }
     });
   }
 
@@ -199,15 +258,96 @@
   $effect(() => {
     if (lifecycleState !== LifecycleState.READY || !worker) return;
     const s = settingsState.tradeFlowSettings;
-    const structuralKey = `${s.flowMode}_${s.gridWidth}_${s.gridLength}_${s.spread}_${s.size}`;
-    
+    // Galaxy tunables ride along here rather than in the lightweight channel
+    // below: that one only merges values into the worker's settings object and
+    // never reaches the engine's uniforms, and two of the galaxy fields
+    // (particleCount, randomness) are baked into buffers that must be rebuilt.
+    const structuralKey = `${s.flowMode}_${s.gridWidth}_${s.gridLength}_${s.spread}_${s.size}_${JSON.stringify(s.galaxyFlow)}`;
+
     if (structuralKey !== prevStructuralKey) {
       prevStructuralKey = structuralKey;
       worker.postMessage({
         type: 'updateSettings',
         data: { settings: JSON.parse(JSON.stringify(s)) }
       });
+      // A mode switch builds a fresh engine with no palette yet, so re-send the
+      // colours; otherwise the galaxy renders with its uninitialised white stars
+      // until the next theme change.
+      updateColors();
     }
+  });
+
+  // ========================================
+  // INDICATOR CHANNEL (ATR / RSI)
+  // ========================================
+
+  /**
+   * True while at least one setting actually needs computed indicators.
+   *
+   * Both fields are read into locals before the comparison on purpose: written
+   * as one `||` expression, a true left-hand side short-circuits the read of
+   * `moodSource`, and an unread value is not a tracked dependency — so
+   * switching the mood source would silently fail to re-run the callers below.
+   */
+  function needsIndicators(s: typeof settingsState.tradeFlowSettings): boolean {
+    const volatility = s.volatilitySource;
+    const mood = s.moodSource;
+    return volatility === "atr" || mood === "rsi";
+  }
+
+  // Keep the technicals calculation alive for the symbol we visualise.
+  // `register` is ref-counted, so when a chart is already open on the same
+  // symbol and interval this costs nothing but a counter — and when it is not,
+  // this is what makes the indicator exist at all. Only registered while a
+  // setting actually consumes it, so the plain trade-driven background never
+  // pays for a calculation it does not use.
+  $effect(() => {
+    if (!browser || lifecycleState !== LifecycleState.READY) return;
+    const s = settingsState.tradeFlowSettings;
+    if (!needsIndicators(s)) return;
+
+    const symbol = tradeState.symbol || "BTCUSDT";
+    const timeframe = tradeState.analysisTimeframe || "1h";
+    activeTechnicalsManager.register(symbol, timeframe);
+    return () => activeTechnicalsManager.unregister(symbol, timeframe);
+  });
+
+  // Forward the latest reading to the worker. Read-only on `marketState`: the
+  // background must never write into shared market state, or every consumer of
+  // it re-renders on a purely decorative update.
+  $effect(() => {
+    if (lifecycleState !== LifecycleState.READY || !worker) return;
+    const s = settingsState.tradeFlowSettings;
+    const symbol = tradeState.symbol || "BTCUSDT";
+    const timeframe = tradeState.analysisTimeframe || "1h";
+
+    if (!needsIndicators(s)) {
+      worker.postMessage({ type: "indicator", data: { volatilityRel: null, rsi: null } });
+      return;
+    }
+
+    const entry = marketState.data[symbol];
+    const tech = entry?.technicals?.[timeframe];
+    // Decimal -> number for visual maths only; see indicatorSignal.ts.
+    const lastPrice = entry?.lastPrice ? Number(entry.lastPrice) : null;
+
+    worker.postMessage({
+      type: "indicator",
+      data: readIndicatorSignal(tech, lastPrice)
+    });
+  });
+
+  // Colour mode — the only settings that feed the colour channel rather than
+  // the settings channel. Without this effect the custom colours would only
+  // reach the worker on the next theme change or mode switch.
+  $effect(() => {
+    if (lifecycleState !== LifecycleState.READY || !worker) return;
+    const s = settingsState.tradeFlowSettings;
+    // Read all three so each is tracked as a dependency.
+    void s.colorMode;
+    void s.customColorUp;
+    void s.customColorDown;
+    updateColors();
   });
 
   // Lightweight settings — no engine reinit, just forward values
@@ -226,10 +366,17 @@
     const _camRX = s.cameraRotationX;
     const _camRY = s.cameraRotationY;
     const _camRZ = s.cameraRotationZ;
-    
+    // Which signal drives amplitude and mood. Scalars the worker reads directly,
+    // so they belong on the lightweight channel — without this the worker would
+    // never learn the user switched source.
+    const _volSrc = s.volatilitySource;
+    const _moodSrc = s.moodSource;
+
     worker.postMessage({
       type: 'updateLightSettings',
       data: {
+        volatilitySource: _volSrc,
+        moodSource: _moodSrc,
         volumeScale: _vol,
         persistenceDuration: _persist,
         speed: _speed,
