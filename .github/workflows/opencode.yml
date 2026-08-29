@@ -53,8 +53,10 @@ env:
     - If the PR touches area: execution, security, exchange, or priority
       P0, add a gentle note that human review is recommended before merge
       (no alarms, no uppercase shouting).
-    - Only post a comment when you have findings. Start it with
-      "Code Review for <short-sha>" so it is recognized on re-runs.
+    - Always post exactly one review comment for the commit you reviewed —
+      with findings or, when there are none, a short Clean verdict. Start it
+      with "Code Review for <short-sha>" so re-runs are recognizable per
+      commit.
   WEEKLY_PROMPT: |
     Weekly maintenance scan:
     - Scan the codebase for TODO/FIXME/HACK comments and summarize the
@@ -159,9 +161,10 @@ jobs:
           share: false
 
   # Automated review of every non-draft PR against the Cachy checklist
-  # (AGENTS.md -> Code Review Standard). Read-only towards the codebase: it only
-  # posts a comment when it has findings, marked "Code Review for <sha>" so
-  # re-runs are recognizable.
+  # (AGENTS.md -> Code Review Standard). Read-only towards the codebase: it
+  # posts exactly one comment per reviewed commit — findings or a Clean
+  # verdict — marked "Code Review for <sha>" so re-runs are recognizable
+  # per commit.
   #
   # Only PRs from branches in this repo are reviewed. Fork PRs are skipped:
   # GitHub does not pass secrets to fork-triggered workflows, so the opencode
@@ -243,10 +246,13 @@ jobs:
 
       # One review run leaves two comments: the full review (posted as
       # github-actions[bot] via GITHUB_TOKEN) plus an opencode-agent[bot]
-      # "Review posted:" pointer that only repeats the findings. Every push
-      # would add another pair, so collapse the noise: drop all pointer
-      # comments and keep just the newest full review.
+      # "Review posted:" pointer that only repeats the findings. Reviews are
+      # meant to stay as one entry per commit, so this step also runs after
+      # failed review attempts and collapses the noise: drop all pointer
+      # comments and remove same-commit duplicates, keeping the newest
+      # comment for each "Code Review for <sha>".
       - name: Prune duplicate bot review comments
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -263,8 +269,8 @@ jobs:
             .[]
             | select(.user.login == "github-actions[bot]"
                      and (.body | startswith("Code Review for")))
-            | .id
-          ] | reverse | .[1:][]')
+            | {id, sha: (.body | split("\n")[0] | split(" ")[3])}
+          ] | group_by(.sha) | map(.[:-1][] | .id)[]')
           for id in $ids; do
             gh api -X DELETE "repos/${{ github.repository }}/issues/comments/$id"
           done
