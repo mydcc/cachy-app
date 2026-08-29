@@ -2,9 +2,7 @@
 id: FEAT-0228
 title: Move the venue branches out of the proxy routes into per-venue modules
 type: feature
-status: in-progress
-assignee: claude
-branch: feat/feat-0228-venue-gateway
+status: done
 priority: P2
 milestone: M2
 editions: [community, pro, private]
@@ -59,7 +57,7 @@ with the client-side boundary would have put two risks in one review.
 
 ## State (2026-08-27)
 
-Implemented on `feat/feat-0228-venue-gateway`, awaiting review.
+Implemented on `feat/feat-0228-venue-gateway`; merged as PR #2367.
 
 Two routes beyond the four named above turned out to branch on the venue too —
 `routes/api/positions/+server.ts:108` and `routes/api/tickers/+server.ts:52`.
@@ -96,3 +94,4 @@ server bundle.
 
 - [`ADR-0007`](../../adr/0007-exchange-adapter-boundary.md)
 - `src/routes/api/orders/+server.ts`, `src/routes/api/account/+server.ts`, `src/routes/api/balance/+server.ts`, `src/routes/api/klines/+server.ts`, `src/utils/server/bitget.ts`
+- Shipped in [PR #2367](https://github.com/mydcc/cachy-app/pull/2367).

@@ -2,7 +2,7 @@
 id: BUG-0307
 title: Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator
 type: bug
-status: in-progress
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -14,7 +14,6 @@ start_date: 2026-08-25
 target_date: 2026-08-25
 size: S
 estimate: 2
-assignee: opencode
 ---
 
 # BUG-0307 — Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator

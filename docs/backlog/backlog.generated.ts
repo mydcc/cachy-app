@@ -1423,7 +1423,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0068",
     "title": "Read and change leverage, margin mode and position margin from the trade panel",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -1432,8 +1432,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "private"
     ],
     "area": "exchange",
-    "assignee": "claude",
-    "branch": "worktree-issue-1809-feb78b",
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
@@ -2395,9 +2393,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0271",
     "title": "URL fetch proxies accept encoded-host bypasses and skip post-resolution address checks",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "antigravity",
-    "branch": "fix-bug-0271",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -2553,7 +2549,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0307",
     "title": "Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator",
     "type": "bug",
-    "status": "in-progress",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -2569,7 +2565,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "target_date": "2026-08-25",
     "size": "S",
     "estimate": "2",
-    "assignee": "opencode",
     "file": "bugs/BUG-0307-backlog-sync-cannot-close-issues.md"
   },
   {
@@ -3408,9 +3403,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0227",
     "title": "Move each venue's socket and subscription ref-counting behind its adapter",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
-    "branch": "feat/feat-0227-adapter-owns-socket",
+    "status": "done",
     "priority": "P2",
     "milestone": "M2",
     "editions": [
@@ -3435,9 +3428,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0228",
     "title": "Move the venue branches out of the proxy routes into per-venue modules",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
-    "branch": "feat/feat-0228-venue-gateway",
+    "status": "done",
     "priority": "P2",
     "milestone": "M2",
     "editions": [
@@ -3695,8 +3686,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0306",
     "title": "Allow custom baseUrl configuration for all AI providers",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "antigravity",
+    "status": "done",
     "priority": "P2",
     "milestone": "M8",
     "editions": [
@@ -3709,7 +3699,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "start_date": "2026-08-25",
-    "branch": "feat/feat-0306-custom-baseurl",
     "size": "S",
     "estimate": "1",
     "file": "features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md"
@@ -3907,9 +3896,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0267",
     "title": "Server-side exchange fetches run without timeout or abort",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/bug-0267-exchange-fetch-timeouts",
+    "status": "ready",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -3945,8 +3932,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0273",
     "title": "Security hygiene sweep for three low-severity findings from the identity audit",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "antigravity",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -4239,9 +4225,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0262",
     "title": "Decide the fate of the unused workerPool service",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "antigravity",
-    "branch": "feat/feat-0262-workerpool-delete",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -4355,9 +4339,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0321",
     "title": "Sign every Bitunix request through one signer instead of three copies",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
-    "branch": "feat/bitunix-single-signer",
+    "status": "done",
     "priority": "P3",
     "milestone": "M2",
     "editions": [
