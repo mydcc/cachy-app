@@ -2549,7 +2549,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0307",
     "title": "Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [

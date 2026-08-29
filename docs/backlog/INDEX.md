@@ -4,7 +4,7 @@
 
 212 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 7 · 🟡 in-progress 5 · ✅ done 159
+Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 6 · 🟡 in-progress 5 · ✅ done 160
 
 ---
 
@@ -214,7 +214,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | exchange |
 | [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | 📋 specced | security |
 | [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | security |
-| [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | 🟢 ready | repo |
+| [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | repo |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | docs |
 | [BUG-0309](bugs/BUG-0309-docs-adr-conflicts.md) | ADR violations in code vs docs | P2 | ✅ done | docs |
 | [BUG-0310](bugs/BUG-0310-docs-bitunix-api.md) | bitunix-api INTEGRATION_STATUS is stale | P2 | ✅ done | docs |
@@ -397,7 +397,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0309](bugs/BUG-0309-docs-adr-conflicts.md) | ADR violations in code vs docs | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0310](bugs/BUG-0310-docs-bitunix-api.md) | bitunix-api INTEGRATION_STATUS is stale | P2 | ✅ done | none | community | none | none | — |
