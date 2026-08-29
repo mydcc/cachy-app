@@ -31,14 +31,22 @@ vi.mock("./logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
+const loggerError = vi.hoisted(() => vi.fn());
+const loggerWarn = vi.hoisted(() => vi.fn());
+vi.mock("./logger", () => ({
+    logger: { log: vi.fn(), warn: loggerWarn, error: loggerError, debug: vi.fn() },
+}));
+
 const placeOrder = vi.hoisted(() => vi.fn());
 const closePosition = vi.hoisted(() => vi.fn());
 const flashClose = vi.hoisted(() => vi.fn());
+const placePositionTpSl = vi.hoisted(() => vi.fn());
 vi.mock("./tradeService", () => ({
     tradeService: {
         placeOrder,
         closePosition,
         flashClosePosition: flashClose,
+        placePositionTpSl,
     },
 }));
 
@@ -61,7 +69,18 @@ vi.mock("../stores/tpsl.svelte", () => ({
     },
 }));
 
-import { orderPlacementService, STOP_RETRY_DELAY_MS, type EntryPlan } from "./orderPlacementService";
+const account = vi.hoisted(() => ({
+    positions: [] as Array<{ positionId: string; symbol: string; side: string }>,
+    requestSync: vi.fn(),
+}));
+vi.mock("../stores/account.svelte", () => ({ accountState: account }));
+
+import {
+    orderPlacementService,
+    POSITION_ID_RESOLVE_BUDGET_MS,
+    STOP_RETRY_DELAY_MS,
+    type EntryPlan
+} from "./orderPlacementService";
 import { OrderRefusedError } from "./orderGate";
 
 function plan(overrides: Partial<EntryPlan> = {}): EntryPlan {
@@ -87,6 +106,9 @@ beforeEach(() => {
     placeOrder.mockReset();
     closePosition.mockReset();
     flashClose.mockReset();
+    placePositionTpSl.mockReset();
+    account.requestSync.mockReset();
+    account.positions = [];
     placeOrder.mockResolvedValue({ clientId: "cachy-abc", result: {} });
     // By default the exchange did what it was told.
     plans.value = { loss: { triggerPrice: "49500" }, profit: { triggerPrice: "51000" } };
@@ -190,13 +212,22 @@ describe("FEAT-0021 — entry filled, stop missing", () => {
             await vi.advanceTimersByTimeAsync(0);
             expect(plans.looks).toBe(1);
 
-            await vi.advanceTimersByTimeAsync(STOP_RETRY_DELAY_MS - 1);
+            // Re-placement first polls for the fresh position's id (its own
+            // fake-clock budget, see POSITION_ID_RESOLVE_BUDGET_MS) before the
+            // retry window starts. One tick short proves the wait happened.
+            await vi.advanceTimersByTimeAsync(
+                POSITION_ID_RESOLVE_BUDGET_MS + STOP_RETRY_DELAY_MS - 1
+            );
             expect(plans.looks).toBe(1);
 
             await vi.advanceTimersByTimeAsync(1);
             expect(plans.looks).toBe(2);
 
-            await vi.advanceTimersByTimeAsync(STOP_RETRY_DELAY_MS);
+            // A second look still misses, so re-placement polls again before
+            // the final check — the full budget repeats once more.
+            await vi.advanceTimersByTimeAsync(
+                POSITION_ID_RESOLVE_BUDGET_MS + STOP_RETRY_DELAY_MS
+            );
             await resultPromise;
         } finally {
             vi.useRealTimers();
@@ -293,6 +324,78 @@ describe("FEAT-0021 — the entry itself fails", () => {
         placeOrder.mockRejectedValue(new Error("nope"));
         await orderPlacementService.placeEntryGroup(plan());
         expect(plans.looks).toBe(0);
+    });
+});
+
+/*
+ * BUG-0290 — the retry path re-places the stop instead of logging that it
+ * cannot. The verification window (the venue attaches the entry-borne stop
+ * asynchronously) stays exactly as it was; what changed is that a missing
+ * stop now triggers a real position-wide TP/SL placement.
+ */
+describe("BUG-0290 — stop retry re-places the stop", () => {
+    beforeEach(() => {
+        plans.value = { profit: { triggerPrice: "51000" } };
+    });
+
+    it("calls the position TP/SL placement while retrying", async () => {
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(placePositionTpSl).toHaveBeenCalledTimes(2);
+        const args = placePositionTpSl.mock.calls[0][0];
+        expect(args.symbol).toBe("BTCUSDT");
+        expect(args.positionId).toBe("pos-1");
+        expect(args.stopLoss.price.eq(49500)).toBe(true);
+        // The stop never shows up, so the honest outcome is unchanged.
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+    });
+
+    it("still attaches when the stop lands only after a retry wait", async () => {
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+        plans.onLook = (n) => {
+            if (n >= 2) {
+                plans.value = { loss: { triggerPrice: "49500" }, profit: { triggerPrice: "51000" } };
+            }
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        // One re-place went out before the attached stop was seen.
+        expect(placePositionTpSl).toHaveBeenCalledTimes(1);
+        expect(result.stopLoss).toBe("attached");
+        expect(result.unprotected).toBe(false);
+        expect(result.errorKey).toBeUndefined();
+    });
+
+    it("does not invent a placement when the position id is unknown", async () => {
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(placePositionTpSl).not.toHaveBeenCalled();
+        expect(account.requestSync).toHaveBeenCalled();
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+    });
+
+    it("keeps the success path free of re-placement", async () => {
+        plans.value = { loss: { triggerPrice: "49500" }, profit: { triggerPrice: "51000" } };
+
+        await orderPlacementService.placeEntryGroup(plan());
+
+        expect(placePositionTpSl).not.toHaveBeenCalled();
+    });
+
+    it("never claims the integration is missing", async () => {
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+
+        await orderPlacementService.placeEntryGroup(plan());
+
+        expect(loggerError).not.toHaveBeenCalledWith(
+            "market",
+            expect.stringContaining("not integrated"),
+        );
     });
 });
 
