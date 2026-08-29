@@ -82,7 +82,6 @@ import {
     type EntryPlan
 } from "./orderPlacementService";
 import { OrderRefusedError } from "./orderGate";
-import { logger } from "./logger";
 
 function plan(overrides: Partial<EntryPlan> = {}): EntryPlan {
     return {
