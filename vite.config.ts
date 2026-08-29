@@ -147,9 +147,6 @@ export default defineConfig({
           name: "components",
           env: { VITEST_BROWSER: "true" },
           include: [COMPONENT_TESTS],
-          // Component tests translate via svelte-i18n; wait for the active
-          // dictionary so mounts never assert against raw $keys (FEAT-0259).
-          setupFiles: ["./vitest.setup.ts", "./vitest.i18n-setup.ts"],
         },
       },
     ],

@@ -307,7 +307,7 @@
     if (!needsIndicators(s)) return;
 
     const symbol = tradeState.symbol || "BTCUSDT";
-    const timeframe = tradeState.analysisTimeframe || "1h";
+    const timeframe = s.indicatorTimeframe || "15m";
     activeTechnicalsManager.register(symbol, timeframe);
     return () => activeTechnicalsManager.unregister(symbol, timeframe);
   });
@@ -319,7 +319,7 @@
     if (lifecycleState !== LifecycleState.READY || !worker) return;
     const s = settingsState.tradeFlowSettings;
     const symbol = tradeState.symbol || "BTCUSDT";
-    const timeframe = tradeState.analysisTimeframe || "1h";
+    const timeframe = s.indicatorTimeframe || "15m";
 
     if (!needsIndicators(s)) {
       worker.postMessage({ type: "indicator", data: { volatilityRel: null, rsi: null } });
