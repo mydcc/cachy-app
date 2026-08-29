@@ -261,6 +261,9 @@ self.onmessage = (event) => {
             // need the value itself, not the blended heat.
             activeEngine?.onIndicators?.({ volatilityRel: indicatorVolatilityRel, rsi: indicatorRsi });
             break;
+        case 'switchMode':
+            switchMode(data.mode);
+            break;
         case 'resetVolume':
             // Symbol changed: drop the old symbol's notionals from the
             // calibration window so sizes re-learn for the new market.
@@ -305,15 +308,8 @@ function init(canvas: OffscreenCanvas, width: number, height: number, pixelRatio
     requestAnimationFrame(animate);
 }
 
-let lastFrameTime = 0;
-
 function animate(time: number) {
     const now = time * 0.001;
-    // Real frame delta, clamped so a tab switch or GC pause cannot make
-    // engines jump. Replaces the old fixed 0.016, which tied animation speed
-    // to the display's refresh rate (2x fast on 120 Hz).
-    const dt = Math.min(now - lastFrameTime || 0.016, 0.1);
-    lastFrameTime = now;
     
     // Smoothing the mood. Which signal it chases is the user's choice; both are
     // in the same -1..+1 space, so everything downstream is unchanged.
@@ -402,7 +398,7 @@ function animate(time: number) {
         // than from individual trades.
         activeEngine.onMarketActivity?.(currentActivity);
         try {
-            activeEngine.update(now, dt);
+            activeEngine.update(now, 0.016);
         } catch (err) {
             console.error('[TradeFlow] engine update error', err);
         }
@@ -418,21 +414,10 @@ interface ObjectWithSentimentUniform {
 }
 
 function updateSentimentUniforms() {
-    // Uniform references are cached after each engine build (see
-    // collectSentimentUniforms) so the per-frame update avoids a scene.traverse.
-    for (const uniform of sentimentUniforms) {
-        uniform.value = currentSentiment;
-    }
-}
-
-let sentimentUniforms: { value: number }[] = [];
-
-function collectSentimentUniforms() {
-    sentimentUniforms = [];
     scene.traverse((obj) => {
         const uniforms = (obj as unknown as ObjectWithSentimentUniform).material?.uniforms;
         if (uniforms?.uSentiment) {
-            sentimentUniforms.push(uniforms.uSentiment);
+            uniforms.uSentiment.value = currentSentiment;
         }
     });
 }
@@ -478,14 +463,7 @@ function updateCamera() {
     if (settings.flowMode === 'galaxy' && settings.galaxyFlow?.autoCenter !== false) {
         camera.lookAt(0, 0, 0);
     } else {
-        // The VisualsTab rotation sliders are labelled in degrees (-180..180)
-        // and send their raw values, so convert here. Nullish (not falsy) so a
-        // deliberate 0 - the default - is honoured instead of hiding a pitch.
-        camera.rotation.set(
-            (settings.cameraRotationX ?? 0) * Math.PI / 180,
-            (settings.cameraRotationY ?? 0) * Math.PI / 180,
-            (settings.cameraRotationZ ?? 0) * Math.PI / 180
-        );
+        camera.rotation.set(settings.cameraRotationX || -0.5, settings.cameraRotationY || 0, settings.cameraRotationZ || 0);
     }
     camera.updateProjectionMatrix();
 }
@@ -553,8 +531,6 @@ function switchMode(mode: string | undefined) {
         // the current readings rather than making it wait for the next one.
         activeEngine.onIndicators?.({ volatilityRel: indicatorVolatilityRel, rsi: indicatorRsi });
     }
-    // New engine, new meshes: refresh the cached sentiment uniform references.
-    collectSentimentUniforms();
 }
 
 function onTrade(data: TradeEventData) {

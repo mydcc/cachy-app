@@ -48,7 +48,6 @@ and this repository has already paid for that once — see
 | Document | What |
 | --- | --- |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Directory-by-directory map, the data classes, the rules that have enforcement |
-| [`architecture/`](architecture/README.md) | Visual architecture overview as a dataflow diagram (`cachy-architecture.dataflow.html`, generated from JSON; regenerate with `npm run arch`) |
 | [`adr/`](adr/README.md) | Architecture Decision Records — the boundaries |
 | [`BRAND.md`](BRAND.md) | Palette, typography, logo. Verified against `src/themes.css` |
 | [`GLOBAL-CHAT.md`](GLOBAL-CHAT.md) | What the chat stores, how tokens are issued, retention and erasure |
