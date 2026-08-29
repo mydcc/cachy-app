@@ -204,4 +204,14 @@ Well-suited for autonomous cloud sessions: Writing tests, checking i18n parity (
 
 DO NOT merge autonomously without particularly thorough human review: Position size / risk calculations, signature / crypto logic for exchange requests, anything touching `decimal.js` precision or the Local-First boundary. Always have such PRs confirmed by a human review + `npm run check` + tests before merging to `develop`.
 
+## Jules Sandbox Hygiene
+
+A Jules session starts from a frozen sandbox clone that can be far behind `develop`. When the session merges or rebases mid-task, every develop change since the fork gets replayed as a revert commit — PRs then carry dozens of unrelated file reversals and package downgrades instead of the task's actual change (this clobbered PRs #2401 and #2404: 19 and 51 polluted files for 4 and 6 intended ones). Rules for every Jules task:
+
+- **Never `git merge` or `git rebase` `origin/develop` mid-session.** Ignore base drift; change only what the task needs.
+- **Commit only files you actually edited** (`git add <path> <path>`). Never `git add .`, `git add -A`, or whole-worktree commits.
+- **`package.json` / `package-lock.json`** may be touched only for dependency updates; never lower the `version` field.
+- **No sandbox artifacts in branches** (`todo.txt`, `.jules/` notes only when the task itself requires them).
+- **Before pushing:** compare the PR's changed-file list against the task's intended files. If the list is larger, the sandbox is stale — abort the task instead of pushing.
+
 Further documentation: `docs/README.md` (map), `docs/adr/` (binding decisions), `docs/backlog/INDEX.md` (open tasks).
