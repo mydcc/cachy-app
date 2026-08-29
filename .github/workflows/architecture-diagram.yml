@@ -21,14 +21,14 @@ jobs:
       - name: Install Archify
         run: |
           git clone --depth 1 https://github.com/tt-a1i/archify.git /tmp/archify
-          npm install --prefix /tmp/archify
+          npm install --prefix /tmp/archify/archify
 
       - name: Validate diagram (showcase quality)
-        run: node /tmp/archify/bin/archify.mjs validate dataflow docs/architecture/cachy-architecture.dataflow.json --quality showcase
+        run: node /tmp/archify/archify/bin/archify.mjs validate dataflow docs/architecture/cachy-architecture.dataflow.json --quality showcase
 
       - name: Check committed HTML is fresh
         run: |
-          node /tmp/archify/bin/archify.mjs deliver dataflow \
+          node /tmp/archify/archify/bin/archify.mjs deliver dataflow \
             docs/architecture/cachy-architecture.dataflow.json \
             /tmp/fresh.html
           if ! diff -q /tmp/fresh.html docs/architecture/cachy-architecture.dataflow.html > /dev/null; then
