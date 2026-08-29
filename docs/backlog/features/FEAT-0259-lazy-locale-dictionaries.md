@@ -2,7 +2,7 @@
 id: FEAT-0259
 title: Load locale dictionaries on demand instead of eagerly at startup
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -66,3 +66,7 @@ locale first so `init({ initialLocale })` can handle the load window. Keep the
 
 - `src/locales/i18n.ts`, `src/locales/locales/de.json`, `src/locales/locales/en.json`
 - Source: Autonomous Optimization Architect review, 2026-08-23.
+
+## State
+
+- Shipped in [PR #2402](https://github.com/mydcc/cachy-app/pull/2402): lazy cached loaders, only the active locale loads at startup; de-tech built on demand; seq-guarded locale switches.
