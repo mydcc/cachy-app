@@ -4077,6 +4077,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0295-ollama-default-url.md"
   },
   {
+    "id": "BUG-0324",
+    "title": "Galaxy 3D disables blending instead of switching to normal blending on light themes",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0324-galaxy-light-theme-noblending.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
@@ -4376,6 +4394,48 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "version": "1.6.0-beta.163",
     "file": "features/FEAT-0322-remove-stale-backup-files.md"
+  },
+  {
+    "id": "FEAT-0323",
+    "title": "Add a market-driven Galaxy mode to the Trade Flow background",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "worktree-galaxy-3d-tradeflow-integration-3dcae5",
+    "file": "features/FEAT-0323-galaxy-tradeflow-mode.md"
+  },
+  {
+    "id": "FEAT-0325",
+    "title": "Drive the Trade Flow background from ATR and RSI, not only from trades",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0323"
+    ],
+    "assignee": "claude-code",
+    "branch": "worktree-galaxy-3d-tradeflow-integration-3dcae5",
+    "file": "features/FEAT-0325-tradeflow-indicator-signals.md"
   },
   {
     "id": "IDEA-0036",
