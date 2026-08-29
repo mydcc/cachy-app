@@ -1,6 +1,6 @@
 {
   "name": "cachy-app",
-  "version": "1.6.0-beta.181",
+  "version": "1.6.0-beta.182",
   "description": "Local-first position size and risk management calculator for crypto traders.",
   "license": "AGPL-3.0-or-later",
   "private": true,
@@ -34,7 +34,10 @@
     "backlog:index": "node scripts/backlog-index.mjs",
     "backlog:check": "node scripts/backlog-index.mjs --check",
     "backlog:promote": "node scripts/backlog-promote.mjs",
-    "docs:links": "node scripts/check-doc-links.mjs"
+    "docs:links": "node scripts/check-doc-links.mjs",
+    "arch": "npm run arch:validate && npm run arch:build",
+    "arch:validate": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs validate dataflow docs/architecture/cachy-architecture.dataflow.json --quality showcase",
+    "arch:build": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs deliver dataflow docs/architecture/cachy-architecture.dataflow.json docs/architecture/cachy-architecture.dataflow.html"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
