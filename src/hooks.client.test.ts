@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { handleError } from './hooks.client';
 import type { HandleClientError } from '@sveltejs/kit';
 
-vi.mock('./locales/i18n', () => ({}));
+vi.mock('./locales/i18n', () => ({ i18nReady: Promise.resolve() }));
 
 describe('handleError (Client Hook)', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;

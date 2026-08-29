@@ -2,7 +2,7 @@
 id: FEAT-0259
 title: Load locale dictionaries on demand instead of eagerly at startup
 type: feature
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
