@@ -93,6 +93,19 @@ export interface PaperPosition {
      * simulator had in hand.
      */
     accountSizeAtEntry?: string;
+    /**
+     * Risk amount (stop loss distance × size) at entry, frozen and never
+     * recalculated (FEAT-0327 correctness).
+     *
+     * This is the risk the trader *actually took* at entry. On a partial
+     * close, a new risk value would not change what the entry R was; it only
+     * changes the R of what remains. By freezing it, R stays consistent with
+     * the entry decision, and journal entries are unaffected by later closes.
+     *
+     * Only recalculated on full close (to compute realized R). Partial closes
+     * leave it unchanged.
+     */
+    riskAmountAtEntry?: string;
 }
 
 /** A resting simulated order, waiting for the feed to cross it. */
@@ -171,6 +184,21 @@ export interface PaperFill {
     /** Realised PnL of this fill, net of its own fee. Zero on an open. */
     realizedPnl: string;
     positionId: string;
+    createdAt: number;
+}
+
+/**
+ * Entry metadata — position ID → {entryPrice, entryFee, accountSize, risk} —
+ * persisted separately from fills so they survive fill eviction (FEAT-0327
+ * correctness). The 500-fill cap can't evict a position's entry details.
+ */
+export interface PositionMetadata {
+    positionId: string;
+    symbol: string;
+    entryPrice: string;
+    entryFee: string;
+    accountSize: string;
+    risk: string;
     createdAt: number;
 }
 
@@ -275,6 +303,7 @@ class PaperTradingManager {
     private _orders = $state<PaperOrder[]>([]);
     private _fills = $state<PaperFill[]>([]);
     private _journalLinks = $state<Record<string, string>>({});
+    private _positionMetadata = $state<Record<string, PositionMetadata>>({});
     private _nextId = $state(1);
 
     constructor() {
@@ -433,6 +462,7 @@ class PaperTradingManager {
                     orders: this._orders,
                     fills: this._fills,
                     journalLinks: this._journalLinks,
+                    positionMetadata: this._positionMetadata,
                     nextId: this._nextId,
                 }),
             );
@@ -456,11 +486,26 @@ class PaperTradingManager {
             this._orders = parsed.data.orders as PaperOrder[];
             this._fills = parsed.data.fills as PaperFill[];
             this._journalLinks = parsed.data.journalLinks;
+            this._positionMetadata = parsed.data.positionMetadata || {};
             this._nextId = parsed.data.nextId;
         } catch {
             // Corrupt blob leaves paper mode off, which is the safe default:
             // the dangerous direction is believing you are simulating.
         }
+    }
+
+    public setPositionMetadata(id: string, meta: PositionMetadata): void {
+        this._positionMetadata[id] = meta;
+        this.persist();
+    }
+
+    public getPositionMetadata(id: string): PositionMetadata | undefined {
+        return this._positionMetadata[id];
+    }
+
+    public deletePositionMetadata(id: string): void {
+        delete this._positionMetadata[id];
+        this.persist();
     }
 
     /** Test seam: reloads from storage as a fresh session would. */
@@ -472,6 +517,7 @@ class PaperTradingManager {
         this._orders = [];
         this._fills = [];
         this._journalLinks = {};
+        this._positionMetadata = {};
         this._nextId = 1;
         if (browser) this.load();
     }

@@ -81,6 +81,16 @@ function sumFills(positionId: string): FillTotals {
             totals.lastCloseAt = Math.max(totals.lastCloseAt, fill.createdAt);
         }
     }
+
+    // Fallback to metadata if entry fee was evicted (500-fill cap). The entry fill
+    // can be evicted while the position is still open, stranding the journal link.
+    if (totals.entryFee.eq(0) && totals.openQty.eq(0)) {
+        const meta = paperState.getPositionMetadata(positionId);
+        if (meta) {
+            totals.entryFee = new Decimal(meta.entryFee);
+        }
+    }
+
     return totals;
 }
 
@@ -219,6 +229,10 @@ class PaperJournalService {
      * Guarded on the numbers that describe the trade, not on the clock: a
      * position whose size, basis and realised total are unchanged has nothing
      * new to say, whatever the price did.
+     *
+     * Risk is frozen at entry: after a partial close, riskAmount stays the same
+     * even though position size decreased. This prevents the denominator from
+     * shrinking incorrectly and inflating the R-multiple on the remainder.
      */
     private refreshOpenEntry(existing: JournalEntry, position: PaperPosition): void {
         const totals = sumFills(position.positionId);
@@ -235,7 +249,22 @@ class PaperJournalService {
             existing.stopLossPrice.eq(stop);
         if (unchanged) return;
 
-        const risk = riskOf(position, stop.gt(0) ? stop : null);
+        // Risk frozen at entry: use the stored amount if available, else fall back to
+        // existing riskAmount (from journal) or calculate if this is the first refresh.
+        let risk = new Decimal(position.riskAmountAtEntry ?? existing.riskAmount ?? 0);
+        if (risk.eq(0) && stop.gt(0)) {
+            // No frozen risk yet (stop wasn't known at open, or first refresh after stop was added).
+            // Calculate it once; future partials will use this frozen value.
+            risk = riskOf(position, stop);
+            // Store the frozen risk back to the position so it stays frozen on subsequent refreshes.
+            const updatedPositions = paperState.positions.map((p) =>
+                p.positionId === position.positionId
+                    ? { ...p, riskAmountAtEntry: risk.toString() }
+                    : p,
+            );
+            paperState.setPositions(updatedPositions);
+        }
+
         journalState.updateEntry({
             ...existing,
             entryPrice,

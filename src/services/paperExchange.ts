@@ -674,6 +674,7 @@ class PaperExchange {
         );
 
         let positionId: string;
+        const accountSize = paperState.balance.toString();
         if (index === -1) {
             positionId = paperState.takeId("paper-pos");
             positions.push({
@@ -689,7 +690,17 @@ class PaperExchange {
                 // Before the entry fee comes off below: the journal has to
                 // report the account the trade was sized against, not the
                 // account one fee later.
-                accountSizeAtEntry: paperState.balance.toString(),
+                accountSizeAtEntry: accountSize,
+            });
+            // Capture entry metadata independently so it survives fill eviction.
+            paperState.setPositionMetadata(positionId, {
+                positionId,
+                symbol,
+                entryPrice: price.toString(),
+                entryFee: fee.toString(),
+                accountSize,
+                risk: "0", // Risk is unknown until TP/SL is set; filled in by journal
+                createdAt: Date.now(),
             });
         } else {
             // Weighted average entry, the way the exchange reports it after an
@@ -758,6 +769,8 @@ class PaperExchange {
             paperState.setOrders(
                 paperState.orders.filter((o) => o.positionId !== position.positionId),
             );
+            // Entry metadata is no longer needed once the position closes fully.
+            paperState.deletePositionMetadata(position.positionId);
         } else {
             positions[index] = {
                 ...position,
