@@ -1,5 +1,5 @@
 ---
-id: IDEA-0319
+id: IDEA-0326
 title: User feedback system
 type: idea
 status: idea
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# IDEA-0319 — User feedback system
+# IDEA-0326 — User feedback system
 
 ## Why
 
