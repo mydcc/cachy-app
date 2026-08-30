@@ -39,6 +39,7 @@ app.use((req, res, next) => {
 });
 
 // Let SvelteKit handle everything else, including static files
+app.use(express.static('build/client', { index: false }));
 app.use(handler);
 
 const port = process.env.PORT || "3001";
