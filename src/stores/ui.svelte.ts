@@ -232,35 +232,15 @@ class UiManager {
   setTheme(themeName: string) {
     if (this.currentTheme === themeName) return;
     this.currentTheme = themeName;
-    if (
-      browser &&
-      "startViewTransition" in document &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      document.startViewTransition(() => {
-        this.applyThemeToDom(themeName);
-      });
-    } else if (
-      browser &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      const html = document.documentElement;
-      html.classList.add("theme-transitioning");
-      this.applyThemeToDom(themeName);
-      setTimeout(() => {
-        html.classList.remove("theme-transitioning");
-      }, 240);
-    } else {
-      this.applyThemeToDom(themeName);
-    }
+    this.applyThemeToDom(themeName);
   }
 
   applyThemeToDom(themeName: string) {
     if (!browser) return;
 
     const html = document.documentElement;
-    const currentThemeClass = Array.from(html.classList).find(
-      (c) => c.startsWith("theme-") && c !== "theme-transitioning",
+    const currentThemeClass = Array.from(html.classList).find((c) =>
+      c.startsWith("theme-"),
     );
     const expectedClass = themeName !== "dark" ? `theme-${themeName}` : null;
 
@@ -271,13 +251,13 @@ class UiManager {
       // DOM is already correct
     } else {
       html.classList.forEach((className) => {
-        if (className.startsWith("theme-") && className !== "theme-transitioning") {
+        if (className.startsWith("theme-")) {
           html.classList.remove(className);
         }
       });
 
       document.body.classList.forEach((className) => {
-        if (className.startsWith("theme-") && className !== "theme-transitioning") {
+        if (className.startsWith("theme-")) {
           document.body.classList.remove(className);
         }
       });

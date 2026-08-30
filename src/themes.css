@@ -2896,38 +2896,6 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
   }
 }
 
-/* Theme Transitions */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.18s;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.theme-transitioning,
-.theme-transitioning .app-container,
-.theme-transitioning .window-frame,
-.theme-transitioning .glass-panel,
-.theme-transitioning button,
-.theme-transitioning input,
-.theme-transitioning select {
-  transition:
-    background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0s !important;
-  }
-  .theme-transitioning,
-  .theme-transitioning * {
-    transition: none !important;
-  }
-}
-
 /* Glassmorphism Utility */
 .glass-panel {
   background: var(--bg-secondary);
