@@ -4,7 +4,7 @@
 
 212 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 3 · 🟡 in-progress 2 · ✅ done 167
+Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 2 · ✅ done 170
 
 ---
 
@@ -268,10 +268,10 @@ Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | ✅ done | settings |
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | tooling |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | pwa |
-| [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | tooling |
+| [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | ✅ done | tooling |
 | [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | exchange |
-| [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | 🟡 in-progress | ui |
-| [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | 🟡 in-progress | ui |
+| [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | ✅ done | ui |
+| [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | ✅ done | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -478,12 +478,12 @@ Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0263](features/FEAT-0263-settings-storage-listener-cleanup.md) | Remove the settings cross-tab storage listener in destroy | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0264](features/FEAT-0264-test-deps-to-devdependencies.md) | Move test-only dependencies out of dependencies into devDependencies | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0265](features/FEAT-0265-sw-precache-exclude-lazy-chunks.md) | Exclude lazily consumed vendor chunks from the service-worker precache | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0257](features/FEAT-0257-lazy-load-threejs-effect-overlays.md) |
-| [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0269](features/FEAT-0269-decimal-audit-coverage.md) | Extend the decimal.js CI audit beyond its three hardcoded files | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | 📋 specced | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
 | [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) |
 | [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
-| [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | 🟡 in-progress | none | community, pro, private | none | none | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) |
+| [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
