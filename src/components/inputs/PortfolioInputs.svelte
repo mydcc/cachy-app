@@ -30,6 +30,8 @@
   import { safeJsonParse } from "../../utils/safeJson";
   import { mapApiErrorToLabel } from "../../utils/errorUtils";
   import { appFetch } from "../../lib/appAuth";
+  import { paperAccountFeed } from "../../services/paperAccountFeed";
+  import { paperState } from "../../stores/paperTrading.svelte";
 
   interface Props {
     accountSize: string | null;
@@ -143,6 +145,23 @@
 
 
   async function handleFetchBalance(silent = false) {
+    /*
+     * FEAT-0327 — the read seam. While paper mode is on, the account this
+     * field sizes against is the simulated one.
+     *
+     * This asked the broker regardless of mode, so the calculator sized every
+     * simulated trade against real money the simulated trade would never be
+     * charged to: the risk percentage, the position size and the stop distance
+     * were all computed from an account balance the fill had nothing to do
+     * with. It also needs no credentials, and reaches no network.
+     */
+    const paper = paperAccountFeed();
+    if (paper) {
+      tradeState.update((s) => ({ ...s, accountSize: paper.balance() }));
+      if (!silent) uiState.showFeedback("save");
+      return;
+    }
+
     const settings = settingsState;
     const provider = settings.apiProvider;
     const keys = settings.apiKeys[provider];
@@ -249,8 +268,10 @@
             ? 'animate-spin'
             : ''}"
           onclick={() => handleFetchBalance(false)}
-          title={$_("dashboard.portfolioInputs.fetchBalanceTitle")}
-          disabled={isFetchingBalance || !isConnected}
+          title={paperState.enabled
+            ? $_("dashboard.portfolioInputs.fetchBalanceTitlePaper")
+            : $_("dashboard.portfolioInputs.fetchBalanceTitle")}
+          disabled={isFetchingBalance || (!isConnected && !paperState.enabled)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
         </button>

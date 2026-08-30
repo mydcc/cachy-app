@@ -13,6 +13,9 @@ import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 import { EntitlementStore } from "./entitlement.svelte";
+// Class A both sides, and no back edge: `paperTrading.svelte.ts` imports
+// nothing from here, so reading the mode cannot cycle.
+import { paperState } from "./paperTrading.svelte";
 import {
   SecretsLoader,
   SENSITIVE_KEYS,
@@ -898,7 +901,20 @@ export class SettingsManager {
     const hasApiKeys =
       this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
 
-    return (this.entitlement.isPro || hasApiKeys) && this.showSidebarActivity;
+    /*
+     * FEAT-0327: a paper account is an account to show.
+     *
+     * The credential test asks "is there anything in this panel" and answers
+     * it with "does a venue know us", which was the same question until paper
+     * trading existed. It is not any more: someone practising before funding
+     * an account has positions, orders and a balance, and none of it was
+     * reachable — the panel this feature exists to be watched in was hidden
+     * from exactly the people using it.
+     */
+    return (
+      (this.entitlement.isPro || hasApiKeys || paperState.enabled) &&
+      this.showSidebarActivity
+    );
   }
 
   showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);

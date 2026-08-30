@@ -82,6 +82,17 @@ export interface PaperPosition {
     marginMode: "cross" | "isolated";
     realizedPnl: string;
     openedAt: number;
+    /**
+     * Simulated balance at the moment this position opened, before its own
+     * entry fee (FEAT-0327).
+     *
+     * Recorded rather than read back later because the journal entry has to
+     * say what the account was worth when the trade was *taken*; by the time
+     * the trade closes the balance has already moved, and reconstructing it
+     * from the fill list would be arithmetic standing in for a fact the
+     * simulator had in hand.
+     */
+    accountSizeAtEntry?: string;
 }
 
 /** A resting simulated order, waiting for the feed to cross it. */
@@ -102,11 +113,73 @@ export interface PaperOrder {
      * other below it.
      */
     triggerDirection?: "above" | "below";
+    /**
+     * Which plan an attached order is (FEAT-0327). `triggerDirection` says
+     * which way it fires, which is not the same question: on a short, the
+     * take-profit is the one *below* the entry. The UI labels these, and
+     * deriving the label from the direction would mislabel every short.
+     */
+    planType?: "TP" | "SL";
+    /**
+     * The plan *row* this leg belongs to — FEAT-0327.
+     *
+     * Bitunix returns one row carrying both legs and addresses cancel and
+     * modify by that row's id (see `tpslNormalize.ts`, BUG-0292). The book
+     * stores one order per leg, so the two legs of a plan share this id and
+     * the simulator can answer, cancel and modify by it exactly as the venue
+     * does.
+     */
+    planGroupId?: string;
+    /** `LAST_PRICE` or `MARK_PRICE`, as the plan was created with. */
+    stopType?: string;
+    /**
+     * Whether the plan tracks the position or a fixed quantity.
+     *
+     * A position-wide plan closes whatever the position holds when it fires,
+     * so adding to a position keeps it covered. A partial plan covers the
+     * quantity it was created with — that is what a scale-out ladder is made
+     * of. Bitunix distinguishes them by whether the leg names a quantity.
+     */
+    planScope?: "position" | "partial";
     reduceOnly: boolean;
     tradeSide?: "OPEN" | "CLOSE";
     positionId?: string;
     createdAt: number;
 }
+
+/**
+ * One executed simulated fill — FEAT-0327.
+ *
+ * The book's audit record, and the single source of truth for what the
+ * simulator actually did. The order history, the journal entry and the
+ * realised numbers are all read back from these rather than accumulated a
+ * second time onto the position, because two running totals of the same
+ * money are two chances to disagree.
+ */
+export interface PaperFill {
+    fillId: string;
+    orderId: string;
+    symbol: string;
+    /** Execution direction: BUY buys, SELL sells. */
+    side: "BUY" | "SELL";
+    /** Whether this fill opened exposure or reduced it. */
+    tradeSide: "OPEN" | "CLOSE";
+    orderType: string;
+    qty: string;
+    price: string;
+    fee: string;
+    /** Realised PnL of this fill, net of its own fee. Zero on an open. */
+    realizedPnl: string;
+    positionId: string;
+    createdAt: number;
+}
+
+/**
+ * How many fills the book keeps. A paper account that has been traded for
+ * months would otherwise grow its `localStorage` blob without bound, and the
+ * history tab reads the recent end regardless.
+ */
+const MAX_FILLS = 500;
 
 const decimalString = z
     .union([z.string(), z.number()])
@@ -130,6 +203,22 @@ const PaperPositionSchema = z.object({
     marginMode: z.enum(["cross", "isolated"]).catch("cross"),
     realizedPnl: decimalString.catch("0"),
     openedAt: z.number().catch(0),
+    accountSizeAtEntry: decimalString.optional(),
+});
+
+const PaperFillSchema = z.object({
+    fillId: z.string(),
+    orderId: z.string(),
+    symbol: z.string(),
+    side: z.enum(["BUY", "SELL"]),
+    tradeSide: z.enum(["OPEN", "CLOSE"]),
+    orderType: z.string().catch("MARKET"),
+    qty: decimalString,
+    price: decimalString,
+    fee: decimalString.catch("0"),
+    realizedPnl: decimalString.catch("0"),
+    positionId: z.string().catch(""),
+    createdAt: z.number().catch(0),
 });
 
 const PaperOrderSchema = z.object({
@@ -142,6 +231,10 @@ const PaperOrderSchema = z.object({
     price: decimalString.optional(),
     triggerPrice: decimalString.optional(),
     triggerDirection: z.enum(["above", "below"]).optional(),
+    planType: z.enum(["TP", "SL"]).optional(),
+    planGroupId: z.string().optional(),
+    stopType: z.string().optional(),
+    planScope: z.enum(["position", "partial"]).optional(),
     reduceOnly: z.boolean().catch(false),
     tradeSide: z.enum(["OPEN", "CLOSE"]).optional(),
     positionId: z.string().optional(),
@@ -164,6 +257,13 @@ const PaperStateSchema = z.object({
     balance: decimalString.catch(DEFAULT_PAPER_CONFIG.startingBalance),
     positions: z.array(PaperPositionSchema).catch([]),
     orders: z.array(PaperOrderSchema).catch([]),
+    fills: z.array(PaperFillSchema).catch([]),
+    /**
+     * `positionId` → journal entry id, for positions the journal is still
+     * following. Persisted with the book so a reload mid-trade still finds
+     * the open entry to complete instead of writing a second one.
+     */
+    journalLinks: z.record(z.string(), z.string()).catch({}),
     nextId: z.number().int().nonnegative().catch(1),
 });
 
@@ -173,6 +273,8 @@ class PaperTradingManager {
     private _balance = $state<string>(DEFAULT_PAPER_CONFIG.startingBalance);
     private _positions = $state<PaperPosition[]>([]);
     private _orders = $state<PaperOrder[]>([]);
+    private _fills = $state<PaperFill[]>([]);
+    private _journalLinks = $state<Record<string, string>>({});
     private _nextId = $state(1);
 
     constructor() {
@@ -193,6 +295,11 @@ class PaperTradingManager {
 
     get orders(): readonly PaperOrder[] {
         return this._orders;
+    }
+
+    /** Executed fills, oldest first. */
+    get fills(): readonly PaperFill[] {
+        return this._fills;
     }
 
     get balance(): Decimal {
@@ -257,6 +364,37 @@ class PaperTradingManager {
         this.persist();
     }
 
+    /** Appends one executed fill to the book's audit record (FEAT-0327). */
+    public addFill(fill: PaperFill): void {
+        const next = [...this._fills, fill];
+        this._fills = next.length > MAX_FILLS ? next.slice(-MAX_FILLS) : next;
+        this.persist();
+    }
+
+    /**
+     * The journal entry following a position, or undefined while none does.
+     *
+     * A link is kept rather than a flag because a position that has been
+     * closed is gone from `positions`, and the closing fill still has to find
+     * the entry it belongs to.
+     */
+    public journalLink(positionId: string): string | undefined {
+        return this._journalLinks[positionId];
+    }
+
+    public setJournalLink(positionId: string, entryId: string): void {
+        this._journalLinks = { ...this._journalLinks, [positionId]: entryId };
+        this.persist();
+    }
+
+    public clearJournalLink(positionId: string): void {
+        if (this._journalLinks[positionId] === undefined) return;
+        const next = { ...this._journalLinks };
+        delete next[positionId];
+        this._journalLinks = next;
+        this.persist();
+    }
+
     /** Monotonic identifier for simulated orders and positions. */
     public takeId(prefix: string): string {
         const id = `${prefix}-${this._nextId}`;
@@ -270,6 +408,12 @@ class PaperTradingManager {
         this._balance = this._config.startingBalance;
         this._positions = [];
         this._orders = [];
+        // The fills go with the book. Keeping them would leave an order
+        // history and half-written journal links describing money the reset
+        // balance no longer reflects. Journal entries already written stay —
+        // they are the user's record, not the simulator's.
+        this._fills = [];
+        this._journalLinks = {};
         this._nextId = 1;
         this.persist();
     }
@@ -287,6 +431,8 @@ class PaperTradingManager {
                     balance: this._balance,
                     positions: this._positions,
                     orders: this._orders,
+                    fills: this._fills,
+                    journalLinks: this._journalLinks,
                     nextId: this._nextId,
                 }),
             );
@@ -308,6 +454,8 @@ class PaperTradingManager {
             this._balance = parsed.data.balance;
             this._positions = parsed.data.positions as PaperPosition[];
             this._orders = parsed.data.orders as PaperOrder[];
+            this._fills = parsed.data.fills as PaperFill[];
+            this._journalLinks = parsed.data.journalLinks;
             this._nextId = parsed.data.nextId;
         } catch {
             // Corrupt blob leaves paper mode off, which is the safe default:
@@ -322,6 +470,8 @@ class PaperTradingManager {
         this._balance = DEFAULT_PAPER_CONFIG.startingBalance;
         this._positions = [];
         this._orders = [];
+        this._fills = [];
+        this._journalLinks = {};
         this._nextId = 1;
         if (browser) this.load();
     }

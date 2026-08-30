@@ -332,6 +332,7 @@ export type TranslationKey =
   | "dashboard.portfolioInputs.riskAmountPlaceholder"
   | "dashboard.portfolioInputs.toggleRiskAmountLockTitle"
   | "dashboard.portfolioInputs.fetchBalanceTitle"
+  | "dashboard.portfolioInputs.fetchBalanceTitlePaper"
   | "dashboard.portfolioInputs.fetchBalanceError"
   | "dashboard.portfolioInputs.invalidBalanceData"
   | "dashboard.tradeSetupInputs.header"
