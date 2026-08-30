@@ -4256,7 +4256,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0264",
     "title": "Move test-only dependencies out of dependencies into devDependencies",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -4268,6 +4268,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "shipped": "PR #2421 (develop 2026-08-30, 861fac4f)",
     "file": "features/FEAT-0264-test-deps-to-devdependencies.md"
   },
   {
@@ -4656,6 +4657,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0317"
     ],
     "file": "ideas/IDEA-0318-post-measurement-wasm-performance.md"
+  },
+  {
+    "id": "IDEA-0326",
+    "title": "User feedback system",
+    "type": "idea",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "feedback",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "ideas/IDEA-0326-feedback-system.md"
   }
 ] as const;
 
