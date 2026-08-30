@@ -26,12 +26,15 @@ Configure in **Settings > System Performance > Calculation Settings**:
 - **Balanced** (default): Balances speed and resource usage based on static thresholds.
 - **Pro**: Assumes capable hardware, unlocks more parallel work.
 
+## Current Engine Behavior
+
+- **Context Awareness**: Battery level, available memory, and device type are detected at startup (`src/services/capabilityDetection.ts`) and influence engine selection.
+
 ## Planned Features (Backlog)
 
-The following advanced features are planned but not yet implemented:
-- **Context Awareness**: Battery level, available memory, device type (mobile/desktop) influencing selection.
-- **Adaptive Learning**: After enough calculations, Cachy learns which engine is actually fastest for the specific hardware.
-- **Circuit Breaker**: If an engine fails 3 times consecutively, it is temporarily disabled for 5 minutes.
+The following advanced features are planned but not yet fully implemented:
+- **Adaptive Learning** (partial): Benchmark infrastructure exists (`src/services/engineBenchmark.ts`), but the feedback loop that learns which engine is fastest for the specific hardware is not yet wired to selection.
+- **Circuit Breaker** (stub only): Interface defined in `calculationStrategy.ts` (`EngineCircuitBreakerHealth`), but the "3 consecutive failures -> disabled for 5 minutes" logic is not implemented — `circuitBreaker` is currently an empty object.
 - **Dynamic Quality Modes**: Engine switching based on precision requirements.
 
 ## Debug Panel
@@ -53,3 +56,5 @@ Typical benchmarks on modern hardware:
 | 50,000 candles | ~301ms | ~50ms |
 
 GPU benefits increase with dataset size due to parallel processing.
+
+> Benchmarks measured on [hardware] @ [date/commit]. Run `npx vitest run src/tests/performance/engine_benchmark.test.ts` to reproduce.

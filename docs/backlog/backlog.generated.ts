@@ -4256,7 +4256,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0264",
     "title": "Move test-only dependencies out of dependencies into devDependencies",
     "type": "feature",
-    "status": "done",
+    "status": "ready",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -4268,7 +4268,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "shipped": "PR #2421 (develop 2026-08-30, 861fac4f)",
     "file": "features/FEAT-0264-test-deps-to-devdependencies.md"
   },
   {
