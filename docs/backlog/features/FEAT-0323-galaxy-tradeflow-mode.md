@@ -2,7 +2,7 @@
 id: FEAT-0323
 title: Add a market-driven Galaxy mode to the Trade Flow background
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,9 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-assignee: claude-code
-branch: worktree-galaxy-3d-tradeflow-integration-3dcae5
+assignee: none
+branch: none
+shipped: PR #2391 (develop 2026-08-29, follow-ups 134dc4a4 c662c197)
 ---
 
 # FEAT-0323 — Add a market-driven Galaxy mode to the Trade Flow background
