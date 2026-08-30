@@ -94,7 +94,7 @@ const RiskStateSchema = z.object({
             maxOpenPositions: z
                 .union([z.number(), z.string()])
                 .transform((v) => {
-                    const n = Math.floor(Number(v));
+                    const n = Math.floor(Number(v)); // audit: safe — maxOpenPositions is a count (integer), not a price, amount, or balance
                     return Number.isFinite(n) && n >= 0 ? n : null;
                 })
                 .nullable()
@@ -176,7 +176,7 @@ class RiskManager {
             const next =
                 value === null || value === ""
                     ? null
-                    : Math.floor(Number(value));
+                    : Math.floor(Number(value)); // audit: safe — maxOpenPositions is a count (integer), not a price, amount, or balance
             if (next !== null && (!Number.isFinite(next) || next < 0)) return false;
             this._limits = { ...this._limits, maxOpenPositions: next };
             this.persist();

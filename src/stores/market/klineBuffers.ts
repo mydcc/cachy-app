@@ -145,8 +145,8 @@ export class KlineBufferManager {
             if (backing && backing.times.length > lastIdx) {
                  const getNum = (val: RawNumeric): number => {
                     if (typeof val === "number") return val;
-                    if (typeof val === "string") return parseFloat(val);
-                    return val instanceof Decimal ? val.toNumber() : Number(val);
+                    if (typeof val === "string") return parseFloat(val); // audit: safe — display boundary: converting raw API string into a chart backing array (JS number for rendering)
+                    return val instanceof Decimal ? val.toNumber() : Number(val); // audit: safe — display boundary: Decimal/unknown → number for chart backing typed array
                  };
 
                  backing.opens[lastIdx] = getNum(newRaw.open);

@@ -350,7 +350,7 @@ export const csvService = {
           } else {
             // HARDENING: Skip parseFloat entirely for large IDs to avoid precision loss
             const isTooLarge = originalIdAsString.length >= 16;
-            const parsedId = isTooLarge ? NaN : parseFloat(originalIdAsString);
+            const parsedId = isTooLarge ? NaN : parseFloat(originalIdAsString); // audit: safe — trade ID numeric comparison for import deduplication, not a financial value
 
             const isSafe = !isTooLarge &&
                            !isNaN(parsedId) &&

@@ -249,7 +249,7 @@ async function fetchBitunixOrderDetail(
         fee: formatApiNum(o.fee) || "0",
         reduceOnly: Boolean(o.reduceOnly),
         status: o.status || "UNKNOWN",
-        time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+        time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0, // audit: safe — epoch-ms timestamp validation and conversion, not a financial value
         mtime: o.mtime,
         leverage: o.leverage,
         marginMode: o.marginMode,
@@ -553,7 +553,7 @@ async function fetchBitunixHistoryOrders(
     reduceOnly: Boolean(o.reduceOnly),
     status: o.status || "UNKNOWN",
     // Hardening: Explicitly validate time, default to 0 only if missing/invalid
-    time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
+    time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0, // audit: safe — epoch-ms timestamp validation and conversion, not a financial value
     mtime: o.mtime,
     // Bitunix documents all of these on Get History Orders
     // (docs/bitunix-api/07_trade.md:294-325) but they were never mapped
@@ -895,7 +895,7 @@ async function fetchBitunixKlines(
   }));
 
   // Optimization: Bitunix usually returns data in descending order.
-  if (mapped.length > 1 && Number(mapped[0].timestamp) > Number(mapped[mapped.length - 1].timestamp)) {
+  if (mapped.length > 1 && Number(mapped[0].timestamp) > Number(mapped[mapped.length - 1].timestamp)) { // audit: safe — comparing epoch-ms timestamps for sort order, not a financial computation
     mapped.reverse();
   }
 
@@ -1035,7 +1035,7 @@ async function fetchBitunixPositions(
             : "isolated",
       };
     })
-    .filter((p: NormalizedPosition) => parseFloat(p.size || "0") !== 0);
+    .filter((p: NormalizedPosition) => parseFloat(p.size || "0") !== 0); // audit: safe — zero-size filter: parseFloat used only for equality comparison, not stored or computed
 }
 
 
@@ -1088,7 +1088,7 @@ async function executeOrder(
     const orders = await fetchBitunixHistoryOrders(
       apiKey,
       apiSecret,
-      Number(payload.limit),
+      Number(payload.limit), // audit: safe — API pagination limit (integer count), not a financial value
       payload.queryCanceled,
       payload.startTime,
       payload.endTime,
