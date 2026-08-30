@@ -78,12 +78,12 @@ const myResult = await this.compute('myIndicator', myShader, [inputData], [perio
 | `calculateTechnicals(klines, settings)` | Main entry: routes to engine, caches, records perf |
 | `calculateTechnicalsInline(klines, settings)` | Sync TS calculation (no worker) |
 
-### Circuit Breaker
+### Circuit Breaker (stub)
 
-- **Threshold**: 3 consecutive failures → engine disabled
-- **Cooldown**: 5 minutes → half-open (retries once)
-- **Recovery**: Successful calculation resets failure count
-- **Retry**: On first failure, retries once before falling back to TS
+- **Status**: Interface defined, logic NOT implemented.
+- `calculationStrategy.ts` declares `circuitBreaker: {} as Record<string, EngineCircuitBreakerHealth>` — an empty object.
+- No failure counting, no cooldown timer, no retry-once-before-fallback exists yet.
+- **Planned behavior**: 3 consecutive failures → engine disabled for 5 minutes → half-open (retries once) → successful calculation resets failure count.
 
 ### Performance History
 

@@ -6,14 +6,16 @@
 
 ## Context
 
-`checkAppAuth` in `src/lib/server/auth.ts` guards **17 API routes**:
+`checkClientToken` in `src/lib/server/clientToken.ts` guards **~12 API routes**:
 
 - Trading: `/api/orders`, `/api/tpsl`, `/api/positions`, `/api/account`,
   `/api/balance`
-- Sync: every `/api/sync/*` endpoint
-- AI proxies: `/api/ai/anthropic`, `/api/ai/gemini`, `/api/ai/openai`
-- Other: `/api/chat-v2`, `/api/external/cmc`, `/api/external/news`,
-  `/api/rss-fetch`, `/api/sentiment`
+- Sync: `/api/sync`
+- AI proxies: `/api/ai/anthropic`, `/api/ai/gemini`, `/api/ai/openai`,
+  `/api/ai/ollama`, `/api/ai/openrouter`
+- Other: `/api/external/cmc`, `/api/external/news`,
+  `/api/rss-fetch`, `/api/sentiment`, `/api/leverage-margin-mode`,
+  `/api/account-settings`
 
 It compared a client `x-app-access-token` header against the server's
 `APP_ACCESS_TOKEN`, using hashed `timingSafeEqual` — sound as far as it went. But
@@ -48,7 +50,7 @@ silently ignored — which is plausibly why the file never existed.
 ## Decision
 
 **Authentication fails closed.** When `APP_ACCESS_TOKEN` is not configured,
-`checkAppAuth` returns 401 and every guarded route refuses service. An
+`checkClientToken` returns 401 and every guarded route refuses service. An
 unconfigured secret is a misconfiguration, not a permission grant.
 
 The 401 body is **identical** to the wrong-token response
@@ -85,7 +87,7 @@ Settings → Connections → App Access Token so the browser can send it.
 
 ### What is now forbidden
 
-- Reintroducing a fail-open branch in `checkAppAuth`, or any per-route bypass
+- Reintroducing a fail-open branch in `checkClientToken`, or any per-route bypass
   when the token is missing.
 - Adding a guarded route without a test that proves it rejects unauthenticated
   requests.
@@ -126,7 +128,7 @@ uniform gate blocked all of them for a reason that only applied to one route.
 
 ### Decision
 
-`checkAppAuth` and its single shared secret are replaced by
+`checkAppAuth` and its single shared secret were replaced by
 `checkClientToken` (`src/lib/server/clientToken.ts`): self-issued, anonymous,
 per-client bearer tokens.
 
