@@ -4060,7 +4060,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0324",
     "title": "Galaxy 3D disables blending instead of switching to normal blending on light themes",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "Palette",
     "priority": "P3",
     "milestone": "none",
     "editions": [
