@@ -58,28 +58,10 @@ describe("uiState Theme Transitions & Management", () => {
     expect(document.documentElement.style.colorScheme).toBe("light");
   });
 
-  it("should use View Transitions API when supported", () => {
-    const startViewTransitionMock = vi.fn((cb: () => void) => cb());
-    (document as unknown as { startViewTransition?: (cb: () => void) => void }).startViewTransition = startViewTransitionMock;
-
+  it("should apply theme to DOM immediately without view transition", () => {
     uiState.setTheme("dracula");
-    expect(startViewTransitionMock).toHaveBeenCalled();
     expect(uiState.currentTheme).toBe("dracula");
     expect(document.documentElement.classList.contains("theme-dracula")).toBe(true);
-
-    delete (document as unknown as { startViewTransition?: unknown }).startViewTransition;
-  });
-
-  it("should use theme-transitioning class fallback when View Transitions API is not present", () => {
-    delete (document as unknown as { startViewTransition?: unknown }).startViewTransition;
-
-    uiState.setTheme("matrix");
-    expect(uiState.currentTheme).toBe("matrix");
-    expect(document.documentElement.classList.contains("theme-transitioning")).toBe(true);
-    expect(document.documentElement.classList.contains("theme-matrix")).toBe(true);
-
-    vi.advanceTimersByTime(250);
-    expect(document.documentElement.classList.contains("theme-transitioning")).toBe(false);
   });
 
   it("should save selected theme to localStorage", () => {
