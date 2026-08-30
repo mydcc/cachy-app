@@ -323,7 +323,7 @@ export function parseTimestamp(
 
     // Check if strictly numeric
     if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
-      const parsed = parseFloat(trimmed);
+      const parsed = parseFloat(trimmed); // audit: safe — parseFloat used to parse a numeric timestamp string, not a financial value
       if (isNaN(parsed)) return 0;
       return parseTimestamp(parsed); // Recurse to handle seconds logic
     }

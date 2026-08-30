@@ -189,7 +189,7 @@ export const HistorySchema = BaseRequestSchema.extend({
   type: z.literal("history"),
   limit: z.union([z.number(), z.string()])
     .transform(val => {
-       const n = Number(val);
+       const n = Number(val); // audit: safe — API pagination limit (count), not a financial value
        return isNaN(n) ? 50 : Math.min(Math.max(n, 1), 100);
     }).optional().default(50),
   symbol: z.string().optional(), // Optional filter
@@ -198,11 +198,11 @@ export const HistorySchema = BaseRequestSchema.extend({
   // that returns both, so the client fetches once per value and merges.
   queryCanceled: z.boolean().optional().default(false),
   startTime: z.union([z.number(), z.string()])
-    .transform(val => Number(val))
+    .transform(val => Number(val)) // audit: safe — Zod transform: epoch-ms timestamp, not a financial value
     .refine(val => !isNaN(val) && val >= 0, { message: "Invalid startTime" })
     .optional(),
   endTime: z.union([z.number(), z.string()])
-    .transform(val => Number(val))
+    .transform(val => Number(val)) // audit: safe — Zod transform: epoch-ms timestamp, not a financial value
     .refine(val => !isNaN(val) && val >= 0, { message: "Invalid endTime" })
     .optional(),
 });

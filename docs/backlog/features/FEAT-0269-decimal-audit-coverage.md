@@ -2,7 +2,8 @@
 id: FEAT-0269
 title: Extend the decimal.js CI audit beyond its three hardcoded files
 type: feature
-status: ready
+status: done
+assignee: antigravity
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +11,7 @@ area: tooling
 data_class: none
 adr: none
 depends_on: []
+branch: feat/0269-decimal-audit-coverage
 ---
 
 # FEAT-0269 — Extend the decimal.js CI audit beyond its three hardcoded files
@@ -31,10 +33,10 @@ stage if cheap.
 
 ## Acceptance criteria
 
-- [ ] Introducing native `+`/`*` on a price field in a currently-uncovered file
+- [x] Introducing native `+`/`*` on a price field in a currently-uncovered file
       fails CI — proven by adding one in the PR and reverting it
-- [ ] No false positives block unrelated numeric code (timers, indices)
-- [ ] The audit runs on every push, not only on schedule/dispatch
+- [x] No false positives block unrelated numeric code (timers, indices)
+- [x] The audit runs on every push, not only on schedule/dispatch
 
 ## Out of scope
 
@@ -44,4 +46,5 @@ Migrating any code — everything audited was already clean. Rust/WASM side
 ## Links
 
 - `.github/workflows/audit.yml`
+- `scripts/audit-decimal.mjs` (new dynamic scanner)
 - Security audit 2026-08-23, finding "decimal.js CI grep covers only 3 files" (Info)

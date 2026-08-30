@@ -31,14 +31,14 @@ export const toNumFast = (val: unknown): number => {
     if (typeof val === 'number') return val;
 
     if (typeof val === 'string') {
-       const p = parseFloat(val);
+       const p = parseFloat(val); // audit: safe — intentional fast Decimal→number conversion for chart rendering hot path (display boundary)
        return isNaN(p) ? 0 : p;
     }
 
     if (val && typeof val === 'object') {
         // Optimization: Decimal.js toString()+parseFloat is significantly faster than .toNumber()
         if (val instanceof Decimal) {
-             return parseFloat(val.toString());
+             return parseFloat(val.toString()); // audit: safe — performance optimisation: Decimal.toString()+parseFloat is faster than .toNumber() for chart hot loop
         }
 
         // Fast path for Decimal or objects with .toNumber()

@@ -102,19 +102,19 @@ export function aggregateIntoSyntheticBucket(
     if (!prev || prev.time !== bucketTime) {
         const fresh: BucketCandle = {
             time: bucketTime,
-            open: Number(candle.open),
-            high: Number(candle.high),
-            low: Number(candle.low),
-            close: Number(candle.close),
+            open: Number(candle.open), // audit: safe — chart display boundary: converting Decimal/string candle OHLC to native number for canvas rendering
+            high: Number(candle.high), // audit: safe — chart display boundary: see above (high)
+            low: Number(candle.low), // audit: safe — chart display boundary: see above (low)
+            close: Number(candle.close), // audit: safe — chart display boundary: see above (close)
             volume: String(candle.volume),
         };
         buckets.set(key, fresh);
         return { ...fresh };
     }
 
-    prev.high = Math.max(prev.high, Number(candle.high));
-    prev.low = Math.min(prev.low, Number(candle.low));
-    prev.close = Number(candle.close);
+    prev.high = Math.max(prev.high, Number(candle.high)); // audit: safe — chart bucket aggregation: Math.max comparison for canvas rendering, not a stored financial value
+    prev.low = Math.min(prev.low, Number(candle.low)); // audit: safe — chart bucket aggregation: Math.min comparison for canvas rendering, not a stored financial value
+    prev.close = Number(candle.close); // audit: safe — chart bucket aggregation: close price for canvas rendering (volume still uses Decimal)
     prev.volume = new Decimal(String(prev.volume))
         .plus(new Decimal(String(candle.volume)))
         .toString();

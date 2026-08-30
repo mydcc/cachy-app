@@ -484,7 +484,7 @@ class AccountManager {
       amount: parseDecimal(o.amount),
       filled: parseDecimal(o.filled),
       status: o.status || "",
-      timestamp: Number(o.time) || Date.now(),
+      timestamp: Number(o.time) || Date.now(), // audit: safe — epoch-ms timestamp, not a financial value
       mtime: o.mtime,
       leverage: o.leverage,
       marginMode: o.marginMode,

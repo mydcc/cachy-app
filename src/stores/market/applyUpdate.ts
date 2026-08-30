@@ -91,7 +91,7 @@ export function applyUpdate(marketManager: import("../market.svelte").MarketMana
     }
     if (partial.fundingInterval !== undefined) {
       const raw = partial.fundingInterval;
-      const n = raw === null ? null : Number(raw);
+      const n = raw === null ? null : Number(raw); // audit: safe — fundingInterval is a time interval (e.g. hours), not a price or amount
       if (n === null || !isNaN(n)) current.fundingInterval = n;
     }
 

@@ -151,6 +151,6 @@ export function mapToOMSOrder(data: any): OMSOrder {
         price: parseDecimal(data.price),
         amount: parseDecimal(data.qty || data.amount),
         filledAmount: parseDecimal(data.dealAmount || data.filledQty),
-        timestamp: Number(data.ctime || data.timestamp || Date.now()),
+        timestamp: Number(data.ctime || data.timestamp || Date.now()), // audit: safe — epoch-ms timestamp, not a financial value
     };
 }

@@ -656,7 +656,7 @@ class AiManager {
             summary: data.summary,
             confluence: data.confluence
               ? {
-                score: Number(data.confluence.score.toFixed(2)),
+                score: Number(data.confluence.score.toFixed(2)), // audit: safe — display formatting: score is a signal percentage for AI text output, not a stored financial value
                 level: data.confluence.level,
                 contributing: data.confluence.contributing,
               }
@@ -687,7 +687,7 @@ class AiManager {
               classic: Object.fromEntries(
                 Object.entries(data.pivots.classic).map(([k, v]) => [
                   k,
-                  TechnicalsPresenter.formatVal(Number(v), precision),
+                  TechnicalsPresenter.formatVal(Number(v), precision), // audit: safe — display formatter: converts Decimal indicator signal to number for text rendering
                 ]),
               ),
             } : undefined,
@@ -790,7 +790,7 @@ class AiManager {
           ? marketData.lowPrice.toString()
           : undefined,
         volume24h: marketData.volume
-          ? Math.round(Number(marketData.volume)).toLocaleString()
+          ? Math.round(Number(marketData.volume)).toLocaleString() // audit: safe — display formatting: volume converted to number only for toLocaleString() UI rendering
           : undefined,
         fundingRate: marketData.fundingRate
           ? marketData.fundingRate.times(100).toFixed(4) + "%"
@@ -806,10 +806,10 @@ class AiManager {
             spreadStatus,
             topBids: marketData.depth.bids
               .slice(0, 3)
-              .map((b: [string, string]) => Number(b[0])),
+              .map((b: [string, string]) => Number(b[0])), // audit: safe — orderbook bid prices converted to numbers for AI prompt text (not used in arithmetic)
             topAsks: marketData.depth.asks
               .slice(0, 3)
-              .map((a: [string, string]) => Number(a[0])),
+              .map((a: [string, string]) => Number(a[0])), // audit: safe — orderbook ask prices converted to numbers for AI prompt text (not used in arithmetic)
           }
           : null,
       };
@@ -825,7 +825,7 @@ class AiManager {
       activeSymbol: symbol,
       REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown", // RENAMED to be very loud
       priceChange24h: marketData?.priceChangePercent
-        ? Number(marketData.priceChangePercent).toFixed(2) + "%"
+        ? Number(marketData.priceChangePercent).toFixed(2) + "%" // audit: safe — display formatting: 24h price-change % string converted for toFixed() UI label
         : "Unknown",
       marketDetails,
       technicals: technicalsContext,

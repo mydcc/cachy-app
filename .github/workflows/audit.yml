@@ -33,13 +33,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Check for unsafe number arithmetic in critical files
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check legacy critical files (belt-and-braces)
         run: |
-          # Search for Number() / parseFloat / toFixed in critical trading services
-          echo "Checking for unsafe number operations in critical files..."
-
+          # Original grep preserved as an extra safety net on the files that were
+          # already audited before FEAT-0269.  The dynamic script below covers
+          # these files too, but keeping the grep here costs nothing and guards
+          # against a hypothetical bug in the new script missing a pattern.
+          echo "Belt-and-braces grep on original critical files..."
           VIOLATIONS=0
-
           for file in src/services/tradeService.ts src/services/apiService.ts src/services/orderGate.ts src/lib/calculator.ts; do
             if [ -f "$file" ]; then
               # Check for unsafe number operations: direct Number() calls or parseFloat.
@@ -53,14 +59,20 @@ jobs:
               fi
             fi
           done
-
           if [ $VIOLATIONS -gt 0 ]; then
             echo ""
             echo "Please use Decimal.js for all financial calculations."
             exit 1
           else
-            echo "✅ All critical files use Decimal.js correctly."
+            echo "✅ Legacy critical files use Decimal.js correctly."
           fi
+
+      - name: Audit all financial files (Decimal.js importers)
+        # Dynamically discovers every .ts file that imports decimal.js and
+        # checks it for Number() / parseFloat() calls.  New financial files
+        # are included automatically — no list to maintain.  Suppress a
+        # known-safe use by appending  // audit: safe — <reason>  to the line.
+        run: node scripts/audit-decimal.mjs
 
   docs-check:
     name: Backlog & Documentation Links

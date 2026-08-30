@@ -143,7 +143,7 @@ export function enhancedInput(
   function updateValue(delta: number) {
     let valStr = node.value;
     // Handle empty or invalid input securely
-    if (!valStr || isNaN(parseFloat(valStr))) {
+    if (!valStr || isNaN(parseFloat(valStr))) { // audit: safe — input validation guard (NaN check on UI text field, not a financial value)
       valStr = String(currentOptions.min !== undefined ? currentOptions.min : 0);
     }
 
