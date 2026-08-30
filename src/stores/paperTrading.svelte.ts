@@ -269,6 +269,16 @@ const PaperOrderSchema = z.object({
     createdAt: z.number().catch(0),
 });
 
+const PositionMetadataSchema = z.object({
+    positionId: z.string(),
+    symbol: z.string(),
+    entryPrice: decimalString,
+    entryFee: decimalString,
+    accountSize: decimalString,
+    risk: decimalString,
+    createdAt: z.number(),
+});
+
 const PaperStateSchema = z.object({
     enabled: z.boolean().catch(false),
     config: z
@@ -292,6 +302,7 @@ const PaperStateSchema = z.object({
      * the open entry to complete instead of writing a second one.
      */
     journalLinks: z.record(z.string(), z.string()).catch({}),
+    positionMetadata: z.record(z.string(), PositionMetadataSchema).catch({}),
     nextId: z.number().int().nonnegative().catch(1),
 });
 
