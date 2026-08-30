@@ -29,12 +29,30 @@
 
 import { Decimal } from "decimal.js";
 import { omsService } from "./omsService";
-import { paperExchange, setPaperPriceFeed } from "./paperExchange";
+import {
+    paperExchange,
+    setPaperBookListener,
+    setPaperLeverageFeed,
+    setPaperPriceFeed,
+} from "./paperExchange";
+import { paperAccountFeed } from "./paperAccountFeed";
+import { paperJournalService } from "./paperJournalService";
 import { paperState, type PaperPosition } from "../stores/paperTrading.svelte";
 import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
+import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
 import type { OMSPosition } from "./omsTypes";
+
+/**
+ * How often the whole book is marked to market — FEAT-0327.
+ *
+ * `onPrice` only ever fires for the charted symbol, so a position in anything
+ * else never moved. This sweeps every symbol the book holds, which is also
+ * what lets a resting order in a symbol the user is not looking at trigger at
+ * all.
+ */
+const TICK_INTERVAL_MS = 1000;
 
 function toOMSPosition(position: PaperPosition, markPrice: Decimal | null): OMSPosition {
     const amount = new Decimal(position.amount);
@@ -62,6 +80,9 @@ function toOMSPosition(position: PaperPosition, markPrice: Decimal | null): OMSP
 
 class PaperTradingService {
     private installed = false;
+    private tickTimer: ReturnType<typeof setInterval> | null = null;
+    /** Symbol:side keys mirrored into the OMS on the last sync. */
+    private mirrored = new Set<string>();
 
     /**
      * Points the simulator at the live feed and starts mirroring the paper
@@ -79,7 +100,82 @@ class PaperTradingService {
             return price instanceof Decimal ? price : null;
         });
 
-        if (paperState.enabled) this.syncToStores();
+        // The place-order payload carries no leverage — it is account state on
+        // the venue, set separately — so the simulator is told the leverage the
+        // trader is actually working at rather than recording every position
+        // as unlevered.
+        setPaperLeverageFeed(() => {
+            const raw = tradeState.leverage;
+            try {
+                const chosen = raw === null || raw === undefined ? null : new Decimal(String(raw));
+                if (chosen !== null && chosen.isFinite() && chosen.gt(0)) return chosen;
+            } catch {
+                // Falls through to the venue's own value below.
+            }
+            const remote = tradeState.remoteLeverage;
+            return remote instanceof Decimal && remote.gt(0) ? remote : null;
+        });
+
+        // A fill reaches the stores on the fill, not on the next price tick.
+        // Without this an order placed on a quiet symbol stayed invisible for
+        // as long as the market stayed quiet — which is exactly when someone
+        // looks hardest for the order they just placed.
+        setPaperBookListener(() => {
+            this.syncToStores();
+            paperJournalService.reconcile();
+        });
+
+        if (paperState.enabled) {
+            this.startTicking();
+            this.syncToStores();
+            paperJournalService.reconcile();
+        }
+    }
+
+    /**
+     * Marks the whole book to market on a timer.
+     *
+     * `onPrice` is driven from the charted symbol alone, so this is what makes
+     * a second position — and a resting order in a symbol nobody is watching —
+     * behave like a position at a venue rather than one that only moves while
+     * you look at it.
+     */
+    private startTicking(): void {
+        if (this.tickTimer !== null) return;
+        this.tickTimer = setInterval(() => this.tickBook(), TICK_INTERVAL_MS);
+    }
+
+    private stopTicking(): void {
+        if (this.tickTimer === null) return;
+        clearInterval(this.tickTimer);
+        this.tickTimer = null;
+    }
+
+    /** Test and teardown seam: stops the mark-to-market timer. */
+    public destroy(): void {
+        this.stopTicking();
+        setPaperBookListener(null);
+        this.installed = false;
+    }
+
+    private tickBook(): void {
+        if (!paperState.enabled) return;
+        const symbols = new Set<string>([
+            ...paperState.positions.map((p) => p.symbol),
+            ...paperState.orders.map((o) => o.symbol),
+        ]);
+        if (symbols.size === 0) return;
+
+        for (const symbol of symbols) {
+            const price = marketState.data[symbol]?.lastPrice;
+            if (!(price instanceof Decimal) || price.lte(0)) continue;
+            try {
+                paperExchange.settleRestingOrders(symbol, price);
+            } catch (e) {
+                logger.debug("market", "[Paper] Resting-order settlement failed", e);
+            }
+        }
+        this.syncToStores();
     }
 
     /**
@@ -110,10 +206,18 @@ class PaperTradingService {
 
         omsService.reset();
         accountState.reset();
+        this.mirrored.clear();
         paperState.setEnabled(on);
 
         if (on) {
+            this.startTicking();
             this.syncToStores();
+            paperJournalService.reconcile();
+        } else {
+            // Nothing to mark to market, and a timer that keeps sweeping a
+            // book nobody is trading is the kind of thing that survives into
+            // production unnoticed.
+            this.stopTicking();
         }
         logger.log("market", `[Paper] Mode switched to ${on ? "paper" : "live"}`);
     }
@@ -124,6 +228,7 @@ class PaperTradingService {
         if (paperState.enabled) {
             omsService.reset();
             accountState.reset();
+            this.mirrored.clear();
             this.syncToStores();
         }
     }
@@ -131,25 +236,71 @@ class PaperTradingService {
     /**
      * Mirrors the paper book into the stores the real path writes to, in the
      * same shapes, so every existing component renders it unchanged.
+     *
+     * FEAT-0327 added the two arrays the Market Activity panel actually
+     * renders. Before that this wrote the OMS and the balance only, so the
+     * balance moved when a simulated order filled while the position it paid
+     * for was nowhere on screen — and with no card on screen there was no
+     * close button, no TP/SL dialog and no way to follow the trade at all.
      */
     public syncToStores(): void {
-        if (!paperState.enabled) return;
+        const feed = paperAccountFeed();
+        if (feed === null) return;
 
+        // The two arrays the panel renders, through the same hydration the
+        // REST snapshots use — so `PositionsSidebar` needs no notion of which
+        // mode produced them, and neither does anything downstream of it.
+        accountState.hydratePositions(feed.positions());
+        accountState.hydrateOpenOrders(feed.pendingOrders());
+
+        const account = feed.accountInfo();
+        accountState.hydrateBalance({
+            available: account.available,
+            margin: account.margin,
+            frozen: account.frozen,
+        });
+        accountState.positionMode = account.positionMode;
+
+        this.mirrorToOms();
+    }
+
+    /**
+     * Keeps the OMS's view of the book in step, removals included.
+     *
+     * The FEAT-0011 gate reads `omsService.getPositions()` to verify a close
+     * against what the trader was shown. `updatePosition` can only add or
+     * overwrite, so without the removal pass a closed simulated position would
+     * stay visible to the gate and a second close of it would verify against a
+     * position that no longer exists.
+     */
+    private mirrorToOms(): void {
+        const live = new Set<string>();
         for (const position of paperState.positions) {
             const mark = marketState.data[position.symbol]?.lastPrice ?? null;
             omsService.updatePosition(
                 toOMSPosition(position, mark instanceof Decimal ? mark : null),
             );
+            live.add(`${position.symbol}:${position.side}`);
         }
 
-        // Through the same hydration path a REST balance poll uses, so the
-        // account UI cannot tell the difference — which is the point.
-        accountState.hydrateBalance({
-            available: paperState.balance.toString(),
-            margin: "0",
-            frozen: "0",
-        });
+        for (const key of this.mirrored) {
+            if (live.has(key)) continue;
+            const separator = key.lastIndexOf(":");
+            omsService.removePosition(
+                key.slice(0, separator),
+                key.slice(separator + 1) as "long" | "short",
+            );
+        }
+        this.mirrored = live;
     }
 }
 
 export const paperTradingService = new PaperTradingService();
+
+// HMR: the mark-to-market timer and the book listener both outlive a module
+// swap otherwise, leaving two of each sweeping the same book.
+if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        paperTradingService.destroy();
+    });
+}

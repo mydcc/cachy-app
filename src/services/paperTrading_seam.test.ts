@@ -179,8 +179,13 @@ describe("FEAT-0012 — one seam", () => {
 
         // The remaining reads are not branches: they record the mode onto the
         // intent and onto the gate-pass context so the transport can compare
-        // them. Neither changes what the order is.
-        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(4);
+        // them, and one relaxes a credential guard (FEAT-0327) in front of a
+        // read that goes through the seam and therefore needs no credentials.
+        // None of them changes what the request is.
+        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(5);
+        expect(
+            source.match(/if \(!paperState\.enabled && \(!keys\?\.key/g) ?? [],
+        ).toHaveLength(1);
         expect(source.match(/paperMode: paperState\.enabled/g) ?? []).toHaveLength(2);
     });
 

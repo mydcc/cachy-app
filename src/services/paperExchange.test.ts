@@ -508,3 +508,352 @@ describe("paperExchange — unsupported requests", () => {
         ).rejects.toMatchObject({ code: "PAPER_UNSUPPORTED" });
     });
 });
+
+/*
+ * FEAT-0327 — the simulator keeps a record of what it did.
+ *
+ * `history` used to answer with an empty list, so a paper account had no way
+ * to say what had happened to it: no order history, and nothing for the
+ * journal to be reconstructed from.
+ */
+describe("paperExchange — the fill record", () => {
+    it("records a fill for an opening market order", async () => {
+        await open("1");
+
+        expect(paperState.fills).toHaveLength(1);
+        const [fill] = paperState.fills;
+        expect(fill.tradeSide).toBe("OPEN");
+        expect(fill.qty).toBe("1");
+        expect(fill.price).toBe("50000");
+        expect(fill.positionId).toBe(paperState.positions[0].positionId);
+    });
+
+    it("records the realised PnL of a closing fill, net of its own fee", async () => {
+        paperState.setConfig("takerFeeBps", "6");
+        await open("1");
+        feed.BTCUSDT = new Decimal(51000);
+        await close("1");
+
+        const closing = paperState.fills.find((f) => f.tradeSide === "CLOSE")!;
+        // 1000 gross − 51 000 × 0.0006.
+        expect(closing.realizedPnl).toBe("969.4");
+    });
+
+    it("records a fill for a flash close", async () => {
+        await open("1");
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/orders", {
+            type: "flash-close-position",
+            positionId,
+        });
+
+        expect(paperState.fills.filter((f) => f.tradeSide === "CLOSE")).toHaveLength(1);
+    });
+
+    it("records a fill when a resting order is crossed", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "LIMIT",
+            qty: "1",
+            price: "49000",
+        });
+        expect(paperState.fills).toHaveLength(0);
+
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(48900));
+        expect(paperState.fills).toHaveLength(1);
+        expect(paperState.fills[0].price).toBe("48900");
+    });
+
+    it("answers a history request from the record, newest first", async () => {
+        await open("1");
+        await close("1");
+
+        const response = (await paperExchange.handle("/api/orders", {
+            type: "history",
+        })) as { data: { orders: Array<Record<string, unknown>> } };
+
+        expect(response.data.orders).toHaveLength(2);
+        expect(response.data.orders[0].reduceOnly).toBe(true);
+        expect(response.data.orders.every((o) => o.status === "FILLED")).toBe(true);
+    });
+
+    it("keeps the record bounded rather than growing without limit", async () => {
+        // 500 is the cap; proving the cap exists matters more than the number.
+        for (let i = 0; i < 3; i++) {
+            await open("1");
+        }
+        expect(paperState.fills.length).toBeLessThanOrEqual(500);
+        expect(paperState.fills.length).toBe(3);
+    });
+
+    it("goes with the book on a reset", async () => {
+        await open("1");
+        expect(paperState.fills).toHaveLength(1);
+        paperState.resetBook();
+        expect(paperState.fills).toHaveLength(0);
+    });
+});
+
+describe("paperExchange — plans are cancelled with their position", () => {
+    it("drops both plans when the position closes in full", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            tpPrice: "52000",
+            slPrice: "49000",
+        });
+        expect(paperState.orders).toHaveLength(2);
+
+        await close("1");
+        // The venue cancels a closed position's plans; leaving them resting
+        // would fire them later against nothing — or against a new position
+        // that reused the symbol.
+        expect(paperState.orders).toHaveLength(0);
+    });
+
+    it("cancels the stop when the target fires, not just the target", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            tpPrice: "52000",
+            slPrice: "49000",
+        });
+
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(52000));
+
+        expect(paperState.positions).toHaveLength(0);
+        expect(paperState.orders).toHaveLength(0);
+    });
+
+    it("keeps both plans through a partial close", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "2",
+            tpPrice: "52000",
+            slPrice: "49000",
+        });
+
+        await close("0.5");
+        expect(paperState.positions).toHaveLength(1);
+        expect(paperState.orders).toHaveLength(2);
+    });
+});
+
+/*
+ * FEAT-0327 — the simulator reports the plans it holds.
+ *
+ * `handleTpSl` answered every read with an empty list, so
+ * `orderPlacementService.confirmProtection` looked for the stop it had just
+ * attached, did not find it, and told the trader the position was
+ * unprotected. The stop was there; nothing would say so.
+ */
+describe("paperExchange — TP/SL plans are reported", () => {
+    async function openWithPlans() {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            tpPrice: "52000",
+            slPrice: "49000",
+        });
+    }
+
+    // `/api/tpsl` returns the venue's payload unwrapped — `{ rows }` at the
+    // top level, not inside an envelope. The simulator sits behind the route,
+    // so it answers in the route's shape.
+    async function pending() {
+        const response = (await paperExchange.handle("/api/tpsl", {
+            action: "pending",
+            params: {},
+        })) as { rows: Array<Record<string, unknown>> };
+        return response.rows;
+    }
+
+    it("returns the attached stop and target as one row, the way the venue does", async () => {
+        await openWithPlans();
+        const rows = await pending();
+
+        // One row carrying both legs, no planType and no triggerPrice — the
+        // shape `normalizeTpSlRows` exists to split (BUG-0292).
+        expect(rows).toHaveLength(1);
+        expect(rows[0].tpPrice).toBe("52000");
+        expect(rows[0].slPrice).toBe("49000");
+        expect(rows[0].planType).toBeUndefined();
+        expect(rows[0].triggerPrice).toBeUndefined();
+    });
+
+    it("names no quantity on a plan attached at entry, because it is position-wide", async () => {
+        await openWithPlans();
+        const [row] = await pending();
+        // Whether the leg names a quantity is how the normaliser tells a
+        // position-wide plan from a partial one.
+        expect(row.slQty).toBeUndefined();
+    });
+
+    it("filters by symbol", async () => {
+        await openWithPlans();
+        const response = (await paperExchange.handle("/api/tpsl", {
+            action: "pending",
+            params: { symbol: "ETHUSDT" },
+        })) as { rows: unknown[] };
+        expect(response.rows).toHaveLength(0);
+    });
+
+    it("reports nothing once the position is closed", async () => {
+        await openWithPlans();
+        await close("1");
+        expect(await pending()).toHaveLength(0);
+    });
+
+    it("creates a position-wide plan on demand", async () => {
+        await open("1");
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/tpsl", {
+            action: "place-position",
+            params: { symbol: "BTCUSDT", positionId, slPrice: "49000" },
+        });
+
+        const [row] = await pending();
+        expect(row.slPrice).toBe("49000");
+        expect(row.tpPrice).toBeUndefined();
+    });
+
+    it("replaces the position-wide plan rather than stacking a second one", async () => {
+        await openWithPlans();
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/tpsl", {
+            action: "place-position",
+            params: { symbol: "BTCUSDT", positionId, slPrice: "48000" },
+        });
+
+        const rows = await pending();
+        expect(rows).toHaveLength(1);
+        expect(rows[0].slPrice).toBe("48000");
+    });
+
+    it("creates a partial plan that names its quantity", async () => {
+        await open("2");
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/tpsl", {
+            action: "place",
+            params: { symbol: "BTCUSDT", positionId, tpPrice: "52000", tpQty: "0.5" },
+        });
+
+        const [row] = await pending();
+        expect(row.tpQty).toBe("0.5");
+    });
+
+    it("refuses a plan with no leg", async () => {
+        await open("1");
+        await expect(
+            paperExchange.handle("/api/tpsl", {
+                action: "place-position",
+                params: { symbol: "BTCUSDT" },
+            }),
+        ).rejects.toMatchObject({ code: "PAPER_TPSL_NO_LEG" });
+    });
+
+    it("refuses a plan against a position that does not exist", async () => {
+        await expect(
+            paperExchange.handle("/api/tpsl", {
+                action: "place-position",
+                params: { symbol: "BTCUSDT", slPrice: "49000" },
+            }),
+        ).rejects.toMatchObject({ code: "PAPER_NO_POSITION" });
+    });
+
+    it("cancels one leg when the caller names a plan type", async () => {
+        await openWithPlans();
+        const [row] = await pending();
+        await paperExchange.handle("/api/tpsl", {
+            action: "cancel",
+            params: { orderId: row.id, symbol: "BTCUSDT", planType: "LOSS" },
+        });
+
+        const [remaining] = await pending();
+        expect(remaining.slPrice).toBeUndefined();
+        expect(remaining.tpPrice).toBe("52000");
+    });
+
+    it("cancels the whole row when no type is named", async () => {
+        await openWithPlans();
+        const [row] = await pending();
+        await paperExchange.handle("/api/tpsl", {
+            action: "cancel",
+            params: { orderId: row.id, symbol: "BTCUSDT" },
+        });
+        expect(await pending()).toHaveLength(0);
+    });
+
+    it("refuses to cancel a plan it has never heard of", async () => {
+        await expect(
+            paperExchange.handle("/api/tpsl", {
+                action: "cancel",
+                params: { orderId: "nope", symbol: "BTCUSDT" },
+            }),
+        ).rejects.toMatchObject({ code: "PAPER_NO_ORDER" });
+    });
+
+    it("moves a stop where the trader put it", async () => {
+        await openWithPlans();
+        const [row] = await pending();
+        await paperExchange.handle("/api/tpsl", {
+            action: "modify",
+            params: { orderId: row.id, slPrice: "49500", slStopType: "LAST_PRICE" },
+        });
+
+        const [moved] = await pending();
+        expect(moved.slPrice).toBe("49500");
+        expect(moved.slStopType).toBe("LAST_PRICE");
+        // The other leg is untouched.
+        expect(moved.tpPrice).toBe("52000");
+    });
+
+    it("re-derives the trigger direction when a stop is moved past the entry", async () => {
+        await openWithPlans();
+        const [row] = await pending();
+        await paperExchange.handle("/api/tpsl", {
+            action: "modify",
+            params: { orderId: row.id, slPrice: "51000" },
+        });
+
+        // Above the entry now, so it must wait for a rise, not a fall — a
+        // stale direction would leave it waiting for a move that never comes.
+        const stop = paperState.orders.find((o) => o.planType === "SL")!;
+        expect(stop.triggerDirection).toBe("above");
+    });
+});
+
+describe("paperExchange — a position-wide plan tracks the position", () => {
+    it("closes the whole position after an add, not the original size", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: "1",
+            slPrice: "49000",
+        });
+        await open("1");
+        expect(paperState.positions[0].amount).toBe("2");
+
+        paperExchange.settleRestingOrders("BTCUSDT", new Decimal(49000));
+
+        // Freezing the plan at the entry quantity would have left 1 BTC open
+        // with a stop on screen claiming it was covered.
+        expect(paperState.positions).toHaveLength(0);
+    });
+});

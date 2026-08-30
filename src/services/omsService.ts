@@ -162,6 +162,22 @@ class OrderManagementSystem {
         }
     }
 
+    /**
+     * Drops one position outright — FEAT-0327.
+     *
+     * `updatePosition` can only ever add or overwrite, which is right for a
+     * venue that pushes what it holds and says nothing about what it no
+     * longer holds. A mirrored book is the other case: the paper simulator
+     * removes a position the moment its last unit closes, and re-mirroring
+     * without this would leave the closed position visible to the FEAT-0011
+     * gate, which reads `getPositions()` to verify a close intent.
+     */
+    public removePosition(symbol: string, side: "long" | "short") {
+        const key = symbol + ":" + side;
+        if (!this.positions.delete(key)) return;
+        logger.log("market", `[OMS] Position Removed: ${symbol} ${side}`);
+    }
+
     public removeOrder(id: string) {
         this.orders.delete(id);
         logger.log("market", `[OMS] Order Removed: ${id}`);

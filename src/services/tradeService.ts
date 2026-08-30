@@ -1283,7 +1283,18 @@ class TradeService {
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = settingsState.apiKeys[provider];
-        if (!keys?.key || !keys?.secret) {
+        /*
+         * Credentials are what a *venue* needs, and this read goes through
+         * `signedRequest`, which answers from the simulator in paper mode
+         * without touching the network (FEAT-0327).
+         *
+         * Not a mode branch: the request built below is identical either way.
+         * This only stops the guard from refusing, before the seam is even
+         * reached, a read that needs no credentials — which is what told
+         * `orderPlacementService` that every simulated entry's stop was
+         * missing, and reported a protected position as unprotected.
+         */
+        if (!paperState.enabled && (!keys?.key || !keys?.secret)) {
              throw new Error("dashboard.alerts.noApiKeys");
         }
 

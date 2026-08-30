@@ -26,6 +26,8 @@
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
   import { activeExchange } from "../../services/exchange";
+  import { paperAccountFeed } from "../../services/paperAccountFeed";
+  import { paperState } from "../../stores/paperTrading.svelte";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { unwrapApiEnvelope } from "../../utils/utils";
   import { appFetch } from "../../lib/appAuth";
@@ -252,6 +254,16 @@
   });
 
   async function fetchPositions() {
+    // FEAT-0327 — the read seam. In paper mode the simulated book answers, in
+    // the same shape, and nothing below runs: a request to the venue here is
+    // what made a simulated position invisible in this panel.
+    const paper = paperAccountFeed();
+    if (paper) {
+      errorPositions = "";
+      accountState.hydratePositions(paper.positions());
+      return;
+    }
+
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
 
@@ -306,6 +318,13 @@
   }
 
   async function fetchPendingOrders() {
+    const paper = paperAccountFeed();
+    if (paper) {
+      errorOrders = "";
+      accountState.hydrateOpenOrders(paper.pendingOrders());
+      return;
+    }
+
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
@@ -349,11 +368,34 @@
     append?: boolean;
     limit?: number;
   }) {
+    const isAppend = options?.append ?? false;
+
+    const paper = paperAccountFeed();
+    if (paper) {
+      const limit = options?.limit ?? 50;
+      const fills = paper.historyOrders({
+        startTime: options?.startTime !== undefined ? options.startTime : historyStartTime,
+        endTime: options?.endTime !== undefined ? options.endTime : historyEndTime,
+        limit,
+      });
+      // Merged the same way the venue's two-call history is, so "load more"
+      // and the range picker behave identically in both modes.
+      const merged = isAppend
+        ? new Map<string, NormalizedOrder>(historyOrders.map((o) => [o.id || o.orderId, o]))
+        : new Map<string, NormalizedOrder>();
+      for (const order of fills) merged.set(order.id || order.orderId, order);
+      historyOrders = Array.from(merged.values()).sort(
+        (a, b) => (b.time || 0) - (a.time || 0),
+      );
+      historyHasMore = fills.length >= limit;
+      errorHistory = "";
+      return;
+    }
+
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
 
-    const isAppend = options?.append ?? false;
     if (isAppend) {
       loadingMoreHistory = true;
     } else {
@@ -453,6 +495,20 @@
   }
 
   async function fetchAccount() {
+    const paper = paperAccountFeed();
+    if (paper) {
+      errorAccount = "";
+      const info = paper.accountInfo();
+      accountInfo = info;
+      accountState.hydrateBalance({
+        available: info.available,
+        margin: info.margin,
+        frozen: info.frozen,
+      });
+      accountState.positionMode = info.positionMode;
+      return;
+    }
+
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
@@ -506,14 +562,28 @@
   }
 
   onMount(() => {
-    // Initial fetch to get the current state before WS takes over
+    // Initial fetch to get the current state before WS takes over.
+    // Paper mode needs no credentials — the book is local, and gating the
+    // first read on API keys is why a paper account with none started empty.
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
-    if (keys?.key && keys?.secret) {
+    if (paperAccountFeed() || (keys?.key && keys?.secret)) {
       fetchAccount();
       fetchPositions();
       fetchPendingOrders();
     }
+  });
+
+  /*
+   * FEAT-0327: the simulated history has no push channel either, and no WS
+   * order-close event ever fires for it. The fill count is the signal — it
+   * only ever moves when the simulator actually executed something, so this
+   * refreshes on a fill rather than on every price tick.
+   */
+  $effect(() => {
+    const fillCount = paperState.enabled ? paperState.fills.length : 0;
+    if (fillCount === 0 || activeTab !== "history") return;
+    untrack(() => fetchHistoryOrders());
   });
 
   // Order history has no WS push channel of its own — eagerly refresh it

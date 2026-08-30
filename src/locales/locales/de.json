@@ -348,6 +348,7 @@
       "riskAmountPlaceholder": "z.B. 100",
       "toggleRiskAmountLockTitle": "Risikobetrag sperren/entsperren",
       "fetchBalanceTitle": "Guthaben abrufen",
+      "fetchBalanceTitlePaper": "Guthaben des Papertrading-Kontos abrufen",
       "fetchBalanceError": "Fehler beim Abrufen des Guthabens",
       "invalidBalanceData": "Ungültige Guthabendaten empfangen"
     },

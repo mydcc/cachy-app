@@ -348,6 +348,7 @@
       "riskAmountPlaceholder": "e.g. 100",
       "toggleRiskAmountLockTitle": "Lock/Unlock Risk Amount",
       "fetchBalanceTitle": "Fetch Balance",
+      "fetchBalanceTitlePaper": "Fetch paper-account balance",
       "fetchBalanceError": "Error fetching balance",
       "invalidBalanceData": "Invalid balance data received"
     },
