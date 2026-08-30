@@ -4,7 +4,7 @@
 
 212 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 3 · 🟡 in-progress 2 · ✅ done 166
+Counts by status: 💡 idea 21 · 📋 specced 19 · 🟢 ready 3 · 🟡 in-progress 2 · ✅ done 167
 
 ---
 
@@ -256,7 +256,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | ✅ done | execution |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | security |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | api |
-| [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | 📋 specced | ui |
+| [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -466,7 +466,7 @@ Counts by status: 💡 idea 21 · 📋 specced 20 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0290](bugs/BUG-0290-replacestop-retry-theater.md) | Stop-protection retry loop retries through a documented no-op placeholder | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
-| [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
