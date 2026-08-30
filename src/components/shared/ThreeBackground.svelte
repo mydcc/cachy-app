@@ -106,7 +106,7 @@
             type: 'updateColors',
             data: {
                 inside, out1, out2, out3,
-                blending: light ? 0 : 2, // NormalBlending=0, AdditiveBlending=2 (approx)
+                blending: light ? 1 : 2, // NormalBlending=1, AdditiveBlending=2
                 cutoff: light ? 0.6 : 0.2
             }
         });
