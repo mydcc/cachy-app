@@ -164,6 +164,9 @@ export class JournalManager {
     if (this.inFlightSave) {
       this.pendingSaveRequested = true;
       await this.inFlightSave;
+      if (this.pendingSaveRequested) {
+        return this.save();
+      }
       return;
     }
 

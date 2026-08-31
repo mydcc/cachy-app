@@ -30,7 +30,7 @@ import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
 import { APP_VERSION } from "../lib/version";
 import { modalState } from "../stores/modal.svelte";
-import { normalizeJournalEntry, parseDecimal } from "../utils/utils";
+import { parseDecimal } from "../utils/utils";
 import { safeJsonParse } from "../utils/safeJson";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
@@ -186,23 +186,6 @@ export const app = {
 
   clearResults: (showGuidance = false) => {
     calculatorService.clearResults(showGuidance);
-  },
-
-  getJournal: (): JournalEntry[] => {
-    if (!browser) return [];
-    const fromStore = journalState.entries;
-    if (fromStore && fromStore.length > 0) return fromStore;
-
-    try {
-      const d =
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
-      const parsedData = safeJsonParse(d);
-      return Array.isArray(parsedData)
-        ? parsedData.map(normalizeJournalEntry)
-        : [];
-    } catch {
-      return [];
-    }
   },
 
   addTrade: async () => {
