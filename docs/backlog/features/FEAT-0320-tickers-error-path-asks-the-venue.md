@@ -2,7 +2,7 @@
 id: FEAT-0320
 title: Let the venue answer symbol-not-found on the tickers error path too
 type: feature
-status: specced
+status: in-review
 priority: P3
 milestone: M2
 editions: [community, pro, private]
