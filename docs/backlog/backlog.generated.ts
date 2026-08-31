@@ -3723,7 +3723,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0319",
     "title": "Make \"destroy forgets subscriptions\" a conformance-suite invariant",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "feat/feat-0319-conformance-guard-destroy-forgets-subscriptions",
     "priority": "P2",
     "milestone": "M2",
     "editions": [
