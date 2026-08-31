@@ -22,11 +22,11 @@ import { serializationService } from "../services/serializationService";
 export class JournalManager {
   entries = $state<JournalEntry[]>([]);
   private effectCleanup: (() => void) | null = null;
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private inFlightSave: Promise<void> | null = null;
   private pendingSaveRequested = false;
   private effectActive = false;
+  private unloadHandler: (() => void) | null = null;
 
   constructor() {
     if (browser) {
@@ -49,6 +49,17 @@ export class JournalManager {
           });
         });
       });
+
+      // Synchronously commit any pending state on page unload/reload (AC#4)
+      this.unloadHandler = () => {
+        if (this.saveTimer) {
+          clearTimeout(this.saveTimer);
+          this.saveTimer = null;
+        }
+        this.saveSync();
+      };
+      window.addEventListener("pagehide", this.unloadHandler);
+      window.addEventListener("beforeunload", this.unloadHandler);
     }
   }
 
@@ -61,9 +72,10 @@ export class JournalManager {
       clearTimeout(this.saveTimer);
       this.saveTimer = null;
     }
-    if (this.notifyTimer) {
-      clearTimeout(this.notifyTimer);
-      this.notifyTimer = null;
+    if (this.unloadHandler) {
+      window.removeEventListener("pagehide", this.unloadHandler);
+      window.removeEventListener("beforeunload", this.unloadHandler);
+      this.unloadHandler = null;
     }
   }
 
@@ -128,38 +140,52 @@ export class JournalManager {
     }
   }
 
+  /** Synchronous save used during unload (pagehide / beforeunload) when async tasks cannot be scheduled */
+  private saveSync() {
+    if (!browser || !this.effectActive) return;
+    try {
+      const data = $state.snapshot(this.entries);
+      const json = JSON.stringify(data);
+      const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+
+      if (current !== json) {
+        StorageHelper.safeSave(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, json);
+      }
+    } catch (e) {
+      console.error("[Journal] Synchronous unload save failed:", e);
+    }
+  }
+
   private async save(): Promise<void> {
     if (!browser || !this.effectActive) return;
 
     if (this.inFlightSave) {
       this.pendingSaveRequested = true;
       await this.inFlightSave;
-      if (this.pendingSaveRequested) {
-        this.pendingSaveRequested = false;
-        return this.save();
-      }
       return;
     }
 
-    this.pendingSaveRequested = false;
     this.inFlightSave = (async () => {
       try {
-        const data = $state.snapshot(this.entries);
-        const json = await serializationService.stringifyAsync(data);
-        const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+        do {
+          this.pendingSaveRequested = false;
+          const data = $state.snapshot(this.entries);
+          const json = await serializationService.stringifyAsync(data);
+          const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
 
-        // Dirty check: only save if data actually changed
-        if (current !== json) {
-          const success = StorageHelper.safeSave(
-            CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-            json,
-          );
+          // Dirty check: only save if data actually changed
+          if (current !== json) {
+            const success = StorageHelper.safeSave(
+              CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+              json,
+            );
 
-          if (!success) {
-            console.error("[Journal] Failed to save after retry");
-            uiState.showError("journal.saveFailed");
+            if (!success) {
+              console.error("[Journal] Failed to save after retry");
+              uiState.showError("journal.saveFailed");
+            }
           }
-        }
+        } while (this.pendingSaveRequested);
       } catch (e) {
         console.error("[Journal] Save error:", e);
         uiState.showError("journal.saveError");
@@ -169,11 +195,6 @@ export class JournalManager {
     })();
 
     await this.inFlightSave;
-
-    if (this.pendingSaveRequested) {
-      this.pendingSaveRequested = false;
-      await this.save();
-    }
   }
 
   // -- Actions --

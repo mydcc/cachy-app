@@ -213,4 +213,24 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
 
     journal.destroy();
   });
+
+  it("synchronously commits pending debounced mutations on pagehide/beforeunload event", () => {
+    const journal = new JournalManager();
+    journal.addEntry(createTestEntry("trade-unload"));
+
+    // Mutation is pending in debounce timer (no write yet)
+    expect(localStorageMock.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY)).toBeNull();
+
+    // Trigger pagehide event
+    window.dispatchEvent(new Event("pagehide"));
+
+    // Verify synchronous persistence
+    const savedJson = localStorageMock.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+    expect(savedJson).not.toBeNull();
+    const parsed = JSON.parse(savedJson!);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].id).toBe("trade-unload");
+
+    journal.destroy();
+  });
 });
