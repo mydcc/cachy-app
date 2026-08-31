@@ -2,7 +2,7 @@
 id: FEAT-0319
 title: Make "destroy forgets subscriptions" a conformance-suite invariant
 type: feature
-status: done
+status: in-progress
 assignee: antigravity
 branch: feat/feat-0319-conformance-guard-destroy-forgets-subscriptions
 priority: P2
