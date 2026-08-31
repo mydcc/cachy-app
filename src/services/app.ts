@@ -205,12 +205,6 @@ export const app = {
     }
   },
 
-    saveJournal: async (d: JournalEntry[]) => {
-    if (!browser) return;
-    journalState.set(d);
-    await journalState.flush();
-  },
-
   addTrade: async () => {
     const currentAppState = tradeState;
     if (!currentAppState.currentTradeData?.positionSize?.gt(0)) {

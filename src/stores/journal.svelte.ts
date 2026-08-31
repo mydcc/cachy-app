@@ -24,7 +24,8 @@ export class JournalManager {
   private effectCleanup: (() => void) | null = null;
   private notifyTimer: ReturnType<typeof setTimeout> | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
-  private saveLock = false;
+  private inFlightSave: Promise<void> | null = null;
+  private pendingSaveRequested = false;
   private effectActive = false;
 
   constructor() {
@@ -127,31 +128,51 @@ export class JournalManager {
     }
   }
 
-  private async save() {
-    if (!browser || !this.effectActive || this.saveLock) return;
-    this.saveLock = true;
-    try {
-      const data = $state.snapshot(this.entries);
-      const json = await serializationService.stringifyAsync(data);
-      const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+  private async save(): Promise<void> {
+    if (!browser || !this.effectActive) return;
 
-      // Dirty check: only save if data actually changed
-      if (current !== json) {
-        const success = StorageHelper.safeSave(
-          CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-          json,
-        );
-
-        if (!success) {
-          console.error("[Journal] Failed to save after retry");
-          uiState.showError("journal.saveFailed");
-        }
+    if (this.inFlightSave) {
+      this.pendingSaveRequested = true;
+      await this.inFlightSave;
+      if (this.pendingSaveRequested) {
+        this.pendingSaveRequested = false;
+        return this.save();
       }
-    } catch (e) {
-      console.error("[Journal] Save error:", e);
-      uiState.showError("journal.saveError");
-    } finally {
-      this.saveLock = false;
+      return;
+    }
+
+    this.pendingSaveRequested = false;
+    this.inFlightSave = (async () => {
+      try {
+        const data = $state.snapshot(this.entries);
+        const json = await serializationService.stringifyAsync(data);
+        const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+
+        // Dirty check: only save if data actually changed
+        if (current !== json) {
+          const success = StorageHelper.safeSave(
+            CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+            json,
+          );
+
+          if (!success) {
+            console.error("[Journal] Failed to save after retry");
+            uiState.showError("journal.saveFailed");
+          }
+        }
+      } catch (e) {
+        console.error("[Journal] Save error:", e);
+        uiState.showError("journal.saveError");
+      } finally {
+        this.inFlightSave = null;
+      }
+    })();
+
+    await this.inFlightSave;
+
+    if (this.pendingSaveRequested) {
+      this.pendingSaveRequested = false;
+      await this.save();
     }
   }
 

@@ -609,10 +609,4 @@ export const syncService = {
       uiState.setSyncProgress(null);
     }
   },
-
-  saveJournal: async (d: JournalEntry[]) => {
-    if (!browser) return;
-    journalState.set(d);
-    await journalState.flush();
-  },
 };

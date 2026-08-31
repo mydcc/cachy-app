@@ -88,6 +88,7 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -147,7 +148,7 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
   });
 
   it("surfaces journal.saveFailed error toast when StorageHelper.safeSave fails on quota limit", async () => {
-    vi.spyOn(StorageHelper, "safeSave").mockReturnValue(false);
+    const spy = vi.spyOn(StorageHelper, "safeSave").mockReturnValue(false);
 
     const journal = new JournalManager();
     journal.addEntry(createTestEntry("trade-fail"));
@@ -157,19 +158,20 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
     expect(mockUiState.showError).toHaveBeenCalledWith("journal.saveFailed");
 
     journal.destroy();
+    spy.mockRestore();
   });
 
   it("does not perform redundant writes when entries have not changed (dirty check)", async () => {
-    const initialTrades = [createTestEntry("trade-1")];
-    localStorageMock.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, JSON.stringify(initialTrades));
-
     const journal = new JournalManager();
-    const initialWriteCount = localStorageMock.setItem.mock.calls.length;
-
-    // Trigger save without changing data
+    journal.addEntry(createTestEntry("trade-1"));
     await journal.flush();
 
-    expect(localStorageMock.setItem.mock.calls.length).toBe(initialWriteCount);
+    const writeCountAfterFirstSave = localStorageMock.setItem.mock.calls.length;
+
+    // Flush again without changing entries
+    await journal.flush();
+
+    expect(localStorageMock.setItem.mock.calls.length).toBe(writeCountAfterFirstSave);
 
     journal.destroy();
   });
@@ -185,6 +187,29 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
     const realAdded = journal.addEntry(createTestEntry("real-1", "50", false));
     expect(realAdded).toBe(true);
     expect(journal.entries).toHaveLength(1);
+
+    journal.destroy();
+  });
+
+  it("handles mutations during in-flight save and commits latest state upon flush()", async () => {
+    const journal = new JournalManager();
+    journal.addEntry(createTestEntry("trade-initial"));
+
+    // Start a flush (which initiates an in-flight save)
+    const firstFlush = journal.flush();
+
+    // Immediately while the first save is in-flight, add another entry and flush again
+    journal.addEntry(createTestEntry("trade-concurrent"));
+    const secondFlush = journal.flush();
+
+    await Promise.all([firstFlush, secondFlush]);
+
+    const savedJson = localStorageMock.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+    expect(savedJson).not.toBeNull();
+    const parsed = JSON.parse(savedJson!);
+    expect(parsed).toHaveLength(2);
+    expect(parsed.find((t: JournalEntry) => t.id === "trade-initial")).toBeDefined();
+    expect(parsed.find((t: JournalEntry) => t.id === "trade-concurrent")).toBeDefined();
 
     journal.destroy();
   });
