@@ -2,9 +2,7 @@
 id: FEAT-0258
 title: Make app.saveJournal() the single debounced writer for journal persistence
 type: feature
-status: in-progress
-assignee: antigravity
-branch: feat-0258-journal-debounced-writer
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
