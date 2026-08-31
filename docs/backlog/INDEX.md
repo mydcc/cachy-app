@@ -2,9 +2,9 @@
 
 # Backlog index
 
-213 items. How to read and add them: [README.md](README.md).
+214 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 22 · 📋 specced 19 · 🟢 ready 1 · ✅ done 171
+Counts by status: 💡 idea 22 · 📋 specced 19 · 🟢 ready 1 · ✅ done 172
 
 ---
 
@@ -38,6 +38,7 @@ Counts by status: 💡 idea 22 · 📋 specced 19 · 🟢 ready 1 · ✅ done 17
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | execution |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | execution |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | execution |
+| [FEAT-0327](features/FEAT-0327-paper-trading-account-tracking.md) | Make a paper trade trackable, closable and journalled like a real one | P1 | ✅ done | execution |
 | [BUG-0078](bugs/BUG-0078-stores-missing-hmr-cleanup.md) | Core stores leak auto-save $effect.root closures and timers during HMR | P2 | ✅ done | ui |
 
 ### M2
@@ -358,6 +359,7 @@ Counts by status: 💡 idea 22 · 📋 specced 19 · 🟢 ready 1 · ✅ done 17
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
+| [FEAT-0327](features/FEAT-0327-paper-trading-account-tracking.md) | Make a paper trade trackable, closable and journalled like a real one | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -500,4 +502,4 @@ Counts by status: 💡 idea 22 · 📋 specced 19 · 🟢 ready 1 · ✅ done 17
 
 ---
 
-Next free number: **0327**
+Next free number: **0328**

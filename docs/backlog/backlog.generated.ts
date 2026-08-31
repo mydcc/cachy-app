@@ -1693,6 +1693,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md"
   },
   {
+    "id": "FEAT-0327",
+    "title": "Make a paper trade trackable, closable and journalled like a real one",
+    "type": "feature",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "M1",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0012"
+    ],
+    "assignee": "claude",
+    "branch": "worktree-papertrading-account-tracking-454885",
+    "file": "features/FEAT-0327-paper-trading-account-tracking.md"
+  },
+  {
     "id": "BUG-0005",
     "title": "GPU-accelerated Choppiness writes to a field nothing reads",
     "type": "bug",
