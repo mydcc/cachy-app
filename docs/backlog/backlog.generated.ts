@@ -3566,7 +3566,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0258",
     "title": "Make app.saveJournal() the single debounced writer for journal persistence",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "feat-0258-journal-debounced-writer",
     "priority": "P2",
     "milestone": "none",
     "editions": [
