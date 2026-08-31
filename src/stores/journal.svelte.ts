@@ -17,20 +17,35 @@ import { uiState } from "./ui.svelte";
 import { settingsState } from "./settings.svelte";
 import { untrack } from "svelte";
 import { safeJsonParse } from "../utils/safeJson";
+import { serializationService } from "../services/serializationService";
 
-class JournalManager {
+export class JournalManager {
   entries = $state<JournalEntry[]>([]);
   private effectCleanup: (() => void) | null = null;
   private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private saveLock = false;
+  private effectActive = false;
 
   constructor() {
     if (browser) {
       this.load();
+      this.effectActive = true;
 
-      // Auto-save effect
+      // Auto-save effect with 500ms debounce
       this.effectCleanup = $effect.root(() => {
         $effect(() => {
-          this.save();
+          if (!this.effectActive) return;
+          // Track entries reactivity
+          void this.entries.length;
+          for (const e of this.entries) void e;
+
+          untrack(() => {
+            if (this.saveTimer) clearTimeout(this.saveTimer);
+            this.saveTimer = setTimeout(() => {
+              void this.save();
+            }, 500);
+          });
         });
       });
     }
@@ -41,10 +56,23 @@ class JournalManager {
       this.effectCleanup();
       this.effectCleanup = null;
     }
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
     if (this.notifyTimer) {
       clearTimeout(this.notifyTimer);
       this.notifyTimer = null;
     }
+  }
+
+  /** Immediately flush any pending debounced save */
+  async flush() {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    await this.save();
   }
 
   private load() {
@@ -99,22 +127,31 @@ class JournalManager {
     }
   }
 
-  private save() {
-    if (!browser) return;
+  private async save() {
+    if (!browser || !this.effectActive || this.saveLock) return;
+    this.saveLock = true;
     try {
-      const data = JSON.stringify(this.entries);
-      const success = StorageHelper.safeSave(
-        CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        data,
-      );
+      const data = $state.snapshot(this.entries);
+      const json = await serializationService.stringifyAsync(data);
+      const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
 
-      if (!success) {
-        console.error("[Journal] Failed to save after retry");
-        uiState.showError("journal.saveFailed");
+      // Dirty check: only save if data actually changed
+      if (current !== json) {
+        const success = StorageHelper.safeSave(
+          CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+          json,
+        );
+
+        if (!success) {
+          console.error("[Journal] Failed to save after retry");
+          uiState.showError("journal.saveFailed");
+        }
       }
     } catch (e) {
       console.error("[Journal] Save error:", e);
       uiState.showError("journal.saveError");
+    } finally {
+      this.saveLock = false;
     }
   }
 
@@ -143,14 +180,14 @@ class JournalManager {
   }
 
   updateEntry(updatedEntry: JournalEntry) {
-    const index = this.entries.findIndex((e) => e.id === updatedEntry.id);
+    const index = this.entries.findIndex((e) => String(e.id) === String(updatedEntry.id));
     if (index !== -1) {
       this.entries[index] = updatedEntry;
     }
   }
 
-  deleteEntry(id: string) {
-    this.entries = this.entries.filter((e) => e.id !== id);
+  deleteEntry(id: string | number) {
+    this.entries = this.entries.filter((e) => String(e.id) !== String(id));
   }
 
   importEntries(newEntries: JournalEntry[]) {
