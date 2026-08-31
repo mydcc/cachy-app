@@ -168,6 +168,16 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
                 // Check that subscriptions were replayed
                 expect(newSocket!.send).toHaveBeenCalled();
             });
+
+            it("should clear held subscriptions when connection is destroyed", () => {
+                const harness = adapterTestHarnesses[adapter.id];
+                adapter.marketData.subscribe("BTCUSDT", "ticker");
+                expect(harness.getSubscriptionCount()).toBeGreaterThan(0);
+
+                adapter.connection.destroy();
+
+                expect(harness.getSubscriptionCount()).toBe(0);
+            });
         });
     });
 });

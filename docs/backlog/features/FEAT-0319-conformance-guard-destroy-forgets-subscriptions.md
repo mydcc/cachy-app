@@ -2,7 +2,9 @@
 id: FEAT-0319
 title: Make "destroy forgets subscriptions" a conformance-suite invariant
 type: feature
-status: specced
+status: in-progress
+assignee: antigravity
+branch: feat/feat-0319-conformance-guard-destroy-forgets-subscriptions
 priority: P2
 milestone: M2
 editions: [community, pro, private]
@@ -52,16 +54,16 @@ the port, not the socket.
 
 ## Acceptance criteria
 
-- [ ] `AdapterTestHarness` exposes the venue's held-subscription count
-- [ ] `adapterConformance.test.ts` asserts, for every registered adapter, that
+- [x] `AdapterTestHarness` exposes the venue's held-subscription count
+- [x] `adapterConformance.test.ts` asserts, for every registered adapter, that
       a subscribe followed by `connection.destroy()` leaves the venue holding
       nothing
-- [ ] The new case fails when `bitgetWs.destroy()`'s
+- [x] The new case fails when `bitgetWs.destroy()`'s
       `this.subscriptions.clear()` is removed, and when the equivalent line is
       removed from `bitunixWs.destroy()`
-- [ ] Adding an adapter still requires no change to
+- [x] Adding an adapter still requires no change to
       `adapterConformance.test.ts` itself (FEAT-0018's own AC)
-- [ ] `MarketDataPort.subscribe`'s contract comment in `exchange/types.ts`
+- [x] `MarketDataPort.subscribe`'s contract comment in `exchange/types.ts`
       names the suite case that enforces it
 
 ## Out of scope

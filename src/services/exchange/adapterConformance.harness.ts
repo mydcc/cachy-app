@@ -40,6 +40,8 @@ export interface AdapterTestHarness {
     simulateLogin(inject: (raw: string) => void): void;
     /** Timer advance (ms) that guarantees a reconnect has settled. */
     readonly reconnectBackoffMs: number;
+    /** Count of public channel subscriptions currently held by the venue. */
+    getSubscriptionCount(): number;
 }
 
 /** Headroom over the max 30s backoff so a reconnect is guaranteed to fire. */
@@ -59,6 +61,9 @@ const bitunixHarness: AdapterTestHarness = {
         // injects payloads directly, so no login frame needs to be faked.
     },
     reconnectBackoffMs: RECONNECT_BACKOFF_MS,
+    getSubscriptionCount() {
+        return bitunixWs.pendingSubscriptions.size;
+    },
 };
 
 const bitgetHarness: AdapterTestHarness = {
@@ -74,6 +79,9 @@ const bitgetHarness: AdapterTestHarness = {
         inject(JSON.stringify({ event: "login", code: "00000" }));
     },
     reconnectBackoffMs: RECONNECT_BACKOFF_MS,
+    getSubscriptionCount() {
+        return bitgetWs.subscriptions.size;
+    },
 };
 
 /** One harness per adapter id — the suite reads from this, never the adapters. */
