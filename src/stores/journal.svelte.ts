@@ -17,22 +17,51 @@ import { uiState } from "./ui.svelte";
 import { settingsState } from "./settings.svelte";
 import { untrack } from "svelte";
 import { safeJsonParse } from "../utils/safeJson";
+import { serializationService } from "../services/serializationService";
 
-class JournalManager {
+export class JournalManager {
   entries = $state<JournalEntry[]>([]);
   private effectCleanup: (() => void) | null = null;
-  private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private inFlightSave: Promise<void> | null = null;
+  private pendingSaveRequested = false;
+  private effectActive = false;
+  private unloadHandler: (() => void) | null = null;
 
   constructor() {
     if (browser) {
       this.load();
+      this.effectActive = true;
 
-      // Auto-save effect
+      // Auto-save effect with 500ms debounce
       this.effectCleanup = $effect.root(() => {
         $effect(() => {
-          this.save();
+          if (!this.effectActive) return;
+          // Track entries reactivity
+          void this.entries.length;
+          for (const e of this.entries) void e;
+
+          untrack(() => {
+            if (this.saveTimer) clearTimeout(this.saveTimer);
+            this.saveTimer = setTimeout(() => {
+              void this.save();
+            }, 500);
+          });
         });
       });
+
+      // Synchronously commit any pending state on page unload/reload (AC#4)
+      if (typeof window !== "undefined") {
+        this.unloadHandler = () => {
+          if (this.saveTimer) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+          }
+          this.saveSync();
+        };
+        window.addEventListener("pagehide", this.unloadHandler);
+        window.addEventListener("beforeunload", this.unloadHandler);
+      }
     }
   }
 
@@ -41,14 +70,28 @@ class JournalManager {
       this.effectCleanup();
       this.effectCleanup = null;
     }
-    if (this.notifyTimer) {
-      clearTimeout(this.notifyTimer);
-      this.notifyTimer = null;
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    if (this.unloadHandler && typeof window !== "undefined") {
+      window.removeEventListener("pagehide", this.unloadHandler);
+      window.removeEventListener("beforeunload", this.unloadHandler);
+      this.unloadHandler = null;
     }
   }
 
+  /** Immediately flush any pending debounced save */
+  async flush() {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    await this.save();
+  }
+
   private load() {
-    if (!browser) return;
+    if (!browser || typeof localStorage === "undefined") return;
     try {
       const d =
         localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
@@ -99,23 +142,64 @@ class JournalManager {
     }
   }
 
-  private save() {
-    if (!browser) return;
+  /** Synchronous save used during unload (pagehide / beforeunload) when async tasks cannot be scheduled */
+  private saveSync() {
+    if (!browser || !this.effectActive || typeof localStorage === "undefined") return;
     try {
-      const data = JSON.stringify(this.entries);
-      const success = StorageHelper.safeSave(
-        CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        data,
-      );
+      const data = $state.snapshot(this.entries);
+      const json = JSON.stringify(data);
+      const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
 
-      if (!success) {
-        console.error("[Journal] Failed to save after retry");
-        uiState.showError("journal.saveFailed");
+      if (current !== json) {
+        StorageHelper.safeSave(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, json);
       }
     } catch (e) {
-      console.error("[Journal] Save error:", e);
-      uiState.showError("journal.saveError");
+      console.error("[Journal] Synchronous unload save failed:", e);
     }
+  }
+
+  private async save(): Promise<void> {
+    if (!browser || !this.effectActive || typeof localStorage === "undefined") return;
+
+    if (this.inFlightSave) {
+      this.pendingSaveRequested = true;
+      await this.inFlightSave;
+      if (this.pendingSaveRequested) {
+        return this.save();
+      }
+      return;
+    }
+
+    this.inFlightSave = (async () => {
+      try {
+        do {
+          this.pendingSaveRequested = false;
+          const data = $state.snapshot(this.entries);
+          const json = await serializationService.stringifyAsync(data);
+          const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+
+          // Dirty check: only save if data actually changed
+          if (current !== json) {
+            const success = StorageHelper.safeSave(
+              CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+              json,
+            );
+
+            if (!success) {
+              console.error("[Journal] Failed to save after retry");
+              uiState.showError("journal.saveFailed");
+            }
+          }
+        } while (this.pendingSaveRequested);
+      } catch (e) {
+        console.error("[Journal] Save error:", e);
+        uiState.showError("journal.saveError");
+      } finally {
+        this.inFlightSave = null;
+      }
+    })();
+
+    await this.inFlightSave;
   }
 
   // -- Actions --
@@ -143,14 +227,14 @@ class JournalManager {
   }
 
   updateEntry(updatedEntry: JournalEntry) {
-    const index = this.entries.findIndex((e) => e.id === updatedEntry.id);
+    const index = this.entries.findIndex((e) => String(e.id) === String(updatedEntry.id));
     if (index !== -1) {
       this.entries[index] = updatedEntry;
     }
   }
 
-  deleteEntry(id: string) {
-    this.entries = this.entries.filter((e) => e.id !== id);
+  deleteEntry(id: string | number) {
+    this.entries = this.entries.filter((e) => String(e.id) !== String(id));
   }
 
   importEntries(newEntries: JournalEntry[]) {

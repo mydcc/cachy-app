@@ -2,7 +2,9 @@
 id: FEAT-0258
 title: Make app.saveJournal() the single debounced writer for journal persistence
 type: feature
-status: ready
+status: in-progress
+assignee: antigravity
+branch: feat-0258-journal-debounced-writer
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -46,17 +48,17 @@ This is Class-A data: persistence correctness outranks the perf win.
 
 ## Acceptance criteria
 
-- [ ] Characterization test proves exactly one persistence write per mutation
+- [x] Characterization test proves exactly one persistence write per mutation
       burst (fails before the fix, passes after).
-- [ ] No synchronous whole-journal `JSON.stringify` on the main thread during
+- [x] No synchronous whole-journal `JSON.stringify` on the main thread during
       mutations.
-- [ ] Quota-error path intact: `StorageHelper.safeSave` retry still surfaces the
+- [x] Quota-error path intact: `StorageHelper.safeSave` retry still surfaces the
       `journal.saveFailed` toast.
-- [ ] Journal data survives a reload after the last mutation within the debounce
+- [x] Journal data survives a reload after the last mutation within the debounce
       window (eventual write proven by test).
-- [ ] Paper-trade filtering in `addEntry` behaves exactly as before.
-- [ ] Nothing new leaves the device (data_class A, ADR-0001 respected).
-- [ ] `npm run check` + targeted store/app tests pass.
+- [x] Paper-trade filtering in `addEntry` behaves exactly as before.
+- [x] Nothing new leaves the device (data_class A, ADR-0001 respected).
+- [x] `npm run check` + targeted store/app tests pass.
 
 ## Out of scope
 

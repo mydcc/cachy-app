@@ -16,7 +16,6 @@
  */
 
 import { parseTimestamp } from "../utils/utils";
-import { CONSTANTS } from "../lib/constants";
 import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
@@ -28,10 +27,7 @@ import { _ } from "../locales/i18n";
 import type { TranslationKey } from "../locales/schema";
 import { trackCustomEvent } from "./trackingService";
 import { appFetch } from "../lib/appAuth";
-import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
-import { StorageHelper } from "../utils/storageHelper";
-import { serializationService } from "./serializationService";
 import type { Kline } from "./technicalsTypes";
 
 // Raw Bitunix position payload as returned by /api/sync/positions-history and
@@ -549,7 +545,6 @@ export const syncService = {
           );
 
           journalState.set(updatedJournal);
-          await syncService.saveJournal(updatedJournal);
         }
 
         newEntries.push(...validResults);
@@ -578,8 +573,10 @@ export const syncService = {
         );
 
         journalState.set(updatedJournal);
-        await syncService.saveJournal(updatedJournal);
       }
+
+      // Flush any pending debounced journal state immediately to localStorage
+      await journalState.flush();
 
       // Final feedback - trades already added incrementally
       if (addedCount > 0 || refreshedCount > 0) {
@@ -612,25 +609,6 @@ export const syncService = {
         isSyncing: false,
       }));
       uiState.setSyncProgress(null);
-    }
-  },
-
-  saveJournal: async (d: JournalEntry[]) => {
-    if (!browser) return;
-    try {
-      const data = await serializationService.stringifyAsync(d);
-      const success = StorageHelper.safeSave(
-        CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        data,
-      );
-
-      if (!success) {
-        uiState.showError("storage.journalSaveFailed");
-      }
-    } catch {
-      uiState.showError(
-        "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.",
-      );
     }
   },
 };
