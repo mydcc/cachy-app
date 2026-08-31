@@ -51,15 +51,17 @@ export class JournalManager {
       });
 
       // Synchronously commit any pending state on page unload/reload (AC#4)
-      this.unloadHandler = () => {
-        if (this.saveTimer) {
-          clearTimeout(this.saveTimer);
-          this.saveTimer = null;
-        }
-        this.saveSync();
-      };
-      window.addEventListener("pagehide", this.unloadHandler);
-      window.addEventListener("beforeunload", this.unloadHandler);
+      if (typeof window !== "undefined") {
+        this.unloadHandler = () => {
+          if (this.saveTimer) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+          }
+          this.saveSync();
+        };
+        window.addEventListener("pagehide", this.unloadHandler);
+        window.addEventListener("beforeunload", this.unloadHandler);
+      }
     }
   }
 
@@ -72,7 +74,7 @@ export class JournalManager {
       clearTimeout(this.saveTimer);
       this.saveTimer = null;
     }
-    if (this.unloadHandler) {
+    if (this.unloadHandler && typeof window !== "undefined") {
       window.removeEventListener("pagehide", this.unloadHandler);
       window.removeEventListener("beforeunload", this.unloadHandler);
       this.unloadHandler = null;
@@ -89,7 +91,7 @@ export class JournalManager {
   }
 
   private load() {
-    if (!browser) return;
+    if (!browser || typeof localStorage === "undefined") return;
     try {
       const d =
         localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
@@ -142,7 +144,7 @@ export class JournalManager {
 
   /** Synchronous save used during unload (pagehide / beforeunload) when async tasks cannot be scheduled */
   private saveSync() {
-    if (!browser || !this.effectActive) return;
+    if (!browser || !this.effectActive || typeof localStorage === "undefined") return;
     try {
       const data = $state.snapshot(this.entries);
       const json = JSON.stringify(data);
@@ -157,7 +159,7 @@ export class JournalManager {
   }
 
   private async save(): Promise<void> {
-    if (!browser || !this.effectActive) return;
+    if (!browser || !this.effectActive || typeof localStorage === "undefined") return;
 
     if (this.inFlightSave) {
       this.pendingSaveRequested = true;
