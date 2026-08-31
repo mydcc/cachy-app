@@ -153,6 +153,50 @@ hardcoded colors, only CSS variables and paired utility classes.
   on a real-money trading platform (preconditions, race conditions, stale
   state, confirmation needs)?
 
+## Implementation notes
+
+Non-obvious concerns the implementer should keep in mind:
+
+**Fee field**
+- Use `decimal.js` for all fee values — never `parseFloat` or `number`.
+  A fee of `0.04%` is the multiplier `0.0004`; rounding errors here cost
+  money on every trade.
+- Decide whether one maker/taker value covers both entry and exit, or whether
+  entry (often taker) and exit (often maker, for resting limits) need
+  separate fields.
+- Validate paper-trading fees in the frontend: reject negative, >100%,
+  empty, or non-numeric input before it reaches the calculator.
+- Two display formats, one source: the chip shows `0.04%`, the calculator
+  uses `0.0004`. Derive both from the same `Decimal` value — never format
+  twice from different sources.
+- When the user toggles paper trading, the fee source switches. If the
+  broker fee has not loaded yet, fall back gracefully (show "—" or the
+  last known value, never a stale zero).
+
+**Leverage & sync**
+- A WebSocket push can update `remoteLeverage` while the user is editing the
+  popover. Do not overwrite the local draft; only update the displayed
+  remote value.
+- The existing `busy` flag already blocks double-Apply. Keep it.
+- If the broker is offline, `remoteLeverage` may be stale. Consider marking
+  the chip as stale (dimmed / question mark) until the next confirmed read.
+
+**Layout & interaction**
+- On mobile the popover may need to become a fullscreen modal instead of a
+  floating element — test at <480px.
+- The calculator's `tradeState.leverage` input stays for position sizing.
+  Decide whether the chip and the calculator input should stay in sync or
+  remain independent.
+
+**i18n**
+- All new strings (popover labels, tooltips, sync states) go into both
+  German and English in `src/locales/`.
+
+**Tests**
+- Existing tests for `ExchangeAccountControls` may break on the layout
+  change — update selectors and snapshots. Run the affected component
+  tests, not the full suite.
+
 ## Links
 
 - `src/components/inputs/ExchangeAccountControls.svelte` — the component to
