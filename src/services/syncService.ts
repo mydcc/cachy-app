@@ -27,7 +27,6 @@ import { _ } from "../locales/i18n";
 import type { TranslationKey } from "../locales/schema";
 import { trackCustomEvent } from "./trackingService";
 import { appFetch } from "../lib/appAuth";
-import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
 import type { Kline } from "./technicalsTypes";
 
