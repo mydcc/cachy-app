@@ -116,7 +116,8 @@ export interface MarketDataPort {
      * `unsubscribe` only decrements. Call either verb out of pairs and the
      * venue keeps streaming a channel nobody wants. `destroy()` on the
      * `ConnectionPort` drops that buffer, which is what makes
-     * `SubscriptionLedger.forgetIssued()` safe to hook to `killAll`.
+     * `SubscriptionLedger.forgetIssued()` safe to hook to `killAll` (enforced
+     * by the conformance suite: "should clear held subscriptions when connection is destroyed").
      */
     subscribe(symbol: string, channel: string): void;
     unsubscribe(symbol: string, channel: string): void;
