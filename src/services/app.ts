@@ -362,6 +362,7 @@ export const app = {
             new Map(combined.map((t) => [t.id, t])).values(),
           );
           journalState.set(unique);
+          await journalState.flush();
         }
       }
     };

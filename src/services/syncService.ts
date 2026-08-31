@@ -575,6 +575,9 @@ export const syncService = {
         journalState.set(updatedJournal);
       }
 
+      // Flush any pending debounced journal state immediately to localStorage
+      await journalState.flush();
+
       // Final feedback - trades already added incrementally
       if (addedCount > 0 || refreshedCount > 0) {
         trackCustomEvent("Sync", "BitunixHistory", "Success", addedCount);
