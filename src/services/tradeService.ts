@@ -827,9 +827,21 @@ class TradeService {
                 _isOptimistic: true
             });
 
-            // HARDENING: Safety First. Attempt to cancel all open orders (SL/TP) before closing.
+            /*
+             * HARDENING: Safety First. Clear the position's resting SL/TP
+             * before closing, or a resting stop can fight the market order.
+             *
+             * Carries the flash close's own authorisation: `cancel-all`
+             * confirms by default, and without this the gate refuses a cleanup
+             * the user already agreed to when they confirmed the close. The
+             * refusal is caught below, so the symptom would have been silent —
+             * the position closes with its stops still resting.
+             */
             try {
-                await this.cancelAllOrders(symbol, true);
+                await this.cancelAllOrders(symbol, true, {
+                    action: "flash-close-position",
+                    confirmedAt,
+                });
             } catch (cancelError) {
                 logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close.`, cancelError);
             }
@@ -988,7 +1000,23 @@ class TradeService {
         });
     }
 
-    public async cancelAllOrders(symbol?: string, throwOnError = false) {
+    /**
+     * @param onBehalfOf The already-confirmed action this cancel is part of —
+     *   FEAT-0024. `cancel-all` confirms by default, and this cancel is not
+     *   always a decision of its own: `flashClosePosition` clears the
+     *   position's stops as one step of the close the user already agreed to.
+     *   Asking a second time for the same action would be a prompt the user
+     *   cannot connect to anything they did, and leaving it unconfirmed makes
+     *   the gate refuse a cleanup that was authorised.
+     *
+     *   A user-initiated cancel-all passes nothing and is confirmed on its own
+     *   terms.
+     */
+    public async cancelAllOrders(
+        symbol?: string,
+        throwOnError = false,
+        onBehalfOf?: { action: string; confirmedAt?: number },
+    ) {
         logger.log("market", `[Trade] Cancelling all orders${symbol ? ` for ${symbol}` : ""}`);
         try {
              return await this.gatedRequest({
@@ -999,6 +1027,8 @@ class TradeService {
                     type: "cancel-all"
                 },
                 displayed: symbol ? { symbol } : {},
+                confirmAs: onBehalfOf?.action,
+                confirmedAt: onBehalfOf?.confirmedAt,
              });
         } catch (e: unknown) {
              logger.warn("market", `[Trade] Failed to cancel orders${symbol ? ` for ${symbol}` : ""}`, e);

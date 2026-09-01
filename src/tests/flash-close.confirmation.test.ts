@@ -74,6 +74,20 @@ vi.mock("../services/toastService.svelte", () => ({
 import { tradeService } from "../services/tradeService";
 import { omsService } from "../services/omsService";
 import { registerConfirmationCheck, registerKillSwitch } from "../services/orderGate";
+import { confirmationPolicyStore } from "../stores/confirmationPolicy.svelte";
+
+/**
+ * The check exactly as `rmsService.installGateHooks` registers it, reading the
+ * real policy with its real defaults.
+ *
+ * The tests above register a hand-written predicate, which is right for
+ * isolating one action — and is also how a whole class of bug hid: a stub that
+ * only answers for `flash-close-position` says nothing about what the shipped
+ * defaults do to every *other* action the same call path touches.
+ */
+function installRealPolicy(): void {
+    registerConfirmationCheck((action) => confirmationPolicyStore.requiresForWireAction(action));
+}
 
 /** Requires a confirmation for flash close and nothing else. */
 const flashCloseNeedsConfirming = (action: string) => action === "flash-close-position";
@@ -195,5 +209,58 @@ describe("a refused flash close leaves the position's protection alone (BUG-0331
 
         expect(result.success).toBe(true);
         expect(cancelCalls().length).toBeGreaterThan(0);
+    });
+});
+
+describe("flash close under the shipped policy defaults", () => {
+    /*
+     * `flashClosePosition` cancels the position's resting SL/TP on its way to
+     * the close. That cancel goes through the gate as `cancel-all`, which
+     * confirms by default — so with the real policy installed it was refused,
+     * and the refusal is swallowed by the cleanup's own try/catch.
+     *
+     * The symptom was silent and bad: the position closes, its stops stay
+     * resting on the venue, and nothing says so. Every test above passed
+     * throughout, because each registered a stub that only ever answered for
+     * `flash-close-position`.
+     */
+
+    it("clears the position's stops even though cancel-all confirms by default", async () => {
+        installRealPolicy();
+        expect(confirmationPolicyStore.requires("cancel-all")).toBe(true);
+
+        const result = await tradeService.flashClosePosition("BTCUSDT", "long", Date.now());
+
+        expect(result.success).toBe(true);
+        expect(cancelCalls().length).toBeGreaterThan(0);
+    });
+
+    it("still refuses the close itself when it was never confirmed", async () => {
+        // The authorisation the cleanup borrows is the close's own. Without
+        // one, nothing is authorised and nothing happens.
+        installRealPolicy();
+        expect(confirmationPolicyStore.requires("flash-close-position")).toBe(true);
+
+        const result = await tradeService.flashClosePosition("BTCUSDT", "long");
+
+        expect(result.success).toBe(false);
+        expect(cancelCalls()).toHaveLength(0);
+    });
+
+    it("closes in one click when the user switched the confirmation off", async () => {
+        installRealPolicy();
+        confirmationPolicyStore.setRequired("flash-close-position", false);
+
+        try {
+            const result = await tradeService.flashClosePosition("BTCUSDT", "long");
+
+            expect(result.success).toBe(true);
+            // The cleanup still runs: it borrows the close's authorisation,
+            // and an unconfirmed close is still an authorised one when the
+            // user has said this action needs no prompt.
+            expect(cancelCalls().length).toBeGreaterThan(0);
+        } finally {
+            confirmationPolicyStore.reset();
+        }
     });
 });
