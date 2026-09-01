@@ -198,7 +198,10 @@
       leverageOpen = false;
       return;
     }
-    if (!symbol) return;
+    if (!symbol) {
+      leverageOpen = false;
+      return;
+    }
 
     /*
      * FEAT-0068's open question, answered yes: leverage on an open position
