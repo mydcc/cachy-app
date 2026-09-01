@@ -18,7 +18,6 @@
 <script lang="ts">
   import { CONSTANTS } from "../../lib/constants";
   import { tradeState } from "../../stores/trade.svelte";
-  import { settingsState } from "../../stores/settings.svelte";
 
   import { untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
