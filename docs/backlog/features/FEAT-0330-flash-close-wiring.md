@@ -2,7 +2,8 @@
 id: FEAT-0330
 title: Wire flash close to the positions list
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.199
 assignee: claude
 priority: P1
 milestone: M3
