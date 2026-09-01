@@ -32,11 +32,22 @@ import { toNumFast } from '../utils/fastConversion';
 interface WasmTechnicalsInstance {
   initialize(closes: string[], highs: string[], lows: string[], volumes: string[], times: Float64Array, settingsJson: string): void;
   update(open: string, high: string, low: string, close: string, volume: string, time: string): string;
+  shift(open: string, high: string, low: string, close: string, volume: string, time: string): void;
 }
 
 interface WasmModule {
   default: (wasmBinaryPath: string) => Promise<void>;
   TechnicalsCalculator: new () => WasmTechnicalsInstance;
+}
+
+interface WasmInstanceEntry {
+  instance: WasmTechnicalsInstance;
+  // First candle time of the history initialize() was called with, and the
+  // time of the last candle shift() committed. Both must match the incoming
+  // klines for a shift() update: same history start (firstTime) and the
+  // second-to-last incoming candle == the previously committed last one.
+  firstTime: number;
+  lastTime: number;
 }
 
 // Parsed JSON emitted by the WASM module — flat maps of indicator name to
@@ -62,8 +73,18 @@ function fromWasmDecimal(value: string | undefined): number {
 
 class WasmCalculator {
   private wasmModule: WasmModule | null = null;
-  private instance: WasmTechnicalsInstance | null = null;
+  // Persistent calculator instances keyed by the settings snapshot. Each
+  // entry keeps the candle range it last committed via shift(), so a follow-up
+  // call with one new candle (same settings, same history start) can skip the
+  // O(N) initialize() replay and push just the newest candle (IDEA-0318 F-9).
+  private instances = new Map<string, WasmInstanceEntry>();
   private loadingPromise: Promise<void> | null = null;
+
+  // Cap on live WASM instances. Each holds the full indicator state (decimal
+  // rolling windows), so an unbounded map across settings churn would leak
+  // memory. Oldest-inserted eviction keeps the count flat for the realistic
+  // one-settings-at-a-time usage.
+  private static readonly MAX_INSTANCES = 8;
 
   // Seam for unit tests: stubbing this avoids the real dynamic import of the
   // runtime URL (which only resolves against the served static directory).
@@ -130,35 +151,95 @@ class WasmCalculator {
   }
 
   async calculate(klines: Kline[], settings: IndicatorSettings): Promise<TechnicalsData> {
+    // A $derived on the IndicatorManager snapshot — cheap and stable across
+    // calls, so two ticks with unchanged settings share one WASM instance.
+    const settingsKey = settings?._cachedJson || JSON.stringify(settings);
     try {
-      return await this.runCalculation(klines, settings);
+      return await this.runCalculation(klines, settings, settingsKey);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
 
       // A trapped WASM instance cannot be reused — every further call would
-      // rethrow until page reload (BUG-0314). Drop the poisoned instance and
-      // the module handle, then retry exactly once against a fresh load.
+      // rethrow until page reload (BUG-0314). Drop the poisoned instance (and
+      // only that one; other settings keys keep their warm instances) and the
+      // module handle, then retry exactly once against a fresh load.
       const isRuntimeTrap =
         err.message.includes('RuntimeError') ||
         err.message.includes('unreachable') ||
         err.name === 'RuntimeError';
       if (isRuntimeTrap) {
         console.warn('[WASM] Runtime trap detected, recreating instance:', err.message);
-        this.instance = null;
+        this.instances.delete(settingsKey);
         this.wasmModule = null;
         this.loadingPromise = null;
-        return this.runCalculation(klines, settings);
+        return this.runCalculation(klines, settings, settingsKey);
       }
       throw err;
     }
   }
 
-  private async runCalculation(klines: Kline[], settings: IndicatorSettings): Promise<TechnicalsData> {
+  private async runCalculation(
+    klines: Kline[],
+    settings: IndicatorSettings,
+    settingsKey: string
+  ): Promise<TechnicalsData> {
     await this.ensureLoaded();
     if (!this.wasmModule) throw new Error('WASM unavailable');
 
-    if (!this.instance) this.instance = new this.wasmModule.TechnicalsCalculator();
-    
+    let entry = this.instances.get(settingsKey);
+    const firstTime = klines[0]?.time ?? 0;
+    const last = klines[klines.length - 1];
+
+    // Incremental shift() update (IDEA-0318 F-9): same settings key AND the
+    // incoming history still starts at the committed firstTime AND the
+    // second-to-last incoming candle is the previously committed last one.
+    // That last condition is the double-count guard (BUG-0315): a fresh
+    // candle that was already committed would be applied again. When it
+    // holds, only the newest candle is new — push it via shift() instead of
+    // replaying initialize() over the whole history.
+    if (
+      entry &&
+      firstTime === entry.firstTime &&
+      klines.length >= 2 &&
+      klines[klines.length - 2].time === entry.lastTime
+    ) {
+      const resultJson = entry.instance.update(
+        last.open.toString(),
+        last.high.toString(),
+        last.low.toString(),
+        last.close.toString(),
+        last.volume ? last.volume.toString() : "0",
+        last.time.toString()
+      );
+      // update() is a read of the state including `last`; shift() commits the
+      // same candle so the next tick sees it as history (streaming protocol
+      // pinned by test_streaming_update_shift_equals_batch).
+      entry.instance.shift(
+        last.open.toString(),
+        last.high.toString(),
+        last.low.toString(),
+        last.close.toString(),
+        last.volume ? last.volume.toString() : "0",
+        last.time.toString()
+      );
+      entry.lastTime = last.time;
+      // Reorder as most-recently-used for LRU eviction semantics
+      this.instances.delete(settingsKey);
+      this.instances.set(settingsKey, entry);
+      return this.convertResult(JSON.parse(resultJson), klines, settings);
+    }
+
+    // Full initialization — either first call for this settings key, or the
+    // history changed in a way that invalidates the committed range.
+    if (!entry) {
+      if (this.instances.size >= WasmCalculator.MAX_INSTANCES) {
+        const oldestKey = this.instances.keys().next().value;
+        if (oldestKey) this.instances.delete(oldestKey);
+      }
+      entry = { instance: new this.wasmModule.TechnicalsCalculator(), firstTime, lastTime: 0 };
+      this.instances.set(settingsKey, entry);
+    }
+
     // Prices and volumes cross the boundary as decimal strings so the WASM
     // side can parse them straight into rust_decimal. Only `times` stays
     // numeric — it is a timestamp, not a financial value.
@@ -195,13 +276,13 @@ class WasmCalculator {
         hma: settings.hma?.enabled !== false && settings.hma.length > 0 ? [{ length: settings.hma.length }] : [],
         supertrend: settings.superTrend?.enabled !== false && settings.superTrend.period > 0 ? [{ length: settings.superTrend.period, multiplier: settings.superTrend.factor }] : [],
         psar: settings.parabolicSar?.enabled !== false ? [{ start: settings.parabolicSar.start, increment: settings.parabolicSar.increment, max: settings.parabolicSar.max }] : [],
-        
+
         // Oscillators
         rsi: settings.rsi?.enabled !== false && settings.rsi.length > 0 ? [{ length: settings.rsi.length }] : [],
         macd: settings.macd?.enabled !== false && settings.macd.fastLength > 0 ? [{ fast: settings.macd.fastLength, slow: settings.macd.slowLength, signal: settings.macd.signalLength }] : [],
         stoch: settings.stochastic?.enabled !== false && settings.stochastic.kPeriod > 0 ? [{ k: settings.stochastic.kPeriod, d: settings.stochastic.dPeriod, smooth: settings.stochastic.kSmoothing }] : [],
         cci: settings.cci?.enabled !== false && settings.cci.length > 0 ? [{ length: settings.cci.length }] : [],
-        adx: settings.adx?.enabled !== false ? [{ length: settings.adx.adxSmoothing }] : [], 
+        adx: settings.adx?.enabled !== false ? [{ length: settings.adx.adxSmoothing }] : [],
         mom: settings.momentum?.enabled !== false && settings.momentum.length > 0 ? [{ length: settings.momentum.length }] : [],
         wr: settings.williamsR?.enabled !== false && settings.williamsR.length > 0 ? [{ length: settings.williamsR.length }] : [],
         mfi: settings.mfi?.enabled !== false && settings.mfi.length > 0 ? [{ length: settings.mfi.length }] : [],
@@ -217,13 +298,13 @@ class WasmCalculator {
         pivots: settings.pivots?.enabled !== false ? [{ type_: settings.pivots.type }] : []
     };
 
-    this.instance.initialize(closes, highs, lows, volumes, times, JSON.stringify(wasmSettings));
-    
+    entry.instance.initialize(closes, highs, lows, volumes, times, JSON.stringify(wasmSettings));
+    entry.firstTime = firstTime;
+
     // Pass the Decimal values straight through as strings. Reading them back
     // out of the Float64Arrays above would round-trip them through f64 first
     // and throw away the precision the string boundary exists to preserve.
-    const last = klines[klines.length - 1];
-    const resultJson = this.instance.update(
+    const resultJson = entry.instance.update(
         last.open.toString(),
         last.high.toString(),
         last.low.toString(),
@@ -231,7 +312,20 @@ class WasmCalculator {
         last.volume ? last.volume.toString() : "0",
         last.time.toString()
     );
-    
+    // Commit the newest candle so the next tick can shift() instead of replay.
+    entry.instance.shift(
+        last.open.toString(),
+        last.high.toString(),
+        last.low.toString(),
+        last.close.toString(),
+        last.volume ? last.volume.toString() : "0",
+        last.time.toString()
+    );
+    entry.lastTime = last.time;
+    // Reorder as most-recently-used for LRU eviction semantics
+    this.instances.delete(settingsKey);
+    this.instances.set(settingsKey, entry);
+
     return this.convertResult(JSON.parse(resultJson), klines, settings);
   }
   

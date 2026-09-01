@@ -29,6 +29,10 @@ import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
+import { Decimal } from 'decimal.js';
+import { calculateAllIndicators } from '../../src/utils/technicalsCalculator';
+import { indicatorState } from '../../src/stores/indicator.svelte';
+import type { IndicatorSettings } from '../../src/types/indicators';
 
 const STATIC_DIR = path.resolve(__dirname, '../../static/wasm');
 
@@ -75,6 +79,7 @@ function makeSeries(n: number) {
 }
 
 const CASES = [500, 2000].map(n => ({ n, series: makeSeries(n) }));
+const tsSettings = buildTsSettings();
 
 function roundTrip(series: ReturnType<typeof makeSeries>): void {
     const history = series.slice(0, -1);
@@ -89,6 +94,57 @@ function roundTrip(series: ReturnType<typeof makeSeries>): void {
         SETTINGS,
     );
     calc.update(last.o, last.h, last.l, last.c, last.v, String(last.t));
+}
+
+// TS engine baseline — same indicator set as SETTINGS above, so the two
+// engines do the same work and the routing-threshold decision (IDEA-0318 F-7)
+// is apples-to-apples. Builds a full IndicatorSettings from the store defaults
+// with every non-benchmarked indicator disabled.
+function buildTsSettings(): IndicatorSettings {
+    const s = indicatorState.toJSON();
+    s.sma = { enabled: true, sma1: { length: 9 }, sma2: { length: 0 }, sma3: { length: 0 } };
+    s.wma = { enabled: true, length: 12 };
+    s.ema = { enabled: true, ema1: { length: 10, offset: 0, smoothingType: 'sma', smoothingLength: 14 }, ema2: { length: 0, offset: 0, smoothingType: 'sma', smoothingLength: 14 }, ema3: { length: 0, offset: 0, smoothingType: 'sma', smoothingLength: 14 }, source: 'close' };
+    s.hma = { enabled: true, length: 9 };
+    s.rsi = { ...s.rsi, enabled: true, length: 14 };
+    s.stochastic = { enabled: true, kPeriod: 14, kSmoothing: 3, dPeriod: 3 };
+    s.mfi = { enabled: true, length: 14 };
+    s.vwap = { enabled: true, length: 0, anchor: 'session' };
+    s.parabolicSar = { enabled: true, start: 0.02, increment: 0.02, max: 0.2 };
+    s.pivots = { enabled: true, type: 'classic', viewMode: 'integrated' };
+    s.bollingerBands = { enabled: true, length: 20, stdDev: 2, source: 'close' };
+    // Disable everything not in SETTINGS.
+    s.stochRsi.enabled = false;
+    s.macd.enabled = false;
+    s.stochastic = { ...s.stochastic, enabled: true };
+    s.williamsR.enabled = false;
+    s.cci.enabled = false;
+    s.adx.enabled = false;
+    s.ao.enabled = false;
+    s.momentum.enabled = false;
+    s.ichimoku.enabled = false;
+    s.atr.enabled = false;
+    s.choppiness.enabled = false;
+    s.superTrend.enabled = false;
+    s.atrTrailingStop.enabled = false;
+    s.obv.enabled = false;
+    s.volumeMa.enabled = false;
+    s.volumeProfile.enabled = false;
+    s.volume.enabled = false;
+    s.vwma.enabled = false;
+    return s;
+}
+
+function tsRoundTrip(series: ReturnType<typeof makeSeries>): void {
+    const klines = series.map((k) => ({
+        time: k.t,
+        open: new Decimal(k.o),
+        high: new Decimal(k.h),
+        low: new Decimal(k.l),
+        close: new Decimal(k.c),
+        volume: new Decimal(k.v),
+    }));
+    calculateAllIndicators(klines, tsSettings);
 }
 
 beforeAll(async () => {
@@ -128,6 +184,14 @@ describe('WASM technicals round trip', () => {
     for (const { n, series } of CASES) {
         bench(`initialize + update (${n} candles)`, () => {
             roundTrip(series);
+        });
+    }
+});
+
+describe('TS indicators baseline', () => {
+    for (const { n, series } of CASES) {
+        bench(`calculateAllIndicators (${n} candles)`, () => {
+            tsRoundTrip(series);
         });
     }
 });
