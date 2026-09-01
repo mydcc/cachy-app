@@ -349,10 +349,10 @@ export function registerKillSwitch(fn: KillSwitchCheck | null): void {
  * Answers whether this action needs a human's confirmation — FEAT-0024.
  *
  * Takes the resolved action name — `confirmAs` where the caller set one, the
- * wire action otherwise — so a call site can ask the same question before it
- * has built an intent. `tradeService.flashClosePosition` needs exactly that:
- * it cancels the position's stop-loss on the way to the gate, and has to know
- * it will be refused before doing so.
+ * wire action otherwise — rather than the whole intent. A call site that needs
+ * to know the verdict before acting runs `verify` early instead (see
+ * `flashClosePosition`, BUG-0331): that answers for every refusal, not just
+ * this one, and keeps a single way of asking.
  *
  * Returning `true` means "ask first". The gate then refuses unless
  * `intent.confirmedAt` is set, which is what makes the policy structural
@@ -375,18 +375,6 @@ export function registerConfirmationCheck(fn: ConfirmationCheck | null): void {
     confirmationCheck = fn;
 }
 
-/**
- * Whether this action would need a confirmation, asked before an intent
- * exists — FEAT-0330.
- *
- * Exported so a call site with side effects on the way to the gate can stop
- * early instead of doing damage it cannot undo. It reads the same registered
- * check the gate reads, so there is one source of truth and not two; the gate
- * still refuses on its own, and this cannot approve anything.
- */
-export function requiresConfirmation(action: string): boolean {
-    return confirmationCheck?.(action) === true;
-}
 
 // ---------------------------------------------------------------------------
 // Comparison helpers

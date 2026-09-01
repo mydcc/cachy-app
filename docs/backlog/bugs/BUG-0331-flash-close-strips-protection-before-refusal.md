@@ -2,7 +2,8 @@
 id: BUG-0331
 title: A refused flash close leaves the position open with its stops cancelled
 type: bug
-status: specced
+status: done
+assignee: claude
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -11,6 +12,8 @@ data_class: none
 adr: none
 depends_on: []
 ---
+
+Branch: `fix/bug-0331-flash-close-strips-protection`
 
 # BUG-0331 — A refused flash close leaves the position open with its stops cancelled
 
@@ -76,3 +79,40 @@ that a refused close sends nothing at all; before the point fix it caught an
 
 The same shape may exist wherever a call site does preparatory work before
 `gatedRequest`. Worth a sweep rather than assuming flash close is the only one.
+
+## Fix
+
+The intent is built and verified before the function does anything with a side
+effect. `orderGate.verify` is pure and documented as safe to call twice, so the
+early call costs nothing and cannot approve what the gate would refuse — it
+only moves the refusal to before the damage. `gatedRequest` then submits the
+*same* intent object rather than a second one built from the same inputs;
+`completeIntent` was extracted so the check and the submission cannot disagree,
+which is the class of bug the gate exists to catch in the first place.
+
+`clientOrderId` is assigned only after the verdict. It is the catch block's
+signal that an optimistic order needs rolling back, so setting it earlier would
+send the recovery path chasing an order that was never added.
+
+This supersedes the FEAT-0330 point fix, which asked `requiresConfirmation`
+before the cancel. That covered one refusal; verifying covers all of them, so
+the narrower helper is gone rather than left as a second, weaker way to ask the
+same question.
+
+## Verification
+
+`src/tests/flash-close.confirmation.test.ts`:
+
+- the kill switch refuses → nothing is cancelled
+- the confirmation is missing → nothing is cancelled
+- the close is going through → the stops *are* still cleared first, because the
+  hardening itself is correct and had to survive the fix
+
+## Sweep
+
+The Notes below asked whether other call sites share the shape. A scan of every
+`tradeService` method that reaches `gatedRequest`, looking for `cancelAllOrders`,
+`addOptimisticOrder`, `removeOrder`, `updateOrder` or `updatePosition` before
+that call, returns only `flashClosePosition`. That is a heuristic over method
+bodies rather than a proof, but nothing else in this service prepares state
+before the gate.

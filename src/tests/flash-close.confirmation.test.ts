@@ -73,7 +73,7 @@ vi.mock("../services/toastService.svelte", () => ({
 
 import { tradeService } from "../services/tradeService";
 import { omsService } from "../services/omsService";
-import { registerConfirmationCheck } from "../services/orderGate";
+import { registerConfirmationCheck, registerKillSwitch } from "../services/orderGate";
 
 /** Requires a confirmation for flash close and nothing else. */
 const flashCloseNeedsConfirming = (action: string) => action === "flash-close-position";
@@ -103,8 +103,24 @@ beforeEach(() => {
 
 afterEach(() => {
     registerConfirmationCheck(null);
+    registerKillSwitch(null);
     vi.clearAllMocks();
 });
+
+/** Every /api/orders call the transport actually made. */
+function orderCalls(): unknown[][] {
+    return vi.mocked(global.fetch).mock.calls.filter(([url]) =>
+        String(url).includes("/api/orders"),
+    );
+}
+
+/** The cancel-all the function fires before closing, if it fired. */
+function cancelCalls(): unknown[][] {
+    return orderCalls().filter(([, init]) => {
+        const body = (init as RequestInit | undefined)?.body;
+        return typeof body === "string" && body.includes("cancel-all");
+    });
+}
 
 describe("flash close under the confirmation policy", () => {
     it("refuses without a confirmation when the policy wants one", async () => {
@@ -122,10 +138,7 @@ describe("flash close under the confirmation policy", () => {
 
         await tradeService.flashClosePosition("BTCUSDT", "long");
 
-        const orderCalls = vi
-            .mocked(global.fetch)
-            .mock.calls.filter(([url]) => String(url).includes("/api/orders"));
-        expect(orderCalls).toHaveLength(0);
+        expect(orderCalls()).toHaveLength(0);
     });
 
     it("sends once the dialog's timestamp is passed through", async () => {
@@ -144,5 +157,43 @@ describe("flash close under the confirmation policy", () => {
         const result = await tradeService.flashClosePosition("BTCUSDT", "long");
 
         expect(result.success).toBe(true);
+    });
+});
+
+describe("a refused flash close leaves the position's protection alone (BUG-0331)", () => {
+    /*
+     * The function cancels this position's stop-loss and take-profit before
+     * closing. That is right when the close then happens and dangerous when it
+     * does not: a refusal afterwards leaves the trader in a live position with
+     * no protection, at the moment they were trying to get out.
+     *
+     * The confirmation is only one of the refusals that used to arrive too
+     * late. These cover the others.
+     */
+
+    it("cancels nothing when the kill switch refuses the close", () => {
+        registerKillSwitch(() => true);
+
+        return tradeService.flashClosePosition("BTCUSDT", "long", Date.now()).then((result) => {
+            expect(result.success).toBe(false);
+            expect(cancelCalls()).toHaveLength(0);
+        });
+    });
+
+    it("cancels nothing when the confirmation is missing", async () => {
+        registerConfirmationCheck(flashCloseNeedsConfirming);
+
+        await tradeService.flashClosePosition("BTCUSDT", "long");
+
+        expect(cancelCalls()).toHaveLength(0);
+    });
+
+    it("still cancels on the way to a close that is going through", async () => {
+        // The hardening itself must survive the fix: a resting stop can fight
+        // a market close, so an approved close still clears them first.
+        const result = await tradeService.flashClosePosition("BTCUSDT", "long", Date.now());
+
+        expect(result.success).toBe(true);
+        expect(cancelCalls().length).toBeGreaterThan(0);
     });
 });

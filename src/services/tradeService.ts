@@ -54,7 +54,6 @@ import { accountState } from "../stores/account.svelte";
 import {
     orderGate,
     assertGatePass,
-    requiresConfirmation,
     accountFingerprint,
     translateRefusal,
     OrderRefusedError,
@@ -188,6 +187,14 @@ export class TradeError extends Error {
         this.name = "TradeError";
     }
 }
+
+/**
+ * An intent as a call site states it: everything except the account fields,
+ * which `completeIntent` fills in from the active session.
+ */
+type PartialIntent = Omit<OrderIntent, "displayed"> & {
+    displayed: Omit<DisplayedState, "provider" | "accountFingerprint" | "paperMode">;
+};
 
 class TradeService {
     // Hardening: Promise Coalescing to prevent Thundering Herd
@@ -602,16 +609,24 @@ class TradeService {
      * FEAT-0011: verify, then transmit. Every mutating order in this service
      * goes through here — `signedRequest` refuses one that does not.
      */
-    private async gatedRequest<T>(
-        intent: Omit<OrderIntent, "displayed"> & {
-            displayed: Omit<DisplayedState, "provider" | "accountFingerprint" | "paperMode">;
-        },
-        method = "POST",
-    ): Promise<T> {
-        const full: OrderIntent = {
+    /**
+     * Fills in the account fields every intent shares, so a caller states only
+     * what is specific to its order.
+     *
+     * Extracted in BUG-0331 because the flash-close path now verifies an
+     * intent before it acts and then submits the same one. Building it twice
+     * would mean the check and the submission could disagree — which is the
+     * exact class of bug the gate exists to catch.
+     */
+    private completeIntent(intent: PartialIntent): OrderIntent {
+        return {
             ...intent,
             displayed: { ...this.displayedAccount(), ...intent.displayed },
         };
+    }
+
+    private async gatedRequest<T>(intent: PartialIntent, method = "POST"): Promise<T> {
+        const full = this.completeIntent(intent);
         const result = await orderGate.submit<T>(full, (pass) =>
             this.signedRequest<T>(method, full.endpoint, full.payload, pass),
         );
@@ -699,30 +714,6 @@ class TradeService {
                 position.positionId,
             );
 
-            /*
-             * FEAT-0330. Asked here, before anything below has a side effect.
-             *
-             * This function cancels the position's stop-loss and take-profit
-             * before closing — correct when the close then happens, dangerous
-             * when it does not. A refusal further down would leave the trader
-             * holding an open position with its protection removed, which is
-             * strictly worse than the state they started in.
-             *
-             * The gate remains the authority: it refuses an unconfirmed action
-             * regardless of this check, which only stops the damage happening
-             * on the way there. `flash-close.confirmation.test.ts` asserts that
-             * a refusal sends nothing at all.
-             */
-            if (confirmedAt === undefined && requiresConfirmation("flash-close-position")) {
-                logger.warn("market", `[FlashClose] Unconfirmed, refusing before cancelling protection.`);
-                return {
-                    success: false,
-                    error: get(_)("orderGate.unconfirmed", {
-                        values: { action: "flash-close-position" },
-                    }),
-                };
-            }
-
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
                 logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
@@ -736,8 +727,92 @@ class TradeService {
             // Retrieve current market price for optimistic UI feedback
             const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);
 
+            /*
+             * Minted before the intent because the generic payload carries it,
+             * but NOT yet assigned to `clientOrderId`: that variable is the
+             * catch block's signal that an optimistic order exists and needs
+             * rolling back. Assigning it here would send the recovery path
+             * chasing an order that was never added.
+             */
+            const candidateOrderId = "opt-" + crypto.randomUUID().replace(/-/g, "").slice(0, 28);
+
+            const provider = settingsState.apiProvider || "bitunix";
+            const intent: PartialIntent =
+                provider === "bitunix" && position.positionId
+                    ? {
+                          kind: "reduce",
+                          endpoint: "/api/orders",
+                          payload: {
+                              type: "flash-close-position",
+                              symbol,
+                              positionId: position.positionId,
+                          },
+                          displayed: { symbol, positionId: position.positionId },
+                          confirmAs: "flash-close-position",
+                          confirmedAt,
+                      }
+                    : {
+                          kind: "reduce",
+                          endpoint: "/api/orders",
+                          payload: {
+                              type: "place-order",
+                              symbol,
+                              side: apiSide,
+                              orderType: "MARKET",
+                              qty,
+                              reduceOnly: true,
+                              clientOrderId: candidateOrderId,
+                              tradeSide,
+                              positionId,
+                          },
+                          displayed: {
+                              symbol,
+                              side: apiSide,
+                              positionAmount: position.amount,
+                              fullClose: true,
+                              positionId,
+                          },
+                          /*
+                           * The payload says `place-order` because that is what
+                           * this venue understands, but the user pressed flash
+                           * close and that is the policy they configured.
+                           * Without this the prompt would appear on Bitunix and
+                           * not on Bitget — a difference no user asked for.
+                           */
+                          confirmAs: "flash-close-position",
+                          confirmedAt,
+                      };
+
+            /*
+             * BUG-0331. Verified BEFORE anything below has a side effect.
+             *
+             * The cancel further down removes this position's stop-loss and
+             * take-profit, which is right when the close then happens and
+             * dangerous when it does not: a refusal afterwards leaves the
+             * trader holding an open position with its protection gone, at the
+             * moment they were trying to get out. That is strictly worse than
+             * the state they started in, and it applied to every refusal the
+             * gate can issue — the kill switch, a risk limit, a price
+             * mismatch, a stale account read, an unsupported venue.
+             *
+             * `verify` is pure and documented as safe to call twice, so asking
+             * here costs nothing and changes nothing: `gatedRequest` still runs
+             * the same verification, and this cannot approve anything the gate
+             * would refuse. It only moves the refusal to before the damage.
+             */
+            const verdict = orderGate.verify(this.completeIntent(intent));
+            if (!verdict.approved && verdict.refusal) {
+                logger.warn(
+                    "market",
+                    `[FlashClose] Refused (${verdict.refusal.field}) before cancelling protection.`,
+                );
+                throw new OrderRefusedError(verdict.refusal);
+            }
+
+            // Past this line the function has side effects to undo on failure.
+            clientOrderId = candidateOrderId;
+
             // OPTIMISTIC UPDATE
-            clientOrderId = "opt-" + crypto.randomUUID().replace(/-/g, "").slice(0, 28);
             omsService.addOptimisticOrder({
                 id: clientOrderId,
                 clientOrderId,
@@ -759,54 +834,7 @@ class TradeService {
                 logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close.`, cancelError);
             }
 
-            const provider = settingsState.apiProvider || "bitunix";
-            let result: unknown;
-            if (provider === "bitunix" && position.positionId) {
-                result = await this.gatedRequest({
-                    kind: "reduce",
-                    endpoint: "/api/orders",
-                    payload: {
-                        type: "flash-close-position",
-                        symbol,
-                        positionId: position.positionId,
-                    },
-                    displayed: { symbol, positionId: position.positionId },
-                    confirmAs: "flash-close-position",
-                    confirmedAt,
-                });
-            } else {
-                result = await this.gatedRequest({
-                    kind: "reduce",
-                    endpoint: "/api/orders",
-                    payload: {
-                        type: "place-order",
-                        symbol,
-                        side: apiSide,
-                        orderType: "MARKET",
-                        qty,
-                        reduceOnly: true,
-                        clientOrderId,
-                        tradeSide,
-                        positionId,
-                    },
-                    displayed: {
-                        symbol,
-                        side: apiSide,
-                        positionAmount: position.amount,
-                        fullClose: true,
-                        positionId,
-                    },
-                    /*
-                     * The payload says `place-order` because that is what this
-                     * venue understands, but the user pressed flash close and
-                     * that is the policy they configured. Without this the
-                     * prompt would appear on Bitunix and not on Bitget — a
-                     * difference no user asked for.
-                     */
-                    confirmAs: "flash-close-position",
-                    confirmedAt,
-                });
-            }
+            const result = await this.gatedRequest(intent);
 
             const pnlVal = position.unrealizedPnl ?? new Decimal(0);
             effectsState.triggerDuckEvent({
