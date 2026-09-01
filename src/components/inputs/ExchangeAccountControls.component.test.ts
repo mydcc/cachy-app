@@ -598,6 +598,61 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         expect(message).not.toContain("estimate");
         expect(accountPort.changeLeverage).toHaveBeenCalledTimes(1);
     });
+
+    it("sends both margin and position mode changes in a single confirmModes call", async () => {
+        // Direct test: confirmModes must call the service with the right payloads
+        // for both modes. This is the real-money send path that must not regress.
+        await render();
+        await openModeModal();
+
+        // Change both: margin ISOLATION → CROSS, position ONE_WAY → HEDGE
+        button("btn-margin-mode-cross")?.click();
+        button("btn-position-mode-hedge")?.click();
+        await settle();
+
+        button("btn-mode-confirm")?.click();
+        await settle();
+
+        // Both services called exactly once each with correct mode
+        expect(accountPort.changeMarginMode).toHaveBeenCalledTimes(1);
+        expect(accountPort.changeMarginMode).toHaveBeenCalledWith("BTCUSDT", "CROSS");
+
+        expect(accountPort.changePositionMode).toHaveBeenCalledTimes(1);
+        expect(accountPort.changePositionMode).toHaveBeenCalledWith("HEDGE");
+
+        // Dialog closes on success
+        expect(button("btn-mode-confirm")).toBeNull();
+    });
+
+    it("half-applied: margin succeeds, position fails → dialog stays open, error shown", async () => {
+        // Half-applied state must be visible: if one of two changes fails,
+        // the dialog stays open so the trader can see which one failed.
+        accountPort.changePositionMode.mockRejectedValueOnce(
+            new Error("position mode not allowed") as never,
+        );
+        await render();
+        await openModeModal();
+
+        button("btn-margin-mode-cross")?.click();
+        button("btn-position-mode-hedge")?.click();
+        await settle();
+
+        button("btn-mode-confirm")?.click();
+        await settle();
+
+        // Margin call succeeded
+        expect(accountPort.changeMarginMode).toHaveBeenCalledTimes(1);
+        expect(accountPort.changeMarginMode).toHaveBeenCalledWith("BTCUSDT", "CROSS");
+
+        // Position call failed
+        expect(accountPort.changePositionMode).toHaveBeenCalledTimes(1);
+
+        // Dialog stays open (button still visible)
+        expect(button("btn-mode-confirm")).not.toBeNull();
+
+        // Error is visible
+        expect(toastMock.error).toHaveBeenCalled();
+    });
 });
 
 describe("FEAT-0068 — a venue without these endpoints offers no controls", () => {
