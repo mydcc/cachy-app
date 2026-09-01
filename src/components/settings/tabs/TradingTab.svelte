@@ -18,6 +18,7 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
+    import { numberInput } from "../../../utils/inputUtils";
     import Toggle from "../../shared/Toggle.svelte";
     import HotkeySettings from "../HotkeySettings.svelte";
     import IndicatorSettings from "./IndicatorSettings.svelte";
@@ -33,6 +34,11 @@
     } from "../../../services/hotkeyService";
 
     const activeSubTab = $derived(uiState.settingsTradingSubTab);
+
+    const exchange = $derived(settingsState.apiProvider);
+    const venueName = $derived(
+        exchange.charAt(0).toUpperCase() + exchange.slice(1),
+    );
 
     const subTabs = [
         {
@@ -135,7 +141,66 @@
                         </p>
                     </div>
 
-
+                    <!--
+                        FEAT-0253 — personal per-venue fee rates. Source of
+                        truth for the simulated calculation; the user enters
+                        what their broker level actually charges. Defaults are
+                        prefilled from VENUE_DEFAULT_FEE_RATES.
+                    -->
+                    <div class="field-group col-span-2">
+                        <label for="fee-rate-maker"
+                            >{$_("settings.feeRates", {
+                                values: { venue: venueName },
+                            })}</label
+                        >
+                        <div class="flex gap-3">
+                            <div class="relative flex-1">
+                                <input
+                                    id="fee-rate-maker"
+                                    name="fee-rate-maker"
+                                    type="text"
+                                    inputmode="decimal"
+                                    data-track-id="input-fee-rate-maker"
+                                    use:numberInput={{ maxDecimalPlaces: 4 }}
+                                    value={settingsState.feeRates[exchange].maker}
+                                    oninput={(e) => {
+                                        settingsState.feeRates[exchange].maker = (
+                                            e.target as HTMLInputElement
+                                        ).value;
+                                    }}
+                                    class="input-field w-full pr-8"
+                                />
+                                <span
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] uppercase text-[var(--text-secondary)]"
+                                    >{$_("settings.feeRatesMaker")}</span
+                                >
+                            </div>
+                            <div class="relative flex-1">
+                                <input
+                                    id="fee-rate-taker"
+                                    name="fee-rate-taker"
+                                    type="text"
+                                    inputmode="decimal"
+                                    data-track-id="input-fee-rate-taker"
+                                    use:numberInput={{ maxDecimalPlaces: 4 }}
+                                    value={settingsState.feeRates[exchange].taker}
+                                    oninput={(e) => {
+                                        settingsState.feeRates[exchange].taker = (
+                                            e.target as HTMLInputElement
+                                        ).value;
+                                    }}
+                                    class="input-field w-full pr-8"
+                                />
+                                <span
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] uppercase text-[var(--text-secondary)]"
+                                    >{$_("settings.feeRatesTaker")}</span
+                                >
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-[var(--text-secondary)]">
+                            {$_("settings.feeRatesDesc")}
+                        </p>
+                    </div>
 
                     <!-- Spin Buttons -->
                     <div class="field-group">

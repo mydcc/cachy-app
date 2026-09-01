@@ -9,7 +9,7 @@
 
 import { untrack } from "svelte";
 import { browser } from "$app/environment";
-import { CONSTANTS } from "../lib/constants";
+import { CONSTANTS, VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 import { EntitlementStore } from "./entitlement.svelte";
@@ -260,6 +260,17 @@ export interface Settings {
   pnlViewMode?: PnlViewMode;
   isPro: boolean;
   feePreference: "maker" | "taker";
+  /**
+   * Personal per-venue fee rates, PERCENTAGES — "0.0600" means 0.06%, same
+   * unit as `DEFAULT_FEES` (BUG-0329). Source of truth for the simulated
+   * calculation in the frontend; the user overrides the static defaults
+   * with their level-/rebate-adjusted rates (FEAT-0253). Class A: never
+   * leaves the device.
+   */
+  feeRates: Record<
+    "bitunix" | "bitget",
+    { maker: string; taker: string }
+  >;
   hotkeyMode: HotkeyMode;
   apiKeys: {
     bitunix: ApiKeys;
@@ -503,6 +514,7 @@ const defaultSettings: Settings = {
   positionViewMode: "detailed",
   isPro: false,
   feePreference: "taker",
+  feeRates: VENUE_DEFAULT_FEE_RATES,
   hotkeyMode: "mode2",
   customHotkeys: {},
   apiKeys: {
@@ -772,6 +784,12 @@ export class SettingsManager {
   );
   pnlViewMode = $state<PnlViewMode | undefined>(defaultSettings.pnlViewMode);
   feePreference = $state<"maker" | "taker">(defaultSettings.feePreference);
+  // Shallow clone: the $state proxy must not share object references with the
+  // module-level constant, or editing a rate here would rewrite the default.
+  feeRates = $state({
+    bitunix: { ...defaultSettings.feeRates.bitunix },
+    bitget: { ...defaultSettings.feeRates.bitget },
+  });
   hotkeyMode = $state<HotkeyMode>(defaultSettings.hotkeyMode);
   /**
    * Edition/entitlement state (isPro, isProLicenseActive, the capability
@@ -1565,6 +1583,12 @@ export class SettingsManager {
     this.pnlViewMode = merged.pnlViewMode;
     this.entitlement.isPro = merged.isPro;
     this.feePreference = merged.feePreference;
+    // Per-venue merge so a partial stored blob never drops a venue or a rate;
+    // storage predating FEAT-0253 has no feeRates at all.
+    this.feeRates = {
+      bitunix: { ...VENUE_DEFAULT_FEE_RATES.bitunix, ...merged.feeRates?.bitunix },
+      bitget: { ...VENUE_DEFAULT_FEE_RATES.bitget, ...merged.feeRates?.bitget },
+    };
     this.hotkeyMode = merged.hotkeyMode;
 
     this.customHotkeys = merged.customHotkeys || {};
@@ -1910,6 +1934,7 @@ export class SettingsManager {
       pnlViewMode: this.pnlViewMode,
       isPro: this.entitlement.isPro,
       feePreference: this.feePreference,
+      feeRates: $state.snapshot(this.feeRates),
       hotkeyMode: this.hotkeyMode,
       // BUG-0280: exchange credentials never serialize, in either mode --
       // the block carries only placeholders. The $state.snapshot(...)

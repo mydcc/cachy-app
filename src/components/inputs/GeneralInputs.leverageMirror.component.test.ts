@@ -70,7 +70,13 @@ vi.mock("../../services/exchange", () => ({
     }),
 }));
 vi.mock("../../stores/settings.svelte", () => ({
-    settingsState: { apiProvider: "bitunix" },
+    settingsState: {
+        apiProvider: "bitunix",
+        feeRates: {
+            bitunix: { maker: "0.0200", taker: "0.0600" },
+            bitget: { maker: "0.0200", taker: "0.0600" },
+        },
+    },
 }));
 vi.mock("../../stores/market.svelte", () => ({ marketState: { symbolMeta: {} } }));
 vi.mock("../../stores/account.svelte", () => ({

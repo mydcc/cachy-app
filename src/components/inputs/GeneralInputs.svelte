@@ -23,6 +23,7 @@
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { paperState } from "../../stores/paperTrading.svelte";
+  import { settingsState } from "../../stores/settings.svelte";
   import { _ } from "../../locales/i18n";
 
   import { trackCustomEvent } from "../../services/trackingService";
@@ -46,16 +47,6 @@
     // Direct assignment instead of .update()
     tradeState.tradeType = type;
     trackCustomEvent("Trade", "ChangeType", type);
-  }
-
-  const format = (val: string | number | null) =>
-    val === null || val === undefined ? "" : String(val);
-
-  function handleFeesInput(e: Event) {
-    const target = e.target as HTMLInputElement;
-    const value = target.value;
-    // Direct assignment
-    tradeState.fees = value === "" ? null : value;
   }
 
   let remoteLev = $derived(tradeState.remoteLeverage);
@@ -91,25 +82,26 @@
     }
   });
 
-  // Fee Logic
+  // Fee Logic — FEAT-0253: the settings are the source of truth. The venue's
+  // maker/taker rates come from `settingsState.feeRates` (prefilled with the
+  // documented defaults, editable in Settings); this panel only displays them
+  // and mirrors the active one into `fees`, which the sizing maths reads — the
+  // same pattern as the leverage mirror. No sync button: there is nothing to
+  // synchronize, the user entered these numbers themselves.
   let feeMode = $derived(tradeState.feeMode || "maker_taker");
   let entryType = $derived(feeMode.split("_")[0] as "maker" | "taker");
-  let targetRemoteFee = $derived(
-    entryType === "maker"
-      ? tradeState.remoteMakerFee
-      : tradeState.remoteTakerFee,
-  );
+  const exchange = $derived(settingsState.apiProvider);
+  let feeRates = $derived(settingsState.feeRates[exchange]);
+  let activeFeeRate = $derived(feeRates[entryType]);
 
-  let isFeeSynced = $derived(
-    targetRemoteFee !== undefined && fees === String(targetRemoteFee),
-  );
-
-  function syncFee() {
-    if (targetRemoteFee !== undefined) {
-      // Direct assignment
-      tradeState.fees = String(targetRemoteFee);
+  $effect(() => {
+    const authoritative = activeFeeRate;
+    // `untrack` so this effect depends on the settings rate only. Reading the
+    // local one reactively here would re-run the effect on its own write.
+    if (untrack(() => fees) !== authoritative) {
+      fees = authoritative;
     }
-  }
+  });
 </script>
 
 <div>
@@ -196,9 +188,10 @@
       {/if}
 
       <!--
-        Fees. Entry stays local until FEAT-0253 gives this a broker source;
-        `targetRemoteFee` is declared but nothing populates it yet, which is
-        why the sync indicator below never renders today.
+        Fees. FEAT-0253: the settings are the source of truth — both rates are
+        displayed below, the active one (per `entryType`) is highlighted, and
+        the field itself is a read-only display of that active rate. Editing
+        happens in Settings, where these per-venue rates live.
       -->
       <div class="flex flex-col gap-1 min-w-0 flex-1">
         <label
@@ -212,18 +205,9 @@
             name="fees"
             type="text"
             data-track-id="input-fees"
-            use:numberInput={{ maxDecimalPlaces: 4 }}
-            use:enhancedInput={{
-              step: 0.01,
-              min: 0,
-              hasAction: targetRemoteFee !== undefined,
-            }}
-            value={format(fees)}
-            oninput={handleFeesInput}
+            readonly
+            value={activeFeeRate}
             class="fee-input w-full"
-            class:border-green-500={isFeeSynced}
-            class:text-green-400={isFeeSynced}
-            placeholder={$_("dashboard.generalInputs.feesPlaceholder")}
           />
           <!--
             The unit belongs next to the number, not only in the label above:
@@ -237,21 +221,19 @@
               ? $_("journal.table.maker")
               : $_("journal.table.taker")}
           </span>
-          {#if targetRemoteFee !== undefined}
-            <button
-              class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
-              style="background-color: {isFeeSynced
-                ? 'var(--success-color)'
-                : 'var(--warning-color)'};"
-              data-track-id="btn-sync-fees"
-              title={isFeeSynced
-                ? $_("dashboard.generalInputs.syncedWithApi")
-                : $_("dashboard.generalInputs.manualOverride", {
-                    values: { value: targetRemoteFee + "%" },
-                  })}
-              onclick={syncFee}
-            ></button>
-          {/if}
+        </div>
+        <div class="flex gap-3 text-[11px]">
+          <span
+            class:font-semibold={entryType === "maker"}
+            class:text-[var(--accent-color)]={entryType === "maker"}
+            >{$_("journal.table.maker")} {feeRates.maker}%</span
+          >
+          <span
+            class:text-[var(--text-secondary)]={entryType !== "taker"}
+            class:font-semibold={entryType === "taker"}
+            class:text-[var(--accent-color)]={entryType === "taker"}
+            >{$_("journal.table.taker")} {feeRates.taker}%</span
+          >
         </div>
       </div>
     </div>
