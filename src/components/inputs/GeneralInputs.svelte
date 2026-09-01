@@ -37,6 +37,7 @@
 
   let {
     tradeType = $bindable(),
+    // eslint-disable-next-line no-useless-assignment
     leverage = $bindable(),
     fees = $bindable(),
   }: Props = $props();
