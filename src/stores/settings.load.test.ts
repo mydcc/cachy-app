@@ -28,6 +28,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsManager } from "./settings.svelte";
 import { cryptoService } from "../services/cryptoService";
+import { VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
 
 vi.mock("$app/environment", () => ({
   browser: true,
@@ -402,5 +403,67 @@ describe("SettingsManager -- showTooltips setting", () => {
     const settings = new SettingsManager();
     expect(settings.showTooltips).toBe(false);
     expect(settings.toJSON().showTooltips).toBe(false);
+  });
+});
+
+describe("SettingsManager feeRates (FEAT-0253) -- defaults, merge, serialize", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+  });
+
+  it("defaults feeRates to the venue defaults, cloned out of the constant", () => {
+    const settings = new SettingsManager();
+
+    expect(settings.feeRates).toEqual(VENUE_DEFAULT_FEE_RATES);
+    // The $state proxy must not alias the module constant: editing a rate in
+    // the Settings UI must not rewrite the default.
+    expect(settings.feeRates.bitunix).not.toBe(VENUE_DEFAULT_FEE_RATES.bitunix);
+  });
+
+  it("does not mutate VENUE_DEFAULT_FEE_RATES when a rate is edited", () => {
+    // B1 regression: the B1 review finding claimed the shallow clone shares
+    // the constant's inner objects. The $state initializer already spreads
+    // per-venue copies, and defaultSettings.feeRates does too — so editing a
+    // rate must leave the documented defaults untouched.
+    const settings = new SettingsManager();
+    settings.feeRates.bitunix.maker = "0.0050";
+
+    expect(VENUE_DEFAULT_FEE_RATES.bitunix).toEqual({
+      maker: "0.0200",
+      taker: "0.0600",
+    });
+    expect(VENUE_DEFAULT_FEE_RATES.bitget).toEqual({
+      maker: "0.0200",
+      taker: "0.0600",
+    });
+  });
+
+  it("merges a partial stored blob, filling the missing venue from defaults", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        feeRates: { bitunix: { maker: "0.0100", taker: "0.0200" } },
+      }),
+    );
+
+    const settings = new SettingsManager();
+
+    expect(settings.feeRates.bitunix).toEqual({
+      maker: "0.0100",
+      taker: "0.0200",
+    });
+    expect(settings.feeRates.bitget).toEqual(VENUE_DEFAULT_FEE_RATES.bitget);
+  });
+
+  it("roundtrips edited feeRates through toJSON", () => {
+    const settings = new SettingsManager();
+    settings.feeRates.bitunix.maker = "0.0050";
+
+    expect(settings.toJSON().feeRates.bitunix).toEqual({
+      maker: "0.0050",
+      taker: "0.0600",
+    });
   });
 });

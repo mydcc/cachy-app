@@ -2,7 +2,8 @@
 id: FEAT-0253
 title: Make the calculator's entry/exit fee estimate honest about what it assumes
 type: feature
-status: specced
+status: in-progress
+assignee: pheinze
 priority: P1
 milestone: none
 editions: [community, pro, private]

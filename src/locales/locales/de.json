@@ -334,9 +334,6 @@
       "fees": "Gebühren (%)",
       "leveragePlaceholder": "Hebel (z.B. 10x)",
       "leverageFromExchange": "Kommt von der Börse. Ändern über den Hebel-Chip unter „An der Börse\".",
-      "feesPlaceholder": "Gebühren pro Trade (%)",
-      "syncedWithApi": "Synchronisiert mit API",
-      "manualOverride": "Manuell überschrieben (Klicken zum Synchronisieren auf {value})",
       "marginMode": "Margin-Modus"
     },
     "portfolioInputs": {
@@ -1132,6 +1129,10 @@
     "hideUnfilledOrders": "Nur ausgeführte Orders anzeigen",
     "feePreference": "Gebühren-Präferenz",
     "feePreferenceDesc": "Wähle den Gebührensatz, der standardmäßig beim Synchronisieren von der API verwendet werden soll.",
+    "feeRates": "Gebührenraten — {venue}",
+    "feeRatesMaker": "Maker (%)",
+    "feeRatesTaker": "Taker (%)",
+    "feeRatesDesc": "Deine persönlichen Gebühren (abhängig von deinem Broker-Level). Sie werden für die simulierte Berechnung im Frontend verwendet. Standardwerte: 0.02/0.06 pro Venue — passe sie an deine echten Raten an. Das Journal erhält später die tatsächlich berechneten Broker-Gebühren.",
     "providerLabel": "Börsen-Anbieter",
     "securityNote": "Schlüssel werden lokal in deinem Browser gespeichert.",
     "imgbbHeader": "ImgBB Bild-Hosting",
