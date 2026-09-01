@@ -27,3 +27,11 @@
 ## 2025-02-23 - GitHub Actions setup corrections (Follow-up 2)
 **Learning:** `google/gemini-3-flash` is invalid; it must be `google/gemini-3.6-flash`.
 **Action:** Replaced `google/gemini-3-flash` with `google/gemini-3.6-flash` in `.github/workflows/opencode.yml`.
+
+## 2024-05-19 - Bilingual ARIA Labels and Attributes
+**Learning:** Hardcoded text attributes (like `alt`, `title`, and `aria-label`) in Svelte components violate strict Cachy i18n rules which demand complete bilingual coverage (German and English). Also, when extracting these attributes, if their value interpolates JavaScript variables, the `svelte-i18n` translation function should be called as `$_("key", { values: { varName: value } })`. The localization dictionaries should use standard ICU format (e.g., `WebSocket: {statusText}`). And `scripts/generate-i18n-types.js` must be run to prevent svelte-check schema mismatch errors.
+**Action:** Replaced hardcoded `alt` and `title` attributes in `BackgroundRenderer`, `JournalTable`, `ConnectionStatus`, `CalculationDashboard`, and `TechnicalsPanel` with variables referenced from the `i18n` store.
+
+## 2024-05-19 - Bilingual ARIA Labels and Attributes
+**Learning:** Hardcoded text attributes (like `alt`, `title`, and `aria-label`) in Svelte components violate strict Cachy i18n rules which demand complete bilingual coverage (German and English). Also, when extracting these attributes, if their value interpolates JavaScript variables, the `svelte-i18n` translation function should be called as `$_("key", { values: { varName: value } })`. The localization dictionaries should use standard ICU format (e.g., `WebSocket: {statusText}`). And `scripts/generate-i18n-types.js` must be run to prevent svelte-check schema mismatch errors.
+**Action:** Replaced hardcoded `alt` and `title` attributes in `BackgroundRenderer`, `JournalTable`, `ConnectionStatus`, `CalculationDashboard`, and `TechnicalsPanel` with variables referenced from the `i18n` store.

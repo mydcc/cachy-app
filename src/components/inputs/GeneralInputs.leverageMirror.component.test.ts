@@ -69,9 +69,15 @@ vi.mock("../../services/exchange", () => ({
         },
     }),
 }));
-vi.mock("../../stores/settings.svelte", () => ({
-    settingsState: { apiProvider: "bitunix" },
+const settingsStateMock = vi.hoisted(() => ({
+    apiProvider: "bitunix",
+    feePreference: "taker" as "maker" | "taker",
+    feeRates: {
+        bitunix: { maker: "0.0200", taker: "0.0600" },
+        bitget: { maker: "0.0200", taker: "0.0600" },
+    },
 }));
+vi.mock("../../stores/settings.svelte", () => ({ settingsState: settingsStateMock }));
 vi.mock("../../stores/market.svelte", () => ({ marketState: { symbolMeta: {} } }));
 vi.mock("../../stores/account.svelte", () => ({
     accountState: { positions: [], openOrders: [], positionMode: "ONE_WAY" },
@@ -146,7 +152,6 @@ async function render() {
         props: {
             tradeType: "long",
             leverage: tradeStateMock.leverage,
-            fees: tradeStateMock.fees,
         },
     }) as never;
     await settle();
@@ -203,5 +208,61 @@ describe("FEAT-0328 — one leverage, one source", () => {
         await render();
 
         expect(host.querySelector("#fees-input")).not.toBeNull();
+    });
+});
+
+describe("FEAT-0253 — the fee mirror uses feePreference for the exit-leg assumption", () => {
+    /*
+     * FEAT-0253, decision 4: the Settings MAKER/TAKER buttons pick which rate
+     * a simulated exit pays. The active role is derived from
+     * `settingsState.feePreference` (default "taker", decision 3 — the
+     * expensive side). The mirror writes the corresponding rate into
+     * `tradeState.fees`.
+     */
+    beforeEach(() => {
+        settingsStateMock.feePreference = "taker";
+        settingsStateMock.feeRates.bitunix.taker = "0.0600";
+        settingsStateMock.feeRates.bitunix.maker = "0.0200";
+    });
+
+    it("mirrors the taker rate by default (conservative, decision 3)", async () => {
+        // feePreference defaults to "taker" → activeRole = "taker" → mirrors
+        // the taker rate (0.0600, the expensive side). The calculator applies
+        // this to both entry and exit, erring toward overstating cost.
+        tradeStateMock.fees = "0.06";
+        await render();
+
+        expect(tradeStateMock.fees).toBe("0.0600");
+    });
+
+    it("mirrors the maker rate when feePreference is 'maker'", async () => {
+        // User switches the Settings buttons to MAKER → activeRole = "maker"
+        // → mirrors the maker rate (0.0200, the cheaper side).
+        settingsStateMock.feePreference = "maker";
+        tradeStateMock.fees = "0.06";
+        await render();
+
+        expect(tradeStateMock.fees).toBe("0.0200");
+    });
+
+    it("falls back to DEFAULT_FEES when the active fee field was cleared", async () => {
+        // User clears the Taker field in Settings → stores "" → the guard
+        // catches it and falls back to 0.06 instead of propagating "".
+        (settingsStateMock.feeRates.bitunix as { taker: string }).taker = "";
+        tradeStateMock.fees = "0.06";
+        await render();
+
+        expect(tradeStateMock.fees).toBe("0.0600");
+    });
+
+    it("passes a literal '0' rate through (promo / rebate, not a degenerate input)", async () => {
+        // A venue promo or maker rebate can legitimately be 0%. The guard
+        // must not treat the string "0" as falsy and fall back to DEFAULT_FEES
+        // — only undefined and "" are degenerate.
+        (settingsStateMock.feeRates.bitunix as { taker: string }).taker = "0";
+        tradeStateMock.fees = "0.06";
+        await render();
+
+        expect(tradeStateMock.fees).toBe("0");
     });
 });

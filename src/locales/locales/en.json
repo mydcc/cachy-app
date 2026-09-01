@@ -333,9 +333,6 @@
       "leverage": "Leverage",
       "fees": "Fees (%)",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
-      "feesPlaceholder": "Fees per Trade (%)",
-      "syncedWithApi": "Synced with API",
-      "manualOverride": "Manual Override (Click to sync to {value})",
       "marginMode": "Margin Mode"
     },
     "portfolioInputs": {
@@ -806,7 +803,10 @@
       "badge": "Paper",
       "tooltip": "Simulated fill — not real money, and excluded from every statistic.",
       "showToggle": "Show paper ({count})"
-    }
+    },
+    "chartAlt": "{symbol} Chart",
+    "chartPreviewAlt": "{symbol} Chart Preview",
+    "chartFullAlt": "{symbol} Full Chart"
   },
   "marketOverview": {
     "24hHigh": "24h High",
@@ -1127,6 +1127,10 @@
     "hideUnfilledOrders": "Hide Unfilled Orders",
     "feePreference": "Fee Preference",
     "feePreferenceDesc": "Select which fee rate to use by default when syncing from API.",
+    "feeRates": "Fee Rates — {venue}",
+    "feeRatesMaker": "Maker (%)",
+    "feeRatesTaker": "Taker (%)",
+    "feeRatesDesc": "Your personal fees (depending on your broker level). They are used for the simulated calculation in the frontend. Defaults: 0.02/0.06 per venue — adjust them to your actual rates. The journal will later receive the actually charged broker fees.",
     "providerLabel": "Exchange Provider",
     "securityNote": "Keys are stored locally in your browser.",
     "imgbbHeader": "ImgBB Image Hosting",
@@ -2168,7 +2172,8 @@
     "reconnectingTo": "⟳ Reconnecting to {provider}...",
     "disconnected": "✗ Waiting for connection...",
     "error": "✗ Connection error",
-    "offline": "OFFLINE - CHECK CONNECTION"
+    "offline": "OFFLINE - CHECK CONNECTION",
+    "webSocket": "WebSocket: {statusText}"
   },
   "errors": {
     "unknown": "Unknown error",
@@ -2240,7 +2245,9 @@
     }
   },
   "ui": {
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "action": "Action: {action}",
+    "background": "Background"
   },
   "offline": {
     "title": "Connection Lost",
@@ -2283,7 +2290,8 @@
     "hintSmartPause": "<strong>Smart pause disabled:</strong> Analysis will continue even when browser is inactive.",
     "hintGood": "<strong>✓ All systems normal:</strong> Configuration is optimal for current load.",
     "symbolsInMemory": "Symbols in memory",
-    "pending": "Pending"
+    "pending": "Pending",
+    "confluenceScore": "Confluence score"
   },
   "calculator": {
     "errors": {

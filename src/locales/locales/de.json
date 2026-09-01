@@ -334,9 +334,6 @@
       "fees": "Gebühren (%)",
       "leveragePlaceholder": "Hebel (z.B. 10x)",
       "leverageFromExchange": "Kommt von der Börse. Ändern über den Hebel-Chip unter „An der Börse\".",
-      "feesPlaceholder": "Gebühren pro Trade (%)",
-      "syncedWithApi": "Synchronisiert mit API",
-      "manualOverride": "Manuell überschrieben (Klicken zum Synchronisieren auf {value})",
       "marginMode": "Margin-Modus"
     },
     "portfolioInputs": {
@@ -807,7 +804,10 @@
       "badge": "Paper",
       "tooltip": "Simulierte Ausführung — kein echtes Geld, und aus jeder Statistik ausgeschlossen.",
       "showToggle": "Paper anzeigen ({count})"
-    }
+    },
+    "chartAlt": "{symbol} Chart",
+    "chartPreviewAlt": "{symbol} Chart Vorschau",
+    "chartFullAlt": "{symbol} Vollständiger Chart"
   },
   "marketOverview": {
     "24hHigh": "24h Hoch",
@@ -1129,6 +1129,10 @@
     "hideUnfilledOrders": "Nur ausgeführte Orders anzeigen",
     "feePreference": "Gebühren-Präferenz",
     "feePreferenceDesc": "Wähle den Gebührensatz, der standardmäßig beim Synchronisieren von der API verwendet werden soll.",
+    "feeRates": "Gebührenraten — {venue}",
+    "feeRatesMaker": "Maker (%)",
+    "feeRatesTaker": "Taker (%)",
+    "feeRatesDesc": "Deine persönlichen Gebühren (abhängig von deinem Broker-Level). Sie werden für die simulierte Berechnung im Frontend verwendet. Standardwerte: 0.02/0.06 pro Venue — passe sie an deine echten Raten an. Das Journal erhält später die tatsächlich berechneten Broker-Gebühren.",
     "providerLabel": "Börsen-Anbieter",
     "securityNote": "Schlüssel werden lokal in deinem Browser gespeichert.",
     "imgbbHeader": "ImgBB Bild-Hosting",
@@ -1993,7 +1997,8 @@
     "hintSmartPause": "<strong>Smart Pause deaktiviert:</strong> Analyse läuft weiter, auch wenn der Browser inaktiv ist.",
     "hintGood": "<strong>✓ Alle Systeme normal:</strong> Konfiguration ist optimal für die aktuelle Last.",
     "symbolsInMemory": "Symbole im Speicher",
-    "pending": "Ausstehend"
+    "pending": "Ausstehend",
+    "confluenceScore": "Konfluenz-Score"
   },
   "symbolPicker": {
     "title": "Symbol auswählen",
@@ -2179,7 +2184,8 @@
     "reconnectingTo": "⟳ Neu verbinden mit {provider}...",
     "disconnected": "✗ Warte auf Verbindung...",
     "error": "✗ Verbindungsfehler",
-    "offline": "OFFLINE - VERBINDUNG PRÜFEN"
+    "offline": "OFFLINE - VERBINDUNG PRÜFEN",
+    "webSocket": "WebSocket: {statusText}"
   },
   "errors": {
     "unknown": "Unbekannter Fehler",
@@ -2251,7 +2257,9 @@
     }
   },
   "ui": {
-    "loading": "Lade..."
+    "loading": "Lade...",
+    "action": "Aktion: {action}",
+    "background": "Hintergrund"
   },
   "offline": {
     "title": "Verbindung verloren",

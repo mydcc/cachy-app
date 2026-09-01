@@ -608,6 +608,28 @@ export const CONSTANTS = {
   BITUNIX_WS_PRIVATE_URL: "wss://fapi.bitunix.com/private/",
 };
 
+/*
+ * Documented default fee rates per venue (futures, VIP 0), PERCENTAGES —
+ * "0.0200" means 0.02% maker, same unit as `DEFAULT_FEES` (BUG-0329).
+ *
+ * Bitunix read 2026-08-31 from https://www.bitunix.com/service/handling-fee
+ * (0.0200% maker / 0.0600% taker). Bitget standard contract rates are the
+ * same 0.02/0.06 tariff; verify against Bitget's fee page before relying on
+ * it for a real account.
+ *
+ * FEAT-0253: these are only the prefills for the Settings inputs. The user
+ * overrides them with their personal (level- / rebate-adjusted) rates, and
+ * the settings values are the source of truth for the simulated calculation
+ * in the frontend. Real per-fill broker fees arrive later, in the journal.
+ */
+export const VENUE_DEFAULT_FEE_RATES: Record<
+  "bitunix" | "bitget",
+  { maker: string; taker: string }
+> = {
+  bitunix: { maker: "0.0200", taker: "0.0600" },
+  bitget: { maker: "0.0200", taker: "0.0600" },
+};
+
 export const themes = [
   "dark",
   "ayu-dark",
