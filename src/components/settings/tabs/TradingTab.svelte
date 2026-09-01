@@ -23,6 +23,7 @@
     import HotkeySettings from "../HotkeySettings.svelte";
     import IndicatorSettings from "./IndicatorSettings.svelte";
     import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
+    import ConfirmationSettings from "../ConfirmationSettings.svelte";
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
     import OrderAuditSettings from "../OrderAuditSettings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
@@ -642,8 +643,15 @@
 
         <!-- Hotkeys -->
         {#if activeSubTab === "risk"}
-            <section class="animate-fade-in">
+            <section class="animate-fade-in space-y-6">
                 <RiskLimitsSettings />
+                <!--
+                  FEAT-0024 sits under the risk limits rather than in a tab of
+                  its own: both answer "what stops me losing money by accident",
+                  and someone here to set a limit is the same person who wants
+                  to say which actions ask first.
+                -->
+                <ConfirmationSettings />
             </section>
         {/if}
 

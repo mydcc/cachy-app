@@ -1965,6 +1965,51 @@
         "refused": "Abgelehnt",
         "failed": "Fehlgeschlagen"
       }
+    },
+    "confirmations": {
+      "title": "Bestätigungen",
+      "intro": "Lege fest, welche Aktionen vorher nachfragen. Alles Ausgeschaltete läuft mit einem Klick.",
+      "verificationNote": "Eine ausgeschaltete Bestätigung entfernt die Rückfrage, nicht die Sicherheitsprüfung. Jede Order wird weiterhin gegen das geprüft, was auf dem Bildschirm stand, bevor sie gesendet wird — diese Prüfung lässt sich nicht abschalten.",
+      "reset": "Standard wiederherstellen",
+      "persistFailed": "Diese Einstellung konnte nicht gespeichert werden und geht beim Neuladen verloren.",
+      "actions": {
+        "place-order": {
+          "label": "Order aufgeben",
+          "hint": "Vor dem Absenden einer Order nachfragen."
+        },
+        "close-position": {
+          "label": "Position schließen",
+          "hint": "Vor dem ganzen oder teilweisen Schließen einer Position nachfragen."
+        },
+        "flash-close-position": {
+          "label": "Flash Close",
+          "hint": "Vor dem Schließen per Ein-Klick-Market-Order nachfragen. Nicht umkehrbar."
+        },
+        "cancel-order": {
+          "label": "Order stornieren",
+          "hint": "Vor dem Stornieren einer einzelnen offenen Order nachfragen."
+        },
+        "cancel-all": {
+          "label": "Alle Orders stornieren",
+          "hint": "Vor dem gleichzeitigen Stornieren aller offenen Orders nachfragen."
+        },
+        "modify-order": {
+          "label": "Order ändern",
+          "hint": "Vor dem Ändern von Preis oder Menge einer offenen Order nachfragen."
+        },
+        "leverage-change": {
+          "label": "Hebel ändern",
+          "hint": "Vor dem Ändern des Hebels nachfragen. Betrifft alle Positionen im Symbol."
+        },
+        "margin-mode-change": {
+          "label": "Margin-Modus ändern",
+          "hint": "Vor dem Wechsel zwischen Cross und Isolated nachfragen."
+        },
+        "account-switch": {
+          "label": "Konto wechseln",
+          "hint": "Vor dem Wechsel zu einem anderen Exchange-Konto nachfragen."
+        }
+      }
     }
   },
   "calculationDashboard": {

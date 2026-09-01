@@ -1964,6 +1964,51 @@
         "refused": "Refused",
         "failed": "Failed"
       }
+    },
+    "confirmations": {
+      "title": "Confirmations",
+      "intro": "Choose which actions ask before they run. Anything left off is one-click.",
+      "verificationNote": "Switching a confirmation off removes the prompt, not the safety check. Every order is still verified against what the screen showed before it is sent, and that verification cannot be switched off.",
+      "reset": "Restore defaults",
+      "persistFailed": "This setting could not be saved and will be lost when the page reloads.",
+      "actions": {
+        "place-order": {
+          "label": "Place order",
+          "hint": "Ask before an order is submitted."
+        },
+        "close-position": {
+          "label": "Close position",
+          "hint": "Ask before a position is closed, in whole or in part."
+        },
+        "flash-close-position": {
+          "label": "Flash close",
+          "hint": "Ask before a one-click market close. Cannot be undone."
+        },
+        "cancel-order": {
+          "label": "Cancel order",
+          "hint": "Ask before a single pending order is cancelled."
+        },
+        "cancel-all": {
+          "label": "Cancel all orders",
+          "hint": "Ask before every pending order is cancelled at once."
+        },
+        "modify-order": {
+          "label": "Modify order",
+          "hint": "Ask before a pending order's price or size is changed."
+        },
+        "leverage-change": {
+          "label": "Change leverage",
+          "hint": "Ask before leverage changes. Affects every position on the symbol."
+        },
+        "margin-mode-change": {
+          "label": "Change margin mode",
+          "hint": "Ask before switching between cross and isolated margin."
+        },
+        "account-switch": {
+          "label": "Switch account",
+          "hint": "Ask before switching to a different exchange account."
+        }
+      }
     }
   },
   "positionsList": {
