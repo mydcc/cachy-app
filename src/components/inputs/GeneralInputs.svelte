@@ -19,8 +19,10 @@
   import { CONSTANTS } from "../../lib/constants";
   import { tradeState } from "../../stores/trade.svelte";
 
+  import { untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
+  import { paperState } from "../../stores/paperTrading.svelte";
   import { _ } from "../../locales/i18n";
 
   import { trackCustomEvent } from "../../services/trackingService";
@@ -48,13 +50,6 @@
   const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
-  function handleLeverageInput(e: Event) {
-    const target = e.target as HTMLInputElement;
-    const value = target.value;
-    // Direct assignment
-    tradeState.leverage = value === "" ? null : value;
-  }
-
   function handleFeesInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
@@ -62,18 +57,37 @@
     tradeState.fees = value === "" ? null : value;
   }
 
-  // Leverage Sync Status
   let remoteLev = $derived(tradeState.remoteLeverage);
-  let isLeverageSynced = $derived(
-    remoteLev !== undefined && leverage === String(remoteLev),
-  );
 
-  function syncLeverage() {
-    if (remoteLev !== undefined) {
-      // Direct assignment
-      tradeState.leverage = String(remoteLev);
+  /*
+   * FEAT-0328, decision 5 — one leverage, one source.
+   *
+   * A perpetuals venue has exactly one leverage per symbol, so there is one
+   * control for it: the chip in `ExchangeAccountControls`. This component no
+   * longer offers a second, editable leverage field that could drift from it.
+   *
+   * What still has to happen here is the part the chip cannot do on its own:
+   * the sizing maths reads `tradeState.leverage`, not `remoteLeverage`, so
+   * while a broker reports a leverage that local value is held equal to it.
+   * Letting the two drift would let the calculator size at 20x while the
+   * exchange sits at 10x — a wrong position size on real money, which is the
+   * whole reason this effect exists.
+   *
+   * Paper trading, and a session with no broker value yet, leave the local
+   * value alone: there is no remote truth to mirror, the chip edits it
+   * directly, and the calculator is a planning tool again.
+   */
+  let mirrorLeverage = $derived(!paperState.enabled && remoteLev !== undefined);
+
+  $effect(() => {
+    if (!mirrorLeverage || remoteLev === undefined) return;
+    const authoritative = String(remoteLev);
+    // `untrack` so this effect depends on the remote value only. Reading the
+    // local one reactively here would re-run the effect on its own write.
+    if (untrack(() => tradeState.leverage) !== authoritative) {
+      tradeState.leverage = authoritative;
     }
-  }
+  });
 
   // Fee Logic
   let feeMode = $derived(tradeState.feeMode || "maker_taker");
@@ -133,66 +147,33 @@
       >
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
-      <!-- Leverage Input Wrapper -->
-      <div>
-        <label
-          for="leverage-input"
-          class="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block"
-          >{$_("dashboard.generalInputs.leverage")}</label
-        >
-        <div class="relative">
-          <input
-            id="leverage-input"
-            name="leverage"
-            type="text"
-            data-track-id="input-leverage"
-            use:numberInput={{
-              noDecimals: true,
-              maxValue: 125,
-              minValue: 1,
-            }}
-            use:enhancedInput={{
-              step: 1,
-              min: 1,
-              max: 125,
-              noDecimals: true,
-              hasAction: remoteLev !== undefined,
-            }}
-            value={format(leverage)}
-            oninput={handleLeverageInput}
-            class="input-field w-full px-3 rounded-md transition-colors text-sm"
-            class:border-green-500={isLeverageSynced}
-            class:text-green-400={isLeverageSynced}
-            placeholder={$_("dashboard.generalInputs.leveragePlaceholder")}
-          />
-          <!-- Sync Indicator -->
-          {#if remoteLev !== undefined}
-            <button
-              class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
-              style="background-color: {isLeverageSynced
-                ? 'var(--success-color)'
-                : 'var(--warning-color)'};"
-              data-track-id="btn-sync-leverage"
-              title={isLeverageSynced
-                ? $_("dashboard.generalInputs.syncedWithApi")
-                : $_("dashboard.generalInputs.manualOverride", {
-                    values: { value: remoteLev + "x" },
-                  })}
-              onclick={syncLeverage}
-            ></button>
-          {/if}
-        </div>
-      </div>
+    <!--
+      FEAT-0328 — one labelled row: leverage, margin/position mode, fees.
 
-      <!-- Fees Input Wrapper -->
-      <div>
+      `ExchangeAccountControls` emits the first two columns as siblings and
+      nothing at all on a venue that declares no `accountSettings` support, so
+      the row simply narrows rather than showing dead controls.
+
+      Leverage no longer has an input of its own here. There is one leverage
+      per symbol on a perpetuals venue, so there is one control for it — the
+      chip — and the mirror effect above keeps `tradeState.leverage`, which the
+      sizing maths reads, equal to what the exchange holds.
+    -->
+    <div class="flex flex-wrap items-end gap-3">
+      <ExchangeAccountControls />
+
+      <!--
+        Fees. Entry stays local until FEAT-0253 gives this a broker source;
+        `targetRemoteFee` is declared but nothing populates it yet, which is
+        why the sync indicator below never renders today.
+      -->
+      <div class="flex flex-col gap-1 min-w-0 flex-1">
         <label
           for="fees-input"
-          class="text-[11px] font-medium text-[var(--text-secondary)] mb-1 block"
+          class="text-[11px] font-medium text-[var(--text-secondary)]"
           >{$_("dashboard.generalInputs.fees")}</label
         >
-        <div class="relative">
+        <div class="relative flex items-center">
           <input
             id="fees-input"
             name="fees"
@@ -206,49 +187,80 @@
             }}
             value={format(fees)}
             oninput={handleFeesInput}
-            class="input-field w-full px-3 rounded-md transition-colors text-sm"
+            class="fee-input w-full"
             class:border-green-500={isFeeSynced}
             class:text-green-400={isFeeSynced}
             placeholder={$_("dashboard.generalInputs.feesPlaceholder")}
           />
-          <!-- Sync Indicator for Fees -->
+          <!--
+            The unit belongs next to the number, not only in the label above:
+            `values.fees` is a PERCENTAGE (0.06 means 0.06%), and the division
+            by 100 happens inside the calculator. Showing "%" here is what
+            stops the value being read as a fraction (BUG-0329).
+          -->
+          <span class="fee-role">
+            <span class="fee-unit">%</span>
+            {entryType === "maker"
+              ? $_("journal.table.maker")
+              : $_("journal.table.taker")}
+          </span>
           {#if targetRemoteFee !== undefined}
-          <button
-            class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
-            style="background-color: {isFeeSynced
-              ? 'var(--success-color)'
-              : 'var(--warning-color)'};"
-            data-track-id="btn-sync-fees"
-            title={isFeeSynced
-              ? $_("dashboard.generalInputs.syncedWithApi")
-              : $_("dashboard.generalInputs.manualOverride", {
-                  values: { value: targetRemoteFee + "%" },
-                })}
-            onclick={syncFee}
-          ></button>
-        {/if}
+            <button
+              class="absolute right-2 top-1/2 -translate-y-1/2 w-indicator h-indicator rounded-full transition-colors duration-300 focus:outline-none z-30"
+              style="background-color: {isFeeSynced
+                ? 'var(--success-color)'
+                : 'var(--warning-color)'};"
+              data-track-id="btn-sync-fees"
+              title={isFeeSynced
+                ? $_("dashboard.generalInputs.syncedWithApi")
+                : $_("dashboard.generalInputs.manualOverride", {
+                    values: { value: targetRemoteFee + "%" },
+                  })}
+              onclick={syncFee}
+            ></button>
+          {/if}
+        </div>
       </div>
     </div>
-
-    <!--
-      FEAT-0068: what used to be a read-only margin-mode badge is now the
-      editable set — leverage, margin mode and position mode — on venues that
-      declare `supports.accountSettings`. The component renders nothing at all
-      where the venue does not, which is why no `{#if}` wraps it here.
-    -->
-    <ExchangeAccountControls />
 
     <!-- Spacer -->
     <div class="mb-0"></div>
   </div>
 </div>
-</div>
 
 <style>
-  /* Add subtle shadow for focused inputs */
-  .input-field:focus {
-    box-shadow: var(--shadow-card);
+  /*
+   * Sized to match the chips `ExchangeAccountControls` renders beside it, so
+   * the three columns read as one row rather than three stacked controls.
+   */
+  .fee-input {
+    min-height: 2.25rem;
+    padding: 0.5rem 3.5rem 0.5rem 0.6rem;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .fee-input:focus {
     border-color: var(--accent-color);
-    z-index: 10;
+  }
+  .fee-role {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.625rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    pointer-events: none;
+  }
+  /* The unit reads as part of the number, the role as the annotation. */
+  .fee-unit {
+    letter-spacing: normal;
+    color: var(--text-secondary);
   }
 </style>

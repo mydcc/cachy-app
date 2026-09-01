@@ -17,19 +17,42 @@
 
 <!--
   FEAT-0068 — the exchange's own account settings, from the trade panel.
+  FEAT-0328 — two labelled chips that open confirming dialogs.
 
-  Three writes live here: leverage and margin mode for the active symbol, and
-  the account-wide position mode. Each one the exchange documents a
-  precondition for is shown *disabled with the reason* rather than hidden —
-  the same rule PlaceOrderPanel follows for order types, and for the same
-  reason: a control that vanishes reads as a missing feature in Cachy, while
-  a disabled one says the exchange will not take it right now.
+  This component emits TWO sibling columns (leverage, margin/position) with no
+  wrapper of its own, so the parent can lay them out in one row beside its own
+  fee column. Svelte allows multiple roots; that is what is being used here.
+  It emits nothing at all where the venue declares no `accountSettings`
+  support, and the row then simply has one fewer column.
 
-  Nothing here writes the displayed state optimistically. Every action
-  re-reads through `tradeService`, which is what moves
-  `tradeState.remoteLeverage`/`remoteMarginMode` — so the "synced" indicator
-  next door turns green because the exchange confirmed it on a second read,
-  not because a button was pressed.
+  NOTHING HERE SENDS ON A CLICK. Both chips open a dialog that collects a
+  draft, and only its Confirm reaches the exchange. Every write in this
+  component changes a live account, so every one of them is a deliberate,
+  second act — a stray tap must never be enough.
+
+  THE THREE WRITES ARE NOT GATED THE SAME, AND THE SHARED DIALOG MUST NOT MAKE
+  THEM LOOK IT. The exchange documents a different precondition for each
+  (docs/bitunix-api/02_account.md):
+
+    leverage      no precondition at all — changeable with an open position
+                  and with resting orders. Gated by nothing; the confirmation
+                  carries the liquidation shift instead, because that is what
+                  actually moves.
+    margin mode   refused while THIS symbol carries a position or an order
+                  -> symbolBusy
+    position mode refused while ANY pair carries a position or an order; the
+                  endpoint takes no symbol -> accountBusy
+
+  Putting margin and position mode in one dialog is a layout choice. Giving
+  them one gate would be a money bug. Each section carries its own reason.
+
+  `busy` is a fourth, unrelated thing — one request is in flight — and blocks
+  all of them so a double-apply cannot race.
+
+  Nothing is written optimistically. Every action re-reads through
+  `tradeService`, which is what moves `tradeState.remoteLeverage` /
+  `remoteMarginMode`, so the chips show what the exchange confirmed on a
+  second read rather than what was pressed.
 -->
 
 <script lang="ts">
@@ -44,8 +67,11 @@
   import { activeExchange } from "../../services/exchange";
   import { toastService } from "../../services/toastService.svelte";
   import { getDisplayMessage } from "../../utils/errorUtils";
+  import { formatDynamicDecimal } from "../../utils/utils";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import type { TranslationKey } from "../../locales/schema";
+  import LeverageModal from "../shared/LeverageModal.svelte";
+  import MarginModeModal from "../shared/MarginModeModal.svelte";
 
   const exchange = $derived(settingsState.apiProvider);
   const venueName = $derived(exchange.charAt(0).toUpperCase() + exchange.slice(1));
@@ -66,17 +92,25 @@
     // beats keeping three spellings in step.
     (remoteMarginMode ?? "").toLowerCase().startsWith("isolat"),
   );
+  const marginModeValue = $derived<"ISOLATION" | "CROSS" | undefined>(
+    remoteMarginMode === undefined ? undefined : isIsolated ? "ISOLATION" : "CROSS",
+  );
 
   const positionMode = $derived((accountState.positionMode ?? "").toUpperCase());
+  const positionModeValue = $derived<"ONE_WAY" | "HEDGE" | undefined>(
+    positionMode === "HEDGE"
+      ? "HEDGE"
+      : positionMode === "ONE_WAY"
+        ? "ONE_WAY"
+        : undefined,
+  );
 
   /*
-   * The exchange's preconditions, evaluated against the state Cachy already
-   * holds: margin mode needs the *symbol* free of positions and resting
-   * orders, position mode needs the *account* free of both
-   * (docs/bitunix-api/02_account.md).
+   * The exchange's preconditions — see the header comment for why these two
+   * are deliberately different, and why leverage uses neither.
    *
    * This is the courtesy layer. The exchange enforces the same rules and its
-   * refusal surfaces as an error — so a stale local view costs a rejected
+   * refusal surfaces as an error, so a stale local view costs a rejected
    * request, never a silent wrong write.
    */
   const symbolBusy = $derived(
@@ -87,57 +121,38 @@
     accountState.positions.length > 0 || accountState.openOrders.length > 0,
   );
 
+  /** The open position on this symbol, when there is one. */
+  const openPosition = $derived(
+    accountState.positions.find((p) => p.symbol === venueSymbol),
+  );
+
   const pairMeta = $derived(venueSymbol ? marketState.symbolMeta[venueSymbol] : undefined);
   const minLeverage = $derived(pairMeta?.minLeverage ?? 1);
   const maxLeverage = $derived(pairMeta?.maxLeverage ?? 125);
 
-  /** The calculator's leverage input, as a whole number or null. */
-  const desiredLeverage = $derived.by(() => {
+  let busy = $state<"" | "leverage" | "modes">("");
+  let leverageOpen = $state(false);
+  let modeOpen = $state(false);
+
+  /*
+   * FEAT-0328 decision 5, applied to a single control: with a broker
+   * reporting a leverage this chip *is* the exchange's value, and confirming
+   * sends it. In paper trading, or before any broker value has arrived, there
+   * is no remote truth — the chip edits the local planning value instead,
+   * which is what the calculator sizes with.
+   */
+  const localOnly = $derived(paperState.enabled || remoteLeverage === undefined);
+
+  const shownLeverage = $derived.by(() => {
+    if (!localOnly && remoteLeverage !== undefined) return remoteLeverage.toString();
     const raw = tradeState.leverage;
-    if (raw === null || raw === undefined || String(raw).trim() === "") return null;
-    try {
-      const d = new Decimal(String(raw));
-      return d.isFinite() && d.isInteger() && d.gt(0) ? d : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const leverageInRange = $derived(
-    desiredLeverage !== null &&
-      desiredLeverage.gte(minLeverage) &&
-      desiredLeverage.lte(maxLeverage),
-  );
-  const leverageAlreadySet = $derived(
-    desiredLeverage !== null &&
-      remoteLeverage !== undefined &&
-      desiredLeverage.eq(remoteLeverage),
-  );
-
-  let busy = $state<"" | "leverage" | "margin" | "position">("");
-
-  const disabledReason = $derived.by(() => {
-    if (paperState.enabled) return $_("exchange.accountSettings.paperMode");
-    return "";
-  });
-
-  /** Reason the leverage button cannot be pressed, or "" when it can. */
-  const leverageReason = $derived.by(() => {
-    if (disabledReason) return disabledReason;
-    if (desiredLeverage === null) return $_("exchange.accountSettings.leverageNeedsValue");
-    if (!leverageInRange)
-      return $_("exchange.accountSettings.leverageOutOfRange", {
-        values: { symbol: venueSymbol, min: minLeverage, max: maxLeverage },
-      });
-    if (leverageAlreadySet)
-      return $_("exchange.accountSettings.leverageInSync", {
-        values: { value: desiredLeverage.toString() },
-      });
-    return "";
+    return raw === null || raw === undefined || String(raw).trim() === ""
+      ? ""
+      : String(raw);
   });
 
   const marginModeReason = $derived.by(() => {
-    if (disabledReason) return disabledReason;
+    if (paperState.enabled) return $_("exchange.accountSettings.paperMode");
     if (symbolBusy)
       return $_("exchange.accountSettings.blockedBySymbol", {
         values: { exchange: venueName, symbol: venueSymbol },
@@ -146,13 +161,58 @@
   });
 
   const positionModeReason = $derived.by(() => {
-    if (disabledReason) return disabledReason;
+    if (paperState.enabled) return $_("exchange.accountSettings.paperMode");
     if (accountBusy)
       return $_("exchange.accountSettings.blockedByAnyPosition", {
         values: { exchange: venueName },
       });
     return "";
   });
+
+  /*
+   * The liquidation price the position would sit at under a new leverage,
+   * calibrated out of the venue's own entry/liquidation/leverage triple
+   * rather than a guessed maintenance-margin rate. Direction comes from the
+   * numbers — a long liquidates below its entry, a short above it.
+   *
+   * An ESTIMATE, labelled as one, and null whenever an input is missing: a
+   * wrong number on a money screen is worse than none.
+   */
+  function projectLiquidation(
+    newLeverage: Decimal,
+  ): { from: Decimal; to: Decimal } | null {
+    const p = openPosition;
+    if (!p) return null;
+
+    try {
+      // The store already holds these as `Decimal` — no string ever sits
+      // between the exchange's number and this arithmetic.
+      const entry = p.entryPrice;
+      const liq = p.liquidationPrice;
+      const lev = p.leverage;
+
+      if (!entry?.isFinite() || !liq?.isFinite() || !lev?.isFinite()) return null;
+      if (entry.lte(0) || liq.lte(0) || lev.lte(0) || newLeverage.lte(0)) return null;
+
+      const isLong = liq.lt(entry);
+      const ratio = liq.div(entry);
+      const invOld = new Decimal(1).div(lev);
+      const invNew = new Decimal(1).div(newLeverage);
+
+      const mmr = isLong
+        ? ratio.minus(1).plus(invOld)
+        : new Decimal(1).plus(invOld).minus(ratio);
+
+      const projected = isLong
+        ? entry.times(new Decimal(1).minus(invNew).plus(mmr))
+        : entry.times(new Decimal(1).plus(invNew).minus(mmr));
+
+      if (!projected.isFinite() || projected.lte(0)) return null;
+      return { from: liq, to: projected };
+    } catch {
+      return null;
+    }
+  }
 
   function report(e: unknown) {
     // `getDisplayMessage` renders a venue refusal and an exchange rejection;
@@ -162,25 +222,47 @@
     toastService.error(raw.includes(" ") ? raw : $_(raw as TranslationKey));
   }
 
-  async function applyLeverage() {
-    if (!symbol || desiredLeverage === null || leverageReason || busy) return;
+  async function confirmLeverage(desired: Decimal) {
+    if (busy) return;
+
+    // No broker value to change: this is the calculator's own planning
+    // leverage, and nothing travels.
+    if (localOnly) {
+      tradeState.leverage = desired.toString();
+      leverageOpen = false;
+      return;
+    }
+    if (!symbol) return;
 
     /*
      * FEAT-0068's open question, answered yes: leverage on an open position
-     * moves the liquidation price the moment it lands, so this one action
-     * gets a confirmation the others do not. Opening a dialog for a symbol
-     * with nothing open would just be noise.
+     * moves the liquidation price the moment it lands. The dialog already
+     * showed the projection live; this is the commit, and it repeats the
+     * number so the last thing read before sending is the consequence.
      */
     if (symbolBusy) {
+      const projection = projectLiquidation(desired);
+      const base = $_("exchange.accountSettings.confirmLeverageMessage", {
+        values: {
+          symbol: venueSymbol,
+          from: remoteLeverage ? remoteLeverage.toString() : "?",
+          to: desired.toString(),
+        },
+      });
+      const message = projection
+        ? base +
+          "\n\n" +
+          $_("exchange.accountSettings.confirmLeverageLiquidation", {
+            values: {
+              from: formatDynamicDecimal(projection.from),
+              to: formatDynamicDecimal(projection.to),
+            },
+          })
+        : base;
+
       const confirmed = await modalState.show(
         $_("exchange.accountSettings.confirmLeverageTitle"),
-        $_("exchange.accountSettings.confirmLeverageMessage", {
-          values: {
-            symbol: venueSymbol,
-            from: remoteLeverage ? remoteLeverage.toString() : "?",
-            to: desiredLeverage.toString(),
-          },
-        }),
+        message,
         "confirm",
       );
       if (confirmed !== true) return;
@@ -188,12 +270,13 @@
 
     busy = "leverage";
     try {
-      await activeExchange().account.changeLeverage(symbol, desiredLeverage);
+      await activeExchange().account.changeLeverage(symbol, desired);
       toastService.success(
         $_("exchange.accountSettings.leverageChanged", {
-          values: { value: desiredLeverage.toString() },
+          values: { value: desired.toString() },
         }),
       );
+      leverageOpen = false;
     } catch (e) {
       report(e);
     } finally {
@@ -201,137 +284,164 @@
     }
   }
 
-  async function applyMarginMode(mode: "ISOLATION" | "CROSS") {
-    if (!symbol || marginModeReason || busy) return;
-    busy = "margin";
-    try {
-      await activeExchange().account.changeMarginMode(symbol, mode);
-      toastService.success($_("exchange.accountSettings.marginModeChanged"));
-    } catch (e) {
-      report(e);
-    } finally {
-      busy = "";
-    }
-  }
+  /*
+   * Two modes can change in one confirmation, and they are two separate
+   * endpoints — so this can succeed halfway. Each is reported on its own and
+   * the dialog stays open when anything failed, because a half-applied
+   * account state is exactly the thing the trader must not have to guess at.
+   */
+  async function confirmModes(changes: {
+    marginMode?: "ISOLATION" | "CROSS";
+    positionMode?: "ONE_WAY" | "HEDGE";
+  }) {
+    if (busy) return;
+    busy = "modes";
+    let failed = false;
 
-  async function applyPositionMode(mode: "ONE_WAY" | "HEDGE") {
-    if (positionModeReason || busy) return;
-    busy = "position";
     try {
-      await activeExchange().account.changePositionMode(mode);
-      toastService.success($_("exchange.accountSettings.positionModeChanged"));
-    } catch (e) {
-      report(e);
+      if (changes.marginMode && symbol && !marginModeReason) {
+        try {
+          await activeExchange().account.changeMarginMode(symbol, changes.marginMode);
+          toastService.success($_("exchange.accountSettings.marginModeChanged"));
+        } catch (e) {
+          failed = true;
+          report(e);
+        }
+      }
+
+      if (changes.positionMode && !positionModeReason) {
+        try {
+          await activeExchange().account.changePositionMode(changes.positionMode);
+          toastService.success($_("exchange.accountSettings.positionModeChanged"));
+        } catch (e) {
+          failed = true;
+          report(e);
+        }
+      }
     } finally {
       busy = "";
     }
+
+    if (!failed) modeOpen = false;
   }
 </script>
 
 {#if supported}
-  <div
-    class="flex flex-col gap-1.5 text-[10px] pt-1 border-t border-[var(--border-color)] border-opacity-40"
-  >
-    <div class="flex items-center justify-between">
-      <span class="uppercase tracking-wider text-[var(--text-tertiary)]"
-        >{$_("exchange.accountSettings.title")}</span
-      >
-      {#if paperState.enabled}
-        <span class="text-[var(--warning-color)]"
-          >{$_("exchange.accountSettings.paperMode")}</span
-        >
+  <!-- Leverage column. Gated by nothing; see the header comment. -->
+  <div class="flex flex-col gap-1 min-w-0">
+    <span class="text-[11px] font-medium text-[var(--text-secondary)]"
+      >{$_("dashboard.generalInputs.leverage")}</span
+    >
+    <button
+      type="button"
+      class="chip"
+      data-track-id="btn-leverage-chip"
+      aria-haspopup="dialog"
+      aria-expanded={leverageOpen}
+      disabled={busy !== ""}
+      title={$_("exchange.accountSettings.leverageEdit")}
+      onclick={() => {
+        if (!busy) leverageOpen = true;
+      }}
+    >
+      {#if busy === "leverage"}
+        {$_("exchange.accountSettings.pending")}
+      {:else}
+        <span class="font-semibold">{shownLeverage ? shownLeverage + "x" : "—"}</span>
       {/if}
-    </div>
-
-    <!-- Leverage: pushes the calculator's own input to the exchange. -->
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-[var(--text-secondary)]">
-        {$_("dashboard.generalInputs.leverage")}:
-        <span class="font-semibold text-[var(--text-primary)]"
-          >{remoteLeverage ? remoteLeverage.toString() + "x" : "—"}</span
-        >
-      </span>
-      <button
-        type="button"
-        class="px-2 py-0.5 rounded border border-[var(--border-color)] text-[var(--text-primary)]
-               hover-bg-accent-paired disabled:opacity-40 disabled:cursor-not-allowed"
-        data-track-id="btn-apply-leverage"
-        disabled={busy !== "" || leverageReason !== ""}
-        title={leverageReason || undefined}
-        onclick={applyLeverage}
-      >
-        {busy === "leverage"
-          ? $_("exchange.accountSettings.pending")
-          : $_("exchange.accountSettings.applyLeverage", {
-              values: { value: desiredLeverage ? desiredLeverage.toString() : "—" },
-            })}
-      </button>
-    </div>
-
-    <!-- Margin mode: per symbol, refused by the venue while it is busy. -->
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-[var(--text-secondary)]"
-        >{$_("dashboard.generalInputs.marginMode")}:</span
-      >
-      <div class="flex gap-1" title={marginModeReason || undefined}>
-        <button
-          type="button"
-          class="px-2 py-0.5 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          class:border-[var(--accent-color)]={remoteMarginMode !== undefined && isIsolated}
-          class:text-[var(--accent-color)]={remoteMarginMode !== undefined && isIsolated}
-          class:border-[var(--border-color)]={!(remoteMarginMode !== undefined && isIsolated)}
-          data-track-id="btn-margin-mode-isolated"
-          disabled={busy !== "" || marginModeReason !== ""}
-          onclick={() => applyMarginMode("ISOLATION")}
-        >
-          {$_("exchange.accountSettings.isolated")}
-        </button>
-        <button
-          type="button"
-          class="px-2 py-0.5 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          class:border-[var(--accent-color)]={remoteMarginMode !== undefined && !isIsolated}
-          class:text-[var(--accent-color)]={remoteMarginMode !== undefined && !isIsolated}
-          class:border-[var(--border-color)]={!(remoteMarginMode !== undefined && !isIsolated)}
-          data-track-id="btn-margin-mode-cross"
-          disabled={busy !== "" || marginModeReason !== ""}
-          onclick={() => applyMarginMode("CROSS")}
-        >
-          {$_("exchange.accountSettings.cross")}
-        </button>
-      </div>
-    </div>
-
-    <!-- Position mode: account-wide, so its precondition is account-wide too. -->
-    <div class="flex items-center justify-between gap-2">
-      <span class="text-[var(--text-secondary)]"
-        >{$_("exchange.accountSettings.positionMode")}:</span
-      >
-      <div class="flex gap-1" title={positionModeReason || undefined}>
-        <button
-          type="button"
-          class="px-2 py-0.5 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          class:border-[var(--accent-color)]={positionMode === "ONE_WAY"}
-          class:text-[var(--accent-color)]={positionMode === "ONE_WAY"}
-          class:border-[var(--border-color)]={positionMode !== "ONE_WAY"}
-          data-track-id="btn-position-mode-one-way"
-          disabled={busy !== "" || positionModeReason !== ""}
-          onclick={() => applyPositionMode("ONE_WAY")}
-        >
-          {$_("exchange.accountSettings.oneWay")}
-        </button>
-        <button
-          type="button"
-          class="px-2 py-0.5 rounded border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          class:border-[var(--accent-color)]={positionMode === "HEDGE"}
-          class:text-[var(--accent-color)]={positionMode === "HEDGE"}
-          class:border-[var(--border-color)]={positionMode !== "HEDGE"}
-          data-track-id="btn-position-mode-hedge"
-          disabled={busy !== "" || positionModeReason !== ""}
-          onclick={() => applyPositionMode("HEDGE")}
-        >
-          {$_("exchange.accountSettings.hedge")}
-        </button>
-      </div>
-    </div>
+    </button>
   </div>
+
+  <!--
+    Margin and position mode share one chip: two halves of how the account
+    holds positions, the way the venue's own dialog presents them.
+  -->
+  <div class="flex flex-col gap-1 min-w-0">
+    <span class="text-[11px] font-medium text-[var(--text-secondary)]"
+      >{$_("dashboard.generalInputs.marginMode")}</span
+    >
+    <button
+      type="button"
+      class="chip"
+      data-track-id="btn-mode-chip"
+      aria-haspopup="dialog"
+      aria-expanded={modeOpen}
+      disabled={busy !== ""}
+      title={$_("exchange.accountSettings.modeTitle")}
+      onclick={() => {
+        if (!busy) modeOpen = true;
+      }}
+    >
+      {#if busy === "modes"}
+        {$_("exchange.accountSettings.pending")}
+      {:else}
+        <span class="font-semibold truncate">
+          {marginModeValue === undefined
+            ? "—"
+            : isIsolated
+              ? $_("exchange.accountSettings.isolated")
+              : $_("exchange.accountSettings.cross")}
+          <span class="text-[var(--text-tertiary)]">•</span>
+          {positionModeValue === undefined
+            ? "—"
+            : positionModeValue === "HEDGE"
+              ? $_("exchange.accountSettings.hedge")
+              : $_("exchange.accountSettings.oneWay")}
+        </span>
+      {/if}
+    </button>
+  </div>
+
+  {#if leverageOpen}
+    <LeverageModal
+      current={shownLeverage}
+      {minLeverage}
+      {maxLeverage}
+      {localOnly}
+      busy={busy === "leverage"}
+      position={openPosition}
+      onclose={() => (leverageOpen = false)}
+      onconfirm={confirmLeverage}
+    />
+  {/if}
+
+  {#if modeOpen}
+    <MarginModeModal
+      currentMarginMode={marginModeValue}
+      currentPositionMode={positionModeValue}
+      marginReason={marginModeReason}
+      positionReason={positionModeReason}
+      busy={busy === "modes"}
+      onclose={() => (modeOpen = false)}
+      onconfirm={confirmModes}
+    />
+  {/if}
 {/if}
+
+<style>
+  /*
+   * Sized to match the fee field the parent renders beside it, so the three
+   * columns read as one row rather than three stacked controls.
+   */
+  .chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.6rem;
+    min-height: 2.25rem;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: border-color 0.15s ease;
+  }
+  .chip:hover:not(:disabled) {
+    border-color: var(--accent-color);
+  }
+  .chip:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+</style>
