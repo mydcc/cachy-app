@@ -2897,7 +2897,6 @@
       "leverageInSync": "Die Börse nutzt bereits {value}x",
       "leverageOutOfRange": "{symbol} akzeptiert {min}x bis {max}x",
       "leverageNeedsValue": "Zuerst einen ganzzahligen Hebel eingeben",
-      "leverageNeedsSymbol": "Zuerst ein Handelspaar wählen",
       "leverageEdit": "Hebel anpassen",
       "leverageRange": "{min}x bis {max}x",
       "leverageLocalOnly": "Nur lokal — ohne Broker-Wert wird nichts an die Börse gesendet.",

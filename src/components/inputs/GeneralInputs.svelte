@@ -18,6 +18,7 @@
 <script lang="ts">
   import { CONSTANTS } from "../../lib/constants";
   import { tradeState } from "../../stores/trade.svelte";
+  import { settingsState } from "../../stores/settings.svelte";
 
   import { untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
@@ -26,6 +27,7 @@
   import { _ } from "../../locales/i18n";
 
   import { trackCustomEvent } from "../../services/trackingService";
+  import { activeExchange } from "../../services/exchange";
   import ExchangeAccountControls from "./ExchangeAccountControls.svelte";
 
 
@@ -59,6 +61,8 @@
   }
 
   let remoteLev = $derived(tradeState.remoteLeverage);
+  const exchange = $derived(settingsState.apiProvider);
+  const supported = $derived(activeExchange().supports.accountSettings);
 
   /*
    * FEAT-0328, decision 5 — one leverage, one source.
@@ -162,6 +166,37 @@
     -->
     <div class="flex flex-wrap items-end gap-3">
       <ExchangeAccountControls />
+
+      <!--
+        Fallback: venues with accountSettings: false (e.g., Bitget) have no
+        leverage chip. Restore the input here so users can still edit leverage
+        for calculator sizing. Sized to match the chip height.
+      -->
+      {#if !supported}
+        <div class="flex flex-col gap-1 min-w-0">
+          <label
+            for="leverage-fallback"
+            class="text-[11px] font-medium text-[var(--text-secondary)]"
+            >{$_("exchange.accountSettings.leverageEdit")}</label
+          >
+          <input
+            id="leverage-fallback"
+            name="leverage"
+            type="text"
+            inputmode="numeric"
+            data-track-id="input-leverage-fallback"
+            use:numberInput={{ maxDecimalPlaces: 0 }}
+            use:enhancedInput={{ step: 1, min: 1 }}
+            value={leverage ?? ""}
+            onchange={(e) => {
+              const val = (e.target as HTMLInputElement).value.trim();
+              leverage = val === "" ? null : val;
+            }}
+            class="fee-input w-full"
+            placeholder="1"
+          />
+        </div>
+      {/if}
 
       <!--
         Fees. Entry stays local until FEAT-0253 gives this a broker source;
