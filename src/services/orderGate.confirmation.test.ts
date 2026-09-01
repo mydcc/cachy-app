@@ -27,7 +27,6 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Decimal } from "decimal.js";
 import {
     orderGate,
-    mutatingActionOf,
     registerConfirmationCheck,
     translateRefusal,
     type OrderIntent,
@@ -252,8 +251,7 @@ describe("one user intent, two venue payloads, one policy", () => {
      * same setting would apply on one venue and not the other. `confirmAs`
      * carries the user's intent past that difference.
      */
-    const policyForFlashClose = (intent: OrderIntent) =>
-        (intent.confirmAs ?? mutatingActionOf(intent.payload) ?? "") === "flash-close-position";
+    const policyForFlashClose = (action: string) => action === "flash-close-position";
 
     it("asks the flash-close question on the native payload", () => {
         registerConfirmationCheck(policyForFlashClose);

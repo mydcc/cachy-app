@@ -348,17 +348,18 @@ export function registerKillSwitch(fn: KillSwitchCheck | null): void {
 /**
  * Answers whether this action needs a human's confirmation — FEAT-0024.
  *
- * Takes the intent rather than a bare action name because the policy is
- * per-action but the question is per-attempt: the same `close-position` is a
- * routine reduce or the last exit from a losing trade, and a future policy
- * that varies by size or by symbol needs the whole intent to say so.
+ * Takes the resolved action name — `confirmAs` where the caller set one, the
+ * wire action otherwise — so a call site can ask the same question before it
+ * has built an intent. `tradeService.flashClosePosition` needs exactly that:
+ * it cancels the position's stop-loss on the way to the gate, and has to know
+ * it will be refused before doing so.
  *
  * Returning `true` means "ask first". The gate then refuses unless
  * `intent.confirmedAt` is set, which is what makes the policy structural
  * rather than advisory: a call site that forgets to confirm gets a refusal it
  * cannot miss, instead of quietly skipping the prompt.
  */
-export type ConfirmationCheck = (intent: OrderIntent) => boolean;
+export type ConfirmationCheck = (action: string) => boolean;
 
 let confirmationCheck: ConfirmationCheck | null = null;
 
@@ -372,6 +373,19 @@ let confirmationCheck: ConfirmationCheck | null = null;
  */
 export function registerConfirmationCheck(fn: ConfirmationCheck | null): void {
     confirmationCheck = fn;
+}
+
+/**
+ * Whether this action would need a confirmation, asked before an intent
+ * exists — FEAT-0330.
+ *
+ * Exported so a call site with side effects on the way to the gate can stop
+ * early instead of doing damage it cannot undo. It reads the same registered
+ * check the gate reads, so there is one source of truth and not two; the gate
+ * still refuses on its own, and this cannot approve anything.
+ */
+export function requiresConfirmation(action: string): boolean {
+    return confirmationCheck?.(action) === true;
 }
 
 // ---------------------------------------------------------------------------
@@ -1159,7 +1173,7 @@ class OrderGate {
      *    once they have been compared against the displayed state.
      */
     private confirmationRefusal(intent: OrderIntent, action: string): OrderRefusal | null {
-        if (confirmationCheck?.(intent) !== true) return null;
+        if (confirmationCheck?.(action) !== true) return null;
         if (typeof intent.confirmedAt === "number") return null;
 
         return {

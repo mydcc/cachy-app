@@ -54,6 +54,7 @@ vi.mock("../apiService", () => ({
 const tradeServiceMock = vi.hoisted(() => ({
     placeOrder: vi.fn(async () => ({ ok: true })),
     closePosition: vi.fn(async () => ({ ok: true })),
+    flashClosePosition: vi.fn(async () => ({ ok: true })),
     cancelOrder: vi.fn(async () => ({ ok: true })),
     cancelAllOrders: vi.fn(async () => ({ ok: true })),
     modifyOrder: vi.fn(async () => ({ ok: true })),
@@ -244,6 +245,12 @@ const TRADING_VERBS: Record<string, VerbSpec> = {
         kind: "write",
         args: [{ symbol: "BTCUSDT", positionSide: "long" }],
         transport: "closePosition",
+    },
+    flashClosePosition: {
+        gate: null,
+        kind: "write",
+        args: ["BTCUSDT", "long"],
+        transport: "flashClosePosition",
     },
     cancelOrder: { gate: null, kind: "write", args: ["BTCUSDT", "1"], transport: "cancelOrder" },
     cancelAllOrders: { gate: null, kind: "write", args: ["BTCUSDT"], transport: "cancelAllOrders" },

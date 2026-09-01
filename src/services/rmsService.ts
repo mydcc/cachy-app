@@ -36,7 +36,6 @@ import { logger } from "./logger";
 import { Decimal } from "decimal.js";
 import { getTradePnL } from "../lib/calculators/core";
 import {
-    mutatingActionOf,
     registerConfirmationCheck,
     registerKillSwitch,
     registerRiskLimitCheck,
@@ -178,10 +177,8 @@ class RiskManagementService {
     public installGateHooks(): void {
         registerKillSwitch((intent) => this.isBlockedByKillSwitch(intent));
         registerRiskLimitCheck((intent) => this.checkLimits(intent));
-        registerConfirmationCheck((intent) =>
-            confirmationPolicyStore.requiresForWireAction(
-                intent.confirmAs ?? mutatingActionOf(intent.payload) ?? "",
-            ),
+        registerConfirmationCheck((action) =>
+            confirmationPolicyStore.requiresForWireAction(action),
         );
     }
 

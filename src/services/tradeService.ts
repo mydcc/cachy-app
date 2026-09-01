@@ -54,6 +54,7 @@ import { accountState } from "../stores/account.svelte";
 import {
     orderGate,
     assertGatePass,
+    requiresConfirmation,
     accountFingerprint,
     translateRefusal,
     OrderRefusedError,
@@ -697,6 +698,30 @@ class TradeService {
                 positionSide,
                 position.positionId,
             );
+
+            /*
+             * FEAT-0330. Asked here, before anything below has a side effect.
+             *
+             * This function cancels the position's stop-loss and take-profit
+             * before closing — correct when the close then happens, dangerous
+             * when it does not. A refusal further down would leave the trader
+             * holding an open position with its protection removed, which is
+             * strictly worse than the state they started in.
+             *
+             * The gate remains the authority: it refuses an unconfirmed action
+             * regardless of this check, which only stops the damage happening
+             * on the way there. `flash-close.confirmation.test.ts` asserts that
+             * a refusal sends nothing at all.
+             */
+            if (confirmedAt === undefined && requiresConfirmation("flash-close-position")) {
+                logger.warn("market", `[FlashClose] Unconfirmed, refusing before cancelling protection.`);
+                return {
+                    success: false,
+                    error: get(_)("orderGate.unconfirmed", {
+                        values: { action: "flash-close-position" },
+                    }),
+                };
+            }
 
             // CRITICAL: Use exact amount from OMS
             if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {

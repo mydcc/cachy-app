@@ -32,6 +32,14 @@
     ontpSl?: (pos: OMSPosition) => void;
     /** FEAT-0068 — opens the add/withdraw-margin dialog. */
     onadjustMargin?: (pos: OMSPosition) => void;
+    /**
+     * FEAT-0330 — the whole position, at market, in one click.
+     *
+     * Deliberately separate from `onclose`, which opens the partial-close
+     * dialog. The two read as the same intent and are not: one asks how much,
+     * the other has already decided it is all of it.
+     */
+    onflashClose?: (pos: OMSPosition) => void;
   }
 
   let {
@@ -41,6 +49,7 @@
     onclose,
     ontpSl,
     onadjustMargin,
+    onflashClose,
   }: Props = $props();
 
   /*
@@ -337,6 +346,25 @@
                     {$_("positionsList.adjustMargin")}
                   </button>
                 {/if}
+                <!--
+                  FEAT-0330. Before Close, not after — and the ordering is
+                  about reach, not reading order. These buttons are `flex-1`
+                  in a row, so the last one sits on the right edge, which is
+                  where a thumb lands most easily. That position belongs to
+                  the control that opens a dialog, not to the one that closes
+                  the whole position at market.
+
+                  The focus/panic row follows the same rule and therefore
+                  looks reversed: there the X is last and stays on the edge.
+                -->
+                <button
+                  class="flex-1 py-1 text-[10px] bg-danger-paired rounded border border-[var(--danger-color)] transition-colors font-bold"
+                  data-track-id="btn-flash-close"
+                  onclick={() => onflashClose?.(pos)}
+                  title={$_("positionsList.flashCloseHint")}
+                >
+                  {$_("positionsList.flashClose")}
+                </button>
                 <button
                   class="flex-1 py-1 text-[10px] bg-[var(--danger-color)] bg-opacity-10 hover:bg-opacity-20 text-[var(--danger-color)] rounded border border-[var(--danger-color)] border-opacity-30 transition-colors font-bold"
                   onclick={() => handleClose(pos)}
@@ -378,6 +406,36 @@
                   >{pos.side.toUpperCase()}</span
                 >
               </div>
+
+              <!--
+                FEAT-0330. The panic mode is where a one-click exit belongs,
+                but it does not get to be the X: that already means "open the
+                close dialog", and silently changing what a familiar button
+                does in the mode people reach for when they are losing money
+                is how a safety feature becomes an accident.
+
+                Placed before the X for the same reason the detailed row
+                places it before Close: the last element sits on the right
+                edge, within easiest thumb reach, and that belongs to the
+                control that only opens a dialog.
+              -->
+              <button
+                class="w-8 h-8 mr-1 flex items-center justify-center bg-danger-paired rounded border border-[var(--danger-color)] transition-colors shadow-sm"
+                data-track-id="btn-flash-close-focus"
+                onclick={() => onflashClose?.(pos)}
+                title={$_("positionsList.flashCloseHint")}
+                aria-label={$_("positionsList.flashClose")}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />
+                </svg>
+              </button>
 
               <!-- Close Button (X) -->
               <button
