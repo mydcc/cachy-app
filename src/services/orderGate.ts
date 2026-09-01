@@ -260,6 +260,22 @@ export interface OrderIntent {
      * not proceed silently.
      */
     confirmedAt?: number;
+    /**
+     * The policy action to ask about, when it differs from the wire action —
+     * FEAT-0024.
+     *
+     * One user intent can travel as different payloads. A flash close reaches
+     * Bitunix as `flash-close-position` but every other venue as an ordinary
+     * reduce-only `place-order`, and reading the policy off the wire would
+     * then ask the `place-order` question — which defaults to off — about the
+     * button the user pressed expecting a flash-close prompt. The same policy
+     * would apply or not depending on the venue, which is not a distinction
+     * any user made.
+     *
+     * The gate does not interpret this; it hands the string to the registered
+     * check, which owns the catalogue. Absent, the wire action is used.
+     */
+    confirmAs?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -755,7 +771,10 @@ class OrderGate {
         // Last, so that disabling a confirmation cannot skip a verification —
         // see `confirmationRefusal` for why the ordering is the design.
         checked.push("confirmation");
-        const unconfirmed = this.confirmationRefusal(intent, mutatingActionOf(payload) ?? "");
+        const unconfirmed = this.confirmationRefusal(
+            intent,
+            intent.confirmAs ?? mutatingActionOf(payload) ?? "",
+        );
         if (unconfirmed) return refuse(unconfirmed);
 
         return { approved: true, refusal: null, checked };

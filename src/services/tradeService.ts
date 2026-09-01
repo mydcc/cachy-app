@@ -668,7 +668,17 @@ class TradeService {
         return position;
     }
 
-    public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
+    /**
+     * @param confirmedAt When the user confirmed, as `Date.now()` — FEAT-0024.
+     *   Omitted when no confirmation was needed. If the policy requires one and
+     *   this is absent, the gate refuses rather than sending: a caller that
+     *   forgets to ask stops, it does not proceed silently.
+     */
+    public async flashClosePosition(
+        symbol: string,
+        positionSide: "long" | "short",
+        confirmedAt?: number,
+    ) {
         let clientOrderId = "";
         try {
             // 1. Get fresh position
@@ -736,6 +746,8 @@ class TradeService {
                         positionId: position.positionId,
                     },
                     displayed: { symbol, positionId: position.positionId },
+                    confirmAs: "flash-close-position",
+                    confirmedAt,
                 });
             } else {
                 result = await this.gatedRequest({
@@ -759,6 +771,15 @@ class TradeService {
                         fullClose: true,
                         positionId,
                     },
+                    /*
+                     * The payload says `place-order` because that is what this
+                     * venue understands, but the user pressed flash close and
+                     * that is the policy they configured. Without this the
+                     * prompt would appear on Bitunix and not on Bitget — a
+                     * difference no user asked for.
+                     */
+                    confirmAs: "flash-close-position",
+                    confirmedAt,
                 });
             }
 

@@ -179,7 +179,9 @@ class RiskManagementService {
         registerKillSwitch((intent) => this.isBlockedByKillSwitch(intent));
         registerRiskLimitCheck((intent) => this.checkLimits(intent));
         registerConfirmationCheck((intent) =>
-            confirmationPolicyStore.requiresForWireAction(mutatingActionOf(intent.payload) ?? ""),
+            confirmationPolicyStore.requiresForWireAction(
+                intent.confirmAs ?? mutatingActionOf(intent.payload) ?? "",
+            ),
         );
     }
 

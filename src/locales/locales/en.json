@@ -2008,6 +2008,12 @@
           "label": "Switch account",
           "hint": "Ask before switching to a different exchange account."
         }
+      },
+      "dialog": {
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "heading": "Confirm {action}",
+        "irreversible": "This cannot be undone."
       }
     }
   },

@@ -2009,6 +2009,12 @@
           "label": "Konto wechseln",
           "hint": "Vor dem Wechsel zu einem anderen Exchange-Konto nachfragen."
         }
+      },
+      "dialog": {
+        "confirm": "Bestätigen",
+        "cancel": "Abbrechen",
+        "heading": "{action} bestätigen",
+        "irreversible": "Das lässt sich nicht rückgängig machen."
       }
     }
   },

@@ -25,7 +25,12 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Decimal } from "decimal.js";
-import { orderGate, registerConfirmationCheck, type OrderIntent } from "./orderGate";
+import {
+    orderGate,
+    mutatingActionOf,
+    registerConfirmationCheck,
+    type OrderIntent,
+} from "./orderGate";
 import {
     DEFAULT_CONFIRMATION_POLICY,
     GATED_ACTIONS,
@@ -234,5 +239,66 @@ describe("normalizePolicy", () => {
         expect(actions.sort()).toEqual(
             (Object.keys(DEFAULT_CONFIRMATION_POLICY) as ConfirmableAction[]).sort(),
         );
+    });
+});
+
+describe("one user intent, two venue payloads, one policy", () => {
+    /*
+     * A flash close reaches Bitunix as `flash-close-position` and every other
+     * venue as an ordinary reduce-only `place-order`. Reading the policy off
+     * the wire would ask the `place-order` question — which defaults to off —
+     * about the button the user pressed expecting a flash-close prompt, so the
+     * same setting would apply on one venue and not the other. `confirmAs`
+     * carries the user's intent past that difference.
+     */
+    const policyForFlashClose = (intent: OrderIntent) =>
+        (intent.confirmAs ?? mutatingActionOf(intent.payload) ?? "") === "flash-close-position";
+
+    it("asks the flash-close question on the native payload", () => {
+        registerConfirmationCheck(policyForFlashClose);
+        const intent = { ...closeIntent(), confirmAs: "flash-close-position" };
+
+        const verdict = orderGate.verify(intent);
+
+        expect(verdict.refusal?.reason).toBe("unconfirmed");
+        expect(verdict.refusal?.values.action).toBe("flash-close-position");
+    });
+
+    it("asks the same question when the payload says place-order", () => {
+        registerConfirmationCheck(policyForFlashClose);
+        const intent = { ...closeIntent(), confirmAs: "flash-close-position" };
+        // The generic venue path: a reduce-only market order, not a native
+        // flash close.
+        intent.payload = { ...intent.payload, type: "place-order" };
+
+        const verdict = orderGate.verify(intent);
+
+        expect(verdict.refusal?.reason).toBe("unconfirmed");
+        expect(verdict.refusal?.values.action).toBe("flash-close-position");
+    });
+
+    it("sends on either path once confirmed", () => {
+        registerConfirmationCheck(policyForFlashClose);
+        const confirmedAt = Date.now();
+
+        for (const type of ["flash-close-position", "place-order"]) {
+            const intent = {
+                ...closeIntent(),
+                confirmAs: "flash-close-position",
+                confirmedAt,
+            };
+            intent.payload = { ...intent.payload, type };
+
+            expect(orderGate.verify(intent).approved).toBe(true);
+        }
+    });
+
+    it("leaves an unrelated action alone", () => {
+        registerConfirmationCheck(policyForFlashClose);
+        // No `confirmAs`: the wire action stands, and it is not flash close.
+        const intent = closeIntent();
+        intent.payload = { ...intent.payload, type: "place-order" };
+
+        expect(orderGate.verify(intent).approved).toBe(true);
     });
 });
