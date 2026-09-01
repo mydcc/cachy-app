@@ -29,6 +29,7 @@ import {
     orderGate,
     mutatingActionOf,
     registerConfirmationCheck,
+    translateRefusal,
     type OrderIntent,
 } from "./orderGate";
 import {
@@ -300,5 +301,42 @@ describe("one user intent, two venue payloads, one policy", () => {
         intent.payload = { ...intent.payload, type: "place-order" };
 
         expect(orderGate.verify(intent).approved).toBe(true);
+    });
+});
+
+describe("the refusal reads like the settings screen", () => {
+    /** svelte-i18n echoes an unknown key back; this mimics that. */
+    const t = (key: string, options?: { values?: Record<string, string> }) => {
+        const labels: Record<string, string> = {
+            "settings.confirmations.actions.flash-close-position.label": "Flash close",
+            "orderGate.unconfirmed": `refused: ${options?.values?.action ?? ""}`,
+        };
+        return labels[key] ?? key;
+    };
+
+    it("names the action the way the user configured it", () => {
+        registerConfirmationCheck(alwaysConfirm);
+        const verdict = orderGate.verify(closeIntent());
+
+        const message = translateRefusal(verdict.refusal!, t);
+
+        expect(message).toContain("Flash close");
+        expect(message).not.toContain("flash-close-position");
+    });
+
+    it("falls back to the raw name for an action with no label", () => {
+        // A wire action outside the confirmable catalogue has no label, and a
+        // dotted key path in a toast is worse than the raw name.
+        const message = translateRefusal(
+            {
+                field: "confirmation",
+                reason: "unconfirmed",
+                messageKey: "orderGate.unconfirmed",
+                values: { action: "some-future-action" },
+            },
+            t,
+        );
+
+        expect(message).toContain("some-future-action");
     });
 });

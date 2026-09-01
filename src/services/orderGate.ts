@@ -1373,6 +1373,20 @@ export function translateRefusal(
             values.field = translated;
         }
     }
+    /*
+     * FEAT-0024's refusal names an action, and it should read the way the
+     * settings screen names it — "Flash close", not "flash-close-position".
+     * Same fallback as the field above: a wire action outside the confirmable
+     * catalogue has no label, and svelte-i18n echoes the key back, so the raw
+     * name is shown rather than a dotted path.
+     */
+    if (values.action) {
+        const key = `settings.confirmations.actions.${values.action}.label`;
+        const translated = t(key);
+        if (translated && translated !== key) {
+            values.action = translated;
+        }
+    }
     return t(refusal.messageKey, { values });
 }
 
