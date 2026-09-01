@@ -2,7 +2,8 @@
 id: FEAT-0024
 title: Let the user decide which actions need confirming
 type: feature
-status: specced
+status: in-progress
+assignee: claude
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -16,6 +17,8 @@ target_date: 2026-12-17
 start_date: 2026-08-01
 ---
 
+
+Branch: `feat/feat-0024-confirmation-policy`
 
 # FEAT-0024 — Let the user decide which actions need confirming
 

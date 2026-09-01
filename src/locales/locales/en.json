@@ -2723,6 +2723,7 @@
     "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
     "killSwitch": "Order refused: the kill switch is engaged. No orders that open or increase a position are sent while it is on — closing positions, cancelling orders and adjusting stops still work.",
     "riskLimit": "Order refused: {field} exceeds the configured limit (limit {limit}, this order {actual}). The order was not sent.",
+    "unconfirmed": "Order refused: {action} is set to ask for confirmation first, and none was given. The order was not sent.",
     "minTradeVolume": "Order refused: the order size {actual} is below the minimum trade volume of {limit}. The order was not sent.",
     "maxOrderVolume": "Order refused: the order size {actual} exceeds the maximum order volume of {limit}. The order was not sent.",
     "stepSize": "Order refused: the size {actual} is not a whole multiple of this instrument's step size of {step}, so the exchange could not fill it. The order was not sent.",
@@ -2758,7 +2759,8 @@
       "stopLoss": "the stop loss",
       "symbol": "the symbol",
       "symbolStatus": "the symbol status",
-      "takeProfit": "the take profit"
+      "takeProfit": "the take profit",
+      "confirmation": "Confirmation"
     },
     "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
     "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent.",

@@ -2702,6 +2702,7 @@
     "stale": "Order abgelehnt: Der Kontostand ({field}) ist {age}s alt und damit älter als das Limit von {max}s. Bitte aktualisieren und erneut versuchen.",
     "killSwitch": "Order abgelehnt: Der Kill Switch ist aktiv. Solange er an ist, werden keine Orders gesendet, die eine Position eröffnen oder vergrößern — Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin.",
     "riskLimit": "Order abgelehnt: {field} überschreitet das konfigurierte Limit (Limit {limit}, diese Order {actual}). Die Order wurde nicht gesendet.",
+    "unconfirmed": "Order abgelehnt: Für {action} ist eine Bestätigung eingestellt, die nicht erfolgt ist. Die Order wurde nicht gesendet.",
     "minTradeVolume": "Order abgelehnt: Die Positionsgröße {actual} liegt unter dem Mindesthandelsvolumen von {limit}. Die Order wurde nicht gesendet.",
     "maxOrderVolume": "Order abgelehnt: Die Positionsgröße {actual} überschreitet das maximale Ordervolumen von {limit}. Die Order wurde nicht gesendet.",
     "stepSize": "Order abgelehnt: Die Größe {actual} ist kein ganzzahliges Vielfaches der Schrittweite {step} dieses Instruments und wäre an der Börse nicht ausführbar. Die Order wurde nicht gesendet.",
@@ -2737,7 +2738,8 @@
       "stopLoss": "der Stop-Loss",
       "symbol": "das Symbol",
       "symbolStatus": "der Symbol-Status",
-      "takeProfit": "der Take-Profit"
+      "takeProfit": "der Take-Profit",
+      "confirmation": "Bestätigung"
     },
     "riskLimitDailyLoss": "Order abgelehnt: Der heute realisierte Verlust beträgt {actual} und hat das Tageslimit von {limit} erreicht oder überschritten. Das Limit wird um 00:00 UTC zurückgesetzt. Positionen schließen und Orders stornieren ist weiterhin möglich.",
     "riskLimitUnmeasurable": "Order abgelehnt: Für {field} ist ein Limit konfiguriert, aber diese Order enthält nichts, woran es geprüft werden könnte. Die Order wurde nicht gesendet.",
