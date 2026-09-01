@@ -1135,7 +1135,7 @@
     "feeRates": "Gebührenraten — {venue}",
     "feeRatesMaker": "Maker (%)",
     "feeRatesTaker": "Taker (%)",
-    "feeRatesDesc": "Deine persönlichen Gebühren (abhängig von deinem Broker-Level). Sie werden für die simulierte Berechnung im Frontend verwendet. Standardwerte: Bitunix 0.02/0.06 — passe sie an deine echten Raten an. Das Journal erhält später die tatsächlich berechneten Broker-Gebühren.",
+    "feeRatesDesc": "Deine persönlichen Gebühren (abhängig von deinem Broker-Level). Sie werden für die simulierte Berechnung im Frontend verwendet. Standardwerte: 0.02/0.06 pro Venue — passe sie an deine echten Raten an. Das Journal erhält später die tatsächlich berechneten Broker-Gebühren.",
     "providerLabel": "Börsen-Anbieter",
     "securityNote": "Schlüssel werden lokal in deinem Browser gespeichert.",
     "imgbbHeader": "ImgBB Bild-Hosting",

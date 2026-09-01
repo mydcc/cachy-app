@@ -87,13 +87,19 @@
   let entryType = $derived(feeMode.split("_")[0] as "maker" | "taker");
   const exchange = $derived(settingsState.apiProvider);
   let feeRates = $derived(settingsState.feeRates[exchange]);
-  // `|| CONSTANTS.DEFAULT_FEES` guards two degenerate inputs so the mirrored
-  // `fees` can never be `undefined` or empty: a legacy `feeMode: "flat"`
-  // (applyPreset lets it through) makes `feeRates["flat"]` undefined, and a
-  // Settings field the user cleared stores `""`. Both are falsy, so both fall
-  // back to the flat default (0.06) rather than feeding the calculator a
-  // zero-fee sizing.
-  let activeFeeRate = $derived(feeRates[entryType] || CONSTANTS.DEFAULT_FEES);
+  // Guard two degenerate inputs so the mirrored `fees` can never be
+  // `undefined` or empty: a legacy `feeMode: "flat"` (applyPreset lets it
+  // through) makes `feeRates["flat"]` undefined, and a Settings field the
+  // user cleared stores `""`. Both fall back to the flat default (0.06)
+  // rather than feeding the calculator a zero-fee sizing. The check is
+  // explicit, not `||`: a literal `"0"` (a venue promo or rebate rate) is a
+  // legitimate zero-percent fee and must pass through, only undefined and
+  // the empty string are degenerate.
+  let activeFeeRate = $derived(
+    feeRates[entryType] === undefined || feeRates[entryType] === ""
+      ? CONSTANTS.DEFAULT_FEES
+      : feeRates[entryType],
+  );
 
   $effect(() => {
     const authoritative = activeFeeRate;

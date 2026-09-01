@@ -242,4 +242,15 @@ describe("FEAT-0253 — the fee mirror never emits a degenerate value", () => {
 
         expect(tradeStateMock.fees).toBe("0.0600");
     });
+
+    it("passes a literal '0' rate through (promo / rebate, not a degenerate input)", async () => {
+        // A venue promo or maker rebate can legitimately be 0%. The guard
+        // must not treat the string "0" as falsy and fall back to DEFAULT_FEES
+        // — only undefined and "" are degenerate.
+        (settingsStateMock.feeRates.bitunix as { maker: string }).maker = "0";
+        tradeStateMock.fees = "0.06";
+        await render();
+
+        expect(tradeStateMock.fees).toBe("0");
+    });
 });

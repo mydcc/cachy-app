@@ -1133,7 +1133,7 @@
     "feeRates": "Fee Rates — {venue}",
     "feeRatesMaker": "Maker (%)",
     "feeRatesTaker": "Taker (%)",
-    "feeRatesDesc": "Your personal fees (depending on your broker level). They are used for the simulated calculation in the frontend. Defaults: Bitunix 0.02/0.06 — adjust them to your actual rates. The journal will later receive the actually charged broker fees.",
+    "feeRatesDesc": "Your personal fees (depending on your broker level). They are used for the simulated calculation in the frontend. Defaults: 0.02/0.06 per venue — adjust them to your actual rates. The journal will later receive the actually charged broker fees.",
     "providerLabel": "Exchange Provider",
     "securityNote": "Keys are stored locally in your browser.",
     "imgbbHeader": "ImgBB Image Hosting",

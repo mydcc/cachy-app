@@ -422,6 +422,24 @@ describe("SettingsManager feeRates (FEAT-0253) -- defaults, merge, serialize", (
     expect(settings.feeRates.bitunix).not.toBe(VENUE_DEFAULT_FEE_RATES.bitunix);
   });
 
+  it("does not mutate VENUE_DEFAULT_FEE_RATES when a rate is edited", () => {
+    // B1 regression: the B1 review finding claimed the shallow clone shares
+    // the constant's inner objects. The $state initializer already spreads
+    // per-venue copies, and defaultSettings.feeRates does too — so editing a
+    // rate must leave the documented defaults untouched.
+    const settings = new SettingsManager();
+    settings.feeRates.bitunix.maker = "0.0050";
+
+    expect(VENUE_DEFAULT_FEE_RATES.bitunix).toEqual({
+      maker: "0.0200",
+      taker: "0.0600",
+    });
+    expect(VENUE_DEFAULT_FEE_RATES.bitget).toEqual({
+      maker: "0.0200",
+      taker: "0.0600",
+    });
+  });
+
   it("merges a partial stored blob, filling the missing venue from defaults", () => {
     localStorageMock.setItem(
       STORAGE_KEY,
