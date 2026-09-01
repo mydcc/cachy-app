@@ -28,11 +28,11 @@
   leverage really is adjustable with an open position and resting orders —
   unlike margin mode and position mode next door.
 
-  What this deliberately does NOT show is a "max position size". Deriving one
-  would mean multiplying an available balance by the leverage, which ignores
-  the venue's tiered position limits — at high leverage the real cap is far
-  below that product. A maximum the exchange would refuse is a misleading
-  number on a money screen. The liquidation projection below is shown instead:
+  What this deliberately does NOT show is a maximum position size field.
+  Deriving one would mean multiplying available balance by leverage, which
+  ignores the venue's tiered position limits — at high leverage the real cap
+  is far below that product. A maximum the exchange would refuse is misleading
+  on a money screen. The liquidation projection below is shown instead:
   it is the consequence that actually decides whether a leverage is sane, and
   it is calibrated against the venue's own reported numbers rather than a
   guessed maintenance-margin rate.
