@@ -18,28 +18,29 @@
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
+import { applySecurityHeaders, cacheControlFor } from './server-headers.js';
 
 const app = express();
 
 // Use compression to improve Lighthouse Performance Score
 app.use(compression());
 
-// Apply security headers to all requests
+// Apply security headers to all requests. Runs before express.static, so
+// static assets already carry them — no need to repeat the call in setHeaders.
 app.use((req, res, next) => {
-  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://s.cachy.app; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https://s.cachy.app https: blob: data:; frame-ancestors 'self'; connect-src 'self' https://s.cachy.app https://chat.cachy.app wss://chat.cachy.app https://*.cachy.app wss://*.cachy.app https://bam.nr-data.net https://bam.eu01.nr-data.net wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://generativelanguage.googleapis.com https://api.openai.com");
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-  // DO NOT add Cross-Origin-Embedder-Policy (COEP). COEP breaks embedded channel iframes (e.g. space.cachy.app Unity Metaverse) and external news modals.
-  // DO NOT restrict camera, microphone, xr-spatial-tracking, or geolocation to () as it breaks 3D space.cachy.app metaverse and external iframe modals.
-  res.setHeader("Permissions-Policy", "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), xr-spatial-tracking=(self \"https://space.cachy.app\" *), display-capture=(self \"https://space.cachy.app\"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*");
+  applySecurityHeaders(res);
   next();
 });
 
-// Let SvelteKit handle everything else, including static files
-app.use(express.static('build/client', { index: false }));
+// Let SvelteKit serve static assets with correct caching headers. Security
+// headers are already set by the middleware above; only cache behavior
+// differs per file here. path is a filesystem path (backslashes on Windows).
+app.use(express.static('build/client', {
+  index: false,
+  setHeaders: (res, path) => {
+    res.setHeader('Cache-Control', cacheControlFor(path));
+  }
+}));
 app.use(handler);
 
 const port = process.env.PORT || "3001";
