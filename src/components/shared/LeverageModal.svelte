@@ -79,6 +79,7 @@
     localOnly,
     busy,
     position,
+    marginMode,
     onclose,
     onconfirm,
   }: Props = $props();

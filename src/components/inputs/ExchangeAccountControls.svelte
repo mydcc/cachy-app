@@ -371,6 +371,7 @@
       {localOnly}
       busy={busy === "leverage"}
       position={openPosition}
+      marginMode={marginModeValue}
       onclose={() => (leverageOpen = false)}
       onconfirm={confirmLeverage}
     />
