@@ -153,7 +153,7 @@ class WasmCalculator {
   async calculate(klines: Kline[], settings: IndicatorSettings): Promise<TechnicalsData> {
     // A $derived on the IndicatorManager snapshot — cheap and stable across
     // calls, so two ticks with unchanged settings share one WASM instance.
-    const settingsKey = settings._cachedJson || JSON.stringify(settings);
+    const settingsKey = settings?._cachedJson || JSON.stringify(settings);
     try {
       return await this.runCalculation(klines, settings, settingsKey);
     } catch (error) {
@@ -223,6 +223,9 @@ class WasmCalculator {
         last.time.toString()
       );
       entry.lastTime = last.time;
+      // Reorder as most-recently-used for LRU eviction semantics
+      this.instances.delete(settingsKey);
+      this.instances.set(settingsKey, entry);
       return this.convertResult(JSON.parse(resultJson), klines, settings);
     }
 
@@ -319,6 +322,9 @@ class WasmCalculator {
         last.time.toString()
     );
     entry.lastTime = last.time;
+    // Reorder as most-recently-used for LRU eviction semantics
+    this.instances.delete(settingsKey);
+    this.instances.set(settingsKey, entry);
 
     return this.convertResult(JSON.parse(resultJson), klines, settings);
   }
