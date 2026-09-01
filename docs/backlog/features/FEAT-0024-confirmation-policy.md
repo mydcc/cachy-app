@@ -2,7 +2,8 @@
 id: FEAT-0024
 title: Let the user decide which actions need confirming
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.198
 assignee: claude
 priority: P1
 milestone: M3
