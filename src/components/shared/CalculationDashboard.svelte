@@ -211,7 +211,7 @@
                             {#if data.confluenceScore !== undefined}
                                 <span
                                     class="info-tag score"
-                                    title="Confluence score"
+                                    title={$_("calculationDashboard.confluenceScore")}
                                 >
                                     {data.confluenceScore.toFixed(0)}%
                                 </span>
