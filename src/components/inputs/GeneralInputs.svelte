@@ -39,7 +39,6 @@
 
   let {
     tradeType = $bindable(),
-    // eslint-disable-next-line no-useless-assignment
     leverage = $bindable(),
     fees = $bindable(),
   }: Props = $props();
@@ -61,7 +60,6 @@
   }
 
   let remoteLev = $derived(tradeState.remoteLeverage);
-  const exchange = $derived(settingsState.apiProvider);
   const supported = $derived(activeExchange().supports.accountSettings);
 
   /*

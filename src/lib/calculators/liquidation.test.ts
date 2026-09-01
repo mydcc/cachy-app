@@ -92,9 +92,13 @@ describe("projectLiquidation", () => {
     const currentLeverage = new Decimal("10");
     const newLeverage = new Decimal("20");
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(projectLiquidation(undefined as any, liquidation, currentLeverage, newLeverage)).toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(projectLiquidation(entry, undefined as any, currentLeverage, newLeverage)).toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(projectLiquidation(entry, liquidation, undefined as any, newLeverage)).toBeNull();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(projectLiquidation(entry, liquidation, currentLeverage, undefined as any)).toBeNull();
   });
 });
