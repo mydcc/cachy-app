@@ -1964,6 +1964,57 @@
         "refused": "Refused",
         "failed": "Failed"
       }
+    },
+    "confirmations": {
+      "title": "Confirmations",
+      "intro": "Choose which actions ask before they run. Anything left off is one-click.",
+      "verificationNote": "Switching a confirmation off removes the prompt, not the safety check. Every order is still verified against what the screen showed before it is sent, and that verification cannot be switched off.",
+      "reset": "Restore defaults",
+      "persistFailed": "This setting could not be saved and will be lost when the page reloads.",
+      "actions": {
+        "place-order": {
+          "label": "Place order",
+          "hint": "Ask before an order is submitted."
+        },
+        "close-position": {
+          "label": "Close position",
+          "hint": "Ask before a position is closed, in whole or in part."
+        },
+        "flash-close-position": {
+          "label": "Flash close",
+          "hint": "Ask before a one-click market close. Cannot be undone."
+        },
+        "cancel-order": {
+          "label": "Cancel order",
+          "hint": "Ask before a single pending order is cancelled."
+        },
+        "cancel-all": {
+          "label": "Cancel all orders",
+          "hint": "Ask before every pending order is cancelled at once."
+        },
+        "modify-order": {
+          "label": "Modify order",
+          "hint": "Ask before a pending order's price or size is changed."
+        },
+        "leverage-change": {
+          "label": "Change leverage",
+          "hint": "Ask before leverage changes. Affects every position on the symbol."
+        },
+        "margin-mode-change": {
+          "label": "Change margin mode",
+          "hint": "Ask before switching between cross and isolated margin."
+        },
+        "account-switch": {
+          "label": "Switch account",
+          "hint": "Ask before switching to a different exchange account."
+        }
+      },
+      "dialog": {
+        "confirm": "Confirm",
+        "cancel": "Cancel",
+        "heading": "Confirm {action}",
+        "irreversible": "This cannot be undone."
+      }
     }
   },
   "positionsList": {
@@ -2723,6 +2774,7 @@
     "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
     "killSwitch": "Order refused: the kill switch is engaged. No orders that open or increase a position are sent while it is on — closing positions, cancelling orders and adjusting stops still work.",
     "riskLimit": "Order refused: {field} exceeds the configured limit (limit {limit}, this order {actual}). The order was not sent.",
+    "unconfirmed": "Order refused: {action} is set to ask for confirmation first, and none was given. The order was not sent.",
     "minTradeVolume": "Order refused: the order size {actual} is below the minimum trade volume of {limit}. The order was not sent.",
     "maxOrderVolume": "Order refused: the order size {actual} exceeds the maximum order volume of {limit}. The order was not sent.",
     "stepSize": "Order refused: the size {actual} is not a whole multiple of this instrument's step size of {step}, so the exchange could not fill it. The order was not sent.",
@@ -2758,7 +2810,8 @@
       "stopLoss": "the stop loss",
       "symbol": "the symbol",
       "symbolStatus": "the symbol status",
-      "takeProfit": "the take profit"
+      "takeProfit": "the take profit",
+      "confirmation": "Confirmation"
     },
     "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
     "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent.",

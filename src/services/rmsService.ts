@@ -36,11 +36,14 @@ import { logger } from "./logger";
 import { Decimal } from "decimal.js";
 import { getTradePnL } from "../lib/calculators/core";
 import {
+    mutatingActionOf,
+    registerConfirmationCheck,
     registerKillSwitch,
     registerRiskLimitCheck,
     type OrderIntent,
     type OrderRefusal,
 } from "./orderGate";
+import { confirmationPolicyStore } from "../stores/confirmationPolicy.svelte";
 import type { JournalEntry } from "../stores/types";
 
 export interface RiskProfile {
@@ -162,19 +165,31 @@ class RiskManagementService {
     // -- FEAT-0013 -----------------------------------------------------------
 
     /**
-     * Hands the limits and the kill switch to the gate. Called once at
-     * startup. Until this runs, both hooks are unregistered and the gate
-     * approves on those two checks — so this is not optional wiring.
+     * Hands the limits, the kill switch and the confirmation policy to the
+     * gate. Called once at startup. Until this runs, all three hooks are
+     * unregistered and the gate approves on those checks — so this is not
+     * optional wiring.
+     *
+     * The confirmation policy (FEAT-0024) rides along here rather than
+     * installing itself, because "everything the gate consults but does not
+     * define" is one concern with one lifecycle — a second install point is a
+     * second thing to forget in a test setup.
      */
     public installGateHooks(): void {
         registerKillSwitch((intent) => this.isBlockedByKillSwitch(intent));
         registerRiskLimitCheck((intent) => this.checkLimits(intent));
+        registerConfirmationCheck((intent) =>
+            confirmationPolicyStore.requiresForWireAction(
+                intent.confirmAs ?? mutatingActionOf(intent.payload) ?? "",
+            ),
+        );
     }
 
     /** Test seam — removes the hooks this service installed. */
     public uninstallGateHooks(): void {
         registerKillSwitch(null);
         registerRiskLimitCheck(null);
+        registerConfirmationCheck(null);
     }
 
     /**

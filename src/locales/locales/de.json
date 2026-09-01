@@ -1965,6 +1965,57 @@
         "refused": "Abgelehnt",
         "failed": "Fehlgeschlagen"
       }
+    },
+    "confirmations": {
+      "title": "Bestätigungen",
+      "intro": "Lege fest, welche Aktionen vorher nachfragen. Alles Ausgeschaltete läuft mit einem Klick.",
+      "verificationNote": "Eine ausgeschaltete Bestätigung entfernt die Rückfrage, nicht die Sicherheitsprüfung. Jede Order wird weiterhin gegen das geprüft, was auf dem Bildschirm stand, bevor sie gesendet wird — diese Prüfung lässt sich nicht abschalten.",
+      "reset": "Standard wiederherstellen",
+      "persistFailed": "Diese Einstellung konnte nicht gespeichert werden und geht beim Neuladen verloren.",
+      "actions": {
+        "place-order": {
+          "label": "Order aufgeben",
+          "hint": "Vor dem Absenden einer Order nachfragen."
+        },
+        "close-position": {
+          "label": "Position schließen",
+          "hint": "Vor dem ganzen oder teilweisen Schließen einer Position nachfragen."
+        },
+        "flash-close-position": {
+          "label": "Flash Close",
+          "hint": "Vor dem Schließen per Ein-Klick-Market-Order nachfragen. Nicht umkehrbar."
+        },
+        "cancel-order": {
+          "label": "Order stornieren",
+          "hint": "Vor dem Stornieren einer einzelnen offenen Order nachfragen."
+        },
+        "cancel-all": {
+          "label": "Alle Orders stornieren",
+          "hint": "Vor dem gleichzeitigen Stornieren aller offenen Orders nachfragen."
+        },
+        "modify-order": {
+          "label": "Order ändern",
+          "hint": "Vor dem Ändern von Preis oder Menge einer offenen Order nachfragen."
+        },
+        "leverage-change": {
+          "label": "Hebel ändern",
+          "hint": "Vor dem Ändern des Hebels nachfragen. Betrifft alle Positionen im Symbol."
+        },
+        "margin-mode-change": {
+          "label": "Margin-Modus ändern",
+          "hint": "Vor dem Wechsel zwischen Cross und Isolated nachfragen."
+        },
+        "account-switch": {
+          "label": "Konto wechseln",
+          "hint": "Vor dem Wechsel zu einem anderen Exchange-Konto nachfragen."
+        }
+      },
+      "dialog": {
+        "confirm": "Bestätigen",
+        "cancel": "Abbrechen",
+        "heading": "{action} bestätigen",
+        "irreversible": "Das lässt sich nicht rückgängig machen."
+      }
     }
   },
   "calculationDashboard": {
@@ -2702,6 +2753,7 @@
     "stale": "Order abgelehnt: Der Kontostand ({field}) ist {age}s alt und damit älter als das Limit von {max}s. Bitte aktualisieren und erneut versuchen.",
     "killSwitch": "Order abgelehnt: Der Kill Switch ist aktiv. Solange er an ist, werden keine Orders gesendet, die eine Position eröffnen oder vergrößern — Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin.",
     "riskLimit": "Order abgelehnt: {field} überschreitet das konfigurierte Limit (Limit {limit}, diese Order {actual}). Die Order wurde nicht gesendet.",
+    "unconfirmed": "Order abgelehnt: Für {action} ist eine Bestätigung eingestellt, die nicht erfolgt ist. Die Order wurde nicht gesendet.",
     "minTradeVolume": "Order abgelehnt: Die Positionsgröße {actual} liegt unter dem Mindesthandelsvolumen von {limit}. Die Order wurde nicht gesendet.",
     "maxOrderVolume": "Order abgelehnt: Die Positionsgröße {actual} überschreitet das maximale Ordervolumen von {limit}. Die Order wurde nicht gesendet.",
     "stepSize": "Order abgelehnt: Die Größe {actual} ist kein ganzzahliges Vielfaches der Schrittweite {step} dieses Instruments und wäre an der Börse nicht ausführbar. Die Order wurde nicht gesendet.",
@@ -2737,7 +2789,8 @@
       "stopLoss": "der Stop-Loss",
       "symbol": "das Symbol",
       "symbolStatus": "der Symbol-Status",
-      "takeProfit": "der Take-Profit"
+      "takeProfit": "der Take-Profit",
+      "confirmation": "Bestätigung"
     },
     "riskLimitDailyLoss": "Order abgelehnt: Der heute realisierte Verlust beträgt {actual} und hat das Tageslimit von {limit} erreicht oder überschritten. Das Limit wird um 00:00 UTC zurückgesetzt. Positionen schließen und Orders stornieren ist weiterhin möglich.",
     "riskLimitUnmeasurable": "Order abgelehnt: Für {field} ist ein Limit konfiguriert, aber diese Order enthält nichts, woran es geprüft werden könnte. Die Order wurde nicht gesendet.",

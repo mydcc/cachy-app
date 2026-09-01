@@ -126,7 +126,8 @@ export type RefusalReason =
     | "killSwitch"
     | "riskLimit"
     | "sizeMismatch"
-    | "unsupported";
+    | "unsupported"
+    | "unconfirmed";
 
 export interface OrderRefusal {
     /** The field that disagreed — always named, never a bare "invalid order". */
@@ -248,6 +249,33 @@ export interface OrderIntent {
     displayed: DisplayedState;
     /** Overrides for endpoints whose payload shape deviates from the default. */
     priceFields?: PriceFieldMap;
+    /**
+     * When a human confirmed this action, as `Date.now()` — FEAT-0024.
+     *
+     * Absent means "not confirmed", which is why the field is optional but its
+     * absence is never benign: for an action the policy requires a
+     * confirmation for, the gate refuses. Every existing call site therefore
+     * keeps compiling and starts failing closed, which is the intended
+     * migration — a call site that has not been taught to confirm should stop,
+     * not proceed silently.
+     */
+    confirmedAt?: number;
+    /**
+     * The policy action to ask about, when it differs from the wire action —
+     * FEAT-0024.
+     *
+     * One user intent can travel as different payloads. A flash close reaches
+     * Bitunix as `flash-close-position` but every other venue as an ordinary
+     * reduce-only `place-order`, and reading the policy off the wire would
+     * then ask the `place-order` question — which defaults to off — about the
+     * button the user pressed expecting a flash-close prompt. The same policy
+     * would apply or not depending on the venue, which is not a distinction
+     * any user made.
+     *
+     * The gate does not interpret this; it hands the string to the registered
+     * check, which owns the catalogue. Absent, the wire action is used.
+     */
+    confirmAs?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -315,6 +343,35 @@ export function registerRiskLimitCheck(fn: RiskLimitCheck | null): void {
 /** FEAT-0013 registers the kill switch here. Returns true when engaged. */
 export function registerKillSwitch(fn: KillSwitchCheck | null): void {
     killSwitchCheck = fn;
+}
+
+/**
+ * Answers whether this action needs a human's confirmation — FEAT-0024.
+ *
+ * Takes the intent rather than a bare action name because the policy is
+ * per-action but the question is per-attempt: the same `close-position` is a
+ * routine reduce or the last exit from a losing trade, and a future policy
+ * that varies by size or by symbol needs the whole intent to say so.
+ *
+ * Returning `true` means "ask first". The gate then refuses unless
+ * `intent.confirmedAt` is set, which is what makes the policy structural
+ * rather than advisory: a call site that forgets to confirm gets a refusal it
+ * cannot miss, instead of quietly skipping the prompt.
+ */
+export type ConfirmationCheck = (intent: OrderIntent) => boolean;
+
+let confirmationCheck: ConfirmationCheck | null = null;
+
+/**
+ * FEAT-0024 registers the policy here. Unregistered means "no policy
+ * configured" and nothing is required — matching `registerRiskLimitCheck`'s
+ * convention, and safe because an unconfigured policy cannot have opinions
+ * the user has not expressed. The defaults live in
+ * `lib/confirmationPolicy.ts`, not here; the gate enforces a decision, it does
+ * not make one.
+ */
+export function registerConfirmationCheck(fn: ConfirmationCheck | null): void {
+    confirmationCheck = fn;
 }
 
 // ---------------------------------------------------------------------------
@@ -710,6 +767,16 @@ class OrderGate {
         const limitRefusal = riskLimitCheck?.(intent) ?? null;
         if (limitRefusal) return refuse(limitRefusal);
 
+        // --- confirmation policy (FEAT-0024) -----------------------------------
+        // Last, so that disabling a confirmation cannot skip a verification —
+        // see `confirmationRefusal` for why the ordering is the design.
+        checked.push("confirmation");
+        const unconfirmed = this.confirmationRefusal(
+            intent,
+            intent.confirmAs ?? mutatingActionOf(payload) ?? "",
+        );
+        if (unconfirmed) return refuse(unconfirmed);
+
         return { approved: true, refusal: null, checked };
     }
 
@@ -1075,6 +1142,35 @@ class OrderGate {
     }
 
     /**
+     * Has a human agreed to this, where the policy says one must — FEAT-0024.
+     *
+     * Deliberately the LAST check in `verify`, and the ordering is the design:
+     *
+     * 1. A confirmation is not a verification. Running it last makes that
+     *    literal — every FEAT-0011 comparison has already happened by the time
+     *    this is consulted, so switching a confirmation off cannot skip one.
+     *    `orderGate.confirmation.test.ts` asserts exactly this by refusing a
+     *    price-mismatched order with the policy disabled and checking the
+     *    refusal names `price`, not `confirmation`.
+     * 2. An order that fails verification should never reach a human. Asking
+     *    "really send this?" about a payload the gate is going to refuse
+     *    anyway trains the user to click through the dialog that matters.
+     * 3. The dialog quotes concrete numbers, and those are only trustworthy
+     *    once they have been compared against the displayed state.
+     */
+    private confirmationRefusal(intent: OrderIntent, action: string): OrderRefusal | null {
+        if (confirmationCheck?.(intent) !== true) return null;
+        if (typeof intent.confirmedAt === "number") return null;
+
+        return {
+            field: "confirmation",
+            reason: "unconfirmed",
+            messageKey: "orderGate.unconfirmed",
+            values: { action },
+        };
+    }
+
+    /**
      * Verify, then transmit. The transport callback receives a single-use
      * pass; without one `assertGatePass` rejects the request, which is what
      * makes the gate unavoidable rather than merely available.
@@ -1275,6 +1371,20 @@ export function translateRefusal(
         // rather than showing the user a dotted key path.
         if (translated && translated !== `orderGate.fields.${values.field}`) {
             values.field = translated;
+        }
+    }
+    /*
+     * FEAT-0024's refusal names an action, and it should read the way the
+     * settings screen names it — "Flash close", not "flash-close-position".
+     * Same fallback as the field above: a wire action outside the confirmable
+     * catalogue has no label, and svelte-i18n echoes the key back, so the raw
+     * name is shown rather than a dotted path.
+     */
+    if (values.action) {
+        const key = `settings.confirmations.actions.${values.action}.label`;
+        const translated = t(key);
+        if (translated && translated !== key) {
+            values.action = translated;
         }
     }
     return t(refusal.messageKey, { values });
