@@ -83,22 +83,28 @@
   // and mirrors the active one into `fees`, which the sizing maths reads — the
   // same pattern as the leverage mirror. No sync button: there is nothing to
   // synchronize, the user entered these numbers themselves.
-  let feeMode = $derived(tradeState.feeMode || "maker_taker");
-  let entryType = $derived(feeMode.split("_")[0] as "maker" | "taker");
+  //
+  // The active role is the exit-leg assumption (FEAT-0253, decision 4): the
+  // Settings MAKER/TAKER buttons pick which rate a simulated exit pays, not
+  // just which one is highlighted. Deriving it from `feePreference` (default
+  // "taker" — the expensive side, decision 3) instead of from `feeMode`
+  // ("maker_taker".split("_")[0] is always "maker") keeps the taker branch
+  // reachable.
+  let activeRole = $derived<"maker" | "taker">(
+    settingsState.feePreference === "taker" ? "taker" : "maker",
+  );
   const exchange = $derived(settingsState.apiProvider);
   let feeRates = $derived(settingsState.feeRates[exchange]);
-  // Guard two degenerate inputs so the mirrored `fees` can never be
-  // `undefined` or empty: a legacy `feeMode: "flat"` (applyPreset lets it
-  // through) makes `feeRates["flat"]` undefined, and a Settings field the
-  // user cleared stores `""`. Both fall back to the flat default (0.06)
-  // rather than feeding the calculator a zero-fee sizing. The check is
-  // explicit, not `||`: a literal `"0"` (a venue promo or rebate rate) is a
-  // legitimate zero-percent fee and must pass through, only undefined and
-  // the empty string are degenerate.
+  // Guard the degenerate input so the mirrored `fees` can never be `""` or
+  // `undefined`: a Settings fee field the user cleared stores `""`. That falls
+  // back to the flat default (0.06) rather than feeding the calculator a
+  // zero-fee sizing. The check is explicit, not `||`: a literal `"0"` (a venue
+  // promo or rebate rate) is a legitimate zero-percent fee and must pass
+  // through, only undefined and the empty string are degenerate.
   let activeFeeRate = $derived(
-    feeRates[entryType] === undefined || feeRates[entryType] === ""
+    feeRates[activeRole] === undefined || feeRates[activeRole] === ""
       ? CONSTANTS.DEFAULT_FEES
-      : feeRates[entryType],
+      : feeRates[activeRole],
   );
 
   $effect(() => {
@@ -198,7 +204,7 @@
 
       <!--
         Fees. FEAT-0253: the settings are the source of truth — both rates are
-        displayed below, the active one (per `entryType`) is highlighted, and
+        displayed below, the active one (per `activeRole`) is highlighted, and
         the field itself is a read-only display of that active rate. Editing
         happens in Settings, where these per-venue rates live.
       -->
@@ -226,21 +232,21 @@
           -->
           <span class="fee-role">
             <span class="fee-unit">%</span>
-            {entryType === "maker"
+            {activeRole === "maker"
               ? $_("journal.table.maker")
               : $_("journal.table.taker")}
           </span>
         </div>
         <div class="flex gap-3 text-[11px]">
           <span
-            class:font-semibold={entryType === "maker"}
-            class:text-[var(--accent-color)]={entryType === "maker"}
+            class:font-semibold={activeRole === "maker"}
+            class:text-[var(--accent-color)]={activeRole === "maker"}
             >{$_("journal.table.maker")} {feeRates.maker}%</span
           >
           <span
-            class:text-[var(--text-secondary)]={entryType !== "taker"}
-            class:font-semibold={entryType === "taker"}
-            class:text-[var(--accent-color)]={entryType === "taker"}
+            class:text-[var(--text-secondary)]={activeRole !== "taker"}
+            class:font-semibold={activeRole === "taker"}
+            class:text-[var(--accent-color)]={activeRole === "taker"}
             >{$_("journal.table.taker")} {feeRates.taker}%</span
           >
         </div>

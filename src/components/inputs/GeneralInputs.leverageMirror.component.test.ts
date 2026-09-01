@@ -71,6 +71,7 @@ vi.mock("../../services/exchange", () => ({
 }));
 const settingsStateMock = vi.hoisted(() => ({
     apiProvider: "bitunix",
+    feePreference: "taker" as "maker" | "taker",
     feeRates: {
         bitunix: { maker: "0.0200", taker: "0.0600" },
         bitget: { maker: "0.0200", taker: "0.0600" },
@@ -210,33 +211,44 @@ describe("FEAT-0328 — one leverage, one source", () => {
     });
 });
 
-describe("FEAT-0253 — the fee mirror never emits a degenerate value", () => {
+describe("FEAT-0253 — the fee mirror uses feePreference for the exit-leg assumption", () => {
     /*
-     * `activeFeeRate` has a `|| CONSTANTS.DEFAULT_FEES` guard. Two degenerate
-     * inputs must both land on the flat default (0.06), never `undefined` or
-     * `""` — either would feed the calculator a zero-fee sizing. This pins
-     * the two review findings (W1: legacy `feeMode: "flat"`; B2: a Settings
-     * fee field the user cleared).
+     * FEAT-0253, decision 4: the Settings MAKER/TAKER buttons pick which rate
+     * a simulated exit pays. The active role is derived from
+     * `settingsState.feePreference` (default "taker", decision 3 — the
+     * expensive side). The mirror writes the corresponding rate into
+     * `tradeState.fees`.
      */
     beforeEach(() => {
-        tradeStateMock.feeMode = "maker_taker";
+        settingsStateMock.feePreference = "taker";
+        settingsStateMock.feeRates.bitunix.taker = "0.0600";
         settingsStateMock.feeRates.bitunix.maker = "0.0200";
     });
 
-    it("mirrors DEFAULT_FEES when feeMode is 'flat' (no maker/taker split)", async () => {
-        tradeStateMock.feeMode = "flat";
+    it("mirrors the taker rate by default (conservative, decision 3)", async () => {
+        // feePreference defaults to "taker" → activeRole = "taker" → mirrors
+        // the taker rate (0.0600, the expensive side). The calculator applies
+        // this to both entry and exit, erring toward overstating cost.
         tradeStateMock.fees = "0.06";
         await render();
 
-        // "flat" has no maker/taker row, so `feeRates["flat"]` is undefined —
-        // the guard must substitute the flat default instead.
         expect(tradeStateMock.fees).toBe("0.0600");
     });
 
-    it("mirrors DEFAULT_FEES when the settings maker field was cleared", async () => {
-        // Simulates a user clearing the Maker field in Settings, which stores
-        // "". The mirror must not propagate an empty string to the calculator.
-        (settingsStateMock.feeRates.bitunix as { maker: string }).maker = "";
+    it("mirrors the maker rate when feePreference is 'maker'", async () => {
+        // User switches the Settings buttons to MAKER → activeRole = "maker"
+        // → mirrors the maker rate (0.0200, the cheaper side).
+        settingsStateMock.feePreference = "maker";
+        tradeStateMock.fees = "0.06";
+        await render();
+
+        expect(tradeStateMock.fees).toBe("0.0200");
+    });
+
+    it("falls back to DEFAULT_FEES when the active fee field was cleared", async () => {
+        // User clears the Taker field in Settings → stores "" → the guard
+        // catches it and falls back to 0.06 instead of propagating "".
+        (settingsStateMock.feeRates.bitunix as { taker: string }).taker = "";
         tradeStateMock.fees = "0.06";
         await render();
 
@@ -247,7 +259,7 @@ describe("FEAT-0253 — the fee mirror never emits a degenerate value", () => {
         // A venue promo or maker rebate can legitimately be 0%. The guard
         // must not treat the string "0" as falsy and fall back to DEFAULT_FEES
         // — only undefined and "" are degenerate.
-        (settingsStateMock.feeRates.bitunix as { maker: string }).maker = "0";
+        (settingsStateMock.feeRates.bitunix as { taker: string }).taker = "0";
         tradeStateMock.fees = "0.06";
         await render();
 

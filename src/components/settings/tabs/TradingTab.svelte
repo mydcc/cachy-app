@@ -161,6 +161,7 @@
                                     type="text"
                                     inputmode="decimal"
                                     data-track-id="input-fee-rate-maker"
+                                    aria-label={$_("settings.feeRatesMaker")}
                                     use:numberInput={{ maxDecimalPlaces: 4 }}
                                     value={settingsState.feeRates[exchange].maker}
                                     oninput={(e) => {
@@ -182,6 +183,7 @@
                                     type="text"
                                     inputmode="decimal"
                                     data-track-id="input-fee-rate-taker"
+                                    aria-label={$_("settings.feeRatesTaker")}
                                     use:numberInput={{ maxDecimalPlaces: 4 }}
                                     value={settingsState.feeRates[exchange].taker}
                                     oninput={(e) => {
