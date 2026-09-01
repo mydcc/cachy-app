@@ -39,6 +39,7 @@ function kline(close: string, time: number): Kline {
 interface FakeInstance {
   initialize: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  shift: ReturnType<typeof vi.fn>;
 }
 
 // Every indicator group disabled, so wasmSettings collapses to empty arrays
@@ -59,12 +60,12 @@ describe('wasmCalculator runtime-trap recovery', () => {
   // so tests declare instance behaviour in construction order.
   let queue: FakeInstance[];
 
-  // The calculator is a module singleton; clear its cached module/instance
-  // so every test starts from a cold load.
+  // The calculator is a module singleton; clear its cached module and the
+  // settings-keyed instance map so every test starts from a cold load.
   function resetSingleton(): void {
-    const c = wasmCalculator as unknown as Record<string, unknown>;
+    const c = wasmCalculator as unknown as { wasmModule: unknown; instances: Map<string, unknown>; loadingPromise: unknown };
     c.wasmModule = null;
-    c.instance = null;
+    c.instances.clear();
     c.loadingPromise = null;
   }
 
@@ -78,13 +79,16 @@ describe('wasmCalculator runtime-trap recovery', () => {
       TechnicalsCalculator: class {
         initialize: FakeInstance['initialize'];
         update: FakeInstance['update'];
+        shift: FakeInstance['shift'];
         constructor() {
           const inst = queue.shift() ?? {
             initialize: vi.fn(),
             update: vi.fn(() => '{}'),
+            shift: vi.fn(),
           };
           this.initialize = inst.initialize;
           this.update = inst.update;
+          this.shift = inst.shift;
         }
       },
     };
@@ -101,8 +105,9 @@ describe('wasmCalculator runtime-trap recovery', () => {
       update: vi.fn(() => {
         throw new Error('RuntimeError: unreachable executed');
       }),
+      shift: vi.fn(),
     };
-    const healthy: FakeInstance = { initialize: vi.fn(), update: vi.fn(() => '{}') };
+    const healthy: FakeInstance = { initialize: vi.fn(), update: vi.fn(() => '{}'), shift: vi.fn() };
     queue.push(trapped, healthy);
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -128,6 +133,7 @@ describe('wasmCalculator runtime-trap recovery', () => {
       update: vi.fn(() => {
         throw new Error('some ordinary failure');
       }),
+      shift: vi.fn(),
     };
     queue.push(failing);
 

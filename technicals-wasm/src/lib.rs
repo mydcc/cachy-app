@@ -288,7 +288,7 @@ struct MacdState {
 }
 struct BbState {
     sum: Decimal,
-    sum_sq: Decimal,
+    m2: Decimal,
     std_dev_mult: Decimal,
     initialized: bool,
 }
@@ -347,6 +347,7 @@ struct SuperTrendState {
     prev_close: Decimal,
     initialized: bool,
     multiplier: Decimal,
+    len: usize,
 }
 #[allow(dead_code)]
 struct ChopState {
@@ -923,12 +924,17 @@ impl TechnicalsCalculator {
         }
         for s in &self.settings.bb {
             let mut sum = Decimal::ZERO;
-            let mut sum_sq = Decimal::ZERO;
+            let mut m2 = Decimal::ZERO;
             let mut init = false;
             if len >= s.length {
+                let n = Decimal::from(s.length);
                 for &p in &closes[len - s.length..] {
                     sum += p;
-                    sum_sq += p * p;
+                }
+                let mean = sum / n;
+                for &p in &closes[len - s.length..] {
+                    let d = p - mean;
+                    m2 += d * d;
                 }
                 init = true;
             }
@@ -936,7 +942,7 @@ impl TechnicalsCalculator {
                 s.length,
                 BbState {
                     sum,
-                    sum_sq,
+                    m2,
                     std_dev_mult: s.std_dev,
                     initialized: init,
                 },
@@ -1277,6 +1283,7 @@ impl TechnicalsCalculator {
                     prev_close: closes[len - 1],
                     initialized: init,
                     multiplier: s.multiplier,
+                    len: s.length,
                 },
             );
         }
@@ -1612,16 +1619,17 @@ impl TechnicalsCalculator {
         }
         for (len, s) in &self.bb_states {
             if s.initialized && self.price_history_closes.len() >= *len {
+                let n = Decimal::from(*len);
                 let old = self.price_history_closes[self.price_history_closes.len() - *len];
-                let ns = s.sum - old + c;
-                let nsq = s.sum_sq - (old * old) + (c * c);
-                let sma = ns / Decimal::from(*len);
-                let sd = if (nsq - (ns * ns) / Decimal::from(*len)) / Decimal::from(*len)
-                    > Decimal::ZERO
-                {
-                    ((nsq - (ns * ns) / Decimal::from(*len)) / Decimal::from(*len))
-                        .sqrt()
-                        .unwrap_or(Decimal::ZERO)
+                let sma = (s.sum - old + c) / n;
+                // Welford's M2 with a single replacement (old → incoming c).
+                // Stable vs the E[x²]−E[x]² cancellation near-flat levels.
+                let mu = s.sum / n;
+                let mu2 = sma;
+                let m2 = s.m2 + (c - old) * (c - mu2 + old - mu);
+                let var = m2 / n;
+                let sd = if var > Decimal::ZERO {
+                    var.sqrt().unwrap_or(Decimal::ZERO)
                 } else {
                     Decimal::ZERO
                 };
@@ -1809,8 +1817,7 @@ impl TechnicalsCalculator {
         // SuperTrend Update
         for (key, s) in &self.st_states {
             if s.initialized {
-                let parts: Vec<&str> = key.split('-').collect();
-                let len: usize = parts[0].parse().unwrap_or(10);
+                let len = s.len;
                 let mult = s.multiplier;
 
                 let tr = std::cmp::max(
@@ -2130,8 +2137,13 @@ impl TechnicalsCalculator {
                 } else {
                     popped_c.unwrap_or(Decimal::ZERO)
                 };
+                let n = Decimal::from(*len);
+                let mu = s.sum / n;
+                let mu2 = (s.sum - old_price + c) / n;
+                // Welford replacement — same formula as update() so the
+                // read (update) and commit (shift) paths stay in lockstep.
+                s.m2 = s.m2 + (c - old_price) * (c - mu2 + old_price - mu);
                 s.sum = s.sum - old_price + c;
-                s.sum_sq = s.sum_sq - (old_price * old_price) + (c * c);
             }
         }
         for (len, s) in &mut self.atr_states {
@@ -2276,10 +2288,9 @@ impl TechnicalsCalculator {
         }
 
         // SuperTrend Shift
-        for (key, s) in &mut self.st_states {
+        for (_key, s) in &mut self.st_states {
             if s.initialized {
-                let parts: Vec<&str> = key.split('-').collect();
-                let len: usize = parts[0].parse().unwrap_or(10);
+                let len = s.len;
                 let mult = s.multiplier;
 
                 let tr = std::cmp::max(

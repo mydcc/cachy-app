@@ -71,7 +71,9 @@ class CalculationStrategy {
 
     // Auto Selection
     if (klineCount > 5000) return 'gpu';
-    if (klineCount > 1000) return 'wasm';
+    // WASM is already faster than TS at 500 candles (IDEA-0318 F-7 benchmark),
+    // so route it down to the realistic historyLimit range (~300-750 candles).
+    if (klineCount > 300) return 'wasm';
     return 'ts';
   }
 

@@ -158,18 +158,11 @@ class TechnicalsWorkerManager {
 
 const workerManager = new TechnicalsWorkerManager();
 
-const settingsCache = new WeakMap<object, string>();
-
 function generateCacheKey(lastTime: number, lastPriceStr: string, len: number, firstTime: number, settings: IndicatorSettings): string {
-  let sPart = settings?._cachedJson;
-  if (!sPart) {
-    sPart = (settings && typeof settings === 'object') ? settingsCache.get(settings) : undefined;
-    if (!sPart) {
-      sPart = JSON.stringify(settings);
-      if (settings && typeof settings === 'object') settingsCache.set(settings, sPart);
-    }
-  }
-
+  // `_cachedJson` is a $derived on the IndicatorManager snapshot — the WeakMap
+  // fallback it replaced never hit (the settings object reference is recreated
+  // each toJSON() call), so settings stringify is now cheap and correct.
+  const sPart = settings?._cachedJson || JSON.stringify(settings);
   return `${lastTime}_${lastPriceStr}_${len}_${firstTime}_${sPart}`;
 }
 
