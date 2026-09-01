@@ -1064,6 +1064,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0317-wasm-parity-test-benchmark.md"
   },
   {
+    "id": "BUG-0329",
+    "title": "The default fee rate is a maker rate applied to both legs, understating real cost",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculator",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "file": "bugs/BUG-0329-default-fee-rate-understates-real-cost.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -1596,6 +1615,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "features/FEAT-0251-journal-redesign-and-fee-breakdown.md"
+  },
+  {
+    "id": "FEAT-0253",
+    "title": "Make the calculator's entry/exit fee estimate honest about what it assumes",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculator",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0253-fee-estimate-methodology.md"
   },
   {
     "id": "FEAT-0254",
@@ -3723,7 +3760,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0319",
     "title": "Make \"destroy forgets subscriptions\" a conformance-suite invariant",
     "type": "feature",
-    "status": "done",
+    "status": "in-progress",
     "assignee": "antigravity",
     "branch": "feat/feat-0319-conformance-guard-destroy-forgets-subscriptions",
     "priority": "P2",
@@ -3741,6 +3778,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0227"
     ],
     "file": "features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md"
+  },
+  {
+    "id": "FEAT-0328",
+    "title": "Compact account-controls row and wire up maker/taker fee display",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0068"
+    ],
+    "assignee": "claude",
+    "file": "features/FEAT-0328-compact-account-controls-and-fee-display.md"
   },
   {
     "id": "BUG-0007",
@@ -4183,24 +4241,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "S",
     "estimate": "2",
     "file": "features/FEAT-0224-typescript-7-update.md"
-  },
-  {
-    "id": "FEAT-0253",
-    "title": "Make the calculator's entry/exit fee estimate honest about what it assumes",
-    "type": "feature",
-    "status": "idea",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "calculator",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "features/FEAT-0253-fee-estimate-methodology.md"
   },
   {
     "id": "FEAT-0260",
