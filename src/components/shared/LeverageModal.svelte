@@ -66,6 +66,8 @@
       liquidationPrice: Decimal;
       leverage: Decimal;
     };
+    /** Margin mode: ISOLATION (show projection) or CROSS (show warning). */
+    marginMode?: string;
     onclose: () => void;
     onconfirm: (leverage: Decimal) => void;
   }
@@ -202,10 +204,11 @@
       </div>
     </div>
 
-    {#if projection}
+    {#if projection && (marginMode === undefined || marginMode.toLowerCase().startsWith("isolat"))}
       <!--
         The consequence, live, while the slider moves. Labelled an estimate
-        because that is what it is.
+        because that is what it is. Only shown for Isolated-Margin, where the
+        model (single position's entry/liq/leverage triple) is exact.
       -->
       <div class="flex flex-col gap-0.5" data-track-id="leverage-liquidation">
         <div class="flex justify-between text-xs">
