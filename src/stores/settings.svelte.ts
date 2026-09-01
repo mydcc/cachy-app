@@ -514,7 +514,13 @@ const defaultSettings: Settings = {
   positionViewMode: "detailed",
   isPro: false,
   feePreference: "taker",
-  feeRates: VENUE_DEFAULT_FEE_RATES,
+  // Fresh per-venue copies, not the module constant: a future
+  // reset-to-defaults must never hand out (and later mutate) the shared
+  // VENUE_DEFAULT_FEE_RATES objects (FEAT-0253 review finding).
+  feeRates: {
+    bitunix: { ...VENUE_DEFAULT_FEE_RATES.bitunix },
+    bitget: { ...VENUE_DEFAULT_FEE_RATES.bitget },
+  },
   hotkeyMode: "mode2",
   customHotkeys: {},
   apiKeys: {

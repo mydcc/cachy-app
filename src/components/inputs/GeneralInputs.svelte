@@ -92,14 +92,23 @@
   let entryType = $derived(feeMode.split("_")[0] as "maker" | "taker");
   const exchange = $derived(settingsState.apiProvider);
   let feeRates = $derived(settingsState.feeRates[exchange]);
-  let activeFeeRate = $derived(feeRates[entryType]);
+  // `|| CONSTANTS.DEFAULT_FEES` guards two degenerate inputs so the mirrored
+  // `fees` can never be `undefined` or empty: a legacy `feeMode: "flat"`
+  // (applyPreset lets it through) makes `feeRates["flat"]` undefined, and a
+  // Settings field the user cleared stores `""`. Both are falsy, so both fall
+  // back to the flat default (0.06) rather than feeding the calculator a
+  // zero-fee sizing.
+  let activeFeeRate = $derived(feeRates[entryType] || CONSTANTS.DEFAULT_FEES);
 
   $effect(() => {
     const authoritative = activeFeeRate;
     // `untrack` so this effect depends on the settings rate only. Reading the
-    // local one reactively here would re-run the effect on its own write.
-    if (untrack(() => fees) !== authoritative) {
-      fees = authoritative;
+    // local one reactively here would re-run the effect on its own write. As
+    // with the leverage mirror, write the store directly (the `fees` prop is
+    // bound to `tradeState.fees` by the caller) so the write is not a no-op on
+    // the prop.
+    if (untrack(() => tradeState.fees) !== authoritative) {
+      tradeState.fees = authoritative;
     }
   });
 </script>

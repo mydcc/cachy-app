@@ -69,15 +69,14 @@ vi.mock("../../services/exchange", () => ({
         },
     }),
 }));
-vi.mock("../../stores/settings.svelte", () => ({
-    settingsState: {
-        apiProvider: "bitunix",
-        feeRates: {
-            bitunix: { maker: "0.0200", taker: "0.0600" },
-            bitget: { maker: "0.0200", taker: "0.0600" },
-        },
+const settingsStateMock = vi.hoisted(() => ({
+    apiProvider: "bitunix",
+    feeRates: {
+        bitunix: { maker: "0.0200", taker: "0.0600" },
+        bitget: { maker: "0.0200", taker: "0.0600" },
     },
 }));
+vi.mock("../../stores/settings.svelte", () => ({ settingsState: settingsStateMock }));
 vi.mock("../../stores/market.svelte", () => ({ marketState: { symbolMeta: {} } }));
 vi.mock("../../stores/account.svelte", () => ({
     accountState: { positions: [], openOrders: [], positionMode: "ONE_WAY" },
@@ -209,5 +208,39 @@ describe("FEAT-0328 — one leverage, one source", () => {
         await render();
 
         expect(host.querySelector("#fees-input")).not.toBeNull();
+    });
+});
+
+describe("FEAT-0253 — the fee mirror never emits a degenerate value", () => {
+    /*
+     * `activeFeeRate` has a `|| CONSTANTS.DEFAULT_FEES` guard. Two degenerate
+     * inputs must both land on the flat default (0.06), never `undefined` or
+     * `""` — either would feed the calculator a zero-fee sizing. This pins
+     * the two review findings (W1: legacy `feeMode: "flat"`; B2: a Settings
+     * fee field the user cleared).
+     */
+    beforeEach(() => {
+        tradeStateMock.feeMode = "maker_taker";
+        settingsStateMock.feeRates.bitunix.maker = "0.0200";
+    });
+
+    it("mirrors DEFAULT_FEES when feeMode is 'flat' (no maker/taker split)", async () => {
+        tradeStateMock.feeMode = "flat";
+        tradeStateMock.fees = "0.06";
+        await render();
+
+        // "flat" has no maker/taker row, so `feeRates["flat"]` is undefined —
+        // the guard must substitute the flat default instead.
+        expect(tradeStateMock.fees).toBe("0.0600");
+    });
+
+    it("mirrors DEFAULT_FEES when the settings maker field was cleared", async () => {
+        // Simulates a user clearing the Maker field in Settings, which stores
+        // "". The mirror must not propagate an empty string to the calculator.
+        (settingsStateMock.feeRates.bitunix as { maker: string }).maker = "";
+        tradeStateMock.fees = "0.06";
+        await render();
+
+        expect(tradeStateMock.fees).toBe("0.0600");
     });
 });
