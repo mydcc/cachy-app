@@ -2,9 +2,9 @@
 
 # Backlog index
 
-214 items. How to read and add them: [README.md](README.md).
+216 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
+Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ done 175
 
 ---
 
@@ -53,7 +53,7 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 | [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | ✅ done | ui |
 | [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | ✅ done | exchange |
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | ✅ done | exchange |
-| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | ✅ done | exchange |
+| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 🟡 in-progress | exchange |
 | [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | ✅ done | exchange |
 | [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | ✅ done | exchange |
 
@@ -186,7 +186,9 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) | AI proxy routes accept a body-controlled baseUrl without reserved-IP filtering | P1 | ✅ done | security |
 | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) | WASM build ships an artifact that production never loads | P1 | ✅ done | build |
 | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | calculation |
+| [BUG-0329](bugs/BUG-0329-default-fee-rate-understates-real-cost.md) | The default fee rate is a maker rate applied to both legs, understating real cost | P1 | ✅ done | calculator |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
+| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | 📋 specced | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -240,6 +242,7 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | ✅ done | services |
 | [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | ✅ done | i18n |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | security |
+| [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | 🟡 in-progress | trade-panel |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -262,7 +265,6 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
 | [FEAT-0224](features/FEAT-0224-typescript-7-update.md) | Evaluate and migrate to TypeScript 7 | P3 | 📋 specced | tooling |
-| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | calculator |
 | [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | ✅ done | ui |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | ui |
 | [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | ✅ done | services |
@@ -332,6 +334,7 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 | [BUG-0297](bugs/BUG-0297-bitget-entry-order-gate-deadlock.md) | An entry order on a venue that cannot attach TP/SL is refused by the gate whichever way it is built | P1 | ✅ done | M2 | community, pro, private | none | none | — |
 | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) | WASM build ships an artifact that production never loads | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
+| [BUG-0329](bugs/BUG-0329-default-fee-rate-understates-real-cost.md) | The default fee rate is a maker rate applied to both legs, understating real cost | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -355,6 +358,7 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 | [FEAT-0242](features/FEAT-0242-structured-function-calling.md) | Replace regex-based JSON action parsing with structured function calling | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0245](features/FEAT-0245-prompt-templating-versioning.md) | Centralize prompt templating and versioning | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | ✅ done | M2 | community, pro, private | A | none | — |
+| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | M3 | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -451,7 +455,8 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | M8 | pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0019](features/FEAT-0019-agentic-web-search.md) |
 | [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | ✅ done | M8 | community, pro, private | none | none | — |
-| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
+| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
+| [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | 🟡 in-progress | none | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -474,7 +479,6 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
 | [FEAT-0224](features/FEAT-0224-typescript-7-update.md) | Evaluate and migrate to TypeScript 7 | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0260](features/FEAT-0260-lazy-import-rare-modals.md) | Dynamic-import rarely opened heavyweight modals in the root layout | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0261](features/FEAT-0261-journal-table-derived-group-sort.md) | Hoist JournalTable group sorting out of the each expression into derived state | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0262](features/FEAT-0262-workerpool-wire-or-delete.md) | Decide the fate of the unused workerPool service | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -502,4 +506,4 @@ Counts by status: 💡 idea 22 · 📋 specced 17 · ✅ done 175
 
 ---
 
-Next free number: **0328**
+Next free number: **0330**
