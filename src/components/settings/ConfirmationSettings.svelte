@@ -28,7 +28,12 @@
   import { _ } from "../../locales/i18n";
   import Toggle from "../shared/Toggle.svelte";
   import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
-  import { CONFIRMABLE_ACTIONS, type ConfirmableAction } from "../../lib/confirmationPolicy";
+  import {
+    CONFIRMABLE_ACTIONS,
+    GATED_ACTIONS,
+    WIRED_ACTIONS,
+    type ConfirmableAction,
+  } from "../../lib/confirmationPolicy";
 
   /*
    * Built once rather than in the `{#each}`: the label and hint lookups are
@@ -39,7 +44,17 @@
       action,
       label: $_(`settings.confirmations.actions.${action}.label`),
       hint: $_(`settings.confirmations.actions.${action}.hint`),
-      required: confirmationPolicyStore.policy[action],
+      // The effective answer, not the stored one: a disabled toggle must
+      // show what the gate will actually do.
+      required: confirmationPolicyStore.requires(action),
+      /*
+       * A gated action nobody raises a dialog for cannot be switched on: the
+       * gate would then demand an authorisation no call site can produce, and
+       * the action would simply stop working. Ungated actions are unaffected —
+       * their call site consults the policy directly, so an unwired one just
+       * does not prompt.
+       */
+      blocked: GATED_ACTIONS.has(action) && !WIRED_ACTIONS.has(action),
     })),
   );
 
@@ -75,10 +90,16 @@
         <label class="min-w-0 flex-1 cursor-pointer" for="confirm-{row.action}">
           <span class="block text-sm font-semibold text-[var(--text-primary)]">{row.label}</span>
           <span class="block text-[11px] mt-0.5 text-[var(--text-secondary)]">{row.hint}</span>
+          {#if row.blocked}
+            <span class="block text-[11px] mt-1 text-[var(--warning-color)]">
+              {$_("settings.confirmations.notWired")}
+            </span>
+          {/if}
         </label>
         <Toggle
           id="confirm-{row.action}"
           checked={row.required}
+          disabled={row.blocked}
           onchange={(e) => toggle(row.action, (e.currentTarget as HTMLInputElement).checked)}
         />
       </li>

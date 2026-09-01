@@ -70,7 +70,12 @@ vi.mock("../../locales/i18n", async () => {
 
 import ConfirmationSettings from "./ConfirmationSettings.svelte";
 import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
-import { CONFIRMABLE_ACTIONS, DEFAULT_CONFIRMATION_POLICY } from "../../lib/confirmationPolicy";
+import {
+    CONFIRMABLE_ACTIONS,
+    DEFAULT_CONFIRMATION_POLICY,
+    GATED_ACTIONS,
+    WIRED_ACTIONS,
+} from "../../lib/confirmationPolicy";
 
 let host: HTMLDivElement;
 let component: Record<string, unknown> | null = null;
@@ -190,5 +195,47 @@ describe("ConfirmationSettings translations", () => {
         expect(host.textContent).toContain(
             lookup(de, "settings.confirmations.actions.flash-close-position.hint"),
         );
+    });
+});
+
+describe("a toggle that would break its own action", () => {
+    /*
+     * The gate fails closed, and that cuts both ways. A gated action whose call
+     * site never sends a `confirmedAt` is not merely unprotected when its
+     * confirmation is switched on — it is unusable, because nothing can produce
+     * the authorisation the gate then demands.
+     *
+     * Offering that switch would let a trader break closing a position by
+     * ticking a box in settings. So it is shown, disabled, and says why.
+     */
+
+    it("disables every gated action that has no dialog yet", () => {
+        render();
+
+        for (const action of CONFIRMABLE_ACTIONS) {
+            const shouldBeBlocked = GATED_ACTIONS.has(action) && !WIRED_ACTIONS.has(action);
+            expect(switchFor(action).disabled).toBe(shouldBeBlocked);
+        }
+    });
+
+    it("leaves the wired action switchable", () => {
+        render();
+
+        expect(switchFor("flash-close-position").disabled).toBe(false);
+    });
+
+    it("leaves ungated actions switchable, dialog or not", () => {
+        // These never reach the gate, so an unwired one simply does not
+        // prompt — it does not stop working.
+        render();
+
+        expect(switchFor("leverage-change").disabled).toBe(false);
+        expect(switchFor("account-switch").disabled).toBe(false);
+    });
+
+    it("says why a disabled toggle is disabled", () => {
+        render();
+
+        expect(host.textContent).toContain(lookup(en, "settings.confirmations.notWired"));
     });
 });

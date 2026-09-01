@@ -2015,7 +2015,8 @@
         "cancel": "Abbrechen",
         "heading": "{action} bestätigen",
         "irreversible": "Das lässt sich nicht rückgängig machen."
-      }
+      },
+      "notWired": "Noch nicht verfügbar — für diese Aktion gibt es keinen Bestätigungsdialog; einschalten würde sie blockieren."
     }
   },
   "calculationDashboard": {

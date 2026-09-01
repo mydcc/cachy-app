@@ -101,8 +101,14 @@ describe('TradeService Flash Close Vulnerability', () => {
         // Expectation: It SHOULD SUCCEED now (resolve)
         await expect(tradeService.flashClosePosition('BTCUSDT', 'long')).resolves.toEqual({ success: true, data: { code: '0', msg: 'Success' } });
 
-        // Verify cancel was called
-        expect(cancelSpy).toHaveBeenCalledWith('BTCUSDT', true);
+        // Verify cancel was called, carrying the flash close's own
+        // authorisation (FEAT-0024): `cancel-all` confirms by default, so
+        // without this the gate refuses a cleanup the user already agreed to
+        // and the position closes with its stops still resting.
+        expect(cancelSpy).toHaveBeenCalledWith('BTCUSDT', true, {
+            action: 'flash-close-position',
+            confirmedAt: undefined,
+        });
 
         // Verify close order WAS called (despite abort). Closing a long:
         // side matches the position (BUY), not inverted — see

@@ -32,6 +32,8 @@ import { CONSTANTS } from "../lib/constants";
 import {
     CONFIRMABLE_ACTIONS,
     DEFAULT_CONFIRMATION_POLICY,
+    GATED_ACTIONS,
+    WIRED_ACTIONS,
     isConfirmableAction,
     normalizePolicy,
     type ConfirmableAction,
@@ -72,8 +74,22 @@ class ConfirmationPolicyStore {
         return this._persistFailed;
     }
 
-    /** Whether this action asks the user first. */
+    /**
+     * Whether this action asks the user first.
+     *
+     * A gated action with no dialog yet always answers `false`, whatever is
+     * stored or defaulted. Answering `true` would demand an authorisation no
+     * call site can produce, so the gate would refuse the action outright —
+     * `cancel-all` ships defaulted on and has no user-facing call site, and a
+     * policy stored before its toggle was disabled would otherwise stay armed
+     * with only Reset-all to clear it.
+     *
+     * The stored value is left untouched rather than rewritten: wiring the
+     * action later should bring the user's own choice back, not a default that
+     * overwrote it.
+     */
     public requires(action: ConfirmableAction): boolean {
+        if (GATED_ACTIONS.has(action) && !WIRED_ACTIONS.has(action)) return false;
         return this._policy[action];
     }
 
@@ -87,7 +103,7 @@ class ConfirmationPolicyStore {
      * payload rather than on a policy the user expressed.
      */
     public requiresForWireAction(action: string): boolean {
-        return isConfirmableAction(action) ? this._policy[action] : false;
+        return isConfirmableAction(action) ? this.requires(action) : false;
     }
 
     /** Immutable update — a new object, never a mutated one. */
