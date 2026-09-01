@@ -36,21 +36,22 @@ unverified exchange endpoint.
 | Control | Where it is | Status |
 |---|---|---|
 | Modify position TP/SL after entry | [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md) | Done — slider and modes shipped |
-| Partial close, by percentage or size | [`FEAT-0256`](FEAT-0256-partial-close-position.md) | In progress |
-| Flash close | Needs [`FEAT-0024`](FEAT-0024-confirmation-policy.md) | Blocked — see below |
+| Partial close, by percentage or size | [`FEAT-0256`](FEAT-0256-partial-close-position.md) | Done |
+| Flash close | [`FEAT-0330`](FEAT-0330-flash-close-wiring.md) | Done — FEAT-0024 shipped |
 | Add to / reduce, average entry recomputed | Not yet split out | Ready to spec |
 | Trailing stop and trailing TP/SL | Needs a verified endpoint | Blocked — see below |
 
-**Flash close** is service-complete and UI-absent: `flashClosePosition` exists
-in [`tradeService.ts:503`](../../../src/services/tradeService.ts) and nothing calls
-it. Wiring it is small. What is not small is its confirmation — it is the most
-dangerous control in the product (one click, full size, market price), its
-default must be on, and turning it off must be a deliberate act. That is
-[`FEAT-0024`](FEAT-0024-confirmation-policy.md)'s whole subject. Building a
-bespoke dialog for one button first means building it twice and leaving the
-second one inconsistent. Today the close button uses a bare `confirm()`
-([`PositionsList.svelte:67`](../../../src/components/shared/PositionsList.svelte)),
-which is the placeholder that FEAT-0024 replaces.
+**Flash close** shipped as [`FEAT-0330`](FEAT-0330-flash-close-wiring.md) once
+[`FEAT-0024`](FEAT-0024-confirmation-policy.md) gave it a confirmation to sit
+behind. It is the most dangerous control in the product — one click, full size,
+market price — so its confirmation defaults to on and switching it off is a
+deliberate act in settings. Waiting for the shared policy rather than building a
+bespoke dialog for one button was the right call: the dialog it uses now serves
+every other confirmable action too.
+
+The bare `confirm()` this item once described in `PositionsList.svelte` is gone
+— FEAT-0256 replaced it with `ClosePositionModal`, which asks the same question
+and also answers *how much*.
 
 **Trailing stops** have no verified Bitunix endpoint in the current API doc
 crawl — see [`INTEGRATION_STATUS.md`](../../bitunix-api/INTEGRATION_STATUS.md)
@@ -66,7 +67,7 @@ This epic is done when each child item is done. It has no code of its own.
 
 - [ ] [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md) — modify TP/SL ✅
 - [ ] [`FEAT-0256`](FEAT-0256-partial-close-position.md) — partial close
-- [ ] Flash close wired, behind [`FEAT-0024`](FEAT-0024-confirmation-policy.md)
+- [x] Flash close wired, behind [`FEAT-0024`](FEAT-0024-confirmation-policy.md) — [`FEAT-0330`](FEAT-0330-flash-close-wiring.md)
 - [ ] Add to / reduce with recomputed average entry — needs its own item
 - [ ] Trailing stop — blocked on a verified endpoint
 - [ ] Unsupported actions absent per [`FEAT-0017`](FEAT-0017-exchange-capability-model.md)

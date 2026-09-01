@@ -129,6 +129,9 @@ const trading: TradingPort = {
         forceFullClose?: boolean;
     }) => tradeService.closePosition(params),
 
+    flashClosePosition: (symbol: string, positionSide: "long" | "short", confirmedAt?: number) =>
+        tradeService.flashClosePosition(symbol, positionSide, confirmedAt),
+
     cancelOrder: (symbol, orderId) => tradeService.cancelOrder(symbol, orderId),
     cancelAllOrders: (symbol, throwOnError = false) => tradeService.cancelAllOrders(symbol, throwOnError),
     modifyOrder: (params: ModifyOrderParams) => tradeService.modifyOrder(params),

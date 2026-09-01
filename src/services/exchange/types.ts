@@ -244,6 +244,23 @@ export interface TradingPort {
         forceFullClose?: boolean;
     }): Promise<unknown>;
 
+    /**
+     * The whole position, at market, in one call — FEAT-0330.
+     *
+     * Separate from `closePosition` because it is a different intent, not a
+     * parameterisation of one: `closePosition` asks how much, this has already
+     * decided it is all of it, and the confirmation policy treats the two
+     * differently for exactly that reason.
+     *
+     * `confirmedAt` is the moment a human agreed, and the gate refuses without
+     * it wherever the policy asks for one — see FEAT-0024.
+     */
+    flashClosePosition(
+        symbol: string,
+        positionSide: "long" | "short",
+        confirmedAt?: number,
+    ): Promise<unknown>;
+
     cancelOrder(symbol: string, orderId: string): Promise<unknown>;
     cancelAllOrders(symbol?: string, throwOnError?: boolean): Promise<unknown>;
     modifyOrder(params: ModifyOrderParams): Promise<unknown>;

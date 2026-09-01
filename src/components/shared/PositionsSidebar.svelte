@@ -44,6 +44,9 @@
   import OrderHistoryList from "./OrderHistoryList.svelte";
   import TpSlList from "./TpSlList.svelte";
   import ClosePositionModal from "./ClosePositionModal.svelte";
+  import ConfirmActionModal from "./ConfirmActionModal.svelte";
+  import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
+  import { formatDynamicDecimal } from "../../utils/utils";
   import AdjustMarginModal from "./AdjustMarginModal.svelte";
   import TpSlCreateModal from "./TpSlCreateModal.svelte";
 
@@ -727,6 +730,78 @@
     closingPosition = pos;
   }
 
+  /*
+   * FEAT-0330. The policy decides whether a human is asked; the gate decides
+   * whether the order goes. Both run — this only chooses which of the two
+   * paths reaches `runFlashClose`.
+   *
+   * When the confirmation is switched off there is no dialog and no
+   * `confirmedAt`, which is correct: the gate only refuses an unconfirmed
+   * action the policy actually wanted confirmed.
+   */
+  function handleFlashClose(pos: OMSPosition) {
+    if (confirmationPolicyStore.requires("flash-close-position")) {
+      flashClosingPosition = pos;
+      return;
+    }
+    void runFlashClose(pos);
+  }
+
+  /**
+   * The facts the dialog shows — the numbers a trader needs to recognise the
+   * position they are about to close, and what closing it books.
+   *
+   * Read from the same `OMSPosition` the close will use, not re-derived: a
+   * second derivation is a second chance to disagree with the screen.
+   */
+  const flashCloseFacts = $derived.by(() => {
+    const pos = flashClosingPosition;
+    if (!pos) return [];
+
+    const pnl = pos.unrealizedPnl ?? new Decimal(0);
+    return [
+      { label: $_("positionsList.symbol"), value: pos.symbol },
+      { label: $_("positionsList.side"), value: pos.side.toUpperCase() },
+      { label: $_("positionsList.size"), value: formatDynamicDecimal(pos.amount) },
+      {
+        label: $_("positionsList.markPrice"),
+        value: pos.markPrice ? formatDynamicDecimal(pos.markPrice) : "—",
+      },
+      {
+        label: $_("positionsList.unrealizedPnl"),
+        value: `${pnl.gt(0) ? "+" : ""}${formatDynamicDecimal(pnl)}`,
+        tone: pnl.isNegative() ? ("danger" as const) : ("success" as const),
+      },
+    ];
+  });
+
+  async function runFlashClose(pos: OMSPosition, confirmedAt?: number) {
+    flashClosingPosition = null;
+
+    const side = pos.side.toLowerCase() === "short" ? "short" : "long";
+    /*
+     * Through the adapter, not `tradeService` directly: FEAT-0016 keeps
+     * components off exchange-specific services, and
+     * `exchange_boundary.test.ts` fails the build otherwise. The gate is
+     * reached either way — the adapter adds no path around it.
+     */
+    const result = (await activeExchange().trading.flashClosePosition(
+      pos.symbol,
+      side,
+      confirmedAt,
+    )) as { success: boolean };
+
+    if (result.success) {
+      uiState.showToast($_("dashboard.alerts.closePositionSuccess"), "success");
+      // Same reasoning as a full close: the exchange drops a closed
+      // position's plans, and a cached stop on a position that no longer
+      // exists is worse than no stop at all.
+      tpSlState.invalidate();
+    }
+    // A failure has already been reported by `flashClosePosition`, which owns
+    // the optimistic-order rollback and shows the gate's own refusal text.
+  }
+
   function handleCloseSuccess() {
     closingPosition = null;
     uiState.showToast($_("dashboard.alerts.closePositionSuccess"), "success");
@@ -765,6 +840,8 @@
 
   /** The position whose close dialog is open, or null (FEAT-0256). */
   let closingPosition = $state<OMSPosition | null>(null);
+  /** FEAT-0330 — set while the flash-close confirmation is open. */
+  let flashClosingPosition = $state<OMSPosition | null>(null);
 
   /** The position whose TP/SL create dialog is open, or null (FEAT-0070). */
   let tpSlCreatePosition = $state<OMSPosition | null>(null);
@@ -905,6 +982,7 @@
           loading={loadingPositions}
           error={errorPositions}
           onclose={handleClosePosition}
+          onflashClose={handleFlashClose}
           ontpSl={handleTpSl}
           onadjustMargin={handleAdjustMargin}
         />
@@ -957,6 +1035,20 @@
       {#if settingsState.positionViewMode === "focus"}✓{/if}
     </button>
   </div>
+{/if}
+
+{#if flashClosingPosition}
+  <ConfirmActionModal
+    isOpen={true}
+    action="flash-close-position"
+    facts={flashCloseFacts}
+    irreversible={true}
+    onconfirm={(confirmedAt) => {
+      const pos = flashClosingPosition;
+      if (pos) void runFlashClose(pos, confirmedAt);
+    }}
+    oncancel={() => (flashClosingPosition = null)}
+  />
 {/if}
 
 {#if closingPosition}

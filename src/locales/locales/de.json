@@ -2869,7 +2869,12 @@
     "tierMmr": "Maint.-Margin-Rate (Stufe)",
     "nextTierAt": "Nächste Stufe ab",
     "tpslActive": "TP/SL",
-    "adjustMargin": "Margin"
+    "adjustMargin": "Margin",
+    "flashClose": "Flash",
+    "flashCloseHint": "Ganze Position mit einem Klick zum Marktpreis schließen",
+    "symbol": "Symbol",
+    "side": "Richtung",
+    "markPrice": "Markpreis"
   },
   "trade": {
     "apiError": "API-Fehler: {error}",
