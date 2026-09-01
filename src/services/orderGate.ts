@@ -1180,24 +1180,45 @@ class OrderGate {
      * On refusal it throws before `transport` is ever invoked — no network
      * call is made, not even a cancelled one.
      */
-    public async submit<T>(
-        intent: OrderIntent,
-        transport: (pass: GatePass) => Promise<T>,
-    ): Promise<T> {
-        const at = Date.now();
-        const action = mutatingActionOf(intent.payload) ?? "";
+    /**
+     * Verify, record a refusal, and throw it — `submit`'s refusal half on its
+     * own.
+     *
+     * Exposed for a caller that has side effects on the way to the gate and
+     * therefore has to know the verdict first (`flashClosePosition` cancels
+     * the position's stops, BUG-0331). Running bare `verify` there was a
+     * silent regression: the refusal never reached `submit`, so FEAT-0015
+     * never recorded it, and a trader asking "why did my close not go
+     * through" found nothing in the order log. A refusal that is not audited
+     * is the one refusal nobody can explain afterwards.
+     *
+     * Returns the verdict when it approves; the caller may submit the same
+     * intent. Verifying twice is safe and cheap — `verify` is pure.
+     */
+    public verifyOrThrow(intent: OrderIntent): OrderGateVerdict {
         const verdict = this.verify(intent);
 
         if (!verdict.approved && verdict.refusal) {
             this.audit(intent, {
-                at,
-                action,
+                at: Date.now(),
+                action: mutatingActionOf(intent.payload) ?? "",
                 outcome: "refused",
                 checked: verdict.checked,
                 refusal: verdict.refusal,
             });
             throw new OrderRefusedError(verdict.refusal);
         }
+
+        return verdict;
+    }
+
+    public async submit<T>(
+        intent: OrderIntent,
+        transport: (pass: GatePass) => Promise<T>,
+    ): Promise<T> {
+        const at = Date.now();
+        const action = mutatingActionOf(intent.payload) ?? "";
+        const verdict = this.verifyOrThrow(intent);
 
         const pass = {} as GatePass;
         issuedPasses.set(pass as unknown as object, {

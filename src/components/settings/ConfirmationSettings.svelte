@@ -44,7 +44,9 @@
       action,
       label: $_(`settings.confirmations.actions.${action}.label`),
       hint: $_(`settings.confirmations.actions.${action}.hint`),
-      required: confirmationPolicyStore.policy[action],
+      // The effective answer, not the stored one: a disabled toggle must
+      // show what the gate will actually do.
+      required: confirmationPolicyStore.requires(action),
       /*
        * A gated action nobody raises a dialog for cannot be switched on: the
        * gate would then demand an authorisation no call site can produce, and

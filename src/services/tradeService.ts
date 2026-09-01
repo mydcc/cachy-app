@@ -800,14 +800,7 @@ class TradeService {
              * the same verification, and this cannot approve anything the gate
              * would refuse. It only moves the refusal to before the damage.
              */
-            const verdict = orderGate.verify(this.completeIntent(intent));
-            if (!verdict.approved && verdict.refusal) {
-                logger.warn(
-                    "market",
-                    `[FlashClose] Refused (${verdict.refusal.field}) before cancelling protection.`,
-                );
-                throw new OrderRefusedError(verdict.refusal);
-            }
+            orderGate.verifyOrThrow(this.completeIntent(intent));
 
             // Past this line the function has side effects to undo on failure.
             clientOrderId = candidateOrderId;

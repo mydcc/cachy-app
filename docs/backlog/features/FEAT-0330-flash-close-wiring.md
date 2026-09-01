@@ -83,17 +83,22 @@ cancels the position's stop-loss and take-profit before closing — correct when
 the close then happens, dangerous when it does not. Any refusal further down
 (the confirmation, but equally the kill switch, a risk limit or a price
 mismatch) left the trader holding an open position with its stops removed,
-which is strictly worse than the state they started in. The confirmation is now
-checked before that cancel runs, and `flash-close.confirmation.test.ts` asserts
-that a refusal sends nothing at all. The wider case — a refusal for some *other*
-reason arriving after the cancel — is unchanged and still open.
+which is strictly worse than the state they started in. This item shipped a point fix — the
+confirmation checked before that cancel runs — and
+[`BUG-0331`](../bugs/BUG-0331-flash-close-strips-protection-before-refusal.md)
+superseded it by verifying the whole intent early, which covers every refusal
+the gate can issue rather than only this one.
+`flash-close.confirmation.test.ts` asserts that a refusal sends nothing at all.
 
 **The policy check now takes an action name, not an intent.** It had taken the
 whole `OrderIntent`, which meant a caller could not ask the question before
-building one — and this caller has to, precisely because of the finding above.
-`orderGate.requiresConfirmation(action)` reads the same registered check the
-gate reads, so there is one source of truth rather than a store consulted here
-and a callback consulted there.
+building one. That mattered while this item carried a point fix asking about
+the confirmation alone; [`BUG-0331`](../bugs/BUG-0331-flash-close-strips-protection-before-refusal.md)
+superseded it by verifying the whole intent early, so the narrower
+`requiresConfirmation` helper was removed rather than left standing as a second,
+weaker way to ask the same question. The signature change stayed: it is what
+lets the check answer without an intent, and the gate and the settings screen
+resolve the same action name through the same catalogue.
 
 `flashClosePosition` reaches the UI through `TradingPort`, not directly:
 FEAT-0016's `exchange_boundary.test.ts` fails the build on a component that

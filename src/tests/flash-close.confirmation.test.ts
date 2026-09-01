@@ -225,9 +225,34 @@ describe("flash close under the shipped policy defaults", () => {
      * `flash-close-position`.
      */
 
-    it("clears the position's stops even though cancel-all confirms by default", async () => {
+    it("clears the position's stops under the shipped defaults", async () => {
         installRealPolicy();
-        expect(confirmationPolicyStore.requires("cancel-all")).toBe(true);
+        /*
+         * `cancel-all` defaults on but has no dialog, so the store neutralises
+         * it — a confirmation nothing can satisfy would refuse the action
+         * outright. The cleanup therefore passes today on that account alone,
+         * which is why the next test matters more than this one.
+         */
+        expect(confirmationPolicyStore.requires("cancel-all")).toBe(false);
+
+        const result = await tradeService.flashClosePosition("BTCUSDT", "long", Date.now());
+
+        expect(result.success).toBe(true);
+        expect(cancelCalls().length).toBeGreaterThan(0);
+    });
+
+    it("clears them even when cancel-all does demand a confirmation", async () => {
+        /*
+         * The state `cancel-all` lands in the day someone wires a
+         * user-initiated one: the policy asks for it, and the cleanup inside a
+         * flash close must still run, because it is a step of the close the
+         * user already authorised rather than a decision of its own.
+         *
+         * Without `onBehalfOf` the gate refuses this cancel, the refusal is
+         * swallowed by the cleanup's own try/catch, and the position closes
+         * with its stops still resting on the venue.
+         */
+        registerConfirmationCheck((action) => action === "cancel-all");
 
         const result = await tradeService.flashClosePosition("BTCUSDT", "long", Date.now());
 
