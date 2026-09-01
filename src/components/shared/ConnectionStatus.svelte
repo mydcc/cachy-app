@@ -51,7 +51,7 @@
     class="rounded-full transition-colors duration-300"
     class:animate-pulse={isAnimated}
     style="width: var(--indicator-size); height: var(--indicator-size); background-color: {statusColor};"
-    title="WebSocket: {statusText}"
+    title={$_("connection.webSocket", { values: { statusText } })}
   ></div>
 </div>
 

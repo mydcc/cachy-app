@@ -380,7 +380,7 @@
                     class="font-bold text-right {TechnicalsPresenter.getActionColor(
                       osc.action,
                     )}"
-                    title="Action: {osc.action}"
+                    title={$_("ui.action", { values: { action: osc.action } })}
                     >{translateContext(
                       TechnicalsPresenter.getOscillatorContext(
                         osc.name,
