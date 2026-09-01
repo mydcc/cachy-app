@@ -647,9 +647,9 @@
                 <RiskLimitsSettings />
                 <!--
                   FEAT-0024 sits under the risk limits rather than in a tab of
-                  its own: both answer "what stops me losing money by accident",
-                  and someone here to set a limit is the same person who wants
-                  to say which actions ask first.
+                  its own. Both answer the same question — what stops money
+                  going out by accident — and someone here to set a limit is
+                  the same person who wants to say which actions ask first.
                 -->
                 <ConfirmationSettings />
             </section>
