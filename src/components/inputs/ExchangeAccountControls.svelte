@@ -69,6 +69,7 @@
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { normalizeSymbol } from "../../utils/symbolUtils";
+  import { projectLiquidation } from "../../lib/calculators/liquidation";
   import type { TranslationKey } from "../../locales/schema";
   import LeverageModal from "../shared/LeverageModal.svelte";
   import MarginModeModal from "../shared/MarginModeModal.svelte";
@@ -178,41 +179,6 @@
    * An ESTIMATE, labelled as one, and null whenever an input is missing: a
    * wrong number on a money screen is worse than none.
    */
-  function projectLiquidation(
-    newLeverage: Decimal,
-  ): { from: Decimal; to: Decimal } | null {
-    const p = openPosition;
-    if (!p) return null;
-
-    try {
-      // The store already holds these as `Decimal` — no string ever sits
-      // between the exchange's number and this arithmetic.
-      const entry = p.entryPrice;
-      const liq = p.liquidationPrice;
-      const lev = p.leverage;
-
-      if (!entry?.isFinite() || !liq?.isFinite() || !lev?.isFinite()) return null;
-      if (entry.lte(0) || liq.lte(0) || lev.lte(0) || newLeverage.lte(0)) return null;
-
-      const isLong = liq.lt(entry);
-      const ratio = liq.div(entry);
-      const invOld = new Decimal(1).div(lev);
-      const invNew = new Decimal(1).div(newLeverage);
-
-      const mmr = isLong
-        ? ratio.minus(1).plus(invOld)
-        : new Decimal(1).plus(invOld).minus(ratio);
-
-      const projected = isLong
-        ? entry.times(new Decimal(1).minus(invNew).plus(mmr))
-        : entry.times(new Decimal(1).plus(invNew).minus(mmr));
-
-      if (!projected.isFinite() || projected.lte(0)) return null;
-      return { from: liq, to: projected };
-    } catch {
-      return null;
-    }
-  }
 
   function report(e: unknown) {
     // `getDisplayMessage` renders a venue refusal and an exchange rejection;
@@ -241,7 +207,9 @@
      * number so the last thing read before sending is the consequence.
      */
     if (symbolBusy) {
-      const projection = projectLiquidation(desired);
+      const projection = openPosition
+        ? projectLiquidation(openPosition.entryPrice, openPosition.liquidationPrice, openPosition.leverage, desired)
+        : null;
       const base = $_("exchange.accountSettings.confirmLeverageMessage", {
         values: {
           symbol: venueSymbol,

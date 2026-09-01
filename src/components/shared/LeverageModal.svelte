@@ -43,6 +43,7 @@
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
+  import { projectLiquidation } from "../../lib/calculators/liquidation";
   import ModalFrame from "./ModalFrame.svelte";
 
   interface Props {
@@ -123,53 +124,13 @@
     return [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(minLeverage + span * f));
   });
 
-  /*
-   * Where the position would liquidate at the drafted leverage.
-   *
-   * The maintenance-margin rate is not guessed: it is solved for out of the
-   * venue's own entry/liquidation/leverage triple, then re-applied at the new
-   * leverage. Direction comes from the numbers — a long liquidates below its
-   * entry, a short above it — so no `side` spelling has to be trusted.
-   *
-   * An ESTIMATE, and labelled as one: the venue's real level also carries
-   * fees, funding and tiered maintenance margin. Null whenever an input is
-   * missing, because a wrong number here is worse than none.
-   */
   const projection = $derived.by(() => {
     const p = position;
     const next = parsed;
     if (!p) return null;
     if (next === null || !inRange) return null;
 
-    try {
-      const entry = p.entryPrice;
-      const liq = p.liquidationPrice;
-      const lev = p.leverage;
-
-      if (!entry?.isFinite() || !liq?.isFinite() || !lev?.isFinite()) return null;
-      if (entry.lte(0) || liq.lte(0) || lev.lte(0)) return null;
-
-      const isLong = liq.lt(entry);
-      const ratio = liq.div(entry);
-      const invOld = new Decimal(1).div(lev);
-      const invNew = new Decimal(1).div(next);
-
-      const mmr = isLong
-        ? ratio.minus(1).plus(invOld)
-        : new Decimal(1).plus(invOld).minus(ratio);
-
-      const projected = isLong
-        ? entry.times(new Decimal(1).minus(invNew).plus(mmr))
-        : entry.times(new Decimal(1).plus(invNew).minus(mmr));
-
-      if (!projected.isFinite() || projected.lte(0)) return null;
-
-      // Closer to entry means less room before liquidation.
-      const tighter = projected.minus(entry).abs().lt(liq.minus(entry).abs());
-      return { from: liq, to: projected, tighter };
-    } catch {
-      return null;
-    }
+    return projectLiquidation(p.entryPrice, p.liquidationPrice, p.leverage, next);
   });
 
   function nudge(by: number) {
