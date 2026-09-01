@@ -2316,6 +2316,7 @@ export type TranslationKey =
   | "settings.confirmations.dialog.cancel"
   | "settings.confirmations.dialog.heading"
   | "settings.confirmations.dialog.irreversible"
+  | "settings.confirmations.notWired"
   | "settings.confirmations.title"
   | "settings.confirmations.intro"
   | "settings.confirmations.verificationNote"

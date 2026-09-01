@@ -90,6 +90,28 @@ export const GATED_ACTIONS: ReadonlySet<ConfirmableAction> = new Set<Confirmable
     "modify-order",
 ]);
 
+/**
+ * The actions whose call sites actually raise the dialog today.
+ *
+ * This exists because the gate fails closed, and that cuts both ways. An
+ * action in `GATED_ACTIONS` whose call site never sends a `confirmedAt` is not
+ * "unprotected" — it is *unusable* the moment the user switches its
+ * confirmation on, because nothing can produce the authorisation the gate then
+ * demands. A settings screen that offers such a switch offers a way to break
+ * closing a position, which is the last thing a trader should be able to do to
+ * themselves by accident.
+ *
+ * So the toggles for everything else are shown and disabled, with the reason
+ * stated. Wiring an action means passing `confirmAs`/`confirmedAt` from its
+ * call site and adding it here — the two go together, and keeping the list
+ * next to `GATED_ACTIONS` makes the gap visible rather than latent.
+ */
+export const WIRED_ACTIONS: ReadonlySet<ConfirmableAction> = new Set<ConfirmableAction>([
+    // FEAT-0330. Its cleanup cancel borrows this same authorisation, so
+    // `cancel-all` needs no separate wiring for the flash-close path.
+    "flash-close-position",
+]);
+
 export type ConfirmationPolicy = Record<ConfirmableAction, boolean>;
 
 /**

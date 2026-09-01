@@ -2014,7 +2014,8 @@
         "cancel": "Cancel",
         "heading": "Confirm {action}",
         "irreversible": "This cannot be undone."
-      }
+      },
+      "notWired": "Not available yet — this action has no confirmation dialog, so switching it on would block it."
     }
   },
   "positionsList": {
