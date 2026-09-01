@@ -20,6 +20,7 @@
 -->
 
 <script lang="ts">
+  import { _ } from "../../locales/i18n";
   import { settingsState } from "../../stores/settings.svelte";
   import BackgroundAnimations from "./BackgroundAnimations.svelte";
   import ThreeBackground from "./ThreeBackground.svelte";
@@ -85,7 +86,7 @@
     {#if settingsState.backgroundType === "image" && settingsState.backgroundUrl && !imageError}
       <img
         src={settingsState.backgroundUrl}
-        alt="Background"
+        alt={$_("ui.background")}
         loading="eager"
         onerror={() => (imageError = true)}
       />

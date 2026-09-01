@@ -807,7 +807,10 @@
       "badge": "Paper",
       "tooltip": "Simulierte Ausführung — kein echtes Geld, und aus jeder Statistik ausgeschlossen.",
       "showToggle": "Paper anzeigen ({count})"
-    }
+    },
+    "chartAlt": "{symbol} Chart",
+    "chartPreviewAlt": "{symbol} Chart Vorschau",
+    "chartFullAlt": "{symbol} Vollständiger Chart"
   },
   "marketOverview": {
     "24hHigh": "24h Hoch",
@@ -1997,7 +2000,8 @@
     "hintSmartPause": "<strong>Smart Pause deaktiviert:</strong> Analyse läuft weiter, auch wenn der Browser inaktiv ist.",
     "hintGood": "<strong>✓ Alle Systeme normal:</strong> Konfiguration ist optimal für die aktuelle Last.",
     "symbolsInMemory": "Symbole im Speicher",
-    "pending": "Ausstehend"
+    "pending": "Ausstehend",
+    "confluenceScore": "Konfluenz-Score"
   },
   "symbolPicker": {
     "title": "Symbol auswählen",
@@ -2183,7 +2187,8 @@
     "reconnectingTo": "⟳ Neu verbinden mit {provider}...",
     "disconnected": "✗ Warte auf Verbindung...",
     "error": "✗ Verbindungsfehler",
-    "offline": "OFFLINE - VERBINDUNG PRÜFEN"
+    "offline": "OFFLINE - VERBINDUNG PRÜFEN",
+    "webSocket": "WebSocket: {statusText}"
   },
   "errors": {
     "unknown": "Unbekannter Fehler",
@@ -2255,7 +2260,9 @@
     }
   },
   "ui": {
-    "loading": "Lade..."
+    "loading": "Lade...",
+    "action": "Aktion: {action}",
+    "background": "Hintergrund"
   },
   "offline": {
     "title": "Verbindung verloren",
