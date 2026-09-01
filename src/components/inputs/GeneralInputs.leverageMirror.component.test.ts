@@ -151,7 +151,6 @@ async function render() {
         props: {
             tradeType: "long",
             leverage: tradeStateMock.leverage,
-            fees: tradeStateMock.fees,
         },
     }) as never;
     await settle();

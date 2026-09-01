@@ -34,14 +34,9 @@
   interface Props {
     tradeType: string;
     leverage: string | number | null;
-    fees: string | number | null;
   }
 
-  let {
-    tradeType = $bindable(),
-    leverage = $bindable(),
-    fees = $bindable(),
-  }: Props = $props();
+  let { tradeType = $bindable(), leverage = $bindable() }: Props = $props();
 
   function setTradeType(type: string) {
     // Direct assignment instead of .update()
@@ -104,9 +99,8 @@
     const authoritative = activeFeeRate;
     // `untrack` so this effect depends on the settings rate only. Reading the
     // local one reactively here would re-run the effect on its own write. As
-    // with the leverage mirror, write the store directly (the `fees` prop is
-    // bound to `tradeState.fees` by the caller) so the write is not a no-op on
-    // the prop.
+    // with the leverage mirror, write `tradeState.fees` directly — that is the
+    // value the sizing maths reads; there is no `fees` prop anymore.
     if (untrack(() => tradeState.fees) !== authoritative) {
       tradeState.fees = authoritative;
     }

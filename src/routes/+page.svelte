@@ -426,7 +426,6 @@
         <GeneralInputs
           bind:tradeType={tradeState.tradeType}
           bind:leverage={tradeState.leverage}
-          bind:fees={tradeState.fees}
         />
 
         <PortfolioInputs
