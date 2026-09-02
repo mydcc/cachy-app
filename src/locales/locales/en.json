@@ -2016,6 +2016,27 @@
         "irreversible": "This cannot be undone."
       },
       "notWired": "Not available yet — this action has no confirmation dialog, so switching it on would block it."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "intro": "Which events announce themselves, and where.",
+      "connectionNote": "Connection loss is always shown in the app itself and is not listed here — data that looks live but is not is a fault, not a preference.",
+      "reset": "Restore defaults",
+      "persistFailed": "This setting could not be saved and will be lost when the page reloads.",
+      "channelInApp": "In-app",
+      "channelBrowser": "Browser",
+      "permissionDenied": "Your browser is blocking notifications for this site. Allow them in the site settings to use this channel.",
+      "permissionUnsupported": "This browser does not support notifications.",
+      "categories": {
+        "order-filled": "Order filled",
+        "order-rejected": "Order rejected",
+        "order-cancelled": "Order cancelled"
+      },
+      "events": {
+        "orderFilled": "{symbol} {side} filled — {qty}",
+        "orderRejected": "{symbol} order rejected",
+        "orderCancelled": "{symbol} order cancelled"
+      }
     }
   },
   "positionsList": {

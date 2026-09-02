@@ -24,6 +24,7 @@
     import IndicatorSettings from "./IndicatorSettings.svelte";
     import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
     import ConfirmationSettings from "../ConfirmationSettings.svelte";
+    import NotificationSettings from "../NotificationSettings.svelte";
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
     import OrderAuditSettings from "../OrderAuditSettings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
@@ -652,6 +653,13 @@
                   the same person who wants to say which actions ask first.
                 -->
                 <ConfirmationSettings />
+                <!--
+                  FEAT-0025 joins the same sub-tab. Confirmations ask before an
+                  action; notifications report after one. Both answer what the
+                  app does without being watched, which is why they read as one
+                  screen rather than two.
+                -->
+                <NotificationSettings />
             </section>
         {/if}
 
