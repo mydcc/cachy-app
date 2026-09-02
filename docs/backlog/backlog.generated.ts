@@ -3971,7 +3971,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0337",
     "title": "Design Token Foundation",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3992,7 +3992,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0338",
     "title": "Core Utility Upgrade",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "pheinze",
     "priority": "P2",
     "milestone": "none",
     "editions": [
