@@ -2,7 +2,8 @@
 id: FEAT-0366
 title: Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data
 type: feature
-status: ready
+status: in-progress
+assignee: antigravity
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +12,7 @@ data_class: none
 adr: none
 depends_on: []
 size: S
+# Branch: feat/perf-optimizations-batch
 ---
 
 # FEAT-0366 — Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data
@@ -42,9 +44,9 @@ Because `marketState.data` is a reactive `$state` dictionary in Svelte 5, callin
 
 ## Acceptance criteria
 
-- [ ] Price ticks on non-monitored symbols do not trigger recalculations in `AmbientTopline`.
-- [ ] Topline sentiment indicator continues to display accurate market bias.
-- [ ] Profiling shows reduced reactivity triggers under 50+ ticks/sec WebSocket load.
+- [x] Price ticks on non-monitored symbols do not trigger recalculations in `AmbientTopline`.
+- [x] Topline sentiment indicator continues to display accurate market bias.
+- [x] Profiling shows reduced reactivity triggers under 50+ ticks/sec WebSocket load.
 
 ## Out of scope
 

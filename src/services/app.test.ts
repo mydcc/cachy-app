@@ -49,6 +49,7 @@ vi.mock("./apiService", () => ({
   apiService: {
     fetchBitunixKlines: vi.fn(),
     fetchBitunixPrice: vi.fn(),
+    fetchTicker24h: vi.fn(),
   },
 }));
 
@@ -512,5 +513,67 @@ describe("app service - ATR and Locking Logic", () => {
 
     syncSpy.mockRestore();
     global.fetch = originalFetch;
+  });
+
+  describe("skipCalculate flag behavior", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      tradeState.set(JSON.parse(JSON.stringify(INITIAL_TRADE_STATE)));
+      tradeState.symbol = "BTCUSDT";
+      settingsState.apiProvider = "bitunix";
+    });
+
+    it("handleFetchPrice respects skipCalculate flag", async () => {
+      vi.mocked(apiService.fetchTicker24h).mockResolvedValueOnce({
+        lastPrice: "65000",
+        priceChangePercent: 2.5,
+      } as unknown as Awaited<ReturnType<typeof apiService.fetchTicker24h>>);
+
+      const calcSpy = vi.spyOn(app, "calculateAndDisplay").mockImplementation(() => {});
+
+      // When skipCalculate is true: updates entryPrice, does not call calculateAndDisplay
+      await app.handleFetchPrice(false, true);
+      expect(tradeState.entryPrice).toBe("65000");
+      expect(calcSpy).not.toHaveBeenCalled();
+
+      // When skipCalculate is false: updates entryPrice and invokes calculateAndDisplay
+      vi.mocked(apiService.fetchTicker24h).mockResolvedValueOnce({
+        lastPrice: "66000",
+        priceChangePercent: 3.0,
+      } as unknown as Awaited<ReturnType<typeof apiService.fetchTicker24h>>);
+
+      await app.handleFetchPrice(false, false);
+      expect(tradeState.entryPrice).toBe("66000");
+      expect(calcSpy).toHaveBeenCalledTimes(1);
+
+      calcSpy.mockRestore();
+    });
+
+    it("fetchAtr respects skipCalculate flag", async () => {
+      const mockKlines = Array(15)
+        .fill(0)
+        .map((_, i) => ({
+          high: new Decimal(102 + i * 0.1),
+          low: new Decimal(98 - i * 0.1),
+          close: new Decimal(100 + i * 0.2),
+          open: new Decimal(100),
+          volume: new Decimal(1000),
+          time: Date.now(),
+        }));
+      apiService.fetchBitunixKlines = vi.fn().mockResolvedValue(mockKlines);
+
+      const calcSpy = vi.spyOn(app, "calculateAndDisplay").mockImplementation(() => {});
+
+      // When skipCalculate is true: updates atrValue, does not call calculateAndDisplay
+      await app.fetchAtr(true, true);
+      expect(calcSpy).not.toHaveBeenCalled();
+      expect(parseFloat(tradeState.atrValue)).toBeGreaterThan(0);
+
+      // When skipCalculate is false: updates atrValue and invokes calculateAndDisplay
+      await app.fetchAtr(true, false);
+      expect(calcSpy).toHaveBeenCalledTimes(1);
+
+      calcSpy.mockRestore();
+    });
   });
 });

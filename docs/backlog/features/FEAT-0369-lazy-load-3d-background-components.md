@@ -2,7 +2,8 @@
 id: FEAT-0369
 title: Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer
 type: feature
-status: ready
+status: in-progress
+assignee: antigravity
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +12,7 @@ data_class: none
 adr: none
 depends_on: []
 size: S
+# Branch: feat/perf-optimizations-batch
 ---
 
 # FEAT-0369 — Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer
@@ -42,9 +44,9 @@ The majority of users run standard solid, gradient, or image backgrounds without
 
 ## Acceptance criteria
 
-- [ ] Initial bundle for non-3D users does not load `three-vendor` or 3D background workers.
-- [ ] Selecting "threejs" or "tradeflow" in Settings cleanly mounts and initializes the WebGL canvas and worker without visual glitches.
-- [ ] Switching back to "none", "image", or "gradient" tears down the 3D canvas and worker cleanly.
+- [x] Initial bundle for non-3D users does not load `three-vendor` or 3D background workers.
+- [x] Selecting "threejs" or "tradeflow" in Settings cleanly mounts and initializes the WebGL canvas and worker without visual glitches.
+- [x] Switching back to "none", "image", or "gradient" tears down the 3D canvas and worker cleanly.
 
 ## Out of scope
 

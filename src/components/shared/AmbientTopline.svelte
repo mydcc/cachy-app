@@ -58,14 +58,33 @@
     const tradeHistory: string[] = [];
     const maxHistory = 40;
 
-    // Baseline from 24h market momentum across favorite symbols
+    // Anchor symbols for market sentiment (active symbol + user favorites)
+    const anchorSymbols = $derived.by(() => {
+        const set = new Set<string>();
+        if (tradeState.symbol) {
+            set.add(tradeState.symbol.toUpperCase().replace("/", ""));
+        }
+        for (const sym of settingsState.favoriteSymbols || []) {
+            if (sym) set.add(sym.toUpperCase().replace("/", ""));
+        }
+        if (set.size === 0) {
+            set.add("BTCUSDT");
+            set.add("ETHUSDT");
+            set.add("SOLUSDT");
+        }
+        return Array.from(set);
+    });
+
+    // Baseline from 24h market momentum across anchor symbols only
+    // Scoped property access avoids global reactivity re-runs on unrelated symbol ticks
     const tickerMomentum = $derived.by(() => {
-        const items = Object.values(marketState.data);
-        if (items.length === 0) return 0;
+        const symbols = anchorSymbols;
+        if (symbols.length === 0) return 0;
         let up = 0;
         let total = 0;
-        for (const item of items) {
-            if (item.priceChangePercent != null) {
+        for (const sym of symbols) {
+            const item = marketState.data[sym];
+            if (item?.priceChangePercent != null) {
                 total++;
                 if (item.priceChangePercent.gt(0)) up++;
             }

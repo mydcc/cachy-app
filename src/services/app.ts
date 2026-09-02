@@ -116,9 +116,13 @@ export const app = {
       // 5. Initial connection
       connectionManager.switchProvider(settingsState.apiProvider || "bitunix", { force: true });
 
-      // Fetch initial price data
-      app.handleFetchPrice();
-      app.fetchAtr(true);
+      // Fetch initial price and ATR data coordinated (single calculation pass)
+      void Promise.allSettled([
+        app.handleFetchPrice(false, true),
+        app.fetchAtr(true, true),
+      ]).then(() => {
+        app.calculateAndDisplay();
+      });
 
       // 6. Start Market Analyst
       marketAnalyst.start();
@@ -373,7 +377,7 @@ export const app = {
     reader.readAsText(file);
   },
 
-  handleFetchPrice: async (isAuto = false) => {
+  handleFetchPrice: async (isAuto = false, skipCalculate = false) => {
     const symbol = tradeState.symbol.toUpperCase().replace("/", "");
     if (!symbol) return;
     if (!isAuto) uiState.isPriceFetching = true;
@@ -394,7 +398,7 @@ export const app = {
 
       app.currentMarketPrice = decPrice;
       tradeState.update((s) => ({ ...s, entryPrice: decPrice.toString() }));
-      app.calculateAndDisplay();
+      if (!skipCalculate) app.calculateAndDisplay();
     } catch {
       if (!isAuto) uiState.showError("errors.priceFetchFailed");
     } finally {
@@ -413,7 +417,7 @@ export const app = {
     if (tradeState.atrMode === "auto") app.fetchAtr();
   },
 
-  fetchAtr: async (isAuto = false) => {
+  fetchAtr: async (isAuto = false, skipCalculate = false) => {
     const symbol = tradeState.symbol.toUpperCase().replace("/", "");
     if (!symbol) return;
     if (!isAuto) uiState.isAtrFetching = true;
@@ -432,7 +436,7 @@ export const app = {
           );
       const atr = calculator.calculateATR(klines);
       tradeState.update((s) => ({ ...s, atrValue: new Decimal(atr).toDP(20).toString() }));
-      app.calculateAndDisplay();
+      if (!skipCalculate) app.calculateAndDisplay();
     } catch {
       if (!isAuto) uiState.showError("errors.atrFetchFailed");
     } finally {
@@ -442,8 +446,12 @@ export const app = {
 
   selectSymbolSuggestion: (symbol: string) => {
     tradeState.update((s) => ({ ...s, symbol }));
-    app.handleFetchPrice();
-    app.fetchAtr(true);
+    void Promise.allSettled([
+      app.handleFetchPrice(false, true),
+      app.fetchAtr(true, true),
+    ]).then(() => {
+      app.calculateAndDisplay();
+    });
   },
 
   syncBitunixHistory: async () => {
@@ -576,8 +584,11 @@ export const app = {
     if (symbol && symbol !== tradeState.symbol) {
       tradeState.update((s) => ({ ...s, symbol }));
     }
-    await app.handleFetchPrice(isAuto);
-    await app.fetchAtr(isAuto);
+    await Promise.allSettled([
+      app.handleFetchPrice(isAuto, true),
+      app.fetchAtr(isAuto, true),
+    ]);
+    app.calculateAndDisplay();
 
     // Read-only Bitunix metadata for the trade panel (leverage/margin-mode,
     // trading-pair limits, position tiers). Not on the critical path for

@@ -2,7 +2,8 @@
 id: FEAT-0371
 title: Coordinate initial price and ATR fetches at startup to avoid duplicate calculations
 type: feature
-status: ready
+status: in-progress
+assignee: antigravity
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +12,7 @@ data_class: none
 adr: none
 depends_on: []
 size: XS
+# Branch: feat/perf-optimizations-batch
 ---
 
 # FEAT-0371 — Coordinate initial price and ATR fetches at startup to avoid duplicate calculations
@@ -40,9 +42,9 @@ Both methods run asynchronously on app startup. Each method independently comple
 
 ## Acceptance criteria
 
-- [ ] Startup sequence triggers `calculateAndDisplay()` once instead of twice.
-- [ ] Initial price and ATR values are both correctly populated on first paint.
-- [ ] Fallback behavior remains resilient if ATR fetch fails or is disabled in settings.
+- [x] Startup sequence triggers `calculateAndDisplay()` once instead of twice.
+- [x] Initial price and ATR values are both correctly populated on first paint.
+- [x] Fallback behavior remains resilient if ATR fetch fails or is disabled in settings.
 
 ## Out of scope
 
