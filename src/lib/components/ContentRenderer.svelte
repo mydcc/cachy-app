@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import { loadInstruction } from '../../services/markdownLoader';
   import DOMPurify from 'dompurify';
 
   interface Props {
@@ -41,6 +40,7 @@
         loading = true;
         error = '';
         try {
+          const { loadInstruction } = await import('../../services/markdownLoader');
           // @ts-expect-error - slug checked above
           const result = await loadInstruction(slug, lang);
           fetchedContent = result.html;
