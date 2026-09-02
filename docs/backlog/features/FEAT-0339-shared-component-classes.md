@@ -2,7 +2,7 @@
 id: FEAT-0339
 title: Shared Component Classes
 type: feature
-status: in-progress
+status: done
 assignee: pheinze
 priority: P3
 milestone: none
@@ -81,11 +81,11 @@ Tag-/Filter-Chips:
 
 ## Acceptance criteria
 
-- [ ] `.card` definiert (Radius, Padding, Hintergrund, Border via Tokens)
-- [ ] `.badge` + `.badge-*`-Varianten definiert
-- [ ] `.divider` definiert
-- [ ] `npm run check` bestanden
-- [ ] Keine visuellen Regressionen (neue Klassen, keine Änderungen an bestehenden)
+- [x] `.card` definiert (Radius, Padding, Hintergrund, Border via Tokens)
+- [x] `.badge` + `.badge-*`-Varianten definiert
+- [x] `.divider` definiert
+- [x] `npm run check` bestanden
+- [x] Keine visuellen Regressionen (neue Klassen, keine Änderungen an bestehenden)
 
 ## Out of scope
 
