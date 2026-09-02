@@ -177,12 +177,25 @@ export class SecretsLoader {
     // existing account objects rather than replacing them, because the
     // credential form binds to them — the same reason the venue-indexed
     // path assigned into `currentApiKeys` instead of returning a new object.
-    const accounts = [...currentAccounts];
-    for (const account of stored.accounts) {
-      const live = accounts.find((existing) => existing.id === account.id);
-      if (live) live.keys = account.keys;
-      else accounts.push(account);
-    }
+    // Storage decides *membership*; the live objects keep their identity.
+    //
+    // This used to start from `currentAccounts` and only ever add, which
+    // meant a live account with no stored counterpart survived the load.
+    // With the cross-tab `storage` listener calling `load()`, an account
+    // deleted in one tab came back in another — and that tab's next
+    // autosave wrote it back to disk, undoing the deletion for both.
+    // The encrypted branch above is already authoritative, because it
+    // returns `redactAccounts(stored.accounts)`; only this one was not.
+    const accounts = stored.accounts.map((account) => {
+      const live = currentAccounts.find(
+        (existing) => existing.id === account.id,
+      );
+      if (!live) return account;
+      // Assign into the existing object rather than replacing it: the
+      // credential form binds to these, for the reason given above.
+      live.keys = account.keys;
+      return live;
+    });
 
     return {
       isEncrypted: false,
@@ -394,6 +407,19 @@ export class SecretsLoader {
             err,
           );
         }
+      }
+    }
+
+    // Ciphertext for an account that no longer exists is Class A material
+    // the user believes they deleted. The loop above only ever visits live
+    // accounts, so a removed account's blob would otherwise sit in
+    // `localStorage` indefinitely. Gated on `allowClear` for the same
+    // reason the per-account `delete` above is: a partial save must not be
+    // able to erase credentials it simply could not see.
+    if (allowClear) {
+      const liveIds = new Set(liveAccounts.map((account) => account.id));
+      for (const id of Object.keys(data.encryptedAccountKeys)) {
+        if (!liveIds.has(id)) delete data.encryptedAccountKeys[id];
       }
     }
   }

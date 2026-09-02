@@ -1317,6 +1317,7 @@ export class SettingsManager {
     let aborted = false;
     try {
       const tasks: Promise<void>[] = [];
+      let failures = 0;
 
       // 1. Decrypt Exchange Keys
       if (this.encryptedAccountKeys) {
@@ -1325,20 +1326,34 @@ export class SettingsManager {
           if (!blob) continue;
           tasks.push(
             (async () => {
-              const json = await cryptoService.decrypt(blob);
-              if (aborted) return;
-              const account = this.accounts.find((a) => a.id === accountId);
-              // A blob whose account no longer exists is left encrypted and
-              // unused rather than restored into a fresh account: reviving
-              // credentials a user removed is worse than an orphaned blob.
-              if (account) account.keys = JSON.parse(json);
+              // Per account, like the generic-secrets loop below. Without
+              // this the first unreadable blob rejects the `Promise.all`,
+              // the outer catch calls `lock()`, and `unlock()` returns
+              // false — one corrupt account locks the user out of *every*
+              // account, at a probability that grows with account count.
+              // A counted failure surfaces through `decryptionFailures`
+              // and leaves the readable accounts usable.
+              try {
+                const json = await cryptoService.decrypt(blob);
+                if (aborted) return;
+                const account = this.accounts.find((a) => a.id === accountId);
+                // A blob whose account no longer exists is left encrypted and
+                // unused rather than restored into a fresh account: reviving
+                // credentials a user removed is worse than an orphaned blob.
+                if (account) account.keys = JSON.parse(json);
+              } catch (e) {
+                failures++;
+                console.error(
+                  "[Settings] Failed to decrypt keys for account " + accountId,
+                  e,
+                );
+              }
             })(),
           );
         }
       }
 
       // 2. Decrypt Generic Secrets
-      let failures = 0;
       if (this.encryptedSecrets) {
         const decryptTasks = Object.entries(this.encryptedSecrets)
           .filter(([key]) => SENSITIVE_KEYS.includes(key as keyof Settings))
@@ -1402,6 +1417,13 @@ export class SettingsManager {
       const tasks: Promise<void>[] = [];
 
       for (const account of this.accounts) {
+        // The save path checks this (`applyAccountKeyEncryption`) and so does
+        // the generic-secrets loop below; this one did not. Encrypting an
+        // empty credential set writes ciphertext of `{"key":"","secret":""}`,
+        // which makes `Object.keys(encryptedAccountKeys).length > 0` — the
+        // test for "is this an encrypted profile" — true for a profile that
+        // holds no credentials at all.
+        if (!apiKeyHasMaterial(account.keys)) continue;
         tasks.push(
           (async () => {
             accountBlobs[account.id] = await cryptoService.encrypt(
