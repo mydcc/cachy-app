@@ -2017,6 +2017,27 @@
         "irreversible": "Das lässt sich nicht rückgängig machen."
       },
       "notWired": "Noch nicht verfügbar — für diese Aktion gibt es keinen Bestätigungsdialog; einschalten würde sie blockieren."
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "intro": "Welche Ereignisse sich melden, und wo.",
+      "connectionNote": "Verbindungsverlust wird immer in der App selbst angezeigt und steht deshalb nicht in dieser Liste — Daten, die live aussehen, es aber nicht sind, sind ein Fehler, keine Einstellung.",
+      "reset": "Standard wiederherstellen",
+      "persistFailed": "Diese Einstellung konnte nicht gespeichert werden und geht beim Neuladen verloren.",
+      "channelInApp": "In der App",
+      "channelBrowser": "Browser",
+      "permissionDenied": "Dein Browser blockiert Benachrichtigungen für diese Seite. Erlaube sie in den Website-Einstellungen, um diesen Kanal zu nutzen.",
+      "permissionUnsupported": "Dieser Browser unterstützt keine Benachrichtigungen.",
+      "categories": {
+        "order-filled": "Order ausgeführt",
+        "order-rejected": "Order abgelehnt",
+        "order-cancelled": "Order storniert"
+      },
+      "events": {
+        "orderFilled": "{symbol} {side} ausgeführt — {qty}",
+        "orderRejected": "{symbol}-Order abgelehnt",
+        "orderCancelled": "{symbol}-Order storniert"
+      }
     }
   },
   "calculationDashboard": {

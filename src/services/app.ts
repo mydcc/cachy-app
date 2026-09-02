@@ -43,6 +43,7 @@ import { marketAnalyst } from "./marketAnalyst";
 import { logger } from "./logger";
 import { setupRealtimeUpdatesEffect } from "./appEffects.svelte";
 import { rmsService } from "./rmsService";
+import { installOrderNotifications } from "./notificationService.svelte";
 import { paperTradingService } from "./paperTradingService";
 import { orderAuditService } from "./orderAuditService";
 
@@ -85,6 +86,9 @@ export const app = {
       // order gate before anything can place an order — unregistered hooks
       // mean the gate approves on those two checks.
       rmsService.installGateHooks();
+      // FEAT-0025. Same shape as the gate hooks above: until this runs, order
+      // transitions are announced nowhere and the OMS is unchanged.
+      installOrderNotifications();
       // FEAT-0012: points the simulator at the live feed and mirrors the
       // paper book into the shared stores. No-op while paper mode is off.
       paperTradingService.install();
