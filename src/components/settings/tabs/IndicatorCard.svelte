@@ -36,7 +36,7 @@
     .indicator-card {
         background-color: var(--bg-secondary);
         border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
+        border-radius: var(--radius-lg);
         overflow: hidden;
         transition: border-color 0.2s, box-shadow 0.2s;
     }
@@ -53,8 +53,8 @@
         border-bottom: 1px solid var(--border-color);
     }
     .title {
-        font-weight: 700;
-        font-size: 0.75rem;
+        font-weight: var(--font-bold);
+        font-size: var(--text-xs);
         text-transform: uppercase;
         color: var(--text-primary);
     }

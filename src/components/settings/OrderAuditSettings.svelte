@@ -158,8 +158,8 @@
 
 <style>
   .section-title {
-    font-size: 0.875rem;
-    font-weight: 700;
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
@@ -173,7 +173,7 @@
   }
   .audit-row {
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     background: var(--bg-secondary);
   }
   .audit-head {
@@ -187,7 +187,7 @@
   }
   .badge {
     padding: 0 0.35rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.6rem;
     font-weight: 800;
     letter-spacing: 0.06em;

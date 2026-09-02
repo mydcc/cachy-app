@@ -110,7 +110,7 @@
         margin-bottom: 1.5rem;
         padding: 1rem;
         background: var(--bg-secondary);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         border: 1px solid var(--border);
     }
     .alert-form h4 {
@@ -128,16 +128,16 @@
         border: 1px solid var(--border);
         color: var(--text-primary);
         padding: 0.5rem;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
     }
     .add-btn {
         background: var(--accent);
         color: var(--bg-primary);
         border: none;
         padding: 0 1rem;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         cursor: pointer;
-        font-weight: bold;
+        font-weight: var(--font-bold);
     }
     .tabs {
         display: flex;
@@ -169,7 +169,7 @@
         align-items: center;
         padding: 0.75rem;
         background: var(--bg-secondary);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         border-left: 3px solid var(--accent);
     }
     .history-item {
@@ -185,13 +185,13 @@
         font-size: 0.7rem;
         color: var(--success);
         text-transform: uppercase;
-        font-weight: bold;
+        font-weight: var(--font-bold);
     }
     .delete-btn {
         background: none;
         border: none;
         color: var(--danger);
-        font-size: 1.5rem;
+        font-size: var(--text-2xl);
         cursor: pointer;
     }
     .empty-state {
