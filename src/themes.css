@@ -2230,6 +2230,8 @@ select {
   max-height: 42px;
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
@@ -2244,7 +2246,7 @@ textarea.input-field {
 .input-field-sm {
   height: 34px !important;
   max-height: 34px !important;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .settings-number-input {
@@ -2421,7 +2423,7 @@ input[type="number"] {
   padding: 0 1rem;
   height: 100%;
   box-sizing: border-box;
-  border-radius: 0.375rem;
+  border-radius: var(--radius-md);
   transition: all 0.2s ease-in-out;
   border: 1px solid transparent;
 }
@@ -2498,16 +2500,13 @@ input[type="number"] {
   color: var(--text-secondary);
   cursor: pointer;
   transition: color 0.2s ease-in-out;
-  font-size: 0.875rem;
-  /* 14px */
-  font-weight: 500;
-  /* Medium weight for non-active */
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
 }
 
 .btn-switcher.active {
   color: var(--text-primary);
-  font-weight: 700;
-  /* Bold for active */
+  font-weight: var(--font-bold);
 }
 
 .atr-toggle-track {
@@ -2596,6 +2595,7 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .btn-modal-ok {
   background-color: var(--btn-accent-bg);
   color: var(--btn-accent-text);
+  border-radius: var(--radius-md);
   transition: background-color 0.2s;
 }
 
@@ -2607,6 +2607,8 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .btn-primary-action {
   background: var(--btn-accent-bg);
   color: var(--btn-accent-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
   transition: all 0.3s ease;
 }
 
@@ -2654,6 +2656,8 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .btn-secondary-action {
   background-color: var(--btn-default-bg);
   color: var(--btn-default-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
   transition: background-color 0.2s;
 }
 
@@ -2927,6 +2931,7 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 /* Glassmorphism Utility */
 .glass-panel {
   background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
   transition:
     backdrop-filter var(--transition-smooth),
     background var(--transition-smooth);
@@ -3058,6 +3063,7 @@ svg {
 
 .text-link {
   color: var(--accent-color);
+  font-size: var(--text-sm);
   text-decoration: none;
 }
 

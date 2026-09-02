@@ -2,7 +2,8 @@
 id: FEAT-0338
 title: Core Utility Upgrade
 type: feature
-status: specced
+status: done
+assignee: pheinze
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -50,11 +51,11 @@ Alle bestehenden Utility-Klassen in `themes.css` (ca. Zeile 2200-2910) auf die n
 
 ## Acceptance criteria
 
-- [ ] `.input-field` nutzt `--radius-md` statt hardcoded Wert
-- [ ] `.btn-*`-Klassen haben einheitlichen Radius via Token
-- [ ] `.glass-panel` hat `border-radius: var(--radius-lg)`
-- [ ] `npm run check` bestanden
-- [ ] `npm test` bestanden
+- [x] `.input-field` nutzt `--radius-md` statt hardcoded Wert
+- [x] `.btn-*`-Klassen haben einheitlichen Radius via Token
+- [x] `.glass-panel` hat `border-radius: var(--radius-lg)`
+- [x] `npm run check` bestanden
+- [x] `npm test` bestanden (319 files, 2775 tests, 0 failures)
 - [ ] Keine sichtbaren visuellen Regressionen in Calculator, Trade Panel, Settings
 
 ## Out of scope
