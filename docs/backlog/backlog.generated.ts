@@ -3948,6 +3948,93 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0335-trailing-stop.md"
   },
   {
+    "id": "FEAT-0336",
+    "title": "CSS Design Token Foundation & UI Harmonization",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "ADR-0014",
+    "depends_on": [],
+    "estimate": "15",
+    "size": "L",
+    "file": "features/FEAT-0336-css-design-token-foundation.md"
+  },
+  {
+    "id": "FEAT-0337",
+    "title": "Design Token Foundation",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "ADR-0014",
+    "depends_on": [],
+    "parent": "FEAT-0336",
+    "estimate": "2",
+    "size": "S",
+    "file": "features/FEAT-0337-design-token-foundation.md"
+  },
+  {
+    "id": "FEAT-0338",
+    "title": "Core Utility Upgrade",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0337"
+    ],
+    "parent": "FEAT-0336",
+    "estimate": "3",
+    "size": "S",
+    "file": "features/FEAT-0338-core-utility-upgrade.md"
+  },
+  {
+    "id": "FEAT-0340",
+    "title": "Component Style Migration",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0338"
+    ],
+    "parent": "FEAT-0336",
+    "estimate": "8",
+    "size": "L",
+    "file": "features/FEAT-0340-component-style-migration.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
@@ -4629,6 +4716,29 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "branch": "none",
     "shipped": "PR #2391 (develop 2026-08-29, follow-ups 134dc4a4 c662c197)",
     "file": "features/FEAT-0325-tradeflow-indicator-signals.md"
+  },
+  {
+    "id": "FEAT-0339",
+    "title": "Shared Component Classes",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0337"
+    ],
+    "parent": "FEAT-0336",
+    "estimate": "2",
+    "size": "S",
+    "file": "features/FEAT-0339-shared-component-classes.md"
   },
   {
     "id": "IDEA-0036",
