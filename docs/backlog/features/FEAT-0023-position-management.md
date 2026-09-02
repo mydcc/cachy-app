@@ -38,8 +38,8 @@ unverified exchange endpoint.
 | Modify position TP/SL after entry | [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md) | Done — slider and modes shipped |
 | Partial close, by percentage or size | [`FEAT-0256`](FEAT-0256-partial-close-position.md) | Done |
 | Flash close | [`FEAT-0330`](FEAT-0330-flash-close-wiring.md) | Done — FEAT-0024 shipped |
-| Add to / reduce, average entry recomputed | Not yet split out | Ready to spec |
-| Trailing stop and trailing TP/SL | Needs a verified endpoint | Blocked — see below |
+| Add to a position, average entry recomputed | [`FEAT-0334`](FEAT-0334-add-to-position.md) | Specced |
+| Trailing stop and trailing TP/SL | [`FEAT-0335`](FEAT-0335-trailing-stop.md) | Blocked on a verified endpoint — see below |
 
 **Flash close** shipped as [`FEAT-0330`](FEAT-0330-flash-close-wiring.md) once
 [`FEAT-0024`](FEAT-0024-confirmation-policy.md) gave it a confirmation to sit
@@ -53,6 +53,14 @@ The bare `confirm()` this item once described in `PositionsList.svelte` is gone
 — FEAT-0256 replaced it with `ClosePositionModal`, which asks the same question
 and also answers *how much*.
 
+**Add and reduce turned out not to be one control.** The question below asked
+whether they belong together because they share the average-entry
+recomputation. They do not share it: **a reduce does not move the average
+entry** — closing part of a position realises PnL and leaves the remainder's
+entry price where it was. The recomputation is add-only, and the reduce already
+shipped as [`FEAT-0256`](FEAT-0256-partial-close-position.md). So the remaining
+control is one item, [`FEAT-0334`](FEAT-0334-add-to-position.md), not two.
+
 **Trailing stops** have no verified Bitunix endpoint in the current API doc
 crawl — see [`INTEGRATION_STATUS.md`](../../bitunix-api/INTEGRATION_STATUS.md)
 §Trade and [`FEAT-0070`](FEAT-0070-bitunix-tpsl-placement.md)'s own Out of
@@ -65,11 +73,16 @@ gate.
 
 This epic is done when each child item is done. It has no code of its own.
 
-- [ ] [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md) — modify TP/SL ✅
-- [ ] [`FEAT-0256`](FEAT-0256-partial-close-position.md) — partial close
+- [x] [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md) — modify TP/SL
+- [x] [`FEAT-0256`](FEAT-0256-partial-close-position.md) — partial close, which is
+      also the reduce this epic once listed alongside add
 - [x] Flash close wired, behind [`FEAT-0024`](FEAT-0024-confirmation-policy.md) — [`FEAT-0330`](FEAT-0330-flash-close-wiring.md)
-- [ ] Add to / reduce with recomputed average entry — needs its own item
-- [ ] Trailing stop — blocked on a verified endpoint
+- [ ] [`FEAT-0334`](FEAT-0334-add-to-position.md) — add to a position, average
+      entry recomputed
+- [ ] [`FEAT-0335`](FEAT-0335-trailing-stop.md) — trailing stop, which cannot
+      start until a trailing endpoint is verified against the live API. **This
+      epic stays open until then**, and that is the correct outcome: closing it
+      early would record a capability the product does not have.
 - [ ] Unsupported actions absent per [`FEAT-0017`](FEAT-0017-exchange-capability-model.md)
 - [ ] Each action verified live on each supported exchange
 
@@ -83,15 +96,18 @@ child, because they are properties of the finished set, not of any one control.
 
 ## Open questions
 
-- **Does add-to-position deserve its own item or does it belong with reduce?**
-  They share the average-entry recomputation and the same panel; they differ in
-  direction and in what the gate must check (an add opens exposure, a reduce
-  cannot). Worth deciding before either is specced.
+- ~~**Does add-to-position deserve its own item or does it belong with
+  reduce?**~~ Answered 2026-09-02: they do not share the average-entry
+  recomputation, because a reduce does not move the average entry. Reduce is
+  [`FEAT-0256`](FEAT-0256-partial-close-position.md), already shipped; add is
+  [`FEAT-0334`](FEAT-0334-add-to-position.md). See the Proposal.
 
 ## Links
 
 - [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md) — TP/SL input, done
-- [`FEAT-0256`](FEAT-0256-partial-close-position.md) — partial close, in progress
+- [`FEAT-0256`](FEAT-0256-partial-close-position.md) — partial close, done
+- [`FEAT-0334`](FEAT-0334-add-to-position.md) — add to a position
+- [`FEAT-0335`](FEAT-0335-trailing-stop.md) — trailing stop, blocked on the API
 - [`FEAT-0024`](FEAT-0024-confirmation-policy.md) — confirmation policy, blocks flash close
 - [`FEAT-0017`](FEAT-0017-exchange-capability-model.md) — capability model
 - [`FEAT-0011`](FEAT-0011-preflight-order-verification.md) — the gate every action passes

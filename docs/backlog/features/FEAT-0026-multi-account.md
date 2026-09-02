@@ -9,11 +9,11 @@ editions: [community, pro, private]
 area: trade-panel
 data_class: A
 adr: none
-depends_on: [FEAT-0016]
-estimate: 8
-size: L
+depends_on: [FEAT-0016, FEAT-0333]
+estimate: 3
+size: M
 target_date: 2026-12-21
-start_date: 2026-08-01
+start_date: 2026-11-17
 ---
 
 
@@ -44,10 +44,18 @@ entirely silent. So:
 Credentials remain Class A, one encrypted entry per account under the existing
 master-password scheme.
 
+**The storage shape is no longer part of this item.** Converting `apiKeys` and
+`encryptedApiKeys` to a named-account list, with its migration and its restore
+path, is [`FEAT-0333`](FEAT-0333-account-storage-shape.md) and lands first,
+changing nothing a user can see. What remains here is the feature: the second
+account, the switch, the confirmation, and making the active one unmistakable.
+
 ## Acceptance criteria
 
 - [ ] Several accounts can be configured, named and switched
-- [ ] Each account's credentials are encrypted independently
+- [ ] Each account's credentials are encrypted independently — the shape and
+      its migration are [`FEAT-0333`](FEAT-0333-account-storage-shape.md); this
+      item only adds the second account to it
 - [ ] The active account is visible on every order-placing surface
 - [ ] The verification gate refuses an order whose target account differs from
       the displayed one, with a test
@@ -121,13 +129,18 @@ one that mis-assigns it places orders on the wrong account, which this item's
 own Proposal calls "unrecoverable and entirely silent". Neither is acceptable
 as a discovery made during implementation.
 
-### Suggested split
+### The split, carried out — 2026-09-02
 
-Worth considering before starting: a first item that converts the storage shape
-with a migration and a restore path, keeping exactly one account per venue and
-changing no behaviour, and a second that adds the second account, the switch and
-the UI. The first is testable against real encrypted blobs; the second is a
-feature. Bundled, the risky half is reviewed alongside the visible half.
+Done rather than suggested. The storage half is
+[`FEAT-0333`](FEAT-0333-account-storage-shape.md): it converts the shape, brings
+its own migration and restore path, keeps exactly one account per venue and
+changes no behaviour, so it can be reviewed against real encrypted blobs with
+nothing else in the diff. This item keeps the feature half and now depends on
+it.
+
+The `8` did not shrink, it moved: `5` to the shape change, `3` to what is left
+here. Bundled, the risky half would have been reviewed alongside the visible
+half, and the visible half is the one a reviewer's eye goes to.
 
 ## Links
 
@@ -136,4 +149,5 @@ feature. Bundled, the risky half is reviewed alongside the visible half.
 - `src/stores/settings/secretsLoader.ts` — startup decryption
 - `src/services/backupService.ts` — restore-side structure check
 - `src/services/appEffects.svelte.ts` — the existing key-change reconnect
+- [`FEAT-0333`](FEAT-0333-account-storage-shape.md) — the storage shape, first
 - [`FEAT-0024`](FEAT-0024-confirmation-policy.md) — `account-switch` awaits wiring

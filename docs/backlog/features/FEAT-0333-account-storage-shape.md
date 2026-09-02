@@ -1,0 +1,111 @@
+---
+id: FEAT-0333
+title: Store credentials as a list of named accounts, without changing behaviour
+type: feature
+status: specced
+priority: P1
+milestone: M3
+editions: [community, pro, private]
+area: trade-panel
+data_class: A
+adr: none
+depends_on: [FEAT-0016]
+estimate: 5
+size: M
+start_date: 2026-09-02
+target_date: 2026-11-16
+---
+
+# FEAT-0333 — Store credentials as a list of named accounts, without changing behaviour
+
+## Problem
+
+A trader cannot run two accounts on one exchange, and the reason is not the
+user interface. It is the stored shape, which has exactly one slot per venue:
+
+```ts
+apiKeys: { bitunix: ApiKeys; bitget: ApiKeys };
+encryptedApiKeys?: { bitunix?: EncryptedBlob; bitget?: EncryptedBlob };
+```
+
+Everything [`FEAT-0026`](FEAT-0026-multi-account.md) wants to build sits on top
+of that shape. Its [audit](FEAT-0026-multi-account.md#audit--2026-09-02) found
+the runtime already account-aware — the gate distinguishes two accounts on one
+venue today — so this is the one genuinely missing piece, and also the only
+part that can lose a credential.
+
+## Proposal
+
+Convert both shapes to a list of named accounts, each carrying its exchange,
+and **change nothing a user can see.** The migration creates exactly one
+account per venue, named after it. No second account, no switch, no new UI —
+those are [`FEAT-0026`](FEAT-0026-multi-account.md).
+
+This is split out from that item precisely so it can be reviewed alone. A
+migration that drops a credential locks a trader out of an exchange; one that
+mis-assigns it places orders on the wrong account, which FEAT-0026's own
+Proposal calls "unrecoverable and entirely silent". That failure mode deserves
+a pull request that contains nothing else to look at.
+
+The readers the audit counted — 13 production files, including both WebSocket
+services, `syncService`, `entitlement`, `secretsLoader` and `backupService` —
+resolve through **one accessor** that returns the active account for a venue,
+rather than each learning the new shape. The diff stays mechanical and the next
+item has one place to make "active" mean something.
+
+### Three paths that must keep working
+
+1. **`localStorage`** — `encryptedApiKeys.bitunix` / `.bitget`, encrypted under
+   the master password. Each blob keeps its own ciphertext; migration rewrites
+   the index around it, never the encryption, so no master-password prompt is
+   needed to migrate.
+2. **Startup decryption** — `secretsLoader.ts` reads the new shape, and the old
+   one for as long as an unmigrated profile can exist.
+3. **Backups** — `backupService.ts` validates the `apiKeys` structure on
+   restore. A backup written before the change must still restore after it,
+   **and** a backup written after must be refused with a named error by a build
+   that predates the change, rather than restoring a subset of it. That means a
+   version field in the payload, not a shape sniff.
+
+Names are derived from the venue at migration time. Renaming arrives with the
+UI in FEAT-0026; inventing a naming dialog here would be the behaviour change
+this item exists to avoid.
+
+## Acceptance criteria
+
+- [ ] `apiKeys` and `encryptedApiKeys` are a list of named accounts, each
+      carrying its exchange
+- [ ] Credentials written by the pre-change build decrypt after migration, with
+      a test against a real encrypted blob rather than a hand-built fixture
+- [ ] The migration is idempotent — running it twice leaves one account per
+      venue, with a test
+- [ ] No path drops or re-assigns a credential: a test asserts venue → key
+      identity across migration, startup decryption and restore
+- [ ] A backup taken before the change restores after it, with a test
+- [ ] A backup taken after the change is refused with a named error by a build
+      expecting the old shape, rather than restoring part of it
+- [ ] The readers index through one accessor rather than by provider
+- [ ] Behaviour is unchanged: no new UI, no switch, exactly one account per
+      venue after migration
+- [ ] German and English strings for the restore-refusal error
+
+## Out of scope
+
+- **A second account on any venue**, the switch, the confirmation and the
+  active-account UI — all [`FEAT-0026`](FEAT-0026-multi-account.md).
+- **Re-encrypting credentials.** The blobs are carried over as they are.
+- **Renaming an account.** Migration names it after its venue; editing comes
+  with the UI.
+
+## Open questions
+
+None blocking. The naming question is answered above deliberately, so this item
+can reach `ready` without waiting on a UI decision.
+
+## Links
+
+- [`FEAT-0026`](FEAT-0026-multi-account.md) — the feature half, blocked on this
+- `src/stores/settings.svelte.ts` — `SENSITIVE_KEYS`, encryption
+- `src/stores/settings/secretsLoader.ts` — startup decryption
+- `src/services/backupService.ts` — restore-side structure check
+- `src/services/appEffects.svelte.ts` — the existing key-change reconnect
