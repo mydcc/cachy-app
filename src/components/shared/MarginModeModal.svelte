@@ -249,7 +249,7 @@
 <style>
   .section-label {
     font-size: 0.6875rem;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
@@ -260,7 +260,7 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.625rem;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
     background-color: var(--bg-secondary);
     text-align: left;
@@ -279,8 +279,8 @@
     border-color: var(--accent-color);
   }
   .option-title {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
     color: var(--text-primary);
   }
   .option-active .option-title {
@@ -300,7 +300,7 @@
   }
   .node {
     padding: 0.1875rem 0.25rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
     background-color: var(--bg-tertiary);
     font-size: 0.5625rem;

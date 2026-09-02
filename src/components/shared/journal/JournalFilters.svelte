@@ -315,7 +315,7 @@
     .trade-count {
         font-size: 0.85rem;
         color: var(--text-secondary);
-        font-weight: 500;
+        font-weight: var(--font-medium);
     }
 
     .filter-controls {
@@ -342,7 +342,7 @@
         width: 100%;
         padding: 0.5rem 0.75rem;
         border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
+        border-radius: var(--radius-lg);
         background: var(--input-bg);
         color: var(--text-primary);
         font-size: 0.85rem;
@@ -369,7 +369,7 @@
 
     .date-separator {
         color: var(--text-secondary);
-        font-weight: 500;
+        font-weight: var(--font-medium);
     }
 
     .filter-actions {
@@ -427,7 +427,7 @@
     .toggle-text {
         font-size: 0.8rem;
         color: var(--text-secondary);
-        font-weight: 500;
+        font-weight: var(--font-medium);
         white-space: nowrap;
     }
 
@@ -437,7 +437,7 @@
         justify-content: center;
         width: 34px;
         height: 34px;
-        border-radius: 0.5rem;
+        border-radius: var(--radius-lg);
         border: 1px solid var(--border-color);
         background: var(--bg-secondary);
         color: var(--text-secondary);
@@ -452,11 +452,11 @@
 
     .quick-date-btn {
         padding: 0.25rem 0.5rem;
-        border-radius: 0.375rem;
+        border-radius: var(--radius-md);
         border: 1px solid var(--border-color);
         background: var(--bg-secondary);
         color: var(--text-secondary);
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         cursor: pointer;
         transition: all 0.15s ease;
     }

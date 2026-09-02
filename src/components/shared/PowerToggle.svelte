@@ -144,7 +144,7 @@
         background-position:
             0 0,
             7.2px 0; /* Scaled 15px * 0.48 */
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
         box-shadow:
             inset 0 0.5px 2px hsla(0, 0%, 0%, 0.5),
             inset 0 0 5px hsla(0, 0%, 0%, 0.5),
@@ -166,7 +166,7 @@
     }
 
     .checkbox-wrapper-25 input[type="checkbox"]:after {
-        background-color: #eee;
+        background-color: var(--toggle-circle-bg);
         background-image: -webkit-linear-gradient(
             hsla(0, 0%, 100%, 0.1),
             hsla(0, 0%, 0%, 0.1)
@@ -175,7 +175,7 @@
             hsla(0, 0%, 100%, 0.1),
             hsla(0, 0%, 0%, 0.1)
         );
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
         box-shadow:
             inset 0 0.5px 0.5px 0.5px hsla(0, 0%, 100%, 1),
             inset 0 -0.5px 0.5px 0.5px hsla(0, 0%, 0%, 0.25),

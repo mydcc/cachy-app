@@ -459,11 +459,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
-    padding: 0.5rem 0.6rem;
+    gap: var(--space-1);
+    padding: var(--space-2) 0.6rem;
     min-height: 2.25rem;
-    font-size: 0.75rem;
-    border-radius: 0.375rem;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
     background-color: var(--bg-secondary);
     color: var(--text-primary);

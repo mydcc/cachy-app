@@ -258,16 +258,16 @@
     }
 
     .stat-label {
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--text-secondary);
-        font-weight: 600;
+        font-weight: var(--font-semibold);
     }
 
     .stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
         font-variant-numeric: tabular-nums;
     }
 

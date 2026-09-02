@@ -1100,8 +1100,8 @@
     .journal-table th {
         background: var(--bg-secondary);
         color: var(--text-secondary);
-        font-weight: 600;
-        font-size: 0.75rem;
+        font-weight: var(--font-semibold);
+        font-size: var(--text-xs);
         padding: 0.65rem 0.85rem;
         border-bottom: 1px solid var(--border-color);
         white-space: nowrap;
@@ -1175,7 +1175,7 @@
         border: none;
         color: var(--text-secondary);
         cursor: pointer;
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         padding: 0 0.25rem;
     }
 
@@ -1185,11 +1185,11 @@
 
     .action-icon-btn {
         padding: 0.25rem 0.4rem;
-        border-radius: 0.375rem;
+        border-radius: var(--radius-md);
         border: 1px solid var(--border-color);
         background: var(--bg-secondary);
         cursor: pointer;
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         transition: all 0.15s ease;
     }
 
@@ -1199,7 +1199,7 @@
 
     .pagination-btn {
         padding: 0.35rem 0.65rem;
-        border-radius: 0.375rem;
+        border-radius: var(--radius-md);
         border: 1px solid var(--border-color);
         background: var(--bg-primary);
         color: var(--text-primary);
