@@ -18,6 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+    autoFixPRBody,
     checkBodyForStrayClosingRefs,
     checkBodyHasClosingRef,
     closingReferences,
@@ -332,5 +333,68 @@ describe("checkBodyHasClosingRef", () => {
         const body = `${NO_ISSUE_MARKER}\n\nFixes #1\n\nalso closes #2`;
         expect(checkBodyHasClosingRef(body).ok).toBe(true);
         expect(checkBodyForStrayClosingRefs(body).ok).toBe(false);
+    });
+});
+
+describe("autoFixPRBody", () => {
+    it("does not change a body that already has a valid closing reference", async () => {
+        const res = await autoFixPRBody({
+            body: "Fixes #123\n\nSome description.",
+            title: "feat: something",
+        });
+        expect(res.changed).toBe(false);
+        expect(res.body).toBe("Fixes #123\n\nSome description.");
+    });
+
+    it("does not change a body that already has [no issue]", async () => {
+        const res = await autoFixPRBody({
+            body: "Some description.\n\n[no issue]",
+            title: "chore: something",
+        });
+        expect(res.changed).toBe(false);
+    });
+
+    it("prepends Fixes #N when a backlog ID has an existing issue", async () => {
+        const res = await autoFixPRBody({
+            body: "Addresses FEAT-0359 in modal.",
+            title: "perf(ui): lazy-load markdownLoader",
+            branch: "feat/feat-0359-lazy-load",
+            findIssueForBacklogId: async (id) => (id === "FEAT-0359" ? 2500 : null),
+        });
+        expect(res.changed).toBe(true);
+        expect(res.body.startsWith("Fixes #2500\n\nAddresses FEAT-0359")).toBe(true);
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(true);
+    });
+
+    it("appends [no issue] when a backlog ID has no matching GitHub issue", async () => {
+        const res = await autoFixPRBody({
+            body: "Addresses FEAT-0359 in modal.",
+            title: "perf(ui): lazy-load markdownLoader",
+            branch: "feat/feat-0359-lazy-load",
+            findIssueForBacklogId: async () => null,
+        });
+        expect(res.changed).toBe(true);
+        expect(res.body).toContain("[no issue]");
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(true);
+    });
+
+    it("appends [no issue] for standard chore / tooling PR without backlog ID", async () => {
+        const res = await autoFixPRBody({
+            body: "Updated dependencies to latest.",
+            title: "chore: bump dependencies",
+        });
+        expect(res.changed).toBe(true);
+        expect(res.body).toContain("[no issue]");
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(true);
+    });
+
+    it("neutralizes stray closing references in prose to prevent BUG-0220", async () => {
+        const res = await autoFixPRBody({
+            body: "Fixes #100\n\nThis also closed #200 in the past.",
+            title: "fix: resolve bug",
+        });
+        expect(res.changed).toBe(true);
+        expect(res.body).toContain("closed #<!-- -->200");
+        expect(checkBodyForStrayClosingRefs(res.body).ok).toBe(true);
     });
 });

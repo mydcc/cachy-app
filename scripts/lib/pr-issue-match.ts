@@ -212,3 +212,81 @@ export function decideLink(body: string | null | undefined, issueNumber: number)
     if (existing.length > 0) return { action: "conflict", existing, wanted: issueNumber };
     return { action: "prepend", issueNumber };
 }
+
+/** Context for automated PR body repair. */
+export interface AutoFixPRBodyContext {
+    body: string;
+    title?: string;
+    branch?: string;
+    findIssueForBacklogId?: (backlogId: string) => Promise<number | null>;
+}
+
+/** Result of automated PR body repair. */
+export interface AutoFixPRBodyResult {
+    changed: boolean;
+    body: string;
+    actionTaken?: string;
+}
+
+/**
+ * Repairs missing closing references or stray keywords in a PR body.
+ *
+ * 1. If missing closing reference:
+ *    - Finds Backlog-ID in title, branch, or body.
+ *    - If an issue is resolved, prepends `Fixes #N`.
+ *    - If no issue exists (standalone backlog item), appends `[no issue]`.
+ *    - If no Backlog-ID exists but title is standard chore/ci/docs/test/refactor, appends `[no issue]`.
+ * 2. If stray closing references exist in prose, breaks their keywords (`closed #<!-- -->123`)
+ *    to prevent accidental issue closing on squash merge (BUG-0220 / BUG-0221).
+ */
+export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixPRBodyResult> {
+    let body = ctx.body;
+    let changed = false;
+    let actionTaken: string | undefined;
+
+    // 1. Check if closing reference is missing
+    const presence = checkBodyHasClosingRef(body);
+    if (!presence.ok) {
+        const title = ctx.title ?? "";
+        const branch = ctx.branch ?? "";
+        const combined = `${title} ${branch} ${body}`;
+        const backlogMatch = combined.match(/\b([A-Z]{2,10}-\d+)\b/);
+
+        if (backlogMatch) {
+            const backlogId = backlogMatch[1];
+            let issueNumber: number | null = null;
+            if (ctx.findIssueForBacklogId) {
+                issueNumber = await ctx.findIssueForBacklogId(backlogId);
+            }
+            if (issueNumber) {
+                body = `Fixes #${issueNumber}\n\n${body.trimStart()}`;
+                changed = true;
+                actionTaken = `Prepend Fixes #${issueNumber} for ${backlogId}`;
+            } else {
+                body = `${body.trimEnd()}\n\n${NO_ISSUE_MARKER}\n`;
+                changed = true;
+                actionTaken = `Append ${NO_ISSUE_MARKER} for ${backlogId}`;
+            }
+        } else {
+            const isToolingOrChore = /^(chore|ci|docs|test|refactor)(\(.*\))?:/i.test(title);
+            if (isToolingOrChore) {
+                body = `${body.trimEnd()}\n\n${NO_ISSUE_MARKER}\n`;
+                changed = true;
+                actionTaken = `Append ${NO_ISSUE_MARKER} for tooling PR`;
+            }
+        }
+    }
+
+    // 2. Check for stray closing references in prose
+    const strayCheck = checkBodyForStrayClosingRefs(body);
+    if (!strayCheck.ok) {
+        for (const conflict of strayCheck.conflicts) {
+            const regex = new RegExp(`\\b(${CLOSING_KEYWORD})\\s+#(${conflict})\\b`, "gi");
+            body = body.replace(regex, (_match, kw, num) => `${kw} #<!-- -->${num}`);
+            changed = true;
+            actionTaken = actionTaken ? `${actionTaken}; neutralized stray #${conflict}` : `Neutralized stray #${conflict}`;
+        }
+    }
+
+    return { changed, body, actionTaken };
+}

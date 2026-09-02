@@ -5,10 +5,12 @@ on:
     types: [opened, edited, synchronize]
     branches: [main, develop]
 
-# Least-privilege default: this only reads the PR description to lint it, it
-# never writes to the repo or the GitHub API.
+# Permissions: reads repo contents and issues, writes pull-request description
+# to automatically repair missing closing references or stray links.
 permissions:
   contents: read
+  pull-requests: write
+  issues: read
 
 jobs:
   check-pr-body:
@@ -45,5 +47,10 @@ jobs:
         # command would be a command-injection surface. `env:` hands it to the
         # process as data instead of as script text.
         env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: npx tsx scripts/lint-pr-body-refs.ts
