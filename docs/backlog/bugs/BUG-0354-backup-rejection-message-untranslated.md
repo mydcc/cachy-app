@@ -1,5 +1,5 @@
 ---
-id: BUG-0336
+id: BUG-0354
 title: The backup-restore rejection message is hardcoded English
 type: bug
 status: specced

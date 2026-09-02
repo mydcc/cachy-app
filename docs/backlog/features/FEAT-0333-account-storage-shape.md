@@ -113,7 +113,7 @@ is needed: `validateSettings` returning false already routes into the existing
 whole-restore rejection, which names the section and states that no changes
 were applied. Adding a second message would have been a string written to
 satisfy a checklist. That existing message is itself hardcoded English rather
-than translated — a pre-existing gap, filed as [`BUG-0336`](../bugs/BUG-0336-backup-rejection-message-untranslated.md).
+than translated — a pre-existing gap, filed as [`BUG-0354`](../bugs/BUG-0354-backup-rejection-message-untranslated.md).
 
 ## Out of scope
 
