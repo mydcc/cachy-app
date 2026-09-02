@@ -48,7 +48,10 @@ vi.mock("./logger", () => ({
 // venue whose venue-specific behaviour cannot be tested.
 const settings = vi.hoisted(() => ({
     apiProvider: "bitunix" as string,
-    apiKeys: { bitunix: { key: "test-key-1234", secret: "s" } } as Record<
+    accounts: [
+      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: { key: "test-key-1234", secret: "s" } },
+    ],
+    activeAccountId: "bitunix" as Record<
         string,
         { key: string; secret: string }
     >,

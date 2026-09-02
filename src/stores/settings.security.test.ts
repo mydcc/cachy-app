@@ -17,6 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { LEGACY_ACCOUNT_IDS } from "./settings/accounts";
 import { SettingsManager } from "./settings.svelte";
 import { cryptoService } from "../services/cryptoService";
 
@@ -66,6 +67,22 @@ const localStorageMock = (() => {
 // Global setup
 Object.defineProperty(global, "localStorage", { value: localStorageMock });
 
+/**
+ * A venue's credentials as they appear in a serialized payload.
+ *
+ * Credentials live in a list now (FEAT-0333), so the assertions look the
+ * venue up rather than indexing it — and a payload that lost the account
+ * entirely fails here rather than reading as an empty key.
+ */
+function serializedKeys(
+  json: { accounts?: { exchange: string; keys: Record<string, string> }[] },
+  exchange: string,
+): Record<string, string> {
+  const account = json.accounts?.find((a) => a.exchange === exchange);
+  if (!account) throw new Error(`no serialized account for ${exchange}`);
+  return account.keys;
+}
+
 describe("SettingsManager Security", () => {
   let settingsState: SettingsManager;
 
@@ -82,40 +99,40 @@ describe("SettingsManager Security", () => {
 
   it("should encrypt keys when setMasterPassword is called", async () => {
     // Setup initial plain keys
-    settingsState.apiKeys.bitunix = { key: "plain", secret: "plain" };
+    settingsState.accountFor("bitunix").keys = { key: "plain", secret: "plain" };
 
     await settingsState.setMasterPassword("password123");
 
     expect(cryptoService.unlockSession).toHaveBeenCalledWith("password123");
     expect(cryptoService.encrypt).toHaveBeenCalled();
     expect(settingsState.isEncrypted).toBe(true);
-    expect(settingsState.encryptedApiKeys).toBeDefined();
+    expect(settingsState.encryptedAccountKeys).toBeDefined();
   });
 
   it("should NOT serialize plain keys when encrypted", () => {
     settingsState.isEncrypted = true;
-    settingsState.apiKeys.bitunix = { key: "secret", secret: "secret" };
+    settingsState.accountFor("bitunix").keys = { key: "secret", secret: "secret" };
 
     const json = settingsState.toJSON();
 
-    expect(json.apiKeys.bitunix.key).toBe("");
+    expect(serializedKeys(json, "bitunix").key).toBe("");
     expect(json.isEncrypted).toBe(true);
   });
 
   it("should lock the session and clear memory", () => {
     settingsState.isEncrypted = true;
-    settingsState.apiKeys.bitunix = { key: "secret", secret: "secret" };
+    settingsState.accountFor("bitunix").keys = { key: "secret", secret: "secret" };
 
     settingsState.lock();
 
     expect(settingsState.isLocked).toBe(true);
-    expect(settingsState.apiKeys.bitunix.key).toBe("");
+    expect(settingsState.accountFor("bitunix").keys.key).toBe("");
   });
 
   it("should unlock and restore keys", async () => {
     // Setup state with encrypted blob
     settingsState.isEncrypted = true;
-    settingsState.encryptedApiKeys = {
+    settingsState.encryptedAccountKeys = {
       bitunix: { ciphertext: "abc", iv: "iv", salt: "s", method: "AES-GCM" },
     };
     settingsState.lock();
@@ -124,7 +141,7 @@ describe("SettingsManager Security", () => {
 
     expect(result).toBe(true);
     expect(cryptoService.decrypt).toHaveBeenCalled();
-    expect(settingsState.apiKeys.bitunix.key).toBe("decrypted-key");
+    expect(settingsState.accountFor("bitunix").keys.key).toBe("decrypted-key");
   });
 });
 
@@ -149,8 +166,8 @@ describe("SettingsManager exchange-key encryption at rest (BUG-0280)", () => {
   });
 
   it("reproduces the defect: saving without a master password must not persist plaintext exchange credentials", async () => {
-    settingsState.apiKeys.bitunix = { key: "bu-key", secret: "bu-secret" };
-    settingsState.apiKeys.bitget = {
+    settingsState.accountFor("bitunix").keys = { key: "bu-key", secret: "bu-secret" };
+    settingsState.accountFor("bitget").keys = {
       key: "bg-key",
       secret: "bg-secret",
       passphrase: "bg-pass",
@@ -164,22 +181,22 @@ describe("SettingsManager exchange-key encryption at rest (BUG-0280)", () => {
     expect(stored).not.toContain("bg-secret");
     expect(stored).not.toContain("bg-pass");
     const parsed = JSON.parse(stored!) as {
-      encryptedApiKeys?: Record<string, unknown>;
+      encryptedAccountKeys?: Record<string, unknown>;
     };
-    expect(parsed.encryptedApiKeys?.bitunix).toBeDefined();
-    expect(parsed.encryptedApiKeys?.bitget).toBeDefined();
+    expect(parsed.encryptedAccountKeys?.[LEGACY_ACCOUNT_IDS.bitunix]).toBeDefined();
+    expect(parsed.encryptedAccountKeys?.[LEGACY_ACCOUNT_IDS.bitget]).toBeDefined();
   });
 
   it("never serializes key or secret material into toJSON(), even unencrypted", () => {
-    settingsState.apiKeys.bitunix = { key: "k1", secret: "s1" };
-    settingsState.apiKeys.bitget = { key: "k2", secret: "s2", passphrase: "p2" };
+    settingsState.accountFor("bitunix").keys = { key: "k1", secret: "s1" };
+    settingsState.accountFor("bitget").keys = { key: "k2", secret: "s2", passphrase: "p2" };
 
     const json = settingsState.toJSON();
 
-    expect(json.apiKeys.bitunix.key).toBe("");
-    expect(json.apiKeys.bitunix.secret).toBe("");
-    expect(json.apiKeys.bitget.key).toBe("");
-    expect(json.apiKeys.bitget.passphrase).toBe("");
+    expect(serializedKeys(json, "bitunix").key).toBe("");
+    expect(serializedKeys(json, "bitunix").secret).toBe("");
+    expect(serializedKeys(json, "bitget").key).toBe("");
+    expect(serializedKeys(json, "bitget").passphrase).toBe("");
     expect(JSON.stringify(json)).not.toContain("s1");
     expect(JSON.stringify(json)).not.toContain("s2");
   });
@@ -196,12 +213,12 @@ describe("SettingsManager exchange-key encryption at rest (BUG-0280)", () => {
     const fresh = new SettingsManager();
 
     // Keys remain usable in memory ...
-    expect(fresh.apiKeys.bitunix.key).toBe("legacy-key");
+    expect(fresh.accountFor("bitunix").keys.key).toBe("legacy-key");
 
     // ... and the one-time migration re-persists them encrypted.
     await vi.waitFor(() => {
       const stored = localStorageMock.getItem(STORAGE_KEY);
-      expect(stored).toContain("encryptedApiKeys");
+      expect(stored).toContain("encryptedAccountKeys");
       expect(stored).not.toContain("legacy-secret");
     });
   });
@@ -225,8 +242,8 @@ describe("SettingsManager exchange-key encryption at rest (BUG-0280)", () => {
 
     expect(fresh.isEncrypted).toBe(false);
     expect(fresh.isLocked).toBe(false);
-    expect(fresh.apiKeys.bitunix.key).toBe("dk");
-    expect(fresh.apiKeys.bitunix.secret).toBe("ds");
+    expect(fresh.accountFor("bitunix").keys.key).toBe("dk");
+    expect(fresh.accountFor("bitunix").keys.secret).toBe("ds");
     expect(fresh.decryptionFailures).toBe(0);
   });
 });

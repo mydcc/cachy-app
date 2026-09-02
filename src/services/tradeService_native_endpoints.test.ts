@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradeService } from "./tradeService";
 import { omsService } from "./omsService";
@@ -35,9 +36,9 @@ vi.mock("./omsService", () => ({
 vi.mock("../stores/settings.svelte", () => ({
   settingsState: {
     apiProvider: "bitunix",
-    apiKeys: {
+    ...migrateAccounts({ apiKeys: {
       bitunix: { key: "test-key", secret: "test-secret" },
-    },
+    } }),
     appAccessToken: "test-token",
     secretsReady: Promise.resolve(),
   },

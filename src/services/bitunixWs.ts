@@ -21,6 +21,7 @@ import { marketState } from "../stores/market.svelte";
 
 
 import { settingsState } from "../stores/settings.svelte";
+import { keysForExchange } from "../stores/settings/accounts";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { getIntervalMs } from "../utils/utils";
@@ -494,9 +495,9 @@ class BitunixWebSocketService {
         return;
     }
 
-    const settings = settingsState;
-    const apiKey = settings.apiKeys?.bitunix?.key;
-    const apiSecret = settings.apiKeys?.bitunix?.secret;
+    const bitunixKeys = keysForExchange(settingsState.accounts, "bitunix");
+    const apiKey = bitunixKeys.key;
+    const apiSecret = bitunixKeys.secret;
 
     if (!apiKey || !apiSecret || !settingsState.entitlement.capabilities.marketData) return;
 

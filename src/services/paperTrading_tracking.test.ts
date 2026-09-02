@@ -39,7 +39,10 @@ vi.mock("./logger", () => ({
 
 const settings = vi.hoisted(() => ({
     apiProvider: "bitunix",
-    apiKeys: { bitunix: { key: "test-key-1234", secret: "test-secret" } },
+    accounts: [
+      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: { key: "test-key-1234", secret: "test-secret" } },
+    ],
+    activeAccountId: "bitunix",
     journalPaperTrades: true,
 }));
 vi.mock("../stores/settings.svelte", () => ({ settingsState: settings }));
@@ -164,15 +167,16 @@ describe("FEAT-0327 — a simulated fill reaches the panel", () => {
     });
 
     it("reports them with no API credentials configured at all", async () => {
-        const saved = settings.apiKeys.bitunix;
-        settings.apiKeys = { bitunix: { key: "", secret: "" } } as typeof settings.apiKeys;
+        const bitunix = settings.accounts[0];
+        const saved = bitunix.keys;
+        bitunix.keys = { key: "", secret: "" };
         try {
             await place({ side: "BUY", qty: "1", slPrice: "49000" });
             // A paper account has no venue to authenticate against, and the
             // guard used to throw before the seam was ever reached.
             await expect(tradeService.fetchTpSlOrders()).resolves.toHaveLength(1);
         } finally {
-            settings.apiKeys = { bitunix: saved };
+            bitunix.keys = saved;
         }
     });
 

@@ -1,3 +1,4 @@
+import { migrateAccounts } from "../../stores/settings/accounts";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { exchangeAdapters } from "./registry";
 import { adapterTestHarnesses } from "./adapterConformance.harness";
@@ -38,10 +39,10 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
         settingsState.entitlement = {
             capabilities: { marketData: true }
         } as unknown as typeof settingsState.entitlement;
-        settingsState.apiKeys = {
+        settingsState.accounts = migrateAccounts({ apiKeys: {
             bitunix: { key: "k", secret: "s" },
             bitget: { key: "k", secret: "s", passphrase: "p" }
-        };
+        } }).accounts;
     });
 
     afterEach(() => {

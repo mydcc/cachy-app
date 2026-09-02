@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
@@ -464,10 +465,10 @@ describe("app service - ATR and Locking Logic", () => {
     // Setup settings for Pro
     Object.assign(settingsState, {
       isPro: true,
-      apiKeys: {
+      ...migrateAccounts({ apiKeys: {
         bitunix: { key: "k", secret: "s" },
         bitget: { key: "", secret: "", passphrase: "" },
-      },
+      } }),
     });
     journalState.set([]); // Clear journal
 

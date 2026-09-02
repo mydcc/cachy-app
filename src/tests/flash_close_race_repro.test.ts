@@ -32,9 +32,10 @@ vi.mock('../services/omsService', () => ({
 vi.mock('../stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
-        apiKeys: {
-            bitunix: { key: 'k', secret: 's' }
-        }
+        accounts: [
+      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: { key: 'k', secret: 's' } },
+    ],
+    activeAccountId: "bitunix"
     }
 }));
 
