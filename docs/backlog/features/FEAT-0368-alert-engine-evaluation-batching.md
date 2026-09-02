@@ -56,5 +56,5 @@ None.
 
 ## Links
 
-- [`src/stores/market/applyUpdate.ts:51-57`](file:///home/pat/Dokumente/GitHub/cachy-app/src/stores/market/applyUpdate.ts#L51-L57)
-- [`src/services/alertEngine/alertEngine.ts:113-126`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/alertEngine/alertEngine.ts#L113-L126)
+- `src/stores/market/applyUpdate.ts:51-57`
+- `src/services/alertEngine/alertEngine.ts:113-126`

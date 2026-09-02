@@ -93,6 +93,6 @@ None.
 
 ## Links
 
-- [`src/services/cloudService.ts:229-237`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/cloudService.ts#L229-L237)
-- [`src/stores/chat.svelte.ts:61-62`](file:///home/pat/Dokumente/GitHub/cachy-app/src/stores/chat.svelte.ts#L61-L62)
-- [`src/components/settings/tabs/CloudTab.svelte:34-45`](file:///home/pat/Dokumente/GitHub/cachy-app/src/components/settings/tabs/CloudTab.svelte#L34-L45)
+- `src/services/cloudService.ts:229-237`
+- `src/stores/chat.svelte.ts:61-62`
+- `src/components/settings/tabs/CloudTab.svelte:34-45`

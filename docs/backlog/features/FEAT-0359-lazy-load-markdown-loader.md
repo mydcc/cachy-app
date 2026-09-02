@@ -68,5 +68,5 @@ None.
 
 ## Links
 
-- [`src/routes/+page.svelte:39`](file:///home/pat/Dokumente/GitHub/cachy-app/src/routes/+page.svelte#L39)
-- [`src/services/markdownLoader.ts:18-22`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/markdownLoader.ts#L18-L22)
+- `src/routes/+page.svelte:39`
+- `src/services/markdownLoader.ts:18-22`

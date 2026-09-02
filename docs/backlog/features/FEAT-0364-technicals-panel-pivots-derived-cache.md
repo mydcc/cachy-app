@@ -63,5 +63,5 @@ None.
 
 ## Links
 
-- [`src/components/shared/TechnicalsPanel.svelte:438`](file:///home/pat/Dokumente/GitHub/cachy-app/src/components/shared/TechnicalsPanel.svelte#L438)
-- [`src/services/technicalsPresenter.ts`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/technicalsPresenter.ts)
+- `src/components/shared/TechnicalsPanel.svelte:438`
+- `src/services/technicalsPresenter.ts`

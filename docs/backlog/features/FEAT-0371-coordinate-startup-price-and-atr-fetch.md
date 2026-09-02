@@ -54,5 +54,5 @@ None.
 
 ## Links
 
-- [`src/services/app.ts:120-121`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/app.ts#L120-L121)
-- [`src/services/calculatorService.ts`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/calculatorService.ts)
+- `src/services/app.ts:120-121`
+- `src/services/calculatorService.ts`

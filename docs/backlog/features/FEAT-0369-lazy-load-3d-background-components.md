@@ -56,5 +56,5 @@ None.
 
 ## Links
 
-- [`src/components/shared/BackgroundRenderer.svelte:26-27`](file:///home/pat/Dokumente/GitHub/cachy-app/src/components/shared/BackgroundRenderer.svelte#L26-L27)
-- [`src/routes/+layout.svelte:36`](file:///home/pat/Dokumente/GitHub/cachy-app/src/routes/+layout.svelte#L36)
+- `src/components/shared/BackgroundRenderer.svelte:26-27`
+- `src/routes/+layout.svelte:36`

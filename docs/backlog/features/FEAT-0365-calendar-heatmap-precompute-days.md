@@ -67,4 +67,4 @@ None.
 
 ## Links
 
-- [`src/components/shared/charts/CalendarHeatmap.svelte:254-265`](file:///home/pat/Dokumente/GitHub/cachy-app/src/components/shared/charts/CalendarHeatmap.svelte#L254-L265)
+- `src/components/shared/charts/CalendarHeatmap.svelte:254-265`

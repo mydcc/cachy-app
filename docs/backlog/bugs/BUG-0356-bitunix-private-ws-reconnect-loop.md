@@ -83,5 +83,5 @@ None.
 
 ## Links
 
-- [`src/services/bitunixWs.ts:52`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/bitunixWs.ts#L52)
-- [`src/services/bitunixWs.ts:633-642`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/bitunixWs.ts#L633-L642)
+- `src/services/bitunixWs.ts:52`
+- `src/services/bitunixWs.ts:633-642`

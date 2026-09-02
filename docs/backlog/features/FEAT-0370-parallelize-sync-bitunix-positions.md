@@ -70,5 +70,5 @@ None.
 
 ## Links
 
-- [`src/services/syncService.ts:193-248`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/syncService.ts#L193-L248)
-- [`docs/adr/0001-local-first-boundary.md`](file:///home/pat/Dokumente/GitHub/cachy-app/docs/adr/0001-local-first-boundary.md)
+- `src/services/syncService.ts:193-248`
+- [`docs/adr/0001-local-first-boundary.md`](../../adr/0001-local-first-boundary.md)

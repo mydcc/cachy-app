@@ -51,6 +51,6 @@ Furthermore, in `src/services/wasmCalculator.ts:252-267`, initializing and calcu
 
 ## Links
 
-- [`src/services/wasmCalculator.ts:252-267`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/wasmCalculator.ts#L252-L267)
-- [`src/services/technicalsService.ts:222-226`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/technicalsService.ts#L222-L226)
-- [`src/workers/technicals.worker.ts`](file:///home/pat/Dokumente/GitHub/cachy-app/src/workers/technicals.worker.ts)
+- `src/services/wasmCalculator.ts:252-267`
+- `src/services/technicalsService.ts:222-226`
+- `src/workers/technicals.worker.ts`

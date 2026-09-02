@@ -88,6 +88,6 @@ None.
 
 ## Links
 
-- [`src/stores/market.svelte.ts:66-75`](file:///home/pat/Dokumente/GitHub/cachy-app/src/stores/market.svelte.ts#L66-L75)
-- [`src/stores/market.svelte.ts:101-104`](file:///home/pat/Dokumente/GitHub/cachy-app/src/stores/market.svelte.ts#L101-L104)
-- [`src/stores/market/symbolCache.ts`](file:///home/pat/Dokumente/GitHub/cachy-app/src/stores/market/symbolCache.ts)
+- `src/stores/market.svelte.ts:66-75`
+- `src/stores/market.svelte.ts:101-104`
+- `src/stores/market/symbolCache.ts`

@@ -68,5 +68,5 @@ None.
 
 ## Links
 
-- [`src/services/activeTechnicals/visibilityController.ts:40-47`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/activeTechnicals/visibilityController.ts#L40-L47)
-- [`src/services/activeTechnicalsManager.svelte.ts:43-60`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/activeTechnicalsManager.svelte.ts#L43-L60)
+- `src/services/activeTechnicals/visibilityController.ts:40-47`
+- `src/services/activeTechnicalsManager.svelte.ts:43-60`

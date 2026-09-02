@@ -56,5 +56,5 @@ None.
 
 ## Links
 
-- [`src/components/shared/AmbientTopline.svelte:62-74`](file:///home/pat/Dokumente/GitHub/cachy-app/src/components/shared/AmbientTopline.svelte#L62-L74)
-- [`src/stores/market.svelte.ts`](file:///home/pat/Dokumente/GitHub/cachy-app/src/stores/market.svelte.ts)
+- `src/components/shared/AmbientTopline.svelte:62-74`
+- `src/stores/market.svelte.ts`

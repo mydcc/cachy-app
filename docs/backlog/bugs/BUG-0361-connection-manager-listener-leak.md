@@ -70,5 +70,5 @@ None.
 
 ## Links
 
-- [`src/services/connectionManager.ts:71-85`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/connectionManager.ts#L71-L85)
-- [`src/services/connectionManager.test.ts:232`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/connectionManager.test.ts#L232)
+- `src/services/connectionManager.ts:71-85`
+- `src/services/connectionManager.test.ts:232`

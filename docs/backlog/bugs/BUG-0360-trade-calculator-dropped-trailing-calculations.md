@@ -84,5 +84,5 @@ None.
 
 ## Links
 
-- [`src/services/tradeCalculator.svelte.ts:82-99`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/tradeCalculator.svelte.ts#L82-L99)
-- [`src/services/calculatorService.ts`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/calculatorService.ts)
+- `src/services/tradeCalculator.svelte.ts:82-99`
+- `src/services/calculatorService.ts`

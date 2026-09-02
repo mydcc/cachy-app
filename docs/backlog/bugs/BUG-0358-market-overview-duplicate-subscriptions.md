@@ -88,5 +88,5 @@ None.
 
 ## Links
 
-- [`src/components/shared/MarketOverview.svelte:191-202`](file:///home/pat/Dokumente/GitHub/cachy-app/src/components/shared/MarketOverview.svelte#L191-L202)
-- [`src/components/shared/MarketOverview.svelte:284-295`](file:///home/pat/Dokumente/GitHub/cachy-app/src/components/shared/MarketOverview.svelte#L284-L295)
+- `src/components/shared/MarketOverview.svelte:191-202`
+- `src/components/shared/MarketOverview.svelte:284-295`

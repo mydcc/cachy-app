@@ -79,5 +79,5 @@ None.
 
 ## Links
 
-- [`src/services/bitgetWs.ts:88`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/bitgetWs.ts#L88)
-- [`src/services/bitunixWs.ts:178-185`](file:///home/pat/Dokumente/GitHub/cachy-app/src/services/bitunixWs.ts#L178-L185)
+- `src/services/bitgetWs.ts:88`
+- `src/services/bitunixWs.ts:178-185`
