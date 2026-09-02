@@ -1120,6 +1120,82 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0331-flash-close-strips-protection-before-refusal.md"
   },
   {
+    "id": "BUG-0355",
+    "title": "Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0355-bitget-ws-throttle-map-leak.md"
+  },
+  {
+    "id": "BUG-0356",
+    "title": "Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md"
+  },
+  {
+    "id": "BUG-0357",
+    "title": "CloudService single callback overwrite disables global chat updates after CloudTab closes",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chat",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0357-cloud-service-callback-overwrite.md"
+  },
+  {
+    "id": "BUG-0360",
+    "title": "TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -2874,6 +2950,63 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md"
   },
   {
+    "id": "BUG-0358",
+    "title": "MarketOverview duplicate effects register price and ticker channels twice per tile",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "market",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "XS",
+    "file": "bugs/BUG-0358-market-overview-duplicate-subscriptions.md"
+  },
+  {
+    "id": "BUG-0361",
+    "title": "ConnectionManager attaches anonymous window and document listeners with no teardown method",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0361-connection-manager-listener-leak.md"
+  },
+  {
+    "id": "BUG-0363",
+    "title": "MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "market",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0363-market-manager-metadata-unbounded-growth.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -4189,6 +4322,139 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0353-hardcoded-i18n-strings.md"
   },
   {
+    "id": "FEAT-0359",
+    "title": "Lazy-load markdownLoader and KaTeX on demand when instruction modals open",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "features/FEAT-0359-lazy-load-markdown-loader.md"
+  },
+  {
+    "id": "FEAT-0364",
+    "title": "Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "XS",
+    "file": "features/FEAT-0364-technicals-panel-pivots-derived-cache.md"
+  },
+  {
+    "id": "FEAT-0366",
+    "title": "Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "features/FEAT-0366-ambient-topline-scoped-reactivity.md"
+  },
+  {
+    "id": "FEAT-0367",
+    "title": "Offload WASM technicals calculations and boundary string serialization to Web Worker",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "M",
+    "file": "features/FEAT-0367-wasm-technicals-worker-offload.md"
+  },
+  {
+    "id": "FEAT-0368",
+    "title": "Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "features/FEAT-0368-alert-engine-evaluation-batching.md"
+  },
+  {
+    "id": "FEAT-0369",
+    "title": "Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "features/FEAT-0369-lazy-load-3d-background-components.md"
+  },
+  {
+    "id": "FEAT-0370",
+    "title": "Parallelize REST API requests in Bitunix positions synchronization",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "journal",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "features/FEAT-0370-parallelize-sync-bitunix-positions.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
@@ -4566,6 +4832,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0354-backup-rejection-message-untranslated.md"
   },
   {
+    "id": "BUG-0362",
+    "title": "VisibilityController attaches uncleaned document visibilitychange listener without destroy method",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "XS",
+    "file": "bugs/BUG-0362-visibility-controller-listener-leak.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
@@ -4933,6 +5218,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "parent": "FEAT-0341",
     "file": "features/FEAT-0346-component-test-coverage.md"
+  },
+  {
+    "id": "FEAT-0365",
+    "title": "Precompute month padding and day arrays in CalendarHeatmap using derived runes",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "journal",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "XS",
+    "file": "features/FEAT-0365-calendar-heatmap-precompute-days.md"
+  },
+  {
+    "id": "FEAT-0371",
+    "title": "Coordinate initial price and ATR fetches at startup to avoid duplicate calculations",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "XS",
+    "file": "features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md"
   },
   {
     "id": "IDEA-0036",
