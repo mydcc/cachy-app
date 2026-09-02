@@ -252,6 +252,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0315-double-counted-last-candle.md"
   },
   {
+    "id": "BUG-0347",
+    "title": "Modals show frozen price and PnL due to static snapshot props",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0347-modal-position-snapshot-freeze.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -1849,6 +1867,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "start_date": "2026-09-02",
     "target_date": "2026-12-14",
     "file": "features/FEAT-0334-add-to-position.md"
+  },
+  {
+    "id": "FEAT-0352",
+    "title": "Migrate all raw localStorage access to storageWrapper",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "parent": "FEAT-0341",
+    "depends_on": [],
+    "file": "features/FEAT-0352-storage-wrapper-migration.md"
   },
   {
     "id": "BUG-0005",
@@ -3971,7 +4008,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0337",
     "title": "Design Token Foundation",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3992,7 +4029,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0338",
     "title": "Core Utility Upgrade",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "pheinze",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4033,6 +4071,119 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "8",
     "size": "L",
     "file": "features/FEAT-0340-component-style-migration.md"
+  },
+  {
+    "id": "FEAT-0341",
+    "title": "Epic: Q3 Codebase Modernization & Tech Debt",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0341-epic-codebase-modernization.md"
+  },
+  {
+    "id": "FEAT-0342",
+    "title": "Decompose remaining god modules (VisualsTab, tradeService)",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "file": "features/FEAT-0342-decompose-god-modules.md"
+  },
+  {
+    "id": "FEAT-0343",
+    "title": "Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "file": "features/FEAT-0343-svelte5-event-callbacks.md"
+  },
+  {
+    "id": "FEAT-0344",
+    "title": "Replace hardcoded hex colors with CSS design tokens",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "file": "features/FEAT-0344-remove-hardcoded-colors.md"
+  },
+  {
+    "id": "FEAT-0345",
+    "title": "Migrate indicator and charting variables to decimal.js",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "file": "features/FEAT-0345-indicator-decimal-migration.md"
+  },
+  {
+    "id": "FEAT-0353",
+    "title": "Extract hardcoded UI strings to i18n dictionary",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "parent": "FEAT-0341",
+    "depends_on": [],
+    "file": "features/FEAT-0353-hardcoded-i18n-strings.md"
   },
   {
     "id": "BUG-0007",
@@ -4721,7 +4872,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0339",
     "title": "Shared Component Classes",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "pheinze",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -4739,6 +4891,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "size": "S",
     "file": "features/FEAT-0339-shared-component-classes.md"
+  },
+  {
+    "id": "FEAT-0346",
+    "title": "Increase component test coverage",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "file": "features/FEAT-0346-component-test-coverage.md"
   },
   {
     "id": "IDEA-0036",
