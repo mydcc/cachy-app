@@ -59,7 +59,7 @@
     }
 
     .name {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         color: var(--text-secondary);
     }
 

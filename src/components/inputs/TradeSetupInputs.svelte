@@ -972,7 +972,7 @@
 
   .smiley-feedback {
     position: fixed;
-    font-size: 1.5rem;
+    font-size: var(--text-2xl);
     pointer-events: none;
     z-index: var(--z-feedback);
     animation: fadeOut 1s ease-out forwards;

@@ -201,7 +201,7 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     color: var(--text-secondary);
     transition: all 0.2s ease;
   }

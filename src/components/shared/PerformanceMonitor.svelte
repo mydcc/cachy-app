@@ -407,12 +407,12 @@
 
     .monitor-header h3 {
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         margin: 0;
     }
 
     .last-update {
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         color: var(--text-secondary);
     }
 
@@ -426,7 +426,7 @@
         padding: 1.25rem;
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
+        border-radius: var(--radius-xl);
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
@@ -452,7 +452,7 @@
 
     .metric-label {
         font-size: 0.85rem;
-        font-weight: 500;
+        font-weight: var(--font-medium);
         color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -460,17 +460,17 @@
 
     .metric-value {
         font-size: 2rem;
-        font-weight: 700;
+        font-weight: var(--font-bold);
         line-height: 1;
     }
 
     .metric-status {
-        font-size: 0.75rem;
-        font-weight: 600;
+        font-size: var(--text-xs);
+        font-weight: var(--font-semibold);
     }
 
     .metric-info {
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         color: var(--text-secondary);
     }
 
@@ -489,12 +489,12 @@
     .performance-tips {
         padding: 1rem;
         background: var(--bg-tertiary);
-        border-radius: 0.75rem;
+        border-radius: var(--radius-xl);
     }
 
     .performance-tips h4 {
         font-size: 0.95rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         margin: 0 0 1rem 0;
     }
 
@@ -509,7 +509,7 @@
         align-items: flex-start;
         gap: 0.75rem;
         padding: 0.75rem;
-        border-radius: 0.5rem;
+        border-radius: var(--radius-lg);
         font-size: 0.85rem;
     }
 

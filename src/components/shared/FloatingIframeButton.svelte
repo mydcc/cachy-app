@@ -84,7 +84,7 @@
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="w-[18px] h-[18px]"
+            class="w-5 h-5"
         >
             <polygon points="23 7 16 12 23 17 23 7"></polygon>
             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
@@ -131,6 +131,10 @@
 </div>
 
 <style>
+    button {
+        padding: 0;
+    }
+
     button.active {
         background-color: var(--btn-accent-bg);
         color: var(--btn-accent-text);

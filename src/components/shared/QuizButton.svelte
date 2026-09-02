@@ -35,13 +35,13 @@
 >
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
+    width="20"
+    height="20"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
     stroke-width="2"
-    class="w-[18px] h-[18px]"
+    class="w-5 h-5"
   >
     <path
       stroke-linecap="round"
@@ -52,6 +52,10 @@
 </button>
 
 <style>
+  button {
+    padding: 0;
+  }
+
   button.active {
     background-color: var(--btn-accent-bg);
     color: var(--btn-accent-text);

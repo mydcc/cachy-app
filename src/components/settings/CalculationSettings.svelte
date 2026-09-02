@@ -387,7 +387,7 @@
 
     h3 {
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         margin: 0;
         color: var(--text-primary);
     }
@@ -408,7 +408,7 @@
     .preset-btn {
         padding: 1rem;
         border: 2px solid var(--border-color);
-        border-radius: 0.75rem;
+        border-radius: var(--radius-xl);
         background: var(--bg-secondary);
         cursor: pointer;
         transition: all 0.2s;
@@ -430,8 +430,8 @@
     }
 
     .preset-label {
-        font-weight: 600;
-        font-size: 1rem;
+        font-weight: var(--font-semibold);
+        font-size: var(--text-base);
     }
 
     .preset-desc {
@@ -440,7 +440,7 @@
     }
 
     .preset-specs {
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         color: var(--text-tertiary);
         margin-top: 0.25rem;
     }
@@ -460,7 +460,7 @@
     }
 
     label {
-        font-weight: 500;
+        font-weight: var(--font-medium);
         color: var(--text-primary);
         display: flex;
         align-items: center;
@@ -473,7 +473,7 @@
     }
 
     .current-value {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         color: var(--primary-color);
         font-size: 0.9rem;
     }
@@ -495,9 +495,9 @@
     .badge {
         display: inline-flex;
         padding: 0.25rem 0.75rem;
-        border-radius: 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 600;
+        border-radius: var(--radius-lg);
+        font-size: var(--text-xs);
+        font-weight: var(--font-semibold);
         background: var(--bg-tertiary);
         color: var(--text-secondary);
         white-space: nowrap;
@@ -523,7 +523,7 @@
     .slider-labels {
         display: flex;
         justify-content: space-between;
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         color: var(--text-tertiary);
     }
 
@@ -536,7 +536,7 @@
     .warning {
         display: block;
         color: var(--warning-color);
-        font-weight: 500;
+        font-weight: var(--font-medium);
         margin-top: 0.25rem;
     }
 
@@ -544,7 +544,7 @@
     .debug-info {
         padding: 1rem;
         background: var(--bg-tertiary);
-        border-radius: 0.75rem;
+        border-radius: var(--radius-xl);
         border: 1px solid var(--border-color);
     }
 
@@ -563,12 +563,12 @@
     .info-item .label {
         font-size: 0.8rem;
         color: var(--text-secondary);
-        font-weight: 500;
+        font-weight: var(--font-medium);
         justify-content: flex-start;
     }
 
     .info-item .value {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         color: var(--primary-color);
         font-size: 0.95rem;
     }
@@ -578,7 +578,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 0.5rem;
-        font-weight: 500;
+        font-weight: var(--font-medium);
         color: var(--text-primary);
     }
 
@@ -592,10 +592,10 @@
     .timeframe-btn {
         padding: 0.5rem 1rem;
         border: 2px solid var(--border-color);
-        border-radius: 0.5rem;
+        border-radius: var(--radius-lg);
         background: var(--bg-secondary);
         color: var(--text-primary);
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         font-size: 0.9rem;
         cursor: pointer;
         transition: all 0.2s;

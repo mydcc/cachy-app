@@ -338,8 +338,8 @@
     background-color: var(--bg-tertiary, #1e293b);
     color: var(--text-primary, #f1f5f9);
     padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
     box-shadow:
       0 4px 6px -1px rgba(0, 0, 0, 0.1),
       0 2px 4px -1px rgba(0, 0, 0, 0.06);

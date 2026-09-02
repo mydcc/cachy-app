@@ -240,7 +240,7 @@
     gap: 0.75rem;
     padding: 1rem;
     border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     background-color: var(--bg-secondary);
   }
 
@@ -255,7 +255,7 @@
   .cloud-conditions {
     margin: 0;
     padding-left: 1.1rem;
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     line-height: 1.5;
     color: var(--text-secondary);
     list-style: disc;
@@ -265,7 +265,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
   }
 
@@ -273,10 +273,10 @@
   .cloud-input {
     padding: 0.5rem;
     border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     transition: border-color 0.15s ease;
   }
 
@@ -293,8 +293,8 @@
 
   .cloud-button {
     padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    font-weight: 500;
+    border-radius: var(--radius-md);
+    font-weight: var(--font-medium);
     cursor: pointer;
     transition: background-color 0.15s ease;
   }
@@ -309,10 +309,10 @@
     overflow-y: auto;
     padding: 1rem;
     border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     background-color: var(--bg-tertiary);
     font-family: monospace;
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
   }
 
   .cloud-log-row {
@@ -326,8 +326,8 @@
   }
 
   .cloud-log-sender {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
     color: var(--accent-color);
   }
 

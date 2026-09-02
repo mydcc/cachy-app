@@ -188,8 +188,8 @@
         padding: 0.75rem;
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 0.75rem;
+        border-radius: var(--radius-lg);
+        font-size: var(--text-xs);
     }
     .panel-header {
         display: flex;
@@ -199,7 +199,7 @@
     }
     .panel-title {
         font-size: 0.8rem;
-        font-weight: 700;
+        font-weight: var(--font-bold);
         color: var(--text-primary);
         margin: 0;
     }
@@ -209,7 +209,7 @@
         cursor: pointer;
         font-size: 0.8rem;
         padding: 2px 4px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
     }
     .refresh-btn:hover {
         background: var(--bg-tertiary);
@@ -219,7 +219,7 @@
     }
     .section-label {
         font-size: 0.65rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--text-secondary);
@@ -232,9 +232,9 @@
     }
     .cap {
         padding: 1px 6px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         font-size: 0.65rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         background: var(--bg-tertiary);
         color: var(--text-secondary);
         opacity: 0.5;
@@ -246,7 +246,7 @@
     }
     .ctx {
         padding: 1px 6px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         font-size: 0.65rem;
         background: var(--bg-tertiary);
         color: var(--text-secondary);
@@ -264,17 +264,17 @@
         font-size: 0.6rem;
         background: var(--bg-tertiary);
         padding: 0 4px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         margin-left: 4px;
         opacity: 0.8;
     }
     .status-ok {
         color: rgb(52, 211, 153);
-        font-weight: 500;
+        font-weight: var(--font-medium);
     }
     .status-err {
         color: rgb(239, 68, 68);
-        font-weight: 500;
+        font-weight: var(--font-medium);
     }
     .status-neutral {
         color: var(--text-tertiary);
@@ -288,7 +288,7 @@
     .stats-table th {
         text-align: left;
         color: var(--text-secondary);
-        font-weight: 500;
+        font-weight: var(--font-medium);
         padding-bottom: 0.25rem;
         border-bottom: 1px solid var(--border-color);
     }
@@ -303,7 +303,7 @@
         text-align: right;
     }
     .engine-name {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         color: var(--accent-primary);
         display: flex;
         align-items: center;
@@ -315,7 +315,7 @@
         font-size: 0.7rem;
         cursor: pointer;
         padding: 2px 0;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         display: flex;
         align-items: center;
         gap: 4px;

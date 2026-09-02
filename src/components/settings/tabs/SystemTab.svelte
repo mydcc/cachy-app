@@ -606,8 +606,8 @@
         margin-bottom: 0;
     }
     .section-title {
-        font-size: 0.875rem;
-        font-weight: 700;
+        font-size: var(--text-sm);
+        font-weight: var(--font-bold);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--text-secondary);
@@ -616,7 +616,7 @@
         background: var(--bg-tertiary);
         border: 1px solid var(--border-color);
         color: var(--text-primary);
-        border-radius: 6px;
+        border-radius: var(--radius-md);
         transition: all 0.2s;
     }
     .btn-secondary:hover {

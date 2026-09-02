@@ -307,7 +307,7 @@
 
     h3 {
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         margin: 0;
         color: var(--text-primary);
     }
@@ -323,7 +323,7 @@
         padding: 1rem;
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
-        border-radius: 0.75rem;
+        border-radius: var(--radius-xl);
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
@@ -339,15 +339,15 @@
     .card-label {
         font-size: 0.85rem;
         color: var(--text-secondary);
-        font-weight: 500;
+        font-weight: var(--font-medium);
     }
 
     .status-indicator {
         display: inline-flex;
         padding: 0.25rem 0.5rem;
         border-radius: 0.4rem;
-        font-size: 0.75rem;
-        font-weight: 600;
+        font-size: var(--text-xs);
+        font-weight: var(--font-semibold);
         background: var(--bg-tertiary);
         color: var(--text-secondary);
     }
@@ -385,13 +385,13 @@
 
     .card-value {
         font-size: 1.75rem;
-        font-weight: 700;
+        font-weight: var(--font-bold);
         color: var(--primary-color);
     }
 
     .card-value-small {
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         color: var(--primary-color);
     }
 
@@ -437,7 +437,7 @@
 
     .profile-badge {
         font-size: 0.85rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         color: var(--primary-color);
     }
 
@@ -452,14 +452,14 @@
         padding: 0.75rem;
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
+        border-radius: var(--radius-lg);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
 
     .symbol-name {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         color: var(--text-primary);
         flex: 1;
     }
@@ -473,7 +473,7 @@
     .info-tag {
         padding: 0.25rem 0.5rem;
         border-radius: 0.3rem;
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         background: var(--bg-tertiary);
         color: var(--text-secondary);
         white-space: nowrap;
@@ -526,7 +526,7 @@
 
     .hint {
         padding: 0.75rem;
-        border-radius: 0.5rem;
+        border-radius: var(--radius-lg);
         border-left: 3px solid;
         font-size: 0.85rem;
         background: var(--bg-secondary);

@@ -278,8 +278,8 @@
      TradingTab defines for its own fields are restated here rather than
      inherited. Same values, so the sub-tab does not look grafted on. */
   .section-title {
-    font-size: 0.875rem;
-    font-weight: 700;
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-secondary);
@@ -290,8 +290,8 @@
     gap: 0.5rem;
   }
   .field-group label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
     color: var(--text-secondary);
     display: flex;
     align-items: center;
@@ -300,9 +300,9 @@
   .input-field {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     color: var(--text-primary);
     outline: none;
   }

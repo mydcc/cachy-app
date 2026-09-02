@@ -141,9 +141,9 @@
   .visual-bar-card {
     background: color-mix(in srgb, var(--bg-tertiary), transparent 20%);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.75rem 1rem; /* Standard card padding */
-    margin: 1.5rem 0; /* Standard vertical margin */
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4); /* Standard card padding */
+    margin: var(--space-6) 0; /* Standard vertical margin */
     height: 80px; /* Increased from 40px */
   }
 
@@ -158,7 +158,7 @@
   .header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     z-index: 10;
     position: relative;
   }
@@ -169,7 +169,7 @@
     font-size: 11px;
     font-weight: 900;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
     line-height: 1;
   }
@@ -177,7 +177,7 @@
   .title {
     color: var(--text-secondary);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1;
@@ -202,7 +202,7 @@
   }
 
   .tp-name {
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 800;
     color: var(--text-primary);
     line-height: 1;
@@ -210,7 +210,7 @@
 
   .tp-rr {
     font-size: 10px;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     color: var(--text-secondary);
     line-height: 1;
   }
@@ -218,7 +218,7 @@
   /* Spacers for breathing room */
   .spacer-top,
   .spacer-bottom {
-    height: 8px;
+    height: var(--space-2);
   }
 
   /* Bar Section: 16px */
@@ -233,7 +233,7 @@
     width: 100%;
     height: 10px; /* Actual bar height */
     background: color-mix(in srgb, var(--text-primary), transparent 95%);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     position: relative;
     overflow: hidden;
   }
@@ -277,7 +277,7 @@
     position: absolute;
     transform: translateX(-50%);
     font-size: 10px;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     color: var(--text-secondary);
     background: var(--bg-primary);
     padding: 1px 6px;
