@@ -129,8 +129,6 @@ spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
   const senderId = ctx.sender.toHexString();
   const timestamp = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
 
-  console.info(`Message from ${senderId}: ${text}`);
-
   // Use globalMessage (camelCase) as required by SpacetimeDB Typescript bindings
   ctx.db.globalMessage.insert({
     sender: senderId,
