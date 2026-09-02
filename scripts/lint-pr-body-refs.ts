@@ -35,9 +35,59 @@
  * `env:` mapping hands it to the process as data instead.
  */
 
-import { checkBodyForStrayClosingRefs, checkBodyHasClosingRef } from "./lib/pr-issue-match";
+import { execFileSync } from "node:child_process";
+import { autoFixPRBody, checkBodyForStrayClosingRefs, checkBodyHasClosingRef } from "./lib/pr-issue-match";
 
-const body = process.env.PR_BODY ?? "";
+let body = process.env.PR_BODY ?? "";
+const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+const prNumber = process.env.PR_NUMBER;
+const prNum = prNumber ? Number.parseInt(prNumber, 10) : NaN;
+
+// When running in CI on a PR, attempt silent auto-fix before reporting failures
+if (token && Number.isInteger(prNum) && prNum > 0) {
+    const fixResult = await autoFixPRBody({
+        body,
+        title: process.env.PR_TITLE,
+        branch: process.env.PR_BRANCH,
+        findIssueForBacklogId: async (backlogId: string) => {
+            try {
+                const stdout = execFileSync("gh", [
+                    "issue", "list",
+                    "--search", backlogId,
+                    "--json", "number,title",
+                    "--limit", "10",
+                ], {
+                    encoding: "utf8",
+                    stdio: ["ignore", "pipe", "ignore"],
+                    env: { ...process.env, GH_TOKEN: token },
+                });
+                const issues = JSON.parse(stdout) as Array<{ number: number; title: string }>;
+                const match = issues.find(i => i.title.includes(backlogId));
+                return match ? match.number : null;
+            } catch {
+                return null;
+            }
+        },
+    });
+
+    if (fixResult.changed) {
+        try {
+            execFileSync("gh", [
+                "pr", "edit",
+                String(prNum),
+                "--body", fixResult.body,
+            ], {
+                encoding: "utf8",
+                stdio: ["ignore", "pipe", "ignore"],
+                env: { ...process.env, GH_TOKEN: token },
+            });
+            console.log(`✅ [Auto-Fix] Successfully updated PR #${prNum} description (${fixResult.actionTaken}).`);
+            body = fixResult.body;
+        } catch (err) {
+            console.warn("[Auto-Fix] Error updating PR description:", err);
+        }
+    }
+}
 
 const presence = checkBodyHasClosingRef(body);
 if (!presence.ok) {
