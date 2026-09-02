@@ -2995,7 +2995,11 @@
       "marginModeChanged": "Margin mode changed",
       "positionModeChanged": "Position mode changed",
       "marginAdjusted": "Position margin updated",
-      "pending": "Sending…"
+      "pending": "Sending…",
+      "confirmModesTitle": "Change account settings",
+      "confirmModesMessage": "This changes settings at the exchange, not in Cachy.",
+      "confirmMarginModeLine": "Margin mode for {symbol} → {to}",
+      "confirmPositionModeLine": "Position mode → {to}"
     }
   },
   "orderEntry": {
