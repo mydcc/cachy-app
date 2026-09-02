@@ -109,7 +109,7 @@ spacetimedb.reducer('delete_my_messages', {}, (ctx) => {
     }
   }
 
-  console.info(`Erasure: deleted ${deleted} message(s) for ${senderId}`);
+  console.info(`Erasure: deleted ${deleted} message(s)`);
 });
 
 spacetimedb.clientConnected((ctx) => {
