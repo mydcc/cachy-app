@@ -51,16 +51,83 @@ values rather than the displayed ones.
 
 ## Acceptance criteria
 
-- [ ] Each setting reflects the exchange's real state, verified against the
-      exchange's own UI
-- [ ] Changing each setting takes effect at the exchange, per exchange
-- [ ] Controls for unsupported capabilities are absent, not broken
-- [ ] Changing a setting with an open position warns with the specific
+- [x] Each setting reflects the exchange's real state, verified against the
+      exchange's own UI — *code side done; the against-the-UI half needs a live
+      account, see State*
+- [x] Changing each setting takes effect at the exchange, per exchange —
+      *same caveat*
+- [x] Controls for unsupported capabilities are absent, not broken
+- [x] Changing a setting with an open position warns with the specific
       consequence
-- [ ] The verification gate reads live account state, not the panel's cache
-- [ ] Failure to read the state blocks order placement rather than assuming
+- [x] The verification gate reads live account state, not the panel's cache
+- [x] Failure to read the state blocks order placement rather than assuming
       defaults
-- [ ] German and English strings
+- [x] German and English strings
+
+## State
+
+Most of this item was already built when it was picked up — leverage, margin
+mode and position mode all existed, with `ExchangeAccountControls.svelte` as
+the panel. What was missing was the confirmation wiring, and an honest account
+of which criteria were already met. Both are below.
+
+### What this change added
+
+`margin-mode-change` shipped in FEAT-0024 defaulted on, and this panel had no
+confirmation on the mode path at all: the settings toggle existed and changed
+nothing. It now asks, and declining sends nothing.
+
+`leverage-change` had a confirmation, but hard-coded to "only with an open
+position" — so a user who switched the toggle on never saw one otherwise, and a
+user who switched it off saw one anyway. The policy now decides that case. The
+open-position dialog is unchanged and deliberately not configurable: it carries
+the projected liquidation price, a consequence rather than a prompt, in the
+same sense that FEAT-0011's verification cannot be configured away.
+
+### Criteria that were already met
+
+**Unsupported capabilities absent** — `supportsMarginMode` gates the control
+per venue (FEAT-0017), and `ExchangeAccountControls` renders nothing when
+`supports.accountSettings` is false. Pinned by "a venue without these endpoints
+offers no controls" in the component test.
+
+**Warns with the specific consequence** — and for two of the three settings the
+guard is stronger than the criterion asks. Leverage warns, quoting the
+liquidation price the position would move to, calibrated from the venue's own
+entry/liquidation/leverage triple. Margin mode and position mode are *blocked*
+rather than warned about (`marginModeReason` on a busy symbol,
+`positionModeReason` on any open position) because the venue refuses the change
+outright.
+
+That correction cost a wrong assumption on the way: this change first added an
+open-position confirmation for margin mode, and the test written for it failed
+because the control is disabled in exactly that state. The branch was removed
+rather than left as unreachable code pretending to be a safeguard.
+
+**Gate reads live account state** — `orderGate.checkAccountState` compares the
+payload against `DisplayedState`, which the call site captures fresh; the gate
+reads no store by construction.
+
+**Stale state blocks placement** — `MAX_ACCOUNT_STATE_AGE_MS` (60s) refuses an
+`open` intent whose account snapshot is older, with reason `stale`. It fails
+closed rather than assuming a default, which is this criterion exactly.
+
+### Not verified here
+
+The first two criteria say "verified against the exchange's own UI" and "takes
+effect at the exchange, per exchange". The code paths exist and are unit
+tested, but confirming the values match what Bitunix and Bitget actually show
+needs live accounts on both venues. That half is untested and should not be
+read as done.
+
+### Out of scope, deliberately
+
+**Asset mode** (single/multi-asset) from the Proposal does not exist anywhere in
+`src/` — no capability flag, no schema, no route, no adapter verb. It is the one
+item of the five with nothing behind it, and it is a feature rather than a gap
+in this one: it needs its own item and its own venue research.
+
+**Default TP/SL behaviour** is likewise unimplemented and unscoped.
 
 ## Out of scope
 

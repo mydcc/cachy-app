@@ -2996,7 +2996,11 @@
       "marginModeChanged": "Margin-Modus geändert",
       "positionModeChanged": "Positionsmodus geändert",
       "marginAdjusted": "Positions-Margin aktualisiert",
-      "pending": "Wird gesendet…"
+      "pending": "Wird gesendet…",
+      "confirmModesTitle": "Konto-Einstellungen ändern",
+      "confirmModesMessage": "Das ändert Einstellungen an der Börse, nicht in Cachy.",
+      "confirmMarginModeLine": "Margin-Modus für {symbol} → {to}",
+      "confirmPositionModeLine": "Positions-Modus → {to}"
     }
   },
   "orderEntry": {
