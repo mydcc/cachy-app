@@ -30,14 +30,22 @@
 
   $effect(() => {
     if (settingsState.backgroundType === "threejs" && !ThreeComp) {
-      import("./ThreeBackground.svelte").then((m) => {
-        ThreeComp = m.default;
-      });
+      import("./ThreeBackground.svelte")
+        .then((m) => {
+          ThreeComp = m.default;
+        })
+        .catch((err) => {
+          console.error("Failed to load ThreeBackground chunk:", err);
+        });
     }
     if (settingsState.backgroundType === "tradeflow" && !TradeFlowComp) {
-      import("./backgrounds/TradeFlowBackground.svelte").then((m) => {
-        TradeFlowComp = m.default;
-      });
+      import("./backgrounds/TradeFlowBackground.svelte")
+        .then((m) => {
+          TradeFlowComp = m.default;
+        })
+        .catch((err) => {
+          console.error("Failed to load TradeFlowBackground chunk:", err);
+        });
     }
   });
 
