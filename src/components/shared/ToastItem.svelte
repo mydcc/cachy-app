@@ -90,7 +90,7 @@
         display: flex;
         align-items: flex-start;
         gap: 12px;
-        padding: 16px;
+        padding: var(--space-4);
         background: var(--bg-secondary, #1e293b);
         border: 1px solid var(--border-color, #334155);
         border-radius: var(--radius-lg);

@@ -910,7 +910,7 @@
     .window-header {
         position: relative;
         z-index: 50; /* Ensure global context for dropdowns */
-        padding: 8px 12px;
+        padding: var(--space-2) var(--space-3);
         background: transparent;
         cursor: grab;
         display: flex;
@@ -940,7 +940,7 @@
         display: flex;
         align-items: center;
         gap: 4px;
-        margin-left: 12px;
+        margin-left: var(--space-3);
         flex: 0 0 auto;
     }
     .window-title {
@@ -964,7 +964,7 @@
 
     .title-separator {
         opacity: 0.4;
-        margin: 0 4px;
+        margin: 0 var(--space-1);
         font-weight: 900;
         color: var(--text-secondary);
         font-size: 1.2rem;
@@ -984,7 +984,7 @@
     }
     .header-indicators {
         margin-left: auto;
-        margin-right: 12px;
+        margin-right: var(--space-3);
         display: flex;
         align-items: center;
         gap: 12px;
@@ -1013,7 +1013,7 @@
     .header-controls {
         display: flex;
         gap: 4px;
-        margin-left: 12px;
+        margin-left: var(--space-3);
         align-items: center;
         flex: 0 0 auto;
     }
@@ -1023,7 +1023,7 @@
         color: var(--text-secondary);
         font-size: 10px;
         font-weight: var(--font-bold);
-        padding: 4px 8px; /* Increased padding */
+        padding: var(--space-1) var(--space-2); /* Increased padding */
         border-radius: var(--radius-md); /* Smoother corners */
         cursor: pointer;
         transition: all 0.2s;
@@ -1097,8 +1097,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 4px 8px; /* Larger hit area */
-        margin-right: 4px;
+        padding: var(--space-1) var(--space-2); /* Larger hit area */
+        margin-right: var(--space-1);
         min-width: 32px;
         min-height: 28px;
         transition: transform 0.2s;
@@ -1118,7 +1118,7 @@
         border: 1px solid var(--border-color);
         border-radius: var(--radius-md);
         padding: 2px;
-        margin-right: 4px;
+        margin-right: var(--space-1);
         gap: 2px;
     }
     .tool-btn {
@@ -1149,7 +1149,7 @@
         width: 1px;
         height: 16px;
         background: var(--border-color);
-        margin: 0 4px;
+        margin: 0 var(--space-1);
     }
     .close-btn {
         background: none;
@@ -1203,7 +1203,7 @@
         background: transparent;
         border: none;
         color: var(--text-secondary);
-        padding: 8px 12px;
+        padding: var(--space-2) var(--space-3);
         text-align: left;
         font-size: 0.85rem;
         border-radius: var(--radius-md);

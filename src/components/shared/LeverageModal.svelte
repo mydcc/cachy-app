@@ -287,7 +287,7 @@
   }
   .stepper-btn {
     width: 2.5rem;
-    padding: 0.5rem 0;
+    padding: var(--space-2) 0;
     font-size: var(--text-lg);
     color: var(--text-secondary);
     transition: color 0.15s ease;
@@ -298,7 +298,7 @@
   .stepper-value {
     flex: 1;
     min-width: 0;
-    padding: 0.5rem 0;
+    padding: var(--space-2) 0;
     text-align: center;
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);

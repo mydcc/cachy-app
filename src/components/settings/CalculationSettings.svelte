@@ -376,7 +376,7 @@
         display: flex;
         flex-direction: column;
         gap: 2rem;
-        padding: 1.5rem;
+        padding: var(--space-6);
     }
 
     section {
@@ -406,7 +406,7 @@
     }
 
     .preset-btn {
-        padding: 1rem;
+        padding: var(--space-4);
         border: 2px solid var(--border-color);
         border-radius: var(--radius-xl);
         background: var(--bg-secondary);
@@ -442,7 +442,7 @@
     .preset-specs {
         font-size: var(--text-xs);
         color: var(--text-tertiary);
-        margin-top: 0.25rem;
+        margin-top: var(--space-1);
     }
 
     /* Divider */
@@ -494,7 +494,7 @@
 
     .badge {
         display: inline-flex;
-        padding: 0.25rem 0.75rem;
+        padding: var(--space-1) var(--space-3);
         border-radius: var(--radius-lg);
         font-size: var(--text-xs);
         font-weight: var(--font-semibold);
@@ -537,12 +537,12 @@
         display: block;
         color: var(--warning-color);
         font-weight: var(--font-medium);
-        margin-top: 0.25rem;
+        margin-top: var(--space-1);
     }
 
     /* Debug Info */
     .debug-info {
-        padding: 1rem;
+        padding: var(--space-4);
         background: var(--bg-tertiary);
         border-radius: var(--radius-xl);
         border: 1px solid var(--border-color);
@@ -590,7 +590,7 @@
     }
 
     .timeframe-btn {
-        padding: 0.5rem 1rem;
+        padding: var(--space-2) var(--space-4);
         border: 2px solid var(--border-color);
         border-radius: var(--radius-lg);
         background: var(--bg-secondary);

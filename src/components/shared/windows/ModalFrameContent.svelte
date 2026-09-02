@@ -46,11 +46,11 @@
         flex-direction: column;
         height: 100%;
         min-height: 0;
-        padding: 1.5rem;
+        padding: var(--space-6);
     }
     @media (max-width: 640px) {
         .modal-frame-body {
-            padding: 0.75rem;
+            padding: var(--space-3);
         }
     }
 </style>

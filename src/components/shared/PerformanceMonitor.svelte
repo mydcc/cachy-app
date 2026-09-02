@@ -401,7 +401,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding-bottom: 1rem;
+        padding-bottom: var(--space-4);
         border-bottom: 1px solid var(--border-color);
     }
 
@@ -423,7 +423,7 @@
     }
 
     .metric-card {
-        padding: 1.25rem;
+        padding: var(--space-5);
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-xl);
@@ -487,7 +487,7 @@
     }
 
     .performance-tips {
-        padding: 1rem;
+        padding: var(--space-4);
         background: var(--bg-tertiary);
         border-radius: var(--radius-xl);
     }
@@ -495,7 +495,7 @@
     .performance-tips h4 {
         font-size: 0.95rem;
         font-weight: var(--font-semibold);
-        margin: 0 0 1rem 0;
+        margin: 0 0 var(--space-4) 0;
     }
 
     .tips-list {
@@ -508,7 +508,7 @@
         display: flex;
         align-items: flex-start;
         gap: 0.75rem;
-        padding: 0.75rem;
+        padding: var(--space-3);
         border-radius: var(--radius-lg);
         font-size: 0.85rem;
     }
