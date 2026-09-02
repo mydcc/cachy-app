@@ -24,6 +24,7 @@
  * builds now actually matches the documented endpoint.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradeService } from "./tradeService";
 
@@ -41,7 +42,7 @@ vi.mock("./omsService", () => ({
 vi.mock("../stores/settings.svelte", () => ({
     settingsState: {
         apiProvider: "bitunix",
-        apiKeys: { bitunix: { key: "test-key", secret: "test-secret" } },
+        ...migrateAccounts({ apiKeys: { bitunix: { key: "test-key", secret: "test-secret" } } }),
         appAccessToken: "test-token",
         secretsReady: Promise.resolve(),
     },

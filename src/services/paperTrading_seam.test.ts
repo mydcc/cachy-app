@@ -23,6 +23,7 @@
  * in both modes and everything above the transport is asserted identical.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
 import { readFileSync } from "node:fs";
@@ -36,7 +37,7 @@ vi.mock("./logger", () => ({
 vi.mock("../stores/settings.svelte", () => ({
     settingsState: {
         apiProvider: "bitunix",
-        apiKeys: { bitunix: { key: "test-key-1234", secret: "test-secret" } },
+        ...migrateAccounts({ apiKeys: { bitunix: { key: "test-key-1234", secret: "test-secret" } } }),
     },
 }));
 

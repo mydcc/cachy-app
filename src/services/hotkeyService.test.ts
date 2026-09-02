@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as HotkeyModule from "./hotkeyService"; // Import as module to access exported function
 import { settingsState, type Settings } from "../stores/settings.svelte";
@@ -95,10 +96,10 @@ describe("HotkeyService", () => {
       syncRsiTimeframe: true,
       imgbbApiKey: "",
       imgbbExpiration: 0,
-      apiKeys: {
+      ...migrateAccounts({ apiKeys: {
         bitunix: { key: "", secret: "" },
         bitget: { key: "", secret: "", passphrase: "" },
-      },
+      } }),
       enableSidePanel: true,
       sidePanelMode: "chat",
       sidePanelLayout: "standard", // Fixed: Added missing property

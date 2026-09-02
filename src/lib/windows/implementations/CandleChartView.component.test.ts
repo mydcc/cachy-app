@@ -238,7 +238,7 @@ beforeEach(() => {
     accountState.positions = [];
     accountState.openOrders = [];
     tpSlState.reset();
-    settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "", secret: "" } };
+    settingsState.accountFor("bitunix").keys = { key: "", secret: "" };
     appFetchMock.mockReset();
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -560,7 +560,7 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
  */
 describe("FEAT-0247 — chart-only position hydration", () => {
     it("hydrates accountState.positions on mount when it is empty and API keys are configured", async () => {
-        settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
+        settingsState.accountFor("bitunix").keys = { key: "k", secret: "s" };
         appFetchMock.mockResolvedValue({
             json: () =>
                 Promise.resolve({
@@ -601,7 +601,7 @@ describe("FEAT-0247 — chart-only position hydration", () => {
     });
 
     it("does not re-fetch positions when accountState.positions is already populated", async () => {
-        settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
+        settingsState.accountFor("bitunix").keys = { key: "k", secret: "s" };
         accountState.positions = [
             {
                 positionId: "p-1",
@@ -655,7 +655,7 @@ describe("FEAT-0247 — chart-only position hydration", () => {
  */
 describe("FEAT-0247 — chart-only pending order hydration", () => {
     it("hydrates accountState.openOrders on mount when empty and API keys are configured", async () => {
-        settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
+        settingsState.accountFor("bitunix").keys = { key: "k", secret: "s" };
         appFetchMock.mockImplementation((url: string) => {
             if (url === "/api/orders") {
                 return Promise.resolve({
@@ -694,7 +694,7 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
     });
 
     it("renders a price line for the resting limit order", async () => {
-        settingsState.apiKeys = { ...settingsState.apiKeys, bitunix: { key: "k", secret: "s" } };
+        settingsState.accountFor("bitunix").keys = { key: "k", secret: "s" };
         accountState.openOrders = [
             {
                 orderId: "o-1",

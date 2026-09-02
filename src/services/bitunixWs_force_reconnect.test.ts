@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { bitunixWs } from "./bitunixWs";
 import { marketState } from "../stores/market.svelte";
@@ -32,7 +33,7 @@ vi.mock("./logger", () => ({
 // socket — so the force path is only reachable with keys configured.
 vi.mock("../stores/settings.svelte", () => ({
   settingsState: {
-    apiKeys: { bitunix: { key: "test-key", secret: "test-secret" } },
+    ...migrateAccounts({ apiKeys: { bitunix: { key: "test-key", secret: "test-secret" } } }),
     entitlement: { capabilities: { marketData: true } },
     enableNetworkLogs: false,
   },

@@ -17,6 +17,7 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
+import { CREDENTIAL_SCHEMA_VERSION } from "../stores/settings/accounts";
 import { SENSITIVE_KEYS } from "../stores/settings/secretsLoader";
 import { cryptoService } from "./cryptoService";
 
@@ -149,6 +150,27 @@ export function validateSettings(raw: unknown): boolean {
           return false;
         }
       }
+    }
+
+    // FEAT-0333: refuse a payload written by a newer build rather than
+    // restoring the part of it we happen to understand. A settings section
+    // restored without its credentials looks like a success and is not one.
+    if (
+      "credentialSchemaVersion" in parsed &&
+      typeof parsed.credentialSchemaVersion === "number" &&
+      parsed.credentialSchemaVersion > CREDENTIAL_SCHEMA_VERSION
+    ) {
+      return false;
+    }
+
+    // Sanity check the account list if present
+    if (
+      "accounts" in parsed &&
+      parsed.accounts !== null &&
+      parsed.accounts !== undefined &&
+      !Array.isArray(parsed.accounts)
+    ) {
+      return false;
     }
 
     // Sanity check apiKeys structure if present
@@ -354,7 +376,19 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
     const parsed = JSON.parse(settingsJson);
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
 
-    // Blank out exchange credentials
+    // Blank out exchange credentials (BUG-0283). Both shapes are scrubbed:
+    // an export taken from a profile that has not been re-saved since
+    // FEAT-0333 still carries the venue-indexed block, and "we migrated, so
+    // the old field cannot be here" is exactly the assumption that leaks it.
+    if (Array.isArray(parsed.accounts)) {
+      parsed.accounts = parsed.accounts.map(
+        (account: Record<string, unknown>) => ({
+          ...account,
+          keys: { key: "", secret: "", passphrase: "" },
+        }),
+      );
+    }
+    delete parsed.encryptedAccountKeys;
     parsed.apiKeys = {
       bitunix: { key: "", secret: "" },
       bitget: { key: "", secret: "", passphrase: "" },

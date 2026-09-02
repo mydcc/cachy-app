@@ -41,7 +41,16 @@ vi.mock("./logger", () => ({
 
 const settings = vi.hoisted(() => ({
     apiProvider: "bitunix" as string,
-    apiKeys: {} as Record<string, { key: string; secret: string }>,
+    // Starts with no credentials; individual tests fill the account in.
+    accounts: [
+        {
+            id: "bitunix",
+            name: "Bitunix",
+            exchange: "bitunix",
+            keys: { key: "", secret: "" },
+        },
+    ],
+    activeAccountId: "bitunix",
 }));
 vi.mock("../stores/settings.svelte", () => ({ settingsState: settings }));
 
@@ -93,10 +102,20 @@ let sent: Array<Record<string, unknown>> = [];
 beforeEach(() => {
     sent = [];
     settings.apiProvider = "bitunix";
-    settings.apiKeys = {
-        bitunix: { key: "test-key-1234", secret: "s" },
-        bitget: { key: "test-key-5678", secret: "s" },
-    };
+    settings.accounts = [
+        {
+            id: "bitunix",
+            name: "Bitunix",
+            exchange: "bitunix",
+            keys: { key: "test-key-1234", secret: "s" },
+        },
+        {
+            id: "bitget",
+            name: "Bitget",
+            exchange: "bitget",
+            keys: { key: "test-key-5678", secret: "s" },
+        },
+    ];
     plans.value = { loss: { id: "sl-1" }, profit: { id: "tp-1" } };
     registerKillSwitch(null);
     registerRiskLimitCheck(null);

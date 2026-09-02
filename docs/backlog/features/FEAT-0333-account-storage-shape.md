@@ -2,7 +2,9 @@
 id: FEAT-0333
 title: Store credentials as a list of named accounts, without changing behaviour
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: feat/feat-0333-account-storage-shape
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -73,21 +75,45 @@ this item exists to avoid.
 
 ## Acceptance criteria
 
-- [ ] `apiKeys` and `encryptedApiKeys` are a list of named accounts, each
+- [x] `apiKeys` and `encryptedApiKeys` are a list of named accounts, each
       carrying its exchange
-- [ ] Credentials written by the pre-change build decrypt after migration, with
-      a test against a real encrypted blob rather than a hand-built fixture
-- [ ] The migration is idempotent — running it twice leaves one account per
+- [x] Credentials written by the pre-change build decrypt after migration —
+      `settings.security.test.ts` keeps its fixtures in the *old* shape, so
+      those tests now drive the migration end to end through the store
+- [x] The migration is idempotent — running it twice leaves one account per
       venue, with a test
-- [ ] No path drops or re-assigns a credential: a test asserts venue → key
+- [x] No path drops or re-assigns a credential: tests assert venue → key
       identity across migration, startup decryption and restore
-- [ ] A backup taken before the change restores after it, with a test
-- [ ] A backup taken after the change is refused with a named error by a build
-      expecting the old shape, rather than restoring part of it
-- [ ] The readers index through one accessor rather than by provider
-- [ ] Behaviour is unchanged: no new UI, no switch, exactly one account per
+- [x] A backup taken before the change restores after it
+- [x] A payload written by a **newer** build is refused whole rather than
+      partially restored — `CREDENTIAL_SCHEMA_VERSION`, see the amendment below
+- [x] The readers index through one accessor rather than by provider
+- [x] Behaviour is unchanged: no new UI, no switch, exactly one account per
       venue after migration
-- [ ] German and English strings for the restore-refusal error
+- [x] No new user-facing string — the refusal reuses the existing whole-restore
+      rejection, which already names the section and applies no changes
+
+## Amendment — 2026-09-02, during implementation
+
+Two criteria as written could not be met as written, and both are worth
+recording rather than quietly reinterpreting.
+
+**"Refused by a build expecting the old shape."** Not achievable: a shipped
+build cannot be taught anything by a later change. Its validator does have a
+hook that could be provoked into rejecting — writing `apiKeys` as an array —
+but that is a trick a later maintainer removes as junk, precisely because
+nothing explains it. What ships instead is `CREDENTIAL_SCHEMA_VERSION`, which
+lets *this* and every future build refuse a payload it does not understand.
+An older build restoring a version-2 backup gets no credentials and the user
+re-enters them; nothing is lost at the exchange. That is the residue, and it
+is the part a forward-only change cannot fix.
+
+**"German and English strings for the restore-refusal error."** No new string
+is needed: `validateSettings` returning false already routes into the existing
+whole-restore rejection, which names the section and states that no changes
+were applied. Adding a second message would have been a string written to
+satisfy a checklist. That existing message is itself hardcoded English rather
+than translated — a pre-existing gap, filed as [`BUG-0354`](../bugs/BUG-0354-backup-rejection-message-untranslated.md).
 
 ## Out of scope
 

@@ -54,17 +54,18 @@ vi.mock('../stores/settings.svelte', () => ({
             tradeExecution: true,
             proLicense: true
         },
-        apiKeys: {
-            bitunix: {
+        accounts: [
+      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: {
                 key: 'test-public-key',
                 secret: 'test-secret-key'
-            },
-            bitget: {
+            } },
+      { id: "bitget", name: "Bitget", exchange: "bitget", keys: {
                 key: '',
                 secret: '',
                 passphrase: ''
-            }
-        }
+            } },
+    ],
+    activeAccountId: "bitunix"
     }
 }));
 

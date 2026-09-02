@@ -51,6 +51,7 @@ import { capabilitiesOf } from "./exchangeCapabilities";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
+import { keysForExchange } from "../stores/settings/accounts";
 import {
     orderGate,
     assertGatePass,
@@ -220,7 +221,7 @@ class TradeService {
         // Implementation for real app (simplified)
         // In test this is mocked
         const provider = settingsState.apiProvider;
-        const keys = settingsState.apiKeys[provider];
+        const keys = keysForExchange(settingsState.accounts, provider);
 
         // Re-read of the account the request will actually be signed with,
         // compared against the account the gate approved. Settings can change
@@ -308,7 +309,7 @@ class TradeService {
     public async fetchLeverageMarginMode(symbol: string): Promise<void> {
         const provider = settingsState.apiProvider;
         if (provider !== "bitunix") return; // Bitget equivalent: follow the M2 adapter shape
-        const keys = settingsState.apiKeys[provider];
+        const keys = keysForExchange(settingsState.accounts, provider);
         if (!keys?.key || !keys?.secret) return;
 
         try {
@@ -368,7 +369,7 @@ class TradeService {
         }
 
         const provider = settingsState.apiProvider;
-        const keys = settingsState.apiKeys[provider];
+        const keys = keysForExchange(settingsState.accounts, provider);
         if (!keys?.key || !keys?.secret) {
             throw new Error("apiErrors.missingCredentials");
         }
@@ -600,7 +601,7 @@ class TradeService {
         const provider = settingsState.apiProvider;
         return {
             provider,
-            accountFingerprint: accountFingerprint(settingsState.apiKeys[provider]?.key),
+            accountFingerprint: accountFingerprint(keysForExchange(settingsState.accounts, provider).key),
             paperMode: paperState.enabled,
         };
     }
@@ -919,7 +920,7 @@ class TradeService {
         try {
             // W-6: Use generalized provider key lookup instead of hardcoding 'bitunix'
             const provider = settingsState.apiProvider;
-            const keys = settingsState.apiKeys[provider];
+            const keys = keysForExchange(settingsState.accounts, provider);
             if (!keys?.key || !keys?.secret) return;
 
             const pendingResponse = await appFetch("/api/sync/positions-pending", {
@@ -1379,7 +1380,7 @@ class TradeService {
 
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
         const provider = settingsState.apiProvider || "bitunix";
-        const keys = settingsState.apiKeys[provider];
+        const keys = keysForExchange(settingsState.accounts, provider);
         /*
          * Credentials are what a *venue* needs, and this read goes through
          * `signedRequest`, which answers from the simulator in paper mode

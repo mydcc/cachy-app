@@ -28,6 +28,7 @@
  * button would be left holding a position they believe they closed.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
 
@@ -52,10 +53,10 @@ vi.mock("../stores/settings.svelte", () => ({
         isPro: true,
         apiProvider: "bitunix",
         capabilities: { tradeExecution: true, proLicense: true },
-        apiKeys: {
+        ...migrateAccounts({ apiKeys: {
             bitunix: { key: "test-public-key", secret: "test-secret-key" },
             bitget: { key: "", secret: "", passphrase: "" },
-        },
+        } }),
     },
 }));
 

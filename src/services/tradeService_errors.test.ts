@@ -1,3 +1,4 @@
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Decimal } from "decimal.js";
 
@@ -7,7 +8,7 @@ vi.mock("./logger", () => ({
 }));
 
 vi.mock("../stores/settings.svelte", () => ({
-  settingsState: { apiProvider: "bitunix", apiKeys: { bitunix: { key: "foo", secret: "bar" } } }
+  settingsState: { apiProvider: "bitunix", ...migrateAccounts({ apiKeys: { bitunix: { key: "foo", secret: "bar" } } }) }
 }));
 
 vi.mock("./omsService", () => {

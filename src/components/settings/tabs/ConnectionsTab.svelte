@@ -23,6 +23,12 @@
     import { RSS_PRESETS } from "../../../config/rssPresets";
     import ApiQuotaStatus from "../ApiQuotaStatus.svelte";
 
+    // FEAT-0333: credentials live on named accounts now. The inputs bind into
+    // the account object itself, so the venue lookup happens once per venue
+    // rather than once per field.
+    const bitunixAccount = $derived(settingsState.accountFor("bitunix"));
+    const bitgetAccount = $derived(settingsState.accountFor("bitget"));
+
     // Helper for masking inputs
     let showKeys: Record<string, boolean> = $state({});
 
@@ -189,8 +195,7 @@
                         <div class="header">
                             <span class="font-bold text-sm">{$_("settings.connections.providers.bitunix")}</span>
                             <span
-                                class="status-dot {settingsState.apiKeys.bitunix
-                                    .key
+                                class="status-dot {bitunixAccount.keys.key
                                     ? 'connected'
                                     : ''}"
                             ></span>
@@ -207,7 +212,7 @@
                                             ? "text"
                                             : "password"}
                                         bind:value={
-                                            settingsState.apiKeys.bitunix.key
+                                            bitunixAccount.keys.key
                                         }
                                         class="api-input pr-8"
                                         placeholder={$_("settings.connections.placeholders.apiKey")}
@@ -250,7 +255,7 @@
                                             ? "text"
                                             : "password"}
                                         bind:value={
-                                            settingsState.apiKeys.bitunix.secret
+                                            bitunixAccount.keys.secret
                                         }
                                         class="api-input pr-8"
                                         placeholder={$_("settings.connections.placeholders.apiSecret")}
@@ -290,9 +295,8 @@
                         <div class="header">
                             <span class="font-bold text-sm">{$_("settings.connections.providers.bitget")}</span>
                             <span
-                                class="status-dot {settingsState.apiKeys.bitget
-                                    .key &&
-                                settingsState.apiKeys.bitget.passphrase
+                                class="status-dot {bitgetAccount.keys.key &&
+                                bitgetAccount.keys.passphrase
                                     ? 'connected'
                                     : ''}"
                             ></span>
@@ -309,7 +313,7 @@
                                             ? "text"
                                             : "password"}
                                         bind:value={
-                                            settingsState.apiKeys.bitget.key
+                                            bitgetAccount.keys.key
                                         }
                                         class="api-input pr-8"
                                         placeholder={$_("settings.connections.placeholders.apiKey")}
@@ -354,7 +358,7 @@
                                             ? "text"
                                             : "password"}
                                         bind:value={
-                                            settingsState.apiKeys.bitget.secret
+                                            bitgetAccount.keys.secret
                                         }
                                         class="api-input pr-8"
                                         placeholder={$_("settings.connections.placeholders.apiSecret")}
@@ -397,8 +401,7 @@
                                             ? "text"
                                             : "password"}
                                         bind:value={
-                                            settingsState.apiKeys.bitget
-                                                .passphrase
+                                            bitgetAccount.keys.passphrase
                                         }
                                         class="api-input pr-8"
                                         placeholder={$_("settings.connections.placeholders.passphrase")}

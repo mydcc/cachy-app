@@ -1,6 +1,7 @@
 import { untrack } from "svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { settingsState, type Settings } from "../stores/settings.svelte";
+import { keysForExchange } from "../stores/settings/accounts";
 import { marketState } from "../stores/market.svelte";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
@@ -11,13 +12,19 @@ import { Decimal } from "decimal.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setupRealtimeUpdatesEffect(app: any) {
-  const computeKeys = (s: Pick<Settings, "apiProvider" | "apiKeys">) =>
-    s.apiProvider === "bitget"
-      ? `${s.apiKeys.bitget.key}:${s.apiKeys.bitget.secret}:${s.apiKeys.bitget.passphrase}`
-      : `${s.apiKeys.bitunix.key}:${s.apiKeys.bitunix.secret}`;
+  // Deliberately fingerprints only the credentials of the active venue, not
+  // `activeAccountId`. With one account per venue (FEAT-0333) the two move
+  // together, so adding the id would change nothing today; making an account
+  // *switch* force a reconnect is FEAT-0026's job, along with the switch.
+  const computeKeys = (s: Pick<Settings, "apiProvider" | "accounts">) => {
+    const keys = keysForExchange(s.accounts, s.apiProvider);
+    return s.apiProvider === "bitget"
+      ? `${keys.key}:${keys.secret}:${keys.passphrase}`
+      : `${keys.key}:${keys.secret}`;
+  };
 
   let lastProvider = settingsState.apiProvider || "";
-  let lastKeys = settingsState.apiKeys ? computeKeys(settingsState) : "";
+  let lastKeys = settingsState.accounts ? computeKeys(settingsState) : "";
   let currentWatchedSymbol: string | null = null;
   let symbolDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   const knownFundingRateSymbols = new Set<string>();
@@ -27,7 +34,7 @@ export function setupRealtimeUpdatesEffect(app: any) {
     $effect(() => {
       const s = settingsState;
       const provider = s.apiProvider;
-      const keys = s.apiKeys;
+      const keys = s.accounts;
       
       untrack(() => {
         if (!keys) return;
