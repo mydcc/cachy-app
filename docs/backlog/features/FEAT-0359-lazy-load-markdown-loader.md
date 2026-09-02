@@ -2,7 +2,8 @@
 id: FEAT-0359
 title: Lazy-load markdownLoader and KaTeX on demand when instruction modals open
 type: feature
-status: ready
+status: in-progress
+assignee: antigravity
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +12,7 @@ data_class: none
 adr: none
 depends_on: []
 size: S
+# Branch: feat/feat-0359-lazy-load-markdown
 ---
 
 # FEAT-0359 — Lazy-load markdownLoader and KaTeX on demand when instruction modals open
@@ -53,9 +55,9 @@ Users loading the application for position sizing or trading pay this download a
 
 ## Acceptance criteria
 
-- [ ] `npm run build` confirms `markdownLoader` and KaTeX are absent from the critical path of `+page.svelte` and root layout.
-- [ ] Opening the Changelog, Guide, Privacy, or Whitepaper modal fetches the markdown bundle on demand and renders correctly with formatting and formulas.
-- [ ] No regression in modal opening behavior or anchor-tag scrolling within rendered markdown.
+- [x] `npm run build` confirms `markdownLoader` and KaTeX are absent from the critical path of `+page.svelte` and root layout.
+- [x] Opening the Changelog, Guide, Privacy, or Whitepaper modal fetches the markdown bundle on demand and renders correctly with formatting and formulas.
+- [x] No regression in modal opening behavior or anchor-tag scrolling within rendered markdown.
 
 ## Out of scope
 

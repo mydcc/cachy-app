@@ -19,7 +19,6 @@ import { CONSTANTS } from "../lib/constants";
 import { parseDecimal } from "../utils/utils";
 import { modalState } from "../stores/modal.svelte";
 import { Decimal } from "decimal.js";
-import { loadInstruction } from "./markdownLoader";
 import { _ } from "../locales/i18n";
 import { get } from "svelte/store";
 import type { IndividualTpResult } from "../stores/types";
@@ -45,6 +44,7 @@ export interface VisualBarData {
 
 export const uiManager = {
   showReadme: async (type: "dashboard" | "journal" | "changelog") => {
+    const { loadInstruction } = await import("./markdownLoader");
     const instruction = await loadInstruction(type);
     let titleKey: TranslationKey;
     if (type === "dashboard") {
