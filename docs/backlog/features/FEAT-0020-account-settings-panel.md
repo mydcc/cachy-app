@@ -128,7 +128,9 @@ read as done.
 **Asset mode** (single/multi-asset) from the Proposal does not exist anywhere in
 `src/` — no capability flag, no schema, no route, no adapter verb. It is the one
 item of the five with nothing behind it, and it is a feature rather than a gap
-in this one: it needs its own item and its own venue research.
+in this one, so it is split out as [`FEAT-0332`](FEAT-0332-asset-mode.md). That
+item records what has to be researched before it can be specced: which venues
+support it, and whether the change is possible through the API at all.
 
 **Default TP/SL behaviour** is likewise unimplemented and unscoped.
 
