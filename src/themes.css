@@ -2230,6 +2230,8 @@ select {
   max-height: 42px;
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
@@ -2244,7 +2246,7 @@ textarea.input-field {
 .input-field-sm {
   height: 34px !important;
   max-height: 34px !important;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .settings-number-input {

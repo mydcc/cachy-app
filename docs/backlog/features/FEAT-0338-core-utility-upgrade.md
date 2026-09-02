@@ -2,7 +2,8 @@
 id: FEAT-0338
 title: Core Utility Upgrade
 type: feature
-status: specced
+status: in-progress
+assignee: pheinze
 priority: P2
 milestone: none
 editions: [community, pro, private]
