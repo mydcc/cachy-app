@@ -25,6 +25,21 @@
 import type { OMSOrder, OMSPosition } from "./omsTypes";
 import { logger } from "./logger";
 
+/**
+ * Notified when an order reaches a status it did not have before — FEAT-0025.
+ *
+ * Optional by design: unregistered means nothing is announced, and the OMS
+ * behaves exactly as it did before. `notificationService` is the intended
+ * consumer, wired up at startup.
+ */
+export type OrderTransitionObserver = (order: OMSOrder) => void;
+
+let transitionObserver: OrderTransitionObserver | null = null;
+
+export function registerOrderTransitionObserver(fn: OrderTransitionObserver | null): void {
+    transitionObserver = fn;
+}
+
 class OrderManagementSystem {
     private orders = new Map<string, OMSOrder>();
     private positions = new Map<string, OMSPosition>();
@@ -56,7 +71,8 @@ class OrderManagementSystem {
     }
 
     public updateOrder(order: OMSOrder) {
-        const isKnown = this.orders.has(order.id);
+        const previous = this.orders.get(order.id);
+        const isKnown = previous !== undefined;
 
         // Ring Buffer Logic:
         // If we are at capacity and this is a NEW order, we must make space.
@@ -67,6 +83,33 @@ class OrderManagementSystem {
 
         this.orders.set(order.id, order);
         logger.log("market", `[OMS] Order Updated: ${order.id} (${order.status})`);
+
+        /*
+         * FEAT-0025. Reported as a *transition*, not a state: a venue repeats
+         * a terminal status across a REST poll and a WebSocket push, and an
+         * observer told about the state would announce the same fill twice.
+         * Comparing against the previous status makes the repeat invisible
+         * here rather than relying on the observer to deduplicate — though
+         * `notificationService` does that too, since two updates can also
+         * arrive for an order this store had already evicted.
+         *
+         * A registered observer rather than a direct call, so this store keeps
+         * knowing nothing about notifications — the same seam `orderGate` uses
+         * for its audit recorder.
+         */
+        if (previous?.status !== order.status) {
+            this.announceTransition(order);
+        }
+    }
+
+    private announceTransition(order: OMSOrder): void {
+        if (!transitionObserver) return;
+        try {
+            transitionObserver(order);
+        } catch (e) {
+            // An observer must never break order bookkeeping.
+            logger.warn("market", "[OMS] Transition observer threw", e);
+        }
     }
 
     public addOptimisticOrder(order: OMSOrder) {
