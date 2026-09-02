@@ -2,7 +2,9 @@
 id: FEAT-0333
 title: Store credentials as a list of named accounts, without changing behaviour
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: feat/feat-0333-account-storage-shape
 priority: P1
 milestone: M3
 editions: [community, pro, private]
