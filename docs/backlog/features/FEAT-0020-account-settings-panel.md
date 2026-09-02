@@ -2,7 +2,8 @@
 id: FEAT-0020
 title: Show and change exchange account settings from Cachy
 type: feature
-status: specced
+status: done
+assignee: claude
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -16,6 +17,8 @@ target_date: 2026-11-18
 start_date: 2026-08-01
 ---
 
+
+Branch: `feat/feat-0020-account-settings-panel`
 
 # FEAT-0020 — Show and change exchange account settings from Cachy
 
