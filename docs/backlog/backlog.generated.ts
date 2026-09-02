@@ -4364,7 +4364,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0366",
     "title": "Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4421,7 +4422,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0369",
     "title": "Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5243,7 +5245,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0371",
     "title": "Coordinate initial price and ATR fetches at startup to avoid duplicate calculations",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P3",
     "milestone": "none",
     "editions": [
