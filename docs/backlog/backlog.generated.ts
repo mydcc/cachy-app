@@ -4325,7 +4325,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0359",
     "title": "Lazy-load markdownLoader and KaTeX on demand when instruction modals open",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "antigravity",
     "priority": "P2",
     "milestone": "none",
     "editions": [
