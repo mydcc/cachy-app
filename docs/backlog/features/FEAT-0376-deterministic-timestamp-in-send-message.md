@@ -2,7 +2,7 @@
 id: FEAT-0376
 title: Replace Date.now() with ctx.timestamp in the send_message reducer
 type: feature
-status: specced
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +12,8 @@ adr: none
 depends_on: []
 size: S
 estimate: 1
-# assignee:            # required while status: in-progress (who is working this)
+assignee: antigravity
+branch: fix/security-audit-privacy-batch
 ---
 
 # FEAT-0376 — Replace Date.now() with ctx.timestamp in the send_message reducer

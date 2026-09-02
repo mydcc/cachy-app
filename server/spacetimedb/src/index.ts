@@ -127,7 +127,7 @@ spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
   }
 
   const senderId = ctx.sender.toHexString().substring(0, 8); // Short ID
-  const timestamp = Date.now();
+  const timestamp = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
 
   console.info(`Message from ${senderId}: ${text}`);
 
