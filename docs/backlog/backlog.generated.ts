@@ -1340,12 +1340,13 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [
-      "FEAT-0016"
+      "FEAT-0016",
+      "FEAT-0333"
     ],
-    "estimate": "8",
-    "size": "L",
+    "estimate": "3",
+    "size": "M",
     "target_date": "2026-12-21",
-    "start_date": "2026-08-01",
+    "start_date": "2026-11-17",
     "file": "features/FEAT-0026-multi-account.md"
   },
   {
@@ -1799,6 +1800,55 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "target_date": "2026-12-17",
     "start_date": "2026-09-01",
     "file": "features/FEAT-0330-flash-close-wiring.md"
+  },
+  {
+    "id": "FEAT-0333",
+    "title": "Store credentials as a list of named accounts, without changing behaviour",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0016"
+    ],
+    "estimate": "5",
+    "size": "M",
+    "start_date": "2026-09-02",
+    "target_date": "2026-11-16",
+    "file": "features/FEAT-0333-account-storage-shape.md"
+  },
+  {
+    "id": "FEAT-0334",
+    "title": "Add to an open position and see what it does to the average entry",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0011"
+    ],
+    "parent": "FEAT-0023",
+    "estimate": "3",
+    "size": "M",
+    "start_date": "2026-09-02",
+    "target_date": "2026-12-14",
+    "file": "features/FEAT-0334-add-to-position.md"
   },
   {
     "id": "BUG-0005",
@@ -2811,7 +2861,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0025",
     "title": "Notify on fills, margin thresholds and connection loss",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "shipped": "unreleased",
+    "assignee": "claude",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -3873,6 +3925,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "target_date": "2027-03-31",
     "start_date": "2026-09-02",
     "file": "features/FEAT-0332-asset-mode.md"
+  },
+  {
+    "id": "FEAT-0335",
+    "title": "Trail a stop behind a position once the exchange endpoint is verified",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0017"
+    ],
+    "parent": "FEAT-0023",
+    "file": "features/FEAT-0335-trailing-stop.md"
   },
   {
     "id": "BUG-0007",
