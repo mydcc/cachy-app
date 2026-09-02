@@ -2,7 +2,7 @@
 id: BUG-0373
 title: Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution
 type: bug
-status: specced
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +12,8 @@ adr: none
 depends_on: []
 size: M
 estimate: 3
-# assignee:            # required while status: in-progress (who is working this)
+assignee: antigravity
+branch: fix/security-audit-privacy-batch
 ---
 
 # BUG-0373 — Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution

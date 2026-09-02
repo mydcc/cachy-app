@@ -28,10 +28,10 @@ export interface ChatMessage {
   id: string;
   text: string;
   timestamp: number;
-  /** "me" for the local user, otherwise the sender's short ID. */
+  /** "me" for the local user, otherwise the sender's identity string. */
   senderId?: string;
   sender?: "user" | "system";
-  /** The sender's short ID, unmapped. */
+  /** The sender's identity string, unmapped. */
   clientId?: string;
 }
 
