@@ -177,7 +177,7 @@
 
   .cachy-range::-webkit-slider-runnable-track {
     height: 0.25rem;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     background: linear-gradient(
       to right,
       var(--range-tone) 0%,
@@ -189,7 +189,7 @@
 
   .cachy-range::-moz-range-track {
     height: 0.25rem;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     background: linear-gradient(
       to right,
       var(--range-tone) 0%,
@@ -205,7 +205,7 @@
     width: 0.75rem;
     height: 0.75rem;
     margin-top: -0.25rem;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     background: var(--range-tone);
     border: 2px solid var(--bg-primary);
   }
@@ -213,7 +213,7 @@
   .cachy-range::-moz-range-thumb {
     width: 0.75rem;
     height: 0.75rem;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     background: var(--range-tone);
     border: 2px solid var(--bg-primary);
   }
@@ -225,6 +225,6 @@
   .cachy-range:focus-visible {
     outline: 2px solid var(--range-tone);
     outline-offset: 4px;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
   }
 </style>

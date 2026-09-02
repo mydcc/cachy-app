@@ -265,9 +265,10 @@
    */
   .fee-input {
     min-height: 2.25rem;
-    padding: 0.5rem 3.5rem 0.5rem 0.6rem;
-    font-size: 0.75rem;
-    border-radius: 0.375rem;
+    /* 3.5rem right leaves room for the role overlay; 0.6rem left not on scale */
+    padding: var(--space-2) 3.5rem var(--space-2) 0.6rem;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
     background-color: var(--bg-secondary);
     color: var(--text-primary);

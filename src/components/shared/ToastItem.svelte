@@ -93,7 +93,7 @@
         padding: 16px;
         background: var(--bg-secondary, #1e293b);
         border: 1px solid var(--border-color, #334155);
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         color: var(--text-primary, #f8fafc);
         min-width: 300px;

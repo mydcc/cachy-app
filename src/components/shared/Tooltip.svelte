@@ -157,14 +157,14 @@
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
     text-align: center;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     padding: 0.4rem 0.65rem;
     position: absolute;
     z-index: 100;
     left: 0;
     top: 0;
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
     box-shadow: var(--shadow-tooltip, 0 4px 12px rgba(0,0,0,0.3));
     border: 1px solid var(--border-color);
     pointer-events: none;

@@ -270,7 +270,7 @@
 <style>
   .note-info {
     padding: 0.5rem 0.625rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
     background-color: var(--bg-tertiary);
     font-size: 0.6875rem;
@@ -281,14 +281,14 @@
   .stepper {
     display: flex;
     align-items: center;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
     background-color: var(--bg-primary);
   }
   .stepper-btn {
     width: 2.5rem;
     padding: 0.5rem 0;
-    font-size: 1.125rem;
+    font-size: var(--text-lg);
     color: var(--text-secondary);
     transition: color 0.15s ease;
   }
@@ -300,8 +300,8 @@
     min-width: 0;
     padding: 0.5rem 0;
     text-align: center;
-    font-size: 1.125rem;
-    font-weight: 600;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
     background: transparent;
     border: none;
     outline: none;

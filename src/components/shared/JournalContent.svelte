@@ -826,12 +826,12 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.5rem 0.85rem;
-        border-radius: 0.5rem;
+        border-radius: var(--radius-lg);
         border: 1px solid transparent;
         background: transparent;
         color: var(--text-secondary);
         font-size: 0.85rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         cursor: pointer;
         transition: all 0.2s ease;
     }
@@ -849,13 +849,13 @@
     }
 
     .tab-icon {
-        font-size: 1rem;
+        font-size: var(--text-base);
     }
 
     .tab-badge {
         font-size: 0.7rem;
         padding: 0.1rem 0.4rem;
-        border-radius: 9999px;
+        border-radius: var(--radius-full);
         background: var(--bg-tertiary);
         color: var(--text-primary);
         font-family: monospace;

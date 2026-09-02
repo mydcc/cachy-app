@@ -817,7 +817,7 @@
         flex-direction: column;
         overflow: hidden;
         pointer-events: auto;
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
         background: var(--bg-secondary);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         border: 1px solid var(--border-color);
@@ -856,7 +856,7 @@
         height: 34px !important;
         display: flex;
         z-index: auto !important;
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
         background: var(--bg-secondary);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         cursor: pointer;
@@ -878,11 +878,11 @@
         display: none;
     }
     .window-frame.pinned-left {
-        border-radius: 0 12px 12px 0;
+        border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
         border-left: none;
     }
     .window-frame.pinned-right {
-        border-radius: 12px 0 0 12px;
+        border-radius: var(--radius-xl) 0 0 var(--radius-xl);
         border-right: none;
     }
     .window-frame.focused {
@@ -944,7 +944,7 @@
         flex: 0 0 auto;
     }
     .window-title {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         font-size: 0.85rem;
         color: var(--text-primary);
         white-space: nowrap;
@@ -953,7 +953,7 @@
     }
     .title-price {
         font-family: var(--font-mono, monospace);
-        font-weight: 600;
+        font-weight: var(--font-semibold);
         color: var(--text-primary);
         font-size: 0.85rem;
         opacity: 0.95;
@@ -993,7 +993,7 @@
     .title-wrapper.clickable {
         cursor: pointer;
         padding: 2px 6px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         transition: background 0.2s;
     }
     .title-wrapper.clickable:hover {
@@ -1022,9 +1022,9 @@
         border: 1px solid var(--border-color);
         color: var(--text-secondary);
         font-size: 10px;
-        font-weight: 700;
+        font-weight: var(--font-bold);
         padding: 4px 8px; /* Increased padding */
-        border-radius: 6px; /* Smoother corners */
+        border-radius: var(--radius-md); /* Smoother corners */
         cursor: pointer;
         transition: all 0.2s;
         display: flex;
@@ -1043,7 +1043,7 @@
         color: var(--text-on-accent, #000000) !important;
         border-color: var(--accent-color);
         box-shadow: 0 0 10px rgba(var(--accent-color-rgb), 0.3);
-        font-weight: 700;
+        font-weight: var(--font-bold);
         opacity: 1;
     }
     .ctrl-icon {
@@ -1109,14 +1109,14 @@
         transform: scale(1.1);
         filter: drop-shadow(0 0 5px var(--accent-color));
         background: color-mix(in srgb, var(--text-primary), transparent 95%);
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
     }
     .control-group {
         display: flex;
         align-items: center;
         background: color-mix(in srgb, var(--text-primary), transparent 95%);
         border: 1px solid var(--border-color);
-        border-radius: 6px;
+        border-radius: var(--radius-md);
         padding: 2px;
         margin-right: 4px;
         gap: 2px;
@@ -1126,13 +1126,13 @@
         border: none;
         color: var(--text-secondary);
         cursor: pointer;
-        font-size: 0.75rem;
+        font-size: var(--text-xs);
         width: 20px;
         height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         transition: all 0.2s;
     }
     .tool-btn:hover {
@@ -1156,13 +1156,13 @@
         border: none;
         color: var(--text-secondary);
         cursor: pointer;
-        font-size: 1rem;
+        font-size: var(--text-base);
         width: 24px;
         height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 6px;
+        border-radius: var(--radius-md);
         transition: all 0.2s;
     }
     .close-btn:hover {
@@ -1206,7 +1206,7 @@
         padding: 8px 12px;
         text-align: left;
         font-size: 0.85rem;
-        border-radius: 6px;
+        border-radius: var(--radius-md);
         cursor: pointer;
         display: flex;
         align-items: center;

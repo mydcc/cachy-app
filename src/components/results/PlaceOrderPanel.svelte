@@ -429,7 +429,7 @@
   .type-btn {
     padding: 0.35rem 0.6rem;
     font-size: 0.8125rem;
-    font-weight: 700;
+    font-weight: var(--font-bold);
     border: none;
     border-bottom: 2px solid transparent;
     border-radius: 0;
@@ -453,10 +453,10 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.35rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-3);
     background: var(--bg-tertiary);
-    padding: 0.5rem 0.6rem;
-    border-radius: 0.5rem;
+    padding: var(--space-2) 0.6rem;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
   }
   .summary dt {
@@ -469,14 +469,14 @@
     margin: 0;
     font-family: monospace;
     font-size: 0.8125rem;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--text-primary);
     word-break: break-all;
   }
   .note {
     font-size: 0.7rem;
     color: var(--text-secondary);
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-3);
   }
   .note.warn {
     color: var(--warning-color);
@@ -484,15 +484,15 @@
   .submit-btn {
     width: 100%;
     height: 48px;
-    padding: 0 1rem;
+    padding: 0 var(--space-4);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     border: 1px solid var(--accent-color);
     background-color: var(--accent-color);
     color: var(--btn-accent-text);
@@ -516,10 +516,10 @@
     cursor: not-allowed;
   }
   .outcome {
-    margin-top: 0.75rem;
+    margin-top: var(--space-3);
     padding: 0.6rem;
-    border-radius: 0.5rem;
-    font-size: 0.75rem;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-xs);
     border: 1px solid;
   }
   .outcome.ok {
@@ -529,11 +529,11 @@
   .outcome.danger {
     border-color: var(--danger-color);
     color: var(--danger-color);
-    font-weight: 700;
+    font-weight: var(--font-bold);
   }
   .outcome .detail {
     display: block;
-    margin-top: 0.25rem;
+    margin-top: var(--space-1);
     font-weight: 400;
     opacity: 0.85;
     word-break: break-word;
