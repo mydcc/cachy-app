@@ -44,6 +44,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
 import { mount, unmount, flushSync } from "svelte";
 import { Decimal } from "decimal.js";
 import en from "../../locales/locales/en.json";
@@ -157,6 +158,9 @@ function position(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    // FEAT-0020: the panel now reads the confirmation policy, so each test
+    // starts from the shipped defaults rather than the previous test's choice.
+    confirmationPolicyStore.reset();
     settings.apiProvider = "bitunix";
     supportsMock.accountSettings = true;
     paperStateMock.enabled = false;
@@ -532,7 +536,29 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         expect(accountPort.changeLeverage).not.toHaveBeenCalled();
     });
 
-    it("does not ask when the symbol has nothing open", async () => {
+    /*
+     * FEAT-0020 wired this to FEAT-0024's policy, which changed what "nothing
+     * open" means here. It used to mean "never ask"; it now means "the user's
+     * setting decides", and `leverage-change` ships defaulted on.
+     *
+     * The open-position case above is unchanged and deliberately so: that
+     * dialog carries the projected liquidation price, a consequence rather
+     * than a prompt, and no setting switches it off.
+     */
+    it("asks when the symbol has nothing open and the policy wants it", async () => {
+        confirmationPolicyStore.setRequired("leverage-change", true);
+        await render();
+        await openLeverageAndType("20");
+
+        button("btn-leverage-apply")?.click();
+        await settle();
+
+        expect(modalMock.show).toHaveBeenCalledTimes(1);
+        expect(accountPort.changeLeverage).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not ask when the symbol has nothing open and the policy is off", async () => {
+        confirmationPolicyStore.setRequired("leverage-change", false);
         await render();
         await openLeverageAndType("20");
 
@@ -667,5 +693,70 @@ describe("FEAT-0068 — a venue without these endpoints offers no controls", () 
         expect(button("btn-leverage-chip")).toBeNull();
         expect(button("btn-mode-chip")).toBeNull();
         expect(host.textContent?.trim()).toBe("");
+    });
+});
+
+/** Open the modes dialog, pick a margin mode, and commit it. */
+async function chooseMarginMode(mode: "CROSS" | "ISOLATION") {
+    await openModeModal();
+    button(mode === "CROSS" ? "btn-margin-mode-cross" : "btn-margin-mode-isolated")?.click();
+    await settle();
+    button("btn-mode-confirm")?.click();
+    await settle();
+}
+
+describe("FEAT-0020 — the mode writes ask before they change the account", () => {
+    /*
+     * `margin-mode-change` shipped in FEAT-0024 defaulted on, and this panel
+     * had no confirmation on the mode path at all — the settings toggle
+     * existed and changed nothing. These pin that it now does something, and
+     * that an open position asks regardless of the setting.
+     */
+
+    it("asks before changing margin mode", async () => {
+        confirmationPolicyStore.setRequired("margin-mode-change", true);
+        await render();
+        await chooseMarginMode("CROSS");
+
+        expect(modalMock.show).toHaveBeenCalledTimes(1);
+        expect(accountPort.changeMarginMode).toHaveBeenCalledTimes(1);
+    });
+
+    it("sends nothing when the confirmation is declined", async () => {
+        // The claim this file cares about most: the unsent request, not the
+        // message.
+        confirmationPolicyStore.setRequired("margin-mode-change", true);
+        modalMock.show.mockResolvedValueOnce(false as never);
+        await render();
+        await chooseMarginMode("CROSS");
+
+        expect(accountPort.changeMarginMode).not.toHaveBeenCalled();
+    });
+
+    it("does not ask when the policy is off and nothing is open", async () => {
+        confirmationPolicyStore.setRequired("margin-mode-change", false);
+        await render();
+        await chooseMarginMode("CROSS");
+
+        expect(modalMock.show).not.toHaveBeenCalled();
+        expect(accountPort.changeMarginMode).toHaveBeenCalledTimes(1);
+    });
+
+    it("never reaches a confirmation with a position open — it is blocked first", async () => {
+        /*
+         * The open-position case that makes leverage always ask does not
+         * arise here: `marginModeReason` disables the control outright,
+         * because the venue refuses the change. Asserting the block rather
+         * than a dialog keeps this test honest about which safeguard is
+         * actually doing the work.
+         */
+        confirmationPolicyStore.setRequired("margin-mode-change", true);
+        accountStateMock.positions = [position()];
+        await render();
+        await openModeModal();
+
+        expect(button("btn-margin-mode-cross")?.disabled).toBe(true);
+        expect(modalMock.show).not.toHaveBeenCalled();
+        expect(accountPort.changeMarginMode).not.toHaveBeenCalled();
     });
 });

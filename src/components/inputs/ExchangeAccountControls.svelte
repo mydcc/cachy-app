@@ -70,6 +70,7 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { projectLiquidation } from "../../lib/calculators/liquidation";
+  import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
   import type { TranslationKey } from "../../locales/schema";
   import LeverageModal from "../shared/LeverageModal.svelte";
   import MarginModeModal from "../shared/MarginModeModal.svelte";
@@ -209,7 +210,20 @@
      * showed the projection live; this is the commit, and it repeats the
      * number so the last thing read before sending is the consequence.
      */
-    if (symbolBusy) {
+    /*
+     * FEAT-0020 wires this to FEAT-0024's policy, and the two ask different
+     * questions.
+     *
+     * An open position always warns, whatever the policy says: the dialog
+     * carries the projected liquidation price, a number the trader has no
+     * other way to see before it becomes real. That is a consequence, not a
+     * prompt — the same reason FEAT-0011's verification cannot be configured
+     * away.
+     *
+     * Without a position there is nothing to project, so the question really
+     * is "do you want to be asked", and the user's setting decides.
+     */
+    if (symbolBusy || confirmationPolicyStore.requires("leverage-change")) {
       const projection = openPosition
         ? projectLiquidation(openPosition.entryPrice, openPosition.liquidationPrice, openPosition.leverage, desired)
         : null;
@@ -266,6 +280,52 @@
     positionMode?: "ONE_WAY" | "HEDGE";
   }) {
     if (busy) return;
+
+    /*
+     * FEAT-0020. This path had no confirmation at all, while
+     * `margin-mode-change` shipped defaulted on — the settings toggle existed
+     * and changed nothing.
+     *
+     * Only the policy decides here, unlike leverage. The open-position case
+     * that makes leverage always ask does not arise for either mode: both are
+     * *blocked* rather than warned about — `marginModeReason` on a busy
+     * symbol, `positionModeReason` on any open position — because the venue
+     * refuses the change outright. A confirmation for a state the buttons are
+     * disabled in would be unreachable code pretending to be a safeguard.
+     *
+     * Position mode has no toggle of its own in the catalogue, so it inherits
+     * whatever margin mode's answer is when both change together, and asks
+     * nothing when it changes alone.
+     */
+    const modeNeedsAsking =
+      changes.marginMode !== undefined &&
+      confirmationPolicyStore.requires("margin-mode-change");
+
+    if (modeNeedsAsking) {
+      const lines = [$_("exchange.accountSettings.confirmModesMessage")];
+      if (changes.marginMode) {
+        lines.push(
+          $_("exchange.accountSettings.confirmMarginModeLine", {
+            values: { symbol: venueSymbol, to: changes.marginMode },
+          }),
+        );
+      }
+      if (changes.positionMode) {
+        lines.push(
+          $_("exchange.accountSettings.confirmPositionModeLine", {
+            values: { to: changes.positionMode },
+          }),
+        );
+      }
+
+      const confirmed = await modalState.show(
+        $_("exchange.accountSettings.confirmModesTitle"),
+        lines.join("\n\n"),
+        "confirm",
+      );
+      if (confirmed !== true) return;
+    }
+
     busy = "modes";
     let failed = false;
 
