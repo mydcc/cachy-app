@@ -67,6 +67,6 @@ row it describes.
 
 ## Links
 
-- [docs/GLOBAL-CHAT.md](../../../GLOBAL-CHAT.md) § 4 — retention promise
+- [docs/GLOBAL-CHAT.md](../../GLOBAL-CHAT.md) § 4 — retention promise
 - [docs/adr/0001-local-first-boundary.md](../../adr/0001-local-first-boundary.md)
 - Related audit findings: BUG-0373, FEAT-0375, FEAT-0376 (same reducer/file)

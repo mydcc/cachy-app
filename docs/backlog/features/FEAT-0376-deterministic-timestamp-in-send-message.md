@@ -56,4 +56,4 @@ client expects a JS number, `Number(...)` at the boundary).
 ## Links
 
 - Related audit findings: BUG-0372, BUG-0373, FEAT-0375 (same file)
-- [server/CLAUDE.md](../../CLAUDE.md) — "Reducers must be deterministic"
+- [server/CLAUDE.md](../../../server/CLAUDE.md) — "Reducers must be deterministic"

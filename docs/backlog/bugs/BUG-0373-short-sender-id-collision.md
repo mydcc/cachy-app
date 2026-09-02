@@ -78,5 +78,5 @@ it), and truncate only at the display layer, e.g.:
 ## Links
 
 - Related audit findings: BUG-0372, FEAT-0375, FEAT-0376 (same reducer/file)
-- [docs/GLOBAL-CHAT.md](../../../GLOBAL-CHAT.md)
+- [docs/GLOBAL-CHAT.md](../../GLOBAL-CHAT.md)
 - [docs/adr/0004-spacetimedb-data-scope.md](../../adr/0004-spacetimedb-data-scope.md)

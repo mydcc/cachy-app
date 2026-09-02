@@ -70,4 +70,4 @@ the style of the existing `RETENTION_DAYS`.
 ## Links
 
 - Related audit findings: BUG-0372, BUG-0373 (same file), FEAT-0376
-- [server/CLAUDE.md](../../CLAUDE.md) — reducer rules
+- [server/CLAUDE.md](../../../server/CLAUDE.md) — reducer rules
