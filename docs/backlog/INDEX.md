@@ -4,7 +4,7 @@
 
 254 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 28 · 🟢 ready 15 · 🟡 in-progress 5 · ✅ done 185
+Counts by status: 💡 idea 21 · 📋 specced 28 · 🟢 ready 12 · 🟡 in-progress 8 · ✅ done 185
 
 ---
 
@@ -270,10 +270,10 @@ Counts by status: 💡 idea 21 · 📋 specced 28 · 🟢 ready 15 · 🟡 in-pr
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | ui |
 | [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | 🟡 in-progress | ui |
 | [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | 🟢 ready | indicators |
-| [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | 🟢 ready | ui |
+| [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | 🟡 in-progress | ui |
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | indicators |
 | [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | alerts |
-| [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | 🟢 ready | ui |
+| [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | 🟡 in-progress | ui |
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | journal |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
@@ -312,7 +312,7 @@ Counts by status: 💡 idea 21 · 📋 specced 28 · 🟢 ready 15 · 🟡 in-pr
 | [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | ui |
 | [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | ui |
 | [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | 🟢 ready | journal |
-| [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | 🟢 ready | calculation |
+| [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | 🟡 in-progress | calculation |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -522,10 +522,10 @@ Counts by status: 💡 idea 21 · 📋 specced 28 · 🟢 ready 15 · 🟡 in-pr
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | 🟢 ready | none | community, pro, private | none | none | — |
-| [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | none | community, pro, private | none | none | — |
-| [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -566,7 +566,7 @@ Counts by status: 💡 idea 21 · 📋 specced 28 · 🟢 ready 15 · 🟡 in-pr
 | [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
 | [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | 🟢 ready | none | community, pro, private | none | none | — |
-| [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
