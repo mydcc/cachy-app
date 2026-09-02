@@ -2,9 +2,9 @@
 
 # Backlog index
 
-236 items. How to read and add them: [README.md](README.md).
+237 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ done 182
+Counts by status: 💡 idea 21 · 📋 specced 27 · 🟡 in-progress 4 · ✅ done 185
 
 ---
 
@@ -89,7 +89,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | trade-panel |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | trade-panel |
 | [FEAT-0330](features/FEAT-0330-flash-close-wiring.md) | Wire flash close to the positions list | P1 | ✅ done | trade-panel |
-| [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | 📋 specced | trade-panel |
+| [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | 🟡 in-progress | trade-panel |
 | [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | 📋 specced | trade-panel |
 | [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | trade-panel |
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | trade-panel |
@@ -251,10 +251,10 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 | [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | ✅ done | i18n |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | security |
 | [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | 🟡 in-progress | trade-panel |
-| [FEAT-0336](features/FEAT-0336-css-design-token-foundation.md) | CSS Design Token Foundation & UI Harmonization | P2 | 📋 specced | ui |
+| [FEAT-0336](features/FEAT-0336-css-design-token-foundation.md) | CSS Design Token Foundation & UI Harmonization | P2 | ✅ done | ui |
 | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) | Design Token Foundation | P2 | ✅ done | ui |
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | ui |
-| [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | 📋 specced | ui |
+| [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | ✅ done | ui |
 | [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 📋 specced | ui |
 | [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | ui |
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | 📋 specced | ui |
@@ -279,6 +279,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | security |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | api |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | ui |
+| [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -293,7 +294,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 | [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | exchange |
 | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | ✅ done | ui |
 | [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | ✅ done | ui |
-| [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | 🟡 in-progress | ui |
+| [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | ui |
 | [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
@@ -387,7 +388,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
 | [FEAT-0327](features/FEAT-0327-paper-trading-account-tracking.md) | Make a paper trade trackable, closable and journalled like a real one | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) |
 | [FEAT-0330](features/FEAT-0330-flash-close-wiring.md) | Wire flash close to the positions list | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) |
-| [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
+| [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | 🟡 in-progress | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
@@ -485,10 +486,10 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 | [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | 🟡 in-progress | none | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) |
 | [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0020](features/FEAT-0020-account-settings-panel.md) |
 | [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
-| [FEAT-0336](features/FEAT-0336-css-design-token-foundation.md) | CSS Design Token Foundation & UI Harmonization | P2 | 📋 specced | none | community, pro, private | none | ADR-0014 | — |
+| [FEAT-0336](features/FEAT-0336-css-design-token-foundation.md) | CSS Design Token Foundation & UI Harmonization | P2 | ✅ done | none | community, pro, private | none | ADR-0014 | — |
 | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) | Design Token Foundation | P2 | ✅ done | none | community, pro, private | none | ADR-0014 | — |
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
-| [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | 📋 specced | none | community, pro, private | none | none | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) |
+| [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) |
 | [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | 📋 specced | none | community, pro, private | none | none | — |
@@ -513,6 +514,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -529,7 +531,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 | [FEAT-0322](features/FEAT-0322-remove-stale-backup-files.md) | Remove stale backup files from the repository | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) |
-| [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | 🟡 in-progress | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
+| [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
 | [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -546,4 +548,4 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟡 in-progress 4 · ✅ d
 
 ---
 
-Next free number: **0354**
+Next free number: **0355**
