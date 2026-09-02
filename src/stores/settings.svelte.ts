@@ -20,9 +20,21 @@ import {
   SecretsLoader,
   SENSITIVE_KEYS,
   apiKeyHasMaterial,
-  redactApiKeys,
 } from "./settings/secretsLoader";
 import type { AiAnalysisMode } from "../types/ai";
+import {
+  accountForExchange,
+  blankKeysFor,
+  CREDENTIAL_SCHEMA_VERSION,
+  defaultAccountName,
+  defaultAccountState,
+  keysForExchange,
+  redactAccounts,
+  LEGACY_ACCOUNT_IDS,
+  type ExchangeAccount,
+  type ExchangeProvider,
+  type LegacyCredentialShape,
+} from "./settings/accounts";
 import {
   resolveApiProvider,
   resolveGeminiModel,
@@ -272,14 +284,18 @@ export interface Settings {
     { maker: string; taker: string }
   >;
   hotkeyMode: HotkeyMode;
-  apiKeys: {
-    bitunix: ApiKeys;
-    bitget: ApiKeys;
-  };
-  encryptedApiKeys?: {
-    bitunix?: EncryptedBlob;
-    bitget?: EncryptedBlob;
-  };
+  /**
+   * Named exchange accounts (FEAT-0333), replacing the venue-indexed
+   * `apiKeys` / `encryptedApiKeys`. Those two survive only in
+   * `LegacyCredentialShape`, which nothing but the migration reads — a
+   * reader that has not been converted is a type error rather than a silent
+   * `undefined`.
+   */
+  accounts: ExchangeAccount[];
+  activeAccountId: string;
+  encryptedAccountKeys?: Record<string, EncryptedBlob>;
+  /** Which credential shape this payload was written with. See the constant. */
+  credentialSchemaVersion?: number;
   encryptedSecrets?: Record<string, EncryptedBlob>;
   isEncrypted?: boolean;
   customHotkeys: Record<string, string>;
@@ -523,10 +539,7 @@ const defaultSettings: Settings = {
   },
   hotkeyMode: "mode2",
   customHotkeys: {},
-  apiKeys: {
-    bitunix: { key: "", secret: "" },
-    bitget: { key: "", secret: "", passphrase: "" },
-  },
+  ...defaultAccountState(),
   favoriteTimeframes: ["5m", "15m", "1h", "4h"],
   favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
   syncRsiTimeframe: true,
@@ -803,7 +816,7 @@ export class SettingsManager {
    * every consumer outside this file reaches it through.
    */
   readonly entitlement = new EntitlementStore(
-    () => this.apiKeys,
+    () => this.accounts,
     () => this.apiProvider,
     () => this.autoTrading,
     () => this.multiAccount,
@@ -815,7 +828,8 @@ export class SettingsManager {
   glassSaturate = $state<number>(defaultSettings.glassSaturate);
   glassOpacity = $state<number>(defaultSettings.glassOpacity);
 
-  apiKeys = $state(defaultSettings.apiKeys);
+  accounts = $state(defaultSettings.accounts);
+  activeAccountId = $state<string>(defaultSettings.activeAccountId);
   customHotkeys = $state(defaultSettings.customHotkeys);
   favoriteTimeframes = $state(defaultSettings.favoriteTimeframes);
   favoriteSymbols = $state(defaultSettings.favoriteSymbols);
@@ -913,15 +927,36 @@ export class SettingsManager {
   pauseAnalysisOnBlur = $state<boolean>(defaultSettings.pauseAnalysisOnBlur);
   analysisTimeframes = $state<string[]>(defaultSettings.analysisTimeframes);
   showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
+  /**
+   * The live account object for a venue, safe to bind a credential input to.
+   *
+   * Total by the migration's invariant — `defaultAccountState()` and
+   * `migrateAccounts` both guarantee one account per venue. The repair branch
+   * should be unreachable; it appends to the live array rather than returning
+   * a detached object, because a credential form bound to a detached account
+   * would swallow everything a user types into it.
+   */
+  accountFor(exchange: ExchangeProvider): ExchangeAccount {
+    const existing = accountForExchange(this.accounts, exchange);
+    if (existing) return existing;
+
+    const created: ExchangeAccount = {
+      id: LEGACY_ACCOUNT_IDS[exchange],
+      name: defaultAccountName(exchange),
+      exchange,
+      keys: blankKeysFor(exchange),
+    };
+    this.accounts.push(created);
+    return created;
+  }
+
   get effectiveShowSidebarActivity() {
+    const bitget = keysForExchange(this.accounts, "bitget");
+    const bitunix = keysForExchange(this.accounts, "bitunix");
     const hasBitgetKeys = Boolean(
-      this.apiKeys?.bitget?.key &&
-      this.apiKeys?.bitget?.secret &&
-      this.apiKeys?.bitget?.passphrase,
+      bitget.key && bitget.secret && bitget.passphrase,
     );
-    const hasBitunixKeys = Boolean(
-      this.apiKeys?.bitunix?.key && this.apiKeys?.bitunix?.secret,
-    );
+    const hasBitunixKeys = Boolean(bitunix.key && bitunix.secret);
     const hasApiKeys =
       this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
 
@@ -1168,10 +1203,10 @@ export class SettingsManager {
    * so the migration to device-key ciphertext happens on first launch, not
    * at the next unrelated settings change.
    */
-  private migrateLegacyApiKeys = false;
+  private needsCredentialRewrite = false;
 
   // Security State
-  encryptedApiKeys = $state<Settings["encryptedApiKeys"]>(undefined);
+  encryptedAccountKeys = $state<Settings["encryptedAccountKeys"]>(undefined);
   encryptedSecrets = $state<Settings["encryptedSecrets"]>(undefined);
   isEncrypted = $state(false);
   isLocked = $state(false);
@@ -1242,7 +1277,7 @@ export class SettingsManager {
       // load are re-encrypted immediately instead of waiting for the next
       // unrelated settings change (the save itself is a no-op write once the
       // stored blob is already ciphertext, so later boots stay read-only).
-      if (this.migrateLegacyApiKeys) void this.save();
+      if (this.needsCredentialRewrite) void this.save();
 
       if (import.meta.env.DEV) {
         console.warn("[Settings] Store ready. Provider:", this.apiProvider);
@@ -1284,23 +1319,19 @@ export class SettingsManager {
       const tasks: Promise<void>[] = [];
 
       // 1. Decrypt Exchange Keys
-      if (this.encryptedApiKeys) {
-        const eak = this.encryptedApiKeys;
-        if (eak.bitunix) {
+      if (this.encryptedAccountKeys) {
+        const eak = this.encryptedAccountKeys;
+        for (const [accountId, blob] of Object.entries(eak)) {
+          if (!blob) continue;
           tasks.push(
             (async () => {
-              const json = await cryptoService.decrypt(eak.bitunix!);
+              const json = await cryptoService.decrypt(blob);
               if (aborted) return;
-              this.apiKeys.bitunix = JSON.parse(json);
-            })(),
-          );
-        }
-        if (eak.bitget) {
-          tasks.push(
-            (async () => {
-              const json = await cryptoService.decrypt(eak.bitget!);
-              if (aborted) return;
-              this.apiKeys.bitget = JSON.parse(json);
+              const account = this.accounts.find((a) => a.id === accountId);
+              // A blob whose account no longer exists is left encrypted and
+              // unused rather than restored into a fresh account: reviving
+              // credentials a user removed is worse than an orphaned blob.
+              if (account) account.keys = JSON.parse(json);
             })(),
           );
         }
@@ -1342,10 +1373,9 @@ export class SettingsManager {
 
   lock() {
     if (this.isEncrypted) {
-      this.apiKeys = {
-        bitunix: { key: "", secret: "" },
-        bitget: { key: "", secret: "", passphrase: "" },
-      };
+      // Credentials go, names and ids stay — locking hides the keys, it does
+      // not forget which accounts exist.
+      this.accounts = redactAccounts(this.accounts);
 
       // Clear generic secrets from memory
       for (const key of SENSITIVE_KEYS) {
@@ -1366,27 +1396,20 @@ export class SettingsManager {
 
     try {
       // 1. Encrypt Exchange Keys into temp variables
-      let bitunixBlob: EncryptedBlob | undefined;
-      let bitgetBlob: EncryptedBlob | undefined;
+      const accountBlobs: Record<string, EncryptedBlob> = {};
       const newSecrets: Record<string, EncryptedBlob> = {};
 
       const tasks: Promise<void>[] = [];
 
-      tasks.push(
-        (async () => {
-          bitunixBlob = await cryptoService.encrypt(
-            JSON.stringify(this.apiKeys.bitunix),
-          );
-        })(),
-      );
-
-      tasks.push(
-        (async () => {
-          bitgetBlob = await cryptoService.encrypt(
-            JSON.stringify(this.apiKeys.bitget),
-          );
-        })(),
-      );
+      for (const account of this.accounts) {
+        tasks.push(
+          (async () => {
+            accountBlobs[account.id] = await cryptoService.encrypt(
+              JSON.stringify(account.keys),
+            );
+          })(),
+        );
+      }
 
       // 2. Encrypt Generic Secrets (move from Device Key/Plain to Master Key)
       // We assume current 'this[key]' contains valid plain text (decrypted via Device Key or user input)
@@ -1404,7 +1427,7 @@ export class SettingsManager {
       // Only commit state after all encryptions succeed (atomic update)
       await Promise.all(tasks);
 
-      this.encryptedApiKeys = { bitunix: bitunixBlob, bitget: bitgetBlob };
+      this.encryptedAccountKeys = accountBlobs;
       this.encryptedSecrets = newSecrets;
       this.isEncrypted = true;
       this.isLocked = false;
@@ -1433,39 +1456,55 @@ export class SettingsManager {
 
       const parsed = JSON.parse(d);
 
-      // Deep merge apiKeys
-      const mergedApiKeys = {
-        bitunix: {
-          ...defaultSettings.apiKeys.bitunix,
-          ...(parsed.apiKeys?.bitunix || {}),
-        },
-        bitget: {
-          ...defaultSettings.apiKeys.bitget,
-          ...(parsed.apiKeys?.bitget || {}),
-        },
-      };
-
-      const merged = { ...defaultSettings, ...parsed, apiKeys: mergedApiKeys };
+      // Credentials are merged inside `applyAccounts`, which reads both the
+      // account list and the venue-indexed shape that predates FEAT-0333.
+      //
+      // `accounts` and `activeAccountId` are handed through from `parsed`
+      // EXPLICITLY, undefined included. The defaults carry one empty account
+      // per venue, so a plain spread would give every legacy profile a
+      // non-empty `accounts` and the migration would conclude "already
+      // converted" — and never read `apiKeys` at all. That reads to a
+      // returning user as credentials silently gone.
+      const merged = {
+        ...defaultSettings,
+        ...parsed,
+        accounts: parsed.accounts,
+        activeAccountId: parsed.activeAccountId,
+      } as Settings & LegacyCredentialShape;
 
       // Set the private field directly during load to avoid dual logging
       this._apiProvider = resolveApiProvider(merged.apiProvider);
 
-      // Granular updates for apiKeys to preserve object references if components bind to them
-      const apiKeyResult = this.secretsLoader.applyApiKeys(merged, this.apiKeys);
+      // Granular updates to preserve object references if components bind to them
+      const apiKeyResult = this.secretsLoader.applyAccounts(merged, this.accounts);
       this.isEncrypted = apiKeyResult.isEncrypted;
       this.isLocked = apiKeyResult.isLocked;
-      this.encryptedApiKeys = apiKeyResult.encryptedApiKeys;
-      this.apiKeys = apiKeyResult.apiKeys;
+      this.encryptedAccountKeys = apiKeyResult.encryptedAccountKeys;
+      this.accounts = apiKeyResult.accounts;
+      this.activeAccountId = apiKeyResult.activeAccountId;
 
       // BUG-0280 migration flag: storage predating the fix kept exchange
       // credentials as plaintext whenever no master password was set. They
       // stay usable in memory (above); the constructor's immediate save
       // re-persists them as device-key ciphertext on first launch.
-      this.migrateLegacyApiKeys =
+      const hasPlaintextCredentials =
         !this.isEncrypted &&
-        !(merged.encryptedApiKeys && Object.keys(merged.encryptedApiKeys).length > 0) &&
-        (apiKeyHasMaterial(merged.apiKeys?.bitunix) ||
-          apiKeyHasMaterial(merged.apiKeys?.bitget));
+        !(
+          apiKeyResult.encryptedAccountKeys &&
+          Object.keys(apiKeyResult.encryptedAccountKeys).length > 0
+        ) &&
+        this.accounts.some((account) => apiKeyHasMaterial(account.keys));
+
+      // FEAT-0333: a profile stored in the venue-indexed shape converted in
+      // memory just now. Persist it at once rather than waiting for whatever
+      // save happens next — until it lands, `localStorage` holds a second,
+      // stale copy of the same credentials, and a restore cannot tell which
+      // of the two is meant.
+      const convertedFromLegacyShape =
+        !parsed.accounts && Boolean(parsed.apiKeys || parsed.encryptedApiKeys);
+
+      this.needsCredentialRewrite =
+        hasPlaintextCredentials || convertedFromLegacyShape;
 
       // Security: Load Encrypted Secrets (Generic) and the device-key-
       // encrypted exchange keys (BUG-0280). Both decrypt against the device
@@ -1477,27 +1516,24 @@ export class SettingsManager {
         const backgroundTasks: Promise<unknown>[] = [];
         let apiKeyFailures = 0;
 
-        const eak = merged.encryptedApiKeys;
+        // Already migrated onto account ids by `applyAccounts`.
+        const eak = apiKeyResult.encryptedAccountKeys;
         if (eak && Object.keys(eak).length > 0) {
           this.apiKeyDecryptPending = true;
           backgroundTasks.push(
             this.secretsLoader
-              .decryptApiKeysWithDeviceKey(eak)
+              .decryptAccountKeysWithDeviceKey(eak)
               .then((restored) => {
                 apiKeyFailures = restored.failures;
-                // Refill only fields nothing else has populated; typed-but-
+                // Refill only accounts nothing else has populated; typed-but-
                 // unsaved credentials win over the stored ciphertext.
-                if (
-                  restored.bitunix &&
-                  !apiKeyHasMaterial(this.apiKeys.bitunix)
-                ) {
-                  this.apiKeys.bitunix = restored.bitunix;
-                }
-                if (
-                  restored.bitget &&
-                  !apiKeyHasMaterial(this.apiKeys.bitget)
-                ) {
-                  this.apiKeys.bitget = restored.bitget;
+                for (const [accountId, keys] of Object.entries(
+                  restored.keysByAccount,
+                )) {
+                  const account = this.accounts.find((a) => a.id === accountId);
+                  if (account && !apiKeyHasMaterial(account.keys)) {
+                    account.keys = keys;
+                  }
                 }
               })
               .catch((e) => {
@@ -1886,9 +1922,9 @@ export class SettingsManager {
       // serialized block above only ever carries placeholders). While the
       // background device-key decryption is still refilling the fields, an
       // existing blob must survive instead of being read as "cleared".
-      await this.secretsLoader.applyApiKeyEncryption(
+      await this.secretsLoader.applyAccountKeyEncryption(
         data,
-        $state.snapshot(this.apiKeys),
+        $state.snapshot(this.accounts),
         canEncrypt,
         encryptionPassword,
         !this.apiKeyDecryptPending,
@@ -1946,9 +1982,11 @@ export class SettingsManager {
       // the block carries only placeholders. The $state.snapshot(...)
       // argument still deep-reads the live keys so the autosave $effect
       // keeps tracking credential edits.
-      apiKeys: redactApiKeys($state.snapshot(this.apiKeys)),
-      encryptedApiKeys: this.encryptedApiKeys
-        ? $state.snapshot(this.encryptedApiKeys)
+      accounts: redactAccounts($state.snapshot(this.accounts)),
+      activeAccountId: this.activeAccountId,
+      credentialSchemaVersion: CREDENTIAL_SCHEMA_VERSION,
+      encryptedAccountKeys: this.encryptedAccountKeys
+        ? $state.snapshot(this.encryptedAccountKeys)
         : undefined,
       encryptedSecrets: this.encryptedSecrets
         ? $state.snapshot(this.encryptedSecrets)

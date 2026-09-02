@@ -16,6 +16,7 @@
  */
 
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { tradeService, BitunixApiError } from "./tradeService";
 import { omsService } from "./omsService";
@@ -30,9 +31,9 @@ vi.mock('$app/environment', () => ({
 vi.mock("../stores/settings.svelte", () => ({
     settingsState: {
         apiProvider: "bitunix",
-        apiKeys: {
+        ...migrateAccounts({ apiKeys: {
             bitunix: { key: "test", secret: "test" }
-        }
+        } })
     }
 }));
 

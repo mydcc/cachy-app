@@ -19,6 +19,7 @@
   import { onMount, untrack } from "svelte";
   import { Decimal } from "decimal.js";
   import { settingsState } from "../../stores/settings.svelte";
+  import { keysForExchange } from "../../stores/settings/accounts";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
@@ -268,7 +269,7 @@
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
+    const keys = keysForExchange(settingsState.accounts, provider);
 
     if (!keys?.key || !keys?.secret) return;
     // The sync callback (registered below) can fire once per malformed/
@@ -329,7 +330,7 @@
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
+    const keys = keysForExchange(settingsState.accounts, provider);
     if (!keys?.key || !keys?.secret) return;
 
     loadingOrders = true;
@@ -396,7 +397,7 @@
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
+    const keys = keysForExchange(settingsState.accounts, provider);
     if (!keys?.key || !keys?.secret) return;
 
     if (isAppend) {
@@ -513,7 +514,7 @@
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
+    const keys = keysForExchange(settingsState.accounts, provider);
     if (!keys?.key || !keys?.secret) return;
 
     try {
@@ -569,7 +570,7 @@
     // Paper mode needs no credentials — the book is local, and gating the
     // first read on API keys is why a paper account with none started empty.
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
+    const keys = keysForExchange(settingsState.accounts, provider);
     if (paperAccountFeed() || (keys?.key && keys?.secret)) {
       fetchAccount();
       fetchPositions();
@@ -647,7 +648,7 @@
   // Watch for API key changes to re-trigger initial fetch
   $effect(() => {
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = settingsState.apiKeys[provider];
+    const keys = keysForExchange(settingsState.accounts, provider);
     if (keys?.key && keys?.secret) {
       untrack(() => {
         fetchAccount();

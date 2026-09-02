@@ -40,6 +40,21 @@
 import type { ApiKeys } from "../settings.svelte";
 import type { EncryptedBlob } from "../../services/cryptoService";
 
+/**
+ * The credential shape this build writes and understands.
+ *
+ * 1 was the venue-indexed `apiKeys` block; 2 is this named-account list. A
+ * backup carrying a higher number is refused by `validateSettings` rather
+ * than partially restored — a settings section restored without its
+ * credentials looks like a success and is not one.
+ *
+ * A build older than FEAT-0333 cannot be taught this, so it restores a
+ * version-2 payload without credentials. That costs the user re-entering
+ * their keys and costs them nothing at the exchange — the one part of the
+ * compatibility story a forward-only change cannot fix.
+ */
+export const CREDENTIAL_SCHEMA_VERSION = 2;
+
 export type ExchangeProvider = "bitunix" | "bitget";
 
 /** Every venue that gets an account. Order fixes the migration's output. */
@@ -65,6 +80,11 @@ const DEFAULT_NAMES = {
     bitget: "Bitget",
 } as const satisfies Record<ExchangeProvider, string>;
 
+/** The name a freshly created account for this venue carries. */
+export function defaultAccountName(exchange: ExchangeProvider): string {
+    return DEFAULT_NAMES[exchange];
+}
+
 export interface ExchangeAccount {
     /** Stable identity. Never reused, never rewritten by a migration. */
     id: string;
@@ -82,16 +102,48 @@ export interface AccountState {
 /** The credential fields as they were stored before FEAT-0333. */
 export interface LegacyCredentialShape {
     apiKeys?: Partial<Record<ExchangeProvider, ApiKeys>>;
+    encryptedApiKeys?: Partial<Record<ExchangeProvider, EncryptedBlob>>;
     apiProvider?: unknown;
+}
+
+/**
+ * An empty credential set shaped for its venue.
+ *
+ * Bitget carries a passphrase and Bitunix does not, and the difference has to
+ * survive blanking: a redacted Bitget account that loses its `passphrase` key
+ * changes the persisted shape, which is the kind of drift a restore notices
+ * long after the change that caused it.
+ */
+export function blankKeysFor(exchange: ExchangeProvider): ApiKeys {
+    return exchange === "bitget"
+        ? { key: "", secret: "", passphrase: "" }
+        : { key: "", secret: "" };
 }
 
 const emptyKeys = (): ApiKeys => ({ key: "", secret: "" });
 
+/**
+ * The account state a profile starts with: one empty account per venue.
+ *
+ * Built through the migration rather than written out, so a fresh install and
+ * a migrated one cannot drift apart — there is one definition of "what
+ * accounts look like" and both paths go through it.
+ */
+export function defaultAccountState(): AccountState {
+    return migrateAccounts({
+        apiKeys: {
+            bitunix: blankKeysFor("bitunix"),
+            bitget: blankKeysFor("bitget"),
+        },
+        apiProvider: "bitunix",
+    });
+}
+
 export function accountForExchange(
-    accounts: readonly ExchangeAccount[],
+    accounts: readonly ExchangeAccount[] | undefined | null,
     exchange: ExchangeProvider,
 ): ExchangeAccount | undefined {
-    return accounts.find((account) => account.exchange === exchange);
+    return accounts?.find((account) => account.exchange === exchange);
 }
 
 /**
@@ -100,9 +152,14 @@ export function accountForExchange(
  * This is the accessor every reader goes through, so that "which account is
  * active" becomes one decision in one place when FEAT-0026 makes it a real
  * question. Total by design — see the module note.
+ *
+ * It tolerates a missing list because the venue-indexed code it replaced was
+ * equally defensive (`apiKeys?.bitget?.key`). At an order-placing call site,
+ * empty credentials make the caller refuse to trade; a thrown `undefined.find`
+ * would take the surface down instead. Refusing is the better failure.
  */
 export function keysForExchange(
-    accounts: readonly ExchangeAccount[],
+    accounts: readonly ExchangeAccount[] | undefined | null,
     exchange: ExchangeProvider,
 ): ApiKeys {
     return accountForExchange(accounts, exchange)?.keys ?? emptyKeys();
@@ -191,4 +248,25 @@ export function migrateEncryptedAccountKeys(
         const blob = legacyEncrypted[exchange];
         return blob ? { ...acc, [LEGACY_ACCOUNT_IDS[exchange]]: blob } : acc;
     }, {});
+}
+
+/**
+ * Accounts with their credentials blanked, for the serialization that
+ * `toJSON()` emits (BUG-0280).
+ *
+ * Unlike the venue-indexed `redactApiKeys` it replaced, this one has to *read*
+ * its argument: `id`, `name` and `exchange` must survive, or a renamed account
+ * loses its name on the next load. Only `keys` crosses the mapping, and it is
+ * overwritten unconditionally — no credential material can pass through this
+ * function regardless of what the caller hands it.
+ */
+export function redactAccounts(
+    liveAccounts: readonly ExchangeAccount[],
+): ExchangeAccount[] {
+    return liveAccounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+        exchange: account.exchange,
+        keys: blankKeysFor(account.exchange),
+    }));
 }

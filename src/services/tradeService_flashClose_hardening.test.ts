@@ -44,9 +44,10 @@ vi.mock('./logger', () => ({
 vi.mock('../stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
-        apiKeys: {
-            bitunix: { key: 'test', secret: 'test' }
-        }
+        accounts: [
+      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: { key: 'test', secret: 'test' } },
+    ],
+    activeAccountId: "bitunix"
     }
 }));
 

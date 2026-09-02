@@ -16,6 +16,7 @@
  */
 
 import type { Settings } from "./settings.svelte";
+import { keysForExchange } from "./settings/accounts";
 
 /**
  * Edition/entitlement state (FEAT-0197 PR 2, feeding FEAT-0187): whether this
@@ -34,7 +35,7 @@ export class EntitlementStore {
   isProLicenseActive = $state(false);
 
   constructor(
-    private readonly getApiKeys: () => Settings["apiKeys"],
+    private readonly getAccounts: () => Settings["accounts"],
     private readonly getApiProvider: () => Settings["apiProvider"],
     private readonly getAutoTrading: () => boolean,
     private readonly getMultiAccount: () => boolean,
@@ -42,15 +43,17 @@ export class EntitlementStore {
   ) {}
 
   get capabilities() {
-    const apiKeys = this.getApiKeys();
+    const accounts = this.getAccounts();
 
     // For Bitget, we need key, secret AND passphrase
+    const bitgetKeys = keysForExchange(accounts, "bitget");
     const hasBitgetKeys = Boolean(
-      apiKeys?.bitget?.key && apiKeys?.bitget?.secret && apiKeys?.bitget?.passphrase,
+      bitgetKeys.key && bitgetKeys.secret && bitgetKeys.passphrase,
     );
 
     // For Bitunix, just key and secret
-    const hasBitunixKeys = Boolean(apiKeys?.bitunix?.key && apiKeys?.bitunix?.secret);
+    const bitunixKeys = keysForExchange(accounts, "bitunix");
+    const hasBitunixKeys = Boolean(bitunixKeys.key && bitunixKeys.secret);
 
     const hasApiKeys =
       this.getApiProvider() === "bitget" ? hasBitgetKeys : hasBitunixKeys;

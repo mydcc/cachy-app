@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // setupRealtimeUpdates() (like most of app.ts) is gated behind `if (!browser)
@@ -47,10 +48,10 @@ describe("app.setupRealtimeUpdates - init race", () => {
     vi.clearAllMocks();
     localStorage.clear();
     settingsState.apiProvider = "bitunix";
-    settingsState.apiKeys = {
+    settingsState.accounts = migrateAccounts({ apiKeys: {
       bitunix: { key: "", secret: "" },
       bitget: { key: "", secret: "", passphrase: "" },
-    };
+    } }).accounts;
   });
 
   it("does not call switchProvider on the initial synchronous subscribe emit", () => {
@@ -77,7 +78,7 @@ describe("app.setupRealtimeUpdates - init race", () => {
     app.setupRealtimeUpdates();
     flushSync();
 
-    settingsState.apiKeys.bitunix.key = "new-key";
+    settingsState.accountFor("bitunix").keys.key = "new-key";
     flushSync();
 
     await vi.waitFor(() => {

@@ -21,6 +21,8 @@ import {
     keysForExchange,
     accountForExchange,
     migrateEncryptedAccountKeys,
+    redactAccounts,
+    defaultAccountState,
     LEGACY_ACCOUNT_IDS,
     type ExchangeAccount,
 } from "./accounts";
@@ -141,5 +143,57 @@ describe("keysForExchange", () => {
 
     it("returns empty credentials rather than undefined for an unknown venue", () => {
         expect(keysForExchange([], "bitunix")).toEqual({ key: "", secret: "" });
+    });
+});
+
+describe("redactAccounts", () => {
+    it("keeps identity and name so a rename survives persistence", () => {
+        const accounts = migrateAccounts(legacy).accounts.map((a) =>
+            a.exchange === "bitunix" ? { ...a, name: "Scalping" } : a,
+        );
+
+        const redacted = redactAccounts(accounts);
+
+        expect(redacted.map((a) => a.id)).toEqual(accounts.map((a) => a.id));
+        expect(accountForExchange(redacted, "bitunix")?.name).toBe("Scalping");
+    });
+
+    it("lets no credential material through, whatever it is handed", () => {
+        const redacted = redactAccounts(migrateAccounts(legacy).accounts);
+
+        const material = redacted.flatMap((a) => Object.values(a.keys));
+        expect(material.every((v) => v === "")).toBe(true);
+    });
+
+    it("preserves bitget's passphrase slot so the stored shape does not drift", () => {
+        const redacted = redactAccounts(migrateAccounts(legacy).accounts);
+
+        expect(accountForExchange(redacted, "bitget")?.keys).toEqual({
+            key: "",
+            secret: "",
+            passphrase: "",
+        });
+        expect(accountForExchange(redacted, "bitunix")?.keys).toEqual({
+            key: "",
+            secret: "",
+        });
+    });
+});
+
+describe("defaultAccountState", () => {
+    it("gives a fresh profile one account per venue with an active one set", () => {
+        const state = defaultAccountState();
+
+        expect(state.accounts).toHaveLength(2);
+        expect(state.accounts.some((a) => a.id === state.activeAccountId)).toBe(true);
+    });
+});
+
+describe("keysForExchange defensiveness", () => {
+    it("survives a missing account list, as the venue-indexed code did", () => {
+        // A partially-initialised store must make a caller refuse to trade,
+        // not throw at the call site that was about to place an order.
+        expect(keysForExchange(undefined, "bitunix")).toEqual({ key: "", secret: "" });
+        expect(accountForExchange(undefined, "bitget")).toBeUndefined();
     });
 });

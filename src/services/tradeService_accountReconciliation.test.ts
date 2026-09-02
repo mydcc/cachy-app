@@ -23,6 +23,7 @@
  * this locks that behaviour in for the three paths the bug named explicitly.
  */
 
+import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Decimal } from "decimal.js";
 
@@ -33,7 +34,7 @@ vi.mock("./logger", () => ({
 vi.mock("../stores/settings.svelte", () => ({
     settingsState: {
         apiProvider: "bitunix",
-        apiKeys: { bitunix: { key: "test-key-1234", secret: "s" } },
+        ...migrateAccounts({ apiKeys: { bitunix: { key: "test-key-1234", secret: "s" } } }),
     },
 }));
 vi.mock("./toastService.svelte", () => ({

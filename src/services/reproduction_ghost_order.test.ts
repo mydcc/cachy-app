@@ -24,9 +24,9 @@ import Decimal from 'decimal.js';
 vi.mock('../stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
-        apiKeys: {
+        ...migrateAccounts({ apiKeys: {
             bitunix: { key: 'test', secret: 'test', passphrase: 'test' }
-        }
+        } })
     }
 }));
 

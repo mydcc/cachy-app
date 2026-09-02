@@ -17,7 +17,14 @@
 
 import { browser } from "$app/environment";
 import { cryptoService, type EncryptedBlob } from "../../services/cryptoService";
-import type { Settings } from "../settings.svelte";
+import type { ApiKeys, Settings } from "../settings.svelte";
+import {
+  migrateAccounts,
+  migrateEncryptedAccountKeys,
+  redactAccounts,
+  type ExchangeAccount,
+  type LegacyCredentialShape,
+} from "./accounts";
 
 /**
  * Fields whose plain-text value is Klasse-A and gets encrypted before it
@@ -39,26 +46,9 @@ export const SENSITIVE_KEYS: (keyof Settings)[] = [
   "cloudToken",
 ];
 
-/**
- * Shape-preserving redaction for the exchange-credential block (BUG-0280).
- * Callers pass `$state.snapshot(this.apiKeys)` so the autosave `$effect`
- * keeps tracking credential edits through the argument evaluation; the
- * returned placeholders (`_liveApiKeys` deliberately unused) are all this
- * serialization ever emits, so neither `toJSON()` nor anything downstream
- * of it can leak key, secret, or passphrase material.
- */
-export function redactApiKeys(
-  _liveApiKeys: Settings["apiKeys"],
-): Settings["apiKeys"] {
-  return {
-    bitunix: { key: "", secret: "" },
-    bitget: { key: "", secret: "", passphrase: "" },
-  };
-}
-
 /** True when at least one credential field of the entry holds a value. */
 export function apiKeyHasMaterial(
-  entry: Settings["apiKeys"]["bitunix"],
+  entry: ApiKeys | undefined,
 ): boolean {
   return (
     !!entry &&
@@ -66,7 +56,6 @@ export function apiKeyHasMaterial(
   );
 }
 
-const EXCHANGE_KEY_SLOTS = ["bitunix", "bitget"] as const;
 
 /**
  * Encrypted-credential handling and the `secretsReady` handshake, as one
@@ -144,41 +133,63 @@ export class SecretsLoader {
    * - no blobs: legacy plaintext (kept in memory; the next save encrypts it)
    *   or nothing at all.
    */
-  applyApiKeys(
-    merged: Settings,
-    currentApiKeys: Settings["apiKeys"],
+  applyAccounts(
+    merged: Settings & LegacyCredentialShape,
+    currentAccounts: ExchangeAccount[],
   ): {
     isEncrypted: boolean;
     isLocked: boolean;
-    encryptedApiKeys: Settings["encryptedApiKeys"];
-    apiKeys: Settings["apiKeys"];
+    encryptedAccountKeys: Record<string, EncryptedBlob> | undefined;
+    accounts: ExchangeAccount[];
+    activeAccountId: string;
   } {
+    // Storage may still carry the venue-indexed shape (FEAT-0333). Both are
+    // read through the migration, so a profile converts on the load that
+    // first sees it and nothing downstream has to know which shape it came
+    // from. Nothing is decrypted here: the ciphertext is only re-indexed.
+    const stored = migrateAccounts(merged, {
+      accounts: merged.accounts,
+      activeAccountId: merged.activeAccountId,
+    });
+    const encryptedAccountKeys =
+      merged.encryptedAccountKeys ??
+      migrateEncryptedAccountKeys(merged.encryptedApiKeys);
+
     if (
-      merged.encryptedApiKeys &&
-      Object.keys(merged.encryptedApiKeys).length > 0
+      encryptedAccountKeys &&
+      Object.keys(encryptedAccountKeys).length > 0
     ) {
       const encrypted = merged.isEncrypted === true;
       return {
         isEncrypted: encrypted,
         // Obfuscation mode has nothing to unlock: the device key suffices.
         isLocked: encrypted,
-        encryptedApiKeys: merged.encryptedApiKeys,
-        apiKeys: {
-          bitunix: { key: "", secret: "" },
-          bitget: { key: "", secret: "", passphrase: "" },
-        },
+        encryptedAccountKeys,
+        // Names and ids survive, credentials do not — they come back from
+        // the ciphertext, and until they do nothing may present stale
+        // material as if it were live.
+        accounts: redactAccounts(stored.accounts),
+        activeAccountId: stored.activeAccountId,
       };
     }
 
-    if (merged.apiKeys) {
-      if (merged.apiKeys.bitunix) currentApiKeys.bitunix = merged.apiKeys.bitunix;
-      if (merged.apiKeys.bitget) currentApiKeys.bitget = merged.apiKeys.bitget;
+    // Legacy plaintext, or nothing at all. Credentials are written into the
+    // existing account objects rather than replacing them, because the
+    // credential form binds to them — the same reason the venue-indexed
+    // path assigned into `currentApiKeys` instead of returning a new object.
+    const accounts = [...currentAccounts];
+    for (const account of stored.accounts) {
+      const live = accounts.find((existing) => existing.id === account.id);
+      if (live) live.keys = account.keys;
+      else accounts.push(account);
     }
+
     return {
       isEncrypted: false,
       isLocked: false,
-      encryptedApiKeys: merged.encryptedApiKeys,
-      apiKeys: currentApiKeys,
+      encryptedAccountKeys,
+      accounts,
+      activeAccountId: stored.activeAccountId,
     };
   }
 
@@ -304,33 +315,26 @@ export class SecretsLoader {
    * plaintext plus a failure count so callers can surface decryption
    * problems; a failed blob never yields partial credentials.
    */
-  async decryptApiKeysWithDeviceKey(
-    encryptedApiKeys: NonNullable<Settings["encryptedApiKeys"]>,
-  ): Promise<{
-    bitunix?: Settings["apiKeys"]["bitunix"];
-    bitget?: Settings["apiKeys"]["bitget"];
-    failures: number;
-  }> {
-    const hasStoredSecrets = Object.keys(encryptedApiKeys).length > 0;
-    const deviceKey = await this.getDeviceKey(hasStoredSecrets);
+  async decryptAccountKeysWithDeviceKey(
+    encryptedAccountKeys: Record<string, EncryptedBlob>,
+  ): Promise<{ keysByAccount: Record<string, ApiKeys>; failures: number }> {
+    const accountIds = Object.keys(encryptedAccountKeys);
+    const deviceKey = await this.getDeviceKey(accountIds.length > 0);
 
-    const restored: {
-      bitunix?: Settings["apiKeys"]["bitunix"];
-      bitget?: Settings["apiKeys"]["bitget"];
-      failures: number;
-    } = { failures: 0 };
+    const restored: { keysByAccount: Record<string, ApiKeys>; failures: number } =
+      { keysByAccount: {}, failures: 0 };
 
     await Promise.all(
-      EXCHANGE_KEY_SLOTS.map(async (exchange) => {
-        const blob = encryptedApiKeys[exchange];
+      accountIds.map(async (accountId) => {
+        const blob = encryptedAccountKeys[accountId];
         if (!blob) return;
         try {
           const json = await cryptoService.decrypt(blob, deviceKey);
-          restored[exchange] = JSON.parse(json);
+          restored.keysByAccount[accountId] = JSON.parse(json);
         } catch (e) {
           restored.failures++;
           console.error(
-            "[Settings] Failed to decrypt " + exchange + " API keys",
+            "[Settings] Failed to decrypt API keys for account " + accountId,
             e,
           );
         }
@@ -351,33 +355,33 @@ export class SecretsLoader {
    * the startup autosave cannot race them away; clearing stays possible as
    * soon as the refill settled or the user typed new material.
    */
-  async applyApiKeyEncryption(
+  async applyAccountKeyEncryption(
     data: Settings,
-    liveApiKeys: Settings["apiKeys"],
+    liveAccounts: readonly ExchangeAccount[],
     canEncrypt: boolean,
     encryptionPassword: string | CryptoKey | undefined,
     allowClear: boolean,
   ): Promise<void> {
     if (!canEncrypt) return;
 
-    if (!data.apiKeys) {
-      data.apiKeys = redactApiKeys(liveApiKeys);
+    if (!data.accounts) {
+      data.accounts = redactAccounts(liveAccounts);
     }
-    if (!data.encryptedApiKeys) {
-      data.encryptedApiKeys = {};
+    if (!data.encryptedAccountKeys) {
+      data.encryptedAccountKeys = {};
     }
 
-    for (const exchange of EXCHANGE_KEY_SLOTS) {
-      const creds = liveApiKeys?.[exchange];
+    for (const account of liveAccounts) {
+      const creds = account.keys;
       const hasMaterial = apiKeyHasMaterial(creds);
 
       if (!hasMaterial) {
-        if (allowClear) delete data.encryptedApiKeys[exchange];
+        if (allowClear) delete data.encryptedAccountKeys[account.id];
         continue;
       }
 
       try {
-        data.encryptedApiKeys[exchange] = await cryptoService.encrypt(
+        data.encryptedAccountKeys[account.id] = await cryptoService.encrypt(
           JSON.stringify(creds),
           encryptionPassword,
         );
@@ -385,7 +389,10 @@ export class SecretsLoader {
         // Never fall back to plaintext: keep any previous ciphertext and
         // let the next save retry. The in-memory copy stays untouched.
         if (import.meta.env.DEV) {
-          console.error(`[Settings] Failed to encrypt ${exchange} API keys:`, err);
+          console.error(
+            `[Settings] Failed to encrypt API keys for account ${account.id}:`,
+            err,
+          );
         }
       }
     }

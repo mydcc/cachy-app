@@ -19,6 +19,7 @@ import { parseTimestamp } from "../utils/utils";
 import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
+import { keysForExchange } from "../stores/settings/accounts";
 import { apiService } from "./apiService";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
@@ -171,7 +172,8 @@ export const syncService = {
   syncBitunixPositions: async () => {
     const settings = settingsState;
     if (!settings.entitlement.isPro) return;
-    if (!settings.apiKeys.bitunix.key || !settings.apiKeys.bitunix.secret) {
+    const bitunixKeys = keysForExchange(settings.accounts, "bitunix");
+    if (!bitunixKeys.key || !bitunixKeys.secret) {
       uiState.showError("settings.apiKeysRequired");
       return;
     }
@@ -192,8 +194,8 @@ export const syncService = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Api-Key": settings.apiKeys.bitunix.key,
-          "X-Api-Secret": settings.apiKeys.bitunix.secret,
+          "X-Api-Key": bitunixKeys.key,
+          "X-Api-Secret": bitunixKeys.secret,
         },
         body: JSON.stringify({
           limit: 500,
@@ -209,8 +211,8 @@ export const syncService = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Api-Key": settings.apiKeys.bitunix.key,
-          "X-Api-Secret": settings.apiKeys.bitunix.secret,
+          "X-Api-Key": bitunixKeys.key,
+          "X-Api-Secret": bitunixKeys.secret,
         },
         body: JSON.stringify({}),
       });
@@ -225,8 +227,8 @@ export const syncService = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Api-Key": settings.apiKeys.bitunix.key,
-          "X-Api-Secret": settings.apiKeys.bitunix.secret,
+          "X-Api-Key": bitunixKeys.key,
+          "X-Api-Secret": bitunixKeys.secret,
         },
         body: JSON.stringify({
           limit: 500,

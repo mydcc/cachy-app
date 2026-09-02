@@ -53,10 +53,7 @@ beforeEach(() => {
     settings = new SettingsManager();
     settings.showSidebarActivity = true;
     settings.apiProvider = "bitunix";
-    settings.apiKeys = {
-        ...settings.apiKeys,
-        bitunix: { key: "", secret: "" },
-    };
+    settings.accountFor("bitunix").keys = { key: "", secret: "" };
 });
 
 describe("the Market Activity panel's gate", () => {
@@ -89,10 +86,7 @@ describe("the Market Activity panel's gate", () => {
 
     it("still shows for a live account with credentials", () => {
         paperState.setEnabled(false);
-        settings.apiKeys = {
-            ...settings.apiKeys,
-            bitunix: { key: "a-real-key", secret: "a-real-secret" },
-        };
+        settings.accountFor("bitunix").keys = { key: "a-real-key", secret: "a-real-secret" };
         expect(settings.effectiveShowSidebarActivity).toBe(true);
     });
 });
