@@ -74,21 +74,88 @@ distance.
 
 ### Already satisfied
 
-**"The gate refuses an order whose target account differs from the displayed
-one, with a test."** Done, and it works for several accounts on one venue
-today. `accountFingerprint(apiKey)` derives the fingerprint from the API key
-itself — `abcd…wxyz` — so two accounts on the same exchange already produce
-different values. `orderGate.ts` compares the pass's fingerprint against the
-transmit-time one and refuses with `mismatch("account", …)`; `orderGate.test.ts`
-carries twelve references to it.
+~~**"The gate refuses an order whose target account differs from the displayed
+one, with a test."**~~ **Withdrawn — see the correction below.** The original
+audit read `accountFingerprint`, saw that it derives from the API key itself,
+and concluded that two accounts on one venue already produce different
+fingerprints. That much is true. It is also not the question.
 
-**"Switching clears cached account state rather than blending it."** The
-mechanism exists and fires on the right event. `appEffects.svelte.ts` tracks
-`lastKeys` alongside `lastProvider` and forces
-`connectionManager.switchProvider(..., { force: true })` when *either* changes —
-a key change is a key change whether it came from switching venue or switching
-account. What is missing is the test the criterion asks for, and a check that
-`accountState` itself is cleared rather than only the socket reconnected.
+~~**"Switching clears cached account state rather than blending it."**~~
+**Half true.** `appEffects.svelte.ts:19-24` does force
+`connectionManager.switchProvider(..., { force: true })` when the credential
+string changes. But its own comment says what it does not do: it
+"deliberately fingerprints only the credentials of the active venue, not
+`activeAccountId`", and defers the account switch to this item. And a
+reconnect is not a clearing — whether `accountState` is emptied rather than
+reconnected-around is still owed, along with the test.
+
+## Correction — 2026-09-03
+
+The "already satisfied" line above was wrong, and it was wrong in the
+direction that costs money. Recording why, because the mistake is instructive:
+**the audit checked the comparison and never checked the selection.**
+
+### The gate cannot see a wrong account, because both sides ask the same question
+
+`accountForExchange` (`src/stores/settings/accounts.ts:142-147`) resolves a
+venue, not an account:
+
+```ts
+accounts?.find((account) => account.exchange === exchange)
+```
+
+First match wins. `activeAccountId` is persisted, migrated and repaired by
+FEAT-0333 — and **no production code reads it to select credentials.** Every
+credential read in the app goes through `keysForExchange(accounts, venue)`.
+
+Which means the gate's two sides are not two derivations:
+
+| | expression |
+|---|---|
+| pass — `tradeService.ts:601-604` | `keysForExchange(settingsState.accounts, settingsState.apiProvider)` |
+| transmit — `tradeService.ts:223-234` | `keysForExchange(settingsState.accounts, settingsState.apiProvider)` |
+
+Character for character the same call. It is a **re-read**, not a second
+derivation, and FEAT-0011 sets its own bar against exactly that
+(`orderGate.ts:27-31`): *"A check that reads the same variable the payload was
+built from proves nothing — the value has to be derived a second way."* Size
+and price honour that bar. The account does not.
+
+The re-read still has value: it catches a *temporal* change, where the user
+edits keys or flips venue between the click and the send. That is worth
+keeping. It is simply not the check the acceptance criterion asks for.
+
+### The failure this item ships if nothing changes
+
+The moment a second Bitunix account exists and is made active:
+
+1. The UI shows account B active (`activeAccountId === "B"`).
+2. `displayedAccount()` resolves the venue → **account A's key** → fingerprint of A.
+3. `signedRequest` makes the same call → **account A's key** in `X-Api-Key`.
+4. `assertGatePass` compares A against A. **No refusal.**
+
+The order executes on account A while the screen says B. That is this item's
+own Proposal — "unrecoverable and entirely silent" — arrived at by shipping
+the feature without touching the selector. It is a defect *created by* this
+item, not inherited, which is why it belongs here and not in a bug.
+
+### What that makes the actual work
+
+1. **Selection must resolve `activeAccountId`**, not the venue. This is the
+   whole item; everything else follows.
+2. **The gate needs a genuinely second derivation of the account** — an
+   account *id* carried in `DisplayedState` from the UI's own active-account
+   indicator, compared in `assertGatePass` against the id the transport
+   resolved. Two roots, not one expression read twice.
+3. **The reconnect must key on the account**, and clearing must be shown to be
+   clearing.
+
+Test coverage is also thinner than "twelve references" suggested:
+`orderGate.test.ts` has one positive round-trip, **two** negative account tests
+(`:759-769` provider changed, `:771-781` key changed) — both driven by
+hand-mutating the `TransportContext`, never by store state — and four unit
+tests of `accountFingerprint` itself. **No test exercises two accounts on one
+venue.**
 
 ### The actual work
 
