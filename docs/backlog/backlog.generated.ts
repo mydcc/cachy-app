@@ -1823,7 +1823,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0333",
     "title": "Store credentials as a list of named accounts, without changing behaviour",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/feat-0333-account-storage-shape",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -3988,7 +3990,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0336",
     "title": "CSS Design Token Foundation & UI Harmonization",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4053,8 +4055,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0340",
     "title": "Component Style Migration",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
+    "assignee": "pheinze",
     "milestone": "none",
     "editions": [
       "community",
@@ -4543,6 +4546,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0324-galaxy-light-theme-noblending.md"
   },
   {
+    "id": "BUG-0354",
+    "title": "The backup-restore rejection message is hardcoded English",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "estimate": "1",
+    "size": "XS",
+    "file": "bugs/BUG-0354-backup-rejection-message-untranslated.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
@@ -4872,7 +4895,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0339",
     "title": "Shared Component Classes",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "pheinze",
     "priority": "P3",
     "milestone": "none",
