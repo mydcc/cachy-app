@@ -107,14 +107,14 @@
 
 <style>
     .alert-form {
-        margin-bottom: 1.5rem;
-        padding: 1rem;
+        margin-bottom: var(--space-6);
+        padding: var(--space-4);
         background: var(--bg-secondary);
         border-radius: var(--radius-sm);
         border: 1px solid var(--border);
     }
     .alert-form h4 {
-        margin: 0 0 0.5rem 0;
+        margin: 0 0 var(--space-2) 0;
         font-size: 0.9rem;
         color: var(--text-secondary);
     }
@@ -127,14 +127,14 @@
         background: var(--bg-primary);
         border: 1px solid var(--border);
         color: var(--text-primary);
-        padding: 0.5rem;
+        padding: var(--space-2);
         border-radius: var(--radius-sm);
     }
     .add-btn {
         background: var(--accent);
         color: var(--bg-primary);
         border: none;
-        padding: 0 1rem;
+        padding: 0 var(--space-4);
         border-radius: var(--radius-sm);
         cursor: pointer;
         font-weight: var(--font-bold);
@@ -142,13 +142,13 @@
     .tabs {
         display: flex;
         gap: 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: var(--space-4);
         border-bottom: 1px solid var(--border);
     }
     .tabs button {
         background: none;
         border: none;
-        padding: 0.5rem 1rem;
+        padding: var(--space-2) var(--space-4);
         color: var(--text-secondary);
         cursor: pointer;
     }
@@ -167,7 +167,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem;
+        padding: var(--space-3);
         background: var(--bg-secondary);
         border-radius: var(--radius-sm);
         border-left: 3px solid var(--accent);
@@ -197,6 +197,6 @@
     .empty-state {
         text-align: center;
         color: var(--text-secondary);
-        padding: 2rem;
+        padding: var(--space-8);
     }
 </style>

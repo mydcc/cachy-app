@@ -181,8 +181,8 @@
     .journal-statistics {
         background: var(--bg-tertiary);
         border-radius: var(--border-radius);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        padding: var(--space-6);
+        margin-bottom: var(--space-6);
         box-shadow: var(--shadow-sm);
     }
 
@@ -243,7 +243,7 @@
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: var(--border-radius);
-        padding: 1rem;
+        padding: var(--space-4);
         display: flex;
         flex-direction: column;
         gap: 0.5rem;

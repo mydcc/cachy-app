@@ -136,6 +136,6 @@
   /* Inherit input styles but override for compact table view */
   .tag-container {
     min-height: 32px;
-    padding: 0.25rem 0.5rem;
+    padding: var(--space-1) var(--space-2);
   }
 </style>

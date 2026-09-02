@@ -184,8 +184,8 @@
 
 <style>
     .debug-panel {
-        margin-top: 1rem;
-        padding: 0.75rem;
+        margin-top: var(--space-4);
+        padding: var(--space-3);
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
@@ -195,7 +195,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.5rem;
+        margin-bottom: var(--space-2);
     }
     .panel-title {
         font-size: 0.8rem;
@@ -215,7 +215,7 @@
         background: var(--bg-tertiary);
     }
     .section {
-        margin-bottom: 0.5rem;
+        margin-bottom: var(--space-2);
     }
     .section-label {
         font-size: 0.65rem;
@@ -223,7 +223,7 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--text-secondary);
-        margin-bottom: 0.25rem;
+        margin-bottom: var(--space-1);
     }
     .caps-grid {
         display: flex;
@@ -263,9 +263,9 @@
     .usage-badge {
         font-size: 0.6rem;
         background: var(--bg-tertiary);
-        padding: 0 4px;
+        padding: 0 var(--space-1);
         border-radius: var(--radius-sm);
-        margin-left: 4px;
+        margin-left: var(--space-1);
         opacity: 0.8;
     }
     .status-ok {
@@ -289,7 +289,7 @@
         text-align: left;
         color: var(--text-secondary);
         font-weight: var(--font-medium);
-        padding-bottom: 0.25rem;
+        padding-bottom: var(--space-1);
         border-bottom: 1px solid var(--border-color);
     }
     .stats-table td {
@@ -329,7 +329,7 @@
     .no-data {
         font-size: 0.65rem;
         color: var(--text-secondary);
-        padding: 0.5rem 0;
+        padding: var(--space-2) 0;
         text-align: center;
     }
 </style>

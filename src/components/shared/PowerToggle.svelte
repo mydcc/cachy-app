@@ -153,7 +153,7 @@
             0 1px 1px 1px hsla(0, 0%, 100%, 0.1);
         cursor: pointer;
         height: 12px;
-        padding-right: 12px;
+        padding-right: var(--space-3);
         width: 36px;
         -webkit-appearance: none;
         appearance: none;
@@ -195,7 +195,7 @@
         background-position:
             0 0,
             16.8px 0; /* Scaled 35px * 0.48 */
-        padding-left: 12px;
+        padding-left: var(--space-3);
         padding-right: 0;
     }
 

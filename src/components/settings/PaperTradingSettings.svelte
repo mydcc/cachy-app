@@ -227,7 +227,7 @@
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 0.5rem 0.75rem;
+    padding: var(--space-2) var(--space-3);
     font-size: var(--text-sm);
     color: var(--text-primary);
     outline: none;
