@@ -35,60 +35,54 @@
  * `env:` mapping hands it to the process as data instead.
  */
 
+import { execFileSync } from "node:child_process";
 import { autoFixPRBody, checkBodyForStrayClosingRefs, checkBodyHasClosingRef } from "./lib/pr-issue-match";
 
 let body = process.env.PR_BODY ?? "";
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 const prNumber = process.env.PR_NUMBER;
-const repo = process.env.GITHUB_REPOSITORY;
+const prNum = prNumber ? Number.parseInt(prNumber, 10) : NaN;
 
 // When running in CI on a PR, attempt silent auto-fix before reporting failures
-if (token && prNumber && repo) {
+if (token && Number.isInteger(prNum) && prNum > 0) {
     const fixResult = await autoFixPRBody({
         body,
         title: process.env.PR_TITLE,
         branch: process.env.PR_BRANCH,
         findIssueForBacklogId: async (backlogId: string) => {
             try {
-                const searchUrl = `https://api.github.com/repos/${repo}/issues?state=all&per_page=20`;
-                const res = await fetch(searchUrl, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: "application/vnd.github.v3+json",
-                        "User-Agent": "cachy-pr-body-autofix",
-                    },
+                const stdout = execFileSync("gh", [
+                    "issue", "list",
+                    "--search", backlogId,
+                    "--json", "number,title",
+                    "--limit", "10",
+                ], {
+                    encoding: "utf8",
+                    stdio: ["ignore", "pipe", "ignore"],
+                    env: { ...process.env, GH_TOKEN: token },
                 });
-                if (res.ok) {
-                    const issues = (await res.json()) as Array<{ number: number; title: string; pull_request?: unknown }>;
-                    const match = issues.find(i => !i.pull_request && i.title.includes(backlogId));
-                    return match ? match.number : null;
-                }
-            } catch (err) {
-                console.warn("[Auto-Fix] Could not search issues:", err);
+                const issues = JSON.parse(stdout) as Array<{ number: number; title: string }>;
+                const match = issues.find(i => i.title.includes(backlogId));
+                return match ? match.number : null;
+            } catch {
+                return null;
             }
-            return null;
         },
     });
 
     if (fixResult.changed) {
         try {
-            const patchUrl = `https://api.github.com/repos/${repo}/pulls/${prNumber}`;
-            const patchRes = await fetch(patchUrl, {
-                method: "PATCH",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/vnd.github.v3+json",
-                    "Content-Type": "application/json",
-                    "User-Agent": "cachy-pr-body-autofix",
-                },
-                body: JSON.stringify({ body: fixResult.body }),
+            execFileSync("gh", [
+                "pr", "edit",
+                String(prNum),
+                "--body", fixResult.body,
+            ], {
+                encoding: "utf8",
+                stdio: ["ignore", "pipe", "ignore"],
+                env: { ...process.env, GH_TOKEN: token },
             });
-            if (patchRes.ok) {
-                console.log(`✅ [Auto-Fix] Successfully updated PR #${prNumber} description (${fixResult.actionTaken}).`);
-                body = fixResult.body;
-            } else {
-                console.warn(`[Auto-Fix] Failed to update PR description via API: ${patchRes.status} ${patchRes.statusText}`);
-            }
+            console.log(`✅ [Auto-Fix] Successfully updated PR #${prNum} description (${fixResult.actionTaken}).`);
+            body = fixResult.body;
         } catch (err) {
             console.warn("[Auto-Fix] Error updating PR description:", err);
         }
