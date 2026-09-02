@@ -117,7 +117,9 @@ build_old_*/
 # Per-agent git worktrees (AGENTS.md § Git Cleanliness) — never tracked.
 # Accidentally committed in #2169, they broke actions/checkout on every PR
 # merging develop (interpreted as submodules without a .gitmodules entry).
+# .claude/worktrees/ is Claude Code's EnterWorktree default location.
 .worktrees/
+.claude/worktrees/
 
 # Temporary planning assets, third-party scratch data & ad-hoc verification (BUG-0192)
 *_tpmp/
