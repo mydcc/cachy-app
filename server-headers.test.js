@@ -57,6 +57,11 @@ describe('SECURITY_HEADERS', () => {
     );
   });
 
+  it('CSP connect-src does not contain unused NewRelic endpoints (FEAT-0374)', () => {
+    const csp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
+    expect(csp).not.toContain('nr-data.net');
+  });
+
   it('Permissions-Policy delegates 3D metaverse permissions instead of blocking them', () => {
     const pp = SECURITY_HEADERS.find(([name]) => name === 'Permissions-Policy')?.[1];
     expect(pp).toContain('camera=(self "https://space.cachy.app")');
