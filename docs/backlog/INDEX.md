@@ -2,9 +2,9 @@
 
 # Backlog index
 
-216 items. How to read and add them: [README.md](README.md).
+219 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ done 175
+Counts by status: 💡 idea 21 · 📋 specced 16 · 🟡 in-progress 3 · ✅ done 179
 
 ---
 
@@ -75,10 +75,11 @@ Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ d
 | [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | ✅ done | ui |
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | ✅ done | trade-panel |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | ✅ done | exchange |
-| [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | trade-panel |
+| [BUG-0331](bugs/BUG-0331-flash-close-strips-protection-before-refusal.md) | A refused flash close leaves the position open with its stops cancelled | P1 | ✅ done | trade-panel |
+| [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | ✅ done | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
-| [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | 📋 specced | trade-panel |
+| [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | ✅ done | trade-panel |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | trade-panel |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | trade-panel |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | ✅ done | exchange |
@@ -87,6 +88,7 @@ Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ d
 | [FEAT-0070](features/FEAT-0070-bitunix-tpsl-placement.md) | Place new TP/SL orders on existing Bitunix positions | P1 | ✅ done | execution |
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | trade-panel |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | trade-panel |
+| [FEAT-0330](features/FEAT-0330-flash-close-wiring.md) | Wire flash close to the positions list | P1 | ✅ done | trade-panel |
 | [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | trade-panel |
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | trade-panel |
 | [BUG-0061](bugs/BUG-0061-order-tooltip-metadata-dropped.md) | Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns | P2 | ✅ done | trade-panel |
@@ -112,6 +114,7 @@ Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ d
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
+| [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | trade-panel |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
 
 ### M5
@@ -188,7 +191,7 @@ Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ d
 | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | calculation |
 | [BUG-0329](bugs/BUG-0329-default-fee-rate-understates-real-cost.md) | The default fee rate is a maker rate applied to both legs, understating real cost | P1 | ✅ done | calculator |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
-| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | 📋 specced | calculator |
+| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | 🟡 in-progress | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -335,15 +338,16 @@ Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ d
 | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) | WASM build ships an artifact that production never loads | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
 | [BUG-0329](bugs/BUG-0329-default-fee-rate-understates-real-cost.md) | The default fee rate is a maker rate applied to both legs, understating real cost | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0331](bugs/BUG-0331-flash-close-strips-protection-before-refusal.md) | A refused flash close leaves the position open with its stops cancelled | P1 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) | Describe what each exchange can do, and let the UI read it | P1 | ✅ done | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | ✅ done | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
-| [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
+| [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md), [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0021](features/FEAT-0021-order-types.md) |
-| [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
+| [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 📋 specced | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | M4 | community, pro, private | A | none | — |
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | ✅ done | M0 | community, pro, private | none | ADR-0006 | — |
@@ -358,12 +362,13 @@ Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ d
 | [FEAT-0242](features/FEAT-0242-structured-function-calling.md) | Replace regex-based JSON action parsing with structured function calling | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0245](features/FEAT-0245-prompt-templating-versioning.md) | Centralize prompt templating and versioning | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | ✅ done | M2 | community, pro, private | A | none | — |
-| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | M3 | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
 | [FEAT-0327](features/FEAT-0327-paper-trading-account-tracking.md) | Make a paper trade trackable, closable and journalled like a real one | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) |
+| [FEAT-0330](features/FEAT-0330-flash-close-wiring.md) | Wire flash close to the positions list | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -457,6 +462,7 @@ Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ d
 | [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | ✅ done | M8 | community, pro, private | none | none | — |
 | [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
 | [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | 🟡 in-progress | none | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) |
+| [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0020](features/FEAT-0020-account-settings-panel.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -506,4 +512,4 @@ Counts by status: 💡 idea 21 · 📋 specced 18 · 🟡 in-progress 2 · ✅ d
 
 ---
 
-Next free number: **0330**
+Next free number: **0333**

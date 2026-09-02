@@ -1083,6 +1083,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0329-default-fee-rate-understates-real-cost.md"
   },
   {
+    "id": "BUG-0331",
+    "title": "A refused flash close leaves the position open with its stops cancelled",
+    "type": "bug",
+    "status": "done",
+    "assignee": "claude",
+    "priority": "P1",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0331-flash-close-strips-protection-before-refusal.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -1208,7 +1227,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0020",
     "title": "Show and change exchange account settings from Cachy",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "claude",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -1282,7 +1302,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0024",
     "title": "Let the user decide which actions need confirming",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "shipped": "1.6.0-beta.198",
+    "assignee": "claude",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -1320,8 +1342,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0016"
     ],
-    "estimate": "2",
-    "size": "S",
+    "estimate": "8",
+    "size": "L",
     "target_date": "2026-12-21",
     "start_date": "2026-08-01",
     "file": "features/FEAT-0026-multi-account.md"
@@ -1620,7 +1642,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0253",
     "title": "Make the calculator's entry/exit fee estimate honest about what it assumes",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "pheinze",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1750,6 +1773,32 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "claude",
     "branch": "worktree-papertrading-account-tracking-454885",
     "file": "features/FEAT-0327-paper-trading-account-tracking.md"
+  },
+  {
+    "id": "FEAT-0330",
+    "title": "Wire flash close to the positions list",
+    "type": "feature",
+    "status": "done",
+    "shipped": "1.6.0-beta.199",
+    "assignee": "claude",
+    "priority": "P1",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0024"
+    ],
+    "estimate": "2",
+    "size": "S",
+    "target_date": "2026-12-17",
+    "start_date": "2026-09-01",
+    "file": "features/FEAT-0330-flash-close-wiring.md"
   },
   {
     "id": "BUG-0005",
@@ -3799,6 +3848,31 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "assignee": "claude",
     "file": "features/FEAT-0328-compact-account-controls-and-fee-display.md"
+  },
+  {
+    "id": "FEAT-0332",
+    "title": "Show and change the account's asset mode",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0017",
+      "FEAT-0020"
+    ],
+    "estimate": "3",
+    "size": "M",
+    "target_date": "2027-03-31",
+    "start_date": "2026-09-02",
+    "file": "features/FEAT-0332-asset-mode.md"
   },
   {
     "id": "BUG-0007",
