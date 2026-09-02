@@ -61,9 +61,9 @@ Dies ist ein **EPIC** mit vier Child-Features:
 
 ## Links
 
-- [CLAUDE.md](../../CLAUDE.md) — siehe Theming, Financial Data, Svelte 5 Rules
-- [src/themes.css](../../src/themes.css) — Hauptdatei, 20 Themes + Utility-Klassen
-- [src/app.css](../../src/app.css) — Tailwind v4 @theme-Block, Font-Faces, Scrollbar
+- [CLAUDE.md](../../../CLAUDE.md) — siehe Theming, Financial Data, Svelte 5 Rules
+- [src/themes.css](../../../src/themes.css) — Hauptdatei, 20 Themes + Utility-Klassen
+- [src/app.css](../../../src/app.css) — Tailwind v4 @theme-Block, Font-Faces, Scrollbar
 - [FEAT-0337](FEAT-0337-design-token-foundation.md) — Token Foundation (S, children: —)
 - [FEAT-0338](FEAT-0338-core-utility-upgrade.md) — Core Utility Upgrade (S-M, depends_on: FEAT-0337)
 - [FEAT-0339](FEAT-0339-shared-component-classes.md) — Shared Component Classes (S, depends_on: FEAT-0337)

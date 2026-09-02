@@ -11,7 +11,7 @@ Evidence from `src/components/`:
 - `border-radius`: `0`, `0.375rem`, `0.5rem`, `0.75rem`, `8px`, `4px`, `12px`, `50%` — 8 values with no system
 - `font-size`: `0.625`, `0.6875`, `0.7`, `0.75`, `0.8125`, `0.875`, `1.125rem` — 7 arbitrary values
 
-The result: Cachy's colors are consistent, but its geometry and typography are not. This is tracked by [FEAT-0336](backlog/features/FEAT-0336-css-design-token-foundation.md) and its children.
+The result: Cachy's colors are consistent, but its geometry and typography are not. This is tracked by [FEAT-0336](../backlog/features/FEAT-0336-css-design-token-foundation.md) and its children.
 
 ## Decision
 
