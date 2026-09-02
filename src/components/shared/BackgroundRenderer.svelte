@@ -21,10 +21,25 @@
 
 <script lang="ts">
   import { _ } from "../../locales/i18n";
+  import type { Component } from "svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import BackgroundAnimations from "./BackgroundAnimations.svelte";
-  import ThreeBackground from "./ThreeBackground.svelte";
-  import TradeFlowBackground from "./backgrounds/TradeFlowBackground.svelte";
+
+  let ThreeComp = $state<Component | null>(null);
+  let TradeFlowComp = $state<Component | null>(null);
+
+  $effect(() => {
+    if (settingsState.backgroundType === "threejs" && !ThreeComp) {
+      import("./ThreeBackground.svelte").then((m) => {
+        ThreeComp = m.default;
+      });
+    }
+    if (settingsState.backgroundType === "tradeflow" && !TradeFlowComp) {
+      import("./backgrounds/TradeFlowBackground.svelte").then((m) => {
+        TradeFlowComp = m.default;
+      });
+    }
+  });
 
   let imageError = $state(false);
   let videoError = $state(false);
@@ -114,11 +129,15 @@
       <BackgroundAnimations />
     {:else if settingsState.backgroundType === "threejs"}
       <div class="three-container">
-        <ThreeBackground />
+        {#if ThreeComp}
+          <ThreeComp />
+        {/if}
       </div>
-        {:else if settingsState.backgroundType === "tradeflow"}
+    {:else if settingsState.backgroundType === "tradeflow"}
       <div class="three-container">
-        <TradeFlowBackground />
+        {#if TradeFlowComp}
+          <TradeFlowComp />
+        {/if}
       </div>
     {/if}
   </div>
