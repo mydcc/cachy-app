@@ -2,7 +2,8 @@
 id: FEAT-0337
 title: Design Token Foundation
 type: feature
-status: specced
+status: in-progress
+assignee: pheinze
 priority: P2
 milestone: none
 editions: [community, pro, private]
