@@ -2500,16 +2500,13 @@ input[type="number"] {
   color: var(--text-secondary);
   cursor: pointer;
   transition: color 0.2s ease-in-out;
-  font-size: 0.875rem;
-  /* 14px */
-  font-weight: 500;
-  /* Medium weight for non-active */
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
 }
 
 .btn-switcher.active {
   color: var(--text-primary);
-  font-weight: 700;
-  /* Bold for active */
+  font-weight: var(--font-bold);
 }
 
 .atr-toggle-track {
@@ -2598,6 +2595,7 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .btn-modal-ok {
   background-color: var(--btn-accent-bg);
   color: var(--btn-accent-text);
+  border-radius: var(--radius-md);
   transition: background-color 0.2s;
 }
 
@@ -2609,6 +2607,8 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .btn-primary-action {
   background: var(--btn-accent-bg);
   color: var(--btn-accent-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
   transition: all 0.3s ease;
 }
 
@@ -2656,6 +2656,8 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .btn-secondary-action {
   background-color: var(--btn-default-bg);
   color: var(--btn-default-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
   transition: background-color 0.2s;
 }
 
