@@ -42,7 +42,7 @@ Dies ist ein **EPIC** mit vier Child-Features:
 ## Acceptance criteria
 
 - [ ] [FEAT-0337](FEAT-0337-design-token-foundation.md) — Design Token Foundation (S, ~2 SP)
-- [ ] [FEAT-0338](FEAT-0338-core-utility-upgrade.md) — Core Utility Upgrade (S-M, ~3 SP)
+- [x] [FEAT-0338](FEAT-0338-core-utility-upgrade.md) — Core Utility Upgrade (S-M, ~3 SP)
 - [ ] [FEAT-0339](FEAT-0339-shared-component-classes.md) — Shared Component Classes (S, ~2 SP)
 - [ ] [FEAT-0340](FEAT-0340-component-style-migration.md) — Component Migration (M-L, ~8 SP)
 - [ ] Unsichtbare visuelle Regression in Calculator, Trade Panel, Settings, Journal
