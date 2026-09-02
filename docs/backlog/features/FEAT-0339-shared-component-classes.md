@@ -2,7 +2,8 @@
 id: FEAT-0339
 title: Shared Component Classes
 type: feature
-status: specced
+status: in-progress
+assignee: pheinze
 priority: P3
 milestone: none
 editions: [community, pro, private]
