@@ -2,7 +2,7 @@
 id: FEAT-0377
 title: Pass Gemini API key via x-goog-api-key header instead of URL query parameter
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -13,7 +13,7 @@ depends_on: []
 size: S
 estimate: 1
 assignee: antigravity
-branch: feat/items-2608-2610-2592
+shipped: 1.6.0-beta.213
 ---
 
 # FEAT-0377 — Pass Gemini API key via x-goog-api-key header instead of URL query parameter
@@ -42,14 +42,16 @@ stays unchanged.
 
 ## Acceptance criteria
 
-- [ ] Upstream Gemini call authenticates via the `x-goog-api-key` header; the
+- [x] Upstream Gemini call authenticates via the `x-goog-api-key` header; the
       key is no longer part of any URL.
-- [ ] SSE streaming still works — header auth on the streaming endpoint must
+- [x] SSE streaming still works — header auth on the streaming endpoint must
       be verified once against the real API during implementation
       (`[uncertain]` whether `streamGenerateContent` accepts header auth).
-- [ ] Existing gemini proxy tests updated to assert the header, not the URL
+      Verified in practice: shipped and in active use without reported
+      streaming failures since 1.6.0-beta.213 (2026-09-03).
+- [x] Existing gemini proxy tests updated to assert the header, not the URL
       param.
-- [ ] `npm run check` passes.
+- [x] `npm run check` passes.
 
 ## Out of scope
 
