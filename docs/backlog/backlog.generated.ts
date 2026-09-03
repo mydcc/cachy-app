@@ -1422,7 +1422,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0026",
     "title": "Support several exchange accounts with an unmistakable active one",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/feat-0026-multi-account",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -1899,7 +1901,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0333",
     "title": "Store credentials as a list of named accounts, without changing behaviour",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.207",
     "assignee": "claude",
     "branch": "feat/feat-0333-account-storage-shape",
     "priority": "P1",
@@ -3005,6 +3008,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "S",
     "file": "bugs/BUG-0363-market-manager-metadata-unbounded-growth.md"
+  },
+  {
+    "id": "BUG-0372",
+    "title": "Global chat reducer logs every message text to server logs, defeating the 90-day retention promise",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chat",
+    "data_class": "B",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "estimate": "1",
+    "assignee": "antigravity",
+    "branch": "fix/security-audit-privacy-batch",
+    "file": "bugs/BUG-0372-chat-message-text-in-server-logs.md"
   },
   {
     "id": "FEAT-0019",
@@ -4458,6 +4483,52 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0370-parallelize-sync-bitunix-positions.md"
   },
   {
+    "id": "FEAT-0374",
+    "title": "Remove unused NewRelic endpoints from connect-src in both CSP definitions",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "C",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "estimate": "1",
+    "assignee": "antigravity",
+    "branch": "fix/security-audit-privacy-batch",
+    "file": "features/FEAT-0374-remove-newrelic-from-csp.md"
+  },
+  {
+    "id": "FEAT-0378",
+    "title": "Name the active account on the surfaces FEAT-0026 did not reach",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0026"
+    ],
+    "estimate": "2",
+    "size": "S",
+    "target_date": "2026-12-21",
+    "start_date": "2026-11-24",
+    "file": "features/FEAT-0378-account-name-remaining-surfaces.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
@@ -4852,6 +4923,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "XS",
     "file": "bugs/BUG-0362-visibility-controller-listener-leak.md"
+  },
+  {
+    "id": "BUG-0373",
+    "title": "Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chat",
+    "data_class": "B",
+    "adr": "none",
+    "depends_on": [],
+    "size": "M",
+    "estimate": "3",
+    "assignee": "antigravity",
+    "branch": "fix/security-audit-privacy-batch",
+    "file": "bugs/BUG-0373-short-sender-id-collision.md"
   },
   {
     "id": "FEAT-0022",
@@ -5260,6 +5353,70 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "XS",
     "file": "features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md"
+  },
+  {
+    "id": "FEAT-0375",
+    "title": "Rate-limit the send_message reducer to stop message flooding in global chat",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chat",
+    "data_class": "B",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0373"
+    ],
+    "size": "M",
+    "estimate": "3",
+    "file": "features/FEAT-0375-chat-rate-limit.md"
+  },
+  {
+    "id": "FEAT-0376",
+    "title": "Replace Date.now() with ctx.timestamp in the send_message reducer",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chat",
+    "data_class": "B",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "estimate": "1",
+    "assignee": "antigravity",
+    "branch": "fix/security-audit-privacy-batch",
+    "file": "features/FEAT-0376-deterministic-timestamp-in-send-message.md"
+  },
+  {
+    "id": "FEAT-0377",
+    "title": "Pass Gemini API key via x-goog-api-key header instead of URL query parameter",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "estimate": "1",
+    "file": "features/FEAT-0377-gemini-key-header-not-query.md"
   },
   {
     "id": "IDEA-0036",
