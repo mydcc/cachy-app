@@ -2,7 +2,7 @@
 id: FEAT-0377
 title: Pass Gemini API key via x-goog-api-key header instead of URL query parameter
 type: feature
-status: specced
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +12,8 @@ adr: none
 depends_on: []
 size: S
 estimate: 1
-# assignee:            # required while status: in-progress (who is working this)
+assignee: antigravity
+branch: feat/items-2608-2610-2592
 ---
 
 # FEAT-0377 — Pass Gemini API key via x-goog-api-key header instead of URL query parameter

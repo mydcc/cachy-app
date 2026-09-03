@@ -39,15 +39,21 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     return json({ error: "Missing API Key" }, { status: 401 });
   }
 
-  const keyParam = apiKey ? `?key=${encodeURIComponent(apiKey)}` : "";
   const targetUrl = resolveProviderEndpoint(
     baseUrl,
-    `https://generativelanguage.googleapis.com/v1beta/models${keyParam}`,
-    `v1beta/models${keyParam}`,
+    "https://generativelanguage.googleapis.com/v1beta/models",
+    "v1beta/models",
   );
 
+  const headers: Record<string, string> = {
+    "User-Agent": "CachyApp/1.0 (SvelteKit)",
+  };
+  if (apiKey) {
+    headers["x-goog-api-key"] = apiKey;
+  }
+
   try {
-    const response = await fetch(targetUrl);
+    const response = await fetch(targetUrl, { headers });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));

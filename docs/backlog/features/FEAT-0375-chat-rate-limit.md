@@ -2,7 +2,7 @@
 id: FEAT-0375
 title: Rate-limit the send_message reducer to stop message flooding in global chat
 type: feature
-status: specced
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +12,8 @@ adr: none
 depends_on: [BUG-0373]
 size: M
 estimate: 3
-# assignee:            # required while status: in-progress (who is working this)
+assignee: antigravity
+branch: feat/items-2608-2610-2592
 ---
 
 # FEAT-0375 — Rate-limit the send_message reducer to stop message flooding in global chat

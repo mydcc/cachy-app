@@ -2,7 +2,7 @@
 id: FEAT-0365
 title: Precompute month padding and day arrays in CalendarHeatmap using derived runes
 type: feature
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,8 @@ data_class: none
 adr: none
 depends_on: []
 size: XS
+assignee: antigravity
+branch: feat/items-2608-2610-2592
 ---
 
 # FEAT-0365 — Precompute month padding and day arrays in CalendarHeatmap using derived runes
