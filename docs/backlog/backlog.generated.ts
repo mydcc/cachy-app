@@ -5398,7 +5398,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0365",
     "title": "Precompute month padding and day arrays in CalendarHeatmap using derived runes",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5412,7 +5412,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "XS",
     "assignee": "antigravity",
-    "branch": "feat/items-2608-2610-2592",
+    "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0365-calendar-heatmap-precompute-days.md"
   },
   {
@@ -5441,7 +5441,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0375",
     "title": "Rate-limit the send_message reducer to stop message flooding in global chat",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5458,7 +5458,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "M",
     "estimate": "3",
     "assignee": "antigravity",
-    "branch": "feat/items-2608-2610-2592",
+    "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0375-chat-rate-limit.md"
   },
   {
@@ -5488,7 +5488,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0377",
     "title": "Pass Gemini API key via x-goog-api-key header instead of URL query parameter",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5503,7 +5503,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "S",
     "estimate": "1",
     "assignee": "antigravity",
-    "branch": "feat/items-2608-2610-2592",
+    "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0377-gemini-key-header-not-query.md"
   },
   {
