@@ -40,10 +40,16 @@ const keysMock = vi.hoisted(() => ({
     key: "test-key-value" as string | undefined,
     secret: "test-secret-value" as string | undefined,
 }));
+const activeAccountArgs = vi.hoisted(() => ({ seen: [] as unknown[] }));
 vi.mock("../stores/settings/accounts", () => ({
-    keysForExchange: () => keysMock,
+    keysForActiveAccount: (...args: unknown[]) => {
+        activeAccountArgs.seen = args;
+        return keysMock;
+    },
 }));
-vi.mock("../stores/settings.svelte", () => ({ settingsState: { accounts: {} } }));
+vi.mock("../stores/settings.svelte", () => ({
+    settingsState: { accounts: [], activeAccountId: "acct-active" },
+}));
 
 const tradeStateMock = vi.hoisted(() => ({
     remoteMakerFee: undefined as Decimal | undefined,
@@ -105,6 +111,18 @@ describe("refreshDerivedFeeRates — the happy path", () => {
 
         expect(tradeStateMock.remoteTakerFee?.toString()).toBe("0.06");
         expect(tradeStateMock.remoteMakerFee).toBeUndefined();
+    });
+
+    it("derives from the active account, not merely one on the venue", async () => {
+        // FEAT-0026 allows several accounts per venue at different VIP tiers.
+        // The journal syncs the active one, so learning another one's rates
+        // would attribute to this account a rate its broker never charged it.
+        respondWith({ data: [fillAt("TAKER", "0.06")] });
+
+        await refreshDerivedFeeRates();
+
+        expect(activeAccountArgs.seen[1]).toBe("acct-active");
+        expect(activeAccountArgs.seen[2]).toBe("bitunix");
     });
 
     it("sends the credentials as headers and bounds the request", async () => {

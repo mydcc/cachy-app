@@ -31,7 +31,7 @@
  */
 
 import { settingsState } from "../stores/settings.svelte";
-import { keysForExchange } from "../stores/settings/accounts";
+import { keysForActiveAccount } from "../stores/settings/accounts";
 import { tradeState } from "../stores/trade.svelte";
 import { appFetch } from "../lib/appAuth";
 import {
@@ -91,7 +91,20 @@ function applyDerivedRates(rates: DerivedFeeRates): void {
  * broker". Failing loudly here would turn a fresh account into an error state.
  */
 export async function refreshDerivedFeeRates(): Promise<DerivedFeeRates | null> {
-  const keys = keysForExchange(settingsState.accounts, DERIVED_FROM_EXCHANGE);
+  /*
+   * The *active* account, not merely one on this venue (FEAT-0026).
+   *
+   * `syncService` fetches the journal for the active account, so deriving from
+   * any other one would learn a second account's rates and present them as
+   * this account's — a rate its broker never charged it, wearing a "from
+   * broker" badge. Since two accounts on the same venue can sit at different
+   * VIP tiers, that is not a hypothetical difference.
+   */
+  const keys = keysForActiveAccount(
+    settingsState.accounts,
+    settingsState.activeAccountId,
+    DERIVED_FROM_EXCHANGE,
+  );
   if (!keys.key || !keys.secret) {
     clearDerivedRates();
     return null;
