@@ -33,6 +33,16 @@
     /** FEAT-0068 — opens the add/withdraw-margin dialog. */
     onadjustMargin?: (pos: OMSPosition) => void;
     /**
+     * FEAT-0334 — opens the scale-in dialog.
+     *
+     * Absent where the venue cannot take an add (FEAT-0017), which is why the
+     * *button* is conditioned on the prop being supplied rather than on a
+     * capability read here: the panel that knows which adapter is active is
+     * the one that decides, and a list component asking the registry itself
+     * would be a second place for that answer to live.
+     */
+    onadd?: (pos: OMSPosition) => void;
+    /**
      * FEAT-0330 — the whole position, at market, in one click.
      *
      * Deliberately separate from `onclose`, which opens the partial-close
@@ -49,6 +59,7 @@
     onclose,
     ontpSl,
     onadjustMargin,
+    onadd,
     onflashClose,
   }: Props = $props();
 
@@ -344,6 +355,24 @@
                     onclick={() => onadjustMargin?.(pos)}
                   >
                     {$_("positionsList.adjustMargin")}
+                  </button>
+                {/if}
+                <!--
+                  FEAT-0334. Beside the margin control rather than beside the
+                  close controls: both open a dialog about how big the position
+                  is, and neither takes anything off the table. Absent entirely
+                  where the venue cannot scale in — an offered control that
+                  fails after the trader has committed is worse than one that
+                  was never there.
+                -->
+                {#if onadd}
+                  <button
+                    class="flex-1 py-1 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
+                    data-track-id="btn-add-to-position"
+                    onclick={() => onadd(pos)}
+                    title={$_("positionsList.addToPositionHint")}
+                  >
+                    {$_("positionsList.addToPosition")}
                   </button>
                 {/if}
                 <!--

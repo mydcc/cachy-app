@@ -210,6 +210,11 @@ class RiskManagementService {
      */
     public increasesExposure(intent: OrderIntent): boolean {
         if (intent.kind === "open") return true;
+        // An add is an opening order by another name (FEAT-0334) — it buys
+        // more of the same exposure. A kill switch that let scaling-in through
+        // would be a kill switch in name only, and this is the one place that
+        // has to know it, because `add` is otherwise verified like a reduce.
+        if (intent.kind === "add") return true;
         if (intent.kind === "modify") return intent.endpoint !== "/api/tpsl";
         return false;
     }
@@ -257,6 +262,19 @@ class RiskManagementService {
      */
     public checkLimits(intent: OrderIntent): OrderRefusal | null {
         if (!this.increasesExposure(intent)) return null;
+
+        // An add (FEAT-0334) gets the one limit that needs no size/stop pair.
+        // Scaling into a position after the day's loss limit has been reached
+        // is the precise behaviour that limit exists to stop, and refusing it
+        // needs nothing from the intent.
+        //
+        // The size-based limits are deliberately not applied: `checkPositionSize`
+        // and `checkLossPerTrade` measure a stop distance an add does not
+        // carry, and `checkOpenPositions` counts positions an add does not
+        // create. Running them on invented inputs would refuse valid adds and
+        // pass invalid ones — worse than not running them.
+        if (intent.kind === "add") return this.checkDailyLoss();
+
         // A pending-order amendment carries no size/stop pair to measure; the
         // kill switch already covers it, and the gate's own field checks cover
         // the rest.

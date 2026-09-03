@@ -77,6 +77,7 @@ export const UNKNOWN_EXCHANGE: ExchangeCapabilities = Object.freeze({
     marginModes: Object.freeze([] as const),
     positionModes: Object.freeze([] as const),
     trailingStop: false,
+    addToPosition: false,
 });
 
 /**

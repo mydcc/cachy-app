@@ -121,6 +121,7 @@ const account: AccountPort = {
 
 const trading: TradingPort = {
     placeOrder: (params: PlaceOrderParams) => tradeService.placeOrder(params),
+    addToPosition: (params) => tradeService.addToPosition(params),
 
     closePosition: (params: {
         symbol: string;

@@ -2,7 +2,8 @@
 id: FEAT-0334
 title: Add to an open position and see what it does to the average entry
 type: feature
-status: specced
+status: in-progress
+assignee: claude
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -100,11 +101,46 @@ shipped as [`FEAT-0256`](FEAT-0256-partial-close-position.md).
 
 ## Open questions
 
-- **Does the preview show a new liquidation price as well?** It is the number a
-  trader most wants next to a new average entry, but only if the risk engine
-  already exposes an estimate that matches what the venue will report. A
-  liquidation figure that is close but wrong is a hazard, not a feature —
-  decide before building the preview, not after.
+- ~~**Does the preview show a new liquidation price as well?**~~ **Decided: no.**
+  The item set the bar — only if the risk engine already exposes an estimate
+  that matches what the venue will report — and neither estimate clears it.
+  `calculateBaseMetrics` in [`core.ts`](../../../src/lib/calculators/core.ts)
+  uses `entry × (1 ∓ 1/leverage ± mmr)`, an isolated-margin, single-position
+  approximation blind to wallet balance, cross margin and other positions.
+  `projectLiquidation` in
+  [`liquidation.ts`](../../../src/lib/calculators/liquidation.ts) is better
+  calibrated — it back-solves the MMR out of the venue's own
+  entry/liquidation/leverage triple — but it projects across a *leverage*
+  change at fixed size, while an add moves entry, size and maintenance-margin
+  tier at once. It would be right for small isolated adds and wrong for the
+  large ones where the number decides the trade, which is the "close but
+  wrong" hazard the item names. The rationale is recorded in
+  [`addToPosition.ts`](../../../src/lib/calculators/addToPosition.ts)'s module
+  note so it is not re-litigated at the next preview.
+
+  Reopening it needs the venue's maintenance-margin tier table, not a better
+  formula.
+
+## Implementation notes
+
+- **The add does not travel as `kind: "open"`.** The FEAT-0011 gate re-derives
+  an open's quantity from `accountSize × risk% / stopDistance` and refuses a
+  payload that disagrees. An add carries no new stop, so satisfying that
+  formula would have meant inventing the inputs that reproduce the wanted
+  quantity — the gate would then verify a fiction, which is the failure it
+  exists to prevent. It travels as a new `kind: "add"` instead, verified the
+  way a reduce is (against the quantity the panel displayed) plus a margin
+  check that a reduce has no need of. See `OrderIntentKind` in
+  [`orderGate.ts`](../../../src/services/orderGate.ts).
+- **`increasesExposure` had to learn about it.** An add that the kill switch
+  let through would be a kill switch in name only
+  ([`rmsService.ts`](../../../src/services/rmsService.ts)). The day's-loss limit
+  applies too; the size-based limits do not, because they measure a stop
+  distance an add does not carry.
+- **The dialog is market-only.** A limit add rests unfilled while the position
+  and its average entry move underneath it, which makes the preview a claim
+  about a state that may never arrive. The order panel already places limit
+  orders.
 
 ## Links
 
