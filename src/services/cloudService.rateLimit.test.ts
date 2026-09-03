@@ -16,15 +16,23 @@
  */
 
 import { describe, it, expect } from "vitest";
+import {
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX_MESSAGES,
+  RETENTION_DAYS,
+  RETENTION_MS,
+  evaluateRateLimit,
+  type SenderActivityRecord,
+} from "../../server/spacetimedb/src/rateLimit";
 
 /**
  * FEAT-0375: Rate-limiting the send_message reducer in Global Chat.
  *
  * Tests the transactional rate limit behavior:
- * - 5 messages per 10-second window (burst budget).
- * - 6th message is rejected with a SenderError.
+ * - 5 messages per 10-second fixed window (burst budget).
+ * - 6th message within the same fixed window is rejected with a SenderError.
  * - Senders are isolated: one sender exceeding the budget does not block another.
- * - Window reset: once 10 seconds elapse, the sender can send again.
+ * - Fixed window reset: once 10 seconds elapse, the sender can send again.
  * - Inactive sender records past the 90-day retention window are pruned.
  * - GDPR erasure (delete_my_messages) deletes the sender activity row.
  */
@@ -36,27 +44,15 @@ class SenderError extends Error {
   }
 }
 
-interface SenderActivityRow {
-  sender: string;
-  window_start: number;
-  count: number;
-  last_sent_at: number;
-}
-
 interface GlobalMessageRow {
   sender: string;
   text: string;
   sent_at: number;
 }
 
-const RATE_LIMIT_WINDOW_MS = 10_000;
-const RATE_LIMIT_MAX_MESSAGES = 5;
-const RETENTION_DAYS = 90;
-const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
-
 function executeSendMessage(
   db: {
-    senderActivity: Map<string, SenderActivityRow>;
+    senderActivity: Map<string, SenderActivityRecord>;
     globalMessage: GlobalMessageRow[];
   },
   senderId: string,
@@ -68,31 +64,12 @@ function executeSendMessage(
   }
 
   const activity = db.senderActivity.get(senderId);
-  if (!activity) {
-    db.senderActivity.set(senderId, {
-      sender: senderId,
-      window_start: timestampMs,
-      count: 1,
-      last_sent_at: timestampMs,
-    });
-  } else if (timestampMs - activity.window_start >= RATE_LIMIT_WINDOW_MS) {
-    db.senderActivity.set(senderId, {
-      ...activity,
-      window_start: timestampMs,
-      count: 1,
-      last_sent_at: timestampMs,
-    });
-  } else {
-    if (activity.count >= RATE_LIMIT_MAX_MESSAGES) {
-      throw new SenderError(
-        `Rate limit exceeded: maximum ${RATE_LIMIT_MAX_MESSAGES} messages per ${RATE_LIMIT_WINDOW_MS / 1000}s`,
-      );
-    }
-    db.senderActivity.set(senderId, {
-      ...activity,
-      count: activity.count + 1,
-      last_sent_at: timestampMs,
-    });
+  const decision = evaluateRateLimit(senderId, timestampMs, activity);
+
+  if (decision.action === "reject") {
+    throw new SenderError(decision.error);
+  } else if (decision.action === "insert" || decision.action === "update") {
+    db.senderActivity.set(senderId, decision.record);
   }
 
   db.globalMessage.push({
@@ -104,7 +81,7 @@ function executeSendMessage(
 
 function executeDeleteExpiredMessages(
   db: {
-    senderActivity: Map<string, SenderActivityRow>;
+    senderActivity: Map<string, SenderActivityRecord>;
     globalMessage: GlobalMessageRow[];
   },
   nowMs: number,
@@ -122,7 +99,7 @@ function executeDeleteExpiredMessages(
 
 function executeDeleteMyMessages(
   db: {
-    senderActivity: Map<string, SenderActivityRow>;
+    senderActivity: Map<string, SenderActivityRecord>;
     globalMessage: GlobalMessageRow[];
   },
   senderId: string,
@@ -131,10 +108,78 @@ function executeDeleteMyMessages(
   db.senderActivity.delete(senderId);
 }
 
-describe("FEAT-0375: send_message rate limiting reducer logic", () => {
-  it("allows up to 5 messages within the 10-second window (burst budget)", () => {
+describe("FEAT-0375: evaluateRateLimit pure function", () => {
+  it("returns insert decision on first message from sender", () => {
+    const decision = evaluateRateLimit("sender_1", 10_000, undefined);
+    expect(decision).toEqual({
+      action: "insert",
+      record: {
+        sender: "sender_1",
+        window_start: 10_000,
+        count: 1,
+        last_sent_at: 10_000,
+      },
+    });
+  });
+
+  it("increments count within the fixed window", () => {
+    const existing: SenderActivityRecord = {
+      sender: "sender_1",
+      window_start: 10_000,
+      count: 2,
+      last_sent_at: 11_000,
+    };
+    const decision = evaluateRateLimit("sender_1", 12_000, existing);
+    expect(decision).toEqual({
+      action: "update",
+      record: {
+        sender: "sender_1",
+        window_start: 10_000,
+        count: 3,
+        last_sent_at: 12_000,
+      },
+    });
+  });
+
+  it("rejects when count reaches max messages within the same fixed window", () => {
+    const existing: SenderActivityRecord = {
+      sender: "sender_1",
+      window_start: 10_000,
+      count: 5,
+      last_sent_at: 14_000,
+    };
+    const decision = evaluateRateLimit("sender_1", 19_999, existing);
+    expect(decision.action).toBe("reject");
+    if (decision.action === "reject") {
+      expect(decision.error).toContain("Rate limit exceeded");
+    }
+  });
+
+  it("resets the fixed window once 10 seconds elapse and allows message", () => {
+    const existing: SenderActivityRecord = {
+      sender: "sender_1",
+      window_start: 10_000,
+      count: 5,
+      last_sent_at: 14_000,
+    };
+    // At exactly 10_000 + 10_000 = 20_000, new fixed window begins
+    const decision = evaluateRateLimit("sender_1", 20_000, existing);
+    expect(decision).toEqual({
+      action: "update",
+      record: {
+        sender: "sender_1",
+        window_start: 20_000,
+        count: 1,
+        last_sent_at: 20_000,
+      },
+    });
+  });
+});
+
+describe("FEAT-0375: send_message rate limiting reducer integration", () => {
+  it("allows up to 5 messages within the 10-second fixed window (burst budget)", () => {
     const db = {
-      senderActivity: new Map<string, SenderActivityRow>(),
+      senderActivity: new Map<string, SenderActivityRecord>(),
       globalMessage: [] as GlobalMessageRow[],
     };
 
@@ -153,9 +198,9 @@ describe("FEAT-0375: send_message rate limiting reducer logic", () => {
     expect(activity?.window_start).toBe(startTime);
   });
 
-  it("rejects the 6th message within the same 10-second window with SenderError", () => {
+  it("rejects the 6th message within the same 10-second fixed window with SenderError", () => {
     const db = {
-      senderActivity: new Map<string, SenderActivityRow>(),
+      senderActivity: new Map<string, SenderActivityRecord>(),
       globalMessage: [] as GlobalMessageRow[],
     };
 
@@ -180,7 +225,7 @@ describe("FEAT-0375: send_message rate limiting reducer logic", () => {
 
   it("isolates rate limits between distinct senders", () => {
     const db = {
-      senderActivity: new Map<string, SenderActivityRow>(),
+      senderActivity: new Map<string, SenderActivityRecord>(),
       globalMessage: [] as GlobalMessageRow[],
     };
 
@@ -203,9 +248,9 @@ describe("FEAT-0375: send_message rate limiting reducer logic", () => {
     expect(db.globalMessage).toHaveLength(6);
   });
 
-  it("resets the budget after 10 seconds elapse", () => {
+  it("resets the budget after the fixed 10-second window elapses", () => {
     const db = {
-      senderActivity: new Map<string, SenderActivityRow>(),
+      senderActivity: new Map<string, SenderActivityRecord>(),
       globalMessage: [] as GlobalMessageRow[],
     };
 
@@ -231,7 +276,7 @@ describe("FEAT-0375: send_message rate limiting reducer logic", () => {
 
   it("prunes inactive sender records past 90-day retention in delete_expired_messages", () => {
     const db = {
-      senderActivity: new Map<string, SenderActivityRow>(),
+      senderActivity: new Map<string, SenderActivityRecord>(),
       globalMessage: [] as GlobalMessageRow[],
     };
 
@@ -260,7 +305,7 @@ describe("FEAT-0375: send_message rate limiting reducer logic", () => {
 
   it("cleans up sender activity on delete_my_messages for GDPR compliance", () => {
     const db = {
-      senderActivity: new Map<string, SenderActivityRow>(),
+      senderActivity: new Map<string, SenderActivityRecord>(),
       globalMessage: [
         { sender: "user_a", text: "msg A", sent_at: 1000 },
         { sender: "user_b", text: "msg B", sent_at: 1000 },

@@ -26,18 +26,14 @@ import { ScheduleAt } from 'spacetimedb';
  * personal data with no purpose, which is what the GDPR consequence named in
  * ADR-0001 is about.
  */
-const RETENTION_DAYS = 90;
-const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
-
-/** How often the cleanup runs. Retention is the promise; this is the resolution. */
-const CLEANUP_INTERVAL_MICROS = 60n * 60n * 1_000_000n; // hourly
-
-/**
- * Rate limiting for send_message reducer to prevent chat flooding (FEAT-0375).
- * Allows a burst of up to RATE_LIMIT_MAX_MESSAGES within RATE_LIMIT_WINDOW_MS.
- */
-const RATE_LIMIT_WINDOW_MS = 10_000; // 10-second window
-const RATE_LIMIT_MAX_MESSAGES = 5;   // max 5 messages per window
+import {
+  RETENTION_DAYS,
+  RETENTION_MS,
+  CLEANUP_INTERVAL_MICROS,
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX_MESSAGES,
+  evaluateRateLimit,
+} from './rateLimit';
 
 const SenderActivity = table(
   { name: 'sender_activity' },
@@ -160,29 +156,14 @@ spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
   const timestamp = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
 
   const activity = ctx.db.senderActivity.sender.find(senderId);
-  if (!activity) {
-    ctx.db.senderActivity.insert({
-      sender: senderId,
-      window_start: timestamp,
-      count: 1,
-      last_sent_at: timestamp,
-    });
-  } else if (timestamp - activity.window_start >= RATE_LIMIT_WINDOW_MS) {
-    ctx.db.senderActivity.sender.update({
-      ...activity,
-      window_start: timestamp,
-      count: 1,
-      last_sent_at: timestamp,
-    });
-  } else {
-    if (activity.count >= RATE_LIMIT_MAX_MESSAGES) {
-      throw new SenderError(`Rate limit exceeded: maximum ${RATE_LIMIT_MAX_MESSAGES} messages per ${RATE_LIMIT_WINDOW_MS / 1000}s`);
-    }
-    ctx.db.senderActivity.sender.update({
-      ...activity,
-      count: activity.count + 1,
-      last_sent_at: timestamp,
-    });
+  const decision = evaluateRateLimit(senderId, timestamp, activity);
+
+  if (decision.action === 'reject') {
+    throw new SenderError(decision.error);
+  } else if (decision.action === 'insert') {
+    ctx.db.senderActivity.insert(decision.record);
+  } else if (decision.action === 'update') {
+    ctx.db.senderActivity.sender.update(decision.record);
   }
 
   // Use globalMessage (camelCase) as required by SpacetimeDB Typescript bindings
