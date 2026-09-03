@@ -204,6 +204,17 @@ describe("ChatManager (SpacetimeDB-backed)", () => {
       );
       expect(mockCloud.sendMessage).not.toHaveBeenCalled();
     });
+
+    it("surfaces server reducer errors and updates lastError", async () => {
+      mockCloud.sendMessage.mockRejectedValueOnce(
+        new Error("Rate limit exceeded: maximum 5 messages per 10s"),
+      );
+
+      await expect(chatState.sendMessage("burst")).rejects.toThrow(
+        /Rate limit exceeded/,
+      );
+      expect(chatState.lastError).toContain("Rate limit exceeded");
+    });
   });
 
   it("clearHistory clears the local view only", () => {

@@ -147,8 +147,12 @@ class ChatManager {
     }
 
     // Only the message text leaves the device. Nothing derived from the journal,
-    // the settings or any key travels with it — ADR-0001, Class B condition 3.
-    cloudService.sendMessage(text);
+    try {
+      await cloudService.sendMessage(text);
+    } catch (e) {
+      this.lastError = e instanceof Error ? e.message : String(e);
+      throw e;
+    }
     this.lastSentTimestamp = now;
   }
 

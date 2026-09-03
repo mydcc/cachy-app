@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { schema, table, t } from 'spacetimedb/server';
+import { schema, table, t, SenderError } from 'spacetimedb/server';
 import { ScheduleAt } from 'spacetimedb';
 
 /**
@@ -31,6 +31,23 @@ const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 /** How often the cleanup runs. Retention is the promise; this is the resolution. */
 const CLEANUP_INTERVAL_MICROS = 60n * 60n * 1_000_000n; // hourly
+
+/**
+ * Rate limiting for send_message reducer to prevent chat flooding (FEAT-0375).
+ * Allows a burst of up to RATE_LIMIT_MAX_MESSAGES within RATE_LIMIT_WINDOW_MS.
+ */
+const RATE_LIMIT_WINDOW_MS = 10_000; // 10-second window
+const RATE_LIMIT_MAX_MESSAGES = 5;   // max 5 messages per window
+
+const SenderActivity = table(
+  { name: 'sender_activity' },
+  {
+    sender: t.string().primaryKey(),
+    window_start: t.number(),
+    count: t.number(),
+    last_sent_at: t.number(),
+  }
+);
 
 const GlobalMessage = table(
   { name: 'global_message' },
@@ -49,7 +66,7 @@ const MessageCleanupSchedule = table(
   }
 );
 
-export const spacetimedb = schema(GlobalMessage, MessageCleanupSchedule);
+export const spacetimedb = schema(GlobalMessage, MessageCleanupSchedule, SenderActivity);
 
 spacetimedb.init((ctx) => {
   console.info('Module initialized');
@@ -88,6 +105,13 @@ spacetimedb.reducer(
     if (deleted > 0) {
       console.info(`Retention: deleted ${deleted} message(s) older than ${RETENTION_DAYS} days`);
     }
+
+    // Clean up inactive sender records older than retention window
+    for (const activity of [...ctx.db.senderActivity.iter()]) {
+      if (activity.last_sent_at < cutoff) {
+        ctx.db.senderActivity.delete(activity);
+      }
+    }
   }
 );
 
@@ -109,6 +133,12 @@ spacetimedb.reducer('delete_my_messages', {}, (ctx) => {
     }
   }
 
+  for (const activity of [...ctx.db.senderActivity.iter()]) {
+    if (activity.sender === senderId) {
+      ctx.db.senderActivity.delete(activity);
+    }
+  }
+
   console.info(`Erasure: deleted ${deleted} message(s)`);
 });
 
@@ -123,11 +153,37 @@ spacetimedb.clientDisconnected((ctx) => {
 // Reducer to send a message
 spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
   if (text.length > 1000) {
-    throw new Error('Message too long');
+    throw new SenderError('Message too long');
   }
 
   const senderId = ctx.sender.toHexString();
   const timestamp = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
+
+  const activity = ctx.db.senderActivity.sender.find(senderId);
+  if (!activity) {
+    ctx.db.senderActivity.insert({
+      sender: senderId,
+      window_start: timestamp,
+      count: 1,
+      last_sent_at: timestamp,
+    });
+  } else if (timestamp - activity.window_start >= RATE_LIMIT_WINDOW_MS) {
+    ctx.db.senderActivity.sender.update({
+      ...activity,
+      window_start: timestamp,
+      count: 1,
+      last_sent_at: timestamp,
+    });
+  } else {
+    if (activity.count >= RATE_LIMIT_MAX_MESSAGES) {
+      throw new SenderError(`Rate limit exceeded: maximum ${RATE_LIMIT_MAX_MESSAGES} messages per ${RATE_LIMIT_WINDOW_MS / 1000}s`);
+    }
+    ctx.db.senderActivity.sender.update({
+      ...activity,
+      count: activity.count + 1,
+      last_sent_at: timestamp,
+    });
+  }
 
   // Use globalMessage (camelCase) as required by SpacetimeDB Typescript bindings
   ctx.db.globalMessage.insert({

@@ -58,10 +58,14 @@
     }
   }
 
-  function send() {
+  async function send() {
     if (!messageText) return;
-    cloudService.sendMessage(messageText);
-    messageText = "";
+    try {
+      await cloudService.sendMessage(messageText);
+      messageText = "";
+    } catch (e) {
+      errorMsg = e instanceof Error ? e.message : String(e);
+    }
   }
 
   // Erasure is irreversible and hits the server, so it takes two clicks.
