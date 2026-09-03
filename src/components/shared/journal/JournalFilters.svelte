@@ -306,8 +306,8 @@
     .journal-filters {
         background: var(--bg-tertiary);
         border-radius: var(--border-radius);
-        padding: 0.75rem 1rem;
-        margin-bottom: 0.75rem;
+        padding: var(--space-3) var(--space-4);
+        margin-bottom: var(--space-3);
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--border-color);
     }
@@ -340,7 +340,7 @@
     .filter-input,
     .filter-select {
         width: 100%;
-        padding: 0.5rem 0.75rem;
+        padding: var(--space-2) var(--space-3);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
         background: var(--input-bg);
@@ -451,7 +451,7 @@
     }
 
     .quick-date-btn {
-        padding: 0.25rem 0.5rem;
+        padding: var(--space-1) var(--space-2);
         border-radius: var(--radius-md);
         border: 1px solid var(--border-color);
         background: var(--bg-secondary);

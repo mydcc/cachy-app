@@ -238,7 +238,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    padding: 1rem;
+    padding: var(--space-4);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     background-color: var(--bg-secondary);
@@ -271,7 +271,7 @@
 
   .cloud-field input,
   .cloud-input {
-    padding: 0.5rem;
+    padding: var(--space-2);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     background-color: var(--bg-tertiary);
@@ -292,7 +292,7 @@
   }
 
   .cloud-button {
-    padding: 0.5rem 1rem;
+    padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     font-weight: var(--font-medium);
     cursor: pointer;
@@ -307,7 +307,7 @@
   .cloud-log {
     height: 12rem;
     overflow-y: auto;
-    padding: 1rem;
+    padding: var(--space-4);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     background-color: var(--bg-tertiary);
@@ -316,8 +316,8 @@
   }
 
   .cloud-log-row {
-    margin-bottom: 0.25rem;
-    padding-bottom: 0.25rem;
+    margin-bottom: var(--space-1);
+    padding-bottom: var(--space-1);
     border-bottom: 1px solid var(--border-color);
   }
 

@@ -71,7 +71,8 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
    - If the PR merges the work: was cleanup done — worktree removed, branch deletable, item moved to `done` (or a state note left when abandoning)? Gently flag leftovers per "Agent Lifecycle" in `AGENTS.md`.
 
 8. **Post a Comment** (only if findings exist).
-   - Use `add_issue_comment` with this structure:
+   - **GitHub Actions / CI Agent Note:** When running inside GitHub Actions as an automated workflow or bot (where the action runner automatically captures and publishes your final response, such as `opencode.yml`), do NOT run `gh pr comment` or `add_issue_comment` yourself — that creates duplicated comments under two bot identities. Return the complete review markdown directly as your final message.
+   - For interactive sessions (CLI, local pairing) where no platform wrapper automatically publishes output, use `add_issue_comment` or post the comment with this structure:
      - **Header:** `Code Review for <sha>` (short SHA is fine) — this marker lets step 1 skip if already reviewed.
      - **Verdict:** One-line summary (e.g., "Clean by CLAUDE.md rules, but acceptance criterion #2 not met").
      - **Findings:** Grouped by the checks above (Acceptance Criteria, CI-independent findings, Non-Negotiable Rules, Correctness, Sensitive Areas).

@@ -296,7 +296,7 @@
         display: flex;
         flex-direction: column;
         gap: 2rem;
-        padding: 1.5rem;
+        padding: var(--space-6);
     }
 
     section {
@@ -320,7 +320,7 @@
     }
 
     .status-card {
-        padding: 1rem;
+        padding: var(--space-4);
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-xl);
@@ -344,7 +344,7 @@
 
     .status-indicator {
         display: inline-flex;
-        padding: 0.25rem 0.5rem;
+        padding: var(--space-1) var(--space-2);
         border-radius: 0.4rem;
         font-size: var(--text-xs);
         font-weight: var(--font-semibold);
@@ -449,7 +449,7 @@
     }
 
     .symbol-item {
-        padding: 0.75rem;
+        padding: var(--space-3);
         background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
@@ -471,7 +471,7 @@
     }
 
     .info-tag {
-        padding: 0.25rem 0.5rem;
+        padding: var(--space-1) var(--space-2);
         border-radius: 0.3rem;
         font-size: var(--text-xs);
         background: var(--bg-tertiary);
@@ -507,7 +507,7 @@
     .empty-state {
         color: var(--text-secondary);
         text-align: center;
-        padding: 1rem;
+        padding: var(--space-4);
     }
 
     .more-text {
@@ -525,7 +525,7 @@
     }
 
     .hint {
-        padding: 0.75rem;
+        padding: var(--space-3);
         border-radius: var(--radius-lg);
         border-left: 3px solid;
         font-size: 0.85rem;

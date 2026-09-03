@@ -2,7 +2,7 @@
 id: FEAT-0336
 title: CSS Design Token Foundation & UI Harmonization
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -32,10 +32,10 @@ Dies ist ein **EPIC** mit vier Child-Features:
 
 | Child | Beschreibung | Status |
 |---|---|---|
-| [FEAT-0337](FEAT-0337-design-token-foundation.md) | Design Token Foundation — `--radius-*`, `--space-*`, `--text-*`, `--font-*` Skalen | Specced |
-| [FEAT-0338](FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade — `.input-field`, `.btn-*`, `.glass-panel` auf Token | Specced |
-| [FEAT-0339](FEAT-0339-shared-component-classes.md) | Shared Component Classes — `.card`, `.badge`, `.divider` | Specced |
-| [FEAT-0340](FEAT-0340-component-style-migration.md) | Component Migration — 157 Komponenten `<style>`-Blöcke auf Token | Specced |
+| [FEAT-0337](FEAT-0337-design-token-foundation.md) | Design Token Foundation — `--radius-*`, `--space-*`, `--text-*`, `--font-*` Skalen | Done |
+| [FEAT-0338](FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade — `.input-field`, `.btn-*`, `.glass-panel` auf Token | Done |
+| [FEAT-0339](FEAT-0339-shared-component-classes.md) | Shared Component Classes — `.card`, `.badge`, `.divider` | Done |
+| [FEAT-0340](FEAT-0340-component-style-migration.md) | Component Migration — 157 Komponenten `<style>`-Blöcke auf Token | Done |
 
 **Nicht-Ziele:** Kein neues Theme-System, kein Tailwind-Update, kein Daten-/Business-Logik-Refactoring.
 
@@ -43,11 +43,11 @@ Dies ist ein **EPIC** mit vier Child-Features:
 
 - [x] [FEAT-0337](FEAT-0337-design-token-foundation.md) — Design Token Foundation (S, ~2 SP)
 - [x] [FEAT-0338](FEAT-0338-core-utility-upgrade.md) — Core Utility Upgrade (S-M, ~3 SP)
-- [ ] [FEAT-0339](FEAT-0339-shared-component-classes.md) — Shared Component Classes (S, ~2 SP)
-- [ ] [FEAT-0340](FEAT-0340-component-style-migration.md) — Component Migration (M-L, ~8 SP)
-- [ ] Unsichtbare visuelle Regression in Calculator, Trade Panel, Settings, Journal
-- [ ] `npm run check` bestanden nach jedem Child
-- [ ] `npm test` bestanden nach jedem Child
+- [x] [FEAT-0339](FEAT-0339-shared-component-classes.md) — Shared Component Classes (S, ~2 SP)
+- [x] [FEAT-0340](FEAT-0340-component-style-migration.md) — Component Migration (M-L, ~8 SP)
+- [x] Unsichtbare visuelle Regression in Calculator, Trade Panel, Settings, Journal
+- [x] `npm run check` bestanden nach jedem Child
+- [x] `npm test` bestanden nach jedem Child
 
 ## Out of scope
 

@@ -1209,7 +1209,7 @@
         color: var(--text-secondary);
         cursor: pointer;
         font-size: var(--text-xs);
-        padding: 0 0.25rem;
+        padding: 0 var(--space-1);
     }
 
     .group-toggle-btn:hover {

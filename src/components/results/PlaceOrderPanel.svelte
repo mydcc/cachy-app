@@ -372,7 +372,7 @@
     {#if !hasMeta}
       <p class="note">{$_("orderEntry.errors.metadataLoading")}</p>
     {:else if meta && !tradingAvailable}
-      <div class="outcome danger" role="alert" style="margin-bottom: 0.75rem;">
+      <div class="outcome danger" role="alert" style="margin-bottom: var(--space-3);">
         <strong>{$_("orderEntry.errors.tradingUnavailable")}</strong>
         {#if meta.symbolStatus && meta.symbolStatus !== "OPEN"}
           <span class="detail">{$_("dashboard.symbolInfo.statusStop")}: {meta.symbolStatus}</span>

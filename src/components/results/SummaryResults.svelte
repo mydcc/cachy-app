@@ -109,7 +109,7 @@
   {#if isMarginExceeded}
     <div
       class="result-item"
-      style="justify-content: center; margin-bottom: 0.5rem;"
+      style="justify-content: center; margin-bottom: var(--space-2);"
     >
       <span class="text-sm font-bold" style="color: var(--danger-color);"
         >{$_("dashboard.summaryResults.insufficientBalance")}</span

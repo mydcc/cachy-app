@@ -337,7 +337,7 @@
     transition: opacity 0.2s ease-in-out;
     background-color: var(--bg-tertiary, #1e293b);
     color: var(--text-primary, #f1f5f9);
-    padding: 8px 12px;
+    padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-md);
     font-size: var(--text-xs);
     box-shadow:

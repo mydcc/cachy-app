@@ -59,7 +59,7 @@
         color: var(--text-primary);
     }
     .card-body {
-        padding: 1rem;
+        padding: var(--space-4);
         transition: opacity 0.3s;
     }
     .card-body.disabled {

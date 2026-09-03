@@ -36,7 +36,6 @@
   import { favoritesState } from "../stores/favorites.svelte";
   import { onMount } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
-  import { loadInstruction } from "../services/markdownLoader";
   import { formatDynamicDecimal } from "../utils/utils";
   import { trackClick } from "../lib/actions";
   import type { TranslationKey } from "../locales/schema";
@@ -98,35 +97,44 @@
     };
   });
 
+  // Helper to lazy-load markdown content on demand
+  async function fetchInstructionHtml(
+    type: "changelog" | "guide" | "privacy" | "whitepaper",
+  ) {
+    const { loadInstruction } = await import("../services/markdownLoader");
+    const content = await loadInstruction(type);
+    return content.html;
+  }
+
   // Load modal contents when opened
   $effect(() => {
     if (windowManager.isOpen("changelog") && changelogContent === "") {
-      loadInstruction("changelog").then((content) => {
-        changelogContent = content.html;
+      fetchInstructionHtml("changelog").then((html) => {
+        changelogContent = html;
       });
     }
   });
 
   $effect(() => {
     if (windowManager.isOpen("guide") && guideContent === "") {
-      loadInstruction("guide").then((content) => {
-        guideContent = content.html;
+      fetchInstructionHtml("guide").then((html) => {
+        guideContent = html;
       });
     }
   });
 
   $effect(() => {
     if (windowManager.isOpen("privacy") && privacyContent === "") {
-      loadInstruction("privacy").then((content) => {
-        privacyContent = content.html;
+      fetchInstructionHtml("privacy").then((html) => {
+        privacyContent = html;
       });
     }
   });
 
   $effect(() => {
     if (windowManager.isOpen("whitepaper") && whitepaperContent === "") {
-      loadInstruction("whitepaper").then((content) => {
-        whitepaperContent = content.html;
+      fetchInstructionHtml("whitepaper").then((html) => {
+        whitepaperContent = html;
       });
     }
   });

@@ -181,7 +181,7 @@
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    padding: 0.5rem;
+    padding: var(--space-2);
     text-align: left;
     color: var(--text-primary);
   }
@@ -205,7 +205,7 @@
   }
   .audit-detail {
     margin: 0;
-    padding: 0.5rem;
+    padding: var(--space-2);
     border-top: 1px solid var(--border-color);
     font-size: 0.65rem;
     line-height: 1.4;

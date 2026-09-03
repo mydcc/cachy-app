@@ -498,18 +498,18 @@
         overflow: hidden;
     }
     .api-card.compact {
-        padding: 0.75rem;
+        padding: var(--space-3);
     }
     .header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.75rem;
+        padding: var(--space-3);
         background: var(--bg-secondary);
         border-bottom: 1px solid var(--border-color);
     }
     .body {
-        padding: 1rem;
+        padding: var(--space-4);
     }
     .status-dot {
         width: 8px;
@@ -527,7 +527,7 @@
         width: 100%;
         background: var(--bg-primary);
         border: 1px solid var(--border-color);
-        padding: 0.5rem;
+        padding: var(--space-2);
         border-radius: var(--radius-sm);
         font-size: var(--text-sm);
         color: var(--text-primary);
@@ -540,7 +540,7 @@
         font-size: var(--text-xs);
         font-weight: var(--font-semibold);
         color: var(--text-secondary);
-        margin-bottom: 0.25rem;
+        margin-bottom: var(--space-1);
         display: block;
     }
 </style>

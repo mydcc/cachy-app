@@ -2,7 +2,7 @@
 id: FEAT-0340
 title: Component Style Migration
 type: feature
-status: in-progress
+status: done
 priority: P2
 assignee: pheinze
 milestone: none

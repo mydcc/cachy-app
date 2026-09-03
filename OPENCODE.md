@@ -67,3 +67,8 @@ See `AGENTS.md` § "Git Cleanliness and Parallel Agent Workspaces" for the full 
 - Conventional Commits format (`feat:`, `fix:`, `refactor:`)
 - No agent-attribution footers (`Co-Authored-By: ...`)
 - Every PR needs `Fixes #<issue>` at the start of description
+
+## GitHub Actions & Reviews
+
+- **Triggering a PR review:** Comment `/review`, `/oc review`, or `/oc code-review` on any PR. All of these route to the dedicated review runner (`review` job in `opencode.yml`), which enforces single-comment posting with bash disabled.
+- **Unattended CI bot behavior:** Never call `gh pr comment` or `gh issue comment` directly from bash. The GitHub Actions action wrapper automatically captures your final assistant response and posts it as the single comment.
