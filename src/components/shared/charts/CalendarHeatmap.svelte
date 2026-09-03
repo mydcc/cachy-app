@@ -89,6 +89,14 @@
     )}`;
   }
 
+  let monthPaddings = $derived(
+    months.map((_, mIndex) => Array.from({ length: getFirstDayOfMonth(mIndex, year) }, (_, i) => i))
+  );
+
+  let monthDays = $derived(
+    months.map((_, mIndex) => Array.from({ length: getDaysInMonth(mIndex, year) }, (_, i) => i))
+  );
+
   function calculateMonthStats(mIndex: number, y: number) {
     let totalPnl = 0;
     let totalTrades = 0;
@@ -251,12 +259,12 @@
         {/each}
 
         <!-- Spacers for start of month -->
-        {#each Array.from({ length: getFirstDayOfMonth(mIndex, year) }, (_, i) => i) as i (i)}
+        {#each monthPaddings[mIndex] as i (i)}
           <div></div>
         {/each}
 
         <!-- Days -->
-        {#each Array.from({ length: getDaysInMonth(mIndex, year) }, (_, i) => i) as dIndex}
+        {#each monthDays[mIndex] as dIndex}
           {@const dateStr = formatDate(year, mIndex, dIndex + 1)}
           {@const entry = dataMap[dateStr]}
 

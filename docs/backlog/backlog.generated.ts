@@ -5333,7 +5333,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0365",
     "title": "Precompute month padding and day arrays in CalendarHeatmap using derived runes",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "Bolt",
     "priority": "P3",
     "milestone": "none",
     "editions": [
