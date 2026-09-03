@@ -19,7 +19,6 @@ import { describe, it, expect } from "vitest";
 import {
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_MESSAGES,
-  RETENTION_DAYS,
   RETENTION_MS,
   evaluateRateLimit,
   type SenderActivityRecord,

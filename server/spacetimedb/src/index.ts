@@ -30,8 +30,6 @@ import {
   RETENTION_DAYS,
   RETENTION_MS,
   CLEANUP_INTERVAL_MICROS,
-  RATE_LIMIT_WINDOW_MS,
-  RATE_LIMIT_MAX_MESSAGES,
   evaluateRateLimit,
 } from './rateLimit';
 
