@@ -29,18 +29,21 @@ const { version: appVersion } = JSON.parse(
 const COMPONENT_TESTS = "src/**/*.component.test.ts";
 
 // Multi-agent machines run several worktrees at once; each Vitest run defaults
-// to cpus-1 workers and together they saturate every core. Agents cap their own
-// runs with VITEST_MAX_WORKERS=1 (or `npm run test:seq`) while sibling
-// worktrees are active. Unset keeps Vitest's default sizing. Invalid values
-// fail fast instead of silently becoming NaN or tripping minWorkers > maxWorkers.
+// to cpus-1 workers and together they saturate every core. To keep the host system
+// fully responsive, avoid thermal throttling, and prevent UI freezes, Vitest defaults
+// to max 2 workers locally unless explicitly overridden by VITEST_MAX_WORKERS.
+// In CI environments (CI=true), Vitest uses its default sizing.
 const maxWorkers = (() => {
   const raw = process.env.VITEST_MAX_WORKERS;
-  if (!raw) return undefined;
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed < 1) {
-    throw new Error(`Invalid VITEST_MAX_WORKERS="${raw}" — use a positive integer.`);
+  if (raw) {
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new Error(`Invalid VITEST_MAX_WORKERS="${raw}" — use a positive integer.`);
+    }
+    return parsed;
   }
-  return parsed;
+  if (process.env.CI) return undefined;
+  return 2;
 })();
 
 const VITEST_EXCLUDE = [
