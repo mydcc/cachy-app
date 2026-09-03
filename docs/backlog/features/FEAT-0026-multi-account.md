@@ -54,16 +54,94 @@ account, the switch, the confirmation, and making the active one unmistakable.
 
 ## Acceptance criteria
 
-- [ ] Several accounts can be configured, named and switched
-- [ ] Each account's credentials are encrypted independently — the shape and
+- [x] Several accounts can be configured, named and switched
+- [x] Each account's credentials are encrypted independently — the shape and
       its migration are [`FEAT-0333`](FEAT-0333-account-storage-shape.md); this
       item only adds the second account to it
-- [ ] The active account is visible on every order-placing surface
-- [ ] The verification gate refuses an order whose target account differs from
-      the displayed one, with a test
-- [ ] No view shows data from two accounts without labelling
-- [ ] Switching clears cached account state rather than blending it, with a test
-- [ ] German and English strings
+- [ ] The active account is visible on every order-placing surface — **partly**.
+      The chip is on the order panel and on the positions sidebar header, which
+      stays visible collapsed and so covers flash close, cancel order and the
+      TP/SL controls. The modals, `ExchangeAccountControls`, the chart-window
+      title and the shell are
+      [`FEAT-0355`](FEAT-0355-account-name-remaining-surfaces.md).
+- [x] The verification gate refuses an order whose target account differs from
+      the displayed one, with a test — see the honest limit below
+- [x] No view shows data from two accounts without labelling — the journal
+      badges rows by account; the unlabelled modals are FEAT-0355
+- [x] Switching clears cached account state rather than blending it, with a test
+- [x] German and English strings
+
+### The gate check, stated honestly
+
+The account id now travels through `DisplayedState`, `PassRecord` and
+`TransportContext`, and `assertGatePass` compares it *before* the fingerprint
+so a switched account and an edited key stay distinguishable refusals. Three
+tests cover it, including the case the original audit got wrong: two accounts
+on one venue, same key string, different account.
+
+**It is a second field, not yet a second derivation.** Both roots are still
+`settingsState`. That is a strict superset of the old check — it catches a
+switch that leaves the key string unchanged, which `accountFingerprint` cannot
+see — but FEAT-0011's own bar (`orderGate.ts:27-31`) asks for a value derived
+a second way, and this is not that yet. Sourcing one root from what the chip
+actually rendered is the remaining work, and it needs the chip on every
+order-placing surface first, which is why it waits on FEAT-0355.
+
+## What shipped — 2026-09-03
+
+Four pull requests, ordered so each is independently revertible.
+
+**PR 0 — the credential store holds up with more than one account.** Three
+pre-existing Class A defects, invisible while there was one account per venue
+and no way to remove one. `unlock()` had no per-account try/catch, so one
+corrupt blob locked the user out of *every* account. `setMasterPassword`
+encrypted accounts holding nothing, which made a credential-free profile
+report itself as encrypted. Storage was not authoritative for membership, so
+an account deleted in one tab came back in another and was written back; and a
+removed account's ciphertext stayed on disk forever.
+
+A fourth candidate was investigated and **rejected**: binding `accounts` to the
+module-level `defaultSettings.accounts` looks like the aliasing hazard
+`tradeFlowSettings` guards against, and measurement showed it is not reachable
+— Svelte 5's `$state()` proxy does not write a push back to the module-level
+array. No defensive copy was added, and the measurement is recorded in the
+test file so nobody repeats it.
+
+**PR 1 — credentials resolve from the active account.** `activeAccountFor` and
+`keysForActiveAccount` replace the venue lookup at 24 production read sites.
+The lookup stays venue-scoped so it can never hand Bitget credentials to a
+Bitunix request. `apiProvider` follows the resolved active account instead of
+being derived from storage a second time; `setActiveAccount` is the only other
+writer of the pair and takes a `SwitchAuthorization`, so skipping the
+confirmation does not compile.
+
+One planned change was **dropped after measuring it**: refusing the
+"no credentials" fingerprint in `verify()` would have refused every *paper*
+order in a profile with no keys, because `verify` runs identically in paper
+mode — the live/paper seam is further down in `signedRequest`. The hazard it
+addressed is answered by the account id instead.
+
+**PR 2 — switching clears rather than blends.** Nothing cleared before:
+`accountState.reset()` and `omsService.reset()` had four production callers,
+all paper-mode. `accountSession` clears positions, orders, balances, TP/SL
+plans and the cached leverage and margin mode — that last being the one the
+FEAT-0011 gate ages without ever asking which account it describes. A branded
+session token, captured before the await and compared before the write, drops
+responses that outlived their account; `syncService` is the extreme case, with
+three sequential REST calls and a deliberate pause between kline batches.
+Syncing one account no longer deletes another's journal entries.
+
+**PR 3 — the capability, and attribution.** `ConnectionsTab` fell from 797 to
+546 lines by extracting `AccountCard`, whose hardcoded venue ids were exactly
+what made a second account unrenderable. FEAT-0333's per-venue totality is gone
+— it ran on the already-converted branch and would have silently undone every
+deletion — replaced by "at least one account exists", enforced at removal.
+
+Two defects surfaced during PR 3 and were fixed rather than worked around:
+every new accounts reader is defensive (`accounts?.find`), because a throw in
+the chip takes down the surface that places trades; and `removeAccount` no
+longer rotates the session itself, which had closed an import cycle through
+`accountSession` that left a binding undefined in the exchange-adapter path.
 
 ## Audit — 2026-09-02
 
@@ -219,4 +297,5 @@ half, and the visible half is the one a reviewer's eye goes to.
 - `src/services/backupService.ts` — restore-side structure check
 - `src/services/appEffects.svelte.ts` — the existing key-change reconnect
 - [`FEAT-0333`](FEAT-0333-account-storage-shape.md) — the storage shape, first
-- [`FEAT-0024`](FEAT-0024-confirmation-policy.md) — `account-switch` awaits wiring
+- [`FEAT-0024`](FEAT-0024-confirmation-policy.md) — `account-switch`, wired here
+- [`FEAT-0355`](FEAT-0355-account-name-remaining-surfaces.md) — the surfaces still unlabelled
