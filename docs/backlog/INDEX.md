@@ -4,7 +4,7 @@
 
 264 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 11 · 🟡 in-progress 4 · ✅ done 197
+Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 7 · 🟡 in-progress 8 · ✅ done 197
 
 ---
 
@@ -195,9 +195,9 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 11 · 🟡 in-pr
 | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) | WASM build ships an artifact that production never loads | P1 | ✅ done | build |
 | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | calculation |
 | [BUG-0329](bugs/BUG-0329-default-fee-rate-understates-real-cost.md) | The default fee rate is a maker rate applied to both legs, understating real cost | P1 | ✅ done | calculator |
-| [BUG-0355](bugs/BUG-0355-bitget-ws-throttle-map-leak.md) | Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely | P1 | 🟢 ready | exchange |
-| [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | 🟢 ready | exchange |
-| [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | 🟢 ready | chat |
+| [BUG-0355](bugs/BUG-0355-bitget-ws-throttle-map-leak.md) | Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely | P1 | 🟡 in-progress | exchange |
+| [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | 🟡 in-progress | exchange |
+| [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | 🟡 in-progress | chat |
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟢 ready | calculation |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | 🟡 in-progress | calculator |
@@ -237,7 +237,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 11 · 🟡 in-pr
 | [BUG-0311](bugs/BUG-0311-docs-backlog-infra.md) | Backlog infra docs and generated index are out of sync | P2 | ✅ done | docs |
 | [BUG-0312](bugs/BUG-0312-docs-backlog-items.md) | Stale code references in done backlog items | P2 | ✅ done | docs |
 | [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | calculation |
-| [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | 🟢 ready | market |
+| [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | 🟡 in-progress | market |
 | [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | 🟢 ready | exchange |
 | [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟢 ready | market |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | chat |
@@ -385,9 +385,9 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 11 · 🟡 in-pr
 | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) | No automated WASM-to-TS parity verification or benchmark | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
 | [BUG-0329](bugs/BUG-0329-default-fee-rate-understates-real-cost.md) | The default fee rate is a maker rate applied to both legs, understating real cost | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0331](bugs/BUG-0331-flash-close-strips-protection-before-refusal.md) | A refused flash close leaves the position open with its stops cancelled | P1 | ✅ done | M3 | community, pro, private | none | none | — |
-| [BUG-0355](bugs/BUG-0355-bitget-ws-throttle-map-leak.md) | Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely | P1 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0355](bugs/BUG-0355-bitget-ws-throttle-map-leak.md) | Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -469,7 +469,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 11 · 🟡 in-pr
 | [BUG-0311](bugs/BUG-0311-docs-backlog-infra.md) | Backlog infra docs and generated index are out of sync | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0312](bugs/BUG-0312-docs-backlog-items.md) | Stale code references in done backlog items | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | none | community, pro, private | B | none | — |
