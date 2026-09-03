@@ -1652,6 +1652,10 @@
         "toggleSecret": "Geheimnis-Sichtbarkeit umschalten",
         "togglePassphrase": "Passwort-Sichtbarkeit umschalten",
         "removeFeed": "Feed entfernen"
+      },
+      "accounts": {
+        "switchFrom": "Aktuelles Konto",
+        "switchTo": "Wechsel zu"
       }
     },
     "trading": {

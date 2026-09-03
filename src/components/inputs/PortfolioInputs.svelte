@@ -27,6 +27,7 @@
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
+  import { accountSession } from "../../services/accountSession.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { safeJsonParse } from "../../utils/safeJson";
   import { mapApiErrorToLabel } from "../../utils/errorUtils";
@@ -178,6 +179,11 @@
       return;
     }
 
+    // FEAT-0026. `accountSize` is the denominator every position size is
+    // derived from, so a balance that arrives after a switch would size
+    // account B's orders off account A's equity.
+    const session = accountSession.current();
+
     isFetchingBalance = true;
     try {
       const res = await appFetch("/api/balance", {
@@ -199,6 +205,8 @@
       if (!res.ok) {
         throw new Error(data.error || $_("dashboard.portfolioInputs.fetchBalanceError"));
       }
+
+      if (!accountSession.isCurrent(session)) return;
 
       if (typeof data.balance === "number" || typeof data.balance === "string") {
         tradeState.update((s) => ({ ...s, accountSize: String(data.balance) }));

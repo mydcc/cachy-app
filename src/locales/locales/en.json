@@ -1691,6 +1691,10 @@
         "toggleSecret": "Toggle secret visibility",
         "togglePassphrase": "Toggle passphrase visibility",
         "removeFeed": "Remove feed"
+      },
+      "accounts": {
+        "switchFrom": "Current account",
+        "switchTo": "Switching to"
       }
     },
     "imgbbExpiration": "Expiration Time",

@@ -20,6 +20,7 @@
   import { Decimal } from "decimal.js";
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
+  import { accountSession } from "../../services/accountSession.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
@@ -517,6 +518,12 @@
     const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
     if (!keys?.key || !keys?.secret) return;
 
+    // FEAT-0026. `hydrateBalance` below deliberately *merges*, preserving the
+    // margin fields only the WS wallet channel supplies. That merge is
+    // correct within one account and is cross-account blending across two,
+    // so a response that outlived its session must not reach it.
+    const session = accountSession.current();
+
     try {
       const response = await appFetch("/api/account", {
         method: "POST",
@@ -539,6 +546,8 @@
       // to accountInfo, so every field silently stuck at its all-zero
       // initial state — indistinguishable from a genuinely empty account,
       // and never surfaced as an error either (BUG-0060).
+      if (!accountSession.isCurrent(session)) return;
+
       const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
       if (data === null) {
         errorAccount = translateError({ code, error: message });
@@ -649,17 +658,15 @@
   $effect(() => {
     const provider = settingsState.apiProvider || "bitunix";
     const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
+    // Only the *fetching* half is gated on credentials — you cannot fetch
+    // without keys. The invalidation half moved to the session effect below,
+    // because this guard meant a switch to an account with no credentials
+    // never invalidated anything, and the previous account's data stayed on
+    // screen under the new account's name.
     if (keys?.key && keys?.secret) {
       untrack(() => {
         fetchAccount();
         fetchPositions();
-        // Orders/History are tab-gated above; invalidate so the next visit
-        // (or the currently active tab) re-fetches for the new key/exchange
-        // instead of silently keeping the previous account's stale data.
-        hasFetchedOrdersOnce = false;
-        hasFetchedHistoryOnce = false;
-        // The position cards' TP/SL plans belong to the previous account.
-        tpSlState.reset();
         if (activeTab === "orders") fetchPendingOrders();
         if (activeTab === "history") fetchHistoryOrders();
       });
@@ -843,6 +850,49 @@
   let closingPosition = $state<OMSPosition | null>(null);
   /** FEAT-0330 — set while the flash-close confirmation is open. */
   let flashClosingPosition = $state<OMSPosition | null>(null);
+
+  /*
+   * FEAT-0026: clear what this component caches for itself.
+   *
+   * `historyOrders` and `accountInfo` are component `$state`, so
+   * `accountState.reset()` cannot reach them — a switch would leave the
+   * previous account's fills and account summary rendered under the new
+   * account's name. Keyed on the session rather than on the credentials,
+   * because switching *to* an account with no keys is exactly the case the
+   * old credential guard skipped.
+   *
+   * `flashClosingPosition` goes too: it holds a position from the account
+   * being left, and its dialog is open. The gate would refuse the resulting
+   * order — correctly — but a refusal the trader cannot interpret is a worse
+   * outcome than the dialog closing when the ground moves under it.
+   *
+   * Registers no listener, so there is nothing to return.
+   */
+  $effect(() => {
+    void accountSession.seq;
+    untrack(() => {
+      historyOrders = [];
+      accountInfo = {
+        available: 0,
+        margin: 0,
+        totalUnrealizedPnL: 0,
+        marginCoin: "USDT",
+        frozen: 0,
+        transfer: 0,
+        bonus: 0,
+        positionMode: "",
+        crossUnrealizedPNL: 0,
+        isolationUnrealizedPNL: 0,
+      };
+      errorAccount = "";
+      errorPositions = "";
+      // Tab-gated fetches re-run on the next visit instead of showing the
+      // previous account's rows.
+      hasFetchedOrdersOnce = false;
+      hasFetchedHistoryOnce = false;
+      flashClosingPosition = null;
+    });
+  });
 
   /** The position whose TP/SL create dialog is open, or null (FEAT-0070). */
   let tpSlCreatePosition = $state<OMSPosition | null>(null);

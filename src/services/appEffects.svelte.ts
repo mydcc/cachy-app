@@ -5,6 +5,7 @@ import { keysForActiveAccount } from "../stores/settings/accounts";
 import { marketState } from "../stores/market.svelte";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
+import { accountSession } from "./accountSession.svelte";
 import { fundingRateService } from "./fundingRateService.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { paperTradingService } from "./paperTradingService";
@@ -59,6 +60,21 @@ export function setupRealtimeUpdatesEffect(app: any) {
         if (providerChanged || keysChanged) {
           lastKeys = currentKeys;
           lastProvider = provider || "";
+
+          // FEAT-0026: clear before reconnecting, not after.
+          //
+          // The clear lives here rather than inside a `switchAccount()`
+          // helper because `activeAccountId` moves for more reasons than a
+          // user clicking it: `removeAccount`, the cross-tab storage listener
+          // calling `load()`, and a restored backup all change it. Only this
+          // effect observes all of them.
+          //
+          // Not in `connectionManager.killAll()` either — that also runs on
+          // shutdown and on a transient disconnect, where the cached
+          // positions are stale but still true, and clearing there would
+          // blank a trader's position view on a dropped packet.
+          accountSession.reset(providerChanged ? "venue-switch" : "account-switch");
+
           connectionManager.switchProvider(provider || "bitunix", { force: true });
         }
       });

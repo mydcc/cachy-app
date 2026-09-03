@@ -197,6 +197,15 @@ export interface JournalEntry {
   screenshot?: string;
   positionSize?: Decimal;
   provider?: "bitunix" | "bitget" | "custom";
+  /**
+   * Which account the entry came from — FEAT-0026.
+   *
+   * Optional, and deliberately so: an entry written before this shipped has
+   * none, an older build ignores it, and no migration is needed. Absent means
+   * "from whichever account was on `provider` at the time", which is exactly
+   * true while there was one account per venue.
+   */
+  accountId?: string;
 }
 
 export interface JournalGroupSummary {

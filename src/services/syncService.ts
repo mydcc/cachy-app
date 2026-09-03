@@ -20,6 +20,7 @@ import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { keysForActiveAccount } from "../stores/settings/accounts";
+import { accountSession } from "./accountSession.svelte";
 import { apiService } from "./apiService";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
@@ -173,6 +174,27 @@ export const syncService = {
     const settings = settingsState;
     if (!settings.entitlement.isPro) return;
     const bitunixKeys = keysForActiveAccount(settings.accounts, settings.activeAccountId, "bitunix");
+    // FEAT-0026. Captured before the first await and re-checked before every
+    // journal write: this routine makes three sequential REST calls with a
+    // deliberate pause between kline batches, so a switch lands inside it
+    // routinely rather than exceptionally.
+    const session = accountSession.current();
+    const syncAccountId = settings.activeAccountId;
+    const syncProvider = settings.apiProvider;
+
+    /**
+     * Whether an existing entry belongs to the account being synced.
+     *
+     * The two filters below drop stale synced open positions before writing
+     * fresh ones. They used to drop *every* non-manual open entry, so syncing
+     * one account deleted the open trades another account had synced. An
+     * entry with no `accountId` predates FEAT-0026; matching it on provider
+     * keeps today's behaviour exactly for existing journals, while an entry
+     * from a different account is left alone rather than removed.
+     */
+    const belongsToSyncedAccount = (j: { accountId?: string; provider?: string }) =>
+      j.accountId === syncAccountId ||
+      (j.accountId === undefined && j.provider === syncProvider);
     if (!bitunixKeys.key || !bitunixKeys.secret) {
       uiState.showError("settings.apiKeysRequired");
       return;
@@ -537,11 +559,22 @@ export const syncService = {
 
         // Add trades to journal immediately (streaming/incremental update)
         if (validResults.length > 0) {
+          if (!accountSession.isCurrent(session)) return;
+
           const currentJournalState = journalState.entries;
           const keptJournal = currentJournalState.filter(
-            (j) => !(j.isManual === false && j.status === "Open"),
+            (j) =>
+              !(
+                belongsToSyncedAccount(j) &&
+                j.isManual === false &&
+                j.status === "Open"
+              ),
           );
-          const updatedJournal = [...keptJournal, ...validResults];
+          const stamped = validResults.map((entry) => ({
+            ...entry,
+            accountId: syncAccountId,
+          }));
+          const updatedJournal = [...keptJournal, ...stamped];
           updatedJournal.sort(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
           );
@@ -564,12 +597,24 @@ export const syncService = {
       // (isManual === false && status === "Open") before each save, so
       // freshly-fetched pending entries must be re-added here.
       if (pendingEntries.length > 0) {
+        if (!accountSession.isCurrent(session)) return;
+
         const pendingIds = new Set(pendingEntries.map(e => e.id));
         const currentJournalState = journalState.entries;
         const keptJournal = currentJournalState.filter(
-          (j) => !pendingIds.has(j.id) && !(j.isManual === false && j.status === "Open"),
+          (j) =>
+            !pendingIds.has(j.id) &&
+            !(
+              belongsToSyncedAccount(j) &&
+              j.isManual === false &&
+              j.status === "Open"
+            ),
         );
-        const updatedJournal = [...keptJournal, ...pendingEntries];
+        const stampedPending = pendingEntries.map((entry) => ({
+          ...entry,
+          accountId: syncAccountId,
+        }));
+        const updatedJournal = [...keptJournal, ...stampedPending];
         updatedJournal.sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );

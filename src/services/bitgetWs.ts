@@ -199,11 +199,18 @@ class BitgetWebSocketService {
 
     if (this.ws) {
       if (
-        this.ws.readyState === WebSocket.OPEN ||
-        this.ws.readyState === WebSocket.CONNECTING
+        !force &&
+        (this.ws.readyState === WebSocket.OPEN ||
+          this.ws.readyState === WebSocket.CONNECTING)
       ) {
         return;
       }
+      // FEAT-0026: `force` was accepted and then ignored here, unlike
+      // `bitunixWs.connectPrivate`, which honours it for exactly this
+      // reason. Via `switchProvider` it made no difference — the teardown
+      // runs first — but `handleOnline` calls `connect` directly, so
+      // returning early would keep a socket logged in with the credentials
+      // of the account the trader has since left.
       this.cleanup();
     }
 

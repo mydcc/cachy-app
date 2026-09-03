@@ -22,6 +22,7 @@ import en from "../../locales/locales/en.json";
 import OfflineBanner from "./OfflineBanner.svelte";
 import { marketState } from "../../stores/market.svelte";
 import { settingsState } from "../../stores/settings.svelte";
+import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
 import { uiState } from "../../stores/ui.svelte";
 import { connectionManager } from "../../services/connectionManager";
 import { toastService } from "../../services/toastService.svelte";
@@ -169,22 +170,48 @@ describe("BUG-0250: OfflineBanner Component Tests", () => {
     expect(toastService.error).toHaveBeenCalledWith("Reconnection failed");
   });
 
-  it("toggles provider, reconnects and displays toast on Switch Provider click", async () => {
-    marketState.connectionStatus = "disconnected";
-    settingsState.apiProvider = "bitunix";
-
-    component = mount(OfflineBanner, { target });
-    flushSync();
-
-    const buttons = target.querySelectorAll("button");
-    const switchBtn = Array.from(buttons).find((b) =>
+  /*
+   * FEAT-0026 changed what this button does, and the change is the point.
+   *
+   * It used to assign `settingsState.apiProvider` directly — a silent change
+   * to which credentials sign every subsequent order. It now goes through
+   * `setActiveAccount`, which means it obeys the `account-switch`
+   * confirmation policy like every other switch. That policy defaults to
+   * asking, so the default path is now a dialog rather than an immediate
+   * flip.
+   */
+  const clickSwitch = async () => {
+    const switchBtn = Array.from(target.querySelectorAll("button")).find((b) =>
       b.textContent?.includes("Switch Provider"),
     );
     expect(switchBtn).toBeDefined();
-
     switchBtn?.click();
     await new Promise((r) => setTimeout(r, 0));
     flushSync();
+  };
+
+  it("asks before switching, because the policy defaults to asking", async () => {
+    marketState.connectionStatus = "disconnected";
+    settingsState.apiProvider = "bitunix";
+    confirmationPolicyStore.setRequired("account-switch", true);
+
+    component = mount(OfflineBanner, { target });
+    flushSync();
+    await clickSwitch();
+
+    // Nothing has moved yet: no venue change, no reconnect.
+    expect(settingsState.apiProvider).toBe("bitunix");
+    expect(connectionManager.switchProvider).not.toHaveBeenCalled();
+  });
+
+  it("toggles provider, reconnects and displays toast when the policy does not ask", async () => {
+    marketState.connectionStatus = "disconnected";
+    settingsState.apiProvider = "bitunix";
+    confirmationPolicyStore.setRequired("account-switch", false);
+
+    component = mount(OfflineBanner, { target });
+    flushSync();
+    await clickSwitch();
 
     expect(settingsState.apiProvider).toBe("bitget");
     expect(connectionManager.switchProvider).toHaveBeenCalledWith("bitget", {
@@ -196,20 +223,12 @@ describe("BUG-0250: OfflineBanner Component Tests", () => {
   it("shows error toast if Switch Provider fails", async () => {
     marketState.connectionStatus = "disconnected";
     settingsState.apiProvider = "bitunix";
+    confirmationPolicyStore.setRequired("account-switch", false);
     vi.spyOn(connectionManager, "switchProvider").mockRejectedValue(new Error("Switch error"));
 
     component = mount(OfflineBanner, { target });
     flushSync();
-
-    const buttons = target.querySelectorAll("button");
-    const switchBtn = Array.from(buttons).find((b) =>
-      b.textContent?.includes("Switch Provider"),
-    );
-    expect(switchBtn).toBeDefined();
-
-    switchBtn?.click();
-    await new Promise((r) => setTimeout(r, 0));
-    flushSync();
+    await clickSwitch();
 
     expect(toastService.error).toHaveBeenCalledWith("Failed to switch to Bitget");
   });

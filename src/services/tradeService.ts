@@ -52,6 +52,7 @@ import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount } from "../stores/settings/accounts";
+import { accountSession } from "./accountSession.svelte";
 import {
     orderGate,
     assertGatePass,
@@ -313,6 +314,12 @@ class TradeService {
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys?.key || !keys?.secret) return;
 
+        // FEAT-0026. These three fields are what the FEAT-0011 gate ages: it
+        // asks "is this recent enough", never "is this the account I am
+        // signing for". A late response writing them would look freshly
+        // confirmed while describing the account the trader just left.
+        const session = accountSession.current();
+
         try {
             const response = await appFetch("/api/leverage-margin-mode", {
                 method: "POST",
@@ -336,6 +343,8 @@ class TradeService {
                 logger.error("network", "[TradeService] Invalid leverage/margin-mode response", validation.error.issues);
                 return;
             }
+            if (!accountSession.isCurrent(session)) return;
+
             tradeState.remoteLeverage = new Decimal(validation.data.leverage);
             tradeState.remoteMarginMode = validation.data.marginMode;
             // FEAT-0011 measures staleness from here. Stamped only on a
