@@ -3035,6 +3035,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0372-chat-message-text-in-server-logs.md"
   },
   {
+    "id": "BUG-0379",
+    "title": "Calculator fee fallback uses hardcoded default instead of per-account remote fee",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculator",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "file": "bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md"
+  },
+  {
+    "id": "BUG-0380",
+    "title": "placeOrder qty is not range-clamped before the exchange gate",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "file": "bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -4959,6 +4997,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "antigravity",
     "branch": "fix/security-audit-privacy-batch",
     "file": "bugs/BUG-0373-short-sender-id-collision.md"
+  },
+  {
+    "id": "BUG-0381",
+    "title": "Account break-even price uses hardcoded DEFAULT_FEES, not venue fee",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "file": "bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md"
   },
   {
     "id": "FEAT-0022",
