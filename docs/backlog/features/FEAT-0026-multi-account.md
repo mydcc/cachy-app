@@ -63,7 +63,7 @@ account, the switch, the confirmation, and making the active one unmistakable.
       stays visible collapsed and so covers flash close, cancel order and the
       TP/SL controls. The modals, `ExchangeAccountControls`, the chart-window
       title and the shell are
-      [`FEAT-0355`](FEAT-0355-account-name-remaining-surfaces.md).
+      [`FEAT-0378`](FEAT-0378-account-name-remaining-surfaces.md).
 - [x] The verification gate refuses an order whose target account differs from
       the displayed one, with a test — see the honest limit below
 - [x] No view shows data from two accounts without labelling — the journal
@@ -298,4 +298,4 @@ half, and the visible half is the one a reviewer's eye goes to.
 - `src/services/appEffects.svelte.ts` — the existing key-change reconnect
 - [`FEAT-0333`](FEAT-0333-account-storage-shape.md) — the storage shape, first
 - [`FEAT-0024`](FEAT-0024-confirmation-policy.md) — `account-switch`, wired here
-- [`FEAT-0355`](FEAT-0355-account-name-remaining-surfaces.md) — the surfaces still unlabelled
+- [`FEAT-0378`](FEAT-0378-account-name-remaining-surfaces.md) — the surfaces still unlabelled

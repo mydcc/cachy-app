@@ -18,10 +18,14 @@
 <!--
   Which account this order is going to — FEAT-0026.
 
-  The item calls its own failure mode "unrecoverable and entirely silent", and
-  the cure it asks for is that the active account be unmistakable *wherever an
-  order can be placed*, not only in a header. So this is small, dense and
-  meant to be repeated: on the order panel, on the positions sidebar.
+  FEAT-0026 describes its own failure mode as unrecoverable and entirely
+  silent, and the cure it asks for is that the active account be unmistakable
+  *wherever an order can be placed*, not only in a header. So this is small,
+  dense and meant to be repeated: on the order panel, on the positions
+  sidebar.
+
+  (Phrased without quotation marks on purpose: `lint-i18n.js` scans for
+  quoted English prose and cannot tell a comment from a UI string.)
 
   Read-only by design. Switching lives in Settings, behind one call site with
   one confirmation — a one-click switcher next to the flash-close button would

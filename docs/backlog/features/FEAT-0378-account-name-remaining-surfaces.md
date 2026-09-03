@@ -1,5 +1,5 @@
 ---
-id: FEAT-0355
+id: FEAT-0378
 title: Name the active account on the surfaces FEAT-0026 did not reach
 type: feature
 status: specced
@@ -17,7 +17,7 @@ start_date: 2026-11-24
 ---
 
 
-# FEAT-0355 — Name the active account on the surfaces FEAT-0026 did not reach
+# FEAT-0378 — Name the active account on the surfaces FEAT-0026 did not reach
 
 ## Problem
 
