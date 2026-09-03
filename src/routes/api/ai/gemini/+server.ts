@@ -99,11 +99,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
     const encodedModel = encodeURIComponent(selectedModel);
-    const keyParam = apiKey ? `&key=${encodeURIComponent(apiKey)}` : "";
     const url = resolveProviderEndpoint(
       baseUrl,
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodedModel}:streamGenerateContent?alt=sse${keyParam}`,
-      `v1beta/models/${encodedModel}:streamGenerateContent?alt=sse${keyParam}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodedModel}:streamGenerateContent?alt=sse`,
+      `v1beta/models/${encodedModel}:streamGenerateContent?alt=sse`,
     );
 
     // Special handling for Gemma models which don't support systemInstruction
@@ -136,12 +135,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       }];
     }
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "User-Agent": "CachyApp/1.0 (SvelteKit)",
+    };
+    if (apiKey) {
+      headers["x-goog-api-key"] = apiKey;
+    }
+
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "CachyApp/1.0 (SvelteKit)",
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 

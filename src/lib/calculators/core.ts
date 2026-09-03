@@ -49,18 +49,27 @@ export function getTradePnL(t: JournalEntry): Decimal {
 
 /**
  * Entry price adjusted so an immediate exit nets zero PnL — accounts for the
- * entry fee already paid and an assumed equal-rate exit fee. `feePercent` is
- * a percentage (e.g. "0.0140" for 0.014%), not a fraction.
+ * entry fee already paid and the assumed exit fee. `feePercent` is a
+ * percentage (e.g. "0.0140" for 0.014%), not a fraction.
+ *
+ * FEAT-0253: the two legs can carry different rates — a limit entry is a maker
+ * fill while the exit is assumed taker — so `exitFeePercent` is separate. It
+ * defaults to `feePercent`, which is exactly the flat-rate behaviour every
+ * existing caller had. Using one rate when the legs actually differ would put
+ * break-even on the optimistic side of the truth, which is the failure this
+ * whole item exists to stop.
  */
 export function calculateBreakEvenPrice(
   entryPrice: Decimal,
   feePercent: Decimal,
   tradeType: string,
+  exitFeePercent?: Decimal,
 ): Decimal {
-  const feeFactor = feePercent.div(100);
+  const entryFactor = feePercent.div(100);
+  const exitFactor = (exitFeePercent ?? feePercent).div(100);
   return tradeType === CONSTANTS.TRADE_TYPE_LONG
-    ? entryPrice.times(feeFactor.plus(1)).div(new Decimal(1).minus(feeFactor))
-    : entryPrice.times(new Decimal(1).minus(feeFactor)).div(feeFactor.plus(1));
+    ? entryPrice.times(entryFactor.plus(1)).div(new Decimal(1).minus(exitFactor))
+    : entryPrice.times(new Decimal(1).minus(entryFactor)).div(exitFactor.plus(1));
 }
 
 /**
@@ -72,18 +81,48 @@ export function calculateBreakEvenPrice(
  * from the rounded size instead of leaving them reflecting the pre-rounding
  * one — see BUG-0252.
  */
+/**
+ * The rate each leg of the trade pays, as a percentage.
+ *
+ * FEAT-0253: `values.fees` is the flat rate and stays the fallback, so a
+ * caller that knows nothing about maker/taker keeps its old behaviour exactly.
+ * When the caller *does* know — the calculator UI resolves the entry role from
+ * the selected order type and the exit role from the user's declared
+ * assumption — it passes `entryFees`/`exitFees` and the legs diverge.
+ *
+ * Deliberately no store or settings import here: `core.ts` is pure maths over
+ * `TradeValues`, and which role applies is a UI decision, not an arithmetic
+ * one.
+ */
+export function legFeePercents(
+  values: Pick<TradeValues, "fees" | "entryFees" | "exitFees">,
+): { entry: Decimal; exit: Decimal } {
+  return {
+    entry: values.entryFees ?? values.fees,
+    exit: values.exitFees ?? values.fees,
+  };
+}
+
 export function deriveMoneyMetrics(
   positionSize: Decimal,
-  values: Pick<TradeValues, "entryPrice" | "stopLossPrice" | "leverage" | "fees">,
+  values: Pick<
+    TradeValues,
+    "entryPrice" | "stopLossPrice" | "leverage" | "fees" | "entryFees" | "exitFees"
+  >,
   riskAmount: Decimal,
 ): { requiredMargin: Decimal; netLoss: Decimal; entryFee: Decimal } {
   const orderVolume = positionSize.times(values.entryPrice);
   const requiredMargin = values.leverage.gt(0)
     ? orderVolume.div(values.leverage)
     : orderVolume;
-  const feeFactor = values.fees.div(100);
-  const entryFee = orderVolume.times(feeFactor);
-  const slExitFee = positionSize.times(values.stopLossPrice).times(feeFactor);
+  const { entry, exit } = legFeePercents(values);
+  const entryFee = orderVolume.times(entry.div(100));
+  // The stop-out leg is charged at the exit rate — assumed taker by default,
+  // the expensive side, because which way the position actually closes is
+  // unknowable while the plan is being made (FEAT-0253, decision 3).
+  const slExitFee = positionSize
+    .times(values.stopLossPrice)
+    .times(exit.div(100));
   const netLoss = riskAmount.plus(entryFee).plus(slExitFee);
   return { requiredMargin, netLoss, entryFee };
 }
@@ -103,10 +142,12 @@ export function calculateBaseMetrics(
     riskAmount,
   );
 
+  const legs = legFeePercents(values);
   const breakEvenPrice = calculateBreakEvenPrice(
     values.entryPrice,
-    values.fees,
+    legs.entry,
     tradeType,
+    legs.exit,
   );
 
   const mmr = values.maintenanceMarginRate || new Decimal(0);
@@ -143,10 +184,15 @@ export function calculateIndividualTp(
   const gainPerUnit = tpPrice.minus(values.entryPrice).abs();
   const positionPart = positionSize.times(currentTpPercent.div(100));
   const grossProfitPart = gainPerUnit.times(positionPart);
-  const exitFee = positionPart.times(tpPrice).times(values.fees.div(100));
+  // FEAT-0253: each leg at its own rate. A take-profit is out of scope for
+  // per-leg modelling of its own (a TP is usually a resting limit, i.e. maker),
+  // so it deliberately inherits the same conservative exit assumption as the
+  // stop-out rather than quietly getting a cheaper one.
+  const legs = legFeePercents(values);
+  const exitFee = positionPart.times(tpPrice).times(legs.exit.div(100));
   const entryFeePart = positionPart
     .times(values.entryPrice)
-    .times(values.fees.div(100));
+    .times(legs.entry.div(100));
   const netProfit = grossProfitPart.minus(entryFeePart).minus(exitFee);
   const riskForPart = riskAmount.times(currentTpPercent.div(100));
   const riskRewardRatio = riskForPart.gt(0)
@@ -180,6 +226,7 @@ export function calculateTotalMetrics(
   tradeType: string,
 ): TotalMetrics {
   const { positionSize, entryFee, riskAmount } = baseMetrics;
+  const legs = legFeePercents(values);
   let totalNetProfit = new Decimal(0);
   let weightedRRSum = new Decimal(0);
   let totalFees = new Decimal(0);
@@ -197,11 +244,11 @@ export function calculateTotalMetrics(
       const entryFeePart = positionSize
         .times(tp.percent.div(100))
         .times(values.entryPrice)
-        .times(values.fees.div(100));
+        .times(legs.entry.div(100));
       const exitFeePart = positionSize
         .times(tp.percent.div(100))
         .times(tp.price)
-        .times(values.fees.div(100));
+        .times(legs.exit.div(100));
       totalFees = totalFees.plus(entryFeePart).plus(exitFeePart);
       weightedRRSum = weightedRRSum.plus(
         riskRewardRatio.times(tp.percent.div(100)),
@@ -222,7 +269,7 @@ export function calculateTotalMetrics(
     const grossProfitFull = gainPerUnitFull.times(positionSize);
     const exitFeeFull = positionSize
       .times(bestTpPrice)
-      .times(values.fees.div(100));
+      .times(legs.exit.div(100));
     maxPotentialProfit = grossProfitFull.minus(entryFee).minus(exitFeeFull);
   }
 

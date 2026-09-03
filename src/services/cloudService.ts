@@ -165,7 +165,7 @@ class CloudService {
     }
   }
 
-  sendMessage(text: string) {
+  async sendMessage(text: string): Promise<void> {
     if (!this.connected) {
       logger.warn('network', 'Cannot send message: Not connected');
       return;
@@ -174,12 +174,13 @@ class CloudService {
       // The reducers object is exported from the generated code and handles calling the server.
       // Same generated-bindings-drift reasoning as canDeleteMyMessages() below.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (reducers as any).sendMessage(text);
+      await (reducers as any).sendMessage(text);
     } catch (e) {
       // Same rule as connect(): a chat failure stays a chat failure.
       this.lastError = e instanceof Error ? e.message : String(e);
       logger.error('network', 'Failed to send message:', e);
       if (this.onStatusCallback) this.onStatusCallback(this.status());
+      throw e;
     }
   }
 

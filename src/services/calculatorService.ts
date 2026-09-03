@@ -35,7 +35,10 @@ interface Calculator {
   ) => BaseMetrics | null;
   deriveMoneyMetrics: (
     positionSize: Decimal,
-    values: Pick<TradeValues, "entryPrice" | "stopLossPrice" | "leverage" | "fees">,
+    values: Pick<
+      TradeValues,
+      "entryPrice" | "stopLossPrice" | "leverage" | "fees" | "entryFees" | "exitFees"
+    >,
     riskAmount: Decimal,
   ) => { requiredMargin: Decimal; netLoss: Decimal; entryFee: Decimal };
   calculateIndividualTp: (
@@ -422,6 +425,12 @@ export class CalculatorService {
       fees: parseDecimal(
         currentTradeState.fees || CONSTANTS.DEFAULT_FEES,
       ),
+      // FEAT-0253: the per-leg rates, resolved upstream in `GeneralInputs`
+      // (which knows the entry order type and the declared exit assumption).
+      // Passed straight through — `undefined` falls back to the flat `fees`
+      // inside the calculator, so nothing that predates the split shifts.
+      entryFees: currentTradeState.entryFees,
+      exitFees: currentTradeState.exitFees,
       symbol: currentTradeState.symbol || "",
       useAtrSl: currentTradeState.useAtrSl,
       atrValue: parseDecimal(currentTradeState.atrValue),
