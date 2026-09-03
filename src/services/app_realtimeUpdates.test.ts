@@ -40,6 +40,8 @@ vi.mock("./connectionManager", () => ({
 import { app } from "./app";
 import { connectionManager } from "./connectionManager";
 import { settingsState } from "../stores/settings.svelte";
+import { accountState } from "../stores/account.svelte";
+import { accountSession } from "./accountSession.svelte";
 
 import { flushSync } from "svelte";
 
@@ -103,3 +105,81 @@ describe("app.setupRealtimeUpdates - init race", () => {
     expect(connectionManager.switchProvider).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * FEAT-0026 review finding.
+ *
+ * `computeKeys` includes the credential string, and the settings form binds
+ * straight into `account.keys.key`, so every keystroke while a user types an
+ * API key reaches this effect. Clearing there would blank their positions,
+ * orders and balance once per character — a regression introduced by wiring
+ * the clear into the same branch as the reconnect.
+ *
+ * Editing a key does not change which account is active. It still rotates the
+ * session, because a response fetched with the previous key belongs to a
+ * request the new one would not have made.
+ */
+describe("app.setupRealtimeUpdates - clearing is for identity, not keystrokes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    accountState.reset();
+    settingsState.apiProvider = "bitunix";
+    settingsState.accounts = migrateAccounts({ apiKeys: {
+      bitunix: { key: "", secret: "" },
+      bitget: { key: "", secret: "", passphrase: "" },
+    } }).accounts;
+    settingsState.activeAccountId = "bitunix";
+  });
+
+  const withOnePosition = () => {
+    accountState.positions = [
+      { symbol: "BTCUSDT", side: "long" },
+    ] as unknown as typeof accountState.positions;
+  };
+
+  it("keeps the positions on screen while an API key is being typed", async () => {
+    app.setupRealtimeUpdates();
+    flushSync();
+    withOnePosition();
+
+    settingsState.accountFor("bitunix").keys.key = "n";
+    flushSync();
+    settingsState.accountFor("bitunix").keys.key = "ne";
+    flushSync();
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(accountState.positions).toHaveLength(1);
+  });
+
+  it("still rotates the session on a key edit, so a stale response cannot land", async () => {
+    app.setupRealtimeUpdates();
+    flushSync();
+    const before = accountSession.current();
+
+    settingsState.accountFor("bitunix").keys.key = "edited";
+    flushSync();
+
+    await vi.waitFor(() => {
+      expect(accountSession.isCurrent(before)).toBe(false);
+    });
+  });
+
+  it("clears the positions when the active account actually changes", async () => {
+    app.setupRealtimeUpdates();
+    flushSync();
+    withOnePosition();
+
+    settingsState.accounts = [
+      ...settingsState.accounts,
+      { id: "bitunix-2", name: "Second", exchange: "bitunix", keys: { key: "k2", secret: "s2" } },
+    ];
+    settingsState.activeAccountId = "bitunix-2";
+    flushSync();
+
+    await vi.waitFor(() => {
+      expect(accountState.positions).toHaveLength(0);
+    });
+  });
+});
+

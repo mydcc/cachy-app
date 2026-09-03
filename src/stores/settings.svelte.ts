@@ -21,6 +21,7 @@ import {
   SENSITIVE_KEYS,
   apiKeyHasMaterial,
 } from "./settings/secretsLoader";
+import type { SwitchAuthorization } from "../lib/confirmationPolicy";
 import type { AiAnalysisMode } from "../types/ai";
 import {
   accountForExchange,
@@ -28,7 +29,10 @@ import {
   CREDENTIAL_SCHEMA_VERSION,
   defaultAccountName,
   defaultAccountState,
-  keysForExchange,
+  activeAccountFor,
+  keysForActiveAccount,
+  buildAccount,
+  removeAccountFrom,
   redactAccounts,
   LEGACY_ACCOUNT_IDS,
   type ExchangeAccount,
@@ -786,6 +790,22 @@ export class SettingsManager {
         console.warn(`[Settings] apiProvider: ${this._apiProvider} -> ${v}`);
       }
       this._apiProvider = v;
+
+      // FEAT-0026: carry the active account with the venue.
+      //
+      // `apiProvider` and `activeAccountId` are one fact under two names.
+      // This setter used to move only one of them, which left the pair
+      // representable in a disagreeing state — and a disagreeing pair makes
+      // the account id the order gate compares describe an account other
+      // than the one being signed for. `setActiveAccount` is the coherent
+      // path and moves both; this keeps the venue-only path from breaking
+      // that invariant behind its back.
+      //
+      // A venue with no account leaves the id alone rather than blanking it:
+      // an empty active id makes every reader fall back to empty
+      // credentials, which reads to a user as their keys having vanished.
+      const onVenue = this.accounts?.find((account) => account.exchange === v);
+      if (onVenue) this.activeAccountId = onVenue.id;
       // Let $effect handle saving, don't call save() directly
     }
   }
@@ -817,6 +837,7 @@ export class SettingsManager {
    */
   readonly entitlement = new EntitlementStore(
     () => this.accounts,
+    () => this.activeAccountId,
     () => this.apiProvider,
     () => this.autoTrading,
     () => this.multiAccount,
@@ -940,19 +961,150 @@ export class SettingsManager {
     const existing = accountForExchange(this.accounts, exchange);
     if (existing) return existing;
 
-    const created: ExchangeAccount = {
+    // FEAT-0026 removed the push. This used to create the missing account
+    // *in the live array*, which the 500 ms autosave then persisted — so
+    // removing an account and opening Settings quietly brought it back. A
+    // detached object keeps every existing reader working without being able
+    // to resurrect anything.
+    //
+    // Prefer `activeAccountFor` in new code: this answers "which account is
+    // on this venue", which stopped being the same question as "which
+    // account is active" the moment a venue could hold two.
+    return {
       id: LEGACY_ACCOUNT_IDS[exchange],
       name: defaultAccountName(exchange),
       exchange,
       keys: blankKeysFor(exchange),
     };
+  }
+
+  /**
+   * Switch the active account — FEAT-0026.
+   *
+   * The `auth` parameter is the point. `account-switch` is confirmable but
+   * not gated, so nothing structural stopped a call site from switching
+   * without asking; only two functions can produce a `SwitchAuthorization`
+   * and both consult the policy first, so skipping the prompt no longer
+   * compiles. See the note on the token in `lib/confirmationPolicy.ts`.
+   *
+   * Writes `activeAccountId` and `_apiProvider` together, because a reader
+   * that saw one without the other would resolve credentials for a venue the
+   * active account is not on. Refuses an id that resolves to nothing rather
+   * than storing it: a dangling active id makes every reader fall back to
+   * empty credentials, which reads to a user as "my keys are gone".
+   *
+   * Returns whether the state changed, so a caller can skip the reconnect
+   * and the confirmation on a no-op.
+   */
+  setActiveAccount(id: string, auth: SwitchAuthorization): boolean {
+    void auth; // Required for its type, not its value.
+
+    const target = this.accounts.find((account) => account.id === id);
+    if (!target) return false;
+    if (this.activeAccountId === id && this._apiProvider === target.exchange) {
+      return false;
+    }
+
+    this.activeAccountId = id;
+    this._apiProvider = target.exchange;
+    this.save();
+    return true;
+  }
+
+  /**
+   * Add an account on a venue — FEAT-0026.
+   *
+   * Appended rather than replacing the array, so no existing account object
+   * loses its identity: the credential inputs bind straight into those
+   * objects, and swapping one out mid-typing detaches the field the user is
+   * in. Returns the new account so a caller can focus it.
+   */
+  addAccount(exchange: ExchangeProvider): ExchangeAccount {
+    const created = buildAccount(this.accounts, exchange);
     this.accounts.push(created);
+    this.save();
     return created;
   }
 
+  /**
+   * Rename an account.
+   *
+   * Mutates `name` in place, which is the documented exception to this
+   * project's immutability rule and the same exception `applyAccounts` takes:
+   * replacing the object detaches the credential inputs bound to it. `$state`
+   * proxies deeply, so the mutation is reactive, and `toJSON`'s
+   * `$state.snapshot` picks it up.
+   *
+   * An empty name is refused rather than stored — an unnamed account in a
+   * switch list is exactly the ambiguity this feature exists to remove.
+   */
+  renameAccount(id: string, name: string): boolean {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+
+    const account = this.accounts.find((a) => a.id === id);
+    if (!account) return false;
+
+    account.name = trimmed;
+    this.save();
+    return true;
+  }
+
+  /**
+   * Remove an account, its stored ciphertext, and its claim on being active.
+   *
+   * Refused when it would leave none — "at least one account exists" is the
+   * invariant that replaced FEAT-0333's per-venue totality.
+   *
+   * Deleting the ciphertext here as well as the account is the point: the
+   * save path prunes orphaned blobs too, but a user who removes an account
+   * and never saves again should not leave Class A material on disk in the
+   * meantime.
+   *
+   * Removing the *active* account rotates the session, because every cached
+   * position, order and balance on screen belongs to it.
+   */
+  removeAccount(id: string): boolean {
+    const next = removeAccountFrom(
+      { accounts: $state.snapshot(this.accounts) as ExchangeAccount[], activeAccountId: this.activeAccountId },
+      id,
+    );
+    if (!next) return false;
+
+    const wasActive = this.activeAccountId === id;
+
+    // Keep the surviving objects themselves, not the snapshot's copies, so
+    // bound credential inputs stay attached.
+    this.accounts = this.accounts.filter((account) => account.id !== id);
+    if (this.encryptedAccountKeys) delete this.encryptedAccountKeys[id];
+
+    if (wasActive) {
+      this.activeAccountId = next.activeAccountId;
+      const target = this.accounts.find((a) => a.id === next.activeAccountId);
+      if (target) this._apiProvider = target.exchange;
+    }
+
+    // No `accountSession.reset()` here, deliberately.
+    //
+    // The clearing belongs to the reactive effect in `appEffects`, which
+    // watches `activeAccountId` and the credential string. `activeAccountId`
+    // also moves via the cross-tab storage listener calling `load()` and via
+    // a restored backup, and only that effect observes all three — a clear
+    // wired into this mutator would cover one path and quietly miss two.
+    //
+    // Calling it here also imported `accountSession` into this module, which
+    // pulls in `accountState`, `omsService`, `tpSlState` and `tradeState` and
+    // closed an import cycle. That cycle left a binding undefined in the
+    // exchange-adapter path, which is how it was found: three passing
+    // component tests started failing with the transport never reached.
+
+    this.save();
+    return true;
+  }
+
   get effectiveShowSidebarActivity() {
-    const bitget = keysForExchange(this.accounts, "bitget");
-    const bitunix = keysForExchange(this.accounts, "bitunix");
+    const bitget = keysForActiveAccount(this.accounts, this.activeAccountId, "bitget");
+    const bitunix = keysForActiveAccount(this.accounts, this.activeAccountId, "bitunix");
     const hasBitgetKeys = Boolean(
       bitget.key && bitget.secret && bitget.passphrase,
     );
@@ -1317,6 +1469,7 @@ export class SettingsManager {
     let aborted = false;
     try {
       const tasks: Promise<void>[] = [];
+      let failures = 0;
 
       // 1. Decrypt Exchange Keys
       if (this.encryptedAccountKeys) {
@@ -1325,20 +1478,34 @@ export class SettingsManager {
           if (!blob) continue;
           tasks.push(
             (async () => {
-              const json = await cryptoService.decrypt(blob);
-              if (aborted) return;
-              const account = this.accounts.find((a) => a.id === accountId);
-              // A blob whose account no longer exists is left encrypted and
-              // unused rather than restored into a fresh account: reviving
-              // credentials a user removed is worse than an orphaned blob.
-              if (account) account.keys = JSON.parse(json);
+              // Per account, like the generic-secrets loop below. Without
+              // this the first unreadable blob rejects the `Promise.all`,
+              // the outer catch calls `lock()`, and `unlock()` returns
+              // false — one corrupt account locks the user out of *every*
+              // account, at a probability that grows with account count.
+              // A counted failure surfaces through `decryptionFailures`
+              // and leaves the readable accounts usable.
+              try {
+                const json = await cryptoService.decrypt(blob);
+                if (aborted) return;
+                const account = this.accounts.find((a) => a.id === accountId);
+                // A blob whose account no longer exists is left encrypted and
+                // unused rather than restored into a fresh account: reviving
+                // credentials a user removed is worse than an orphaned blob.
+                if (account) account.keys = JSON.parse(json);
+              } catch (e) {
+                failures++;
+                console.error(
+                  "[Settings] Failed to decrypt keys for account " + accountId,
+                  e,
+                );
+              }
             })(),
           );
         }
       }
 
       // 2. Decrypt Generic Secrets
-      let failures = 0;
       if (this.encryptedSecrets) {
         const decryptTasks = Object.entries(this.encryptedSecrets)
           .filter(([key]) => SENSITIVE_KEYS.includes(key as keyof Settings))
@@ -1402,6 +1569,13 @@ export class SettingsManager {
       const tasks: Promise<void>[] = [];
 
       for (const account of this.accounts) {
+        // The save path checks this (`applyAccountKeyEncryption`) and so does
+        // the generic-secrets loop below; this one did not. Encrypting an
+        // empty credential set writes ciphertext of `{"key":"","secret":""}`,
+        // which makes `Object.keys(encryptedAccountKeys).length > 0` — the
+        // test for "is this an encrypted profile" — true for a profile that
+        // holds no credentials at all.
+        if (!apiKeyHasMaterial(account.keys)) continue;
         tasks.push(
           (async () => {
             accountBlobs[account.id] = await cryptoService.encrypt(
@@ -1472,9 +1646,6 @@ export class SettingsManager {
         activeAccountId: parsed.activeAccountId,
       } as Settings & LegacyCredentialShape;
 
-      // Set the private field directly during load to avoid dual logging
-      this._apiProvider = resolveApiProvider(merged.apiProvider);
-
       // Granular updates to preserve object references if components bind to them
       const apiKeyResult = this.secretsLoader.applyAccounts(merged, this.accounts);
       this.isEncrypted = apiKeyResult.isEncrypted;
@@ -1482,6 +1653,24 @@ export class SettingsManager {
       this.encryptedAccountKeys = apiKeyResult.encryptedAccountKeys;
       this.accounts = apiKeyResult.accounts;
       this.activeAccountId = apiKeyResult.activeAccountId;
+
+      // FEAT-0026: the venue follows the active account, rather than being
+      // derived from storage a second time.
+      //
+      // `apiProvider` and `activeAccountId` are one fact under two names.
+      // This used to write the private field *before* `applyAccounts` ran,
+      // from `merged.apiProvider` — an independent derivation of the same
+      // thing, which is precisely how the two come to disagree. Now the
+      // account resolves first and the venue is read off it.
+      //
+      // The stored value is still the fallback, and `resolveActiveId` already
+      // uses it to pick the active account, so a legacy profile lands on the
+      // same venue it always did. Set directly rather than through the
+      // setter, to avoid the dual logging the old comment here noted.
+      const storedProvider = resolveApiProvider(merged.apiProvider);
+      this._apiProvider =
+        activeAccountFor(this.accounts, this.activeAccountId, storedProvider)
+          ?.exchange ?? storedProvider;
 
       // BUG-0280 migration flag: storage predating the fix kept exchange
       // credentials as plaintext whenever no master password was set. They

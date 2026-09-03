@@ -132,7 +132,19 @@ class ConnectionManager {
      * Ensures the current one is fully killed before starting the next.
      */
     public async switchProvider(newProvider: string, options: { force?: boolean } = {}) {
-        if (this.isDestroying) return;
+        // A switch requested while another is tearing down used to be dropped
+        // on the floor. Nothing rescheduled it, and the caller had already
+        // recorded the new provider as current — so two rapid switches left
+        // the socket authenticated to the account the trader had just left,
+        // with nothing pending to correct it. FEAT-0026 makes that reachable
+        // by hand: switch, change your mind, switch back.
+        //
+        // Latest wins: an earlier queued request is simply overwritten, since
+        // only the most recent one describes where the user wants to be.
+        if (this.isDestroying) {
+            this.pendingSwitch = { provider: newProvider, options };
+            return;
+        }
 
         const oldProvider = this.activeProvider;
         if (oldProvider === newProvider && !options.force) return;
@@ -165,7 +177,22 @@ class ConnectionManager {
         } finally {
             this.isDestroying = false;
         }
+
+        const queued = this.pendingSwitch;
+        if (queued) {
+            this.pendingSwitch = null;
+            await this.switchProvider(queued.provider, queued.options);
+        }
     }
+
+    /**
+     * The switch requested while this one was tearing down, if any.
+     * Latest-wins, drained in `switchProvider`'s tail.
+     */
+    private pendingSwitch: {
+        provider: string;
+        options: { force?: boolean };
+    } | null = null;
 
     /**
      * Hard kills all connections and timers.

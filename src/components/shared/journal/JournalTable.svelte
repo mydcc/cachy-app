@@ -17,6 +17,23 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
+    import { settingsState } from "../../../stores/settings.svelte";
+
+    /*
+     * FEAT-0026: which account a journal row came from.
+     *
+     * Prepared as a map here rather than resolved inside the `{#each}` — the
+     * project's performance rule, and with a long journal the difference is
+     * a lookup per row against a scan per row.
+     *
+     * Only rendered when more than one account exists: with a single account
+     * the badge is noise, and confusion is impossible. An entry stamped with
+     * an account that has since been removed falls back to a label rather
+     * than rendering blank, because a blank badge reads as "no account".
+     */
+    const accountLabels = $derived(
+        new Map((settingsState.accounts ?? []).map((a) => [a.id, a.name])),
+    );
     import { formatDynamicDecimal } from "../../../utils/utils";
     import { Decimal } from "decimal.js";
     import type { JournalEntry, JournalTableRow, JournalGroupSummary } from "../../../stores/types";
@@ -539,6 +556,14 @@
                                                 SIM
                                             </span>
                                         {/if}
+                                        {#if accountLabels.size > 1}
+                                            <span
+                                                class="text-[9px] px-1 py-0.2 rounded font-bold bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-color)]"
+                                                title={$_("journal.accountColumn")}
+                                            >
+                                                {accountLabels.get(entryItem?.accountId ?? "") ?? $_("journal.accountUnknown")}
+                                            </span>
+                                        {/if}
                                     </div>
                                 </td>
                             {/if}
@@ -782,6 +807,14 @@
                                                 {#if subTrade.isPaper}
                                                     <span class="text-[9px] px-1 py-0.2 rounded font-bold bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-color)]">
                                                         SIM
+                                                    </span>
+                                                {/if}
+                                                {#if accountLabels.size > 1}
+                                                    <span
+                                                        class="text-[9px] px-1 py-0.2 rounded font-bold bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-color)]"
+                                                        title={$_("journal.accountColumn")}
+                                                    >
+                                                        {accountLabels.get(subTrade.accountId ?? "") ?? $_("journal.accountUnknown")}
                                                     </span>
                                                 {/if}
                                             </div>

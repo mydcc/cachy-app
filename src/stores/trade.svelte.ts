@@ -390,6 +390,28 @@ class TradeManager {
     return true;
   }
 
+  /**
+   * Drop the leverage and margin mode fetched from the exchange — FEAT-0026.
+   *
+   * This is the safety-critical half of clearing on an account switch. The
+   * FEAT-0011 gate reads `remoteAccountStateAt` purely as an *age*: it asks
+   * "is this recent enough to trust", never "is this the account I am about
+   * to sign for". Left alone across a switch, it reads as fresh while the
+   * leverage and margin mode beside it came from the account the trader just
+   * left — and those are the numbers a position size is checked against.
+   *
+   * The fees go with them: they are venue *and* account scoped (a VIP tier or
+   * a fee rebate belongs to one account), and a stale maker fee silently
+   * misprices every subsequent calculation.
+   */
+  clearRemoteAccountState() {
+    this.remoteLeverage = undefined;
+    this.remoteAccountStateAt = undefined;
+    this.remoteMarginMode = undefined;
+    this.remoteMakerFee = undefined;
+    this.remoteTakerFee = undefined;
+  }
+
   toggleAtrInputs(enable: boolean) {
     this.useAtrSl = enable;
     if (enable) {

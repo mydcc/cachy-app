@@ -19,7 +19,9 @@
   import { onMount, untrack } from "svelte";
   import { Decimal } from "decimal.js";
   import { settingsState } from "../../stores/settings.svelte";
-  import { keysForExchange } from "../../stores/settings/accounts";
+  import { keysForActiveAccount } from "../../stores/settings/accounts";
+  import { accountSession } from "../../services/accountSession.svelte";
+  import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
@@ -269,7 +271,7 @@
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = keysForExchange(settingsState.accounts, provider);
+    const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
 
     if (!keys?.key || !keys?.secret) return;
     // The sync callback (registered below) can fire once per malformed/
@@ -330,7 +332,7 @@
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = keysForExchange(settingsState.accounts, provider);
+    const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
     if (!keys?.key || !keys?.secret) return;
 
     loadingOrders = true;
@@ -397,7 +399,7 @@
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = keysForExchange(settingsState.accounts, provider);
+    const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
     if (!keys?.key || !keys?.secret) return;
 
     if (isAppend) {
@@ -514,8 +516,14 @@
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = keysForExchange(settingsState.accounts, provider);
+    const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
     if (!keys?.key || !keys?.secret) return;
+
+    // FEAT-0026. `hydrateBalance` below deliberately *merges*, preserving the
+    // margin fields only the WS wallet channel supplies. That merge is
+    // correct within one account and is cross-account blending across two,
+    // so a response that outlived its session must not reach it.
+    const session = accountSession.current();
 
     try {
       const response = await appFetch("/api/account", {
@@ -539,6 +547,8 @@
       // to accountInfo, so every field silently stuck at its all-zero
       // initial state — indistinguishable from a genuinely empty account,
       // and never surfaced as an error either (BUG-0060).
+      if (!accountSession.isCurrent(session)) return;
+
       const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
       if (data === null) {
         errorAccount = translateError({ code, error: message });
@@ -570,7 +580,7 @@
     // Paper mode needs no credentials — the book is local, and gating the
     // first read on API keys is why a paper account with none started empty.
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = keysForExchange(settingsState.accounts, provider);
+    const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
     if (paperAccountFeed() || (keys?.key && keys?.secret)) {
       fetchAccount();
       fetchPositions();
@@ -648,18 +658,16 @@
   // Watch for API key changes to re-trigger initial fetch
   $effect(() => {
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = keysForExchange(settingsState.accounts, provider);
+    const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
+    // Only the *fetching* half is gated on credentials — you cannot fetch
+    // without keys. The invalidation half moved to the session effect below,
+    // because this guard meant a switch to an account with no credentials
+    // never invalidated anything, and the previous account's data stayed on
+    // screen under the new account's name.
     if (keys?.key && keys?.secret) {
       untrack(() => {
         fetchAccount();
         fetchPositions();
-        // Orders/History are tab-gated above; invalidate so the next visit
-        // (or the currently active tab) re-fetches for the new key/exchange
-        // instead of silently keeping the previous account's stale data.
-        hasFetchedOrdersOnce = false;
-        hasFetchedHistoryOnce = false;
-        // The position cards' TP/SL plans belong to the previous account.
-        tpSlState.reset();
         if (activeTab === "orders") fetchPendingOrders();
         if (activeTab === "history") fetchHistoryOrders();
       });
@@ -844,6 +852,49 @@
   /** FEAT-0330 — set while the flash-close confirmation is open. */
   let flashClosingPosition = $state<OMSPosition | null>(null);
 
+  /*
+   * FEAT-0026: clear what this component caches for itself.
+   *
+   * `historyOrders` and `accountInfo` are component `$state`, so
+   * `accountState.reset()` cannot reach them — a switch would leave the
+   * previous account's fills and account summary rendered under the new
+   * account's name. Keyed on the session rather than on the credentials,
+   * because switching *to* an account with no keys is exactly the case the
+   * old credential guard skipped.
+   *
+   * `flashClosingPosition` goes too: it holds a position from the account
+   * being left, and its dialog is open. The gate would refuse the resulting
+   * order — correctly — but a refusal the trader cannot interpret is a worse
+   * outcome than the dialog closing when the ground moves under it.
+   *
+   * Registers no listener, so there is nothing to return.
+   */
+  $effect(() => {
+    void accountSession.seq;
+    untrack(() => {
+      historyOrders = [];
+      accountInfo = {
+        available: 0,
+        margin: 0,
+        totalUnrealizedPnL: 0,
+        marginCoin: "USDT",
+        frozen: 0,
+        transfer: 0,
+        bonus: 0,
+        positionMode: "",
+        crossUnrealizedPNL: 0,
+        isolationUnrealizedPNL: 0,
+      };
+      errorAccount = "";
+      errorPositions = "";
+      // Tab-gated fetches re-run on the next visit instead of showing the
+      // previous account's rows.
+      hasFetchedOrdersOnce = false;
+      hasFetchedHistoryOnce = false;
+      flashClosingPosition = null;
+    });
+  });
+
   /** The position whose TP/SL create dialog is open, or null (FEAT-0070). */
   let tpSlCreatePosition = $state<OMSPosition | null>(null);
 
@@ -884,9 +935,15 @@
     tabindex="0"
     aria-expanded={isOpen}
   >
-    <h3 class="font-bold text-sm text-[var(--text-primary)]">
-      {$_("dashboard.marketActivity")}
-    </h3>
+    <div class="flex items-center gap-2 min-w-0">
+      <h3 class="font-bold text-sm text-[var(--text-primary)]">
+        {$_("dashboard.marketActivity")}
+      </h3>
+      <!-- FEAT-0026: flash close, cancel order and the TP/SL controls all
+           live under this header, and none of them named an account. The
+           header stays visible when the panel is collapsed. -->
+      <ActiveAccountChip compact />
+    </div>
     <div
       class="text-[var(--text-secondary)] transform transition-transform duration-200"
       class:rotate-180={!isOpen}

@@ -806,7 +806,9 @@
     },
     "chartAlt": "{symbol} Chart",
     "chartPreviewAlt": "{symbol} Chart Preview",
-    "chartFullAlt": "{symbol} Full Chart"
+    "chartFullAlt": "{symbol} Full Chart",
+    "accountColumn": "Account",
+    "accountUnknown": "Removed account"
   },
   "marketOverview": {
     "24hHigh": "24h High",
@@ -1691,6 +1693,21 @@
         "toggleSecret": "Toggle secret visibility",
         "togglePassphrase": "Toggle passphrase visibility",
         "removeFeed": "Remove feed"
+      },
+      "accounts": {
+        "switchFrom": "Current account",
+        "switchTo": "Switching to",
+        "active": "Active",
+        "name": "Account name",
+        "namePlaceholder": "e.g. Scalping",
+        "makeActive": "Make active",
+        "remove": "Remove",
+        "removeLastHint": "The last account cannot be removed.",
+        "removeTitle": "Remove account",
+        "removeMessage": "Remove “{name}” and delete its API credentials from this device? This cannot be undone. Positions and orders at the exchange are not affected.",
+        "addLabel": "Add an account:",
+        "exchange": "Exchange",
+        "activeAccountAria": "Active account: {name} on {venue}"
       }
     },
     "imgbbExpiration": "Expiration Time",

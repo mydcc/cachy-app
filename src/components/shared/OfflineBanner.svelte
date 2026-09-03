@@ -21,7 +21,30 @@
     import { uiState } from "../../stores/ui.svelte";
     import { connectionManager } from "../../services/connectionManager";
     import { toastService } from "../../services/toastService.svelte";
+    import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
+    import ConfirmActionModal from "./ConfirmActionModal.svelte";
     import { _ } from "../../locales/i18n";
+
+    /**
+     * The switch waiting on a confirmation — FEAT-0026.
+     *
+     * The banner asks during an outage rather than switching silently, which
+     * is a deliberate choice: the outage makes the switch more attractive,
+     * not less consequential. It changes which credentials sign every
+     * subsequent order, and the policy default for `account-switch` is on.
+     */
+    let pendingSwitch = $state<{
+        id: string;
+        name: string;
+        providerName: string;
+    } | null>(null);
+
+    /** Named in the dialog so the trader sees what they are leaving. */
+    let activeAccountName = $derived(
+        settingsState.accounts?.find(
+            (account) => account.id === settingsState.activeAccountId,
+        )?.name ?? settingsState.apiProvider,
+    );
 
     let isOffline = $derived(
         marketState.connectionStatus === "disconnected" ||
@@ -41,7 +64,35 @@
         const newProvider =
             settingsState.apiProvider === "bitunix" ? "bitget" : "bitunix";
         const providerName = newProvider === "bitunix" ? "Bitunix" : "Bitget";
-        settingsState.apiProvider = newProvider;
+
+        // FEAT-0026: this is an account switch, not just a venue flip.
+        //
+        // It used to assign `settingsState.apiProvider` directly, which
+        // changed which credentials sign every subsequent order without ever
+        // being treated as a switch — no confirmation, no clearing, no
+        // rotation. Routing it through `setActiveAccount` gives it all three,
+        // and the authorisation parameter makes skipping the prompt a
+        // compile error rather than an oversight.
+        const target = settingsState.accounts?.find(
+            (account) => account.exchange === newProvider,
+        );
+        if (!target) {
+            toastService.error(
+                $_("offline.switchFailed", { values: { provider: providerName } }),
+            );
+            return;
+        }
+
+        const auth = confirmationPolicyStore.authorizeSwitchUnprompted();
+        if (!auth) {
+            pendingSwitch = { id: target.id, name: target.name, providerName };
+            return;
+        }
+        settingsState.setActiveAccount(target.id, auth);
+        await completeSwitch(newProvider, providerName);
+    }
+
+    async function completeSwitch(newProvider: string, providerName: string) {
         try {
             await connectionManager.switchProvider(newProvider, { force: true });
             toastService.info(
@@ -123,3 +174,39 @@
         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     }
 </style>
+
+<!--
+    Outside the `{#if isOffline}` block on purpose: the connection coming back
+    while the dialog is open must not tear the dialog down under the user's
+    cursor. The switch they asked for is still the switch they asked for.
+-->
+{#if pendingSwitch}
+    <ConfirmActionModal
+        isOpen={true}
+        action="account-switch"
+        facts={[
+            {
+                label: $_("settings.connections.accounts.switchFrom"),
+                value: activeAccountName,
+            },
+            {
+                label: $_("settings.connections.accounts.switchTo"),
+                value: pendingSwitch.name,
+            },
+        ]}
+        onconfirm={(confirmedAt) => {
+            const target = pendingSwitch;
+            pendingSwitch = null;
+            if (!target) return;
+            settingsState.setActiveAccount(
+                target.id,
+                confirmationPolicyStore.authorizeSwitchFromConfirmation(confirmedAt),
+            );
+            void completeSwitch(
+                settingsState.apiProvider,
+                target.providerName,
+            );
+        }}
+        oncancel={() => (pendingSwitch = null)}
+    />
+{/if}

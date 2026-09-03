@@ -23,6 +23,9 @@ import {
     migrateEncryptedAccountKeys,
     redactAccounts,
     defaultAccountState,
+    activeAccountFor,
+    keysForActiveAccount,
+    newAccountId,
     LEGACY_ACCOUNT_IDS,
     type ExchangeAccount,
 } from "./accounts";
@@ -195,5 +198,82 @@ describe("keysForExchange defensiveness", () => {
         // not throw at the call site that was about to place an order.
         expect(keysForExchange(undefined, "bitunix")).toEqual({ key: "", secret: "" });
         expect(accountForExchange(undefined, "bitget")).toBeUndefined();
+    });
+});
+
+/**
+ * FEAT-0026. `accountForExchange` answers "which account is on this venue";
+ * these answer "which account is active", which used to be the same question
+ * only because there was exactly one account per venue.
+ */
+describe("activeAccountFor", () => {
+    const twoOnOneVenue: ExchangeAccount[] = [
+        { id: "bu-1", name: "First", exchange: "bitunix", keys: { key: "k1", secret: "s1" } },
+        { id: "bu-2", name: "Second", exchange: "bitunix", keys: { key: "k2", secret: "s2" } },
+        { id: "bg-1", name: "Bitget", exchange: "bitget", keys: { key: "k3", secret: "s3" } },
+    ];
+
+    it("resolves the active account rather than the venue's first", () => {
+        // The defect this whole item exists to prevent: with `accountForExchange`
+        // the second account on a venue is unreachable, so an order signs with
+        // the first while the screen names the second.
+        expect(activeAccountFor(twoOnOneVenue, "bu-2", "bitunix")?.id).toBe("bu-2");
+        expect(keysForActiveAccount(twoOnOneVenue, "bu-2", "bitunix").key).toBe("k2");
+    });
+
+    it("never returns an account from a different venue than the one being signed for", () => {
+        // Active is a Bitunix account, but the caller is signing for Bitget.
+        // Returning the active one would sign a Bitget request with Bitunix
+        // credentials — a loud failure at the exchange, but still wrong.
+        expect(activeAccountFor(twoOnOneVenue, "bu-2", "bitget")?.exchange).toBe("bitget");
+    });
+
+    /*
+     * The fallback that keeps roughly thirty fixture files compiling: every
+     * test that mocks `settingsState` without an `activeAccountId` still
+     * resolves the venue's account. Pinned deliberately — if this ever
+     * becomes a throw, the breakage is wide and silent to `npm run check`,
+     * which excludes `src/**‍/*.test.ts`.
+     */
+    it("falls back to the venue's account when the active id names one elsewhere", () => {
+        expect(activeAccountFor(twoOnOneVenue, "bg-1", "bitunix")?.id).toBe("bu-1");
+    });
+
+    it("falls back to the venue's account when the active id names nothing", () => {
+        expect(activeAccountFor(twoOnOneVenue, "does-not-exist", "bitunix")?.id).toBe("bu-1");
+        expect(activeAccountFor(twoOnOneVenue, "", "bitunix")?.id).toBe("bu-1");
+        expect(activeAccountFor(twoOnOneVenue, undefined, "bitunix")?.id).toBe("bu-1");
+    });
+
+    it("is a no-op for a profile with one account per venue", () => {
+        // Every profile that exists today. `activeAccountFor` must agree with
+        // `accountForExchange` on all of them, or this PR is not the no-op it
+        // claims to be.
+        const { accounts, activeAccountId } = defaultAccountState();
+        for (const venue of ["bitunix", "bitget"] as const) {
+            expect(activeAccountFor(accounts, activeAccountId, venue)).toBe(
+                accountForExchange(accounts, venue),
+            );
+        }
+    });
+
+    it("stays total, so an order-placing reader refuses rather than throws", () => {
+        expect(keysForActiveAccount(undefined, "bu-1", "bitunix")).toEqual({
+            key: "",
+            secret: "",
+        });
+    });
+});
+
+describe("newAccountId", () => {
+    it("never collides with the two reserved venue slugs", () => {
+        const id = newAccountId([]);
+        expect(Object.values(LEGACY_ACCOUNT_IDS)).not.toContain(id);
+    });
+
+    it("never collides with an existing account", () => {
+        const { accounts } = defaultAccountState();
+        const id = newAccountId(accounts);
+        expect(accounts.map((a) => a.id)).not.toContain(id);
     });
 });

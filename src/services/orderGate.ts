@@ -77,6 +77,7 @@ export interface GatePass {
 interface PassRecord {
     provider: string;
     accountFingerprint: string;
+    accountId?: string;
     endpoint: string;
     action: string;
     symbol?: string;
@@ -173,6 +174,15 @@ export interface DisplayedState {
     provider: string;
     /** Non-secret identifier of the active API key (never the key itself). */
     accountFingerprint: string;
+    /**
+     * The account the surface believed was active — FEAT-0026.
+     *
+     * Distinct from `accountFingerprint`, which is derived from the key and
+     * therefore says nothing when two accounts share one. Optional, per this
+     * interface's contract: an absent id is not compared, so every caller
+     * that predates FEAT-0026 keeps working unchanged.
+     */
+    accountId?: string;
     /**
      * Whether the UI showed paper mode as active (FEAT-0012). The dangerous
      * direction is believing you are simulating while live, so the transport
@@ -437,7 +447,15 @@ function asId(value: unknown): string | undefined {
     return undefined;
 }
 
-function mismatch(
+/**
+ * Exported for `tradeService.completeIntent`, which refuses a supplied
+ * account id that disagrees with the store before the intent ever reaches
+ * the gate. Same refusal shape as every gate-side mismatch, so the trader
+ * sees one vocabulary; carries no credential material — `redact.ts`
+ * whitelists the `account` field precisely because an id and a key prefix
+ * are not secrets.
+ */
+export function mismatch(
     field: string,
     expected: unknown,
     actual: unknown,
@@ -546,6 +564,21 @@ class OrderGate {
 
         // --- account -------------------------------------------------------
         checked.push("account");
+        // `NO_CREDENTIALS` is deliberately NOT refused here, though it is
+        // truthy and so slips through this test.
+        //
+        // Refusing it looks like an improvement and is not. `verify` runs
+        // identically in paper mode — the live/paper seam is further down, in
+        // `signedRequest` (FEAT-0012) — and a simulated order needs no
+        // credentials at all, so refusing here would break paper trading for
+        // every profile that has not entered keys. The transport already
+        // refuses a *live* order with no key, on the correct side of that
+        // seam.
+        //
+        // The hazard this would have addressed — two credential-free accounts
+        // being indistinguishable, since both fingerprint to the same string
+        // — is answered by `accountId` above instead, which distinguishes
+        // them whether or not either holds a key.
         if (!displayed.provider || !displayed.accountFingerprint) {
             return refuse(missing("account"));
         }
@@ -1224,6 +1257,7 @@ class OrderGate {
         issuedPasses.set(pass as unknown as object, {
             provider: intent.displayed.provider,
             accountFingerprint: intent.displayed.accountFingerprint,
+            accountId: intent.displayed.accountId,
             endpoint: intent.endpoint,
             action,
             symbol: typeof intent.payload.symbol === "string" ? intent.payload.symbol : undefined,
@@ -1298,6 +1332,8 @@ export interface TransportContext {
     provider: string;
     /** Fingerprint of the key the transport is about to sign with. */
     accountFingerprint: string;
+    /** The account the transport actually resolved (FEAT-0026). */
+    accountId?: string;
     /** The live paper/live mode, read at transmit time (FEAT-0012). */
     paperMode: boolean;
 }
@@ -1354,6 +1390,15 @@ export function assertGatePass(ctx: TransportContext, pass?: GatePass): void {
     }
     if (record.provider !== ctx.provider) {
         throw new OrderRefusedError(mismatch("account", record.provider, ctx.provider));
+    }
+    // Checked before the fingerprint so the two refusals stay distinguishable:
+    // an id change with the same key means the account was switched under the
+    // order, a key change with the same id means the credentials were edited.
+    // Only compared when the pass carries one — see `DisplayedState.accountId`.
+    if (record.accountId !== undefined && record.accountId !== ctx.accountId) {
+        throw new OrderRefusedError(
+            mismatch("account", record.accountId, ctx.accountId ?? "—"),
+        );
     }
     if (record.accountFingerprint !== ctx.accountFingerprint) {
         throw new OrderRefusedError(
@@ -1418,8 +1463,11 @@ export function translateRefusal(
  * device, and this shortened form additionally keeps the key out of refusal
  * messages and logs.
  */
+/** What `accountFingerprint` reports for an account with no key at all. */
+export const NO_CREDENTIALS = "none";
+
 export function accountFingerprint(apiKey: string | undefined | null): string {
-    if (!apiKey) return "none";
+    if (!apiKey) return NO_CREDENTIALS;
     if (apiKey.length <= 8) return `${apiKey.slice(0, 2)}…${apiKey.length}`;
     return `${apiKey.slice(0, 4)}…${apiKey.slice(-4)}`;
 }

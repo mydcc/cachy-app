@@ -31,7 +31,7 @@ import { mapToOMSPosition } from "./mappers";
 import { toastService } from "./toastService.svelte";
 import { _ } from "../locales/i18n";
 import { get } from "svelte/store";
-import { settingsState } from "../stores/settings.svelte";
+import { settingsState, type ApiKeys } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { effectsState } from "../stores/effects.svelte";
@@ -51,13 +51,15 @@ import { capabilitiesOf } from "./exchangeCapabilities";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
-import { keysForExchange } from "../stores/settings/accounts";
+import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
+import { accountSession } from "./accountSession.svelte";
 import {
     orderGate,
     assertGatePass,
     accountFingerprint,
     translateRefusal,
     OrderRefusedError,
+    mismatch,
     type GatePass,
     type DisplayedState,
     type OrderIntent,
@@ -197,6 +199,14 @@ type PartialIntent = Omit<OrderIntent, "displayed"> & {
     displayed: Omit<DisplayedState, "provider" | "accountFingerprint" | "paperMode">;
 };
 
+/**
+ * The credentials of an account that does not exist.
+ *
+ * Frozen: it is shared by the two gate-facing reads, and a caller that
+ * mutated it would silently poison both.
+ */
+const EMPTY_KEYS: Readonly<ApiKeys> = Object.freeze({ key: "", secret: "" });
+
 class TradeService {
     // Hardening: Promise Coalescing to prevent Thundering Herd
     private fetchPositionsPromise: Promise<void> | null = null;
@@ -221,7 +231,22 @@ class TradeService {
         // Implementation for real app (simplified)
         // In test this is mocked
         const provider = settingsState.apiProvider;
-        const keys = keysForExchange(settingsState.accounts, provider);
+        // Resolve the *account*, not just its keys, so the id reported to the
+        // gate describes the credentials this request will actually carry.
+        //
+        // Reporting `settingsState.activeAccountId` raw was wrong: the lookup
+        // is venue-scoped and falls back to the venue's account when the
+        // active id names one on another exchange. The id would then name an
+        // account the signature does not belong to — and because both sides
+        // of the gate made the same claim, they agreed and the order went
+        // out. A field that can be false about what it describes is worse
+        // than no field.
+        const account = activeAccountFor(
+            settingsState.accounts,
+            settingsState.activeAccountId,
+            provider,
+        );
+        const keys = account?.keys ?? EMPTY_KEYS;
 
         // Re-read of the account the request will actually be signed with,
         // compared against the account the gate approved. Settings can change
@@ -232,6 +257,7 @@ class TradeService {
                 payload,
                 provider,
                 accountFingerprint: accountFingerprint(keys?.key),
+                accountId: account?.id,
                 paperMode: paperState.enabled,
             },
             pass
@@ -309,8 +335,14 @@ class TradeService {
     public async fetchLeverageMarginMode(symbol: string): Promise<void> {
         const provider = settingsState.apiProvider;
         if (provider !== "bitunix") return; // Bitget equivalent: follow the M2 adapter shape
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys?.key || !keys?.secret) return;
+
+        // FEAT-0026. These three fields are what the FEAT-0011 gate ages: it
+        // asks "is this recent enough", never "is this the account I am
+        // signing for". A late response writing them would look freshly
+        // confirmed while describing the account the trader just left.
+        const session = accountSession.current();
 
         try {
             const response = await appFetch("/api/leverage-margin-mode", {
@@ -335,6 +367,8 @@ class TradeService {
                 logger.error("network", "[TradeService] Invalid leverage/margin-mode response", validation.error.issues);
                 return;
             }
+            if (!accountSession.isCurrent(session)) return;
+
             tradeState.remoteLeverage = new Decimal(validation.data.leverage);
             tradeState.remoteMarginMode = validation.data.marginMode;
             // FEAT-0011 measures staleness from here. Stamped only on a
@@ -369,7 +403,7 @@ class TradeService {
         }
 
         const provider = settingsState.apiProvider;
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys?.key || !keys?.secret) {
             throw new Error("apiErrors.missingCredentials");
         }
@@ -597,11 +631,30 @@ class TradeService {
      * currently shows as active. Every intent needs it; nothing else about
      * an intent is shared, so the rest is built per call site.
      */
-    private displayedAccount(): Pick<DisplayedState, "provider" | "accountFingerprint" | "paperMode"> {
+    private displayedAccount(): Pick<
+        DisplayedState,
+        "provider" | "accountFingerprint" | "accountId" | "paperMode"
+    > {
         const provider = settingsState.apiProvider;
+        // Same resolution as the transport, for the same reason: the id has
+        // to name the account the fingerprint came from.
+        const account = activeAccountFor(
+            settingsState.accounts,
+            settingsState.activeAccountId,
+            provider,
+        );
         return {
             provider,
-            accountFingerprint: accountFingerprint(keysForExchange(settingsState.accounts, provider).key),
+            accountFingerprint: accountFingerprint((account?.keys ?? EMPTY_KEYS).key),
+            // FEAT-0026. Be honest about what this is: a second *field*, not
+            // yet a second *derivation* — both this and the transmit-time
+            // read still come from `settingsState`. It is nonetheless a
+            // strict improvement, because it catches an account switch that
+            // leaves the key string unchanged, which the fingerprint cannot
+            // see. Sourcing one of the two roots from what the user was
+            // actually shown is the account chip's job, in the PR that adds
+            // it.
+            accountId: account?.id,
             paperMode: paperState.enabled,
         };
     }
@@ -620,9 +673,37 @@ class TradeService {
      * exact class of bug the gate exists to catch.
      */
     private completeIntent(intent: PartialIntent): OrderIntent {
+        const account = this.displayedAccount();
+
+        // A caller may *state* which account it believed was active — that is
+        // how the account chip will supply a second, independent root once
+        // every order surface renders one. What a caller may not do is blank
+        // it.
+        //
+        // `...intent.displayed` spreads over the store-derived block, and
+        // `accountId` is not in `PartialIntent`'s omit list, so a call site
+        // passing `accountId: maybeUndefined` used to overwrite the real id
+        // with `undefined` — and `assertGatePass` skips the comparison
+        // entirely when the pass carries none. An ordinary-looking assignment
+        // could therefore switch off a money-critical check with nothing
+        // going red anywhere.
+        //
+        // So: a supplied id that disagrees with the store is a refusal, and
+        // the id that reaches the pass is always the store's.
+        const supplied = intent.displayed.accountId;
+        if (supplied !== undefined && supplied !== account.accountId) {
+            throw new OrderRefusedError(
+                mismatch("account", supplied, account.accountId ?? "—"),
+            );
+        }
+
         return {
             ...intent,
-            displayed: { ...this.displayedAccount(), ...intent.displayed },
+            displayed: {
+                ...account,
+                ...intent.displayed,
+                accountId: account.accountId,
+            },
         };
     }
 
@@ -920,7 +1001,7 @@ class TradeService {
         try {
             // W-6: Use generalized provider key lookup instead of hardcoding 'bitunix'
             const provider = settingsState.apiProvider;
-            const keys = keysForExchange(settingsState.accounts, provider);
+            const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
             if (!keys?.key || !keys?.secret) return;
 
             const pendingResponse = await appFetch("/api/sync/positions-pending", {
@@ -1380,7 +1461,7 @@ class TradeService {
 
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
         const provider = settingsState.apiProvider || "bitunix";
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         /*
          * Credentials are what a *venue* needs, and this read goes through
          * `signedRequest`, which answers from the simulator in paper mode

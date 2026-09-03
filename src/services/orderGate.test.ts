@@ -43,6 +43,10 @@ import {
 const ACCOUNT = {
     provider: "bitunix",
     accountFingerprint: "abcd…wxyz",
+    // FEAT-0026. The fingerprint above comes from the key, so it says nothing
+    // when two accounts on one venue are involved; this names the account
+    // itself. Both sides of the check carry it — see `ctx` below.
+    accountId: "bitunix-first",
 };
 
 /**
@@ -669,6 +673,7 @@ describe("orderGate — submit", () => {
                     payload: intent.payload,
                     provider: ACCOUNT.provider,
                     accountFingerprint: ACCOUNT.accountFingerprint,
+                    accountId: ACCOUNT.accountId,
                     paperMode: false,
                 },
                 pass,
@@ -688,6 +693,7 @@ describe("orderGate — the transport is unreachable without a pass", () => {
         payload,
         provider: ACCOUNT.provider,
         accountFingerprint: ACCOUNT.accountFingerprint,
+        accountId: ACCOUNT.accountId,
         paperMode: false,
     });
 
@@ -778,6 +784,63 @@ describe("orderGate — the transport is unreachable without a pass", () => {
                 ),
             ),
         ).rejects.toMatchObject({ refusal: { field: "account" } });
+    });
+
+    /*
+     * FEAT-0026's acceptance criterion, and the case the item's own audit
+     * wrongly recorded as already satisfied.
+     *
+     * Two accounts on one venue: same provider, same key string, different
+     * account. `accountFingerprint` derives from the key, so it cannot see
+     * this — both sides fingerprint identically and agree. Before the account
+     * id was carried in the pass, the order went out on whichever account the
+     * venue lookup happened to return, while the screen named the other one.
+     */
+    it("refuses when the account was switched under the order, on one venue", async () => {
+        const intent = reduceIntent();
+        await expect(
+            orderGate.submit(intent, async (pass) =>
+                assertGatePass(
+                    { ...ctx(intent.payload), accountId: "bitunix-second" },
+                    pass,
+                ),
+            ),
+        ).rejects.toMatchObject({ refusal: { field: "account" } });
+    });
+
+    it("names the accounts in the refusal, not the key material", async () => {
+        const intent = reduceIntent();
+        const err = await orderGate
+            .submit(intent, async (pass) =>
+                assertGatePass(
+                    { ...ctx(intent.payload), accountId: "bitunix-second" },
+                    pass,
+                ),
+            )
+            .catch((e) => e as { refusal: { values: Record<string, unknown> } });
+
+        // An id is not credential material, so it may be shown. The trader has
+        // to be able to tell *which* account the order would have gone to.
+        expect(err.refusal.values.actual).toBe("bitunix-second");
+    });
+
+    /*
+     * The compatibility half. Every caller that predates FEAT-0026 builds a
+     * `displayed` block with no `accountId`, and those must keep working —
+     * `DisplayedState`'s contract is that an absent field is not compared.
+     */
+    it("does not compare an account id the pass never carried", async () => {
+        const intent = reduceIntent();
+        delete (intent.displayed as { accountId?: string }).accountId;
+
+        await expect(
+            orderGate.submit(intent, async (pass) =>
+                assertGatePass(
+                    { ...ctx(intent.payload), accountId: "anything-at-all" },
+                    pass,
+                ),
+            ),
+        ).resolves.not.toThrow();
     });
 
     it("refuses when paper mode changed between approval and transmission", async () => {

@@ -26,7 +26,8 @@
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
-  import { keysForExchange } from "../../stores/settings/accounts";
+  import { keysForActiveAccount } from "../../stores/settings/accounts";
+  import { accountSession } from "../../services/accountSession.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { safeJsonParse } from "../../utils/safeJson";
   import { mapApiErrorToLabel } from "../../utils/errorUtils";
@@ -52,7 +53,7 @@
 
   let isConnected = $derived(marketState.connectionStatus === "connected");
   let activeKeys = $derived(
-    keysForExchange(settingsState.accounts, settingsState.apiProvider),
+    keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, settingsState.apiProvider),
   );
   let hasApiKeys = $derived(Boolean(activeKeys.key) && Boolean(activeKeys.secret));
   let isFetchingBalance = $state(false);
@@ -169,7 +170,7 @@
 
     const settings = settingsState;
     const provider = settings.apiProvider;
-    const keys = keysForExchange(settings.accounts, provider);
+    const keys = keysForActiveAccount(settings.accounts, settings.activeAccountId, provider);
 
     if (!keys.key || !keys.secret) {
       if (!silent) {
@@ -177,6 +178,11 @@
       }
       return;
     }
+
+    // FEAT-0026. `accountSize` is the denominator every position size is
+    // derived from, so a balance that arrives after a switch would size
+    // account B's orders off account A's equity.
+    const session = accountSession.current();
 
     isFetchingBalance = true;
     try {
@@ -199,6 +205,8 @@
       if (!res.ok) {
         throw new Error(data.error || $_("dashboard.portfolioInputs.fetchBalanceError"));
       }
+
+      if (!accountSession.isCurrent(session)) return;
 
       if (typeof data.balance === "number" || typeof data.balance === "string") {
         tradeState.update((s) => ({ ...s, accountSize: String(data.balance) }));
