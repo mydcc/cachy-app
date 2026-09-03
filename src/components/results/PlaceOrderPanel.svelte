@@ -98,6 +98,20 @@
   // Trigger is omitted since Bitunix does not support trigger orders via API
   const ALL_TYPES: OrderEntryType[] = ["market", "limit"];
 
+  /*
+   * FEAT-0253 — the calculator has to know the entry order type, because a
+   * market entry is a taker fill and a limit entry a maker fill, and the entry
+   * fee follows that.
+   *
+   * Published to the store rather than read back from it: this panel stays the
+   * only writer and keeps rendering from its own local state, so it does not
+   * depend on the store to show which button is active. The same one-way
+   * mirror the leverage and fee fields use.
+   */
+  $effect(() => {
+    tradeState.entryOrderType = entryType;
+  });
+
   function selectOrderType(t: OrderEntryType) {
     entryType = t;
     if (t === "market") {
