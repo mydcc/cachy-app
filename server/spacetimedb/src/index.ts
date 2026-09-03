@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { schema, table, t } from 'spacetimedb/server';
+import { schema, table, t, SenderError } from 'spacetimedb/server';
 import { ScheduleAt } from 'spacetimedb';
 
 /**
@@ -26,11 +26,24 @@ import { ScheduleAt } from 'spacetimedb';
  * personal data with no purpose, which is what the GDPR consequence named in
  * ADR-0001 is about.
  */
-const RETENTION_DAYS = 90;
-const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
+import {
+  RETENTION_DAYS,
+  CLEANUP_INTERVAL_MICROS,
+  type MessageDb,
+  handleSendMessage,
+  handleDeleteExpiredMessages,
+  handleDeleteMyMessages,
+} from './rateLimit';
 
-/** How often the cleanup runs. Retention is the promise; this is the resolution. */
-const CLEANUP_INTERVAL_MICROS = 60n * 60n * 1_000_000n; // hourly
+const SenderActivity = table(
+  { name: 'sender_activity' },
+  {
+    sender: t.string().primaryKey(),
+    window_start: t.number(),
+    count: t.number(),
+    last_sent_at: t.number(),
+  }
+);
 
 const GlobalMessage = table(
   { name: 'global_message' },
@@ -49,7 +62,7 @@ const MessageCleanupSchedule = table(
   }
 );
 
-export const spacetimedb = schema(GlobalMessage, MessageCleanupSchedule);
+export const spacetimedb = schema(GlobalMessage, MessageCleanupSchedule, SenderActivity);
 
 spacetimedb.init((ctx) => {
   console.info('Module initialized');
@@ -63,6 +76,24 @@ spacetimedb.init((ctx) => {
   });
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function adaptDb(ctx: { db: any }): MessageDb {
+  return {
+    globalMessage: {
+      insert: (row) => ctx.db.globalMessage.insert(row),
+      delete: (row) => ctx.db.globalMessage.delete(row),
+      iter: () => ctx.db.globalMessage.iter(),
+    },
+    senderActivity: {
+      find: (sender) => ctx.db.senderActivity.sender.find(sender),
+      insert: (row) => ctx.db.senderActivity.insert(row),
+      update: (row) => ctx.db.senderActivity.sender.update(row),
+      delete: (row) => ctx.db.senderActivity.delete(row),
+      iter: () => ctx.db.senderActivity.iter(),
+    },
+  };
+}
+
 /**
  * Deletes messages past the retention window.
  *
@@ -75,18 +106,10 @@ spacetimedb.reducer(
   (ctx) => {
     // ctx.timestamp rather than Date.now(): reducers must be deterministic.
     const nowMs = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
-    const cutoff = nowMs - RETENTION_MS;
+    const { deletedMessages } = handleDeleteExpiredMessages(adaptDb(ctx), nowMs);
 
-    let deleted = 0;
-    for (const message of [...ctx.db.globalMessage.iter()]) {
-      if (message.sent_at < cutoff) {
-        ctx.db.globalMessage.delete(message);
-        deleted++;
-      }
-    }
-
-    if (deleted > 0) {
-      console.info(`Retention: deleted ${deleted} message(s) older than ${RETENTION_DAYS} days`);
+    if (deletedMessages > 0) {
+      console.info(`Retention: deleted ${deletedMessages} message(s) older than ${RETENTION_DAYS} days`);
     }
   }
 );
@@ -100,16 +123,8 @@ spacetimedb.reducer(
  */
 spacetimedb.reducer('delete_my_messages', {}, (ctx) => {
   const senderId = ctx.sender.toHexString();
-
-  let deleted = 0;
-  for (const message of [...ctx.db.globalMessage.iter()]) {
-    if (message.sender === senderId) {
-      ctx.db.globalMessage.delete(message);
-      deleted++;
-    }
-  }
-
-  console.info(`Erasure: deleted ${deleted} message(s)`);
+  const { deletedMessages } = handleDeleteMyMessages(adaptDb(ctx), senderId);
+  console.info(`Erasure: deleted ${deletedMessages} message(s)`);
 });
 
 spacetimedb.clientConnected((ctx) => {
@@ -122,17 +137,12 @@ spacetimedb.clientDisconnected((ctx) => {
 
 // Reducer to send a message
 spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
-  if (text.length > 1000) {
-    throw new Error('Message too long');
-  }
-
   const senderId = ctx.sender.toHexString();
   const timestamp = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
 
-  // Use globalMessage (camelCase) as required by SpacetimeDB Typescript bindings
-  ctx.db.globalMessage.insert({
-    sender: senderId,
-    text: text,
-    sent_at: timestamp
-  });
+  try {
+    handleSendMessage(adaptDb(ctx), senderId, timestamp, text);
+  } catch (err) {
+    throw new SenderError(err instanceof Error ? err.message : String(err));
+  }
 });

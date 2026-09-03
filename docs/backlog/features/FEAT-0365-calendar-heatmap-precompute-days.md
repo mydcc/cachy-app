@@ -2,7 +2,7 @@
 id: FEAT-0365
 title: Precompute month padding and day arrays in CalendarHeatmap using derived runes
 type: feature
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,8 @@ data_class: none
 adr: none
 depends_on: []
 size: XS
+assignee: antigravity
+shipped: 1.6.0-beta.213
 ---
 
 # FEAT-0365 — Precompute month padding and day arrays in CalendarHeatmap using derived runes
@@ -53,9 +55,9 @@ Every time the heatmap re-renders (e.g. on theme toggle, trade selection, hover 
 
 ## Acceptance criteria
 
-- [ ] Empty slots and day numbers are derived once per month/year change rather than on every render cycle.
-- [ ] Calendar heatmap renders identically for all 12 months, leap years, and locale offsets.
-- [ ] No visual or behavioral regressions when interacting with calendar days.
+- [x] Empty slots and day numbers are derived once per month/year change rather than on every render cycle.
+- [x] Calendar heatmap renders identically for all 12 months, leap years, and locale offsets.
+- [x] No visual or behavioral regressions when interacting with calendar days.
 
 ## Out of scope
 

@@ -10,8 +10,12 @@ import path from "path";
 let wsInstances: MockWebSocket[] = [];
 
 class MockWebSocket {
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSING = 2;
+    static CLOSED = 3;
     url: string;
-    readyState = 1; // OPEN
+    readyState = MockWebSocket.OPEN;
     onopen: (() => void) | null = null;
     onmessage: ((event: { data: string }) => void) | null = null;
     onclose: (() => void) | null = null;
@@ -23,7 +27,7 @@ class MockWebSocket {
     }
     send = vi.fn();
     close = vi.fn(() => {
-        this.readyState = 3; // CLOSED
+        this.readyState = MockWebSocket.CLOSED;
         if (this.onclose) this.onclose();
     });
 }

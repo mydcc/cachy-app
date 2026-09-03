@@ -2,7 +2,7 @@
 id: FEAT-0375
 title: Rate-limit the send_message reducer to stop message flooding in global chat
 type: feature
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +12,8 @@ adr: none
 depends_on: [BUG-0373]
 size: M
 estimate: 3
-# assignee:            # required while status: in-progress (who is working this)
+assignee: antigravity
+shipped: 1.6.0-beta.213
 ---
 
 # FEAT-0375 — Rate-limit the send_message reducer to stop message flooding in global chat
@@ -47,12 +48,12 @@ the style of the existing `RETENTION_DAYS`.
 
 ## Acceptance criteria
 
-- [ ] A sender exceeding the configured budget gets a rejected reducer call;
+- [x] A sender exceeding the configured budget gets a rejected reducer call;
       other senders are unaffected (test).
-- [ ] Burst behavior defined and tested (what happens in the first window).
-- [ ] The bookkeeping table itself is covered by the retention sweep or
+- [x] Burst behavior defined and tested (what happens in the first window).
+- [x] The bookkeeping table itself is covered by the retention sweep or
       bounded another way (no unbounded growth).
-- [ ] `npm run check` passes; client (`src/stores/chat.svelte.ts`) surfaces
+- [x] `npm run check` passes; client (`src/stores/chat.svelte.ts`) surfaces
       the rejection as a user-visible error, not a silent drop.
 
 ## Out of scope

@@ -1123,7 +1123,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0355",
     "title": "Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "antigravity",
+    "shipped": "1.6.0-beta.216",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1142,7 +1144,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0356",
     "title": "Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "antigravity",
+    "shipped": "1.6.0-beta.216",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1161,7 +1165,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0357",
     "title": "CloudService single callback overwrite disables global chat updates after CloudTab closes",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "antigravity",
+    "shipped": "1.6.0-beta.216",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1740,9 +1746,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0253",
     "title": "Make the calculator's entry/exit fee estimate honest about what it assumes",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "pheinze",
-    "branch": "worktree-issue-2164-14da99",
+    "shipped": "1.6.0-beta.214",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2958,7 +2964,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0358",
     "title": "MarketOverview duplicate effects register price and ticker channels twice per tile",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "antigravity",
+    "shipped": "1.6.0-beta.216",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3033,6 +3041,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "antigravity",
     "branch": "fix/security-audit-privacy-batch",
     "file": "bugs/BUG-0372-chat-message-text-in-server-logs.md"
+  },
+  {
+    "id": "BUG-0379",
+    "title": "Calculator fee fallback uses hardcoded default instead of per-account remote fee",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculator",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "file": "bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md"
+  },
+  {
+    "id": "BUG-0380",
+    "title": "placeOrder qty is not range-clamped before the exchange gate",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "file": "bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md"
   },
   {
     "id": "FEAT-0019",
@@ -4961,6 +5007,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0373-short-sender-id-collision.md"
   },
   {
+    "id": "BUG-0381",
+    "title": "Account break-even price uses hardcoded DEFAULT_FEES, not venue fee",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "file": "bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
@@ -5333,7 +5398,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0365",
     "title": "Precompute month padding and day arrays in CalendarHeatmap using derived runes",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5346,6 +5411,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "size": "XS",
+    "assignee": "antigravity",
+    "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0365-calendar-heatmap-precompute-days.md"
   },
   {
@@ -5374,7 +5441,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0375",
     "title": "Rate-limit the send_message reducer to stop message flooding in global chat",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5390,6 +5457,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "M",
     "estimate": "3",
+    "assignee": "antigravity",
+    "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0375-chat-rate-limit.md"
   },
   {
@@ -5419,7 +5488,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0377",
     "title": "Pass Gemini API key via x-goog-api-key header instead of URL query parameter",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5433,6 +5502,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "S",
     "estimate": "1",
+    "assignee": "antigravity",
+    "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0377-gemini-key-header-not-query.md"
   },
   {

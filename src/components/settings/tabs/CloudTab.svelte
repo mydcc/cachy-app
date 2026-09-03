@@ -32,16 +32,16 @@
   const connected = $derived(status.connected);
 
   $effect(() => {
-    cloudService.subscribeMessages((msgs) => {
+    const unsubMessages = cloudService.subscribeMessages((msgs) => {
       messages = msgs;
     });
-    cloudService.subscribeStatus((s) => {
+    const unsubStatus = cloudService.subscribeStatus((s) => {
       status = s;
     });
 
     return () => {
-      cloudService.subscribeMessages(() => {});
-      cloudService.subscribeStatus(() => {});
+      unsubMessages();
+      unsubStatus();
     };
   });
 
@@ -58,10 +58,14 @@
     }
   }
 
-  function send() {
+  async function send() {
     if (!messageText) return;
-    cloudService.sendMessage(messageText);
-    messageText = "";
+    try {
+      await cloudService.sendMessage(messageText);
+      messageText = "";
+    } catch (e) {
+      errorMsg = e instanceof Error ? e.message : String(e);
+    }
   }
 
   // Erasure is irreversible and hits the server, so it takes two clicks.

@@ -30,6 +30,7 @@ import type { TranslationKey } from "../locales/schema";
 import { trackCustomEvent } from "./trackingService";
 import { appFetch } from "../lib/appAuth";
 import { calculator } from "../lib/calculator";
+import { refreshDerivedFeeRates } from "./feeRateService";
 import type { Kline } from "./technicalsTypes";
 
 // Raw Bitunix position payload as returned by /api/sync/positions-history and
@@ -267,6 +268,13 @@ export const syncService = {
         console.warn("Order sync failed (non-critical):", e);
         isPartialSync = true;
       }
+
+      // FEAT-0253 — learn this account's real maker/taker rates from the fills
+      // the broker actually charged it. Awaited so the calculator has the
+      // derived rates by the time the sync reports done, but it never throws:
+      // an account with no usable fills is not a failed sync, it just leaves
+      // the displayed rate labelled "assumed" instead of "from broker".
+      await refreshDerivedFeeRates();
 
       // --- Processing Logic ---
 

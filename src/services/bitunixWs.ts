@@ -49,10 +49,10 @@ const WS_PRIVATE_URL =
 
 const PING_INTERVAL = 5000;
 const WATCHDOG_TIMEOUT = 20000;
-const RECONNECT_DELAY = 500;
+const INITIAL_BACKOFF_DELAY = 1000;
 const CONNECTION_TIMEOUT_MS = 10000;
 
-class BitunixWebSocketService {
+export class BitunixWebSocketService {
   // Trade Listeners
 
   private tradeListeners = new Map<string, Set<(trade: TradeData) => void>>();
@@ -167,7 +167,8 @@ class BitunixWebSocketService {
   private readonly MAX_PUBLIC_SUBSCRIPTIONS = 50;
 
   // Backoff State
-  private backoffDelay = 1000;
+  private backoffDelay = INITIAL_BACKOFF_DELAY;
+  private backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
   private readonly MAX_BACKOFF_DELAY = 30000;
 
   // Throttling for UI Blocking Updates
@@ -331,6 +332,10 @@ class BitunixWebSocketService {
     if (this.reconnectTimerPrivate) { clearTimeout(this.reconnectTimerPrivate); this.reconnectTimerPrivate = null; }
     if (this.batchTimer) { clearTimeout(this.batchTimer); this.batchTimer = null; }
     if (this.publicMessageTimer) { clearTimeout(this.publicMessageTimer); this.publicMessageTimer = null; }
+    this.backoffDelay = INITIAL_BACKOFF_DELAY;
+    this.backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
+    this.isReconnectingPublic = false;
+    this.isReconnectingPrivate = false;
 
     // 5. Permanent teardown: drop subscription state only when the service is
     // being destroyed (not on transient reconnect-driven cleanup).
@@ -419,7 +424,7 @@ class BitunixWebSocketService {
         marketState.updateTelemetry({ activeConnections: (marketState.telemetry.activeConnections || 0) + 1 });
 
         // [HYBRID FIX] Reset Backoff on successful connection
-        this.backoffDelay = 1000;
+        this.backoffDelay = INITIAL_BACKOFF_DELAY;
         this.isReconnectingPublic = false;
 
         this.lastMessageTimePublic = Date.now();
@@ -633,11 +638,17 @@ class BitunixWebSocketService {
     } else {
       if (this.isReconnectingPrivate) return;
       this.isReconnectingPrivate = true;
+
+      const delay = this.backoffDelayPrivate;
+      this.backoffDelayPrivate = Math.min(this.backoffDelayPrivate * 1.5, this.MAX_BACKOFF_DELAY);
+
+      logger.log("network", `[BitunixWS] Scheduling private reconnect in ${delay}ms (Backoff: ${this.backoffDelayPrivate})`);
+
       if (this.reconnectTimerPrivate) clearTimeout(this.reconnectTimerPrivate);
       this.reconnectTimerPrivate = setTimeout(() => {
         this.isReconnectingPrivate = false;
         if (!this.isDestroyed) this.connectPrivate();
-      }, RECONNECT_DELAY);
+      }, delay);
     }
   }
 
@@ -895,7 +906,11 @@ class BitunixWebSocketService {
           if (validatedMessage.code === 0 || validatedMessage.code === "0" || validatedMessage.msg === "success") {
             if (settingsState.enableNetworkLogs) logger.log("network", "Login successful");
             this.isAuthenticated = true;
+            this.backoffDelayPrivate = INITIAL_BACKOFF_DELAY;
             this.subscribePrivate();
+          } else {
+            logger.error("network", `[BitunixWS] Private login failed: ${validatedMessage.msg || validatedMessage.code}`);
+            this.cleanup("private");
           }
           return;
         }

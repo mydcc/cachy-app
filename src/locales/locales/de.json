@@ -257,7 +257,7 @@
     "partialVolume": "Teilverkauf Volumen",
     "partialVolumeTooltip": "Exakte Kontrakt- bzw. Coin-Menge, die mit dieser Teil-Order an der Börse platziert und bei Zielerreichung glattgestellt wird.",
     "exitFeeLabel": "Ausstiegsgebühr",
-    "exitFeeTooltip": "Geschätzte Transaktionsgebühr für diesen Teilverkauf, berechnet aus dem Teilauftragswert und dem entsprechenden Maker-/Taker-Satz.",
+    "exitFeeTooltip": "Eine Worst-Case-Annahme, kein Kurs der Börse. Wie die Position tatsächlich geschlossen wird — Stop-Loss, Take-Profit oder von Hand — ist bei der Planung nicht bekannt. Cachy nimmt deshalb den teureren Taker-Satz an, sofern in den Einstellungen nichts anderes gewählt wurde.",
     "tradeNotesPlaceholder": "Notizen zum Trade...",
     "addTradeToJournal": "Trade zum Journal hinzufügen",
     "executeTrade": "Trade ausführen",
@@ -335,7 +335,12 @@
       "fees": "Gebühren (%)",
       "leveragePlaceholder": "Hebel (z.B. 10x)",
       "leverageFromExchange": "Kommt von der Börse. Ändern über den Hebel-Chip unter „An der Börse\".",
-      "marginMode": "Margin-Modus"
+      "marginMode": "Margin-Modus",
+      "feeEntryLeg": "Einstieg",
+      "feeExitLeg": "Ausstieg",
+      "feeFromBroker": "von der Börse",
+      "feeAssumed": "angenommen",
+      "feeManual": "manuell"
     },
     "portfolioInputs": {
       "header": "Portfolio",
@@ -411,7 +416,7 @@
       "requiredMarginLabel": "Benötigte Margin",
       "requiredMarginTooltip": "Eigenkapital, das auf deinem Futures-Konto als Sicherheitsleistung gebunden wird (Positionsvolumen ÷ Hebel). Muss als freies Guthaben verfügbar sein.",
       "entryFeeLabel": "Einstiegsgebühr",
-      "entryFeeTooltip": "Geschätzte Gebühr für das Eröffnen der Gesamtposition, berechnet aus dem nominalen Auftragswert und deinem hinterlegten Maker-/Taker-Gebührensatz.",
+      "entryFeeTooltip": "Nominaler Auftragswert × Einstiegssatz. Der Satz richtet sich nach der gewählten Orderart: eine Market-Order wird als Taker abgerechnet, eine Limit-Order als Maker. Woher der Satz stammt — von der Börse, angenommen oder manuell — steht neben dem Gebührenfeld.",
       "estimatedLiquidationPriceLabel": "Gesch. Liquidationspreis",
       "estimatedLiquidationPriceTooltip": "Geschätzter Marktkurs, bei dem deine Margin aufgebraucht ist und die Börse die Position zwangsliquidiert. Abhängig von Hebel und Margin-Modus.",
       "breakEvenPriceLabel": "Break-Even Preis",

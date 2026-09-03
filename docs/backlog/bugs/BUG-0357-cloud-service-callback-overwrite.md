@@ -2,7 +2,9 @@
 id: BUG-0357
 title: CloudService single callback overwrite disables global chat updates after CloudTab closes
 type: bug
-status: ready
+status: done
+assignee: antigravity
+shipped: 1.6.0-beta.216
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -78,9 +80,9 @@ $effect(() => {
 
 ## Acceptance criteria
 
-- [ ] A test proves that registering multiple message and status subscribers receives callbacks simultaneously.
-- [ ] Unsubscribing one subscriber does not prevent other subscribers from receiving subsequent messages.
-- [ ] Opening and closing `CloudTab` leaves `chatState` actively receiving messages and status updates.
+- [x] A test proves that registering multiple message and status subscribers receives callbacks simultaneously.
+- [x] Unsubscribing one subscriber does not prevent other subscribers from receiving subsequent messages.
+- [x] Opening and closing `CloudTab` leaves `chatState` actively receiving messages and status updates.
 
 ## Out of scope
 

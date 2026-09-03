@@ -2,35 +2,11 @@
 
 Cachy — Local-First web app for crypto traders (Position Size Calculator, Risk Management, Trade Journal, real-time market data via Bitunix/Bitget). Code flows into a trading engine managing real money: Precision and verification always come before speed.
 
-This file is the Claude Code-specific extension of `AGENTS.md` (the tool-agnostic reference).
+This file is the Claude Code-specific extension of `AGENTS.md` (the tool-agnostic reference). **`AGENTS.md` is the single source of truth** — rules, verification standard, MCP policy, commit/PR standards, and the agent lifecycle live there. This file adds only Claude Code-specific startup and reference content.
 
 ## Setup
 
-```bash
-npm run dev          # Dev server (builds WASM first via scripts/build_wasm.sh)
-npm run build        # Production build (including WASM)
-npm run check        # svelte-check — required before completion; mid-task cadence by blast radius
-npm test             # Vitest unit tests
-npm run test:e2e     # Playwright E2E tests
-```
-
-**Component tests.** A test that mounts a Svelte component is named
-`*.component.test.ts` and runs in the `components` Vitest project, which is the
-only place `svelte` resolves to its browser build — `mount()` throws from the
-server entry. Do not set `resolve.conditions: ["browser"]` globally to avoid
-that: it also flips `$app/environment`'s `browser` to true, which sends
-`technicalsService` down its Worker path and fails two passing tests. `npm test`
-runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
-
-**Run targeted tests, not the whole suite.** `npm test` runs the full suite — both the `unit` and the `components` project — and is slow: the component tests mount every `.svelte` file with a DOM. After a change, run **only the tests your change affects** instead:
-
-- **One test file:** `npx vitest run src/services/tradeService.test.ts`
-- **A folder/pattern (substring match):** `npx vitest run src/services/tradeService`
-- **Pure-logic `unit` project only (skips all `.svelte` component mounting):** `npm run test:unit`
-- **Changed files only (git-based):** `npm run test:changed`
-- **Component tests** (`*.component.test.ts`, `components` project): `npx vitest run src/components/shared/TpSlList.refusal.component.test.ts`
-
-Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. A full `npm run check` is still required before completion regardless of the test scope — how often to run it mid-task is judgment-based, see "Verification Proportionality & Multi-Agent Resource Policy" in `AGENTS.md`.
+See `AGENTS.md` → Setup (commands, component-test note, "Fast & Targeted" verification standard, WASM build requirement).
 
 ## Architecture
 
@@ -70,34 +46,11 @@ Reserve the full `npm test` for when you touched many files across projects or r
 
 ## Non-Negotiable Rules
 
-**Svelte 5 Runes Only** — Legacy syntax is strictly forbidden.
-
-| Forbidden (Legacy) | Use Instead |
-|---|---|
-| `export let x` | `let { x } = $props()` |
-| `$: doubled = …` | `$derived(…)` / `$effect(…)` |
-| `createEventDispatcher` | Callback props (`onclick`) |
-| `<slot>` | Snippets `{#snippet …}` |
-
-- State: `let count = $state(0);`
-- Every `$effect` that registers listeners/subscriptions **must** return a cleanup function.
-
-**Financial Data:** `decimal.js` for ALL prices, amounts, balances. Native `number` strictly forbidden for financial values (rounding errors = money loss).
-
-**Theming (20+ themes):** No hardcoded colors (`#ffffff`, etc.). Use CSS variables (`var(--bg-primary)`, `var(--text-secondary)`, …) or paired classes from `src/themes.css` (`.bg-accent-paired`, `.bg-success-paired`, `.bg-danger-paired`, `.bg-warning-paired`, `.hover-bg-accent-paired`).
-
-**Performance:** No heavy computations (sort/filter/map) directly in template `{#each}` — prepare data with `$derived` beforehand.
-
-**Iframe & 3D Metaverse Protection (Non-Negotiable):**
-- Never set `Cross-Origin-Embedder-Policy` (COEP) (neither `credentialless` nor `require-corp`). It breaks cross-origin iframes (Unity Metaverse `space.cachy.app`, embedded news articles, etc.).
-- `Permissions-Policy` MUST delegate permissions needed for 3D Metaverse (`space.cachy.app`) and embedded views (camera, microphone, xr-spatial-tracking, display-capture, fullscreen, autoplay, accelerometer, gyroscope, clipboard-write, encrypted-media, picture-in-picture, web-share, geolocation). Never restrict them to empty `()` (e.g. `camera=()`, `geolocation=()`).
-- `Content-Security-Policy` `frame-src` MUST allow `'self'`, `https://space.cachy.app`, `https://s.cachy.app`, `https:`, `blob:`, `data:`.
+All non-negotiables — Local-First classes, Svelte 5 runes only (legacy syntax table), decimal.js for all financial values, theming via CSS variables, performance rule, Iframe/CSP protection — are defined once in `AGENTS.md` → Non-Negotiable Rules and apply here in full.
 
 ## Workflow
 
-- **Verification over claims:** Run `npm run check` and affected tests at verification milestones, and always before claiming completion (mid-task cadence is judgment-based — see "Verification Proportionality & Multi-Agent Resource Policy" in `AGENTS.md`; skill `/verify` reports honestly).
-- **Defensive deletion:** Never delete code of unclear purpose. Leave copyright headers and metadata untouched.
-- **Keep debug logs:** Remove `console.log` statements only upon explicit instruction.
+- **Verification over claims:** Run fast targeted tests for touched code before commit/push (see `AGENTS.md` → Setup → "Verification Standard: Fast & Targeted"; full-suite and type verification is handled by CI).
 - **Playwright:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
 - **Agent lifecycle:** Before any task run the conflict check, claim the backlog item (`status: in-progress` + `assignee:`), and clean up worktree, branch and item afterwards — see "Agent Lifecycle: Check, Claim, Clean Up" in `AGENTS.md`.
 
@@ -113,23 +66,6 @@ bash scripts/index-worktree.sh
 
 This registers the worktree with Gortex so all graph tools (`gortex__explore`, `gortex__search`, `gortex__impact`, etc.) resolve correctly. The script is a safe no-op on the main checkout and idempotent on re-run. Skipping this step causes Gortex to report "cwd is not covered by any tracked repo" and fall back to plain file tools — losing all graph-based analysis.
 
-## Codebase Understanding for All Agents
-
-This CLAUDE.md and `AGENTS.md` apply to **all coding agents** — Claude Code, Jules, Cursor, Codex, Antigravity, etc. Agents following these project rules (not just tool defaults) have deeper understanding:
-
-- **Non-negotiable rules** (Svelte-5-Only, decimal.js, Theming, Performance) are boundary conditions — not "nice to have", but requirements that cost money or functionality if ignored.
-- **Read backlog items** (`docs/backlog/`) to see what should be done and why. Acceptance Criteria define success. Out of Scope prevents creep.
-- **Read ADRs** (`docs/adr/`) to understand why some architecture decisions are irreversible.
-- **Local-First Boundary** (Classes A/B/C) is non-negotiable — violation = data leak or fraud.
-
-Code reviews (`/backlog-review` skill) enforce these rules automatically, but no review replaces manual reading.
-
 ## Commits & Branches
 
-- **Language:** Commits and PR descriptions MUST be in English. Never German in commits or PR comments.
-- **Conventional Commits:** `feat:` (Minor), `fix:` (Patch), `refactor:` (no release), `BREAKING CHANGE:` in footer for Major.
-- **No tool-attribution footers.** Do not append `Co-Authored-By: Claude ...`, `Claude-Session: ...`, or similar lines to commit messages — not part of Cachy's commit standard.
-- **Never push directly to `develop` or `main`.** Every change goes through a feature branch and PR; target is always `develop`, never `main`.
-- **Pull Request Linking:** Every PR MUST include `Fixes #<github_issue_number>` (e.g., `Fixes #1770`) at the start of its description so GitHub auto-links the PR with the issue and advances the Kanban card.
-- **Writing *about* a closing reference.** GitHub parses closing keywords in **commit messages** too, not just PR descriptions — and backticks, quotes or surrounding prose do not exempt them. A commit body quoting one shut an unrelated, unfixed P1 (see `docs/backlog/bugs/BUG-0220-issue-autolink-substring-match.md`). The full keyword set is `close`/`closes`/`closed`, `fix`/`fixes`/`fixed`, `resolve`/`resolves`/`resolved` — **past tense counts**, which is how "it closed #1770" reads as harmless prose and is not. Only the position directly before the reference matters. So either break the keyword (`Fixes #<!-- -->1770`) or keep it away from that position: "#1770 was shut in error", not "closed #1770 in error".
-- **Agent Isolation:** Before starting *any* task, create a dedicated Git worktree branched from a clean `develop` (`git status`) and work there — never directly in the shared checkout, even for single-agent tasks, since other local agents or file-watching tools (e.g. jCodeMunch's reindex-on-edit hook) may be mid-task there too. See `AGENTS.md` for the full routine.
+Commit/PR standards — English-only, Conventional Commits, no tool-attribution footers, never push to `develop`/`main`, `Fixes #<issue>` PR linking, and the BUG-0220 closing-keyword hazard — are defined once in `AGENTS.md` → Commits & Branches and apply here in full.

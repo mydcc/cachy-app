@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -16,7 +17,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { bitgetWs } from "./bitgetWs";
+import { bitgetWs, BitgetWebSocketService } from "./bitgetWs";
 import { normalizeSymbol } from "../utils/symbolUtils";
 
 class MockWebSocket {
@@ -58,9 +59,11 @@ global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
  */
 type WsInternals = {
     subscriptions: Map<string, number>;
+    throttleMap: Map<string, number>;
     ws: WebSocket | null;
     cleanup: () => void;
     destroy: () => void;
+    pruneThrottleMap: () => void;
 };
 
 const internals = bitgetWs as unknown as WsInternals;
@@ -114,5 +117,50 @@ describe("BitgetWebSocketService subscription leak", () => {
 
         expect(internals.subscriptions.has(TICKER_KEY)).toBe(false);
         expect((internals.ws as unknown as MockWebSocket).send).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe("BitgetWebSocketService throttleMap leak", () => {
+    beforeEach(() => {
+        internals.throttleMap.clear();
+    });
+
+    it("prunes entries older than THROTTLE_TTL but keeps active entries", () => {
+        const now = Date.now();
+        internals.throttleMap.set("stale-key", now - 6000);
+        internals.throttleMap.set("fresh-key", now - 2000);
+
+        internals.pruneThrottleMap();
+
+        expect(internals.throttleMap.has("stale-key")).toBe(false);
+        expect(internals.throttleMap.has("fresh-key")).toBe(true);
+    });
+
+    it("clears throttleMap on destroy()", () => {
+        internals.throttleMap.set("key1", Date.now());
+        internals.throttleMap.set("key2", Date.now());
+        expect(internals.throttleMap.size).toBe(2);
+
+        internals.destroy();
+
+        expect(internals.throttleMap.size).toBe(0);
+    });
+
+    it("evicts stale keys via the monitor interval", () => {
+        vi.useFakeTimers();
+        const service = new BitgetWebSocketService();
+        const serviceInternals = service as unknown as WsInternals;
+
+        const now = Date.now();
+        serviceInternals.throttleMap.set("stale-key", now - 6000);
+        serviceInternals.throttleMap.set("fresh-key", now);
+
+        vi.advanceTimersByTime(5000);
+
+        expect(serviceInternals.throttleMap.has("stale-key")).toBe(false);
+        expect(serviceInternals.throttleMap.has("fresh-key")).toBe(true);
+
+        service.destroy();
+        vi.useRealTimers();
     });
 });
