@@ -39,6 +39,7 @@
     "backupPasswordRequired": "Ein Passwort ist für die Verschlüsselung erforderlich.",
     "backupPasswordEntryPrompt": "Dieses Backup ist verschlüsselt. Bitte gib das Passwort ein:",
     "backupWrongPassword": "Falsches Passwort. Wiederherstellung fehlgeschlagen.",
+    "backupRejected": "Wiederherstellung abgelehnt: Ungültige Abschnitt(e): {sections}. Es wurden keine Änderungen übernommen.",
     "passwordRequiredTitle": "Passwort erforderlich",
     "enterBackupPassword": "Bitte geben Sie das Passwort für dieses Backup ein:",
     "marketDashboard": {
