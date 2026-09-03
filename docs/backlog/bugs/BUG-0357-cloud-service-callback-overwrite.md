@@ -2,7 +2,9 @@
 id: BUG-0357
 title: CloudService single callback overwrite disables global chat updates after CloudTab closes
 type: bug
-status: ready
+status: in-progress
+assignee: antigravity
+branch: feat/items-2583-2585-2581-2582
 priority: P1
 milestone: none
 editions: [community, pro, private]

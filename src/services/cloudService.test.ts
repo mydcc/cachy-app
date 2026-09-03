@@ -191,4 +191,52 @@ describe('CloudService', () => {
     expect(cloudService.status().connected).toBe(false);
     expect(cloudService.status().lastError).toBe('WebSocket connection failed');
   });
+
+  describe('multi-subscriber support', () => {
+    it('notifies multiple message and status subscribers simultaneously', async () => {
+      const msgCb1 = vi.fn();
+      const msgCb2 = vi.fn();
+      const statusCb1 = vi.fn();
+      const statusCb2 = vi.fn();
+
+      const unsubMsg1 = cloudService.subscribeMessages(msgCb1);
+      const unsubMsg2 = cloudService.subscribeMessages(msgCb2);
+      const unsubStatus1 = cloudService.subscribeStatus(statusCb1);
+      const unsubStatus2 = cloudService.subscribeStatus(statusCb2);
+
+      // Initial invocation
+      expect(msgCb1).toHaveBeenCalledTimes(1);
+      expect(msgCb2).toHaveBeenCalledTimes(1);
+      expect(statusCb1).toHaveBeenCalledTimes(1);
+      expect(statusCb2).toHaveBeenCalledTimes(1);
+
+      // Connect to SpacetimeDB and simulate connect event
+      await cloudService.connect('http://localhost:3000', 'cachy-server', 'mock-token');
+      const ctx = { identity: { toHexString: () => 'mock-identity' } };
+      mockCallbacks.onConnect!(ctx, ctx.identity);
+
+      expect(statusCb1).toHaveBeenCalledTimes(2);
+      expect(statusCb2).toHaveBeenCalledTimes(2);
+
+      // Unsubscribe subscriber 1
+      unsubMsg1();
+      unsubStatus1();
+
+      // Trigger new message via simulated SpacetimeDB table insert
+      const msg = { text: 'test message' };
+      mockCallbacks.onInsert!(ctx, msg);
+
+      // Subscriber 1 receives no further update; Subscriber 2 receives it
+      expect(msgCb1).toHaveBeenCalledTimes(1);
+      expect(msgCb2).toHaveBeenCalledTimes(2);
+
+      // Trigger disconnect to verify status notifications
+      mockCallbacks.onDisconnect!(ctx);
+      expect(statusCb1).toHaveBeenCalledTimes(2); // initial + connect, but NOT disconnect after unsub
+      expect(statusCb2).toHaveBeenCalledTimes(3); // initial + connect + disconnect
+
+      unsubMsg2();
+      unsubStatus2();
+    });
+  });
 });
