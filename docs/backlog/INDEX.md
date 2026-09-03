@@ -4,7 +4,7 @@
 
 261 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-progress 12 · ✅ done 186
+Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-progress 1 · ✅ done 197
 
 ---
 
@@ -53,7 +53,7 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | ✅ done | ui |
 | [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | ✅ done | exchange |
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | ✅ done | exchange |
-| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 🟡 in-progress | exchange |
+| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | ✅ done | exchange |
 | [FEAT-0320](features/FEAT-0320-tickers-error-path-asks-the-venue.md) | Let the venue answer symbol-not-found on the tickers error path too | P3 | ✅ done | exchange |
 | [FEAT-0321](features/FEAT-0321-single-bitunix-request-signer.md) | Sign every Bitunix request through one signer instead of three copies | P3 | ✅ done | exchange |
 
@@ -80,7 +80,7 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | ✅ done | trade-panel |
-| [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 🟡 in-progress | trade-panel |
+| [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | ✅ done | trade-panel |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | trade-panel |
 | [FEAT-0067](features/FEAT-0067-bitunix-trading-pair-metadata.md) | Fetch Bitunix trading-pair metadata and validate orders against it | P1 | ✅ done | exchange |
 | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) | Read and change leverage, margin mode and position margin from the trade panel | P1 | ✅ done | exchange |
@@ -240,7 +240,7 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | 🟢 ready | market |
 | [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | 🟢 ready | exchange |
 | [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟢 ready | market |
-| [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | 🟡 in-progress | chat |
+| [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | chat |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -259,7 +259,7 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0258](features/FEAT-0258-journal-single-debounced-writer.md) | Make app.saveJournal() the single debounced writer for journal persistence | P2 | ✅ done | services |
 | [FEAT-0259](features/FEAT-0259-lazy-locale-dictionaries.md) | Load locale dictionaries on demand instead of eagerly at startup | P2 | ✅ done | i18n |
 | [FEAT-0285](features/FEAT-0285-credential-transit-boundary.md) | Keep exchange credentials out of server transit — sign client-side or sanction the proxy hop | P2 | ✅ done | security |
-| [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | 🟡 in-progress | trade-panel |
+| [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | ✅ done | trade-panel |
 | [FEAT-0336](features/FEAT-0336-css-design-token-foundation.md) | CSS Design Token Foundation & UI Harmonization | P2 | ✅ done | ui |
 | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) | Design Token Foundation | P2 | ✅ done | ui |
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | ui |
@@ -270,14 +270,14 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | 📋 specced | ui |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | 📋 specced | calculation |
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | ui |
-| [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | 🟡 in-progress | ui |
+| [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | ✅ done | ui |
 | [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | 🟢 ready | indicators |
-| [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | 🟡 in-progress | ui |
+| [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | ✅ done | ui |
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | indicators |
 | [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | alerts |
-| [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | 🟡 in-progress | ui |
+| [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | ui |
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | journal |
-| [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | 🟡 in-progress | security |
+| [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | security |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -298,7 +298,7 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | ui |
 | [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | ui |
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟢 ready | indicators |
-| [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | 🟡 in-progress | chat |
+| [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | chat |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -316,9 +316,9 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | ui |
 | [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | ui |
 | [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | 🟢 ready | journal |
-| [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | 🟡 in-progress | calculation |
+| [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | ✅ done | calculation |
 | [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | 📋 specced | chat |
-| [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | 🟡 in-progress | chat |
+| [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | chat |
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | 📋 specced | ai |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
@@ -395,7 +395,7 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md), [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0021](features/FEAT-0021-order-types.md) |
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
-| [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | 🟡 in-progress | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0333](features/FEAT-0333-account-storage-shape.md) |
+| [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0333](features/FEAT-0333-account-storage-shape.md) |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | M4 | community, pro, private | A | none | — |
 | [FEAT-0041](features/FEAT-0041-window-layer-contract.md) | Give every floating surface its z-index from one layer contract | P1 | ✅ done | M0 | community, pro, private | none | ADR-0006 | — |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | none | community, pro, private | A | ADR-0006 | — |
@@ -469,7 +469,7 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | 🟡 in-progress | none | community, pro, private | B | none | — |
+| [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | none | community, pro, private | B | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -514,8 +514,8 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | M8 | pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0019](features/FEAT-0019-agentic-web-search.md) |
 | [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | ✅ done | M8 | community, pro, private | none | none | — |
-| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | 🟡 in-progress | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
-| [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | 🟡 in-progress | none | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) |
+| [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
+| [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | ✅ done | none | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) |
 | [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0020](features/FEAT-0020-account-settings-panel.md) |
 | [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0336](features/FEAT-0336-css-design-token-foundation.md) | CSS Design Token Foundation & UI Harmonization | P2 | ✅ done | none | community, pro, private | none | ADR-0014 | — |
@@ -528,14 +528,14 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | 🟢 ready | none | community, pro, private | none | none | — |
-| [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | none | community, pro, private | none | none | — |
-| [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | none | community, pro, private | A | none | — |
-| [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | 🟡 in-progress | none | community, pro, private | C | none | — |
+| [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0026](features/FEAT-0026-multi-account.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -557,7 +557,7 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | 🟡 in-progress | none | community, pro, private | B | none | — |
+| [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -577,9 +577,9 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
 | [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | 🟢 ready | none | community, pro, private | none | none | — |
-| [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | 📋 specced | none | community, pro, private | B | none | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) |
-| [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | 🟡 in-progress | none | community, pro, private | B | none | — |
+| [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | 📋 specced | none | community, pro, private | A | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |

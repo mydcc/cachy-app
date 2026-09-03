@@ -2,8 +2,10 @@
 id: FEAT-0371
 title: Coordinate initial price and ATR fetches at startup to avoid duplicate calculations
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.209
 assignee: antigravity
+branch: feat/perf-optimizations-batch
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +14,6 @@ data_class: none
 adr: none
 depends_on: []
 size: XS
-# Branch: feat/perf-optimizations-batch
 ---
 
 # FEAT-0371 — Coordinate initial price and ATR fetches at startup to avoid duplicate calculations

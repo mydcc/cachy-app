@@ -4,6 +4,7 @@ title: Make the calculator's entry/exit fee estimate honest about what it assume
 type: feature
 status: in-progress
 assignee: pheinze
+branch: worktree-issue-2164-14da99
 priority: P1
 milestone: none
 editions: [community, pro, private]

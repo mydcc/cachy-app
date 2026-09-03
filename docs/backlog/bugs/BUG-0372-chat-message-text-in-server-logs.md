@@ -2,7 +2,8 @@
 id: BUG-0372
 title: Global chat reducer logs every message text to server logs, defeating the 90-day retention promise
 type: bug
-status: in-progress
+status: done
+shipped: 1.6.0-beta.211
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -55,10 +56,10 @@ row it describes.
 
 ## Acceptance criteria
 
-- [ ] The `send_message` reducer no longer logs message text (code review).
-- [ ] `spacetime logs <db>` after sending a message shows no message content
+- [x] The `send_message` reducer no longer logs message text (code review).
+- [x] `spacetime logs <db>` after sending a message shows no message content
       (manual verification during development).
-- [ ] `npm run check` passes; no existing chat tests break.
+- [x] `npm run check` passes; no existing chat tests break.
 
 ## Open questions
 
