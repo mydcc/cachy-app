@@ -47,11 +47,26 @@ import {
  */
 const FILL_SAMPLE_LIMIT = 100;
 
+/**
+ * The only venue whose fills this derives from today. Recorded on the store
+ * alongside the rates so the UI can tell whether they describe the exchange
+ * currently selected — see `remoteFeeExchange`.
+ */
+const DERIVED_FROM_EXCHANGE = "bitunix";
+
+/**
+ * How long to wait for the fills. The journal sync holds its lock across this
+ * call, so an unbounded request on a bad connection would leave the whole sync
+ * — not just the fee rates — stuck behind it.
+ */
+const FILL_REQUEST_TIMEOUT_MS = 10_000;
+
 /** Wipe the derived rates so nothing stale can be labelled "from broker". */
 function clearDerivedRates(): void {
   tradeState.remoteMakerFee = undefined;
   tradeState.remoteTakerFee = undefined;
   tradeState.remoteFeeSamples = {};
+  tradeState.remoteFeeExchange = undefined;
 }
 
 function applyDerivedRates(rates: DerivedFeeRates): void {
@@ -63,6 +78,7 @@ function applyDerivedRates(rates: DerivedFeeRates): void {
     maker: rates.maker?.sampleCount,
     taker: rates.taker?.sampleCount,
   };
+  tradeState.remoteFeeExchange = DERIVED_FROM_EXCHANGE;
 }
 
 /**
@@ -75,7 +91,7 @@ function applyDerivedRates(rates: DerivedFeeRates): void {
  * broker". Failing loudly here would turn a fresh account into an error state.
  */
 export async function refreshDerivedFeeRates(): Promise<DerivedFeeRates | null> {
-  const keys = keysForExchange(settingsState.accounts, "bitunix");
+  const keys = keysForExchange(settingsState.accounts, DERIVED_FROM_EXCHANGE);
   if (!keys.key || !keys.secret) {
     clearDerivedRates();
     return null;
@@ -90,6 +106,7 @@ export async function refreshDerivedFeeRates(): Promise<DerivedFeeRates | null> 
         "X-Api-Secret": keys.secret,
       },
       body: JSON.stringify({ limit: FILL_SAMPLE_LIMIT }),
+      signal: AbortSignal.timeout(FILL_REQUEST_TIMEOUT_MS),
     });
     if (!response.ok) return null;
 

@@ -78,7 +78,7 @@ export interface DerivedFeeRates {
  * unparseable field returns `null` so the caller can skip the fill rather than
  * fold a fabricated 0 into the estimate.
  */
-function toDecimalOrNull(value: unknown): Decimal | null {
+export function toDecimalOrNull(value: unknown): Decimal | null {
   if (value === null || value === undefined || value === "") return null;
   if (value instanceof Decimal) return value.isFinite() ? value : null;
   if (typeof value === "number") {
@@ -108,15 +108,29 @@ function toRole(value: unknown): FeeRole | null {
  *
  * Discount tokens, bonus balances and coupons distort an individual fill's
  * implied rate; a mean lets one such fill drag the whole estimate, a median
- * does not. With an even sample count this returns the lower-middle observed
- * value rather than averaging the two middle ones — for a risk tool, a rate
- * the broker actually charged beats a synthetic one it never did.
+ * does not. The value returned is always one the broker actually charged —
+ * never an average of two, which would be a rate it never did.
+ *
+ * On an even sample count that leaves a choice between the two middle values,
+ * and it takes the **upper** one. Consider an account with two fills, one at
+ * the standard rate and one fully covered by a promotion: sorted, that is
+ * `[0, 0.06]`, and picking the lower would have the app conclude this account
+ * trades for free. Every other hazard here is guarded against exactly that
+ * conclusion, so the tie-break has to agree with them.
  */
 function median(values: Decimal[]): Decimal {
   const sorted = [...values].sort((a, b) => a.comparedTo(b));
-  const middle = Math.floor((sorted.length - 1) / 2);
-  return sorted[middle];
+  return sorted[Math.ceil((sorted.length - 1) / 2)];
 }
+
+/**
+ * Fee tariffs are quoted to four decimal places at most (`0.0600` = 0.06%).
+ * A rate divided out of a satoshi-rounded fee carries twenty significant
+ * digits of noise past that, which would render as an unreadable string in a
+ * field sized for six characters — and, worse, would present arithmetic
+ * artefacts as if they were precision the exchange had stated.
+ */
+const RATE_DECIMAL_PLACES = 4;
 
 /**
  * Derive the account's effective maker and taker rates from its own fills.
@@ -162,7 +176,12 @@ export function deriveFeeRatesFromFills(
     // Multiply by 100 exactly once — the value is a percentage from here on.
     // The notional is taken absolute so the rate's sign means "rebate" and
     // nothing else; a venue reporting a signed quantity must not flip it.
-    buckets[role].push(fee.div(notional.abs()).times(100));
+    buckets[role].push(
+      fee
+        .div(notional.abs())
+        .times(100)
+        .toDecimalPlaces(RATE_DECIMAL_PLACES, Decimal.ROUND_HALF_UP),
+    );
   }
 
   const result: DerivedFeeRates = { skipped };

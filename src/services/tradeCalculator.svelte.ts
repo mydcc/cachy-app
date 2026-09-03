@@ -60,6 +60,14 @@ class TradeCalculator {
                 _s.targets;
                 _s.leverage;
                 _s.fees;
+                // FEAT-0253: the per-leg rates are their own triggers. `fees`
+                // mirrors the *exit* rate only, so switching the entry between
+                // MARKET and LIMIT moves `entryFees` and nothing else — without
+                // these two reads the effect never fires and every result on
+                // screen (entry fee, net loss, break-even) stays at the old
+                // order type's numbers.
+                _s.entryFees;
+                _s.exitFees;
                 _s.useAtrSl;
                 _s.isRiskAmountLocked;
                 _s.isPositionSizeLocked;

@@ -48,6 +48,7 @@ const tradeStateMock = vi.hoisted(() => ({
     remoteMakerFee: undefined as unknown,
     remoteTakerFee: undefined as unknown,
     remoteFeeSamples: {} as { maker?: number; taker?: number },
+    remoteFeeExchange: undefined as string | undefined,
     feeMode: "maker_taker" as string,
     entryOrderType: "market" as "market" | "limit" | "trigger",
     entryFees: undefined as unknown,
@@ -137,6 +138,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     paperStateMock.enabled = false;
     supportsMock.accountSettings = false;
+    settingsStateMock.apiProvider = "bitunix";
     settingsStateMock.feePreference = "taker";
     settingsStateMock.feeRates = {
         bitunix: { maker: "0.0200", taker: "0.0600" },
@@ -148,6 +150,7 @@ beforeEach(() => {
     tradeStateMock.remoteMakerFee = undefined;
     tradeStateMock.remoteTakerFee = undefined;
     tradeStateMock.remoteFeeSamples = {};
+    tradeStateMock.remoteFeeExchange = undefined;
     tradeStateMock.entryOrderType = "market";
     tradeStateMock.entryFees = undefined;
     tradeStateMock.exitFees = undefined;
@@ -171,6 +174,7 @@ describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () =
     });
 
     it("labels a rate derived from the account's fills 'from broker'", () => {
+        tradeStateMock.remoteFeeExchange = "bitunix";
         tradeStateMock.remoteMakerFee = new Decimal("0.015");
         tradeStateMock.remoteTakerFee = new Decimal("0.045");
         tradeStateMock.remoteFeeSamples = { maker: 4, taker: 9 };
@@ -183,7 +187,9 @@ describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () =
     });
 
     it("never claims 'from broker' in paper trading, even with a derived rate present", () => {
+        tradeStateMock.remoteFeeExchange = "bitunix";
         tradeStateMock.remoteMakerFee = new Decimal("0.015");
+        tradeStateMock.remoteFeeExchange = "bitunix";
         tradeStateMock.remoteTakerFee = new Decimal("0.045");
         paperStateMock.enabled = true;
         render();
@@ -207,9 +213,58 @@ describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () =
         expect(exit.provenance).toBe("manual");
     });
 
+    it("never shows one venue's derived rate as another venue's (cross-venue leak)", () => {
+        // Rates are derived from Bitunix fills. With Bitget selected they
+        // describe an account Bitget never charged, so they must not appear —
+        // least of all under a "from broker" badge.
+        tradeStateMock.remoteFeeExchange = "bitunix";
+        tradeStateMock.remoteMakerFee = new Decimal("0.015");
+        tradeStateMock.remoteTakerFee = new Decimal("0.045");
+        settingsStateMock.apiProvider = "bitget";
+        render();
+
+        for (const leg of legs()) {
+            expect(leg.provenance).not.toBe("broker");
+            expect(leg.text).not.toContain("0.045");
+        }
+    });
+
+    it("survives an unparseable stored rate instead of throwing out of a rune", () => {
+        // A decimal comma or a stray character must not take the dashboard
+        // down: `new Decimal()` throws on them, and this runs inside a
+        // `$derived`, so the throw would tear down the component tree.
+        for (const bad of ["0,06", "abc", "--1", "1e", " "]) {
+            settingsStateMock.feeRates = {
+                ...settingsStateMock.feeRates,
+                bitunix: { maker: "0.0200", taker: bad },
+            };
+            expect(() => render()).not.toThrow();
+            // Falls back to the documented default, and says so.
+            expect(feeInput().value).toBe("0.0600");
+            expect(legs()[1].provenance).toBe("assumed");
+            if (component) unmount(component);
+            component = null;
+            host.innerHTML = "";
+        }
+    });
+
+    it("keeps a deliberate zero rate — a promo or rebate tariff is not junk", () => {
+        // `decimal.js` reads "0." as zero, and a zero-percent rate is a real
+        // venue offer. Only genuinely unparseable text falls back; a number the
+        // user meant is passed through, whatever its formatting.
+        settingsStateMock.feeRates = {
+            ...settingsStateMock.feeRates,
+            bitunix: { maker: "0.0200", taker: "0." },
+        };
+        render();
+        expect(feeInput().value).toBe("0.");
+        expect((tradeStateMock.exitFees as Decimal)?.isZero()).toBe(true);
+    });
+
     it("falls back per role — a maker rate with no maker fills stays 'assumed'", () => {
         // A live account that has only ever taken liquidity: the taker rate is
         // real, the maker one is still the documented default and must say so.
+        tradeStateMock.remoteFeeExchange = "bitunix";
         tradeStateMock.remoteTakerFee = new Decimal("0.045");
         tradeStateMock.remoteFeeSamples = { taker: 3 };
         tradeStateMock.entryOrderType = "limit";
@@ -264,6 +319,7 @@ describe("FEAT-0253 — the fee field mirrors a broker rate read-only (AC 9)", (
     });
 
     it("is read-only once the broker's own rate is known", () => {
+        tradeStateMock.remoteFeeExchange = "bitunix";
         tradeStateMock.remoteTakerFee = new Decimal("0.045");
         tradeStateMock.remoteFeeSamples = { taker: 5 };
         render();
@@ -272,6 +328,7 @@ describe("FEAT-0253 — the fee field mirrors a broker rate read-only (AC 9)", (
     });
 
     it("stays editable in paper trading, where there is no broker", () => {
+        tradeStateMock.remoteFeeExchange = "bitunix";
         tradeStateMock.remoteTakerFee = new Decimal("0.045");
         paperStateMock.enabled = true;
         render();

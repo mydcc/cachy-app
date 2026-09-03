@@ -114,6 +114,40 @@ describe("deriveFeeRatesFromFills — hazards each have a pinned behaviour (AC 2
     expect(rates.taker?.sampleCount).toBe(4);
   });
 
+  it("does not conclude an account trades for free from a fully-discounted fill", () => {
+    // One standard fill and one covered entirely by a promotion. Sorted that
+    // is [0, 0.06]; taking the lower middle would have the app size every
+    // future position as though this account paid nothing.
+    const rates = deriveFeeRatesFromFills([
+      { roleType: "TAKER", price: "100", qty: "2", fee: "0" },
+      fillAt("TAKER", "0.06"),
+    ]);
+    expect(rates.taker?.rate.toString()).toBe("0.06");
+    expect(rates.taker?.rate.isZero()).toBe(false);
+  });
+
+  it("picks the upper of the two middle values on an even sample count", () => {
+    const rates = deriveFeeRatesFromFills([
+      fillAt("TAKER", "0.02"),
+      fillAt("TAKER", "0.04"),
+      fillAt("TAKER", "0.06"),
+      fillAt("TAKER", "0.08"),
+    ]);
+    // Not 0.04, and not the 0.05 mean — a rate the broker actually charged.
+    expect(rates.taker?.rate.toString()).toBe("0.06");
+  });
+
+  it("quantises to tariff precision instead of exposing division noise", () => {
+    // A satoshi-rounded fee divides out to twenty significant digits, which is
+    // arithmetic residue rather than precision the exchange ever stated — and
+    // it would render as an unreadable string in a six-character field.
+    const rates = deriveFeeRatesFromFills([
+      { roleType: "TAKER", price: "31415.926535", qty: "0.037", fee: "0.6973" },
+    ]);
+    const rendered = rates.taker!.rate.toString();
+    expect(rendered.split(".")[1]?.length ?? 0).toBeLessThanOrEqual(4);
+  });
+
   it("skips a zero-notional fill rather than dividing by zero", () => {
     const rates = deriveFeeRatesFromFills([
       { roleType: "TAKER", price: "0", qty: "2", fee: "0.12" },

@@ -24,6 +24,7 @@
     entryRoleForOrderType,
     derivedRatesFromStore,
   } from "../../lib/fees/feeProvenance";
+  import { toDecimalOrNull } from "../../lib/fees/deriveFeeRates";
 
   import { untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
@@ -104,10 +105,13 @@
    * plan is being made.
    */
   const exchange = $derived(settingsState.apiProvider);
-  let feeRates = $derived(settingsState.feeRates[exchange]);
   const venueDefaults = $derived(
     VENUE_DEFAULT_FEE_RATES[exchange] ?? VENUE_DEFAULT_FEE_RATES.bitunix,
   );
+  // A venue with no stored rates — a provider added since the settings were
+  // last written — falls back to its documented defaults rather than throwing
+  // on an undefined lookup a line later.
+  let feeRates = $derived(settingsState.feeRates[exchange] ?? venueDefaults);
 
   // Guard the degenerate input so a mirrored rate can never be `""` or
   // `undefined`: a Settings fee field the user cleared stores `""`. That falls
@@ -120,12 +124,22 @@
     return raw === undefined || raw === "" ? CONSTANTS.DEFAULT_FEES : raw;
   }
 
+  /*
+   * Only the venue the rates were actually derived from may wear the "from
+   * broker" badge. Rates are derived from Bitunix fills today; with Bitget
+   * selected, showing them would attribute to Bitget a rate it never charged —
+   * the one thing AC 7 forbids. Comparing against the recorded source rather
+   * than a hardcoded name means this keeps holding when a second venue's
+   * derivation lands.
+   */
   const derivedRates = $derived(
-    derivedRatesFromStore(
-      tradeState.remoteMakerFee,
-      tradeState.remoteTakerFee,
-      tradeState.remoteFeeSamples,
-    ),
+    tradeState.remoteFeeExchange === exchange
+      ? derivedRatesFromStore(
+        tradeState.remoteMakerFee,
+        tradeState.remoteTakerFee,
+        tradeState.remoteFeeSamples,
+      )
+      : undefined,
   );
 
   // The entry leg's role is dictated by the order type, not chosen; the exit
@@ -135,15 +149,27 @@
     settingsState.feePreference === "taker" ? "taker" : "maker",
   );
 
+  /*
+   * `new Decimal()` throws on anything it cannot parse, and this runs inside a
+   * `$derived`. A stored rate of "0,06", "0." or "abc" — reachable from this
+   * field and from the Settings inputs — would therefore throw during rune
+   * evaluation and take the whole dashboard down with it. An unusable rate
+   * falls back to the documented venue default instead, and is labelled
+   * "assumed", which is exactly what it then is.
+   */
   function resolveFor(role: "maker" | "taker") {
     const raw = settingsRateFor(role);
+    const fallback = venueDefaults[role];
+    const parsed = toDecimalOrNull(raw);
+    const usable = parsed !== null;
     return resolveFeeRate(role, {
       derived: derivedRates,
-      settingsRate: new Decimal(raw),
+      settingsRate: usable ? parsed : new Decimal(fallback),
       // Passed through verbatim so a rate the user typed as "0.0600" is
-      // mirrored and shown as "0.0600", not silently normalised to "0.06".
-      settingsDisplay: raw,
-      venueDefault: new Decimal(venueDefaults[role]),
+      // mirrored and shown as "0.0600", not silently normalised to "0.06" —
+      // but only while it is a number at all.
+      settingsDisplay: usable ? raw : fallback,
+      venueDefault: new Decimal(fallback),
       isPaperTrading: paperState.enabled,
     });
   }
@@ -178,11 +204,24 @@
    * broker's: overwriting a number the exchange actually charged with a typed
    * guess is the exact confusion this item exists to remove.
    */
-  function commitHeadline(raw: string) {
-    if (headlineReadonly) return;
+  function commitHeadline(input: HTMLInputElement) {
+    if (headlineReadonly) {
+      input.value = headline.display;
+      return;
+    }
+    // A decimal comma is what a German keyboard produces; accept it rather
+    // than treating a legitimate entry as junk.
+    const raw = input.value.trim().replace(",", ".");
+    if (toDecimalOrNull(raw) === null) {
+      // Refuse silently-wrong input rather than storing a rate that cannot be
+      // parsed back. Restoring the field is the feedback: the number the
+      // calculator is actually using reappears in place of what was typed.
+      input.value = headline.display;
+      return;
+    }
     settingsState.feeRates = {
       ...settingsState.feeRates,
-      [exchange]: { ...feeRates, [activeRole]: raw.trim() },
+      [exchange]: { ...feeRates, [activeRole]: raw },
     };
   }
 
@@ -317,7 +356,7 @@
             data-track-id="input-fees"
             readonly={headlineReadonly}
             value={headline.display}
-            onchange={(e) => commitHeadline((e.target as HTMLInputElement).value)}
+            onchange={(e) => commitHeadline(e.target as HTMLInputElement)}
             class="fee-input w-full"
             aria-describedby="fee-provenance"
           />

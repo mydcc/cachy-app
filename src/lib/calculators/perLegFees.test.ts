@@ -31,6 +31,8 @@ import {
   deriveMoneyMetrics,
   calculateBreakEvenPrice,
   calculateBaseMetrics,
+  calculateIndividualTp,
+  calculateTotalMetrics,
 } from "./core";
 import type { TradeValues } from "../../stores/types";
 
@@ -127,6 +129,34 @@ describe("calculateBreakEvenPrice — two legs, two rates", () => {
     }
   });
 
+  it("pins the exact long break-even, so a swapped entry/exit argument fails", () => {
+    /*
+     * 100 × (1 + 0.0002) / (1 - 0.0006). The inequality assertions below are
+     * not enough on their own: feeding the rates in the wrong order still
+     * produces a smaller number than the both-taker case, so they would pass
+     * on an inverted formula. These digits would not — the swapped result is
+     * 100.08001600320064013, and the two diverge at the sixth decimal.
+     */
+    const be = calculateBreakEvenPrice(
+      new Decimal(100),
+      MAKER,
+      CONSTANTS.TRADE_TYPE_LONG,
+      TAKER,
+    );
+    expect(be.toString()).toBe("100.08004802881729037");
+  });
+
+  it("pins the exact short break-even", () => {
+    // 100 × (1 - 0.0002) / (1 + 0.0006); swapped would be 99.920015996800639872.
+    const be = calculateBreakEvenPrice(
+      new Decimal(100),
+      MAKER,
+      CONSTANTS.TRADE_TYPE_SHORT,
+      TAKER,
+    );
+    expect(be.toString()).toBe("99.920047971217269638");
+  });
+
   it("a cheaper maker entry moves a long's break-even closer to the entry price", () => {
     const entry = new Decimal(100);
     const bothTaker = calculateBreakEvenPrice(
@@ -191,5 +221,46 @@ describe("calculateBaseMetrics — the split reaches the whole result", () => {
     );
     const flat = calculateBaseMetrics(tradeValues(), CONSTANTS.TRADE_TYPE_LONG);
     expect(split!.breakEvenPrice.lt(flat!.breakEvenPrice)).toBe(true);
+  });
+});
+
+describe("take-profit legs under asymmetric rates", () => {
+  // A 2-unit position (1000 × 2% risk over a 10-wide stop), half sold at 120.
+  const values = tradeValues({
+    entryFees: MAKER,
+    exitFees: TAKER,
+    targets: [{ price: new Decimal(120), percent: new Decimal(50), isLocked: false }],
+    totalPercentSold: new Decimal(50),
+  });
+
+  it("charges a partial exit at the exit rate and its entry share at the entry rate", () => {
+    const base = calculateBaseMetrics(values, CONSTANTS.TRADE_TYPE_LONG)!;
+    const tp = calculateIndividualTp(
+      new Decimal(120),
+      new Decimal(50),
+      base,
+      values,
+      0,
+    );
+
+    // 1 unit out at 120 × 0.06% = 0.072; its entry share 1 × 100 × 0.02% = 0.02.
+    expect(tp.exitFee.toString()).toBe("0.072");
+    // Gross 20 on the part, minus both fee shares.
+    expect(tp.netProfit.toString()).toBe("19.908");
+  });
+
+  it("totals both legs at their own rates", () => {
+    const base = calculateBaseMetrics(values, CONSTANTS.TRADE_TYPE_LONG)!;
+    const totals = calculateTotalMetrics(
+      [{ price: new Decimal(120), percent: new Decimal(50) }],
+      base,
+      values,
+      CONSTANTS.TRADE_TYPE_LONG,
+    );
+
+    // 0.02 in + 0.072 out. A flat 0.06% on both would give 0.132.
+    expect(totals.totalFees.toString()).toBe("0.092");
+    // Full 2 units to 120: gross 40, less 0.04 entry and 0.144 exit.
+    expect(totals.maxPotentialProfit.toString()).toBe("39.816");
   });
 });

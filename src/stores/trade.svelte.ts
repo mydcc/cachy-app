@@ -79,6 +79,14 @@ export interface TradeStateSnapshot {
   remoteTakerFee: Decimal | undefined;
   /** How many fills backed each derived rate — shown as its provenance. */
   remoteFeeSamples: { maker?: number; taker?: number };
+  /**
+   * Which venue's fills those rates came from. Without it, switching the
+   * active exchange would keep showing the previous venue's rates under a
+   * "from broker" badge — a rate *this* broker never charged, presented as if
+   * it had. The provenance rule is the point of the feature, so the source is
+   * carried with the number rather than assumed.
+   */
+  remoteFeeExchange: string | undefined;
   feeMode: "maker_taker" | "flat";
   /**
    * FEAT-0253: which order type the entry leg will be placed as, so the
@@ -189,6 +197,7 @@ export const INITIAL_TRADE_STATE = {
   remoteMakerFee: undefined as Decimal | undefined,
   remoteTakerFee: undefined as Decimal | undefined,
   remoteFeeSamples: {} as { maker?: number; taker?: number },
+  remoteFeeExchange: undefined as string | undefined,
   feeMode: "maker_taker" as "maker_taker" | "flat",
   entryOrderType: "market" as "market" | "limit" | "trigger",
   entryFees: undefined as Decimal | undefined,
@@ -236,6 +245,9 @@ class TradeManager {
   remoteFeeSamples = $state<{ maker?: number; taker?: number }>({
     ...INITIAL_TRADE_STATE.remoteFeeSamples,
   });
+  remoteFeeExchange = $state<string | undefined>(
+    INITIAL_TRADE_STATE.remoteFeeExchange,
+  );
   feeMode = $state(INITIAL_TRADE_STATE.feeMode);
   entryOrderType = $state<"market" | "limit" | "trigger">(
     INITIAL_TRADE_STATE.entryOrderType,
@@ -386,6 +398,7 @@ class TradeManager {
       // Transient with the rates they describe: a sample count restored from
       // disk would vouch for fills this session never saw.
       delete toSave.remoteFeeSamples;
+      delete toSave.remoteFeeExchange;
       delete toSave.entryFees;
       delete toSave.exitFees;
       delete toSave.feeMode;
@@ -570,6 +583,7 @@ class TradeManager {
       remoteMakerFee: this.remoteMakerFee,
       remoteTakerFee: this.remoteTakerFee,
       remoteFeeSamples: this.remoteFeeSamples,
+      remoteFeeExchange: this.remoteFeeExchange,
       feeMode: this.feeMode,
       entryOrderType: this.entryOrderType,
       entryFees: this.entryFees,
