@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
+import { GET as GET_MODELS } from './models/+server';
 import * as clientToken from '../../../../lib/server/clientToken';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -74,7 +75,7 @@ describe('POST /api/ai/gemini', () => {
         }
     });
 
-    it('should accept valid model identifiers and call fetch with encoded model name', async () => {
+    it('should accept valid model identifiers, pass key via x-goog-api-key header and omit key from URL (FEAT-0377)', async () => {
         const fetchSpy = vi.fn().mockResolvedValue(
             new Response('data: {"candidates":[]}\n\n', {
                 status: 200,
@@ -112,9 +113,85 @@ describe('POST /api/ai/gemini', () => {
 
             expect(response.status).toBe(200);
             expect(fetchSpy).toHaveBeenCalled();
-            const calledUrl = fetchSpy.mock.calls[fetchSpy.mock.calls.length - 1][0];
+            const [calledUrl, options] = fetchSpy.mock.calls[fetchSpy.mock.calls.length - 1];
             expect(calledUrl).toContain(`models/${encodeURIComponent(validModel)}:streamGenerateContent`);
+            expect(calledUrl).not.toContain('key=');
+            expect(options.headers).toHaveProperty('x-goog-api-key', 'test-key');
         }
+
+        vi.unstubAllGlobals();
+    });
+
+    it('should not attach x-goog-api-key when using baseUrl fallback without apiKey', async () => {
+        const fetchSpy = vi.fn().mockResolvedValue(
+            new Response('data: {"candidates":[]}\n\n', {
+                status: 200,
+                headers: { 'Content-Type': 'text/event-stream' },
+            })
+        );
+
+        vi.stubGlobal('fetch', fetchSpy);
+
+        const request = new Request('http://localhost/api/ai/gemini', {
+            method: 'POST',
+            body: JSON.stringify({
+                messages: [{ role: 'user', content: 'Hello' }],
+                baseUrl: 'http://localhost:8080',
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const response = await POST({
+            request,
+            getClientAddress,
+        } as unknown as RequestEvent);
+
+        expect(response.status).toBe(200);
+        const [calledUrl, options] = fetchSpy.mock.calls[0];
+        expect(calledUrl).not.toContain('key=');
+        expect(options.headers['x-goog-api-key']).toBeUndefined();
+
+        vi.unstubAllGlobals();
+    });
+});
+
+describe('GET /api/ai/gemini/models', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
+    });
+
+    it('passes apiKey via x-goog-api-key header and omits key query parameter (FEAT-0377)', async () => {
+        const fetchSpy = vi.fn().mockResolvedValue(
+            new Response(JSON.stringify({ models: [] }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        vi.stubGlobal('fetch', fetchSpy);
+
+        const request = new Request('http://localhost/api/ai/gemini/models', {
+            method: 'GET',
+            headers: {
+                'x-api-key': 'models-test-key',
+            },
+        });
+
+        const response = await GET_MODELS({
+            url: new URL('http://localhost/api/ai/gemini/models'),
+            request,
+            getClientAddress,
+        } as unknown as RequestEvent);
+
+        expect(response.status).toBe(200);
+        expect(fetchSpy).toHaveBeenCalled();
+        const [calledUrl, options] = fetchSpy.mock.calls[0];
+        expect(calledUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models');
+        expect(calledUrl).not.toContain('key=');
+        expect(options.headers).toHaveProperty('x-goog-api-key', 'models-test-key');
 
         vi.unstubAllGlobals();
     });
