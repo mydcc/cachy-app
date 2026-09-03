@@ -1386,6 +1386,20 @@ class TradeService {
                 leverage: position.leverage,
                 marginMode: position.marginMode === "isolated" ? "ISOLATION" : "CROSS",
                 availableMargin,
+                /*
+                 * When the venue last confirmed this account's leverage and
+                 * margin mode. The gate refuses an add on a read older than
+                 * MAX_ACCOUNT_STATE_AGE_MS, the same as it does an open,
+                 * because an add opens exposure too.
+                 *
+                 * Read from `tradeState` — the same source `PlaceOrderPanel`
+                 * hands to `placeOrder` — rather than stamped `Date.now()`
+                 * here. Stamping it locally would satisfy the freshness check
+                 * with the time this code ran instead of the time the exchange
+                 * answered, which is a check that always passes and therefore
+                 * is not a check.
+                 */
+                accountStateAt: tradeState.remoteAccountStateAt,
                 stepSize:
                     meta?.basePrecision !== undefined
                         ? new Decimal(10).pow(-meta.basePrecision)
