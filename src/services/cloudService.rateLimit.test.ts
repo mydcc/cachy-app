@@ -20,91 +20,57 @@ import {
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_MESSAGES,
   RETENTION_MS,
+  MAX_MESSAGE_LENGTH,
   evaluateRateLimit,
+  handleSendMessage,
+  handleDeleteExpiredMessages,
+  handleDeleteMyMessages,
   type SenderActivityRecord,
+  type GlobalMessageRecord,
+  type MessageDb,
 } from "../../server/spacetimedb/src/rateLimit";
 
 /**
  * FEAT-0375: Rate-limiting the send_message reducer in Global Chat.
  *
- * Tests the transactional rate limit behavior:
+ * Tests the shared reducer operations and pure rate-limiting logic:
  * - 5 messages per 10-second fixed window (burst budget).
- * - 6th message within the same fixed window is rejected with a SenderError.
+ * - 6th message within the same fixed window is rejected.
  * - Senders are isolated: one sender exceeding the budget does not block another.
  * - Fixed window reset: once 10 seconds elapse, the sender can send again.
  * - Inactive sender records past the 90-day retention window are pruned.
- * - GDPR erasure (delete_my_messages) deletes the sender activity row.
+ * - GDPR erasure (delete_my_messages) deletes the sender activity row and messages.
+ * - Text length validation (max 1000 characters).
  */
 
-class SenderError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "SenderError";
-  }
-}
+function createInMemoryDb() {
+  const senderActivity = new Map<string, SenderActivityRecord>();
+  let globalMessage: GlobalMessageRecord[] = [];
 
-interface GlobalMessageRow {
-  sender: string;
-  text: string;
-  sent_at: number;
-}
+  const db: MessageDb = {
+    globalMessage: {
+      insert: (row) => globalMessage.push(row),
+      delete: (row) => {
+        globalMessage = globalMessage.filter((m) => m !== row);
+      },
+      iter: () => [...globalMessage],
+    },
+    senderActivity: {
+      find: (sender) => senderActivity.get(sender),
+      insert: (row) => senderActivity.set(row.sender, row),
+      update: (row) => senderActivity.set(row.sender, row),
+      delete: (row) => senderActivity.delete(row.sender),
+      iter: () => [...senderActivity.values()],
+    },
+  };
 
-function executeSendMessage(
-  db: {
-    senderActivity: Map<string, SenderActivityRecord>;
-    globalMessage: GlobalMessageRow[];
-  },
-  senderId: string,
-  timestampMs: number,
-  text: string,
-) {
-  if (text.length > 1000) {
-    throw new SenderError("Message too long");
-  }
-
-  const activity = db.senderActivity.get(senderId);
-  const decision = evaluateRateLimit(senderId, timestampMs, activity);
-
-  if (decision.action === "reject") {
-    throw new SenderError(decision.error);
-  } else if (decision.action === "insert" || decision.action === "update") {
-    db.senderActivity.set(senderId, decision.record);
-  }
-
-  db.globalMessage.push({
-    sender: senderId,
-    text,
-    sent_at: timestampMs,
-  });
-}
-
-function executeDeleteExpiredMessages(
-  db: {
-    senderActivity: Map<string, SenderActivityRecord>;
-    globalMessage: GlobalMessageRow[];
-  },
-  nowMs: number,
-) {
-  const cutoff = nowMs - RETENTION_MS;
-
-  db.globalMessage = db.globalMessage.filter((msg) => msg.sent_at >= cutoff);
-
-  for (const [sender, activity] of [...db.senderActivity.entries()]) {
-    if (activity.last_sent_at < cutoff) {
-      db.senderActivity.delete(sender);
-    }
-  }
-}
-
-function executeDeleteMyMessages(
-  db: {
-    senderActivity: Map<string, SenderActivityRecord>;
-    globalMessage: GlobalMessageRow[];
-  },
-  senderId: string,
-) {
-  db.globalMessage = db.globalMessage.filter((msg) => msg.sender !== senderId);
-  db.senderActivity.delete(senderId);
+  return {
+    db,
+    senderActivity,
+    get globalMessage() {
+      return globalMessage;
+    },
+  };
 }
 
 describe("FEAT-0375: evaluateRateLimit pure function", () => {
@@ -177,158 +143,142 @@ describe("FEAT-0375: evaluateRateLimit pure function", () => {
 
 describe("FEAT-0375: send_message rate limiting reducer integration", () => {
   it("allows up to 5 messages within the 10-second fixed window (burst budget)", () => {
-    const db = {
-      senderActivity: new Map<string, SenderActivityRecord>(),
-      globalMessage: [] as GlobalMessageRow[],
-    };
-
+    const memDb = createInMemoryDb();
     const sender = "sender_alpha";
     const startTime = 1_000_000;
 
     for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
       expect(() =>
-        executeSendMessage(db, sender, startTime + i * 1000, `msg ${i + 1}`),
+        handleSendMessage(memDb.db, sender, startTime + i * 1000, `msg ${i + 1}`),
       ).not.toThrow();
     }
 
-    expect(db.globalMessage).toHaveLength(5);
-    const activity = db.senderActivity.get(sender);
+    expect(memDb.globalMessage).toHaveLength(5);
+    const activity = memDb.senderActivity.get(sender);
     expect(activity?.count).toBe(5);
     expect(activity?.window_start).toBe(startTime);
   });
 
-  it("rejects the 6th message within the same 10-second fixed window with SenderError", () => {
-    const db = {
-      senderActivity: new Map<string, SenderActivityRecord>(),
-      globalMessage: [] as GlobalMessageRow[],
-    };
-
+  it("rejects the 6th message within the same 10-second fixed window", () => {
+    const memDb = createInMemoryDb();
     const sender = "sender_alpha";
     const startTime = 1_000_000;
 
     for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
-      executeSendMessage(db, sender, startTime + i * 1000, `msg ${i + 1}`);
+      handleSendMessage(memDb.db, sender, startTime + i * 1000, `msg ${i + 1}`);
     }
 
     // 6th message at 5 seconds into the window exceeds budget
     expect(() =>
-      executeSendMessage(db, sender, startTime + 5000, "flooding attempt"),
-    ).toThrow(SenderError);
-
-    expect(() =>
-      executeSendMessage(db, sender, startTime + 5000, "flooding attempt"),
+      handleSendMessage(memDb.db, sender, startTime + 5000, "flooding attempt"),
     ).toThrow(/Rate limit exceeded: maximum 5 messages per 10s/);
 
-    expect(db.globalMessage).toHaveLength(5);
+    expect(memDb.globalMessage).toHaveLength(5);
+  });
+
+  it("rejects messages exceeding MAX_MESSAGE_LENGTH (1000 characters)", () => {
+    const memDb = createInMemoryDb();
+    const sender = "sender_alpha";
+    const longText = "x".repeat(MAX_MESSAGE_LENGTH + 1);
+
+    expect(() =>
+      handleSendMessage(memDb.db, sender, 1_000_000, longText),
+    ).toThrow("Message too long");
+
+    expect(memDb.globalMessage).toHaveLength(0);
   });
 
   it("isolates rate limits between distinct senders", () => {
-    const db = {
-      senderActivity: new Map<string, SenderActivityRecord>(),
-      globalMessage: [] as GlobalMessageRow[],
-    };
-
+    const memDb = createInMemoryDb();
     const senderA = "sender_alpha";
     const senderB = "sender_beta";
     const startTime = 1_000_000;
 
     // Sender A exhausts their quota
     for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
-      executeSendMessage(db, senderA, startTime + i * 1000, `A msg ${i + 1}`);
+      handleSendMessage(memDb.db, senderA, startTime + i * 1000, `A msg ${i + 1}`);
     }
     expect(() =>
-      executeSendMessage(db, senderA, startTime + 5000, "A exceed"),
-    ).toThrow(SenderError);
+      handleSendMessage(memDb.db, senderA, startTime + 5000, "A exceed"),
+    ).toThrow(/Rate limit exceeded/);
 
     // Sender B can still send freely
     expect(() =>
-      executeSendMessage(db, senderB, startTime + 5000, "B msg 1"),
+      handleSendMessage(memDb.db, senderB, startTime + 5000, "B msg 1"),
     ).not.toThrow();
-    expect(db.globalMessage).toHaveLength(6);
+    expect(memDb.globalMessage).toHaveLength(6);
   });
 
   it("resets the budget after the fixed 10-second window elapses", () => {
-    const db = {
-      senderActivity: new Map<string, SenderActivityRecord>(),
-      globalMessage: [] as GlobalMessageRow[],
-    };
-
+    const memDb = createInMemoryDb();
     const sender = "sender_alpha";
     const startTime = 1_000_000;
 
     // 5 messages in first window
     for (let i = 0; i < RATE_LIMIT_MAX_MESSAGES; i++) {
-      executeSendMessage(db, sender, startTime + i * 1000, `msg ${i + 1}`);
+      handleSendMessage(memDb.db, sender, startTime + i * 1000, `msg ${i + 1}`);
     }
 
     // Next window at startTime + 10_000 ms
     const nextWindowTime = startTime + RATE_LIMIT_WINDOW_MS;
     expect(() =>
-      executeSendMessage(db, sender, nextWindowTime, "new window msg"),
+      handleSendMessage(memDb.db, sender, nextWindowTime, "new window msg"),
     ).not.toThrow();
 
-    expect(db.globalMessage).toHaveLength(6);
-    const activity = db.senderActivity.get(sender);
+    expect(memDb.globalMessage).toHaveLength(6);
+    const activity = memDb.senderActivity.get(sender);
     expect(activity?.count).toBe(1);
     expect(activity?.window_start).toBe(nextWindowTime);
   });
 
   it("prunes inactive sender records past 90-day retention in delete_expired_messages", () => {
-    const db = {
-      senderActivity: new Map<string, SenderActivityRecord>(),
-      globalMessage: [] as GlobalMessageRow[],
-    };
-
+    const memDb = createInMemoryDb();
     const now = 200 * 24 * 60 * 60 * 1000; // day 200
     const oldTime = now - RETENTION_MS - 1000; // 91 days old
     const recentTime = now - 1000; // 1s ago
 
-    db.senderActivity.set("old_user", {
+    memDb.senderActivity.set("old_user", {
       sender: "old_user",
       window_start: oldTime,
       count: 1,
       last_sent_at: oldTime,
     });
-    db.senderActivity.set("active_user", {
+    memDb.senderActivity.set("active_user", {
       sender: "active_user",
       window_start: recentTime,
       count: 1,
       last_sent_at: recentTime,
     });
 
-    executeDeleteExpiredMessages(db, now);
+    handleDeleteExpiredMessages(memDb.db, now);
 
-    expect(db.senderActivity.has("old_user")).toBe(false);
-    expect(db.senderActivity.has("active_user")).toBe(true);
+    expect(memDb.senderActivity.has("old_user")).toBe(false);
+    expect(memDb.senderActivity.has("active_user")).toBe(true);
   });
 
   it("cleans up sender activity on delete_my_messages for GDPR compliance", () => {
-    const db = {
-      senderActivity: new Map<string, SenderActivityRecord>(),
-      globalMessage: [
-        { sender: "user_a", text: "msg A", sent_at: 1000 },
-        { sender: "user_b", text: "msg B", sent_at: 1000 },
-      ],
-    };
+    const memDb = createInMemoryDb();
+    memDb.db.globalMessage.insert({ sender: "user_a", text: "msg A", sent_at: 1000 });
+    memDb.db.globalMessage.insert({ sender: "user_b", text: "msg B", sent_at: 1000 });
 
-    db.senderActivity.set("user_a", {
+    memDb.senderActivity.set("user_a", {
       sender: "user_a",
       window_start: 1000,
       count: 1,
       last_sent_at: 1000,
     });
-    db.senderActivity.set("user_b", {
+    memDb.senderActivity.set("user_b", {
       sender: "user_b",
       window_start: 1000,
       count: 1,
       last_sent_at: 1000,
     });
 
-    executeDeleteMyMessages(db, "user_a");
+    handleDeleteMyMessages(memDb.db, "user_a");
 
-    expect(db.globalMessage).toHaveLength(1);
-    expect(db.globalMessage[0].sender).toBe("user_b");
-    expect(db.senderActivity.has("user_a")).toBe(false);
-    expect(db.senderActivity.has("user_b")).toBe(true);
+    expect(memDb.globalMessage).toHaveLength(1);
+    expect(memDb.globalMessage[0].sender).toBe("user_b");
+    expect(memDb.senderActivity.has("user_a")).toBe(false);
+    expect(memDb.senderActivity.has("user_b")).toBe(true);
   });
 });

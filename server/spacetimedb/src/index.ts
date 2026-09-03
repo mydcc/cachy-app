@@ -28,9 +28,11 @@ import { ScheduleAt } from 'spacetimedb';
  */
 import {
   RETENTION_DAYS,
-  RETENTION_MS,
   CLEANUP_INTERVAL_MICROS,
-  evaluateRateLimit,
+  type MessageDb,
+  handleSendMessage,
+  handleDeleteExpiredMessages,
+  handleDeleteMyMessages,
 } from './rateLimit';
 
 const SenderActivity = table(
@@ -74,6 +76,24 @@ spacetimedb.init((ctx) => {
   });
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function adaptDb(ctx: { db: any }): MessageDb {
+  return {
+    globalMessage: {
+      insert: (row) => ctx.db.globalMessage.insert(row),
+      delete: (row) => ctx.db.globalMessage.delete(row),
+      iter: () => ctx.db.globalMessage.iter(),
+    },
+    senderActivity: {
+      find: (sender) => ctx.db.senderActivity.sender.find(sender),
+      insert: (row) => ctx.db.senderActivity.insert(row),
+      update: (row) => ctx.db.senderActivity.sender.update(row),
+      delete: (row) => ctx.db.senderActivity.delete(row),
+      iter: () => ctx.db.senderActivity.iter(),
+    },
+  };
+}
+
 /**
  * Deletes messages past the retention window.
  *
@@ -86,25 +106,10 @@ spacetimedb.reducer(
   (ctx) => {
     // ctx.timestamp rather than Date.now(): reducers must be deterministic.
     const nowMs = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
-    const cutoff = nowMs - RETENTION_MS;
+    const { deletedMessages } = handleDeleteExpiredMessages(adaptDb(ctx), nowMs);
 
-    let deleted = 0;
-    for (const message of [...ctx.db.globalMessage.iter()]) {
-      if (message.sent_at < cutoff) {
-        ctx.db.globalMessage.delete(message);
-        deleted++;
-      }
-    }
-
-    if (deleted > 0) {
-      console.info(`Retention: deleted ${deleted} message(s) older than ${RETENTION_DAYS} days`);
-    }
-
-    // Clean up inactive sender records older than retention window
-    for (const activity of [...ctx.db.senderActivity.iter()]) {
-      if (activity.last_sent_at < cutoff) {
-        ctx.db.senderActivity.delete(activity);
-      }
+    if (deletedMessages > 0) {
+      console.info(`Retention: deleted ${deletedMessages} message(s) older than ${RETENTION_DAYS} days`);
     }
   }
 );
@@ -118,22 +123,8 @@ spacetimedb.reducer(
  */
 spacetimedb.reducer('delete_my_messages', {}, (ctx) => {
   const senderId = ctx.sender.toHexString();
-
-  let deleted = 0;
-  for (const message of [...ctx.db.globalMessage.iter()]) {
-    if (message.sender === senderId) {
-      ctx.db.globalMessage.delete(message);
-      deleted++;
-    }
-  }
-
-  for (const activity of [...ctx.db.senderActivity.iter()]) {
-    if (activity.sender === senderId) {
-      ctx.db.senderActivity.delete(activity);
-    }
-  }
-
-  console.info(`Erasure: deleted ${deleted} message(s)`);
+  const { deletedMessages } = handleDeleteMyMessages(adaptDb(ctx), senderId);
+  console.info(`Erasure: deleted ${deletedMessages} message(s)`);
 });
 
 spacetimedb.clientConnected((ctx) => {
@@ -146,28 +137,12 @@ spacetimedb.clientDisconnected((ctx) => {
 
 // Reducer to send a message
 spacetimedb.reducer('send_message', { text: t.string() }, (ctx, { text }) => {
-  if (text.length > 1000) {
-    throw new SenderError('Message too long');
-  }
-
   const senderId = ctx.sender.toHexString();
   const timestamp = Number(ctx.timestamp.microsSinceUnixEpoch / 1000n);
 
-  const activity = ctx.db.senderActivity.sender.find(senderId);
-  const decision = evaluateRateLimit(senderId, timestamp, activity);
-
-  if (decision.action === 'reject') {
-    throw new SenderError(decision.error);
-  } else if (decision.action === 'insert') {
-    ctx.db.senderActivity.insert(decision.record);
-  } else if (decision.action === 'update') {
-    ctx.db.senderActivity.sender.update(decision.record);
+  try {
+    handleSendMessage(adaptDb(ctx), senderId, timestamp, text);
+  } catch (err) {
+    throw new SenderError(err instanceof Error ? err.message : String(err));
   }
-
-  // Use globalMessage (camelCase) as required by SpacetimeDB Typescript bindings
-  ctx.db.globalMessage.insert({
-    sender: senderId,
-    text: text,
-    sent_at: timestamp
-  });
 });

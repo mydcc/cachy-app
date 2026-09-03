@@ -91,3 +91,113 @@ export function evaluateRateLimit(
     },
   };
 }
+
+export const MAX_MESSAGE_LENGTH = 1000;
+
+export interface GlobalMessageRecord {
+  sender: string;
+  text: string;
+  sent_at: number;
+}
+
+export interface MessageDb {
+  globalMessage: {
+    insert(row: GlobalMessageRecord): void;
+    delete(row: GlobalMessageRecord): void;
+    iter(): Iterable<GlobalMessageRecord>;
+  };
+  senderActivity: {
+    find(sender: string): SenderActivityRecord | undefined;
+    insert(row: SenderActivityRecord): void;
+    update(row: SenderActivityRecord): void;
+    delete(row: SenderActivityRecord): void;
+    iter(): Iterable<SenderActivityRecord>;
+  };
+}
+
+/**
+ * Handles message validation, rate limiting, and insertion into the database.
+ * Thrown errors are surfaced to the caller (e.g. SenderError in SpacetimeDB).
+ */
+export function handleSendMessage(
+  db: MessageDb,
+  senderId: string,
+  timestamp: number,
+  text: string,
+): void {
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    throw new Error('Message too long');
+  }
+
+  const activity = db.senderActivity.find(senderId);
+  const decision = evaluateRateLimit(senderId, timestamp, activity);
+
+  if (decision.action === 'reject') {
+    throw new Error(decision.error);
+  } else if (decision.action === 'insert') {
+    db.senderActivity.insert(decision.record);
+  } else if (decision.action === 'update') {
+    db.senderActivity.update(decision.record);
+  }
+
+  db.globalMessage.insert({
+    sender: senderId,
+    text,
+    sent_at: timestamp,
+  });
+}
+
+/**
+ * Deletes global messages and sender activity older than the retention window.
+ */
+export function handleDeleteExpiredMessages(
+  db: MessageDb,
+  nowMs: number,
+): { deletedMessages: number; deletedActivities: number } {
+  const cutoff = nowMs - RETENTION_MS;
+  let deletedMessages = 0;
+  let deletedActivities = 0;
+
+  for (const message of [...db.globalMessage.iter()]) {
+    if (message.sent_at < cutoff) {
+      db.globalMessage.delete(message);
+      deletedMessages++;
+    }
+  }
+
+  for (const activity of [...db.senderActivity.iter()]) {
+    if (activity.last_sent_at < cutoff) {
+      db.senderActivity.delete(activity);
+      deletedActivities++;
+    }
+  }
+
+  return { deletedMessages, deletedActivities };
+}
+
+/**
+ * Deletes all messages and activity for a given sender (GDPR right to erasure).
+ */
+export function handleDeleteMyMessages(
+  db: MessageDb,
+  senderId: string,
+): { deletedMessages: number; deletedActivities: number } {
+  let deletedMessages = 0;
+  let deletedActivities = 0;
+
+  for (const message of [...db.globalMessage.iter()]) {
+    if (message.sender === senderId) {
+      db.globalMessage.delete(message);
+      deletedMessages++;
+    }
+  }
+
+  for (const activity of [...db.senderActivity.iter()]) {
+    if (activity.sender === senderId) {
+      db.senderActivity.delete(activity);
+      deletedActivities++;
+    }
+  }
+
+  return { deletedMessages, deletedActivities };
+}
