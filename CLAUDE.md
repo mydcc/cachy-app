@@ -9,7 +9,7 @@ This file is the Claude Code-specific extension of `AGENTS.md` (the tool-agnosti
 ```bash
 npm run dev          # Dev server (builds WASM first via scripts/build_wasm.sh)
 npm run build        # Production build (including WASM)
-npm run check        # svelte-check — required before completion; mid-task cadence by blast radius
+npm run check        # Type check via svelte-check (run on demand; CI verifies PRs automatically)
 npm test             # Vitest unit tests
 npm run test:e2e     # Playwright E2E tests
 ```
@@ -22,15 +22,17 @@ that: it also flips `$app/environment`'s `browser` to true, which sends
 `technicalsService` down its Worker path and fails two passing tests. `npm test`
 runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
 
-**Run targeted tests, not the whole suite.** `npm test` runs the full suite — both the `unit` and the `components` project — and is slow: the component tests mount every `.svelte` file with a DOM. After a change, run **only the tests your change affects** instead:
+**Verification Standard: Fast & Targeted.** `npm test` runs the full suite (300+ test files) and `npm run check` compiles all 160+ Svelte components. Running these full suites locally saturates CPU cores and freezes interactive work. **Full-suite regression testing and project-wide type checking are delegated to GitHub Actions CI.**
 
-- **One test file:** `npx vitest run src/services/tradeService.test.ts`
-- **A folder/pattern (substring match):** `npx vitest run src/services/tradeService`
-- **Pure-logic `unit` project only (skips all `.svelte` component mounting):** `npm run test:unit`
-- **Changed files only (git-based):** `npm run test:changed`
-- **Component tests** (`*.component.test.ts`, `components` project): `npx vitest run src/components/shared/TpSlList.refusal.component.test.ts`
-
-Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. A full `npm run check` is still required before completion regardless of the test scope — how often to run it mid-task is judgment-based, see "Verification Proportionality & Multi-Agent Resource Policy" in `AGENTS.md`.
+Locally, follow these rules:
+- **No test loops mid-task:** Do not run tests or checks after every small intermediate edit. Focus on clean implementation first.
+- **Fast targeted tests before commit/push:** Before committing or pushing code changes, run **only** the tests that cover your changes:
+  - **One test file:** `npx vitest run src/services/tradeService.test.ts` (~1–3s)
+  - **A folder/pattern:** `npx vitest run src/services/tradeService`
+  - **Changed files only (git-based):** `npm run test:changed`
+  - **Pure-logic `unit` project only:** `npm run test:unit`
+- **Non-code changes:** If only documentation, markdown, shell scripts, or root configs are touched, tests and `npm run check` are completely unnecessary and are skipped.
+- **Local resource protection:** Local Vitest worker count defaults to max 2 workers (`vite.config.ts`), and test scripts run through `scripts/run-lowpri.sh` (`taskset` CPU affinity clamping to at most half cores, idle I/O priority via `ionice -c 3`, and `nice -n 19`).
 
 ## Architecture
 
@@ -95,7 +97,7 @@ Reserve the full `npm test` for when you touched many files across projects or r
 
 ## Workflow
 
-- **Verification over claims:** Run `npm run check` and affected tests at verification milestones, and always before claiming completion (mid-task cadence is judgment-based — see "Verification Proportionality & Multi-Agent Resource Policy" in `AGENTS.md`; skill `/verify` reports honestly).
+- **Verification over claims:** Run fast targeted tests for touched code before commit/push (see "Verification Standard: Fast & Targeted" above; full-suite and type verification is handled by CI).
 - **Defensive deletion:** Never delete code of unclear purpose. Leave copyright headers and metadata untouched.
 - **Keep debug logs:** Remove `console.log` statements only upon explicit instruction.
 - **Playwright:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
