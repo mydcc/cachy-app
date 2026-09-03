@@ -39,6 +39,12 @@ describe("Content-Security-Policy Configuration (BUG-0270)", () => {
     }
   });
 
+  it("svelte.config.js connect-src must not contain unused NewRelic endpoints (FEAT-0374)", () => {
+    for (const origin of connectSrc) {
+      expect(origin).not.toMatch(/nr-data\.net/);
+    }
+  });
+
   it("src/app.html inline scripts must include nonce='%sveltekit.nonce%'", () => {
     const appHtmlPath = path.resolve(__dirname, "app.html");
     const appHtml = fs.readFileSync(appHtmlPath, "utf-8");

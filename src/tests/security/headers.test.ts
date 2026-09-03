@@ -18,6 +18,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { headersHandler } from '../../hooks.server';
 import type { RequestEvent } from '@sveltejs/kit';
+import { SECURITY_HEADERS } from '../../../server-headers.js';
 
 describe('Security Headers', () => {
   it('should set security headers', async () => {
@@ -48,6 +49,11 @@ describe('Security Headers', () => {
     expect(headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     expect(headers.get('Permissions-Policy')).toBe('camera=(self "https://space.cachy.app"), microphone=(self "https://space.cachy.app"), xr-spatial-tracking=(self "https://space.cachy.app" *), display-capture=(self "https://space.cachy.app"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*');
+  });
+
+  it('production CSP does not contain unused NewRelic endpoints (FEAT-0374)', () => {
+    const csp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
+    expect(csp).not.toContain('nr-data.net');
   });
 
   it('forces revalidation for HTML documents (stale-deployment protection)', async () => {

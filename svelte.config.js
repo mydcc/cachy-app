@@ -75,8 +75,6 @@ const config = {
           "wss://chat.cachy.app",
           "https://*.cachy.app",
           "wss://*.cachy.app",
-          "https://bam.nr-data.net",
-          "https://bam.eu01.nr-data.net",
           "wss://fapi.bitunix.com",
           "wss://stream.bitunix.com",
           "wss://ws.bitget.com",

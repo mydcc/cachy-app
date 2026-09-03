@@ -2,7 +2,7 @@
 id: FEAT-0374
 title: Remove unused NewRelic endpoints from connect-src in both CSP definitions
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +12,8 @@ adr: none
 depends_on: []
 size: S
 estimate: 1
-# assignee:            # required while status: in-progress (who is working this)
+assignee: antigravity
+branch: fix/security-audit-privacy-batch
 ---
 
 # FEAT-0374 — Remove unused NewRelic endpoints in connect-src (both CSP definitions)

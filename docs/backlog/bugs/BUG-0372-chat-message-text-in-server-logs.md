@@ -2,7 +2,7 @@
 id: BUG-0372
 title: Global chat reducer logs every message text to server logs, defeating the 90-day retention promise
 type: bug
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +12,8 @@ adr: none
 depends_on: []
 size: S
 estimate: 1
-# assignee:            # required while status: in-progress (who is working this)
+assignee: antigravity
+branch: fix/security-audit-privacy-batch
 ---
 
 # BUG-0372 — Global chat reducer logs every message text to server logs, defeating the 90-day retention promise
