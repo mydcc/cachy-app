@@ -2,9 +2,9 @@
 id: BUG-0356
 title: Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms
 type: bug
-status: in-progress
+status: done
 assignee: antigravity
-branch: feat/items-2583-2585-2581-2582
+shipped: 1.6.0-beta.216
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -70,9 +70,9 @@ The private connection scheduler never updates a backoff delay, always retrying 
 
 ## Acceptance criteria
 
-- [ ] A test proves that consecutive failures of private WebSocket connection increment delay exponentially up to `MAX_BACKOFF_DELAY`.
-- [ ] Successful authentication resets private backoff delay to its initial value.
-- [ ] Clearing/destroying `bitunixWs` cancels `reconnectTimerPrivate`.
+- [x] A test proves that consecutive failures of private WebSocket connection increment delay exponentially up to `MAX_BACKOFF_DELAY`.
+- [x] Successful authentication resets private backoff delay to its initial value.
+- [x] Clearing/destroying `bitunixWs` cancels `reconnectTimerPrivate`.
 
 ## Out of scope
 

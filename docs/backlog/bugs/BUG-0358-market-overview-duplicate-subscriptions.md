@@ -2,9 +2,9 @@
 id: BUG-0358
 title: MarketOverview duplicate effects register price and ticker channels twice per tile
 type: bug
-status: in-progress
+status: done
 assignee: antigravity
-branch: feat/items-2583-2585-2581-2582
+shipped: 1.6.0-beta.216
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -76,9 +76,9 @@ Remove the redundant `$effect` block on lines 284–295, keeping the guarded ver
 
 ## Acceptance criteria
 
-- [ ] Mounting a single `MarketOverview` tile calls `marketWatcher.register` exactly once for `price` and once for `ticker`.
-- [ ] Unmounting the tile decrements registration counts to zero cleanly.
-- [ ] Component test asserts registration count and unmount behavior.
+- [x] Mounting a single `MarketOverview` tile calls `marketWatcher.register` exactly once for `price` and once for `ticker`.
+- [x] Unmounting the tile decrements registration counts to zero cleanly.
+- [x] Component test asserts registration count and unmount behavior.
 
 ## Out of scope
 
