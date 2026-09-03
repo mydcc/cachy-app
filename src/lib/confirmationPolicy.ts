@@ -166,3 +166,36 @@ export function normalizePolicy(stored: unknown): ConfirmationPolicy {
 
     return result;
 }
+
+/*
+ * Authorisation for an account switch — FEAT-0026.
+ *
+ * `account-switch` is confirmable but deliberately not gated (see the note on
+ * `GATED_ACTIONS` above): a switch has no payload, no endpoint and no
+ * transport, so the order gate has no jurisdiction over it, and failing
+ * closed would strand a trader inside a misconfigured account they cannot
+ * leave.
+ *
+ * That leaves the enforcement problem the gate would otherwise have solved:
+ * nothing stops a call site from switching without asking, which is exactly
+ * the state this action has been in since FEAT-0024 shipped its toggle. The
+ * token closes it in the type system instead. `setActiveAccount` takes a
+ * `SwitchAuthorization`, and the only two functions that can produce one both
+ * consult the policy first — so a call site that skips the confirmation does
+ * not compile.
+ *
+ * `switchBrand` is declared and never exported, the same construction
+ * `GatePass` uses in `orderGate.ts`. Unlike `GatePass` there is no runtime
+ * registry behind it: a hand-rolled `{} as SwitchAuthorization` would pass.
+ * That is an accepted limit — the token is here to make the omission visible
+ * to a reviewer and impossible to reach by accident, not to defend against a
+ * caller deliberately forging one. Forging it changes no exchange state by
+ * itself; the order gate still refuses the resulting order.
+ */
+declare const switchBrand: unique symbol;
+
+export interface SwitchAuthorization {
+    readonly [switchBrand]: true;
+    /** When a human agreed, or null when the policy did not ask. */
+    readonly confirmedAt: number | null;
+}

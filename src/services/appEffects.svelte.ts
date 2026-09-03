@@ -1,7 +1,7 @@
 import { untrack } from "svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { settingsState, type Settings } from "../stores/settings.svelte";
-import { keysForExchange } from "../stores/settings/accounts";
+import { keysForActiveAccount } from "../stores/settings/accounts";
 import { marketState } from "../stores/market.svelte";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
@@ -12,15 +12,25 @@ import { Decimal } from "decimal.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setupRealtimeUpdatesEffect(app: any) {
-  // Deliberately fingerprints only the credentials of the active venue, not
-  // `activeAccountId`. With one account per venue (FEAT-0333) the two move
-  // together, so adding the id would change nothing today; making an account
-  // *switch* force a reconnect is FEAT-0026's job, along with the switch.
-  const computeKeys = (s: Pick<Settings, "apiProvider" | "accounts">) => {
-    const keys = keysForExchange(s.accounts, s.apiProvider);
-    return s.apiProvider === "bitget"
-      ? `${keys.key}:${keys.secret}:${keys.passphrase}`
-      : `${keys.key}:${keys.secret}`;
+  // FEAT-0026: the account id is part of the fingerprint now.
+  //
+  // It is *appended* to the credential string, never a replacement for it.
+  // The credentials still have to be in here, because this effect's other
+  // job is reconnecting when a user edits their keys without switching
+  // anything — `app_realtimeUpdates.test.ts` pins that. Two accounts on one
+  // venue will usually differ in their keys too, so the id looks redundant;
+  // it is not, because "usually" is doing real work in that sentence and an
+  // account switch must force a reconnect whether or not the keys happen to
+  // differ.
+  const computeKeys = (
+    s: Pick<Settings, "apiProvider" | "accounts" | "activeAccountId">,
+  ) => {
+    const keys = keysForActiveAccount(s.accounts, s.activeAccountId, s.apiProvider);
+    const credentials =
+      s.apiProvider === "bitget"
+        ? `${keys.key}:${keys.secret}:${keys.passphrase}`
+        : `${keys.key}:${keys.secret}`;
+    return `${s.activeAccountId}|${credentials}`;
   };
 
   let lastProvider = settingsState.apiProvider || "";
@@ -35,6 +45,9 @@ export function setupRealtimeUpdatesEffect(app: any) {
       const s = settingsState;
       const provider = s.apiProvider;
       const keys = s.accounts;
+      // Read so the effect re-runs on a switch. `computeKeys` reads it too,
+      // but that call is inside `untrack`, so this is the only subscription.
+      void s.activeAccountId;
       
       untrack(() => {
         if (!keys) return;

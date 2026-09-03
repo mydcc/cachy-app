@@ -166,6 +166,77 @@ export function keysForExchange(
 }
 
 /**
+ * The active account, scoped to the venue an order is actually going to.
+ *
+ * FEAT-0026. `accountForExchange` above answers "which account is on this
+ * venue", which was the same question as "which account is active" only
+ * because there was exactly one per venue. This one answers the second
+ * question, and it is the accessor every order-placing read goes through.
+ *
+ * Venue-scoped rather than a bare id lookup, deliberately: `activeAccountId`
+ * and `apiProvider` are one fact under two names, and state written before
+ * FEAT-0026 can have them disagree. Scoping to the venue means this can
+ * never return credentials for a different exchange than the one being
+ * signed for. A wrong-venue signature fails loudly at the exchange; a
+ * wrong-account one does not fail at all, which is the whole point of the
+ * item.
+ *
+ * The fallback to the venue's first account is exact while one account per
+ * venue holds, so this is a no-op for every profile that exists today.
+ */
+export function activeAccountFor(
+    accounts: readonly ExchangeAccount[] | undefined | null,
+    activeAccountId: string | undefined | null,
+    exchange: ExchangeProvider,
+): ExchangeAccount | undefined {
+    const active = activeAccountId
+        ? accounts?.find((account) => account.id === activeAccountId)
+        : undefined;
+    return active?.exchange === exchange
+        ? active
+        : accountForExchange(accounts, exchange);
+}
+
+/**
+ * The active account's credentials for this venue.
+ *
+ * Total for the same reason `keysForExchange` is (see its note): an
+ * order-placing call site that reads empty credentials refuses to trade,
+ * while a thrown `undefined.find` takes the surface down. Refusing is the
+ * better failure.
+ *
+ * Note this leaves "no credentials at all" indistinguishable from "some
+ * credentials" to a caller that only checks for an object. The gate closes
+ * that hole on its own side, where a refusal can be reported.
+ */
+export function keysForActiveAccount(
+    accounts: readonly ExchangeAccount[] | undefined | null,
+    activeAccountId: string | undefined | null,
+    exchange: ExchangeProvider,
+): ApiKeys {
+    return activeAccountFor(accounts, activeAccountId, exchange)?.keys ?? emptyKeys();
+}
+
+/**
+ * An id for an account the user is creating.
+ *
+ * The module note above promises that user-created accounts "get generated
+ * ids, which cannot collide with these because these are exactly the two
+ * reserved words". This is that promise's implementation. `migrateAccounts`
+ * never calls it, so the migration stays deterministic and idempotent.
+ */
+export function newAccountId(existing: readonly ExchangeAccount[]): string {
+    const taken = new Set<string>([
+        ...existing.map((account) => account.id),
+        ...Object.values(LEGACY_ACCOUNT_IDS),
+    ]);
+
+    let id = crypto.randomUUID();
+    while (taken.has(id)) id = crypto.randomUUID();
+    return id;
+}
+
+/**
  * Convert stored credentials into accounts, or reconcile accounts that are
  * already converted.
  *

@@ -16,7 +16,7 @@
  */
 
 import type { Settings } from "./settings.svelte";
-import { keysForExchange } from "./settings/accounts";
+import { keysForActiveAccount } from "./settings/accounts";
 
 /**
  * Edition/entitlement state (FEAT-0197 PR 2, feeding FEAT-0187): whether this
@@ -36,6 +36,7 @@ export class EntitlementStore {
 
   constructor(
     private readonly getAccounts: () => Settings["accounts"],
+    private readonly getActiveAccountId: () => Settings["activeAccountId"],
     private readonly getApiProvider: () => Settings["apiProvider"],
     private readonly getAutoTrading: () => boolean,
     private readonly getMultiAccount: () => boolean,
@@ -43,20 +44,27 @@ export class EntitlementStore {
   ) {}
 
   get capabilities() {
-    const accounts = this.getAccounts();
+    const provider = this.getApiProvider();
 
-    // For Bitget, we need key, secret AND passphrase
-    const bitgetKeys = keysForExchange(accounts, "bitget");
-    const hasBitgetKeys = Boolean(
-      bitgetKeys.key && bitgetKeys.secret && bitgetKeys.passphrase,
+    // FEAT-0026: one lookup, on the account that is actually active.
+    //
+    // This used to read both venues and then pick by provider, which was the
+    // same answer while a venue meant an account. It is not any more: with
+    // two accounts on one venue the venue lookup returns the first, so a
+    // funded account A alongside an empty active account B reported
+    // `tradeExecution: true` off A's credentials — the Pro surfaces unlocked
+    // against keys the pending order would not be signed with.
+    const keys = keysForActiveAccount(
+      this.getAccounts(),
+      this.getActiveAccountId(),
+      provider,
     );
 
-    // For Bitunix, just key and secret
-    const bitunixKeys = keysForExchange(accounts, "bitunix");
-    const hasBitunixKeys = Boolean(bitunixKeys.key && bitunixKeys.secret);
-
+    // Bitget needs key, secret AND passphrase; Bitunix just key and secret.
     const hasApiKeys =
-      this.getApiProvider() === "bitget" ? hasBitgetKeys : hasBitunixKeys;
+      provider === "bitget"
+        ? Boolean(keys.key && keys.secret && keys.passphrase)
+        : Boolean(keys.key && keys.secret);
 
     return {
       // ========== PUBLIC FEATURES (Community + Pro) ==========

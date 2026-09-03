@@ -26,7 +26,7 @@
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
-  import { keysForExchange } from "../../stores/settings/accounts";
+  import { keysForActiveAccount } from "../../stores/settings/accounts";
   import { uiState } from "../../stores/ui.svelte";
   import { safeJsonParse } from "../../utils/safeJson";
   import { mapApiErrorToLabel } from "../../utils/errorUtils";
@@ -52,7 +52,7 @@
 
   let isConnected = $derived(marketState.connectionStatus === "connected");
   let activeKeys = $derived(
-    keysForExchange(settingsState.accounts, settingsState.apiProvider),
+    keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, settingsState.apiProvider),
   );
   let hasApiKeys = $derived(Boolean(activeKeys.key) && Boolean(activeKeys.secret));
   let isFetchingBalance = $state(false);
@@ -169,7 +169,7 @@
 
     const settings = settingsState;
     const provider = settings.apiProvider;
-    const keys = keysForExchange(settings.accounts, provider);
+    const keys = keysForActiveAccount(settings.accounts, settings.activeAccountId, provider);
 
     if (!keys.key || !keys.secret) {
       if (!silent) {

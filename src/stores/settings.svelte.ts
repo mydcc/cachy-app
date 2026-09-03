@@ -21,6 +21,7 @@ import {
   SENSITIVE_KEYS,
   apiKeyHasMaterial,
 } from "./settings/secretsLoader";
+import type { SwitchAuthorization } from "../lib/confirmationPolicy";
 import type { AiAnalysisMode } from "../types/ai";
 import {
   accountForExchange,
@@ -28,7 +29,8 @@ import {
   CREDENTIAL_SCHEMA_VERSION,
   defaultAccountName,
   defaultAccountState,
-  keysForExchange,
+  activeAccountFor,
+  keysForActiveAccount,
   redactAccounts,
   LEGACY_ACCOUNT_IDS,
   type ExchangeAccount,
@@ -817,6 +819,7 @@ export class SettingsManager {
    */
   readonly entitlement = new EntitlementStore(
     () => this.accounts,
+    () => this.activeAccountId,
     () => this.apiProvider,
     () => this.autoTrading,
     () => this.multiAccount,
@@ -950,9 +953,42 @@ export class SettingsManager {
     return created;
   }
 
+  /**
+   * Switch the active account — FEAT-0026.
+   *
+   * The `auth` parameter is the point. `account-switch` is confirmable but
+   * not gated, so nothing structural stopped a call site from switching
+   * without asking; only two functions can produce a `SwitchAuthorization`
+   * and both consult the policy first, so skipping the prompt no longer
+   * compiles. See the note on the token in `lib/confirmationPolicy.ts`.
+   *
+   * Writes `activeAccountId` and `_apiProvider` together, because a reader
+   * that saw one without the other would resolve credentials for a venue the
+   * active account is not on. Refuses an id that resolves to nothing rather
+   * than storing it: a dangling active id makes every reader fall back to
+   * empty credentials, which reads to a user as "my keys are gone".
+   *
+   * Returns whether the state changed, so a caller can skip the reconnect
+   * and the confirmation on a no-op.
+   */
+  setActiveAccount(id: string, auth: SwitchAuthorization): boolean {
+    void auth; // Required for its type, not its value.
+
+    const target = this.accounts.find((account) => account.id === id);
+    if (!target) return false;
+    if (this.activeAccountId === id && this._apiProvider === target.exchange) {
+      return false;
+    }
+
+    this.activeAccountId = id;
+    this._apiProvider = target.exchange;
+    this.save();
+    return true;
+  }
+
   get effectiveShowSidebarActivity() {
-    const bitget = keysForExchange(this.accounts, "bitget");
-    const bitunix = keysForExchange(this.accounts, "bitunix");
+    const bitget = keysForActiveAccount(this.accounts, this.activeAccountId, "bitget");
+    const bitunix = keysForActiveAccount(this.accounts, this.activeAccountId, "bitunix");
     const hasBitgetKeys = Boolean(
       bitget.key && bitget.secret && bitget.passphrase,
     );
@@ -1494,9 +1530,6 @@ export class SettingsManager {
         activeAccountId: parsed.activeAccountId,
       } as Settings & LegacyCredentialShape;
 
-      // Set the private field directly during load to avoid dual logging
-      this._apiProvider = resolveApiProvider(merged.apiProvider);
-
       // Granular updates to preserve object references if components bind to them
       const apiKeyResult = this.secretsLoader.applyAccounts(merged, this.accounts);
       this.isEncrypted = apiKeyResult.isEncrypted;
@@ -1504,6 +1537,24 @@ export class SettingsManager {
       this.encryptedAccountKeys = apiKeyResult.encryptedAccountKeys;
       this.accounts = apiKeyResult.accounts;
       this.activeAccountId = apiKeyResult.activeAccountId;
+
+      // FEAT-0026: the venue follows the active account, rather than being
+      // derived from storage a second time.
+      //
+      // `apiProvider` and `activeAccountId` are one fact under two names.
+      // This used to write the private field *before* `applyAccounts` ran,
+      // from `merged.apiProvider` — an independent derivation of the same
+      // thing, which is precisely how the two come to disagree. Now the
+      // account resolves first and the venue is read off it.
+      //
+      // The stored value is still the fallback, and `resolveActiveId` already
+      // uses it to pick the active account, so a legacy profile lands on the
+      // same venue it always did. Set directly rather than through the
+      // setter, to avoid the dual logging the old comment here noted.
+      const storedProvider = resolveApiProvider(merged.apiProvider);
+      this._apiProvider =
+        activeAccountFor(this.accounts, this.activeAccountId, storedProvider)
+          ?.exchange ?? storedProvider;
 
       // BUG-0280 migration flag: storage predating the fix kept exchange
       // credentials as plaintext whenever no master password was set. They

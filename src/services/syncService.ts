@@ -19,7 +19,7 @@ import { parseTimestamp } from "../utils/utils";
 import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
-import { keysForExchange } from "../stores/settings/accounts";
+import { keysForActiveAccount } from "../stores/settings/accounts";
 import { apiService } from "./apiService";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
@@ -172,7 +172,7 @@ export const syncService = {
   syncBitunixPositions: async () => {
     const settings = settingsState;
     if (!settings.entitlement.isPro) return;
-    const bitunixKeys = keysForExchange(settings.accounts, "bitunix");
+    const bitunixKeys = keysForActiveAccount(settings.accounts, settings.activeAccountId, "bitunix");
     if (!bitunixKeys.key || !bitunixKeys.secret) {
       uiState.showError("settings.apiKeysRequired");
       return;

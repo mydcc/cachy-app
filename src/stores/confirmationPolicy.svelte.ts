@@ -38,6 +38,7 @@ import {
     normalizePolicy,
     type ConfirmableAction,
     type ConfirmationPolicy,
+    type SwitchAuthorization,
 } from "../lib/confirmationPolicy";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
@@ -91,6 +92,31 @@ class ConfirmationPolicyStore {
     public requires(action: ConfirmableAction): boolean {
         if (GATED_ACTIONS.has(action) && !WIRED_ACTIONS.has(action)) return false;
         return this._policy[action];
+    }
+
+    /**
+     * An authorisation for a switch the policy does not require a prompt for.
+     *
+     * Returns `null` when it does require one — the caller must then show the
+     * dialog and come back through `authorizeSwitchFromConfirmation`. Making
+     * the "no prompt needed" answer the *only* unprompted producer is what
+     * stops a call site from switching silently: there is no other way to
+     * obtain the token.
+     */
+    public authorizeSwitchUnprompted(): SwitchAuthorization | null {
+        if (this.requires("account-switch")) return null;
+        return { confirmedAt: null } as unknown as SwitchAuthorization;
+    }
+
+    /**
+     * An authorisation carrying the instant a human agreed.
+     *
+     * `confirmedAt` comes from `ConfirmActionModal`, which stamps it inside
+     * the component on the click — "this is the instant a human actually
+     * agreed", not the instant a caller got around to asking.
+     */
+    public authorizeSwitchFromConfirmation(confirmedAt: number): SwitchAuthorization {
+        return { confirmedAt } as unknown as SwitchAuthorization;
     }
 
     /**

@@ -51,7 +51,7 @@ import { capabilitiesOf } from "./exchangeCapabilities";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
-import { keysForExchange } from "../stores/settings/accounts";
+import { keysForActiveAccount } from "../stores/settings/accounts";
 import {
     orderGate,
     assertGatePass,
@@ -221,7 +221,7 @@ class TradeService {
         // Implementation for real app (simplified)
         // In test this is mocked
         const provider = settingsState.apiProvider;
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
 
         // Re-read of the account the request will actually be signed with,
         // compared against the account the gate approved. Settings can change
@@ -232,6 +232,7 @@ class TradeService {
                 payload,
                 provider,
                 accountFingerprint: accountFingerprint(keys?.key),
+                accountId: settingsState.activeAccountId,
                 paperMode: paperState.enabled,
             },
             pass
@@ -309,7 +310,7 @@ class TradeService {
     public async fetchLeverageMarginMode(symbol: string): Promise<void> {
         const provider = settingsState.apiProvider;
         if (provider !== "bitunix") return; // Bitget equivalent: follow the M2 adapter shape
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys?.key || !keys?.secret) return;
 
         try {
@@ -369,7 +370,7 @@ class TradeService {
         }
 
         const provider = settingsState.apiProvider;
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys?.key || !keys?.secret) {
             throw new Error("apiErrors.missingCredentials");
         }
@@ -597,11 +598,29 @@ class TradeService {
      * currently shows as active. Every intent needs it; nothing else about
      * an intent is shared, so the rest is built per call site.
      */
-    private displayedAccount(): Pick<DisplayedState, "provider" | "accountFingerprint" | "paperMode"> {
+    private displayedAccount(): Pick<
+        DisplayedState,
+        "provider" | "accountFingerprint" | "accountId" | "paperMode"
+    > {
         const provider = settingsState.apiProvider;
         return {
             provider,
-            accountFingerprint: accountFingerprint(keysForExchange(settingsState.accounts, provider).key),
+            accountFingerprint: accountFingerprint(
+                keysForActiveAccount(
+                    settingsState.accounts,
+                    settingsState.activeAccountId,
+                    provider,
+                ).key,
+            ),
+            // FEAT-0026. Be honest about what this is: a second *field*, not
+            // yet a second *derivation* — both this and the transmit-time
+            // read still come from `settingsState`. It is nonetheless a
+            // strict improvement, because it catches an account switch that
+            // leaves the key string unchanged, which the fingerprint cannot
+            // see. Sourcing one of the two roots from what the user was
+            // actually shown is the account chip's job, in the PR that adds
+            // it.
+            accountId: settingsState.activeAccountId,
             paperMode: paperState.enabled,
         };
     }
@@ -920,7 +939,7 @@ class TradeService {
         try {
             // W-6: Use generalized provider key lookup instead of hardcoding 'bitunix'
             const provider = settingsState.apiProvider;
-            const keys = keysForExchange(settingsState.accounts, provider);
+            const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
             if (!keys?.key || !keys?.secret) return;
 
             const pendingResponse = await appFetch("/api/sync/positions-pending", {
@@ -1380,7 +1399,7 @@ class TradeService {
 
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
         const provider = settingsState.apiProvider || "bitunix";
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         /*
          * Credentials are what a *venue* needs, and this read goes through
          * `signedRequest`, which answers from the simulator in paper mode

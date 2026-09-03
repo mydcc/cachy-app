@@ -10,7 +10,7 @@
 import { marketState } from "../stores/market.svelte";
 import { accountState, type RawWsOrder, type RawWsPosition } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
-import { keysForExchange } from "../stores/settings/accounts";
+import { keysForActiveAccount } from "../stores/settings/accounts";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
 import { logger } from "./logger";
@@ -248,7 +248,7 @@ class BitgetWebSocketService {
         this.resetWatchdog(ws);
 
         // Attempt login if keys available
-        const bitgetKeys = keysForExchange(settingsState.accounts, "bitget");
+        const bitgetKeys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, "bitget");
         if (
           bitgetKeys.key &&
           bitgetKeys.secret &&

@@ -37,7 +37,7 @@
     import { marketState } from "../../../stores/market.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
-    import { keysForExchange } from "../../../stores/settings/accounts";
+    import { keysForActiveAccount } from "../../../stores/settings/accounts";
     import { accountState } from "../../../stores/account.svelte";
     import { tpSlState } from "../../../stores/tpsl.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
@@ -135,7 +135,7 @@
     async function hydratePositionsIfEmpty() {
         if (accountState.positions.length > 0) return;
         const provider = settingsState.apiProvider || "bitunix";
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
         try {
             const response = await appFetch("/api/positions", {
@@ -164,7 +164,7 @@
     async function hydrateOpenOrdersIfEmpty() {
         if (accountState.openOrders.length > 0) return;
         const provider = settingsState.apiProvider || "bitunix";
-        const keys = keysForExchange(settingsState.accounts, provider);
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
         try {
             const response = await appFetch("/api/orders", {
