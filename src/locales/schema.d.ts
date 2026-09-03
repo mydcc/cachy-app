@@ -54,6 +54,7 @@ export type TranslationKey =
   | "app.backupPasswordRequired"
   | "app.backupPasswordEntryPrompt"
   | "app.backupWrongPassword"
+  | "app.backupRejected"
   | "app.passwordRequiredTitle"
   | "app.enterBackupPassword"
   | "app.marketDashboard.buttonTitle"
