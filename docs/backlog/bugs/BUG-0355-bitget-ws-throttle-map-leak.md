@@ -2,7 +2,9 @@
 id: BUG-0355
 title: Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely
 type: bug
-status: ready
+status: in-progress
+assignee: antigravity
+branch: feat/items-2583-2585-2581-2582
 priority: P1
 milestone: none
 editions: [community, pro, private]

@@ -52,9 +52,29 @@ class CloudService {
   private mySenderId: string | null = null;
   private messages: GlobalMessage[] = [];
 
-  // Callback for Svelte to update UI
-  private onMessageCallback: ((msgs: GlobalMessage[]) => void) | null = null;
-  private onStatusCallback: ((status: CloudStatus) => void) | null = null;
+  // Subscribers for Svelte to update UI
+  private messageSubscribers = new Set<(msgs: GlobalMessage[]) => void>();
+  private statusSubscribers = new Set<(status: CloudStatus) => void>();
+
+  private notifyMessageSubscribers(msgs: GlobalMessage[]) {
+    for (const cb of this.messageSubscribers) {
+      try {
+        cb(msgs);
+      } catch (e) {
+        logger.error('network', 'Error in message subscriber callback:', e);
+      }
+    }
+  }
+
+  private notifyStatusSubscribers(status: CloudStatus) {
+    for (const cb of this.statusSubscribers) {
+      try {
+        cb(status);
+      } catch (e) {
+        logger.error('network', 'Error in status subscriber callback:', e);
+      }
+    }
+  }
 
   constructor() { }
 
@@ -106,7 +126,7 @@ class CloudService {
           this.connected = true;
           this.lastError = null;
           this.mySenderId = identity ? senderIdOf(identity) : null;
-          if (this.onStatusCallback) this.onStatusCallback(this.status());
+          this.notifyStatusSubscribers(this.status());
 
           // Subscribe to queries
           const sub = this.conn?.subscriptionBuilder();
@@ -122,13 +142,13 @@ class CloudService {
           this.connected = false;
           this.mySenderId = null;
           this.lastError = error instanceof Error ? error.message : String(error);
-          if (this.onStatusCallback) this.onStatusCallback(this.status());
+          this.notifyStatusSubscribers(this.status());
         })
         .onDisconnect((ctx) => {
           logger.log('network', 'Disconnected from SpacetimeDB', ctx);
           this.connected = false;
           this.mySenderId = null;
-          if (this.onStatusCallback) this.onStatusCallback(this.status());
+          this.notifyStatusSubscribers(this.status());
         })
         .build();
     } catch (e) {
@@ -138,7 +158,7 @@ class CloudService {
       // is recorded so the settings tab can say so, and nothing else changes.
       this.lastError = e instanceof Error ? e.message : String(e);
       logger.error('network', 'Failed to build/connect SpacetimeDB connection:', e);
-      if (this.onStatusCallback) this.onStatusCallback(this.status());
+      this.notifyStatusSubscribers(this.status());
     }
 
     // Handle row updates with robustness
@@ -155,7 +175,7 @@ class CloudService {
         globalMessageTable.onInsert((ctx: any, row: any) => {
           logger.debug('network', 'New Message Received:', row);
           this.messages = [...this.messages, row];
-          if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
+          this.notifyMessageSubscribers([...this.messages]);
         });
       } else {
         logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
@@ -179,7 +199,7 @@ class CloudService {
       // Same rule as connect(): a chat failure stays a chat failure.
       this.lastError = e instanceof Error ? e.message : String(e);
       logger.error('network', 'Failed to send message:', e);
-      if (this.onStatusCallback) this.onStatusCallback(this.status());
+      this.notifyStatusSubscribers(this.status());
       throw e;
     }
   }
@@ -222,19 +242,25 @@ class CloudService {
     } catch (e) {
       this.lastError = e instanceof Error ? e.message : String(e);
       logger.error('network', 'Failed to delete messages:', e);
-      if (this.onStatusCallback) this.onStatusCallback(this.status());
+      this.notifyStatusSubscribers(this.status());
       throw e;
     }
   }
 
-  subscribeMessages(cb: (msgs: GlobalMessage[]) => void) {
-    this.onMessageCallback = cb;
+  subscribeMessages(cb: (msgs: GlobalMessage[]) => void): () => void {
+    this.messageSubscribers.add(cb);
     cb(this.messages);
+    return () => {
+      this.messageSubscribers.delete(cb);
+    };
   }
 
-  subscribeStatus(cb: (status: CloudStatus) => void) {
-    this.onStatusCallback = cb;
+  subscribeStatus(cb: (status: CloudStatus) => void): () => void {
+    this.statusSubscribers.add(cb);
     cb(this.status());
+    return () => {
+      this.statusSubscribers.delete(cb);
+    };
   }
 }
 

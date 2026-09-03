@@ -2,7 +2,9 @@
 id: BUG-0358
 title: MarketOverview duplicate effects register price and ticker channels twice per tile
 type: bug
-status: ready
+status: in-progress
+assignee: antigravity
+branch: feat/items-2583-2585-2581-2582
 priority: P2
 milestone: none
 editions: [community, pro, private]
