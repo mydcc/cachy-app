@@ -46,7 +46,10 @@
   import { marketState } from "../../stores/market.svelte";
   import ModalFrame from "./ModalFrame.svelte";
   import AddToPositionInput from "./AddToPositionInput.svelte";
-  import type { AddToPositionContext } from "../../lib/calculators/addToPosition";
+  import {
+    addQuantityFromPercent,
+    type AddToPositionContext,
+  } from "../../lib/calculators/addToPosition";
 
   interface Props {
     position: OMSPosition | null;
@@ -59,21 +62,6 @@
   let quantity = $state<Decimal | null>(null);
   let loading = $state(false);
   let error = $state("");
-
-  /*
-   * Defaults to a quarter of the position rather than to the whole of it. The
-   * close dialog defaults to everything because the fastest path through it is
-   * the full close it replaced; an add has no such prior, and a dialog that
-   * opens pre-loaded with "double the position" is one stray Enter away from
-   * a trade nobody chose.
-   *
-   * Keyed on the position, so opening it for a different one starts from that
-   * one's size rather than inheriting the previous quantity.
-   */
-  $effect(() => {
-    const amount = position?.amount;
-    quantity = amount && amount.gt(0) ? amount.div(4) : null;
-  });
 
   /** Quantity step from the instrument's base precision; 0 disables rounding. */
   const stepSize = $derived.by(() => {
@@ -112,6 +100,35 @@
       side: position.side === "long" ? "LONG" : "SHORT",
       stepSize,
     };
+  });
+
+  /** The share of the position the dialog opens on. Also a slider mark. */
+  const DEFAULT_ADD_PERCENT = new Decimal(25);
+
+  /*
+   * Defaults to a quarter of the position rather than to the whole of it. The
+   * close dialog defaults to everything because the fastest path through it is
+   * the full close it replaced; an add has no such prior, and a dialog that
+   * opens pre-loaded with "double the position" is one stray Enter away from a
+   * trade nobody chose.
+   *
+   * Seeded through `addQuantityFromPercent` — the same function the slider's
+   * 25 % mark calls — rather than by dividing by four here. That is not
+   * tidiness: the seed is the quantity an untouched dialog submits, and the
+   * gate refuses an add that is not a whole multiple of the instrument's step.
+   * A position is `N × step`, so a raw quarter is fillable only when `N` is
+   * divisible by four, and open-and-press-Add failed for roughly three
+   * positions in four. Reusing the function that already rounds and already
+   * floors at one step means the default cannot drift away from the slider it
+   * sits under.
+   *
+   * Keyed on `ctx`, so it re-seeds when the dialog opens for a different
+   * position or when a late `basePrecision` finally makes rounding possible.
+   * `position` is a stable snapshot rather than the live object, so this does
+   * not fire on price ticks and cannot wipe a quantity mid-edit.
+   */
+  $effect(() => {
+    quantity = ctx ? addQuantityFromPercent(ctx, DEFAULT_ADD_PERCENT) : null;
   });
 
   async function handleAdd() {

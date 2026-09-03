@@ -149,6 +149,38 @@ describe("addQuantityFromPercent", () => {
         expect(addQuantityFromPercent(longCtx(), d(250)).equals(d("2.5"))).toBe(true);
     });
 
+    it("always yields a quantity the venue can fill", () => {
+        /*
+         * The property the add dialog's default depends on, stated as one.
+         *
+         * The dialog seeds itself with 25 % of the position, and the gate
+         * refuses an add that is not a whole multiple of the step. A position
+         * is N x step, so a *raw* quarter is fillable only when N is divisible
+         * by four — which is the minority of positions. This function rounds,
+         * so the seed is fillable whatever the position happens to be; a
+         * regression here would break open-and-press-Add for most traders
+         * without breaking any other test.
+         */
+        const sizes = ["0.0015", "0.05", "0.003", "7", "10", "0.7", "123.456"];
+        const precisions = [0, 1, 3, 4, 8];
+
+        for (const size of sizes) {
+            for (const precision of precisions) {
+                const step = new Decimal(10).pow(-precision);
+                const ctx = longCtx({ positionAmount: d(size), stepSize: step });
+
+                for (const percent of [25, 33, 50, 75, 100]) {
+                    const qty = addQuantityFromPercent(ctx, d(percent));
+                    expect(
+                        qty.div(step).isInteger(),
+                        `${percent}% of ${size} at step ${step} gave ${qty}, which the venue cannot fill`,
+                    ).toBe(true);
+                    expect(qty.gt(0)).toBe(true);
+                }
+            }
+        }
+    });
+
     it("round-trips through percentFromAddQuantity", () => {
         const ctx = longCtx();
         const qty = addQuantityFromPercent(ctx, d(75));
