@@ -1422,7 +1422,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0026",
     "title": "Support several exchange accounts with an unmistakable active one",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.212",
     "assignee": "claude",
     "branch": "feat/feat-0026-multi-account",
     "priority": "P1",
@@ -1741,6 +1742,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "feature",
     "status": "in-progress",
     "assignee": "pheinze",
+    "branch": "worktree-issue-2164-14da99",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3013,7 +3015,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0372",
     "title": "Global chat reducer logs every message text to server logs, defeating the 90-day retention promise",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.211",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4058,7 +4061,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0319",
     "title": "Make \"destroy forgets subscriptions\" a conformance-suite invariant",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.192",
     "assignee": "antigravity",
     "branch": "feat/feat-0319-conformance-guard-destroy-forgets-subscriptions",
     "priority": "P2",
@@ -4081,7 +4085,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0328",
     "title": "Compact account-controls row and wire up maker/taker fee display",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.195",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4096,6 +4101,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0068"
     ],
     "assignee": "claude",
+    "branch": "worktree-issue-2522-discussion-89bcd8",
     "file": "features/FEAT-0328-compact-account-controls-and-fee-display.md"
   },
   {
@@ -4350,8 +4356,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0359",
     "title": "Lazy-load markdownLoader and KaTeX on demand when instruction modals open",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.208",
     "assignee": "antigravity",
+    "branch": "feat/feat-0359-lazy-load-markdown",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4389,8 +4397,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0366",
     "title": "Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.209",
     "assignee": "antigravity",
+    "branch": "feat/perf-optimizations-batch",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4447,8 +4457,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0369",
     "title": "Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.209",
     "assignee": "antigravity",
+    "branch": "feat/perf-optimizations-batch",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4486,7 +4498,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0374",
     "title": "Remove unused NewRelic endpoints from connect-src in both CSP definitions",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.211",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4928,7 +4941,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0373",
     "title": "Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.211",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5338,8 +5352,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0371",
     "title": "Coordinate initial price and ATR fetches at startup to avoid duplicate calculations",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.209",
     "assignee": "antigravity",
+    "branch": "feat/perf-optimizations-batch",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5380,7 +5396,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0376",
     "title": "Replace Date.now() with ctx.timestamp in the send_message reducer",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.211",
     "priority": "P3",
     "milestone": "none",
     "editions": [

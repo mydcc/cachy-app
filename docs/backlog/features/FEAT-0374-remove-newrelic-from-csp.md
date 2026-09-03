@@ -2,7 +2,8 @@
 id: FEAT-0374
 title: Remove unused NewRelic endpoints from connect-src in both CSP definitions
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.211
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -52,13 +53,13 @@ Permissions-Policy stays as is).
 
 ## Acceptance criteria
 
-- [ ] `connect-src` in `server-headers.js` and `svelte.config.js` no longer
+- [x] `connect-src` in `server-headers.js` and `svelte.config.js` no longer
       contains `nr-data.net` entries.
-- [ ] Header tests updated: `server-headers.test.js`,
+- [x] Header tests updated: `server-headers.test.js`,
       `src/tests/security/headers.test.ts`, `src/csp.test.ts` assert the CSP
       string does NOT contain `nr-data.net` (guard against reintroduction).
-- [ ] `npm run check` and affected tests pass.
-- [ ] No other CSP directive changed.
+- [x] `npm run check` and affected tests pass.
+- [x] No other CSP directive changed.
 
 ## Open questions
 

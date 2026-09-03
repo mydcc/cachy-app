@@ -2,7 +2,8 @@
 id: BUG-0373
 title: Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution
 type: bug
-status: in-progress
+status: done
+shipped: 1.6.0-beta.211
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -62,13 +63,13 @@ it), and truncate only at the display layer, e.g.:
 
 ## Acceptance criteria
 
-- [ ] `send_message` stores an unambiguous sender identity.
-- [ ] `delete_my_messages` deletes only messages written by the calling
+- [x] `send_message` stores an unambiguous sender identity.
+- [x] `delete_my_messages` deletes only messages written by the calling
       identity, even when display prefixes collide (test with two identities
       sharing an 8-char prefix).
-- [ ] Decision on legacy rows documented in the PR (migrate vs. purge vs.
+- [x] Decision on legacy rows documented in the PR (migrate vs. purge vs.
       clear-database).
-- [ ] `npm run check` passes; chat store (`src/stores/chat.svelte.ts`) still
+- [x] `npm run check` passes; chat store (`src/stores/chat.svelte.ts`) still
       compiles against the widened type.
 
 ## Open questions

@@ -2,8 +2,10 @@
 id: FEAT-0369
 title: Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.209
 assignee: antigravity
+branch: feat/perf-optimizations-batch
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +14,6 @@ data_class: none
 adr: none
 depends_on: []
 size: S
-# Branch: feat/perf-optimizations-batch
 ---
 
 # FEAT-0369 — Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer

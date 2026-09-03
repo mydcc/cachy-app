@@ -2,7 +2,8 @@
 id: FEAT-0026
 title: Support several exchange accounts with an unmistakable active one
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.212
 assignee: claude
 branch: feat/feat-0026-multi-account
 priority: P1

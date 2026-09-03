@@ -2,7 +2,8 @@
 id: FEAT-0376
 title: Replace Date.now() with ctx.timestamp in the send_message reducer
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.211
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -42,12 +43,12 @@ client expects a JS number, `Number(...)` at the boundary).
 
 ## Acceptance criteria
 
-- [ ] `send_message` derives `sent_at` from `ctx.timestamp`, `Date.now()` no
+- [x] `send_message` derives `sent_at` from `ctx.timestamp`, `Date.now()` no
       longer appears in any reducer.
-- [ ] Retention cutoff and message timestamps are now comparable (cutoff is
+- [x] Retention cutoff and message timestamps are now comparable (cutoff is
       computed from the same clock messages are stamped with) — noted in the
       PR.
-- [ ] `npm run check` passes.
+- [x] `npm run check` passes.
 
 ## Out of scope
 

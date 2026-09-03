@@ -2,8 +2,10 @@
 id: FEAT-0359
 title: Lazy-load markdownLoader and KaTeX on demand when instruction modals open
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.208
 assignee: antigravity
+branch: feat/feat-0359-lazy-load-markdown
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +14,6 @@ data_class: none
 adr: none
 depends_on: []
 size: S
-# Branch: feat/feat-0359-lazy-load-markdown
 ---
 
 # FEAT-0359 — Lazy-load markdownLoader and KaTeX on demand when instruction modals open

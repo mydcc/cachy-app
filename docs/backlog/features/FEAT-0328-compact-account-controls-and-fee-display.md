@@ -2,7 +2,8 @@
 id: FEAT-0328
 title: Compact account-controls row and wire up maker/taker fee display
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.195
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,9 +12,8 @@ data_class: A
 adr: none
 depends_on: [FEAT-0068]
 assignee: claude
+branch: worktree-issue-2522-discussion-89bcd8
 ---
-
-<!-- Branch: worktree-issue-2522-discussion-89bcd8 -->
 
 
 # FEAT-0328 — Compact account-controls row and wire up maker/taker fee display
