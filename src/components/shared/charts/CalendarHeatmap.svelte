@@ -61,6 +61,13 @@
     return new Date(y, m, 1).getDay();
   }
 
+  let monthLayouts = $derived(
+    months.map((_, mIndex) => ({
+      emptyDays: Array.from({ length: getFirstDayOfMonth(mIndex, year) }, (_, i) => i),
+      days: Array.from({ length: getDaysInMonth(mIndex, year) }, (_, i) => i),
+    }))
+  );
+
   // Map data to easy lookup
   let dataMap = $derived(data.reduce((acc, d) => {
     acc[d.date] = d;
@@ -219,6 +226,7 @@
 >
   {#each months as monthName, mIndex}
     {@const stats = calculateMonthStats(mIndex, year)}
+    {@const layout = monthLayouts[mIndex]}
     <div
       class="month-card bg-[var(--bg-primary)] p-2 rounded border border-[var(--border-color)] flex flex-col"
     >
@@ -251,12 +259,12 @@
         {/each}
 
         <!-- Spacers for start of month -->
-        {#each Array.from({ length: getFirstDayOfMonth(mIndex, year) }, (_, i) => i) as i (i)}
+        {#each layout.emptyDays as i (i)}
           <div></div>
         {/each}
 
         <!-- Days -->
-        {#each Array.from({ length: getDaysInMonth(mIndex, year) }, (_, i) => i) as dIndex}
+        {#each layout.days as dIndex (dIndex)}
           {@const dateStr = formatDate(year, mIndex, dIndex + 1)}
           {@const entry = dataMap[dateStr]}
 
