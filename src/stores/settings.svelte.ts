@@ -790,6 +790,22 @@ export class SettingsManager {
         console.warn(`[Settings] apiProvider: ${this._apiProvider} -> ${v}`);
       }
       this._apiProvider = v;
+
+      // FEAT-0026: carry the active account with the venue.
+      //
+      // `apiProvider` and `activeAccountId` are one fact under two names.
+      // This setter used to move only one of them, which left the pair
+      // representable in a disagreeing state — and a disagreeing pair makes
+      // the account id the order gate compares describe an account other
+      // than the one being signed for. `setActiveAccount` is the coherent
+      // path and moves both; this keeps the venue-only path from breaking
+      // that invariant behind its back.
+      //
+      // A venue with no account leaves the id alone rather than blanking it:
+      // an empty active id makes every reader fall back to empty
+      // credentials, which reads to a user as their keys having vanished.
+      const onVenue = this.accounts?.find((account) => account.exchange === v);
+      if (onVenue) this.activeAccountId = onVenue.id;
       // Let $effect handle saving, don't call save() directly
     }
   }

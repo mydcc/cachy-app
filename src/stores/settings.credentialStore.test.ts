@@ -470,3 +470,33 @@ describe("switching", () => {
   });
 });
 
+/*
+ * FEAT-0026 review finding: the venue and the active account are one fact
+ * under two names, and the public `apiProvider` setter moved only one of
+ * them. A disagreeing pair makes the account id the order gate compares
+ * describe an account other than the one being signed for.
+ */
+describe("the venue and the active account stay in step", () => {
+  it("carries the active account when the venue is set directly", () => {
+    const mgr = new SettingsManager();
+    const bitget = mgr.accounts.find((a) => a.exchange === "bitget")!;
+
+    mgr.apiProvider = "bitget";
+
+    expect(mgr.activeAccountId).toBe(bitget.id);
+  });
+
+  it("leaves the active id alone when the target venue has no account", () => {
+    const mgr = new SettingsManager();
+    const bitget = mgr.accounts.find((a) => a.exchange === "bitget")!;
+    mgr.removeAccount(bitget.id);
+    const before = mgr.activeAccountId;
+
+    mgr.apiProvider = "bitget";
+
+    // Blanking it would make every reader fall back to empty credentials,
+    // which reads to a user as their keys having vanished.
+    expect(mgr.activeAccountId).toBe(before);
+  });
+});
+

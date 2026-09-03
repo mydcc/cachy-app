@@ -447,7 +447,15 @@ function asId(value: unknown): string | undefined {
     return undefined;
 }
 
-function mismatch(
+/**
+ * Exported for `tradeService.completeIntent`, which refuses a supplied
+ * account id that disagrees with the store before the intent ever reaches
+ * the gate. Same refusal shape as every gate-side mismatch, so the trader
+ * sees one vocabulary; carries no credential material — `redact.ts`
+ * whitelists the `account` field precisely because an id and a key prefix
+ * are not secrets.
+ */
+export function mismatch(
     field: string,
     expected: unknown,
     actual: unknown,

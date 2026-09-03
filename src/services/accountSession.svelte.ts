@@ -46,6 +46,7 @@ import { omsService } from "./omsService";
 import { tpSlState } from "../stores/tpsl.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { paperState } from "../stores/paperTrading.svelte";
+import { paperTradingService } from "./paperTradingService";
 import { logger } from "./logger";
 
 declare const sessionBrand: unique symbol;
@@ -127,14 +128,18 @@ class AccountSessionStore {
         // The paper book renders through the stores just cleared, so without
         // this a switch would blank a simulated trader's positions, orders and
         // balance. `paperTradingService.setEnabled` uses the same
-        // clear-then-re-mirror pairing, for the same reason. Imported lazily
-        // to keep this module free of a cycle: `paperTradingService` already
-        // imports `accountState` and `omsService`.
-        if (paperState.enabled) {
-            void import("./paperTradingService").then(({ paperTradingService }) =>
-                paperTradingService.syncToStores(),
-            );
-        }
+        // clear-then-re-mirror pairing, for the same reason.
+        //
+        // Synchronous, and imported statically: a dynamic import here left the
+        // panel empty for a microtask and made the clear only partly
+        // observable from a caller's point of view. There is no cycle to
+        // avoid — `paperTradingService` reaches `accountState`, `omsService`,
+        // `tradeState` and `paperState`, and none of them reaches back here.
+        //
+        // `syncToStores` is itself a no-op when paper mode is off
+        // (`paperAccountFeed()` returns null), so the guard below is about
+        // not doing pointless work, not about safety.
+        if (paperState.enabled) paperTradingService.syncToStores();
     }
 }
 

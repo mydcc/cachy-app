@@ -36,6 +36,7 @@ export function setupRealtimeUpdatesEffect(app: any) {
 
   let lastProvider = settingsState.apiProvider || "";
   let lastKeys = settingsState.accounts ? computeKeys(settingsState) : "";
+  let lastAccountId = settingsState.activeAccountId || "";
   let currentWatchedSymbol: string | null = null;
   let symbolDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   const knownFundingRateSymbols = new Set<string>();
@@ -54,12 +55,15 @@ export function setupRealtimeUpdatesEffect(app: any) {
         if (!keys) return;
 
         const currentKeys = computeKeys(s);
+        const accountId = s.activeAccountId || "";
         const providerChanged = provider !== lastProvider;
+        const accountChanged = accountId !== lastAccountId;
         const keysChanged = currentKeys !== lastKeys;
 
-        if (providerChanged || keysChanged) {
+        if (providerChanged || accountChanged || keysChanged) {
           lastKeys = currentKeys;
           lastProvider = provider || "";
+          lastAccountId = accountId;
 
           // FEAT-0026: clear before reconnecting, not after.
           //
@@ -73,7 +77,23 @@ export function setupRealtimeUpdatesEffect(app: any) {
           // shutdown and on a transient disconnect, where the cached
           // positions are stale but still true, and clearing there would
           // blank a trader's position view on a dropped packet.
-          accountSession.reset(providerChanged ? "venue-switch" : "account-switch");
+          // Clearing is for a change of *identity*, not of credentials.
+          //
+          // `computeKeys` includes the key string, and the settings form
+          // binds straight into `account.keys.key` — so every keystroke while
+          // a user types an API key lands here. Clearing on that would blank
+          // their positions, orders and balance once per character. Editing a
+          // key does not change which account is active; it changes that
+          // account's credentials.
+          //
+          // A key edit still rotates the session, because a response fetched
+          // with the previous key belongs to a request the new one would not
+          // have made — it just does not empty the stores.
+          if (providerChanged || accountChanged) {
+            accountSession.reset(providerChanged ? "venue-switch" : "account-switch");
+          } else {
+            accountSession.rotate("account-switch");
+          }
 
           connectionManager.switchProvider(provider || "bitunix", { force: true });
         }

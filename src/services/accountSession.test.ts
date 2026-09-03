@@ -174,15 +174,13 @@ describe("paper mode", () => {
      * live stores this clears, so a naive clear blanks the panel a simulated
      * trader is looking at. The paper book is not account-scoped at all.
      */
-    it("re-mirrors the simulated book instead of leaving the panel empty", async () => {
+    it("re-mirrors the simulated book instead of leaving the panel empty", () => {
         paperState.setEnabled(true);
         accountSession.reset("account-switch");
 
-        // The re-mirror is scheduled through a dynamic import, so it lands on
-        // a later microtask than the clear.
-        await vi.waitFor(() => {
-            expect(accountState.assets.length).toBeGreaterThan(0);
-        });
+        // Synchronous now: the clear and the re-mirror are one operation, so
+        // no caller can observe the panel empty in between.
+        expect(accountState.assets.length).toBeGreaterThan(0);
     });
 
     it("still rotates in paper mode, so a live response cannot land either", () => {

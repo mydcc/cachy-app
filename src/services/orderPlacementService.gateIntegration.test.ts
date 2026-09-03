@@ -75,7 +75,7 @@ vi.mock("../stores/tpsl.svelte", () => ({
 import { tradeService } from "./tradeService";
 import { orderPlacementService, type EntryPlan } from "./orderPlacementService";
 import { marketState } from "../stores/market.svelte";
-import { registerKillSwitch, registerRiskLimitCheck, registerAuditRecorder } from "./orderGate";
+import { orderGate, registerKillSwitch, registerRiskLimitCheck, registerAuditRecorder } from "./orderGate";
 
 /** 1000 USDT account, 1 % risk, 500 stop distance → 10 / 500 = 0.02 BTC. */
 function plan(overrides: Partial<EntryPlan> = {}): EntryPlan {
@@ -288,5 +288,90 @@ describe("BUG-0297 — an entry on a venue that cannot attach protection", () =>
                 }),
             ).rejects.toThrow();
         });
+    });
+});
+
+/*
+ * FEAT-0026 review findings.
+ *
+ * Observed at `orderGate.submit`, because that is where the property lives:
+ * what the *pass* carries. `signedRequest` is mocked in this file and never
+ * builds a transport context, so an assertion on the happy path here proves
+ * nothing — a first draft of these tests passed against the unfixed code for
+ * exactly that reason.
+ */
+describe("the account id the pass carries", () => {
+    /** The intent the gate was handed, captured without changing behaviour. */
+    function captureIntent() {
+        const seen: { accountId?: string }[] = [];
+        const original = orderGate.submit.bind(orderGate);
+        vi.spyOn(orderGate, "submit").mockImplementation(async (intent, send) => {
+            seen.push(intent.displayed as { accountId?: string });
+            return original(intent, send);
+        });
+        return seen;
+    }
+
+    const fullOrder = (displayed: Record<string, unknown>) => ({
+        symbol: "BTCUSDT",
+        side: "BUY" as const,
+        orderType: "LIMIT" as const,
+        qty: new Decimal("0.02"),
+        price: new Decimal(50000),
+        stopLoss: { price: new Decimal(49500) },
+        displayed: {
+            accountSize: new Decimal(1000),
+            riskPercentage: new Decimal(1),
+            entryPrice: new Decimal(50000),
+            stopLossPrice: new Decimal(49500),
+            accountStateAt: Date.now(),
+            ...displayed,
+        },
+    });
+
+    /*
+     * Finding 1. The id used to be `settingsState.activeAccountId`, read raw,
+     * while the credentials came from a venue-scoped lookup that falls back
+     * when the active id names an account on another exchange. The id then
+     * named an account the signature did not belong to.
+     */
+    it("names the account whose credentials will sign, not the raw active id", async () => {
+        settings.apiProvider = "bitunix";
+        settings.activeAccountId = "bitget"; // active is the Bitget account
+        const seen = captureIntent();
+
+        await tradeService.placeOrder(fullOrder({}));
+
+        // The Bitunix account signs, so the Bitunix account is named.
+        expect(seen[0].accountId).toBe("bitunix");
+    });
+
+    /*
+     * Finding 3. `accountId` is absent from `PartialIntent`'s omit list and
+     * `completeIntent` spread the caller's `displayed` over the store's, so
+     * `accountId: undefined` blanked the real id — and `assertGatePass` skips
+     * the comparison when the pass carries none. An ordinary assignment could
+     * switch off a money-critical check with nothing going red.
+     */
+    it("survives a caller passing undefined, so the check cannot be switched off", async () => {
+        settings.apiProvider = "bitunix";
+        settings.activeAccountId = "bitunix";
+        const seen = captureIntent();
+
+        await tradeService.placeOrder(fullOrder({ accountId: undefined }));
+
+        expect(seen[0].accountId).toBe("bitunix");
+    });
+
+    it("refuses a caller that names an account other than the resolved one", async () => {
+        settings.apiProvider = "bitunix";
+        settings.activeAccountId = "bitunix";
+
+        // Asserted on the field, not merely that it threw: an incomplete
+        // fixture refuses on `qty.inputs` and would pass without the account
+        // check existing at all.
+        await expect(
+            tradeService.placeOrder(fullOrder({ accountId: "some-other-account" })),
+        ).rejects.toMatchObject({ refusal: { field: "account" } });
     });
 });
