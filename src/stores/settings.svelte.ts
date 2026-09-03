@@ -31,6 +31,8 @@ import {
   defaultAccountState,
   activeAccountFor,
   keysForActiveAccount,
+  buildAccount,
+  removeAccountFrom,
   redactAccounts,
   LEGACY_ACCOUNT_IDS,
   type ExchangeAccount,
@@ -943,14 +945,21 @@ export class SettingsManager {
     const existing = accountForExchange(this.accounts, exchange);
     if (existing) return existing;
 
-    const created: ExchangeAccount = {
+    // FEAT-0026 removed the push. This used to create the missing account
+    // *in the live array*, which the 500 ms autosave then persisted — so
+    // removing an account and opening Settings quietly brought it back. A
+    // detached object keeps every existing reader working without being able
+    // to resurrect anything.
+    //
+    // Prefer `activeAccountFor` in new code: this answers "which account is
+    // on this venue", which stopped being the same question as "which
+    // account is active" the moment a venue could hold two.
+    return {
       id: LEGACY_ACCOUNT_IDS[exchange],
       name: defaultAccountName(exchange),
       exchange,
       keys: blankKeysFor(exchange),
     };
-    this.accounts.push(created);
-    return created;
   }
 
   /**
@@ -982,6 +991,97 @@ export class SettingsManager {
 
     this.activeAccountId = id;
     this._apiProvider = target.exchange;
+    this.save();
+    return true;
+  }
+
+  /**
+   * Add an account on a venue — FEAT-0026.
+   *
+   * Appended rather than replacing the array, so no existing account object
+   * loses its identity: the credential inputs bind straight into those
+   * objects, and swapping one out mid-typing detaches the field the user is
+   * in. Returns the new account so a caller can focus it.
+   */
+  addAccount(exchange: ExchangeProvider): ExchangeAccount {
+    const created = buildAccount(this.accounts, exchange);
+    this.accounts.push(created);
+    this.save();
+    return created;
+  }
+
+  /**
+   * Rename an account.
+   *
+   * Mutates `name` in place, which is the documented exception to this
+   * project's immutability rule and the same exception `applyAccounts` takes:
+   * replacing the object detaches the credential inputs bound to it. `$state`
+   * proxies deeply, so the mutation is reactive, and `toJSON`'s
+   * `$state.snapshot` picks it up.
+   *
+   * An empty name is refused rather than stored — an unnamed account in a
+   * switch list is exactly the ambiguity this feature exists to remove.
+   */
+  renameAccount(id: string, name: string): boolean {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+
+    const account = this.accounts.find((a) => a.id === id);
+    if (!account) return false;
+
+    account.name = trimmed;
+    this.save();
+    return true;
+  }
+
+  /**
+   * Remove an account, its stored ciphertext, and its claim on being active.
+   *
+   * Refused when it would leave none — "at least one account exists" is the
+   * invariant that replaced FEAT-0333's per-venue totality.
+   *
+   * Deleting the ciphertext here as well as the account is the point: the
+   * save path prunes orphaned blobs too, but a user who removes an account
+   * and never saves again should not leave Class A material on disk in the
+   * meantime.
+   *
+   * Removing the *active* account rotates the session, because every cached
+   * position, order and balance on screen belongs to it.
+   */
+  removeAccount(id: string): boolean {
+    const next = removeAccountFrom(
+      { accounts: $state.snapshot(this.accounts) as ExchangeAccount[], activeAccountId: this.activeAccountId },
+      id,
+    );
+    if (!next) return false;
+
+    const wasActive = this.activeAccountId === id;
+
+    // Keep the surviving objects themselves, not the snapshot's copies, so
+    // bound credential inputs stay attached.
+    this.accounts = this.accounts.filter((account) => account.id !== id);
+    if (this.encryptedAccountKeys) delete this.encryptedAccountKeys[id];
+
+    if (wasActive) {
+      this.activeAccountId = next.activeAccountId;
+      const target = this.accounts.find((a) => a.id === next.activeAccountId);
+      if (target) this._apiProvider = target.exchange;
+    }
+
+    // No `accountSession.reset()` here, deliberately.
+    //
+    // The clearing belongs to the reactive effect in `appEffects`, which
+    // watches `activeAccountId` and the credential string. `activeAccountId`
+    // also moves via the cross-tab storage listener calling `load()` and via
+    // a restored backup, and only that effect observes all three — a clear
+    // wired into this mutator would cover one path and quietly miss two.
+    //
+    // Calling it here also imported `accountSession` into this module, which
+    // pulls in `accountState`, `omsService`, `tpSlState` and `tradeState` and
+    // closed an import cycle. That cycle left a binding undefined in the
+    // exchange-adapter path, which is how it was found: three passing
+    // component tests started failing with the transport never reached.
+
     this.save();
     return true;
   }

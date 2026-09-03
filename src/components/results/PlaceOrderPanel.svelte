@@ -52,6 +52,7 @@
     type PlacementResult,
   } from "../../services/orderPlacementService";
   import { activeExchange } from "../../services/exchange";
+  import ActiveAccountChip from "../shared/ActiveAccountChip.svelte";
   import { translateRefusal, MAX_ACCOUNT_STATE_AGE_MS } from "../../services/orderGate";
   import { marketState } from "../../stores/market.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
@@ -286,7 +287,12 @@
 </script>
 
 <div>
-  <h2 class="section-header">{$_("orderEntry.title")}</h2>
+  <!-- FEAT-0026: the state that decides where the money goes, written on the
+       surface that sends it. -->
+  <div class="flex items-center justify-between gap-2 flex-wrap">
+    <h2 class="section-header">{$_("orderEntry.title")}</h2>
+    <ActiveAccountChip />
+  </div>
 
   <!-- Order type & TimeInForce row -->
   <div class="flex flex-wrap items-center justify-between gap-2 mb-3">

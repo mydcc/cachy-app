@@ -41,7 +41,7 @@
 
     /** Named in the dialog so the trader sees what they are leaving. */
     let activeAccountName = $derived(
-        settingsState.accounts.find(
+        settingsState.accounts?.find(
             (account) => account.id === settingsState.activeAccountId,
         )?.name ?? settingsState.apiProvider,
     );
@@ -73,7 +73,7 @@
         // rotation. Routing it through `setActiveAccount` gives it all three,
         // and the authorisation parameter makes skipping the prompt a
         // compile error rather than an oversight.
-        const target = settingsState.accounts.find(
+        const target = settingsState.accounts?.find(
             (account) => account.exchange === newProvider,
         );
         if (!target) {

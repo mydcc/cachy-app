@@ -21,6 +21,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
   import { accountSession } from "../../services/accountSession.svelte";
+  import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
@@ -934,9 +935,15 @@
     tabindex="0"
     aria-expanded={isOpen}
   >
-    <h3 class="font-bold text-sm text-[var(--text-primary)]">
-      {$_("dashboard.marketActivity")}
-    </h3>
+    <div class="flex items-center gap-2 min-w-0">
+      <h3 class="font-bold text-sm text-[var(--text-primary)]">
+        {$_("dashboard.marketActivity")}
+      </h3>
+      <!-- FEAT-0026: flash close, cancel order and the TP/SL controls all
+           live under this header, and none of them named an account. The
+           header stays visible when the panel is collapsed. -->
+      <ActiveAccountChip compact />
+    </div>
     <div
       class="text-[var(--text-secondary)] transform transition-transform duration-200"
       class:rotate-180={!isOpen}

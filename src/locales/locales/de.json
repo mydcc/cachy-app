@@ -807,7 +807,9 @@
     },
     "chartAlt": "{symbol} Chart",
     "chartPreviewAlt": "{symbol} Chart Vorschau",
-    "chartFullAlt": "{symbol} Vollständiger Chart"
+    "chartFullAlt": "{symbol} Vollständiger Chart",
+    "accountColumn": "Konto",
+    "accountUnknown": "Entferntes Konto"
   },
   "marketOverview": {
     "24hHigh": "24h Hoch",
@@ -1655,7 +1657,18 @@
       },
       "accounts": {
         "switchFrom": "Aktuelles Konto",
-        "switchTo": "Wechsel zu"
+        "switchTo": "Wechsel zu",
+        "active": "Aktiv",
+        "name": "Kontoname",
+        "namePlaceholder": "z. B. Scalping",
+        "makeActive": "Aktivieren",
+        "remove": "Entfernen",
+        "removeLastHint": "Das letzte Konto kann nicht entfernt werden.",
+        "removeTitle": "Konto entfernen",
+        "removeMessage": "„{name}“ entfernen und die API-Zugangsdaten von diesem Gerät löschen? Das lässt sich nicht rückgängig machen. Positionen und Orders an der Börse bleiben unberührt.",
+        "addLabel": "Konto hinzufügen:",
+        "exchange": "Börse",
+        "activeAccountAria": "Aktives Konto: {name} auf {venue}"
       }
     },
     "trading": {

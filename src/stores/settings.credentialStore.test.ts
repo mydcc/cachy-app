@@ -54,6 +54,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsManager } from "./settings.svelte";
 import { cryptoService } from "../services/cryptoService";
 import type { EncryptedBlob } from "../services/cryptoService";
+import type { SwitchAuthorization } from "../lib/confirmationPolicy";
 
 vi.mock("$app/environment", () => ({ browser: true }));
 
@@ -98,6 +99,16 @@ const localStorageMock = (() => {
 Object.defineProperty(global, "localStorage", { value: localStorageMock });
 
 const STORAGE_KEY = "cryptoCalculatorSettings";
+
+/**
+ * A switch authorisation for the tests.
+ *
+ * Production code can only obtain one from `confirmationPolicyStore`, which
+ * consults the policy first — that is the whole point of the type. These
+ * tests are about what `setActiveAccount` does once authorised, not about
+ * whether it was, so they mint one directly.
+ */
+const AUTH = { confirmedAt: null } as unknown as SwitchAuthorization;
 
 const blob = (ciphertext: string): EncryptedBlob =>
   ({ ciphertext, iv: "i", salt: "s", method: "AES-GCM" }) as EncryptedBlob;
@@ -292,7 +303,7 @@ describe("storage decides which accounts exist", () => {
     expect(mgr.accounts.map((a) => a.id)).not.toContain("user-made-2");
   });
 
-  it("still guarantees an account for every venue", () => {
+  it("keeps a venue with no account, rather than back-filling one", () => {
     const mgr = new SettingsManager();
 
     localStorageMock.setItem(
@@ -307,9 +318,155 @@ describe("storage decides which accounts exist", () => {
 
     loadInternal(mgr);
 
-    // Storage is authoritative for membership, but the totality invariant
-    // still runs ahead of it — a reader may never find a venue with no
-    // account at an order-placing call site.
-    expect(mgr.accounts.map((a) => a.exchange)).toContain("bitget");
+    // FEAT-0333 back-filled every venue, which was right while only the
+    // migration could create accounts. FEAT-0026 lets a user remove one, and
+    // back-filling would silently undo that on the next load — the two are
+    // the same operation running in opposite directions.
+    expect(mgr.accounts.map((a) => a.exchange)).not.toContain("bitget");
+    expect(mgr.accounts).toHaveLength(1);
+  });
+
+  it("still gives a fresh install one account per venue", () => {
+    // The conversion path is untouched: only the back-fill on the
+    // already-converted branch was removed.
+    const mgr = new SettingsManager();
+    expect(mgr.accounts.map((a) => a.exchange).sort()).toEqual([
+      "bitget",
+      "bitunix",
+    ]);
   });
 });
+
+/*
+ * FEAT-0026 — adding, naming and removing accounts.
+ *
+ * The invariant these enforce replaced FEAT-0333's per-venue totality: not
+ * "every venue has an account" but "at least one account exists". The change
+ * is forced, because back-filling a missing venue and removing an account are
+ * the same operation in opposite directions.
+ */
+describe("account management", () => {
+  it("adds a second account on a venue that already has one", () => {
+    const mgr = new SettingsManager();
+    const created = mgr.addAccount("bitunix");
+
+    expect(mgr.accounts.filter((a) => a.exchange === "bitunix")).toHaveLength(2);
+    expect(created.id).not.toBe("bitunix");
+  });
+
+  it("names the second one distinguishably, since a switch list of two Bitunix is useless", () => {
+    const mgr = new SettingsManager();
+    expect(mgr.addAccount("bitunix").name).toBe("Bitunix 2");
+    expect(mgr.addAccount("bitunix").name).toBe("Bitunix 3");
+  });
+
+  it("keeps existing account objects, so a bound credential input does not detach", () => {
+    const mgr = new SettingsManager();
+    const before = mgr.accounts[0];
+    mgr.addAccount("bitunix");
+    expect(mgr.accounts[0]).toBe(before);
+  });
+
+  it("gives the new account blank credentials shaped for its venue", () => {
+    const mgr = new SettingsManager();
+    const created = mgr.addAccount("bitget");
+    expect(created.keys).toEqual({ key: "", secret: "", passphrase: "" });
+  });
+
+  it("renames in place, for the same binding reason", () => {
+    const mgr = new SettingsManager();
+    const target = mgr.accounts[0];
+
+    expect(mgr.renameAccount(target.id, "  Scalping  ")).toBe(true);
+    expect(mgr.accounts[0]).toBe(target);
+    expect(target.name).toBe("Scalping");
+  });
+
+  it("refuses an empty name rather than storing one", () => {
+    const mgr = new SettingsManager();
+    const target = mgr.accounts[0];
+    const original = target.name;
+
+    expect(mgr.renameAccount(target.id, "   ")).toBe(false);
+    expect(target.name).toBe(original);
+  });
+
+  it("removes an account and its stored ciphertext together", () => {
+    const mgr = new SettingsManager();
+    const extra = mgr.addAccount("bitunix");
+    mgr.encryptedAccountKeys = {
+      ...(mgr.encryptedAccountKeys ?? {}),
+      [extra.id]: blob("secret"),
+    };
+
+    expect(mgr.removeAccount(extra.id)).toBe(true);
+    expect(mgr.accounts.map((a) => a.id)).not.toContain(extra.id);
+    // Class A material must not outlive the account the user deleted, even
+    // if no save happens afterwards. Asserted through Object.keys rather than
+    // toHaveProperty: encryptedAccountKeys is a $state proxy, and the
+    // matcher does not see through it reliably.
+    expect(Object.keys(mgr.encryptedAccountKeys ?? {})).not.toContain(extra.id);
+  });
+
+  it("refuses to remove the last account", () => {
+    const mgr = new SettingsManager();
+    while (mgr.accounts.length > 1) mgr.removeAccount(mgr.accounts[0].id);
+
+    expect(mgr.accounts).toHaveLength(1);
+    expect(mgr.removeAccount(mgr.accounts[0].id)).toBe(false);
+    expect(mgr.accounts).toHaveLength(1);
+  });
+
+  it("never leaves the active id dangling when the active account is removed", () => {
+    const mgr = new SettingsManager();
+    const extra = mgr.addAccount("bitunix");
+    mgr.setActiveAccount(extra.id, AUTH);
+
+    mgr.removeAccount(extra.id);
+
+    // A dangling active id makes every reader fall back to empty
+    // credentials, which reads to a user as "my keys are gone".
+    expect(mgr.accounts.some((a) => a.id === mgr.activeAccountId)).toBe(true);
+  });
+
+  it("moves the venue with the active account when that account is removed", () => {
+    const mgr = new SettingsManager();
+    const bitget = mgr.accounts.find((a) => a.exchange === "bitget")!;
+    mgr.setActiveAccount(bitget.id, AUTH);
+    expect(mgr.apiProvider).toBe("bitget");
+
+    mgr.removeAccount(bitget.id);
+
+    // `apiProvider` and `activeAccountId` are one fact under two names; a
+    // removal that moved only one of them would resolve credentials for a
+    // venue the active account is not on.
+    expect(mgr.apiProvider).toBe(
+      mgr.accounts.find((a) => a.id === mgr.activeAccountId)!.exchange,
+    );
+  });
+});
+
+describe("switching", () => {
+  it("moves both the active id and the venue together", () => {
+    const mgr = new SettingsManager();
+    const bitget = mgr.accounts.find((a) => a.exchange === "bitget")!;
+
+    expect(mgr.setActiveAccount(bitget.id, AUTH)).toBe(true);
+    expect(mgr.activeAccountId).toBe(bitget.id);
+    expect(mgr.apiProvider).toBe("bitget");
+  });
+
+  it("refuses an id that names no account, rather than storing a dangling one", () => {
+    const mgr = new SettingsManager();
+    const before = mgr.activeAccountId;
+
+    expect(mgr.setActiveAccount("does-not-exist", AUTH)).toBe(false);
+    expect(mgr.activeAccountId).toBe(before);
+  });
+
+  it("reports a no-op as no change, so a caller can skip the reconnect", () => {
+    const mgr = new SettingsManager();
+    expect(mgr.setActiveAccount(mgr.activeAccountId, AUTH)).toBe(false);
+  });
+});
+

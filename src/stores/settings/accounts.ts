@@ -29,12 +29,18 @@
  * This module is pure: no I/O, no store reads, no Svelte runes, so the
  * migration can be tested against real stored shapes without a DOM.
  *
- * Totality is deliberate
- * ----------------------
- * Every known venue always gets an account, even one with empty credentials,
- * because `apiKeys.bitunix` always existed too. Readers therefore never have
- * to answer "what if no account exists yet" — a question that has no good
- * answer at an order-placing call site.
+ * The invariant, and how it changed
+ * ---------------------------------
+ * FEAT-0333 guaranteed *one account per venue*: the migration back-filled any
+ * venue that had none, so a reader never had to answer "what if this venue
+ * has no account". FEAT-0026 replaced that with **at least one account
+ * exists**, enforced where accounts are removed rather than by back-filling,
+ * because back-filling and removal are the same operation running in
+ * opposite directions — the recreate would silently undo the delete.
+ *
+ * Readers are unaffected: `keysForActiveAccount` was already total, and it
+ * answers a venue with no account the same way it answers one with empty
+ * credentials. An order-placing call site refuses either.
  */
 
 import type { ApiKeys } from "../settings.svelte";
@@ -253,17 +259,22 @@ export function migrateAccounts(
         ? [...existing.accounts]
         : accountsFromLegacy(legacy);
 
-    // A venue with no account cannot be reached by any reader, so add it back
-    // rather than letting the gap propagate to an order-placing surface.
-    const accounts = EXCHANGES.reduce<ExchangeAccount[]>(
-        (acc, exchange) =>
-            accountForExchange(acc, exchange)
-                ? acc
-                : [...acc, accountFromLegacy(legacy, exchange)],
-        converted,
-    );
-
-    return { accounts, activeAccountId: resolveActiveId(accounts, legacy, existing) };
+    // No venue back-filling here — FEAT-0026.
+    //
+    // This used to add an empty account for any venue that had none, which
+    // was right while accounts could only be created by the migration: a
+    // reader could then never meet a venue with no account. It became wrong
+    // the moment a user could *remove* one, because it ran on the
+    // already-converted branch too and quietly recreated what they deleted.
+    //
+    // Nothing regresses: `accountsFromLegacy` still maps every venue on the
+    // conversion path, so a fresh install and every legacy profile still get
+    // one account each, and `keysForActiveAccount` already answers a miss
+    // with empty credentials rather than throwing.
+    return {
+        accounts: converted,
+        activeAccountId: resolveActiveId(converted, legacy, existing),
+    };
 }
 
 function accountsFromLegacy(legacy: LegacyCredentialShape): ExchangeAccount[] {
@@ -340,4 +351,68 @@ export function redactAccounts(
         exchange: account.exchange,
         keys: blankKeysFor(account.exchange),
     }));
+}
+
+/**
+ * The name a newly added account gets: "Bitunix", then "Bitunix 2", …
+ *
+ * Venue brand names are not translated, so this needs no locale key and this
+ * module stays free of i18n. Counts by *name* rather than by how many
+ * accounts the venue has, so removing "Bitunix 2" and adding again produces
+ * "Bitunix 2" rather than a second "Bitunix 3".
+ */
+export function nextAccountName(
+    accounts: readonly ExchangeAccount[],
+    exchange: ExchangeProvider,
+): string {
+    const base = defaultAccountName(exchange);
+    const taken = new Set(accounts.map((account) => account.name));
+    if (!taken.has(base)) return base;
+
+    let n = 2;
+    while (taken.has(`${base} ${n}`)) n += 1;
+    return `${base} ${n}`;
+}
+
+/** A blank account for `exchange`, with an id that cannot collide. */
+export function buildAccount(
+    accounts: readonly ExchangeAccount[],
+    exchange: ExchangeProvider,
+): ExchangeAccount {
+    return {
+        id: newAccountId(accounts),
+        name: nextAccountName(accounts, exchange),
+        exchange,
+        keys: blankKeysFor(exchange),
+    };
+}
+
+/**
+ * The account state after removing `id`, or `null` when the removal is
+ * refused.
+ *
+ * Refused when the id names nothing, or when it is the last account —
+ * "at least one account exists" is the invariant that replaced totality, and
+ * a profile with none would leave every surface with no venue to address.
+ *
+ * When the removed account was the active one, the active id moves to the
+ * first survivor. That repair has to live here rather than in
+ * `resolveActiveId`, which only runs inside `migrateAccounts` and so is only
+ * reached from `load()` — a removal in a running session would never see it.
+ */
+export function removeAccountFrom(
+    state: AccountState,
+    id: string,
+): AccountState | null {
+    if (state.accounts.length <= 1) return null;
+    if (!state.accounts.some((account) => account.id === id)) return null;
+
+    const accounts = state.accounts.filter((account) => account.id !== id);
+    return {
+        accounts,
+        activeAccountId:
+            state.activeAccountId === id
+                ? accounts[0].id
+                : state.activeAccountId,
+    };
 }
