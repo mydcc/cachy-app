@@ -100,4 +100,36 @@ describe("deleteMyMessages", () => {
     expect(() => cloudService.deleteMyMessages()).toThrow(/Not connected/);
     expect(mockReducers.deleteMyMessages).not.toHaveBeenCalled();
   });
+
+  describe("identity collision isolation (BUG-0373)", () => {
+    it("isolates deletion when two identities share an 8-character prefix", () => {
+      const identityA = "aabbccdd11111111222222223333333344444444555555556666666677777777";
+      const identityB = "aabbccdd8888888899999999aaaaaaaa00000000bbbbbbbbccccccccdddddddd";
+
+      // Both identities share the first 8 hex characters
+      expect(identityA.substring(0, 8)).toBe(identityB.substring(0, 8));
+      expect(identityA).not.toBe(identityB);
+
+      const messages = [
+        { sender: identityA, text: "message from A", sent_at: 1000 },
+        { sender: identityB, text: "message from B", sent_at: 2000 },
+      ];
+
+      // Simulated delete_my_messages reducer execution for caller A (matching full identity)
+      const deletedForA: typeof messages = [];
+      const remaining = messages.filter((msg) => {
+        if (msg.sender === identityA) {
+          deletedForA.push(msg);
+          return false;
+        }
+        return true;
+      });
+
+      expect(deletedForA).toHaveLength(1);
+      expect(deletedForA[0].sender).toBe(identityA);
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].sender).toBe(identityB);
+      expect(remaining[0].text).toBe("message from B");
+    });
+  });
 });

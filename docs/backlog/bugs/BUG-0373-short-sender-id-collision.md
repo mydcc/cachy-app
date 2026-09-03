@@ -2,7 +2,7 @@
 id: BUG-0373
 title: Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution
 type: bug
-status: specced
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +12,8 @@ adr: none
 depends_on: []
 size: M
 estimate: 3
-# assignee:            # required while status: in-progress (who is working this)
+assignee: antigravity
+branch: fix/security-audit-privacy-batch
 ---
 
 # BUG-0373 — Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution
@@ -72,8 +73,10 @@ it), and truncate only at the display layer, e.g.:
 
 ## Open questions
 
-- Does the UI anywhere rely on the 8-character length of `sender`
-  (e.g. rendering, grouping)? Needs a quick check before widening the column.
+- Resolved: Does the UI anywhere rely on the 8-character length of `sender`?
+  Verified: `CloudTab.svelte:208` safely truncates for display (`msg.sender.substring(0, 8)`).
+  `CloudStatus.mySenderId` and `src/stores/chat.svelte.ts` match against the full identity
+  for `senderId: "me"`. No UI component relies on a fixed 8-character length.
 
 ## Links
 

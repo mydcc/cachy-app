@@ -41,9 +41,9 @@ export interface CloudStatus {
   mySenderId: string | null;
 }
 
-/** How the module shortens an identity into the `sender` column. */
+/** Identity string stored in the `sender` column (BUG-0373). */
 const senderIdOf = (identity: { toHexString(): string }): string =>
-  identity.toHexString().substring(0, 8);
+  identity.toHexString();
 
 class CloudService {
   private conn: DbConnection | null = null;
