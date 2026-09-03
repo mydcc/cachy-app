@@ -4,7 +4,7 @@
 
 261 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-progress 1 · ✅ done 197
+Counts by status: 💡 idea 21 · 📋 specced 28 · 🟢 ready 11 · 🟡 in-progress 4 · ✅ done 197
 
 ---
 
@@ -315,11 +315,11 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | ✅ done | ui |
 | [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | ui |
 | [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | ui |
-| [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | 🟢 ready | journal |
+| [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | 🟡 in-progress | journal |
 | [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | ✅ done | calculation |
-| [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | 📋 specced | chat |
+| [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | 🟡 in-progress | chat |
 | [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | chat |
-| [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | 📋 specced | ai |
+| [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | 🟡 in-progress | ai |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -576,11 +576,11 @@ Counts by status: 💡 idea 21 · 📋 specced 30 · 🟢 ready 12 · 🟡 in-pr
 | [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) |
 | [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
 | [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | 📋 specced | none | community, pro, private | B | none | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) |
+| [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | 🟡 in-progress | none | community, pro, private | B | none | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) |
 | [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | none | community, pro, private | B | none | — |
-| [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | 📋 specced | none | community, pro, private | A | none | — |
+| [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
