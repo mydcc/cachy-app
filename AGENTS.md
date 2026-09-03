@@ -2,7 +2,7 @@
 
 Cachy — Local-First Web App for Crypto Traders (Position Size Calculator, Risk Management, Trade Journal, Real-Time Market Data via Bitunix/Bitget). Code flows into a trading engine managing real money: Precision and verification always come before speed.
 
-This file is the tool-agnostic single source of truth for all coding agents (Jules, Codex, Cursor, Antigravity, etc.). Claude Code additionally reads `CLAUDE.md` (Claude-specific, which references this file).
+This file is the tool-agnostic single source of truth for all coding agents (Jules, Codex, Cursor, Antigravity, etc.). Tool-specific files reference it and add only startup sequences: Claude Code reads `CLAUDE.md`, Antigravity reads `GEMINI.md`, OpenCode reads `OPENCODE.md`.
 
 ## Setup
 
@@ -23,6 +23,8 @@ that: it also flips `$app/environment`'s `browser` to true, which sends
 `technicalsService` down its Worker path and fails two passing tests. `npm test`
 runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
 
+**Playwright E2E:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
+
 **Verification Standard: Fast & Targeted.** `npm test` runs the full suite (300+ test files) and `npm run check` compiles all 160+ Svelte components. Running these full suites locally saturates CPU cores and freezes interactive work. **Full-suite regression testing and project-wide type checking are delegated to GitHub Actions CI.**
 
 Locally, developers and agents follow these rules:
@@ -42,7 +44,7 @@ The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts
 Verification is proportional to blast radius — never run unconstrained full-repo checks locally:
 
 - **Non-code edits** (Docs, Markdown, shell scripts, configs): No tests required.
-- **Code edits** (services, stores, components, math): Run targeted tests for the touched files before commit/push.
+- **Code edits** (services, stores, components, math): Run targeted tests for the touched files before commit/push (see "Verification Standard: Fast & Targeted" in Setup above; `npm run test:changed` covers touched files).
 - **Full test suite & svelte-check:** Handled by GitHub Actions CI upon pull request. Run locally only when explicitly requested by the user.
 
 Before every push — sync first, then run targeted tests, then push:
@@ -81,7 +83,7 @@ git push --force-with-lease    # after a successful rebase
 
 ## Verification Before Marking Completed
 
-Before marking a task completed: ensure any targeted tests for touched code pass (see "Verification Standard: Fast & Targeted" above). Do not run full project-wide checks (`npm test`, `npm run check`) locally; CI verifies every PR automatically.
+Before marking a task completed: ensure any targeted tests for touched code pass (see "Verification Standard: Fast & Targeted" in Setup above). Do not run full project-wide checks (`npm test`, `npm run check`) locally; CI verifies every PR automatically.
 
 ## Tools & MCP — Mandatory for All Agents
 
@@ -90,8 +92,8 @@ Two MCP servers are configured for this project. **Both are required, not option
 ### Gortex
 Use for all code navigation, exploration, impact analysis, and graph queries.
 - **Session start:** call `gortex__onboarding` (or `/gortex-guide`) to orient to the indexed codebase.
-- Use `gortex__explore`, `gortex__search`, `gortex__impact`, `gortex__trace`, `gortex__safe-edit` for any non-trivial task.
-- Available as slash commands: `/gortex-explore`, `/gortex-debug`, `/gortex-impact`, `/gortex-refactor`, `/gortex-safe-edit`, `/gortex-pr-review`, `/gortex-add-test`, etc.
+- Use `gortex__explore`, `gortex__search`, `gortex__read`, `gortex__relations`, `gortex__trace`, `gortex__analyze` for navigation; `gortex__change(operation:"impact")` before any mutation.
+- Available as slash commands: `/gortex-explore`, `/gortex-debug`, `/gortex-impact`, `/gortex-refactor`, `/gortex-pr-review`, etc.
 
 ### jCodeMunch
 Use for code analysis, action routing, and semantic understanding.
@@ -108,7 +110,7 @@ Graph tools resolve the repo from the current working directory. Inside a linked
 - **Registration alone is not enough — the client's working directory decides.** The MCP server reports its *own* process cwd to the daemon, so a client that spawns `gortex mcp` from a non-repo directory (typically `$HOME`) fails every call with `repository not tracked: <path>`, however correctly the repo is tracked. Passing a `path` or `repo` argument does not help: resolution happens before they are read.
 - **Diagnose that before re-registering anything.** Run `gortex daemon status` and read the `cwd` column under **MCP sessions**: a row pointing at a non-repo directory is this problem, not a tracking gap. Fix it in that client's launch configuration — and note that some clients ignore an MCP config's `cwd` field entirely, so the directory may have to be forced in the launch command or wrapper script itself. A parent directory that holds the repos as direct children resolves in multi-repo mode and works as a general fallback.
 
-Agent-specific config files (`CLAUDE.md`, `OPENCODE.md`) contain tool-specific startup sequences for their respective runtimes.
+Agent-specific config files (`CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`) contain tool-specific startup sequences for their respective runtimes.
 
 
 ## Commits & Branches
