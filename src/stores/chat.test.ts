@@ -95,6 +95,28 @@ describe("ChatManager (SpacetimeDB-backed)", () => {
       expect(theirs.clientId).toBe("11223344");
     });
 
+    it("distinguishes messages between senders sharing an 8-char prefix (BUG-0373)", () => {
+      const myId = "aabbccdd11111111222222223333333344444444555555556666666677777777";
+      const otherId = "aabbccdd8888888899999999aaaaaaaa00000000bbbbbbbbccccccccdddddddd";
+
+      internals.applyStatus({
+        connected: true,
+        lastError: null,
+        mySenderId: myId,
+      });
+      internals.applyRows([
+        { sender: myId, text: "mine", sentAt: 1000 },
+        { sender: otherId, text: "theirs", sentAt: 2000 },
+      ]);
+
+      const [mine, theirs] = chatState.messages;
+
+      expect(mine.senderId).toBe("me");
+      expect(mine.clientId).toBe(myId);
+      expect(theirs.senderId).toBe(otherId);
+      expect(theirs.clientId).toBe(otherId);
+    });
+
     it("gives every message a stable key, since the module table has no id", () => {
       internals.applyRows([
         { sender: "aabbccdd", text: "one", sentAt: 1000 },
