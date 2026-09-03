@@ -1,12 +1,12 @@
 # SpacetimeDB Rules (All Languages)
 
-> **Last updated:** 2026-01-06
+> **Last updated:** 2026-09-03
 
 ## Language-Specific Rules
 
 | Language | Rule File |
 |----------|-----------|
-| **TypeScript/React** | `spacetimedb-typescript.mdc` (MANDATORY) |
+| **TypeScript/React** | `server/.cursor/rules/spacetimedb-typescript.mdc` (MANDATORY) |
 | **Rust** | Check existing Rust modules in repo |
 | **C#** | Check existing C# modules in repo |
 
