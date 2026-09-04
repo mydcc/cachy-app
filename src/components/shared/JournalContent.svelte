@@ -415,8 +415,8 @@
 
             if (hasStartDate || hasEndDate) {
                 const tradeDateMs = new Date(trade.date).getTime();
-                if (hasStartDate && tradeDateMs < startDateMs) return false;
-                if (hasEndDate && tradeDateMs > endDateMs) return false;
+                if (hasStartDate && tradeDateMs < startDateMs && !isNaN(startDateMs)) return false;
+                if (hasEndDate && tradeDateMs > endDateMs && !isNaN(endDateMs)) return false;
             }
 
             if (hasQuery) {
