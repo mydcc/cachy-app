@@ -317,4 +317,29 @@ describe("ActiveTechnicalsManager", () => {
       expect(internals.throttles.has("BTCUSDT:1h")).toBe(false);
     });
   });
+
+  describe("destroy", () => {
+    it("removes the visibilitychange listener, clears throttles and tears down active effects", async () => {
+      // Seed state so the teardown assertions are not vacuous: one pending
+      // throttle timer and one registered effect cleanup.
+      internals.throttles.set("ETHUSDT:1h", setTimeout(() => {}, 9999));
+      internals.activeEffects.set("ETHUSDT:1h", vi.fn());
+
+      const removeSpy = vi.spyOn(document, "removeEventListener");
+      const clearSpy = vi.spyOn(globalThis, "clearTimeout");
+      const effectCleanup = internals.activeEffects.get("ETHUSDT:1h")!;
+
+      activeTechnicalsManager.destroy();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(removeSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+      expect(clearSpy).toHaveBeenCalled();
+      expect(effectCleanup).toHaveBeenCalledTimes(1);
+      expect(internals.throttles.size).toBe(0);
+      expect(internals.activeEffects.size).toBe(0);
+
+      removeSpy.mockRestore();
+      clearSpy.mockRestore();
+    });
+  });
 });

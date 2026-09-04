@@ -97,6 +97,19 @@ class ActiveTechnicalsManager {
     }
 
     /**
+     * Lifecycle cleanup for HMR / re-init: removes the document
+     * visibilitychange listener, clears pending throttle timers and tears
+     * down active reactive effects (BUG-0362).
+     */
+    destroy() {
+        this.visibility.destroy();
+        for (const timerId of this.throttles.values()) clearTimeout(timerId);
+        this.throttles.clear();
+        for (const cleanup of this.activeEffects.values()) cleanup();
+        this.activeEffects.clear();
+    }
+
+    /**
      * Subscribe to updates for a symbol/timeframe pair.
      * Ensures market data is being watched and calculations are running.
      */
