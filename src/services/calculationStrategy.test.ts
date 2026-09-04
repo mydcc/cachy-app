@@ -37,8 +37,6 @@ vi.mock('./capabilityDetection', () => ({
 
 import { CalculationStrategy } from './calculationStrategy';
 
-type Telemetry = ReturnType<CalculationStrategy['exportTelemetry']>;
-
 const baseCaps = {
   wasm: true,
   wasmSIMD: true,
