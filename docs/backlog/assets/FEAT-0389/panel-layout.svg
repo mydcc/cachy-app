@@ -18,7 +18,7 @@
   <!-- chart area stays visible: the reason this is a panel and not a modal -->
   <rect class="chart" x="16" y="16" width="480" height="588" rx="4"/>
   <text class="tm" x="34" y="44">Chart bleibt sichtbar und bedienbar</text>
-  <text class=”ts” x=”34” y=”64”>Rechtsklick auf die Preisskala -&gt; “Alarm hier” (FEAT-0395)</text>
+  <text class=”ts” x=”34” y=”64”>Rechtsklick auf die Preisskala -> Alarm hier (FEAT-0395)</text>
   <polyline points="40,300 90,260 140,290 190,220 240,250 290,180 340,210 390,150 440,175"
             fill="none" stroke="#4d5560" stroke-width="2"/>
 
