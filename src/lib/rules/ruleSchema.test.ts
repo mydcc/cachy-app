@@ -23,7 +23,7 @@ import {
   RuleCoreUnavailableError,
   isRuleRefusedError,
 } from "./ruleSchema";
-import type { RuleDocument } from "./types";
+import type { RuleDocument, EvaluationContext } from "./types";
 
 vi.mock("../../services/logger", () => ({
   logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn() },
@@ -47,6 +47,12 @@ const DOCUMENT: RuleDocument = {
   provenance: { source: "human", created_at_ms: 1700000000000 },
 };
 
+const CTX: EvaluationContext = {
+  candles: {
+    "4h": [{ open_time_ms: 0, open: "100", high: "100", low: "100", close: "100", volume: "0" }],
+  },
+};
+
 /** A stand-in for the compiled core, so these tests need no WASM runtime. */
 function fakeCore(overrides: Record<string, unknown> = {}) {
   return {
@@ -58,6 +64,7 @@ function fakeCore(overrides: Record<string, unknown> = {}) {
     rule_warmup_candles: () => 15,
     rule_timeframes: () => ["4h"],
     rule_from_alert_json: (json: string) => json,
+    rule_evaluate: () => JSON.stringify({ verdict: "does_not_fire" }),
     ...overrides,
   };
 }
@@ -82,6 +89,7 @@ describe("ruleSchema", () => {
     expect(() => ruleSchema.authorise(DOCUMENT, "send")).toThrow(RuleCoreUnavailableError);
     expect(() => ruleSchema.warmupCandles(DOCUMENT)).toThrow(RuleCoreUnavailableError);
     expect(() => ruleSchema.timeframes(DOCUMENT)).toThrow(RuleCoreUnavailableError);
+    expect(() => ruleSchema.evaluate(DOCUMENT, CTX)).toThrow(RuleCoreUnavailableError);
   });
 
   it("reports readiness only after a successful load", async () => {
@@ -164,6 +172,18 @@ describe("ruleSchema", () => {
         expect(isRuleRefusedError(e)).toBe(false);
       }
     });
+  });
+
+  it("returns the parsed verdict the core hands back", async () => {
+    ruleSchema.setLoader(
+      async () =>
+        fakeCore({
+          rule_evaluate: () => JSON.stringify({ verdict: "fires" }),
+        }) as never,
+    );
+    await ruleSchema.load();
+
+    expect(ruleSchema.evaluate(DOCUMENT, CTX)).toEqual({ verdict: "fires" });
   });
 
   it("returns the canonical document the core hands back, not the input", async () => {

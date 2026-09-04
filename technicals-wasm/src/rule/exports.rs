@@ -38,10 +38,16 @@
 //! implementations of "is this rule valid" is the divergence ADR-0012 exists to
 //! prevent, so TypeScript gets types and this module gets the say.
 
+use std::collections::BTreeMap;
+
+use rust_decimal::Decimal;
+use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
 use super::consequence::ConsequenceLevel;
 use super::document::{parse_document, serialise_document};
+use super::evaluate::{evaluate, AccountSnapshot, Candle, InMemoryMarket};
+use super::indicator::IndicatorRef;
 use super::refusal::{RefusalCode, Refused};
 use super::timeframe::Timeframe;
 use super::version::CURRENT_SCHEMA_VERSION;
@@ -137,6 +143,89 @@ pub fn from_alert_json(
     serialise_document(&document).map_err(|e| Refused { refusals: vec![e] })
 }
 
+/// The market and account snapshot a document is evaluated against, on the wire.
+///
+/// `candles` is keyed by any spelling [`Timeframe::parse`] accepts. `indicators`
+/// names each series by its full [`IndicatorRef`] rather than by
+/// [`InMemoryMarket`]'s internal `Debug`-derived key, so nothing on the JS side
+/// has to replicate that formatting; `values` is index-aligned to
+/// `candles[timeframe]`, `null` where a value was not available (not yet warmed
+/// up, or a gap) — [`MarketView::indicator_at`](super::evaluate::MarketView) reads
+/// exactly that as "no value" and turns it into an indeterminate verdict rather
+/// than a false condition.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CtxPayload {
+    candles: BTreeMap<String, Vec<Candle>>,
+    #[serde(default)]
+    indicators: Vec<IndicatorSeries>,
+    #[serde(default)]
+    feeds: BTreeMap<String, Decimal>,
+    #[serde(default)]
+    account: Option<AccountSnapshot>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct IndicatorSeries {
+    indicator: IndicatorRef,
+    timeframe: String,
+    values: Vec<Option<Decimal>>,
+}
+
+/// Evaluate `document` against a JSON-carried market/account snapshot.
+///
+/// Assembles an [`InMemoryMarket`] from `ctx_json` and hands it to
+/// [`evaluate`](super::evaluate::evaluate) — this function decides nothing about
+/// the rule itself, only about what the caller sent. Refuses rather than panics
+/// on anything malformed, same as every other export in this module.
+pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refused> {
+    let document = parse_document(document_json)?;
+
+    let payload: CtxPayload = serde_json::from_str(ctx_json).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "ctx",
+            format!("ctx is not valid JSON: {e}"),
+        )
+    })?;
+
+    let mut market = InMemoryMarket::new();
+
+    for (raw_timeframe, candles) in payload.candles {
+        let timeframe =
+            Timeframe::parse_at(&raw_timeframe, &format!("ctx.candles.{raw_timeframe}"))
+                .map_err(|e| Refused { refusals: vec![e] })?;
+        market = market.with_candles(timeframe, candles);
+    }
+
+    for (i, series) in payload.indicators.into_iter().enumerate() {
+        let timeframe = Timeframe::parse_at(
+            &series.timeframe,
+            &format!("ctx.indicators[{i}].timeframe"),
+        )
+        .map_err(|e| Refused { refusals: vec![e] })?;
+        for (index, value) in series.values.into_iter().enumerate() {
+            if let Some(value) = value {
+                market = market.with_indicator(&series.indicator, timeframe, index, value);
+            }
+        }
+    }
+
+    for (feed, value) in payload.feeds {
+        market = market.with_feed(&feed, value);
+    }
+
+    let verdict = evaluate(&document, &market, payload.account.as_ref());
+    serde_json::to_string(&verdict).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "verdict",
+            format!("verdict could not be serialised: {e}"),
+        )
+    })
+}
+
 // ---------------------------------------------------------------------------
 // The boundary. Nothing here decides anything.
 // ---------------------------------------------------------------------------
@@ -191,6 +280,11 @@ pub fn rule_from_alert_json(
     created_at_ms: f64,
 ) -> Result<String, JsValue> {
     from_alert_json(alert_json, timeframe, created_at_ms as i64).map_err(refused_to_js)
+}
+
+#[wasm_bindgen]
+pub fn rule_evaluate(document_json: &str, ctx_json: &str) -> Result<String, JsValue> {
+    evaluate_json(document_json, ctx_json).map_err(refused_to_js)
 }
 
 #[cfg(test)]
@@ -303,5 +397,191 @@ mod tests {
             0
         )
         .is_err());
+    }
+
+    // ---- rule_evaluate --------------------------------------------------
+
+    /// "RSI below 30 on the 4h close, unless the liquidation heatmap is hot" —
+    /// notify-level so no account snapshot is needed, and a veto so `Suppressed`
+    /// is reachable too.
+    const EVAL_DOC: &str = r#"{
+        "schema_version": 1,
+        "id": "rule-eval-1",
+        "name": "RSI dip",
+        "symbol": "BTCUSDT",
+        "trigger_timeframe": "4h",
+        "conditions": {
+            "kind": "compare",
+            "left": { "kind": "indicator", "indicator": { "id": "rsi", "params": { "period": 14 } } },
+            "op": "lt",
+            "right": { "kind": "constant", "value": "30" },
+            "timeframe": "4h"
+        },
+        "veto": {
+            "kind": "external_feed",
+            "feed": "liquidation_heatmap",
+            "op": "gt",
+            "value": "0.9"
+        },
+        "action": { "consequence_level": "notify" },
+        "enabled": true,
+        "provenance": { "source": "human", "created_at_ms": 1700000000000 }
+    }"#;
+
+    /// `n` closed 4h candles, oldest first. Prices are irrelevant here — the
+    /// condition reads the indicator series, not the price — so every candle is
+    /// identical.
+    fn eval_candles_json(n: usize) -> String {
+        const STEP_MS: i64 = 4 * 60 * 60 * 1000;
+        let candles: Vec<String> = (0..n)
+            .map(|i| {
+                format!(
+                    r#"{{"open_time_ms":{},"open":"100","high":"100","low":"100","close":"100","volume":"0"}}"#,
+                    i as i64 * STEP_MS
+                )
+            })
+            .collect();
+        format!("[{}]", candles.join(","))
+    }
+
+    /// `n` RSI values aligned to `eval_candles_json(n)`, `null` everywhere except
+    /// the last index — `evaluate` only ever reads the anchor candle here.
+    fn eval_rsi_values_json(n: usize, last: &str) -> String {
+        let mut values = vec!["null".to_string(); n.saturating_sub(1)];
+        values.push(format!("\"{last}\""));
+        format!("[{}]", values.join(","))
+    }
+
+    fn eval_ctx_json(rsi_value: &str, feed_value: &str) -> String {
+        format!(
+            r#"{{
+                "candles": {{ "4h": {} }},
+                "indicators": [ {{
+                    "indicator": {{ "id": "rsi", "params": {{ "period": 14 }} }},
+                    "timeframe": "4h",
+                    "values": {}
+                }} ],
+                "feeds": {{ "liquidation_heatmap": "{feed_value}" }}
+            }}"#,
+            eval_candles_json(15),
+            eval_rsi_values_json(15, rsi_value),
+        )
+    }
+
+    #[test]
+    fn a_document_whose_conditions_and_veto_both_hold_fires() {
+        let verdict = evaluate_json(EVAL_DOC, &eval_ctx_json("25", "0.5")).unwrap();
+        assert_eq!(verdict, r#"{"verdict":"fires"}"#);
+    }
+
+    #[test]
+    fn a_document_whose_condition_does_not_hold_does_not_fire() {
+        let verdict = evaluate_json(EVAL_DOC, &eval_ctx_json("55", "0.5")).unwrap();
+        assert_eq!(verdict, r#"{"verdict":"does_not_fire"}"#);
+    }
+
+    #[test]
+    fn a_veto_above_threshold_suppresses_an_otherwise_firing_condition() {
+        let verdict = evaluate_json(EVAL_DOC, &eval_ctx_json("25", "0.95")).unwrap();
+        assert_eq!(verdict, r#"{"verdict":"suppressed"}"#);
+    }
+
+    #[test]
+    fn no_closed_trigger_candle_is_indeterminate_rather_than_a_fabricated_verdict() {
+        let ctx = r#"{ "candles": { "4h": [] } }"#;
+        let verdict = evaluate_json(EVAL_DOC, ctx).unwrap();
+        assert!(
+            verdict.starts_with(r#"{"verdict":"indeterminate""#),
+            "got: {verdict}"
+        );
+        assert!(verdict.contains("no closed 4h candle"), "got: {verdict}");
+    }
+
+    #[test]
+    fn malformed_ctx_json_is_refused_with_a_field_not_a_panic() {
+        let err = evaluate_json(EVAL_DOC, "{not json").unwrap_err();
+        assert_eq!(err.refusals[0].field, "ctx");
+    }
+
+    #[test]
+    fn an_unparseable_timeframe_in_ctx_is_refused_by_field_not_a_panic() {
+        let ctx = r#"{ "candles": { "not-a-timeframe": [] } }"#;
+        let err = evaluate_json(EVAL_DOC, ctx).unwrap_err();
+        assert!(
+            err.refusals[0].field.starts_with("ctx.candles"),
+            "got: {err}"
+        );
+    }
+
+    /// "RSI below 30 on the 4h close" under a 1h trigger — the ADR-0012 example
+    /// of a coarser condition. Trigger fires once an hour; the 4h RSI only
+    /// changes every four of those.
+    const COARSE_CONDITION_DOC: &str = r#"{
+        "schema_version": 1,
+        "id": "rule-eval-coarse",
+        "name": "RSI dip on 4h under a 1h trigger",
+        "symbol": "BTCUSDT",
+        "trigger_timeframe": "1h",
+        "conditions": {
+            "kind": "compare",
+            "left": { "kind": "indicator", "indicator": { "id": "rsi", "params": { "period": 14 } } },
+            "op": "lt",
+            "right": { "kind": "constant", "value": "30" },
+            "timeframe": "4h"
+        },
+        "action": { "consequence_level": "notify" },
+        "enabled": true,
+        "provenance": { "source": "human", "created_at_ms": 1700000000000 }
+    }"#;
+
+    /// `n` closed 1h candles, oldest first, so the anchor close instant is
+    /// `n` hours after epoch.
+    fn hourly_candles_json(n: usize) -> String {
+        const STEP_MS: i64 = 60 * 60 * 1000;
+        let candles: Vec<String> = (0..n)
+            .map(|i| {
+                format!(
+                    r#"{{"open_time_ms":{},"open":"100","high":"100","low":"100","close":"100","volume":"0"}}"#,
+                    i as i64 * STEP_MS
+                )
+            })
+            .collect();
+        format!("[{}]", candles.join(","))
+    }
+
+    /// Two closed 4h candles (opening at hour 0 and hour 4) with distinct RSI
+    /// values, so a test can tell which one an evaluation actually read.
+    fn coarse_ctx_json(trigger_hours: usize) -> String {
+        format!(
+            r#"{{
+                "candles": {{
+                    "1h": {},
+                    "4h": [
+                        {{"open_time_ms":0,"open":"100","high":"100","low":"100","close":"100","volume":"0"}},
+                        {{"open_time_ms":14400000,"open":"100","high":"100","low":"100","close":"100","volume":"0"}}
+                    ]
+                }},
+                "indicators": [ {{
+                    "indicator": {{ "id": "rsi", "params": {{ "period": 14 }} }},
+                    "timeframe": "4h",
+                    "values": ["25", "55"]
+                }} ]
+            }}"#,
+            hourly_candles_json(trigger_hours),
+        )
+    }
+
+    #[test]
+    fn a_coarser_condition_reads_the_last_4h_candle_already_closed_at_the_trigger_instant() {
+        // 5 closed 1h candles: anchor closes at hour 5. The second 4h candle
+        // (opens hour 4, closes hour 8) has not closed yet — only the first
+        // (RSI 25) has, so the condition holds.
+        let verdict = evaluate_json(COARSE_CONDITION_DOC, &coarse_ctx_json(5)).unwrap();
+        assert_eq!(verdict, r#"{"verdict":"fires"}"#, "expected the not-yet-closed second 4h candle to be invisible");
+
+        // 8 closed 1h candles: anchor closes at hour 8, exactly when the
+        // second 4h candle (RSI 55) closes too — now visible, so it does not.
+        let verdict = evaluate_json(COARSE_CONDITION_DOC, &coarse_ctx_json(8)).unwrap();
+        assert_eq!(verdict, r#"{"verdict":"does_not_fire"}"#, "expected the newly-closed second 4h candle to be read");
     }
 }
