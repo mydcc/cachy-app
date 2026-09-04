@@ -62,7 +62,7 @@ export class RuleRefusedError extends Error {
   constructor(refusals: RuleRefusal[]) {
     const detail =
       refusals.map((r) => `${r.code} at \`${r.field}\`: ${r.detail}`).join("; ") ||
-      "rule refused without a stated reason";
+      "rule refused without a stated reason"; // i18n-ignore: developer-facing Error.message, never shown to a trader — see class doc
     super(detail);
     this.name = "RuleRefusedError";
     this.refusals = refusals;

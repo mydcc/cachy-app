@@ -462,3 +462,170 @@ fn truth(value: bool) -> Truth {
         Truth::False
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::rule::condition::CompareOp;
+    use crate::rule::consequence::{ConsequenceLevel, RuleAction};
+    use crate::rule::document::{AuthoringSource, Provenance};
+    use crate::rule::indicator::ParamValue;
+    use crate::rule::version::SchemaVersion;
+    use std::str::FromStr;
+
+    fn d(s: &str) -> Decimal {
+        Decimal::from_str(s).unwrap()
+    }
+
+    fn tf(s: &str) -> Timeframe {
+        Timeframe::parse(s).unwrap()
+    }
+
+    fn rsi(period: u32) -> IndicatorRef {
+        let mut params = BTreeMap::new();
+        params.insert("period".to_string(), ParamValue::Count(period));
+        IndicatorRef {
+            id: "rsi".to_string(),
+            params,
+            output: "value".to_string(),
+        }
+    }
+
+    fn candles(closes: &[&str]) -> Vec<Candle> {
+        closes
+            .iter()
+            .enumerate()
+            .map(|(i, c)| Candle {
+                open_time_ms: i as i64 * 14_400_000,
+                open: d(c),
+                high: d(c),
+                low: d(c),
+                close: d(c),
+                volume: Decimal::ZERO,
+            })
+            .collect()
+    }
+
+    /// "RSI below 30 on the 4h close, only while flat" — a document that touches
+    /// an indicator, an account condition and a veto in one evaluation, so a
+    /// determinism test here exercises the whole `eval` dispatch, not just the
+    /// price path FEAT-0027 already covers via `legacy.rs`.
+    fn rsi_dip_while_flat() -> RuleDocument {
+        RuleDocument {
+            schema_version: SchemaVersion::CURRENT,
+            id: "rule-det".to_string(),
+            name: "RSI dip while flat".to_string(),
+            symbol: "BTCUSDT".to_string(),
+            trigger_timeframe: tf("4h"),
+            conditions: Condition::Group {
+                op: LogicOp::All,
+                of: vec![
+                    Condition::Compare {
+                        left: Operand::Indicator { indicator: rsi(14) },
+                        op: CompareOp::Lt,
+                        right: Operand::Constant { value: d("30") },
+                        timeframe: tf("4h"),
+                    },
+                    Condition::Position {
+                        side: PositionSide::Either,
+                        open: false,
+                    },
+                ],
+            },
+            veto: Some(Condition::ExternalFeed {
+                feed: "liquidation_heatmap".to_string(),
+                op: CompareOp::Gt,
+                value: d("0.9"),
+            }),
+            action: RuleAction {
+                consequence_level: ConsequenceLevel::Simulate,
+                order: None,
+            },
+            enabled: true,
+            provenance: Provenance {
+                source: AuthoringSource::Human,
+                created_at_ms: 0,
+                model: None,
+            },
+        }
+    }
+
+    /// The acceptance criterion this crate can check directly: "evaluating one
+    /// document twice over the same closed candles yields the same verdict".
+    /// `evaluate` reads no clock, no randomness and no mutable global — this
+    /// test is what turns that from a property of the design into a property
+    /// that is actually checked.
+    #[test]
+    fn evaluating_the_same_inputs_repeatedly_yields_the_same_verdict() {
+        let document = rsi_dip_while_flat();
+        let market = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles(&["60000", "60000"]))
+            .with_indicator(&rsi(14), tf("4h"), 1, d("25"))
+            .with_feed("liquidation_heatmap", d("0.5"));
+        let account = AccountSnapshot::default();
+
+        let first = evaluate(&document, &market, Some(&account));
+        for _ in 0..20 {
+            assert_eq!(evaluate(&document, &market, Some(&account)), first);
+        }
+        assert_eq!(first, Verdict::Fires);
+    }
+
+    /// `Suppressed` is a read of the veto at evaluation time, not a one-shot
+    /// side effect that could drift on a second call.
+    #[test]
+    fn a_suppressing_veto_is_deterministic_too() {
+        let document = rsi_dip_while_flat();
+        let market = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles(&["60000", "60000"]))
+            .with_indicator(&rsi(14), tf("4h"), 1, d("25"))
+            .with_feed("liquidation_heatmap", d("0.95"));
+        let account = AccountSnapshot::default();
+
+        let first = evaluate(&document, &market, Some(&account));
+        assert_eq!(first, Verdict::Suppressed);
+        for _ in 0..20 {
+            assert_eq!(evaluate(&document, &market, Some(&account)), first);
+        }
+    }
+
+    /// An indeterminate verdict (no account snapshot for a rule that reads one)
+    /// is reported the same way every time — never "sometimes we guess yes".
+    #[test]
+    fn an_indeterminate_verdict_is_stable_across_repeated_evaluation() {
+        let document = rsi_dip_while_flat();
+        let market = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles(&["60000", "60000"]))
+            .with_indicator(&rsi(14), tf("4h"), 1, d("25"));
+
+        let first = evaluate(&document, &market, None);
+        assert!(matches!(first, Verdict::Indeterminate { .. }));
+        for _ in 0..20 {
+            assert_eq!(evaluate(&document, &market, None), first);
+        }
+    }
+
+    /// Two markets built in a different call order but holding the same data
+    /// must still agree — `InMemoryMarket` is keyed on `BTreeMap`, so insertion
+    /// order cannot leak into the verdict the way it could with a `HashMap`.
+    #[test]
+    fn insertion_order_into_the_market_does_not_affect_the_verdict() {
+        let document = rsi_dip_while_flat();
+        let account = AccountSnapshot::default();
+
+        let a = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles(&["60000", "60000"]))
+            .with_indicator(&rsi(14), tf("4h"), 1, d("25"))
+            .with_feed("liquidation_heatmap", d("0.5"));
+
+        let b = InMemoryMarket::new()
+            .with_feed("liquidation_heatmap", d("0.5"))
+            .with_indicator(&rsi(14), tf("4h"), 1, d("25"))
+            .with_candles(tf("4h"), candles(&["60000", "60000"]));
+
+        assert_eq!(
+            evaluate(&document, &a, Some(&account)),
+            evaluate(&document, &b, Some(&account))
+        );
+    }
+}
