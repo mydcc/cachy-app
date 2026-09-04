@@ -48,3 +48,11 @@ once the charting approach is settled. Left as `idea` until then.
 
 - [`FEAT-0027`](FEAT-0027-alert-engine.md)
 - `src/lib/windows/implementations/CandleChartView.svelte`
+
+## Scope boundary (added 2026-09-04)
+
+[`FEAT-0395`](FEAT-0395-alert-entry-points.md) covers the chart right-click and
+indicator-settings entry points for **price and indicator** alerts. This item owns
+alerts anchored to a **drawing** — a trendline, a level, a channel — where the
+threshold moves with the object. Both land in the panel from
+[`FEAT-0389`](FEAT-0389-super-alert-panel.md).

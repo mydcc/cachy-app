@@ -8,8 +8,8 @@ milestone: M4
 editions: [community, pro, private]
 area: alerts
 data_class: A
-adr: none
-depends_on: [FEAT-0027]
+adr: ADR-0012
+depends_on: [FEAT-0027, FEAT-0387, FEAT-0389]
 estimate: 5
 size: L
 target_date: 2027-01-29
@@ -46,8 +46,30 @@ indicator alerts trustworthy or not.
       or the discrepancy is documented
 - [ ] German and English strings
 
+## Note added while planning the Super-Alert work (2026-09-04)
+
+Two of the questions this item raises are now answered by the rule core that
+[`FEAT-0303`](FEAT-0303-strategy-rule-schema.md) shipped, so they are constraints here
+rather than open decisions:
+
+- **Closed-candle by default** is the architecture, not a per-alert setting.
+  [`FEAT-0387`](FEAT-0387-expose-rule-evaluator.md) evaluates once per close of the
+  trigger timeframe. Intra-candle evaluation, if it is still wanted, is a deliberate
+  addition on top — not the default this item has to argue for.
+- **Indicator identity and parameters** are `IndicatorRef { id, params, output }` in
+  `technicals-wasm/src/rule/indicator.rs`. This item does not define a second way to
+  name an indicator.
+
+What remains genuinely this item's work: which conditions exist per indicator (MACD
+golden/death cross, DEA zero crossing, bullish/bearish divergence, RSI thresholds,
+Bollinger touch and squeeze, volume anomalies, MA crosses), their correctness against
+recorded history, and cross-path parity between WASM, GPU and JS.
+
 ## Links
 
+- [`FEAT-0303`](FEAT-0303-strategy-rule-schema.md) — the schema this now targets
+- [`FEAT-0387`](FEAT-0387-expose-rule-evaluator.md) — the evaluator that runs these
+- [`FEAT-0389`](FEAT-0389-super-alert-panel.md) — the Indicators tab this fills
 - [`FEAT-0027`](FEAT-0027-alert-engine.md)
 - `src/services/technicalsService.ts`
 - [`BUG-0005`](../bugs/BUG-0005-gpu-chop-field-mismatch.md) — cross-path parity matters here

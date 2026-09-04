@@ -48,6 +48,7 @@ backlog/
   bugs/BUG-NNNN-short-slug.md
   ideas/IDEA-NNNN-short-slug.md
   templates/
+  assets/FEAT-NNNN/ # optional: our own wireframes and diagrams for one item
   INDEX.md          # generated; committed only by CI after merge, never in a PR
 ```
 
@@ -57,6 +58,17 @@ Numbers are shared across all three types — there is no `FEAT-0001` and
 An `IDEA` that gets specified is **renamed** to `FEAT`, keeping its number:
 `IDEA-0031-…` becomes `FEAT-0031-…`. The number is the identity; the prefix is
 just its current state.
+
+### Images
+
+An item may carry images under `assets/<ITEM-ID>/`, referenced relatively:
+`![Panel layout](assets/FEAT-0389/panel-layout.svg)`. Prefer **SVG** — a review
+can see what changed in the diff, which a PNG does not allow.
+
+Only **our own** material. Screenshots of another product's interface do not go in
+this repository; describe the behaviour instead, the way
+[`FEAT-0030`](features/FEAT-0030-combined-alerts.md) does. `backlog:check` validates
+front matter and id collisions and does not look at `assets/`.
 
 ---
 
