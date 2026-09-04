@@ -62,7 +62,7 @@ just its current state.
 ### Images
 
 An item may carry images under `assets/<ITEM-ID>/`, referenced relatively:
-`![Panel layout](../assets/FEAT-0389/panel-layout.svg)`. Prefer **SVG** — a review
+`![Panel layout](assets/FEAT-0389/panel-layout.svg)`. Prefer **SVG** — a review
 can see what changed in the diff, which a PNG does not allow.
 
 Only **our own** material. Screenshots of another product's interface do not go in
