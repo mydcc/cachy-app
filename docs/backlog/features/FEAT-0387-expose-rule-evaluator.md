@@ -2,7 +2,9 @@
 id: FEAT-0387
 title: Expose the rule evaluator to JavaScript and evaluate on candle close
 type: feature
-status: specced
+status: in-progress
+assignee: claude-code
+start_date: 2026-09-05
 priority: P1
 milestone: M4
 editions: [community, pro, private]
