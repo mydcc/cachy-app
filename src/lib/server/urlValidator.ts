@@ -234,10 +234,11 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
   }
 
   const dispatcher = await getSafeDispatcher();
-  if (dispatcher) {
-    // @ts-expect-error Node fetch supports dispatcher option via undici
-    return fetch(url, { ...init, dispatcher });
+  if (!dispatcher) {
+    // Fail closed: without the dial-time DNS guard a validated URL can still be
+    // re-resolved to an internal address (DNS rebinding/TOCTOU) before connect.
+    throw new Error("SSRF guard unavailable");
   }
-
-  return fetch(url, init);
+  // @ts-expect-error Node fetch supports dispatcher option via undici
+  return fetch(url, { ...init, dispatcher });
 }
