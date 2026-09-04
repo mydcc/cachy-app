@@ -58,3 +58,14 @@ None.
 
 - `src/stores/market/applyUpdate.ts:51-57`
 - `src/services/alertEngine/alertEngine.ts:113-126`
+
+## Reconcile with FEAT-0387 (added 2026-09-04)
+
+[`FEAT-0387`](FEAT-0387-expose-rule-evaluator.md) moves evaluation from every price
+tick to once per close of the rule's trigger timeframe. That *is* the debounce this
+item asks for, and it removes the hot-path cost rather than smoothing it.
+
+Do not implement both. Whoever picks up either item first decides: if `FEAT-0387`
+lands, this item closes as superseded — unless a measurable cost remains on the legacy
+tick path before [`FEAT-0388`](FEAT-0388-migrate-alerts-to-rule-documents.md) removes
+it, in which case say so here and keep the smaller fix.

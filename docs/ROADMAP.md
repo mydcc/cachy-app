@@ -189,6 +189,16 @@ exchanges without opening the exchange's own UI.
 | [FEAT-0028](backlog/features/FEAT-0028-indicator-alerts.md) | P2 | MACD, RSI, Bollinger, volume, MA crosses |
 | [FEAT-0030](backlog/features/FEAT-0030-combined-alerts.md) | P2 | AND/OR conditions with a validity window |
 | [FEAT-0303](backlog/features/FEAT-0303-strategy-rule-schema.md) | P1 | One rule schema alerts, backtests and bots all read |
+| [FEAT-0387](backlog/features/FEAT-0387-expose-rule-evaluator.md) | P1 | Expose the rule evaluator to JS; evaluate on candle close |
+| [FEAT-0388](backlog/features/FEAT-0388-migrate-alerts-to-rule-documents.md) | P1 | Migrate stored price alerts to rule documents |
+| [FEAT-0389](backlog/features/FEAT-0389-super-alert-panel.md) | P2 | Super-Alert side panel replaces the alert modal |
+| [FEAT-0390](backlog/features/FEAT-0390-price-alert-conditions.md) | P2 | Rises above, falls below, percentage moves, mark price |
+| [FEAT-0393](backlog/features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | P2 | Trigger method, frequency, validity period, note |
+| [FEAT-0392](backlog/features/FEAT-0392-notification-sound-channel.md) | P2 | A sound channel for notifications |
+| [FEAT-0397](backlog/features/FEAT-0397-notification-channels.md) | P2 | Configure Email, Discord, Telegram delivery channels |
+| [FEAT-0394](backlog/features/FEAT-0394-candlestick-pattern-conditions.md) | P2 | Candlestick pattern conditions |
+| [FEAT-0391](backlog/features/FEAT-0391-alert-template-library.md) | P2 | A template library for alert rules |
+| [FEAT-0395](backlog/features/FEAT-0395-alert-entry-points.md) | P2 | Alert from the chart and from indicator settings |
 | [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) | P2 | Alerts bound to chart drawings |
 
 [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) is last and still an
