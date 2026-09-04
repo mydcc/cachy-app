@@ -2,9 +2,9 @@
 
 # Backlog index
 
-269 items. How to read and add them: [README.md](README.md).
+280 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · ✅ done 211
+Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 211
 
 ---
 
@@ -116,10 +116,20 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · ✅ done 21
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | ✅ done | alerts |
+| [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟡 in-progress | alerts |
+| [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 📋 specced | alerts |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
 | [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | trade-panel |
+| [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | 📋 specced | alerts |
+| [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) | Price alert conditions beyond a single target | P2 | 📋 specced | alerts |
+| [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P2 | 📋 specced | alerts |
+| [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | 📋 specced | alerts |
+| [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P2 | 📋 specced | alerts |
+| [FEAT-0394](features/FEAT-0394-candlestick-pattern-conditions.md) | Candlestick pattern conditions | P2 | 📋 specced | alerts |
+| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 📋 specced | alerts |
+| [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | alerts |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
 
 ### M5
@@ -169,6 +179,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · ✅ done 21
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [FEAT-0035](features/FEAT-0035-autonomous-execution-agent.md) | Let an agent trade inside limits it cannot exceed | P2 | 💡 idea | ai |
+| [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | 💡 idea | alerts |
 
 ### Unscheduled
 
@@ -429,6 +440,8 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · ✅ done 21
 | [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
+| [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -486,9 +499,9 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · ✅ done 21
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
-| [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
+| [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
-| [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
+| [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | M4 | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0031](features/FEAT-0031-whitelabel-theming.md) | Rebrand a build without editing source | P2 | 💡 idea | M5 | community | none | none | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
 | [FEAT-0032](features/FEAT-0032-plugin-contract.md) | A plugin contract for paid modules | P2 | 💡 idea | M6 | pro, private | none | ADR-0005 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md), [FEAT-0040](features/FEAT-0040-computation-extensions.md) |
 | [FEAT-0033](features/FEAT-0033-chat-hardening-and-reputation.md) | Harden Global Chat and add peer-signal reputation | P2 | 📋 specced | M7 | pro, private | B | ADR-0004 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
@@ -551,6 +564,15 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · ✅ done 21
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0026](features/FEAT-0026-multi-account.md) |
+| [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
+| [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) | Price alert conditions beyond a single target | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0030](features/FEAT-0030-combined-alerts.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | 📋 specced | M4 | community, pro, private | A | none | — |
+| [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0394](features/FEAT-0394-candlestick-pattern-conditions.md) | Candlestick pattern conditions | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md), [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) |
+| [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | 💡 idea | M9 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -612,4 +634,4 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · ✅ done 21
 
 ---
 
-Next free number: **0387**
+Next free number: **0398**

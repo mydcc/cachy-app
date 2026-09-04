@@ -1990,6 +1990,53 @@
       "file": "features/FEAT-0352-storage-wrapper-migration.md"
     },
     {
+      "id": "FEAT-0387",
+      "title": "Expose the rule evaluator to JavaScript and evaluate on candle close",
+      "type": "feature",
+      "status": "in-progress",
+      "branch": "worktree-expose-rule-evaluator-27b349",
+      "assignee": "claude-code",
+      "start_date": "2026-09-05",
+      "priority": "P1",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0303"
+      ],
+      "size": "M",
+      "estimate": "5",
+      "file": "features/FEAT-0387-expose-rule-evaluator.md"
+    },
+    {
+      "id": "FEAT-0388",
+      "title": "Migrate stored price alerts to rule documents",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0387"
+      ],
+      "size": "S",
+      "estimate": "2",
+      "file": "features/FEAT-0388-migrate-alerts-to-rule-documents.md"
+    },
+    {
       "id": "BUG-0005",
       "title": "GPU-accelerated Choppiness writes to a field nothing reads",
       "type": "bug",
@@ -3199,9 +3246,11 @@
       ],
       "area": "alerts",
       "data_class": "A",
-      "adr": "none",
+      "adr": "ADR-0012",
       "depends_on": [
-        "FEAT-0027"
+        "FEAT-0027",
+        "FEAT-0387",
+        "FEAT-0389"
       ],
       "estimate": "5",
       "size": "L",
@@ -3247,10 +3296,12 @@
       ],
       "area": "alerts",
       "data_class": "A",
-      "adr": "none",
+      "adr": "ADR-0012",
       "depends_on": [
         "FEAT-0028",
-        "FEAT-0303"
+        "FEAT-0303",
+        "FEAT-0387",
+        "FEAT-0389"
       ],
       "start_date": "2026-08-01",
       "target_date": "2027-03-15",
@@ -4646,6 +4697,209 @@
       "file": "features/FEAT-0378-account-name-remaining-surfaces.md"
     },
     {
+      "id": "FEAT-0389",
+      "title": "Replace the alert modal with a Super-Alert side panel",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0387",
+        "FEAT-0388"
+      ],
+      "size": "M",
+      "estimate": "5",
+      "file": "features/FEAT-0389-super-alert-panel.md"
+    },
+    {
+      "id": "FEAT-0390",
+      "title": "Price alert conditions beyond a single target",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0389"
+      ],
+      "size": "S",
+      "estimate": "3",
+      "file": "features/FEAT-0390-price-alert-conditions.md"
+    },
+    {
+      "id": "FEAT-0391",
+      "title": "A template library for alert rules",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0028",
+        "FEAT-0030",
+        "FEAT-0389"
+      ],
+      "size": "M",
+      "estimate": "5",
+      "file": "features/FEAT-0391-alert-template-library.md"
+    },
+    {
+      "id": "FEAT-0392",
+      "title": "A sound channel for notifications",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "size": "S",
+      "estimate": "2",
+      "file": "features/FEAT-0392-notification-sound-channel.md"
+    },
+    {
+      "id": "FEAT-0393",
+      "title": "Trigger method, frequency, validity period and note per rule",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0387",
+        "FEAT-0389"
+      ],
+      "size": "M",
+      "estimate": "5",
+      "file": "features/FEAT-0393-rule-trigger-method-and-lifecycle.md"
+    },
+    {
+      "id": "FEAT-0394",
+      "title": "Candlestick pattern conditions",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0387",
+        "FEAT-0389"
+      ],
+      "size": "M",
+      "estimate": "5",
+      "file": "features/FEAT-0394-candlestick-pattern-conditions.md"
+    },
+    {
+      "id": "FEAT-0395",
+      "title": "Create an alert from the chart and from indicator settings",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0389",
+        "FEAT-0390"
+      ],
+      "size": "S",
+      "estimate": "3",
+      "file": "features/FEAT-0395-alert-entry-points.md"
+    },
+    {
+      "id": "FEAT-0396",
+      "title": "An Automation settings tab for user-configured bots",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P2",
+      "milestone": "M9",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0387",
+        "FEAT-0389"
+      ],
+      "size": "M",
+      "estimate": "8",
+      "file": "features/FEAT-0396-automation-settings-tab.md"
+    },
+    {
+      "id": "FEAT-0397",
+      "title": "Configure notification delivery channels (Email, Discord, Telegram)",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0389"
+      ],
+      "size": "M",
+      "estimate": "5",
+      "file": "features/FEAT-0397-notification-channels.md"
+    },
+    {
       "id": "BUG-0007",
       "title": "Several UI strings are hardcoded instead of translated",
       "type": "bug",
@@ -5841,5 +6095,5 @@
       "file": "ideas/IDEA-0326-feedback-system.md"
     }
   ],
-  "count": 269
+  "count": 280
 }
