@@ -498,16 +498,16 @@
                     collapsed: p.collapsed,
                     onToggle: () => {
                         indicatorState.update((s) => {
-                            const entry = s[p.key as keyof typeof s];
+                            const entry = s[p.key as keyof typeof s] as
+                                | Record<string, unknown>
+                                | undefined;
+                            if (!entry) return s;
                             return {
                                 ...s,
-                                [p.key]: {
-                                    ...entry,
-                                    visible: !(entry as { visible?: boolean } | undefined)?.visible,
-                                },
+                                [p.key]: { ...entry, visible: !entry.visible },
                             };
                         });
-                        indicatorLayer.refresh();
+                        indicatorLayer?.refresh();
                     },
                 },
             });
