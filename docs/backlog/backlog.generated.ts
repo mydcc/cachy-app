@@ -2985,7 +2985,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0361",
     "title": "ConnectionManager attaches anonymous window and document listeners with no teardown method",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "antigravity",
+    "branch": "fix/bug-0361-connection-manager-destroy",
     "priority": "P2",
     "milestone": "none",
     "editions": [
