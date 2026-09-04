@@ -40,8 +40,9 @@ function makeChart() {
             }
             return makeSeries();
         }),
-        addPane: vi.fn(() => {
+        addPane: vi.fn((preserveEmptyPane?: boolean) => {
             const pane = makePane(panes.length);
+            pane.preserveEmptyPane = preserveEmptyPane === true;
             panes.push(pane);
             return pane;
         }),
@@ -328,6 +329,26 @@ describe("IndicatorLayer", () => {
         expect(subPaneIndices(env.chart)).toEqual([1]);
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
         expect(lastCall[1]).toMatchObject({ paneIndex: 2, key: "rsi", collapsed: true });
+    });
+
+    it("keeps indices stable when a collapsed pane sits between open ones", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({
+            rsi: { ...on({ length: 14, source: "close" }), visible: false },
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
+        }));
+        layer.render(makeRows(60));
+
+        // volume=1, rsi strip=2, macd=3 — the strip must not shift macd.
+        // (macd reports twice: histogram + line share the same pane index.)
+        expect(subPaneIndices(env.chart)).toEqual([1, 3, 3]);
+        expect(heightsFor(env.panes, 2).at(-1)).toBe(30);
+        expect(heightsFor(env.panes, 3).at(-1)).not.toBeUndefined();
+        const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(lastCall.map((p: { paneIndex: number }) => p.paneIndex)).toEqual([1, 2, 3]);
+        expect(lastCall[2]).toMatchObject({ paneIndex: 3, key: "macd", collapsed: false });
     });
 
     it("clears reported panes when the indicator layer is destroyed", () => {
