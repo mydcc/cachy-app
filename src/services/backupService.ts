@@ -55,7 +55,10 @@ export interface BackupFile {
  */
 export interface RestoreResult {
   success: boolean;
+  /** Either a literal message or, when it starts with "app.", a translation key (see BUG-0354). */
   message: string;
+  /** Interpolation values for `message` when it is a translation key. */
+  messageParams?: Record<string, unknown>;
   needsPassword?: boolean;
   rejectedSections?: string[];
 }
@@ -595,7 +598,8 @@ export async function restoreFromBackup(
     if (!validation.valid) {
       return {
         success: false,
-        message: `Backup restore rejected: Invalid section(s): ${validation.rejectedSections.join(", ")}. No changes were applied.`,
+        message: "app.backupRejected",
+        messageParams: { sections: validation.rejectedSections.join(", ") },
         rejectedSections: validation.rejectedSections,
       };
     }

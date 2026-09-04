@@ -18,6 +18,7 @@
 <script lang="ts">
   import { autoBackupState, restoreFromOpfs, dismissOpfsRestore } from "../../services/autoBackupService.svelte";
   import { _ } from "../../locales/i18n";
+  import type { TranslationKey } from "../../locales/schema";
   import { scale, fade } from "svelte/transition";
 
   let errorMessage = $state<string | null>(null);
@@ -28,7 +29,9 @@
     errorMessage = null;
     const res = await restoreFromOpfs();
     if (!res.success) {
-      errorMessage = res.message;
+      errorMessage = res.message.startsWith("app.")
+        ? $_(res.message as TranslationKey, res.messageParams)
+        : res.message;
     }
   }
 

@@ -32,16 +32,16 @@
   const connected = $derived(status.connected);
 
   $effect(() => {
-    cloudService.subscribeMessages((msgs) => {
+    const unsubMessages = cloudService.subscribeMessages((msgs) => {
       messages = msgs;
     });
-    cloudService.subscribeStatus((s) => {
+    const unsubStatus = cloudService.subscribeStatus((s) => {
       status = s;
     });
 
     return () => {
-      cloudService.subscribeMessages(() => {});
-      cloudService.subscribeStatus(() => {});
+      unsubMessages();
+      unsubStatus();
     };
   });
 

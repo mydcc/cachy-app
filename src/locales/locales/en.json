@@ -39,6 +39,7 @@
     "backupPasswordRequired": "A password is required for encryption.",
     "backupPasswordEntryPrompt": "This backup is encrypted. Please enter the password:",
     "backupWrongPassword": "Wrong password. Restore failed.",
+    "backupRejected": "Backup restore rejected: Invalid section(s): {sections}. No changes were applied.",
     "passwordRequiredTitle": "Password Required",
     "enterBackupPassword": "Please enter the password for this backup:",
     "marketDashboard": {
@@ -257,7 +258,7 @@
     "partialVolume": "Partial Volume",
     "partialVolumeTooltip": "Exact contract or coin quantity to be closed by this limit order when the target market price is reached.",
     "exitFeeLabel": "Exit Fee",
-    "exitFeeTooltip": "Estimated transaction fee for closing this partial order, calculated from partial order value and your configured maker/taker fee rate.",
+    "exitFeeTooltip": "A worst-case assumption, not a quote from the exchange. How the position actually closes — stop-loss, take-profit or by hand — is unknowable while the plan is being made, so Cachy assumes the more expensive taker rate unless you chose otherwise in Settings.",
     "tradeNotesPlaceholder": "Trade notes...",
     "addTradeToJournal": "Add Trade to Journal",
     "executeTrade": "Execute Trade",
@@ -333,7 +334,12 @@
       "leverage": "Leverage",
       "fees": "Fees (%)",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
-      "marginMode": "Margin Mode"
+      "marginMode": "Margin Mode",
+      "feeEntryLeg": "Entry",
+      "feeExitLeg": "Exit",
+      "feeFromBroker": "from broker",
+      "feeAssumed": "assumed",
+      "feeManual": "manual"
     },
     "portfolioInputs": {
       "header": "Portfolio",
@@ -409,7 +415,7 @@
       "requiredMarginLabel": "Required Margin",
       "requiredMarginTooltip": "Initial collateral locked from your futures balance to hold this position (Position Value ÷ Leverage). Must be available as free margin.",
       "entryFeeLabel": "Entry Fee",
-      "entryFeeTooltip": "Estimated fee to open the position, calculated from nominal order value multiplied by your configured maker/taker fee rate.",
+      "entryFeeTooltip": "Nominal order value × the entry rate. The rate follows the order type you selected: a market order is charged as taker, a limit order as maker. Where that rate came from — from broker, assumed, or manual — is shown beside the fee field.",
       "estimatedLiquidationPriceLabel": "Est. Liquidation Price",
       "estimatedLiquidationPriceTooltip": "Estimated market price where margin falls below maintenance requirements and the exchange force-closes the position. Depends on leverage and margin mode.",
       "breakEvenPriceLabel": "Break-Even Price",

@@ -16,8 +16,15 @@
 -->
 
 <script lang="ts">
-  import { CONSTANTS } from "../../lib/constants";
+  import { CONSTANTS, VENUE_DEFAULT_FEE_RATES } from "../../lib/constants";
+  import { Decimal } from "decimal.js";
   import { tradeState } from "../../stores/trade.svelte";
+  import {
+    resolveFeeRate,
+    entryRoleForOrderType,
+    derivedRatesFromStore,
+  } from "../../lib/fees/feeProvenance";
+  import { toDecimalOrNull } from "../../lib/fees/deriveFeeRates";
 
   import { untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
@@ -77,44 +84,167 @@
     }
   });
 
-  // Fee Logic — FEAT-0253: the settings are the source of truth. The venue's
-  // maker/taker rates come from `settingsState.feeRates` (prefilled with the
-  // documented defaults, editable in Settings); this panel only displays them
-  // and mirrors the active one into `fees`, which the sizing maths reads — the
-  // same pattern as the leverage mirror. No sync button: there is nothing to
-  // synchronize, the user entered these numbers themselves.
-  //
-  // The active role is the exit-leg assumption (FEAT-0253, decision 4): the
-  // Settings MAKER/TAKER buttons pick which rate a simulated exit pays, not
-  // just which one is highlighted. Deriving it from `feePreference` (default
-  // "taker" — the expensive side, decision 3) instead of from `feeMode`
-  // ("maker_taker".split("_")[0] is always "maker") keeps the taker branch
-  // reachable.
-  let activeRole = $derived<"maker" | "taker">(
-    settingsState.feePreference === "taker" ? "taker" : "maker",
-  );
+  /*
+   * Fee logic — FEAT-0253.
+   *
+   * Three sources feed one number, and the panel always says which one won:
+   *
+   *   1. the rate derived from this account's own fills   → "from broker"
+   *   2. the documented venue default, untouched          → "assumed"
+   *   3. a value the user typed in Settings               → "manual"
+   *
+   * No sync button: there is nothing left to synchronize by hand. The rates
+   * arrive with the ordinary journal sync (`feeRateService`), the same way
+   * `remoteLeverage` arrives, and this panel mirrors the result into the
+   * `tradeState` fields the sizing maths reads.
+   *
+   * The two legs are resolved separately (decision 3): entry follows the order
+   * type actually selected — a market order is a taker fill, a limit order a
+   * maker fill — while the exit follows the user's declared assumption, which
+   * defaults to taker because how a position closes is unknowable while the
+   * plan is being made.
+   */
   const exchange = $derived(settingsState.apiProvider);
-  let feeRates = $derived(settingsState.feeRates[exchange]);
-  // Guard the degenerate input so the mirrored `fees` can never be `""` or
+  const venueDefaults = $derived(
+    VENUE_DEFAULT_FEE_RATES[exchange] ?? VENUE_DEFAULT_FEE_RATES.bitunix,
+  );
+  // A venue with no stored rates — a provider added since the settings were
+  // last written — falls back to its documented defaults rather than throwing
+  // on an undefined lookup a line later.
+  let feeRates = $derived(settingsState.feeRates[exchange] ?? venueDefaults);
+
+  // Guard the degenerate input so a mirrored rate can never be `""` or
   // `undefined`: a Settings fee field the user cleared stores `""`. That falls
   // back to the flat default (0.06) rather than feeding the calculator a
   // zero-fee sizing. The check is explicit, not `||`: a literal `"0"` (a venue
   // promo or rebate rate) is a legitimate zero-percent fee and must pass
-  // through, only undefined and the empty string are degenerate.
-  let activeFeeRate = $derived(
-    feeRates[activeRole] === undefined || feeRates[activeRole] === ""
-      ? CONSTANTS.DEFAULT_FEES
-      : feeRates[activeRole],
+  // through; only undefined and the empty string are degenerate.
+  function settingsRateFor(role: "maker" | "taker"): string {
+    const raw = feeRates[role];
+    return raw === undefined || raw === "" ? CONSTANTS.DEFAULT_FEES : raw;
+  }
+
+  /*
+   * Only the venue the rates were actually derived from may wear the "from
+   * broker" badge. Rates are derived from Bitunix fills today; with Bitget
+   * selected, showing them would attribute to Bitget a rate it never charged —
+   * the one thing AC 7 forbids. Comparing against the recorded source rather
+   * than a hardcoded name means this keeps holding when a second venue's
+   * derivation lands.
+   */
+  const derivedRates = $derived(
+    tradeState.remoteFeeExchange === exchange
+      ? derivedRatesFromStore(
+        tradeState.remoteMakerFee,
+        tradeState.remoteTakerFee,
+        tradeState.remoteFeeSamples,
+      )
+      : undefined,
   );
 
+  // The entry leg's role is dictated by the order type, not chosen; the exit
+  // leg's is the assumption the Settings MAKER/TAKER buttons select.
+  const entryRole = $derived(entryRoleForOrderType(tradeState.entryOrderType));
+  const exitRole = $derived<"maker" | "taker">(
+    settingsState.feePreference === "taker" ? "taker" : "maker",
+  );
+
+  /*
+   * `new Decimal()` throws on anything it cannot parse, and this runs inside a
+   * `$derived`. A stored rate of "0,06", "0." or "abc" — reachable from this
+   * field and from the Settings inputs — would therefore throw during rune
+   * evaluation and take the whole dashboard down with it. An unusable rate
+   * falls back to the documented venue default instead, and is labelled
+   * "assumed", which is exactly what it then is.
+   */
+  function resolveFor(role: "maker" | "taker") {
+    const raw = settingsRateFor(role);
+    const fallback = venueDefaults[role];
+    const parsed = toDecimalOrNull(raw);
+    const usable = parsed !== null;
+    return resolveFeeRate(role, {
+      derived: derivedRates,
+      settingsRate: usable ? parsed : new Decimal(fallback),
+      // Passed through verbatim so a rate the user typed as "0.0600" is
+      // mirrored and shown as "0.0600", not silently normalised to "0.06" —
+      // but only while it is a number at all.
+      settingsDisplay: usable ? raw : fallback,
+      venueDefault: new Decimal(fallback),
+      isPaperTrading: paperState.enabled,
+    });
+  }
+
+  const entryFee = $derived(resolveFor(entryRole));
+  const exitFee = $derived(resolveFor(exitRole));
+
+  /*
+   * The headline field keeps showing the exit-leg rate, as it did before the
+   * split: that is the rate the Settings MAKER/TAKER choice governs, and it is
+   * the conservative one of the two. It is read-only exactly when it comes
+   * from the broker — mirroring the leverage field since FEAT-0328 — and stays
+   * editable in paper trading and whenever no rate could be derived.
+   */
+  const headline = $derived(exitFee);
+  const headlineReadonly = $derived(headline.provenance === "broker");
+  const activeRole = $derived(exitRole);
+
+  function provenanceLabel(provenance: "broker" | "assumed" | "manual"): string {
+    if (provenance === "broker") return $_("dashboard.generalInputs.feeFromBroker");
+    if (provenance === "manual") return $_("dashboard.generalInputs.feeManual");
+    return $_("dashboard.generalInputs.feeAssumed");
+  }
+
+  function roleLabel(role: "maker" | "taker"): string {
+    return role === "maker" ? $_("journal.table.maker") : $_("journal.table.taker");
+  }
+
+  /**
+   * Editing the headline writes back to the Settings rate for that role — the
+   * only place a user-entered rate lives. Refused while the value is the
+   * broker's: overwriting a number the exchange actually charged with a typed
+   * guess is the exact confusion this item exists to remove.
+   */
+  function commitHeadline(input: HTMLInputElement) {
+    if (headlineReadonly) {
+      input.value = headline.display;
+      return;
+    }
+    // A decimal comma is what a German keyboard produces; accept it rather
+    // than treating a legitimate entry as junk.
+    const raw = input.value.trim().replace(",", ".");
+    if (toDecimalOrNull(raw) === null) {
+      // Refuse silently-wrong input rather than storing a rate that cannot be
+      // parsed back. Restoring the field is the feedback: the number the
+      // calculator is actually using reappears in place of what was typed.
+      input.value = headline.display;
+      return;
+    }
+    settingsState.feeRates = {
+      ...settingsState.feeRates,
+      [exchange]: { ...feeRates, [activeRole]: raw },
+    };
+  }
+
   $effect(() => {
-    const authoritative = activeFeeRate;
-    // `untrack` so this effect depends on the settings rate only. Reading the
-    // local one reactively here would re-run the effect on its own write. As
-    // with the leverage mirror, write `tradeState.fees` directly — that is the
-    // value the sizing maths reads; there is no `fees` prop anymore.
-    if (untrack(() => tradeState.fees) !== authoritative) {
-      tradeState.fees = authoritative;
+    // `untrack` so each effect depends on the resolved rate only. Reading the
+    // local value reactively would re-run the effect on its own write. As with
+    // the leverage mirror, write `tradeState` directly — those are the values
+    // the sizing maths reads; there is no `fees` prop anymore.
+    const flat = headline.display;
+    if (untrack(() => tradeState.fees) !== flat) tradeState.fees = flat;
+  });
+
+  $effect(() => {
+    const entry = entryFee.rate;
+    if (!untrack(() => tradeState.entryFees)?.equals(entry)) {
+      tradeState.entryFees = entry;
+    }
+  });
+
+  $effect(() => {
+    const exit = exitFee.rate;
+    if (!untrack(() => tradeState.exitFees)?.equals(exit)) {
+      tradeState.exitFees = exit;
     }
   });
 </script>
@@ -203,10 +333,14 @@
       {/if}
 
       <!--
-        Fees. FEAT-0253: the settings are the source of truth — both rates are
-        displayed below, the active one (per `activeRole`) is highlighted, and
-        the field itself is a read-only display of that active rate. Editing
-        happens in Settings, where these per-venue rates live.
+        Fees. FEAT-0253: the field shows the exit-leg rate and says where that
+        number came from. It is read-only exactly when the broker supplied it —
+        the same rule the leverage chip follows — and editable otherwise, which
+        covers paper trading and a fresh account with no fills yet.
+
+        Below it, both legs are spelled out: which role each pays, why it pays
+        that role, and the provenance of each rate. A user must be able to see
+        at a glance that the exit number is an assumption and not a quote.
       -->
       <div class="flex flex-col gap-1 min-w-0 flex-1">
         <label
@@ -220,9 +354,11 @@
             name="fees"
             type="text"
             data-track-id="input-fees"
-            readonly
-            value={activeFeeRate}
+            readonly={headlineReadonly}
+            value={headline.display}
+            onchange={(e) => commitHeadline(e.target as HTMLInputElement)}
             class="fee-input w-full"
+            aria-describedby="fee-provenance"
           />
           <!--
             The unit belongs next to the number, not only in the label above:
@@ -232,23 +368,32 @@
           -->
           <span class="fee-role">
             <span class="fee-unit">%</span>
-            {activeRole === "maker"
-              ? $_("journal.table.maker")
-              : $_("journal.table.taker")}
+            {roleLabel(activeRole)}
           </span>
         </div>
-        <div class="flex gap-3 text-[11px]">
-          <span
-            class:font-semibold={activeRole === "maker"}
-            class:text-[var(--accent-color)]={activeRole === "maker"}
-            >{$_("journal.table.maker")} {feeRates.maker}%</span
-          >
-          <span
-            class:text-[var(--text-secondary)]={activeRole !== "taker"}
-            class:font-semibold={activeRole === "taker"}
-            class:text-[var(--accent-color)]={activeRole === "taker"}
-            >{$_("journal.table.taker")} {feeRates.taker}%</span
-          >
+        <div class="fee-legs" id="fee-provenance">
+          <span class="fee-leg">
+            <span class="fee-leg-name"
+              >{$_("dashboard.generalInputs.feeEntryLeg")}</span
+            >
+            <span class="fee-leg-value"
+              >{roleLabel(entryRole)} {entryFee.display}%</span
+            >
+            <span class="fee-badge" data-provenance={entryFee.provenance}
+              >{provenanceLabel(entryFee.provenance)}</span
+            >
+          </span>
+          <span class="fee-leg">
+            <span class="fee-leg-name"
+              >{$_("dashboard.generalInputs.feeExitLeg")}</span
+            >
+            <span class="fee-leg-value"
+              >{roleLabel(exitRole)} {exitFee.display}%</span
+            >
+            <span class="fee-badge" data-provenance={exitFee.provenance}
+              >{provenanceLabel(exitFee.provenance)}</span
+            >
+          </span>
         </div>
       </div>
     </div>
@@ -292,6 +437,51 @@
   /* The unit reads as part of the number, the role as the annotation. */
   .fee-unit {
     letter-spacing: normal;
+    color: var(--text-secondary);
+  }
+  .fee-legs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    font-size: 0.625rem;
+  }
+  .fee-leg {
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+  .fee-leg-name {
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .fee-leg-value {
+    color: var(--text-primary);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  /*
+   * The provenance badge is the point of the whole feature, so it is legible
+   * rather than decorative — but it must never out-shout the number itself.
+   * Only a broker-sourced rate gets the accent; an assumption is deliberately
+   * quiet, and a manual override sits between the two. Theme variables only:
+   * a hardcoded colour would break across the 20+ themes.
+   */
+  .fee-badge {
+    padding: 0 0.3rem;
+    border-radius: var(--radius-sm, 0.25rem);
+    border: 1px solid var(--border-color);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .fee-badge[data-provenance="broker"] {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+  .fee-badge[data-provenance="manual"] {
     color: var(--text-secondary);
   }
 </style>

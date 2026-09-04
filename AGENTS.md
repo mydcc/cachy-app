@@ -2,7 +2,7 @@
 
 Cachy — Local-First Web App for Crypto Traders (Position Size Calculator, Risk Management, Trade Journal, Real-Time Market Data via Bitunix/Bitget). Code flows into a trading engine managing real money: Precision and verification always come before speed.
 
-This file is the tool-agnostic single source of truth for all coding agents (Jules, Codex, Cursor, Antigravity, etc.). Claude Code additionally reads `CLAUDE.md` (Claude-specific, which references this file).
+This file is the tool-agnostic single source of truth for all coding agents (Jules, Codex, Cursor, Antigravity, etc.). Tool-specific files reference it and add only startup sequences: Claude Code reads `CLAUDE.md`, Antigravity reads `GEMINI.md`, OpenCode reads `OPENCODE.md`.
 
 ## Setup
 
@@ -10,7 +10,7 @@ This file is the tool-agnostic single source of truth for all coding agents (Jul
 npm install
 npm run dev          # builds WASM first via scripts/build_wasm.sh
 npm run build        # Production build (including WASM)
-npm run check        # svelte-check — required before completion; mid-task cadence by blast radius
+npm run check        # Type check via svelte-check (run on demand; CI verifies PRs automatically)
 npm test             # Vitest unit tests
 npm run test:e2e     # Playwright E2E
 ```
@@ -23,41 +23,37 @@ that: it also flips `$app/environment`'s `browser` to true, which sends
 `technicalsService` down its Worker path and fails two passing tests. `npm test`
 runs both projects. Example: `src/components/shared/TpSlList.refusal.component.test.ts`.
 
-**Run targeted tests, not the whole suite.** `npm test` runs the full suite — both the `unit` and the `components` project — and is slow: the component tests mount every `.svelte` file with a DOM. After a change, run **only the tests your change affects** instead:
+**Playwright E2E:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
 
-- **One test file:** `npx vitest run src/services/tradeService.test.ts`
-- **A folder/pattern (substring match):** `npx vitest run src/services/tradeService`
-- **Pure-logic `unit` project only (skips all `.svelte` component mounting):** `npm run test:unit`
-- **Changed files only (git-based):** `npm run test:changed`
-- **Component tests** (`*.component.test.ts`, `components` project): `npx vitest run src/components/shared/TpSlList.refusal.component.test.ts`
+**Verification Standard: Fast & Targeted.** `npm test` runs the full suite (300+ test files) and `npm run check` compiles all 160+ Svelte components. Running these full suites locally saturates CPU cores and freezes interactive work. **Full-suite regression testing and project-wide type checking are delegated to GitHub Actions CI.**
 
-Reserve the full `npm test` for when you touched many files across projects or right before a merge/PR. A full `npm run check` is still required before completion regardless of the test scope — how often to run it mid-task is judgment-based, see "Verification Proportionality & Multi-Agent Resource Policy" below.
+Locally, developers and agents follow these rules:
+- **No test loops mid-task:** Do not run tests or checks after every small intermediate edit. Focus on clean implementation first.
+- **Fast targeted tests before commit/push:** Before committing or pushing code changes, run **only** the tests that cover your changes:
+  - **One test file:** `npx vitest run src/services/tradeService.test.ts` (~1–3s)
+  - **A folder/pattern:** `npx vitest run src/services/tradeService`
+  - **Changed files only (git-based):** `npm run test:changed`
+  - **Pure-logic `unit` project only:** `npm run test:unit`
+- **Non-code changes:** If only documentation, markdown, shell scripts, or root configs are touched, tests and `npm run check` are completely unnecessary and are skipped.
+- **Local resource protection:** Local Vitest worker count defaults to max 2 workers (`vite.config.ts`), and test scripts run through `scripts/run-lowpri.sh` (`taskset` CPU affinity clamping to at most half cores, idle I/O priority via `ionice -c 3`, and `nice -n 19`).
 
 The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without this step, the build will fail — in cloud sandbox environments (e.g., Jules Environment Setup), this script must be part of the setup step.
 
 ## Verification Proportionality & Multi-Agent Resource Policy
 
-Agents judge how much verification a change needs based on its blast radius — batch related edits and verify at logical milestones instead of re-running everything after every single save:
+Verification is proportional to blast radius — never run unconstrained full-repo checks locally:
 
-- **Trivial/local edit** (single component/util, no exported-signature changes): targeted tests for the touched files; full `npm run check` once before completion.
-- **Cross-cutting change** (services, shared stores, types): targeted tests for all affected areas plus `npm run check`.
-- **Core-critical areas** (position sizing, risk engine, exchange request signing, decimal.js math): always full targeted tests + check — resource pressure never lowers this bar.
+- **Non-code edits** (Docs, Markdown, shell scripts, configs): No tests required.
+- **Code edits** (services, stores, components, math): Run targeted tests for the touched files before commit/push (see "Verification Standard: Fast & Targeted" in Setup above; `npm run test:changed` covers touched files).
+- **Full test suite & svelte-check:** Handled by GitHub Actions CI upon pull request. Run locally only when explicitly requested by the user.
 
-When several worktrees are active on one machine:
-
-- Larger test runs: set `VITEST_MAX_WORKERS=1` or use `npm run test:seq` (`--no-file-parallelism`) so sibling agents keep CPU headroom.
-- `npm run check` runs at low scheduling priority automatically (via `scripts/run-lowpri.sh`); keep the number of runs proportionate anyway.
-- Playwright/E2E only when the task touches end-to-end behavior; never run `npm run dev` inside a worktree.
-
-Before every push — sync first, then verify, then push (a check on a stale branch is wasted work):
+Before every push — sync first, then run targeted tests, then push:
 
 ```bash
 bash scripts/sync-develop.sh   # fetch + rebase onto origin/develop; exit 1 = conflicts, 2 = commit/stash first (only when behind), 3 = on the base branch
-# resolve conflicts if any, then RE-RUN npm run check + relevant targeted tests
+# resolve conflicts if any, then run relevant targeted tests
 git push --force-with-lease    # after a successful rebase
 ```
-
-Unchanged: a task is considered completed ONLY when `npm run check` and the relevant tests pass.
 
 ## Non-Negotiable Rules
 
@@ -87,7 +83,7 @@ Unchanged: a task is considered completed ONLY when `npm run check` and the rele
 
 ## Verification Before Marking Completed
 
-Before marking a task completed: run `npm run check` and the affected tests — see "Run targeted tests, not the whole suite" above; mid-task cadence is judgment-based ("Verification Proportionality & Multi-Agent Resource Policy"). A task is considered completed ONLY when type checks and tests pass — do not claim completion beforehand.
+Before marking a task completed: ensure any targeted tests for touched code pass (see "Verification Standard: Fast & Targeted" in Setup above). Do not run full project-wide checks (`npm test`, `npm run check`) locally; CI verifies every PR automatically.
 
 ## Tools & MCP — Mandatory for All Agents
 
@@ -96,8 +92,8 @@ Two MCP servers are configured for this project. **Both are required, not option
 ### Gortex
 Use for all code navigation, exploration, impact analysis, and graph queries.
 - **Session start:** call `gortex__onboarding` (or `/gortex-guide`) to orient to the indexed codebase.
-- Use `gortex__explore`, `gortex__search`, `gortex__impact`, `gortex__trace`, `gortex__safe-edit` for any non-trivial task.
-- Available as slash commands: `/gortex-explore`, `/gortex-debug`, `/gortex-impact`, `/gortex-refactor`, `/gortex-safe-edit`, `/gortex-pr-review`, `/gortex-add-test`, etc.
+- Use `gortex__explore`, `gortex__search`, `gortex__read`, `gortex__relations`, `gortex__trace`, `gortex__analyze` for navigation; `gortex__change(operation:"impact")` before any mutation.
+- Available as slash commands: `/gortex-explore`, `/gortex-debug`, `/gortex-impact`, `/gortex-refactor`, `/gortex-pr-review`, etc.
 
 ### jCodeMunch
 Use for code analysis, action routing, and semantic understanding.
@@ -114,7 +110,7 @@ Graph tools resolve the repo from the current working directory. Inside a linked
 - **Registration alone is not enough — the client's working directory decides.** The MCP server reports its *own* process cwd to the daemon, so a client that spawns `gortex mcp` from a non-repo directory (typically `$HOME`) fails every call with `repository not tracked: <path>`, however correctly the repo is tracked. Passing a `path` or `repo` argument does not help: resolution happens before they are read.
 - **Diagnose that before re-registering anything.** Run `gortex daemon status` and read the `cwd` column under **MCP sessions**: a row pointing at a non-repo directory is this problem, not a tracking gap. Fix it in that client's launch configuration — and note that some clients ignore an MCP config's `cwd` field entirely, so the directory may have to be forced in the launch command or wrapper script itself. A parent directory that holds the repos as direct children resolves in multi-repo mode and works as a general fallback.
 
-Agent-specific config files (`CLAUDE.md`, `OPENCODE.md`) contain tool-specific startup sequences for their respective runtimes.
+Agent-specific config files (`CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`) contain tool-specific startup sequences for their respective runtimes.
 
 
 ## Commits & Branches
@@ -202,7 +198,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 
 Well-suited for autonomous cloud sessions: Writing tests, checking i18n parity (DE/EN), maintaining documentation/backlog, isolated refactorings without behavior changes, dependency updates, accessibility fixes.
 
-DO NOT merge autonomously without particularly thorough human review: Position size / risk calculations, signature / crypto logic for exchange requests, anything touching `decimal.js` precision or the Local-First boundary. Always have such PRs confirmed by a human review + `npm run check` + tests before merging to `develop`.
+DO NOT merge autonomously without particularly thorough human review: Position size / risk calculations, signature / crypto logic for exchange requests, anything touching `decimal.js` precision or the Local-First boundary. Always have such PRs confirmed by a human review + CI check + tests before merging to `develop`.
 
 ## Jules Sandbox Hygiene
 

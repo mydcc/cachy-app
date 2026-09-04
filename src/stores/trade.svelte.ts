@@ -69,9 +69,42 @@ export interface TradeStateSnapshot {
    */
   remoteAccountStateAt: number | undefined;
   remoteMarginMode: string | undefined;
+  /**
+   * FEAT-0253: the account's *effective* maker/taker rates, as PERCENTAGES,
+   * derived from its own fills (`fee / (price × qty)` grouped by `roleType`).
+   * `undefined` means no fill of that role has been seen — never zero, which
+   * would size positions as if trading were free.
+   */
   remoteMakerFee: Decimal | undefined;
   remoteTakerFee: Decimal | undefined;
+  /** How many fills backed each derived rate — shown as its provenance. */
+  remoteFeeSamples: { maker?: number; taker?: number };
+  /**
+   * Which venue's fills those rates came from. Without it, switching the
+   * active exchange would keep showing the previous venue's rates under a
+   * "from broker" badge — a rate *this* broker never charged, presented as if
+   * it had. The provenance rule is the point of the feature, so the source is
+   * carried with the number rather than assumed.
+   */
+  remoteFeeExchange: string | undefined;
   feeMode: "maker_taker" | "flat";
+  /**
+   * FEAT-0253: which order type the entry leg will be placed as, so the
+   * calculator can charge it the matching rate (`limit` → maker, everything
+   * else → taker). Structurally `OrderEntryType`, spelled out rather than
+   * imported so this store keeps no dependency on the exchange layer.
+   * Transient and defaulting to `market`: after a reload the conservative,
+   * expensive assumption is the one in force.
+   */
+  entryOrderType: "market" | "limit" | "trigger";
+  /**
+   * FEAT-0253: the resolved per-leg rates, as PERCENTAGES. `GeneralInputs`
+   * writes them the same way it mirrors `fees` — it is the component that
+   * knows which role each leg pays — and `calculatorService` passes them into
+   * `TradeValues`. Both fall back to `fees` when undefined, so nothing that
+   * predates the split changes behaviour.
+   */
+  entryFees: Decimal | undefined;
   exitFees: Decimal | undefined;
 }
 
@@ -163,7 +196,11 @@ export const INITIAL_TRADE_STATE = {
   remoteMarginMode: undefined as string | undefined,
   remoteMakerFee: undefined as Decimal | undefined,
   remoteTakerFee: undefined as Decimal | undefined,
+  remoteFeeSamples: {} as { maker?: number; taker?: number },
+  remoteFeeExchange: undefined as string | undefined,
   feeMode: "maker_taker" as "maker_taker" | "flat",
+  entryOrderType: "market" as "market" | "limit" | "trigger",
+  entryFees: undefined as Decimal | undefined,
   exitFees: undefined as Decimal | undefined,
 };
 
@@ -205,7 +242,17 @@ class TradeManager {
   remoteMarginMode = $state(INITIAL_TRADE_STATE.remoteMarginMode);
   remoteMakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteMakerFee);
   remoteTakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteTakerFee);
+  remoteFeeSamples = $state<{ maker?: number; taker?: number }>({
+    ...INITIAL_TRADE_STATE.remoteFeeSamples,
+  });
+  remoteFeeExchange = $state<string | undefined>(
+    INITIAL_TRADE_STATE.remoteFeeExchange,
+  );
   feeMode = $state(INITIAL_TRADE_STATE.feeMode);
+  entryOrderType = $state<"market" | "limit" | "trigger">(
+    INITIAL_TRADE_STATE.entryOrderType,
+  );
+  entryFees = $state<Decimal | undefined>(INITIAL_TRADE_STATE.entryFees);
   exitFees = $state<Decimal | undefined>(INITIAL_TRADE_STATE.exitFees);
   // Number in the browser, Timeout under Node — ReturnType covers both.
   private notifyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -348,8 +395,17 @@ class TradeManager {
       delete toSave.remoteMarginMode;
       delete toSave.remoteMakerFee;
       delete toSave.remoteTakerFee;
+      // Transient with the rates they describe: a sample count restored from
+      // disk would vouch for fills this session never saw.
+      delete toSave.remoteFeeSamples;
+      delete toSave.remoteFeeExchange;
+      delete toSave.entryFees;
       delete toSave.exitFees;
       delete toSave.feeMode;
+      // Transient so a reload lands on `market` — the taker assumption, the
+      // expensive side. A persisted `limit` would silently resume sizing at
+      // the cheaper maker rate for a trade the user has not re-declared.
+      delete toSave.entryOrderType;
 
       // Convert Decimal to string for storage
       if (toSave.lockedPositionSize instanceof Decimal) {
@@ -526,7 +582,11 @@ class TradeManager {
       remoteMarginMode: this.remoteMarginMode,
       remoteMakerFee: this.remoteMakerFee,
       remoteTakerFee: this.remoteTakerFee,
+      remoteFeeSamples: this.remoteFeeSamples,
+      remoteFeeExchange: this.remoteFeeExchange,
       feeMode: this.feeMode,
+      entryOrderType: this.entryOrderType,
+      entryFees: this.entryFees,
       exitFees: this.exitFees,
     };
   }

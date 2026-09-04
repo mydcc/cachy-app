@@ -2,9 +2,9 @@
 id: FEAT-0253
 title: Make the calculator's entry/exit fee estimate honest about what it assumes
 type: feature
-status: in-progress
+status: done
 assignee: pheinze
-branch: worktree-issue-2164-14da99
+shipped: 1.6.0-beta.214
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -138,24 +138,31 @@ closes with resting limits, but it should be a deliberate, visible choice.
 
 ## Acceptance criteria
 
-- [ ] `remoteMakerFee`/`remoteTakerFee` are populated by deriving
+- [x] `remoteMakerFee`/`remoteTakerFee` are populated by deriving
       `fee / (price × qty)` per `roleType` from the fills Cachy already syncs.
       Proven by a test with synthetic fills asserting both rates.
-- [ ] The derivation is robust to the hazards listed above: no fills, negative
+      — `src/lib/fees/deriveFeeRates.ts`, wired by `src/services/feeRateService.ts`
+      off the ordinary journal sync.
+- [x] The derivation is robust to the hazards listed above: no fills, negative
       fee, and a single outlier fill each have a pinned expected behaviour.
-- [ ] The entry-fee rate follows the selected order type (`MARKET` → taker,
-      `LIMIT` → maker).
-- [ ] The exit-fee rate defaults to taker, and the Settings selector changes
-      that assumption rather than "what is displayed".
-- [ ] The Entry Fee tooltip states plainly which rate it assumes and why.
-- [ ] The Exit Fee tooltip explicitly says it is a worst-case assumption,
+      — `src/lib/fees/deriveFeeRates.test.ts`, one case per hazard.
+- [x] The entry-fee rate follows the selected order type (`MARKET` → taker,
+      `LIMIT` → maker). — `entryRoleForOrderType`; `PlaceOrderPanel` publishes
+      the selection to `tradeState.entryOrderType`.
+- [x] The exit-fee rate defaults to taker, and the Settings selector changes
+      that assumption rather than "what is displayed". — the resolved exit rate
+      is mirrored into `tradeState.exitFees`, which the sizing maths reads.
+- [x] The Entry Fee tooltip states plainly which rate it assumes and why.
+- [x] The Exit Fee tooltip explicitly says it is a worst-case assumption,
       not a quote from the exchange.
-- [ ] Every displayed fee carries its provenance — "from broker", "assumed",
+- [x] Every displayed fee carries its provenance — "from broker", "assumed",
       or "manual" — and a fee never sourced from the broker is never labelled
-      as if it were.
-- [ ] The "sync fee" affordance in `GeneralInputs.svelte` either works or is
-      gone; it must not stay a dead control.
-- [ ] With a broker connected the trade panel's fee field mirrors the derived
+      as if it were. — `resolveFeeRate`; paper trading can never report
+      "from broker" even with a rate left in the store.
+- [x] The "sync fee" affordance in `GeneralInputs.svelte` either works or is
+      gone; it must not stay a dead control. — removed in #2533; the capability
+      it implied now exists for real, without a button to press.
+- [x] With a broker connected the trade panel's fee field mirrors the derived
       rate read-only, the way the leverage field does since FEAT-0328; it
       stays editable in paper trading and when no rate could be derived.
 

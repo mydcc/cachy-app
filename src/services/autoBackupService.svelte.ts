@@ -274,7 +274,7 @@ export async function checkOpfsSnapshotOnStartup(): Promise<void> {
 /**
  * Restores user data from the pending OPFS snapshot.
  */
-export async function restoreFromOpfs(password?: string): Promise<{ success: boolean; message: string }> {
+export async function restoreFromOpfs(password?: string): Promise<{ success: boolean; message: string; messageParams?: Record<string, unknown> }> {
   if (!autoBackupState.pendingRestore) {
     return { success: false, message: "No pending restore snapshot available." };
   }
