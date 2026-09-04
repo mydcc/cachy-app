@@ -3128,4 +3128,5 @@ mod tests {
 pub mod alert_engine;
 pub mod alert_engine_tests;
 pub mod alert_exports;
+pub mod rule;
 mod utils;

@@ -3112,5 +3112,30 @@
     "loadingHistory": "LADE HISTORIE ...",
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
     "countdownLabel": "Countdown bis zur Kerzenschließung"
+  },
+  "rules": {
+    "coreUnavailable": "Die Regel-Prüfung ist nicht geladen. Es wurde nichts geprüft — die Regel bleibt unscharf.",
+    "refusal": {
+      "unknownField": "Unbekanntes Feld `{field}`. Die Regel wird abgelehnt, statt das Feld stillschweigend zu ignorieren.",
+      "unknownIndicator": "Unbekannter Indikator in `{field}`. Nur Indikatoren aus der Registry sind zulässig.",
+      "unknownIndicatorOutput": "Dieser Indikator liefert die in `{field}` angeforderte Linie nicht.",
+      "invalidIndicatorParameter": "Ungültiger Indikator-Parameter in `{field}`.",
+      "unknownOperator": "Unbekannter Vergleichsoperator in `{field}`.",
+      "invalidDecimal": "Ungültiger Zahlenwert in `{field}`.",
+      "invalidSymbol": "Die Regel nennt kein gültiges Handelspaar.",
+      "malformedTimeframe": "Ungültiger Zeitrahmen in `{field}`. Erwartet wird z. B. `15m`, `4h` oder `1d`.",
+      "calendarTimeframeUnsupported": "Kalendermonate haben keine feste Länge und können eine Regel nicht verankern. Nutze `1w` oder kürzer.",
+      "conditionTimeframeFinerThanTrigger": "Der Zeitrahmen in `{field}` ist feiner als der Auslöse-Zeitrahmen. So würden Kerzenschlüsse verworfen, die die Regel scheinbar berücksichtigt — setze stattdessen den Auslöse-Zeitrahmen feiner.",
+      "timeframeNotMultipleOfTrigger": "Der Zeitrahmen in `{field}` ist kein exaktes Vielfaches des Auslöse-Zeitrahmens, seine Schlüsse liegen also nicht auf dem Auswertungspunkt.",
+      "consequenceLevelTooLow": "Diese Regel ist nur zum Benachrichtigen freigegeben und darf keine Order auslösen. Lege sie neu auf der höheren Stufe an — sie wird nicht stillschweigend herabgestuft.",
+      "fieldNotHonouredAtLevel": "`{field}` kann auf der gewählten Konsequenz-Stufe nicht eingelöst werden.",
+      "externalFeedTrigger": "Ein Drittanbieter-Feed darf einen Auslöser unterdrücken, aber nie selbst einer sein — ein Backtest darüber wäre nicht ehrlich. Verschiebe ihn in den Veto-Block.",
+      "executableTextRejected": "Eine Strategie ist prüfbare Daten, kein ausführbarer Text. Freitext-Ausdrücke werden abgelehnt.",
+      "unsupportedSchemaVersion": "Diese Regel nutzt eine Schema-Version, die diese App-Version nicht lesen kann.",
+      "migrationNotPossible": "Die Regel lässt sich nicht bedeutungserhaltend auf die aktuelle Schema-Version übertragen und wird abgelehnt, statt umgedeutet zu werden.",
+      "emptyConditionTree": "Eine Gruppe ohne Bedingungen hat keinen Wahrheitswert.",
+      "conditionTreeTooDeep": "Die Bedingungen sind zu tief verschachtelt.",
+      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet."
+    }
   }
 }

@@ -3111,5 +3111,30 @@
     "loadingHistory": "LOADING HISTORY ...",
     "fetchingMarketData": "FETCHING MARKET DATA ...",
     "countdownLabel": "Countdown to candle close"
+  },
+  "rules": {
+    "coreUnavailable": "The rule checker is not loaded. Nothing was validated — the rule stays disarmed.",
+    "refusal": {
+      "unknownField": "Unknown field `{field}`. The rule is refused rather than having the field silently ignored.",
+      "unknownIndicator": "Unknown indicator in `{field}`. Only indicators from the registry are allowed.",
+      "unknownIndicatorOutput": "This indicator does not produce the output line requested in `{field}`.",
+      "invalidIndicatorParameter": "Invalid indicator parameter in `{field}`.",
+      "unknownOperator": "Unknown comparison operator in `{field}`.",
+      "invalidDecimal": "Invalid numeric value in `{field}`.",
+      "invalidSymbol": "The rule does not name a valid market.",
+      "malformedTimeframe": "Invalid timeframe in `{field}`. Expected something like `15m`, `4h` or `1d`.",
+      "calendarTimeframeUnsupported": "Calendar months have no fixed length and cannot anchor a rule. Use `1w` or shorter.",
+      "conditionTimeframeFinerThanTrigger": "The timeframe in `{field}` is finer than the trigger timeframe. That would discard closes the rule appears to consider — lower the trigger timeframe instead.",
+      "timeframeNotMultipleOfTrigger": "The timeframe in `{field}` is not an exact multiple of the trigger timeframe, so its closes do not land on the evaluation point.",
+      "consequenceLevelTooLow": "This rule is only cleared to notify and must not place an order. Re-author it at the higher level — it is not silently downgraded.",
+      "fieldNotHonouredAtLevel": "`{field}` cannot be honoured at the chosen consequence level.",
+      "externalFeedTrigger": "A third-party feed may suppress a trigger but never be one — a backtest over it could not be honest. Move it to the veto block.",
+      "executableTextRejected": "A strategy is checkable data, not executable text. Free-text expressions are refused.",
+      "unsupportedSchemaVersion": "This rule uses a schema version this build of the app cannot read.",
+      "migrationNotPossible": "The rule cannot be carried to the current schema version with its meaning intact, so it is refused rather than reinterpreted.",
+      "emptyConditionTree": "A group with no conditions has no truth value.",
+      "conditionTreeTooDeep": "The conditions are nested too deeply.",
+      "duplicateConditionId": "The same condition identifier is used twice."
+    }
   }
 }

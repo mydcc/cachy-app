@@ -29,6 +29,23 @@ export class TechnicalsCalculator {
     update(_o_str: string, h_str: string, l_str: string, c_str: string, v_str: string, _t_str: string): string;
 }
 
+export function rule_authorise(document_json: string, requested_level: string): void;
+
+export function rule_content_hash(document_json: string): string;
+
+export function rule_from_alert_json(alert_json: string, timeframe: string, created_at_ms: number): string;
+
+/**
+ * The schema version this build authors and reads.
+ */
+export function rule_schema_version(): number;
+
+export function rule_timeframes(document_json: string): any;
+
+export function rule_validate(document_json: string): string;
+
+export function rule_warmup_candles(document_json: string): number;
+
 /**
  * Called once by wasm-bindgen when the module instantiates.
  *
@@ -50,6 +67,13 @@ export interface InitOutput {
     readonly alertenginewasm_new: () => number;
     readonly alertenginewasm_remove_alert: (a: number, b: number, c: number) => void;
     readonly alertenginewasm_set_alerts: (a: number, b: number, c: number, d: number) => void;
+    readonly rule_authorise: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly rule_content_hash: (a: number, b: number, c: number) => void;
+    readonly rule_from_alert_json: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly rule_schema_version: () => number;
+    readonly rule_timeframes: (a: number, b: number, c: number) => void;
+    readonly rule_validate: (a: number, b: number, c: number) => void;
+    readonly rule_warmup_candles: (a: number, b: number, c: number) => void;
     readonly technicalscalculator_initialize: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
     readonly technicalscalculator_new: () => number;
     readonly technicalscalculator_shift: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
