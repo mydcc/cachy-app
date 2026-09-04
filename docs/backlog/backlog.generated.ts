@@ -3125,6 +3125,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md"
   },
   {
+    "id": "BUG-0383",
+    "title": "Alert management UI unreachable — AlertDefinitionsModal has no entry point",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "branch": "fix/bug-0382-alerts-entry",
+    "file": "bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md"
+  },
+  {
     "id": "BUG-0385",
     "title": "TP/SL drag can modify wrong plan when position plan and pending bracket coexist",
     "type": "bug",

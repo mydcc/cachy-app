@@ -418,6 +418,10 @@ class UiManager {
     this.showMarketDashboardModal = show;
   }
 
+  toggleAlertsModal(show: boolean) {
+    this.showAlertsModal = show;
+  }
+
   showFeedback(type: "copy" | "save", duration = 2000) {
     if (type === "copy") this.showCopyFeedback = true;
     else {

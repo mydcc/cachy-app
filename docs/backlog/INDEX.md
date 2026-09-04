@@ -2,9 +2,9 @@
 
 # Backlog index
 
-268 items. How to read and add them: [README.md](README.md).
+269 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-progress 3 · ✅ done 207
+Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-progress 4 · ✅ done 207
 
 ---
 
@@ -245,6 +245,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | chat |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | calculator |
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | exchange |
+| [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | 🟡 in-progress | ui |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | exchange |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
@@ -481,6 +482,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
