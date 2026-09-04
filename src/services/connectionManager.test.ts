@@ -292,18 +292,26 @@ describe("ConnectionManager", () => {
 
       marketState.connectionStatus = "connected";
 
+      // Reach into private state to simulate a switch racing with destruction.
+      // `as unknown as` pins the shape to the real private fields without `any`.
+      type ConnectionManagerInternals = {
+        isDestroying: boolean;
+        pendingSwitch: { provider: string; options: { force?: boolean } } | null;
+      };
+      const internals = manager as unknown as ConnectionManagerInternals;
+
       // Queue a pending switch while isDestroying is active
-      (manager as any).isDestroying = true;
+      internals.isDestroying = true;
       void manager.switchProvider("bitget");
-      expect((manager as any).pendingSwitch).toEqual({ provider: "bitget", options: {} });
+      expect(internals.pendingSwitch).toEqual({ provider: "bitget", options: {} });
 
       manager.destroy();
 
       expect(polling.stopPolling).toHaveBeenCalledTimes(1);
       expect(bitunix.destroy).toHaveBeenCalledTimes(1);
       expect(bitget.destroy).toHaveBeenCalledTimes(1);
-      expect((manager as any).isDestroying).toBe(false);
-      expect((manager as any).pendingSwitch).toBeNull();
+      expect(internals.isDestroying).toBe(false);
+      expect(internals.pendingSwitch).toBeNull();
       expect(marketState.connectionStatus).toBe("disconnected");
       expect(bitget.connect).not.toHaveBeenCalled();
     });
