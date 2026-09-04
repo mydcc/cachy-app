@@ -2,7 +2,7 @@
 id: BUG-0360
 title: TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval
 type: bug
-status: ready
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,8 @@ data_class: none
 adr: none
 depends_on: []
 size: S
+assignee: claude
+branch: fix/bug-0360-trailing-calculation
 ---
 
 # BUG-0360 — TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval
