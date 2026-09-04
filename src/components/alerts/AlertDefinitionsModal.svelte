@@ -46,7 +46,7 @@
   }
 </script>
 
-<ModalFrame title={$_('dashboard.alerts.title')} onclose={onClose}>
+<ModalFrame isOpen={true} title={$_('dashboard.alerts.title')} onclose={onClose}>
     <!--
       BUG-0382: while the engine failed to load, definitions are stored but
       nothing evaluates them. Arming an alert here is still worth doing — it
