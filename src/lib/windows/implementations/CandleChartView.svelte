@@ -507,7 +507,6 @@
                                 [p.key]: { ...entry, visible: !entry.visible },
                             };
                         });
-                        indicatorLayer?.refresh();
                     },
                 },
             });

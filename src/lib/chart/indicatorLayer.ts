@@ -26,7 +26,7 @@ const MIN_PANE_HEIGHT = 56;
 const PRICE_PANE_MIN = 140;
 
 /** Height of a collapsed sub-pane strip: header row only, no chart content. */
-const STRIP_HEIGHT = 26;
+const STRIP_HEIGHT = 30;
 
 /** One currently-visible sub-pane, reported to the caller after each render. */
 export interface IndicatorPaneInfo {
@@ -316,6 +316,11 @@ export class IndicatorLayer {
             return null;
         }
         const idx = this.subPaneCursor++;
+        // lightweight-charts clamps addSeries' paneIndex down to the existing
+        // pane count, so claimed indices must be materialized in ascending
+        // order. preserveEmptyPane keeps collapsed strips (which get no
+        // series) alive instead of being silently dropped.
+        while (this.chart.panes().length <= idx) this.chart.addPane(true);
         this.createdPaneIndices.push(idx);
         if (collapsed) {
             this.stripsClaimed++;
@@ -461,7 +466,7 @@ export class IndicatorLayer {
             );
 
         // Bollinger Bands
-        if (s.bollingerBands.enabled !== false && s.bollingerBands.length && !isCollapsed("bollingerBands")) {
+        if (s.bollingerBands.enabled !== false && s.bollingerBands.length) {
             const bb = JSIndicators.bb(a.closes, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
             this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
             this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6", { lineWidth: 1 });
@@ -469,7 +474,7 @@ export class IndicatorLayer {
         }
 
         // VWAP (session/fixed anchored)
-        if (s.vwap.enabled !== false && s.vwap.length && !isCollapsed("vwap")) {
+        if (s.vwap.enabled !== false && s.vwap.length) {
             const times = rows.map((r) => Number(r.time) as UTCTimestamp);
             const vw = JSIndicators.vwap(a.highs, a.lows, a.closes, a.volume, times, {
                 mode: s.vwap.anchor ?? "session",
@@ -478,7 +483,7 @@ export class IndicatorLayer {
         }
 
         // Ichimoku
-        if (s.ichimoku.enabled !== false && !isCollapsed("ichimoku")) {
+        if (s.ichimoku.enabled !== false) {
             const ich = JSIndicators.ichimoku(
                 a.highs,
                 a.lows,
@@ -494,19 +499,19 @@ export class IndicatorLayer {
         }
 
         // SuperTrend
-        if (s.superTrend.enabled !== false && s.superTrend.period && !isCollapsed("superTrend")) {
+        if (s.superTrend.enabled !== false && s.superTrend.period) {
             const st = JSIndicators.superTrend(a.highs, a.lows, a.closes, s.superTrend.period, s.superTrend.factor ?? 3);
             this.addLine(rows, st.value, P0, "--accent-color", "#2962ff");
         }
 
         // Parabolic SAR
-        if (s.parabolicSar.enabled !== false && !isCollapsed("parabolicSar")) {
+        if (s.parabolicSar.enabled !== false) {
             const ps = JSIndicators.psar(a.highs, a.lows, s.parabolicSar.start ?? 0.02, s.parabolicSar.increment ?? 0.02, s.parabolicSar.max ?? 0.2);
             this.addLine(rows, ps, P0, "--warning-color", "#ffb300", { lineWidth: 1 });
         }
 
         // ATR Trailing Stop (buy/sell)
-        if (s.atrTrailingStop.enabled !== false && s.atrTrailingStop.period && !isCollapsed("atrTrailingStop")) {
+        if (s.atrTrailingStop.enabled !== false && s.atrTrailingStop.period) {
             const ats = JSIndicators.atrTrailingStop(
                 a.highs,
                 a.lows,

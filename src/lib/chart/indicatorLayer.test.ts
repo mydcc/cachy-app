@@ -29,14 +29,21 @@ function makePane(index: number) {
 function makeChart() {
     const panes = [makePane(0)];
     const chart = {
-        // Mirror lightweight-charts: addressing a pane one past the current
-        // count creates it, so the layer's setHeight calls have a real pane
-        // to land on and the assertions below can see them.
+        // Mirror lightweight-charts: addSeries clamps paneIndex to
+        // Math.min(panes.length, index) and only then creates a pane one
+        // past the current count — an index that was never materialized
+        // drifts onto the last existing pane, exactly like in production.
         addSeries: vi.fn((_type: unknown, _opts: unknown, paneIndex?: number) => {
             if (typeof paneIndex === "number") {
-                while (panes.length <= paneIndex) panes.push(makePane(panes.length));
+                const idx = Math.min(panes.length, paneIndex);
+                while (panes.length <= idx) panes.push(makePane(panes.length));
             }
             return makeSeries();
+        }),
+        addPane: vi.fn(() => {
+            const pane = makePane(panes.length);
+            panes.push(pane);
+            return pane;
         }),
         removeSeries: vi.fn(),
         removePane: vi.fn((idx: number) => {
@@ -302,6 +309,25 @@ describe("IndicatorLayer", () => {
         expect(heightsFor(env.panes, 1).at(-1)).toBe(66);
         // No teardown/rebuild: ResizeObserver fires on every drag frame.
         expect((env.chart.addSeries as ReturnType<typeof vi.fn>).mock.calls.length).toBe(seriesCallsAfterRender);
+    });
+
+    it("renders collapsed indicator as materialized strip without series", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({
+            rsi: { ...on({ length: 14, source: "close" }), visible: false },
+        }));
+        layer.render(makeRows(60));
+
+        // Pane 2 must exist even though no series is created on it —
+        // otherwise a collapsed pane between open ones shifts indices.
+        expect(env.panes[2]).toBeTruthy();
+        expect(heightsFor(env.panes, 2).at(-1)).toBe(30);
+        // Only volume got a series; rsi stays series-free while collapsed.
+        expect(subPaneIndices(env.chart)).toEqual([1]);
+        const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(lastCall[1]).toMatchObject({ paneIndex: 2, key: "rsi", collapsed: true });
     });
 
     it("clears reported panes when the indicator layer is destroyed", () => {
