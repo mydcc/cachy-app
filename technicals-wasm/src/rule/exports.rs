@@ -220,7 +220,7 @@ pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refu
     serde_json::to_string(&verdict).map_err(|e| {
         Refused::one(
             RefusalCode::UnknownField,
-            "",
+            "verdict",
             format!("verdict could not be serialised: {e}"),
         )
     })
@@ -511,5 +511,77 @@ mod tests {
             err.refusals[0].field.starts_with("ctx.candles"),
             "got: {err}"
         );
+    }
+
+    /// "RSI below 30 on the 4h close" under a 1h trigger — the ADR-0012 example
+    /// of a coarser condition. Trigger fires once an hour; the 4h RSI only
+    /// changes every four of those.
+    const COARSE_CONDITION_DOC: &str = r#"{
+        "schema_version": 1,
+        "id": "rule-eval-coarse",
+        "name": "RSI dip on 4h under a 1h trigger",
+        "symbol": "BTCUSDT",
+        "trigger_timeframe": "1h",
+        "conditions": {
+            "kind": "compare",
+            "left": { "kind": "indicator", "indicator": { "id": "rsi", "params": { "period": 14 } } },
+            "op": "lt",
+            "right": { "kind": "constant", "value": "30" },
+            "timeframe": "4h"
+        },
+        "action": { "consequence_level": "notify" },
+        "enabled": true,
+        "provenance": { "source": "human", "created_at_ms": 1700000000000 }
+    }"#;
+
+    /// `n` closed 1h candles, oldest first, so the anchor close instant is
+    /// `n` hours after epoch.
+    fn hourly_candles_json(n: usize) -> String {
+        const STEP_MS: i64 = 60 * 60 * 1000;
+        let candles: Vec<String> = (0..n)
+            .map(|i| {
+                format!(
+                    r#"{{"open_time_ms":{},"open":"100","high":"100","low":"100","close":"100","volume":"0"}}"#,
+                    i as i64 * STEP_MS
+                )
+            })
+            .collect();
+        format!("[{}]", candles.join(","))
+    }
+
+    /// Two closed 4h candles (opening at hour 0 and hour 4) with distinct RSI
+    /// values, so a test can tell which one an evaluation actually read.
+    fn coarse_ctx_json(trigger_hours: usize) -> String {
+        format!(
+            r#"{{
+                "candles": {{
+                    "1h": {},
+                    "4h": [
+                        {{"open_time_ms":0,"open":"100","high":"100","low":"100","close":"100","volume":"0"}},
+                        {{"open_time_ms":14400000,"open":"100","high":"100","low":"100","close":"100","volume":"0"}}
+                    ]
+                }},
+                "indicators": [ {{
+                    "indicator": {{ "id": "rsi", "params": {{ "period": 14 }} }},
+                    "timeframe": "4h",
+                    "values": ["25", "55"]
+                }} ]
+            }}"#,
+            hourly_candles_json(trigger_hours),
+        )
+    }
+
+    #[test]
+    fn a_coarser_condition_reads_the_last_4h_candle_already_closed_at_the_trigger_instant() {
+        // 5 closed 1h candles: anchor closes at hour 5. The second 4h candle
+        // (opens hour 4, closes hour 8) has not closed yet — only the first
+        // (RSI 25) has, so the condition holds.
+        let verdict = evaluate_json(COARSE_CONDITION_DOC, &coarse_ctx_json(5)).unwrap();
+        assert_eq!(verdict, r#"{"verdict":"fires"}"#, "expected the not-yet-closed second 4h candle to be invisible");
+
+        // 8 closed 1h candles: anchor closes at hour 8, exactly when the
+        // second 4h candle (RSI 55) closes too — now visible, so it does not.
+        let verdict = evaluate_json(COARSE_CONDITION_DOC, &coarse_ctx_json(8)).unwrap();
+        assert_eq!(verdict, r#"{"verdict":"does_not_fire"}"#, "expected the newly-closed second 4h candle to be read");
     }
 }

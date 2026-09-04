@@ -46,18 +46,27 @@ export class RuleEvaluationGate {
    * caller already has — was already evaluated for this rule, or the rule has
    * not yet warmed up.
    *
+   * `ctx.candles` must key the trigger series with the same spelling as
+   * `document.trigger_timeframe` (both are canonical once the document has
+   * gone through `ruleSchema.validate()`); a mismatched spelling reads as no
+   * candles at all and withholds every verdict, not an error.
+   *
    * Returns `undefined` in both skip cases: a duplicate anchor is not a new
    * decision to report, and an unwarmed rule must produce no verdict at all
-   * rather than one built from a partial buffer.
+   * rather than one built from a partial buffer. The anchor is recorded only
+   * after `ruleSchema.evaluate()` returns successfully, so a transient
+   * failure (a core refusal, a wasm blip) is retried on the next tick within
+   * the same candle rather than silently skipped until the next close.
    */
   evaluate(document: RuleDocument, ctx: EvaluationContext, anchorMs: number): Verdict | undefined {
     const closedCandles = ctx.candles[document.trigger_timeframe]?.length ?? 0;
     if (closedCandles < ruleSchema.warmupCandles(document)) return undefined;
 
     if (this.lastEvaluatedAnchorMs.get(document.id) === anchorMs) return undefined;
-    this.lastEvaluatedAnchorMs.set(document.id, anchorMs);
 
-    return ruleSchema.evaluate(document, ctx);
+    const verdict = ruleSchema.evaluate(document, ctx);
+    this.lastEvaluatedAnchorMs.set(document.id, anchorMs);
+    return verdict;
   }
 
   /** Forget a rule's last-evaluated anchor, e.g. when it is edited or disarmed. */
