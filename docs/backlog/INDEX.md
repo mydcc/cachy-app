@@ -303,7 +303,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟢 ready | indicators |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | chat |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | exchange |
-| [BUG-0382](bugs/BUG-0382-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | 📋 specced | ui |
+| [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | 📋 specced | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -567,7 +567,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0382](bugs/BUG-0382-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |

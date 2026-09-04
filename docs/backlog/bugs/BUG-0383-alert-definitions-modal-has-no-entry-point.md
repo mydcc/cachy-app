@@ -1,5 +1,5 @@
 ---
-id: BUG-0382
+id: BUG-0383
 title: Alert management UI unreachable — AlertDefinitionsModal has no entry point
 type: bug
 status: in-progress
@@ -14,7 +14,7 @@ assignee: claude
 branch: fix/bug-0382-alerts-entry
 ---
 
-# BUG-0382 — Alert management UI unreachable: AlertDefinitionsModal has no entry point
+# BUG-0383 — Alert management UI unreachable: AlertDefinitionsModal has no entry point
 
 ## Symptom
 
