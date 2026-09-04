@@ -389,36 +389,42 @@
         return Array.from(set).sort();
     });
 
-    let processedTrades = $derived(
-        journalState.entries.filter((trade) => {
-            if (tradeMode === "live" && trade.isPaper) return false;
-            if (tradeMode === "paper" && !trade.isPaper) return false;
-
-            const query = journalSearchQuery.toLowerCase();
-            const matchesSearch =
-                !query ||
-                trade.symbol.toLowerCase().includes(query) ||
-                (trade.notes && trade.notes.toLowerCase().includes(query)) ||
-                (trade.tags && trade.tags.some((t) => t.toLowerCase().includes(query)));
-
-            const matchesStatus =
-                journalFilterStatus === "all" || trade.status === journalFilterStatus;
-
-            const matchesTag =
-                !selectedTag || (trade.tags && trade.tags.includes(selectedTag));
-
-            let matchesDate = true;
-            const tradeDate = new Date(trade.date);
-            if (filterDateStart) matchesDate = matchesDate && tradeDate >= new Date(filterDateStart);
-            if (filterDateEnd) {
-                const endDate = new Date(filterDateEnd);
-                endDate.setHours(23, 59, 59, 999);
-                matchesDate = matchesDate && tradeDate <= endDate;
+    let processedTrades = $derived.by(() => {
+        // Invariant expressions hoisted out of the filter loop so they are
+        // computed once per re-derivation instead of once per trade.
+        const query = journalSearchQuery.toLowerCase();
+        const filterByLive = tradeMode === "live";
+        const filterByPaper = tradeMode === "paper";
+        const matchesAllStatus = journalFilterStatus === "all";
+        const noTagSelected = selectedTag === "";
+        const hasStartDate = filterDateStart !== "";
+        const startDateMs = hasStartDate ? new Date(filterDateStart).getTime() : 0;
+        const hasEndDate = filterDateEnd !== "";
+        let endDateMs = 0;
+        if (hasEndDate) {
+            const endDate = new Date(filterDateEnd);
+            endDate.setHours(23, 59, 59, 999);
+            endDateMs = endDate.getTime();
+        }
+        return journalState.entries.filter((trade) => {
+            if (filterByLive && trade.isPaper) return false;
+            if (filterByPaper && !trade.isPaper) return false;
+            if (!matchesAllStatus && trade.status !== journalFilterStatus) return false;
+            if (!noTagSelected && (!trade.tags || !trade.tags.includes(selectedTag))) return false;
+            if (hasStartDate || hasEndDate) {
+                const tradeDateMs = new Date(trade.date).getTime();
+                if (hasStartDate && tradeDateMs < startDateMs) return false;
+                if (hasEndDate && tradeDateMs > endDateMs) return false;
             }
-
-            return matchesSearch && matchesStatus && matchesTag && matchesDate;
-        }),
-    );
+            if (query) {
+                if (trade.symbol.toLowerCase().includes(query)) return true;
+                if (trade.notes && trade.notes.toLowerCase().includes(query)) return true;
+                if (trade.tags && trade.tags.some((t) => t.toLowerCase().includes(query))) return true;
+                return false;
+            }
+            return true;
+        });
+    });
 
     let groupedTrades: JournalGroupSummary[] = $derived(
         groupBySymbol
