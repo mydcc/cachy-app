@@ -320,6 +320,8 @@
       "addAlert": "Alarm hinzufügen",
       "priceLimit": "Preis",
       "gapDetected": "Marktdaten-Lücke erkannt. Alarme haben möglicherweise Zwischenpreise verpasst.",
+      "engineUnavailable": "Die Alarm-Engine konnte nicht geladen werden. Alarme werden nicht ausgelöst.",
+      "engineUnavailableHint": "Die Alarm-Engine ist nicht aktiv. Alarme werden gespeichert, aber erst nach einem erfolgreichen Neuladen der Seite ausgewertet.",
       "createSuccess": "Alarm erfolgreich erstellt.",
       "deleteAlert": "Alarm löschen",
       "noHistory": "Kein Verlauf",

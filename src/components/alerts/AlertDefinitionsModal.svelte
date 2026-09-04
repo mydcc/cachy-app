@@ -47,6 +47,19 @@
 </script>
 
 <ModalFrame title={$_('dashboard.alerts.title')} onclose={onClose}>
+    <!--
+      BUG-0382: while the engine failed to load, definitions are stored but
+      nothing evaluates them. Arming an alert here is still worth doing — it
+      survives to the next reload — but the trader has to know it will not
+      fire in this session, so the warning stays visible instead of relying
+      on a startup toast they may have missed.
+    -->
+    {#if alertState.engineStatus === "failed"}
+        <div class="engine-warning" role="alert">
+            {$_('dashboard.alerts.engineUnavailableHint')}
+        </div>
+    {/if}
+
     <div class="alert-form">
         <h4>{$_('dashboard.alerts.addAlert')}</h4>
         <div class="input-group">
@@ -106,6 +119,15 @@
 </ModalFrame>
 
 <style>
+    .engine-warning {
+        margin-bottom: var(--space-4);
+        padding: var(--space-3);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-sm);
+        border-left: 3px solid var(--warning-color, var(--border-color));
+        color: var(--text-primary);
+        font-size: 0.85rem;
+    }
     .alert-form {
         margin-bottom: var(--space-6);
         padding: var(--space-4);

@@ -308,6 +308,8 @@ export type TranslationKey =
   | "dashboard.alerts.addAlert"
   | "dashboard.alerts.priceLimit"
   | "dashboard.alerts.gapDetected"
+  | "dashboard.alerts.engineUnavailable"
+  | "dashboard.alerts.engineUnavailableHint"
   | "dashboard.alerts.createSuccess"
   | "dashboard.alerts.deleteAlert"
   | "dashboard.alerts.noHistory"
