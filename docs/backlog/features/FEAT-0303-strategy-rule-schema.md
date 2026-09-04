@@ -2,7 +2,8 @@
 id: FEAT-0303
 title: One rule schema alerts, backtests and bots all read
 type: feature
-status: specced
+status: in-progress
+assignee: claude-code
 priority: P1
 milestone: M4
 editions: [community, pro, private]
@@ -94,15 +95,36 @@ consumes the same definition rather than a second one.
 - The autonomy envelope (capital limits, promotion to live, failure modes) —
   belongs to `FEAT-0035`'s own ADR near M9
 
-## Open questions
+## Decisions taken
 
-- **Does the schema describe account-state conditions from the start** (open
-  position, unrealised PnL, exposure), or only market data? Bots need them;
-  alerts mostly do not. Including them early costs schema surface, adding them
-  later costs a migration.
-- **How are multi-timeframe conditions expressed** — one rule naming several
-  timeframes, or composition of single-timeframe rules? Both are defensible and
-  the choice shapes what "the closed candle" means for a composed document.
+Both open questions were settled before the schema was written, because both
+shape the serialised surface and getting either wrong costs a migration of rules
+already armed on real accounts.
+
+**Account-state conditions are in from v1**, as their own condition family
+(`position` and `account`). Entry/exit asymmetry — "only when flat", "close when
+unrealised PnL is below -2R" — is not expressible without them, and every
+production rule engine (QuantConnect, Backtrader, NautilusTrader) treats
+portfolio state as a first-class predicate for that reason. Consequence level
+`notify` refuses the family explicitly in the manner of
+[ADR-0008](../../adr/0008-refuse-unsupported-verbs-before-they-travel.md): the
+alert engine evaluates against a price feed and holds no position book, so an
+alert carrying "only when flat" would be a guard nothing ever checks, and a
+trader who believed in it would be worse off than one told no.
+
+**Multi-timeframe conditions use per-condition timeframes under one declared
+trigger timeframe.** The document names exactly one evaluation anchor; each
+condition names its own timeframe and is read at the last candle of that
+timeframe which had *already closed* at the trigger close. Validation enforces
+that every condition timeframe is coarser than or equal to the trigger and an
+exact multiple of it — a finer condition is refused, because reading it only at
+each trigger close would silently discard closes the rule appears to consider.
+This is the standard shape (TradingView's `lookahead_off`, NautilusTrader,
+QuantConnect consolidators) and the only one that structurally rules out
+lookahead bias, which is what makes a backtest result and a live result the same
+claim under
+[ADR-0012](../../adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md)
+decision 3.
 
 ## Links
 
@@ -116,3 +138,56 @@ consumes the same definition rather than a second one.
   ([`src/utils/technicalsCalculator.ts:113`](../../../src/utils/technicalsCalculator.ts))
 - `StatefulTechnicalsCalculator.update`
   ([`src/utils/statefulTechnicalsCalculator.ts:71`](../../../src/utils/statefulTechnicalsCalculator.ts))
+
+## What shipped
+
+The schema, its validator, its serialisation, its content hash and its migration
+rule, as `technicals-wasm/src/rule/` — alongside FEAT-0027's evaluation core, so
+the Android companion of `IDEA-0037` consumes one definition rather than a
+second.
+
+| Module | What it holds |
+|---|---|
+| `document.rs` | `RuleDocument`, provenance, canonical form, content hash |
+| `condition.rs` | The condition tree: compare, cross, position, account, group, external feed |
+| `indicator.rs` | The indicator registry and parameter validation |
+| `consequence.rs` | `notify` / `simulate` / `send` and what each refuses |
+| `timeframe.rs` | Timeframe parsing, normalisation, trigger-anchor arithmetic |
+| `version.rs` | Schema version and the migrate-or-refuse chain |
+| `evaluate.rs` | Deterministic evaluation over closed candles |
+| `legacy.rs` | FEAT-0027 alert → rule document, with the differential test |
+| `refusal.rs` | Refusals that name a field and carry an i18n key |
+| `sha256.rs` | Self-contained SHA-256 for the content hash |
+| `exports.rs` | The wasm-bindgen surface |
+
+Notes on three choices a reviewer will want the reasoning for:
+
+- **The content hash covers meaning, not bytes.** `id`, `name`, `enabled` and
+  `provenance` are excluded, so renaming a rule or arming it does not read as a
+  strategy change in a decision log, while any change to symbol, timeframe,
+  conditions or action does. `canonical_value` removes an excluded list rather
+  than assembling an included one, so a field added later is hashed by default.
+- **SHA-256 is hand-rolled rather than pulled from `sha2`.** The committed
+  `Cargo.lock` holds no hashing crate; adding one churns the lock, pulls five
+  transitive crates into a binary whose release profile was size-tuned in
+  BUG-0314, and would not resolve offline. SHA-256 has published NIST vectors, so
+  the usual objection — that a hand-rolled digest cannot be checked — does not
+  apply, and the tests assert against them.
+- **No `source` (price-source) parameter in v1.** The TypeScript
+  `IndicatorSettings` declares one on rsi, macd, cci, momentum, ema and
+  bollinger, but the WASM core has no such field and computes all of them on the
+  close. Shipping a field the evaluator ignores would be a document claiming one
+  thing while the engine does another.
+
+Two indicator families are deliberately outside the registry and refused by
+name: **VWAP** (session-anchored, so its value depends on a boundary not
+derivable from the candle window) and **volume profile** (a distribution, not a
+series). Both are chart features rather than rule features.
+
+Also landed: `.github/workflows/rust-core.yml`. Nothing in CI ran `cargo test`
+before it — `deploy-build.yml` compiles the crate only as a side effect of
+`npm run build:wasm`, which `scripts/build_wasm.sh` exits 0 on when a toolchain
+is missing.
+
+Not built here, per Out of scope: the condition-builder UI, backtesting, paper
+and live execution.
