@@ -19,23 +19,47 @@
   Name plate for one indicator sub-pane, mounted into that pane's own element
   by CandleChartView.
 
-  Deliberately label-only. An on/off control does not belong here: it would
-  live inside the pane it hides, so switching an indicator off would take its
-  own switch away with it and leave no way back. Indicators are switched in
-  Settings → Indicators, which is the single control surface for them.
+  Carries the pane's collapse chevron: collapsing turns the pane into a
+  header-only strip, so the control stays reachable in both states. This is
+  display-only — it toggles `visible`; `enabled` (whether the indicator is
+  computed at all) lives in Settings → Indicators alone.
 -->
 <script lang="ts">
+    import { _ } from "../../locales/i18n";
+
     interface Props {
         /** Translated indicator name, e.g. "RSI". */
         title: string;
         /** Its settings, e.g. "14" or "12 26 9"; empty when it has none. */
         params?: string;
+        /** True when this pane is currently collapsed to a strip. */
+        collapsed?: boolean;
+        /** Toggles collapse state; CandleChartView writes the store and re-renders. */
+        onToggle: () => void;
     }
 
-    let { title, params = "" }: Props = $props();
+    let { title, params = "", collapsed = false, onToggle }: Props = $props();
 </script>
 
 <div class="indicator-pane-header">
+    <button
+        class="chevron"
+        type="button"
+        aria-label={collapsed ? $_("chart.pane.expand") : $_("chart.pane.collapse")}
+        title={collapsed ? $_("chart.pane.expand") : $_("chart.pane.collapse")}
+        aria-expanded={!collapsed}
+        onclick={onToggle}
+    >
+        <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            class:rotated={collapsed}
+            aria-hidden="true"
+        >
+            <path d="M2 3.5 L5 6.5 L8 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+    </button>
     <span class="name">{title}</span>
     {#if params}<span class="params">{params}</span>{/if}
 </div>
@@ -47,15 +71,39 @@
         left: 8px;
         z-index: 2;
         display: flex;
-        align-items: baseline;
+        align-items: center;
         gap: 5px;
         font-size: 11px;
         line-height: 1.4;
         white-space: nowrap;
-        /* Purely informational, so it must never swallow chart pan/zoom —
-           same convention as the other chart overlays in CandleChartView. */
+        /* The header itself must not swallow chart pan/zoom — only the
+           chevron button re-enables pointer events, nothing else. */
         pointer-events: none;
         user-select: none;
+    }
+
+    .chevron {
+        pointer-events: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
+        cursor: pointer;
+    }
+
+    .chevron:hover {
+        color: var(--text-primary);
+    }
+
+    .chevron svg {
+        transition: transform var(--transition-fast, 150ms) ease;
+    }
+
+    .chevron svg.rotated {
+        transform: rotate(-90deg);
     }
 
     .name {

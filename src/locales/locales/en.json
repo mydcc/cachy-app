@@ -3127,6 +3127,12 @@
     "fetchingMarketData": "FETCHING MARKET DATA ...",
     "countdownLabel": "Countdown to candle close"
   },
+  "chart": {
+    "pane": {
+      "collapse": "Collapse pane",
+      "expand": "Expand pane"
+    }
+  },
   "rules": {
     "coreUnavailable": "The rule checker is not loaded. Nothing was validated — the rule stays disarmed.",
     "refusal": {

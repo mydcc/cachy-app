@@ -3128,6 +3128,12 @@
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
     "countdownLabel": "Countdown bis zur Kerzenschließung"
   },
+  "chart": {
+    "pane": {
+      "collapse": "Pane einklappen",
+      "expand": "Pane ausklappen"
+    }
+  },
   "rules": {
     "coreUnavailable": "Die Regel-Prüfung ist nicht geladen. Es wurde nichts geprüft — die Regel bleibt unscharf.",
     "refusal": {

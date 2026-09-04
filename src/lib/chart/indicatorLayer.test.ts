@@ -188,8 +188,8 @@ describe("IndicatorLayer", () => {
 
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
         expect(lastCall).toEqual([
-            { paneIndex: 1, key: "volume", titleKey: "settings.technicals.volume", params: "" },
-            { paneIndex: 2, key: "rsi", titleKey: "settings.technicals.rsi.title", params: "14" },
+            { paneIndex: 1, key: "volume", titleKey: "settings.technicals.volume", params: "", collapsed: false },
+            { paneIndex: 2, key: "rsi", titleKey: "settings.technicals.rsi.title", params: "14", collapsed: false },
         ]);
     });
 
@@ -205,7 +205,7 @@ describe("IndicatorLayer", () => {
 
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
         expect(lastCall).toEqual([
-            { paneIndex: 1, key: "macd", titleKey: "settings.technicals.macd.title", params: "12 26 9" },
+            { paneIndex: 1, key: "macd", titleKey: "settings.technicals.macd.title", params: "12 26 9", collapsed: false },
         ]);
     });
 

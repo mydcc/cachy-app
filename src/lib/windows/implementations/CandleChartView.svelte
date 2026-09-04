@@ -495,6 +495,20 @@
                 props: {
                     title: get(_)(p.titleKey as TranslationKey) || p.key,
                     params: p.params,
+                    collapsed: p.collapsed,
+                    onToggle: () => {
+                        indicatorState.update((s) => {
+                            const entry = s[p.key as keyof typeof s];
+                            return {
+                                ...s,
+                                [p.key]: {
+                                    ...entry,
+                                    visible: !(entry as { visible?: boolean } | undefined)?.visible,
+                                },
+                            };
+                        });
+                        indicatorLayer.refresh();
+                    },
                 },
             });
             paneHeaderInstances.push(instance);
