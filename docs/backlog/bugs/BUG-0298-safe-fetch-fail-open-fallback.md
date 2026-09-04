@@ -2,8 +2,7 @@
 id: BUG-0298
 title: safeFetch fails open when the SSRF dispatcher cannot initialize
 type: bug
-status: in-progress
-assignee: opencode
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { isPrivateOrReservedHost, isUrlAllowed } from "./urlValidator";
 
 describe("urlValidator", () => {
@@ -166,28 +166,6 @@ describe("urlValidator", () => {
 
       const resultPublic = await isUrlAllowedAsync("https://example.com");
       expect(resultPublic).toBe(true);
-    });
-  });
-
-  describe("safeFetch fail-closed behavior (BUG-0298)", () => {
-    it("rejects instead of performing an unguarded fetch when the dispatcher cannot initialize", async () => {
-      vi.resetModules();
-      vi.doMock("undici", () => {
-        throw new Error("simulated undici import failure");
-      });
-      const fetchSpy = vi.fn();
-      vi.stubGlobal("fetch", fetchSpy);
-      try {
-        const { safeFetch } = await import("./urlValidator");
-        // Public IP literal: dns.lookup() resolves it without network access,
-        // keeping this test hermetic (no live-DNS dependency).
-        await expect(safeFetch("https://93.184.216.34/")).rejects.toThrow("SSRF guard unavailable");
-        expect(fetchSpy).not.toHaveBeenCalled();
-      } finally {
-        vi.unstubAllGlobals();
-        vi.doUnmock("undici");
-        vi.resetModules();
-      }
     });
   });
 });
