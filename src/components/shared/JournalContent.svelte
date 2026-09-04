@@ -389,36 +389,49 @@
         return Array.from(set).sort();
     });
 
-    let processedTrades = $derived(
-        journalState.entries.filter((trade) => {
+    let processedTrades = $derived.by(() => {
+        const query = journalSearchQuery.toLowerCase();
+        const hasQuery = query !== "";
+        const filterAllStatus = journalFilterStatus === "all";
+        const hasSelectedTag = selectedTag !== "";
+
+        const hasStartDate = filterDateStart !== "";
+        const startDateMs = hasStartDate ? new Date(filterDateStart).getTime() : 0;
+
+        const hasEndDate = filterDateEnd !== "";
+        let endDateMs = 0;
+        if (hasEndDate) {
+            const endDateObj = new Date(filterDateEnd);
+            endDateObj.setHours(23, 59, 59, 999);
+            endDateMs = endDateObj.getTime();
+        }
+
+        return journalState.entries.filter((trade) => {
             if (tradeMode === "live" && trade.isPaper) return false;
             if (tradeMode === "paper" && !trade.isPaper) return false;
 
-            const query = journalSearchQuery.toLowerCase();
-            const matchesSearch =
-                !query ||
-                trade.symbol.toLowerCase().includes(query) ||
-                (trade.notes && trade.notes.toLowerCase().includes(query)) ||
-                (trade.tags && trade.tags.some((t) => t.toLowerCase().includes(query)));
+            if (!filterAllStatus && trade.status !== journalFilterStatus) return false;
+            if (hasSelectedTag && (!trade.tags || !trade.tags.includes(selectedTag))) return false;
 
-            const matchesStatus =
-                journalFilterStatus === "all" || trade.status === journalFilterStatus;
-
-            const matchesTag =
-                !selectedTag || (trade.tags && trade.tags.includes(selectedTag));
-
-            let matchesDate = true;
-            const tradeDate = new Date(trade.date);
-            if (filterDateStart) matchesDate = matchesDate && tradeDate >= new Date(filterDateStart);
-            if (filterDateEnd) {
-                const endDate = new Date(filterDateEnd);
-                endDate.setHours(23, 59, 59, 999);
-                matchesDate = matchesDate && tradeDate <= endDate;
+            if (hasStartDate || hasEndDate) {
+                const tradeDateMs = new Date(trade.date).getTime();
+                if (hasStartDate && tradeDateMs < startDateMs) return false;
+                if (hasEndDate && tradeDateMs > endDateMs) return false;
             }
 
-            return matchesSearch && matchesStatus && matchesTag && matchesDate;
-        }),
-    );
+            if (hasQuery) {
+                const symbolMatch = trade.symbol.toLowerCase().includes(query);
+                if (symbolMatch) return true;
+                const notesMatch = trade.notes && trade.notes.toLowerCase().includes(query);
+                if (notesMatch) return true;
+                const tagsMatch = trade.tags && trade.tags.some((t) => t.toLowerCase().includes(query));
+                if (tagsMatch) return true;
+                return false;
+            }
+
+            return true;
+        });
+    });
 
     let groupedTrades: JournalGroupSummary[] = $derived(
         groupBySymbol
