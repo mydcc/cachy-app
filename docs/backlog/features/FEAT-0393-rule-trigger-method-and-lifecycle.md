@@ -74,6 +74,7 @@ failure, not a silent audit hole.
 - **Does "once per candle close" mean the trigger timeframe's candle?** It should, but
   say so explicitly — a rule reading three timeframes has three candidate answers.
 
+- [`FEAT-0397`](FEAT-0397-notification-channels.md) — notification channel configuration
 ## Links
 
 - [`FEAT-0392`](FEAT-0392-notification-sound-channel.md) — the channels a trigger method picks from

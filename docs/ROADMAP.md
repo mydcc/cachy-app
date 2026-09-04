@@ -195,6 +195,7 @@ exchanges without opening the exchange's own UI.
 | [FEAT-0390](backlog/features/FEAT-0390-price-alert-conditions.md) | P2 | Rises above, falls below, percentage moves, mark price |
 | [FEAT-0393](backlog/features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | P2 | Trigger method, frequency, validity period, note |
 | [FEAT-0392](backlog/features/FEAT-0392-notification-sound-channel.md) | P2 | A sound channel for notifications |
+| [FEAT-0397](backlog/features/FEAT-0397-notification-channels.md) | P2 | Configure Email, Discord, Telegram delivery channels |
 | [FEAT-0394](backlog/features/FEAT-0394-candlestick-pattern-conditions.md) | P2 | Candlestick pattern conditions |
 | [FEAT-0391](backlog/features/FEAT-0391-alert-template-library.md) | P2 | A template library for alert rules |
 | [FEAT-0395](backlog/features/FEAT-0395-alert-entry-points.md) | P2 | Alert from the chart and from indicator settings |
