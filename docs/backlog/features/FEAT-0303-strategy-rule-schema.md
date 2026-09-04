@@ -2,8 +2,9 @@
 id: FEAT-0303
 title: One rule schema alerts, backtests and bots all read
 type: feature
-status: in-progress
+status: done
 assignee: claude-code
+shipped: 1.6.0-beta.222
 priority: P1
 milestone: M4
 editions: [community, pro, private]

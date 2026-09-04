@@ -2,8 +2,9 @@
 id: BUG-0361
 title: ConnectionManager attaches anonymous window and document listeners with no teardown method
 type: bug
-status: in-progress
+status: done
 assignee: antigravity
+shipped: 1.6.0-beta.217
 branch: fix/bug-0361-connection-manager-destroy
 priority: P2
 milestone: none

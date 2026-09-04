@@ -2,7 +2,7 @@
 id: BUG-0383
 title: Alert management UI unreachable — AlertDefinitionsModal has no entry point
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: claude
+shipped: 1.6.0-beta.225
 branch: fix/bug-0382-alerts-entry
 ---
 

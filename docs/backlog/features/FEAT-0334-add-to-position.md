@@ -2,8 +2,9 @@
 id: FEAT-0334
 title: Add to an open position and see what it does to the average entry
 type: feature
-status: in-progress
+status: done
 assignee: claude
+shipped: 1.6.0-beta.223
 priority: P1
 milestone: M3
 editions: [community, pro, private]
