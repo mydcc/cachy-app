@@ -2,7 +2,9 @@
 id: FEAT-0388
 title: Migrate stored price alerts to rule documents
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: worktree-feat-0388-weitermachen-10ee20
 priority: P1
 milestone: M4
 editions: [community, pro, private]
@@ -12,6 +14,7 @@ adr: ADR-0012
 depends_on: [FEAT-0387]
 size: S
 estimate: 2
+start_date: 2026-09-05
 ---
 
 # FEAT-0388 — Migrate stored price alerts to rule documents
