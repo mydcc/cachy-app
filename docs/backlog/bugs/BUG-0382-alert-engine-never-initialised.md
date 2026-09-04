@@ -125,3 +125,26 @@ after firing (line 127), so a reload does not re-fire alert history.
   with this criterion ticked; that tick was not earned.
 - Found while implementing FEAT-0303 (rule schema, #2294), which does not fix
   this.
+
+## Verification (2026-09-04, while planning the Super-Alert work)
+
+Checked against the code on `develop`, criterion by criterion:
+
+| Criterion | Evidence |
+|---|---|
+| Test reproduces the defect | `src/stores/alerts_engineWiring.test.ts` exists and exercises `initAlertEngine` through a substituted module loader — the seam the fix was designed around |
+| Engine loaded after startup | `initAlertEngine()` is called at `src/routes/+layout.svelte:325` |
+| Rehydrated alerts reach the engine | `initAlertEngine` calls `alertState.syncEngine()` after `ensureLoaded()` (`src/stores/alerts.svelte.ts:145`) |
+| Fired event marks the definition inactive | `alertEngine.onAlertFired` handler in `src/stores/alerts.svelte.ts` |
+| No initialisation during SSR | `if (!browser) return` guards the function |
+
+`npx vitest run src/stores/alerts_engineWiring.test.ts src/services/alertEngine/alertEngine.test.ts src/lib/rules/ruleSchema.test.ts` → **3 files, 19 tests, all passing.**
+
+The one criterion **not** verified here is the last one — "an armed alert fires within
+one candle in a shipped build" — which needs a running build, not a unit test. Whoever
+closes this item should confirm that in the app and then set `status: done`; everything
+else is demonstrably in place.
+
+Note also that `engineStatus: "failed"` is surfaced in the UI, and
+[`FEAT-0389`](../features/FEAT-0389-super-alert-panel.md) carries that warning forward
+into the new panel — a redesign that dropped it would re-open this bug.
