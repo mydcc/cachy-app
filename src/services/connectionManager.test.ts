@@ -32,8 +32,9 @@ vi.mock("./logger", () => ({
   },
 }));
 
-import { connectionManager } from "./connectionManager";
+import { connectionManager, ConnectionManager } from "./connectionManager";
 import type { ManagedService, PollingService } from "./connectionManager";
+import { marketState } from "../stores/market.svelte";
 
 function makeProvider() {
   return {
@@ -253,6 +254,66 @@ describe("ConnectionManager", () => {
 
       expect(bitunix.destroy).toHaveBeenCalledTimes(1);
       expect(bitunix.connect).toHaveBeenCalledWith(true);
+    });
+  });
+
+  describe("destroy", () => {
+    it("removes document and window listeners with exact references on destroy()", () => {
+      const docRemoveSpy = vi.spyOn(document, "removeEventListener");
+      const winRemoveSpy = vi.spyOn(window, "removeEventListener");
+      const docAddSpy = vi.spyOn(document, "addEventListener");
+      const winAddSpy = vi.spyOn(window, "addEventListener");
+
+      const manager = new ConnectionManager();
+
+      const visListener = docAddSpy.mock.calls.find((call) => call[0] === "visibilitychange")?.[1];
+      const focusListener = winAddSpy.mock.calls.find((call) => call[0] === "focus")?.[1];
+      const blurListener = winAddSpy.mock.calls.find((call) => call[0] === "blur")?.[1];
+
+      expect(visListener).toBeDefined();
+      expect(focusListener).toBeDefined();
+      expect(blurListener).toBeDefined();
+
+      manager.destroy();
+
+      expect(docRemoveSpy).toHaveBeenCalledWith("visibilitychange", visListener);
+      expect(winRemoveSpy).toHaveBeenCalledWith("focus", focusListener);
+      expect(winRemoveSpy).toHaveBeenCalledWith("blur", blurListener);
+    });
+
+    it("clears providers, polling service, cancels pending switches, and resets connection state on destroy()", () => {
+      const manager = new ConnectionManager();
+      const bitunix = makeProvider();
+      const bitget = makeProvider();
+      const polling = makePolling();
+      manager.registerProvider("bitunix", bitunix);
+      manager.registerProvider("bitget", bitget);
+      manager.registerPolling(polling);
+
+      marketState.connectionStatus = "connected";
+
+      // Reach into private state to simulate a switch racing with destruction.
+      // `as unknown as` pins the shape to the real private fields without `any`.
+      type ConnectionManagerInternals = {
+        isDestroying: boolean;
+        pendingSwitch: { provider: string; options: { force?: boolean } } | null;
+      };
+      const internals = manager as unknown as ConnectionManagerInternals;
+
+      // Queue a pending switch while isDestroying is active
+      internals.isDestroying = true;
+      void manager.switchProvider("bitget");
+      expect(internals.pendingSwitch).toEqual({ provider: "bitget", options: {} });
+
+      manager.destroy();
+
+      expect(polling.stopPolling).toHaveBeenCalledTimes(1);
+      expect(bitunix.destroy).toHaveBeenCalledTimes(1);
+      expect(bitget.destroy).toHaveBeenCalledTimes(1);
+      expect(internals.isDestroying).toBe(false);
+      expect(internals.pendingSwitch).toBeNull();
+      expect(marketState.connectionStatus).toBe("disconnected");
+      expect(bitget.connect).not.toHaveBeenCalled();
     });
   });
 });
