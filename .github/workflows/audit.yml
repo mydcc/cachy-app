@@ -12,6 +12,9 @@ on:
 permissions:
   contents: read
 
+# Node 22 for every job: undici 8 (a direct dependency) requires
+# Node >= 22.19 — its import fails on Node 20, which trips the
+# safeFetch fail-closed guard (BUG-0298) and breaks external-route tests.
 jobs:
   i18n-lint:
     name: i18n String Compliance
@@ -22,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Check for hardcoded strings
         run: node scripts/lint-i18n.js
@@ -36,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Check legacy critical files (belt-and-braces)
         run: |
@@ -83,7 +86,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       # Validates every backlog item's front matter (status, priority, edition,
       # data class, id/filename agreement, duplicate ids/numbers, dependencies
@@ -111,7 +114,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
@@ -138,7 +141,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
@@ -156,7 +159,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
@@ -174,7 +177,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
