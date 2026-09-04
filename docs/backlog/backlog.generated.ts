@@ -1202,6 +1202,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md"
   },
   {
+    "id": "BUG-0382",
+    "title": "The price alert engine is never initialised, so no alert ever fires",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0382-alert-engine-never-initialised.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -1816,7 +1834,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0303",
     "title": "One rule schema alerts, backtests and bots all read",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude-code",
     "priority": "P1",
     "milestone": "M4",
     "editions": [
@@ -1936,7 +1955,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0334",
     "title": "Add to an open position and see what it does to the average entry",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -2793,7 +2813,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0298",
     "title": "safeFetch fails open when the SSRF dispatcher cannot initialize",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "shipped": "1.6.0-beta.219",
     "priority": "P2",
     "milestone": "none",
     "editions": [

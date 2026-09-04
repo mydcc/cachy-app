@@ -2,9 +2,9 @@
 
 # Backlog index
 
-264 items. How to read and add them: [README.md](README.md).
+265 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 205
+Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-progress 3 · ✅ done 206
 
 ---
 
@@ -90,7 +90,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | trade-panel |
 | [FEAT-0330](features/FEAT-0330-flash-close-wiring.md) | Wire flash close to the positions list | P1 | ✅ done | trade-panel |
 | [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | ✅ done | trade-panel |
-| [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | 📋 specced | trade-panel |
+| [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | 🟡 in-progress | trade-panel |
 | [BUG-0054](bugs/BUG-0054-orders-tab-loading-indicator-broken.md) | Orders-tab loading indicator is broken in both directions | P2 | ✅ done | trade-panel |
 | [BUG-0056](bugs/BUG-0056-order-history-tab-stale.md) | Order history tab shows stale trades | P2 | ✅ done | trade-panel |
 | [BUG-0061](bugs/BUG-0061-order-tooltip-metadata-dropped.md) | Order tooltip shows empty leverage/margin mode/qty/created date regardless of what the exchange returns | P2 | ✅ done | trade-panel |
@@ -113,8 +113,9 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
-| [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 📋 specced | alerts |
+| [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 🟡 in-progress | alerts |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
@@ -228,7 +229,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | ✅ done | security |
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | core |
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | exchange |
-| [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | 📋 specced | security |
+| [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | ✅ done | security |
 | [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | security |
 | [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | repo |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | docs |
@@ -389,6 +390,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -415,12 +417,12 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) | Give TP/SL price entry a range slider and PnL/ROI/Change modes | P1 | ✅ done | M3 | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0256](features/FEAT-0256-partial-close-position.md) | Close part of a position without closing all of it | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0254](features/FEAT-0254-tpsl-input-range-slider-ux.md) |
-| [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
+| [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0313](bugs/BUG-0313-wasm-build-ships-unloaded-artifact.md) |
 | [FEAT-0327](features/FEAT-0327-paper-trading-account-tracking.md) | Make a paper trade trackable, closable and journalled like a real one | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) |
 | [FEAT-0330](features/FEAT-0330-flash-close-wiring.md) | Wire flash close to the positions list | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) |
 | [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
-| [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
+| [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
@@ -460,7 +462,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0284](bugs/BUG-0284-backup-restore-unvalidated-writes.md) | Backup restore writes unvalidated strings straight into localStorage | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | none | community | none | none | — |
@@ -602,4 +604,4 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-pro
 
 ---
 
-Next free number: **0382**
+Next free number: **0383**
