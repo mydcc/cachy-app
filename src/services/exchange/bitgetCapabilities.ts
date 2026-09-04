@@ -55,4 +55,5 @@ export const bitgetCapabilities: ExchangeCapabilities = Object.freeze({
     positionModes: Object.freeze([] as const),
 
     trailingStop: false,
+    addToPosition: true,
 });

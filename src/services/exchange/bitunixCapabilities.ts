@@ -60,4 +60,5 @@ export const bitunixCapabilities: ExchangeCapabilities = Object.freeze({
     // well support one; claiming it before the request shape is verified is
     // what BUG-0001 cost a release to teach.
     trailingStop: false,
+    addToPosition: true,
 });

@@ -53,6 +53,7 @@ vi.mock("../apiService", () => ({
 
 const tradeServiceMock = vi.hoisted(() => ({
     placeOrder: vi.fn(async () => ({ ok: true })),
+    addToPosition: vi.fn(async () => ({ ok: true })),
     closePosition: vi.fn(async () => ({ ok: true })),
     flashClosePosition: vi.fn(async () => ({ ok: true })),
     cancelOrder: vi.fn(async () => ({ ok: true })),
@@ -240,6 +241,18 @@ interface VerbSpec {
 
 const TRADING_VERBS: Record<string, VerbSpec> = {
     placeOrder: { gate: null, kind: "write", args: [{ symbol: "BTCUSDT" }], transport: "placeOrder" },
+    // FEAT-0334. Not gated by `supports`: an add is an ordinary opening order
+    // in the position's direction, so every venue whose trading transport
+    // works at all can take one. Whether the *venue* accepts scaling in is
+    // `capabilities.addToPosition`, which the position panel reads before it
+    // offers the control — a different question from whether Cachy wired the
+    // verb, which is what this table is about.
+    addToPosition: {
+        gate: null,
+        kind: "write",
+        args: [{ symbol: "BTCUSDT", positionSide: "long", amount: new Decimal(1) }],
+        transport: "addToPosition",
+    },
     closePosition: {
         gate: null,
         kind: "write",

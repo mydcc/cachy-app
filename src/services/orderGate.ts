@@ -161,7 +161,27 @@ export interface OrderGateVerdict {
 // Intent
 // ---------------------------------------------------------------------------
 
-export type OrderIntentKind = "open" | "reduce" | "cancel" | "modify" | "bulk";
+/**
+ * What a submission is trying to do, which decides how its size is verified.
+ *
+ * `open` and `add` both increase exposure, but they are verified differently
+ * and that is the whole reason `add` exists as its own kind (FEAT-0334):
+ *
+ * - An **open** is risk-sized. The gate re-derives its quantity from account
+ *   size, risk percentage and stop distance, and refuses a payload that
+ *   disagrees.
+ * - An **add** is trader-sized. It scales into a position that already has an
+ *   entry and a stop; there is no new stop distance to divide by, so there is
+ *   no risk formula to re-derive it from. Routing it through `open` would mean
+ *   inventing an `accountSize`/`riskPercentage`/`stopLossPrice` triple that
+ *   reproduces the wanted quantity — the gate would then verify a fiction,
+ *   which is the exact failure it exists to prevent.
+ *
+ * So `add` is verified the way `reduce` is: against the quantity the UI
+ * displayed, against the instrument's step, and — uniquely — against available
+ * margin, which is the only real ceiling an add has.
+ */
+export type OrderIntentKind = "open" | "add" | "reduce" | "cancel" | "modify" | "bulk";
 
 /**
  * The state the UI displayed at the moment of confirmation, captured
@@ -205,6 +225,27 @@ export interface DisplayedState {
     positionAmount?: Decimal;
     /** True when the caller declares this closes the position entirely. */
     fullClose?: boolean;
+    /**
+     * For `add` intents: the quantity the UI previewed and the trader agreed
+     * to — FEAT-0334.
+     *
+     * The counterpart of `positionAmount` on the reduce side. An add has no
+     * risk formula to be re-derived from (see `OrderIntentKind`), so the only
+     * honest verification is that the payload carries the same quantity the
+     * screen showed. Absent on an `add` is disqualifying: an unverifiable size
+     * is not a verified size.
+     */
+    addQuantity?: Decimal;
+    /**
+     * Free margin the account had when the add was previewed — FEAT-0334.
+     *
+     * Compared against `addQuantity × price / leverage`. Absent means the
+     * balance had not loaded, and the check is skipped rather than guessed:
+     * refusing every add on an account whose balance is still in flight would
+     * be a broken control, and the venue remains the authority on what it will
+     * fund. This catches the case where the answer is already plainly no.
+     */
+    availableMargin?: Decimal;
     positionId?: string;
     orderId?: string;
     /**
@@ -792,9 +833,18 @@ class OrderGate {
         // the position's own leverage; re-checking it there would refuse valid
         // closes whenever the cached account read had gone stale — the exact
         // situation in which closing matters most.
-        if (kind === "open") {
+        if (kind === "open" || kind === "add") {
             const accountRefusal = this.checkAccountState(intent, checked);
             if (accountRefusal) return refuse(accountRefusal);
+        }
+
+        // --- available margin (FEAT-0334) --------------------------------------
+        // Only for an add. An `open` is sized from account size and risk, so
+        // its margin cost is already bounded by inputs the gate re-derives;
+        // an add's size is the trader's own number and nothing else limits it.
+        if (kind === "add") {
+            const marginRefusal = this.checkMargin(intent, checked);
+            if (marginRefusal) return refuse(marginRefusal);
         }
 
         // --- risk limits (FEAT-0013) -------------------------------------------
@@ -894,6 +944,64 @@ class OrderGate {
             return null;
         }
 
+        if (kind === "add") {
+            // FEAT-0334. Verified against the quantity the screen showed, the
+            // way a reduce is verified against the position it reduces — and
+            // for the same reason: there is no second, independent way to
+            // derive it. An add carries no new stop, so the risk formula below
+            // has nothing to divide by, and feeding it invented inputs would
+            // make the gate agree with a fiction.
+            //
+            // What *is* checked independently is available margin
+            // (`checkMargin`), which is the ceiling an add actually has — the
+            // counterpart of the position ceiling on the reduce side.
+            checked.push("qty");
+            if (payloadQty === null) return missing("qty");
+            if (payloadQty.lte(0)) {
+                return mismatch("qty", "> 0", payloadQty.toString());
+            }
+            if (displayed.addQuantity === undefined) {
+                // An unverifiable size is not a verified size — the same
+                // standard the `open` branch holds itself to below.
+                return missing("qty.inputs");
+            }
+            if (!decimalsAgree(payloadQty, displayed.addQuantity)) {
+                return mismatch(
+                    "qty",
+                    displayed.addQuantity.toString(),
+                    payloadQty.toString(),
+                );
+            }
+
+            // An add has to be a quantity the venue can fill. Unlike a full
+            // close there is no exemption to make here: nothing forces an add
+            // to be an odd size, so a non-fillable one is a defect rather than
+            // the only way out of a position.
+            //
+            // The modulo is written out rather than taken from
+            // `addToPosition.ts`, whose rounding *produces* this quantity —
+            // checking with the producer's own function would prove only that
+            // it agrees with itself.
+            const step = displayed.stepSize;
+            if (step !== undefined && step.isFinite() && step.gt(0)) {
+                checked.push("stepSize");
+                if (!payloadQty.div(step).isInteger()) {
+                    return {
+                        field: "stepSize",
+                        reason: "mismatch",
+                        messageKey: "orderGate.stepSize",
+                        values: {
+                            field: "stepSize",
+                            step: step.toString(),
+                            actual: payloadQty.toString(),
+                        },
+                    };
+                }
+            }
+
+            return this.checkVolumeLimits(intent, checked, payloadQty);
+        }
+
         // kind === "open" | "modify"
         const { accountSize, riskPercentage, entryPrice, stopLossPrice } = displayed;
         if (
@@ -946,7 +1054,83 @@ class OrderGate {
             };
         }
 
-        // --- volume limits (FEAT-0067) -------------------------------------
+        return this.checkVolumeLimits(intent, checked, payloadQty);
+    }
+
+    /**
+     * Whether the account can fund the add — FEAT-0334.
+     *
+     * `addQuantity × price / leverage` against the free margin the UI showed.
+     * This is the one ceiling an add has: a reduce is bounded by the position
+     * and an open by its risk inputs, but an add is bounded only by what the
+     * account can pay for.
+     *
+     * Deliberately gross of fees and of any maintenance buffer. The venue is
+     * the authority on what it will fund, and a threshold that guessed at the
+     * taker fee would refuse orders the venue would have accepted. This
+     * catches the case where the answer is already plainly no — which is the
+     * case a trader scaling in under pressure most needs caught.
+     *
+     * Every input absent means the check is skipped rather than guessed, and
+     * `checked` records which ones were actually compared, so the audit shows
+     * a decision rather than an omission.
+     */
+    private checkMargin(intent: OrderIntent, checked: string[]): OrderRefusal | null {
+        const { payload, displayed } = intent;
+
+        const available = displayed.availableMargin;
+        if (available === undefined) return null;
+
+        const qty = toDecimal(payload.qty);
+        if (qty === null) return null;
+
+        // The limit price for a limit add, the previewed mark for a market
+        // one — `entryPrice` carries whichever the caller committed to.
+        const price = toDecimal(resolvePath(payload, "price")) ?? displayed.entryPrice;
+        if (price === undefined || price === null || price.lte(0)) return null;
+
+        checked.push("availableMargin");
+
+        const leverage = displayed.leverage;
+        const notional = qty.times(price);
+        const required =
+            leverage !== undefined && leverage.isFinite() && leverage.gt(0)
+                ? notional.div(leverage)
+                : notional;
+
+        if (required.gt(available)) {
+            return {
+                field: "availableMargin",
+                reason: "riskLimit",
+                messageKey: "orderGate.insufficientMargin",
+                values: {
+                    field: "availableMargin",
+                    limit: available.toString(),
+                    actual: required.toString(),
+                },
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * The instrument's own size limits (FEAT-0067) — below the minimum or
+     * above the maximum the venue accepts.
+     *
+     * Extracted so the `add` branch enforces exactly the same limits as an
+     * `open` rather than a second, drifting copy of them. The limits belong to
+     * the instrument, not to the intent: a quantity the venue will not fill is
+     * refused whether the trader arrived at it through the calculator or
+     * through the position panel.
+     */
+    private checkVolumeLimits(
+        intent: OrderIntent,
+        checked: string[],
+        payloadQty: Decimal,
+    ): OrderRefusal | null {
+        const { payload, displayed } = intent;
+
         if (displayed.minTradeVolume !== undefined && displayed.minTradeVolume.gt(0)) {
             checked.push("minTradeVolume");
             if (payloadQty.lt(displayed.minTradeVolume)) {

@@ -76,4 +76,15 @@ export interface ExchangeCapabilities {
      * *indicator*, which draws a line on a chart and places nothing.
      */
     trailingStop: boolean;
+    /**
+     * Whether the venue accepts an opening order in the direction of a
+     * position that is already open — scaling in (FEAT-0334).
+     *
+     * True on both venues wired today, and declared anyway rather than
+     * assumed. A venue that only accepts one order per position, or that
+     * models a position as immutable once opened, would answer false here and
+     * the position panel's add control would be absent rather than offering
+     * an action that fails after the trader has committed to it.
+     */
+    addToPosition: boolean;
 }

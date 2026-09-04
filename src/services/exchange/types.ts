@@ -245,6 +245,31 @@ export interface TradingPort {
     }): Promise<unknown>;
 
     /**
+     * Increases an open position — FEAT-0334.
+     *
+     * Separate from `placeOrder` because the gate verifies it differently, not
+     * because the wire shape differs: an entry is risk-sized and re-derived
+     * from account size and stop distance, an add is trader-sized and checked
+     * against the quantity the panel previewed plus available margin. Routing
+     * an add through `placeOrder` would make the gate re-derive a size from
+     * inputs an add does not have.
+     *
+     * Offer this only where `capabilities.addToPosition` is true.
+     *
+     * `confirmedAt` is the moment a human agreed. The action inherits
+     * `place-order`'s confirmation from FEAT-0024's catalogue rather than
+     * defining one of its own.
+     */
+    addToPosition(params: {
+        symbol: string;
+        positionSide: "long" | "short";
+        amount: Decimal;
+        orderType?: "LIMIT" | "MARKET";
+        price?: Decimal;
+        confirmedAt?: number;
+    }): Promise<unknown>;
+
+    /**
      * The whole position, at market, in one call — FEAT-0330.
      *
      * Separate from `closePosition` because it is a different intent, not a

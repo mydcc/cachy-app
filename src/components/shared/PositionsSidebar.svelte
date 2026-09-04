@@ -51,6 +51,7 @@
   import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
   import { formatDynamicDecimal } from "../../utils/utils";
   import AdjustMarginModal from "./AdjustMarginModal.svelte";
+  import AddToPositionModal from "./AddToPositionModal.svelte";
   import TpSlCreateModal from "./TpSlCreateModal.svelte";
 
   let isOpen = $state(true);
@@ -906,6 +907,34 @@
     adjustMarginPosition = pos;
   }
 
+  /** The position whose scale-in dialog is open, or null (FEAT-0334). */
+  let addingPosition = $state<OMSPosition | null>(null);
+
+  /**
+   * Whether the active venue accepts scaling into an open position
+   * (FEAT-0017). Read here, once, and handed down as the presence or absence
+   * of the list's `onadd` prop — so the control is not merely disabled on a
+   * venue that cannot take it, it is not there.
+   */
+  const canAddToPosition = $derived(activeExchange().capabilities.addToPosition);
+
+  /** FEAT-0334: opens the scale-in dialog for a position. */
+  function handleAdd(pos: OMSPosition) {
+    addingPosition = pos;
+  }
+
+  /*
+   * The new size and average entry are not written here. The dialog's preview
+   * was Cachy's arithmetic on an estimated fill; the private position channel
+   * pushes the exchange's own figures, and those win. Keeping the computed
+   * average on screen after the order went out would leave a believed number
+   * competing with the venue's — the failure FEAT-0334 names explicitly.
+   */
+  function handleAddSuccess() {
+    addingPosition = null;
+    uiState.showToast($_("positionsList.addSubmitted"), "success");
+  }
+
   /*
    * The new margin is not written here. `adjustPositionMargin` asks for a
    * resync and the private position channel pushes the exchange's own
@@ -1043,6 +1072,7 @@
           onflashClose={handleFlashClose}
           ontpSl={handleTpSl}
           onadjustMargin={handleAdjustMargin}
+          onadd={canAddToPosition ? handleAdd : undefined}
         />
       {:else if activeTab === "orders"}
         <OpenOrdersList oncancel={handleCancelOrder}
@@ -1122,6 +1152,14 @@
     position={tpSlCreatePosition}
     onclose={() => (tpSlCreatePosition = null)}
     onsuccess={handleTpSlCreateSuccess}
+  />
+{/if}
+
+{#if addingPosition}
+  <AddToPositionModal
+    position={addingPosition}
+    onclose={() => (addingPosition = null)}
+    onsuccess={handleAddSuccess}
   />
 {/if}
 

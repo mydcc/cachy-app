@@ -302,6 +302,7 @@
       "closePositionSuccess": "Close-Order gesendet!",
       "loadedIntoInputs": "{symbol} in Trade-Eingaben geladen. Konfiguriere dort TP/SL.",
       "failedClose": "Senden der Close-Order fehlgeschlagen.",
+      "failedAdd": "Senden der Nachkauf-Order fehlgeschlagen.",
       "cancelOrderSuccess": "Auftrag erfolgreich storniert",
       "cancelOrderError": "Stornierung fehlgeschlagen: {error}",
       "orderCancelled": "Bestellung storniert",
@@ -2325,6 +2326,10 @@
       "submit": "Schließen",
       "submitFull": "Position schließen"
     },
+    "addToPosition": {
+      "title": "Position aufstocken",
+      "submit": "Market nachkaufen"
+    },
     "savePreset": {
       "title": "Preset speichern",
       "prompt": "Name eingeben:"
@@ -2803,6 +2808,7 @@
     "unconfirmed": "Order abgelehnt: Für {action} ist eine Bestätigung eingestellt, die nicht erfolgt ist. Die Order wurde nicht gesendet.",
     "minTradeVolume": "Order abgelehnt: Die Positionsgröße {actual} liegt unter dem Mindesthandelsvolumen von {limit}. Die Order wurde nicht gesendet.",
     "maxOrderVolume": "Order abgelehnt: Die Positionsgröße {actual} überschreitet das maximale Ordervolumen von {limit}. Die Order wurde nicht gesendet.",
+    "insufficientMargin": "Order abgelehnt: Der Nachkauf benötigt {actual} Margin, verfügbar sind nur {limit}. Die Order wurde nicht gesendet.",
     "stepSize": "Order abgelehnt: Die Größe {actual} ist kein ganzzahliges Vielfaches der Schrittweite {step} dieses Instruments und wäre an der Börse nicht ausführbar. Die Order wurde nicht gesendet.",
     "symbolStatus": "Order abgelehnt: Der Symbol-Status ist {status} (erwartet: OPEN). Der Handel ist derzeit nicht verfügbar.",
     "apiUnsupported": "Order abgelehnt: API-Handel wird für dieses Symbol nicht unterstützt.",
@@ -2826,6 +2832,7 @@
       "maxPositionSize": "das Positionsgrößen-Limit",
       "maxPositionSizePercent": "das Positionsgrößen-Limit (Anteil am Kapital)",
       "minTradeVolume": "das Mindesthandelsvolumen",
+      "availableMargin": "die verfügbare Margin",
       "orderId": "die Order-ID",
       "positionId": "die Positions-ID",
       "price": "der Einstiegskurs",
@@ -2904,6 +2911,14 @@
     "confirmClose": "Position {symbol} schließen?",
     "closeQuantity": "Schließen",
     "closeSliderLabel": "Anteil der Position, der geschlossen wird",
+    "addToPosition": "Nachkaufen",
+    "addToPositionHint": "Position aufstocken und den neuen Durchschnitts-Entry vorab sehen",
+    "addQuantity": "Nachkauf",
+    "addSliderLabel": "Anteil der Position, der nachgekauft wird — 100 % verdoppelt sie",
+    "resultingSize": "Größe danach",
+    "newAverageEntry": "Neuer Durchschnitts-Entry",
+    "previewOnlyHint": "Schätzung zum aktuellen Mark. Nach der Ausführung gilt die Zahl der Börse.",
+    "addSubmitted": "Nachkauf-Order gesendet.",
     "remainingAfter": "Verbleibt",
     "realizesPnl": "Realisiert",
     "fullCloseBadge": "Schließt die gesamte Position",

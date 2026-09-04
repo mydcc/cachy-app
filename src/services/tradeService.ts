@@ -1277,6 +1277,148 @@ class TradeService {
         return { clientId, result };
     }
 
+    /**
+     * Adds to an open position — FEAT-0334.
+     *
+     * An opening order in the direction the position already faces, so it
+     * carries `tradeSide: "OPEN"` and never `reduceOnly`. It is *not* routed
+     * through `placeOrder`: that path is for a risk-sized entry, and the gate
+     * verifies its quantity by re-deriving it from account size, risk and stop
+     * distance. An add has no new stop to divide by, so it travels as
+     * `kind: "add"` and is verified against the quantity the panel previewed
+     * plus available margin — see `OrderIntentKind` in `orderGate.ts`.
+     *
+     * The confirmation is `place-order`'s. An add is an order placement, and
+     * FEAT-0024's catalogue already has a key for that; minting a second one
+     * for a case the gate enforces structurally would dilute the catalogue
+     * rather than tighten it.
+     *
+     * The position is re-read before the payload is built, so the size, entry
+     * and mark the gate compares against are the venue's current figures and
+     * not whatever the panel was showing when the trader started typing.
+     */
+    public async addToPosition(params: {
+        symbol: string;
+        positionSide: "long" | "short";
+        amount: Decimal;
+        orderType?: "LIMIT" | "MARKET";
+        price?: Decimal;
+        effect?: PlaceOrderParams["effect"];
+        clientId?: string;
+        confirmedAt?: number;
+    }) {
+        const { symbol, positionSide, amount } = params;
+        const orderType = params.orderType ?? "MARKET";
+
+        if (!amount || !amount.isFinite() || amount.lte(0)) {
+            throw new Error("apiErrors.invalidAmount");
+        }
+        if (orderType === "LIMIT" && (!params.price || params.price.lte(0))) {
+            throw new Error("apiErrors.invalidPrice");
+        }
+
+        // Fresh, not remembered: an add sized against a position that has
+        // since been partly liquidated is an add against a different trade.
+        const position = await this.ensurePositionFreshness(symbol, positionSide);
+        if (!position) {
+            throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
+        }
+
+        const clientId = params.clientId ?? this.newClientOrderId();
+        const meta =
+            marketState?.symbolMeta?.[symbol] ??
+            marketState?.symbolMeta?.[normalizeSymbol(symbol, "bitunix")];
+
+        /*
+         * Where the add is expected to fill, used for the margin check only.
+         * A limit add fills at its limit; a market add is estimated at the
+         * mark, and where the venue omits the mark the entry is the closest
+         * honest stand-in — an estimate that is stated, never one that is
+         * silently zero.
+         */
+        const fillPrice =
+            orderType === "LIMIT" && params.price
+                ? params.price
+                : position.markPrice && position.markPrice.gt(0)
+                    ? position.markPrice
+                    : position.entryPrice;
+
+        // The settlement asset's free balance. Absent means the balance has
+        // not loaded, and the gate skips the check rather than guessing —
+        // see `checkMargin`.
+        const availableMargin = accountState.assets.find(
+            (a) => a.currency === "USDT",
+        )?.available;
+
+        const payload: Record<string, unknown> = {
+            type: "place-order",
+            symbol,
+            // `side` names the direction of the exposure, the same convention
+            // `buildCloseOrderFields` follows; `tradeSide` says whether it is
+            // being opened or closed.
+            side: positionSide === "long" ? "BUY" : "SELL",
+            orderType,
+            qty: formatApiNum(amount),
+            price: orderType === "LIMIT" && params.price ? formatApiNum(params.price) : undefined,
+            reduceOnly: false,
+            clientId,
+            effect: orderType === "MARKET" ? undefined : this.effectFor(params.effect),
+            tradeSide: "OPEN",
+            positionId: position.positionId,
+        };
+
+        const result = await this.gatedRequest({
+            kind: "add",
+            endpoint: "/api/orders",
+            payload,
+            confirmAs: "place-order",
+            confirmedAt: params.confirmedAt,
+            displayed: {
+                symbol,
+                side: positionSide === "long" ? "BUY" : "SELL",
+                // The quantity the panel previewed and the trader agreed to.
+                // The gate has no second way to derive this, which is exactly
+                // why it is stated rather than recomputed.
+                addQuantity: amount,
+                entryPrice: fillPrice,
+                positionAmount: position.amount,
+                positionId: position.positionId,
+                leverage: position.leverage,
+                marginMode: position.marginMode === "isolated" ? "ISOLATION" : "CROSS",
+                availableMargin,
+                /*
+                 * When the venue last confirmed this account's leverage and
+                 * margin mode. The gate refuses an add on a read older than
+                 * MAX_ACCOUNT_STATE_AGE_MS, the same as it does an open,
+                 * because an add opens exposure too.
+                 *
+                 * Read from `tradeState` — the same source `PlaceOrderPanel`
+                 * hands to `placeOrder` — rather than stamped `Date.now()`
+                 * here. Stamping it locally would satisfy the freshness check
+                 * with the time this code ran instead of the time the exchange
+                 * answered, which is a check that always passes and therefore
+                 * is not a check.
+                 */
+                accountStateAt: tradeState.remoteAccountStateAt,
+                stepSize:
+                    meta?.basePrecision !== undefined
+                        ? new Decimal(10).pow(-meta.basePrecision)
+                        : undefined,
+                minTradeVolume: meta?.minTradeVolume ? new Decimal(meta.minTradeVolume) : undefined,
+                maxLimitOrderVolume: meta?.maxLimitOrderVolume
+                    ? new Decimal(meta.maxLimitOrderVolume)
+                    : undefined,
+                maxMarketOrderVolume: meta?.maxMarketOrderVolume
+                    ? new Decimal(meta.maxMarketOrderVolume)
+                    : undefined,
+                symbolStatus: meta?.symbolStatus,
+                isApiSupported: meta?.isApiSupported,
+            },
+        });
+
+        return { clientId, result };
+    }
+
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal, forceFullClose?: boolean }) {
         const { symbol, positionSide, amount, forceFullClose } = params;
 
