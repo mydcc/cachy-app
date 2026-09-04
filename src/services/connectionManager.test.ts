@@ -34,6 +34,7 @@ vi.mock("./logger", () => ({
 
 import { connectionManager, ConnectionManager } from "./connectionManager";
 import type { ManagedService, PollingService } from "./connectionManager";
+import { marketState } from "../stores/market.svelte";
 
 function makeProvider() {
   return {
@@ -280,17 +281,31 @@ describe("ConnectionManager", () => {
       expect(winRemoveSpy).toHaveBeenCalledWith("blur", blurListener);
     });
 
-    it("clears providers, polling service, and stops pending switches on destroy()", () => {
+    it("clears providers, polling service, cancels pending switches, and resets connection state on destroy()", () => {
       const manager = new ConnectionManager();
-      const provider = makeProvider();
+      const bitunix = makeProvider();
+      const bitget = makeProvider();
       const polling = makePolling();
-      manager.registerProvider("bitunix", provider);
+      manager.registerProvider("bitunix", bitunix);
+      manager.registerProvider("bitget", bitget);
       manager.registerPolling(polling);
+
+      marketState.connectionStatus = "connected";
+
+      // Queue a pending switch while isDestroying is active
+      (manager as any).isDestroying = true;
+      void manager.switchProvider("bitget");
+      expect((manager as any).pendingSwitch).toEqual({ provider: "bitget", options: {} });
 
       manager.destroy();
 
       expect(polling.stopPolling).toHaveBeenCalledTimes(1);
-      expect(provider.destroy).toHaveBeenCalledTimes(1);
+      expect(bitunix.destroy).toHaveBeenCalledTimes(1);
+      expect(bitget.destroy).toHaveBeenCalledTimes(1);
+      expect((manager as any).isDestroying).toBe(false);
+      expect((manager as any).pendingSwitch).toBeNull();
+      expect(marketState.connectionStatus).toBe("disconnected");
+      expect(bitget.connect).not.toHaveBeenCalled();
     });
   });
 });

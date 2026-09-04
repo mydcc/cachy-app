@@ -303,6 +303,8 @@ export class ConnectionManager {
         this.activeProvider = "";
         this.hiddenAt = null;
         this.pendingSwitch = null;
+        this.isDestroying = false;
+        marketState.connectionStatus = "disconnected";
     }
 }
 
