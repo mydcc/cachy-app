@@ -32,7 +32,14 @@
  */
 
 import { logger } from "../../services/logger";
-import type { RuleDocument, Refused, RuleRefusal, ConsequenceLevel } from "./types";
+import type {
+  RuleDocument,
+  Refused,
+  RuleRefusal,
+  ConsequenceLevel,
+  EvaluationContext,
+  Verdict,
+} from "./types";
 
 /** The functions `technicals-wasm/src/rule/exports.rs` puts on the module. */
 interface RuleWasmExports {
@@ -43,6 +50,7 @@ interface RuleWasmExports {
   rule_warmup_candles(documentJson: string): number;
   rule_timeframes(documentJson: string): string[];
   rule_from_alert_json(alertJson: string, timeframe: string, createdAtMs: number): string;
+  rule_evaluate(documentJson: string, ctxJson: string): string;
   default: (wasmBinaryPath: string) => Promise<unknown>;
 }
 
@@ -227,6 +235,23 @@ class RuleSchemaService {
       return JSON.parse(
         core.rule_from_alert_json(JSON.stringify(alert), timeframe, createdAtMs),
       ) as RuleDocument;
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /**
+   * Evaluate `document` at the last closed candle of its trigger timeframe,
+   * against the market/account snapshot in `ctx`.
+   *
+   * Pure and stateless on the core side: the same document and context always
+   * produce the same verdict. Nothing here decides *when* to call this — that
+   * is `ruleEvaluationGate.ts`'s job, so a rule is asked at most once per close.
+   */
+  evaluate(document: RuleDocument, ctx: EvaluationContext): Verdict {
+    const core = this.require();
+    try {
+      return JSON.parse(core.rule_evaluate(JSON.stringify(document), JSON.stringify(ctx))) as Verdict;
     } catch (e) {
       throw toRefusedError(e);
     }

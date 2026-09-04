@@ -150,3 +150,51 @@ export interface RuleRefusal {
 export interface Refused {
   refusals: RuleRefusal[];
 }
+
+/**
+ * The market and account snapshot a document is evaluated against.
+ *
+ * `candles` is keyed by any spelling the core's `Timeframe::parse` accepts.
+ * `indicators` names each series by its full `IndicatorRef` — never by a
+ * hand-built key — so the evaluator's internal indexing stays a Rust-side
+ * concern. `values` is index-aligned to `candles[timeframe]`; `null` where a
+ * value was not available (not yet warmed up, or a gap), which the evaluator
+ * reads as "no value" rather than a false condition.
+ */
+export interface EvaluationCandle {
+  open_time_ms: number;
+  open: DecimalString;
+  high: DecimalString;
+  low: DecimalString;
+  close: DecimalString;
+  volume?: DecimalString;
+}
+
+export interface EvaluationIndicatorSeries {
+  indicator: IndicatorRef;
+  timeframe: TimeframeString;
+  values: (DecimalString | null)[];
+}
+
+export interface AccountSnapshot {
+  /** Signed size in the base asset; negative when short, zero when flat. */
+  position_size: DecimalString;
+  unrealised_pnl: DecimalString;
+  unrealised_pnl_percent: DecimalString;
+  exposure: DecimalString;
+  available_balance: DecimalString;
+}
+
+export interface EvaluationContext {
+  candles: Record<TimeframeString, EvaluationCandle[]>;
+  indicators?: EvaluationIndicatorSeries[];
+  feeds?: Record<string, DecimalString>;
+  account?: AccountSnapshot;
+}
+
+/** What an evaluation concluded. Mirrors `evaluate::Verdict`. */
+export type Verdict =
+  | { verdict: "fires" }
+  | { verdict: "does_not_fire" }
+  | { verdict: "suppressed" }
+  | { verdict: "indeterminate"; reason: string };
