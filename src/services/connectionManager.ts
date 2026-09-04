@@ -52,7 +52,7 @@ export interface PollingService {
 // same staleness question while the tab is visible.
 const HIDDEN_RECONNECT_THRESHOLD_MS = 15_000;
 
-class ConnectionManager {
+export class ConnectionManager {
     private static instanceCount = 0;
     private instanceId = 0;
     private activeProvider: string = "";
@@ -60,6 +60,18 @@ class ConnectionManager {
     private pollingService: PollingService | null = null;
     private isDestroying = false;
     private hiddenAt: number | null = null;
+
+    private handleVisibilityChange = () => {
+        this.notifyVisibilityChange(document.visibilityState === "visible");
+    };
+
+    private handleFocus = () => {
+        this.notifyVisibilityChange(true);
+    };
+
+    private handleBlur = () => {
+        this.notifyVisibilityChange(false);
+    };
 
     constructor() {
         this.instanceId = ++ConnectionManager.instanceCount;
@@ -69,9 +81,7 @@ class ConnectionManager {
         // bitunixWs already uses for its own `online`/`offline` listeners —
         // in every real environment `window` implies `document` too.
         if (typeof window !== "undefined") {
-            document.addEventListener("visibilitychange", () => {
-                this.notifyVisibilityChange(document.visibilityState === "visible");
-            });
+            document.addEventListener("visibilitychange", this.handleVisibilityChange);
 
             // `visibilitychange` covers a hidden/backgrounded *tab*, but a
             // Cachy window that stays the frontmost tab while the whole
@@ -79,8 +89,8 @@ class ConnectionManager {
             // application on a second monitor) never fires it — the same
             // background-timer throttling still applies in that case in some
             // browsers, so `focus`/`blur` feed the identical path.
-            window.addEventListener("focus", () => this.notifyVisibilityChange(true));
-            window.addEventListener("blur", () => this.notifyVisibilityChange(false));
+            window.addEventListener("focus", this.handleFocus);
+            window.addEventListener("blur", this.handleBlur);
         }
     }
 
@@ -265,6 +275,43 @@ class ConnectionManager {
             this.pollingService.resumePolling();
         }
     }
+
+    /**
+     * Teardown method to remove window/document event listeners and clean up internal providers.
+     */
+    public destroy(): void {
+        if (typeof window !== "undefined") {
+            document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+            window.removeEventListener("focus", this.handleFocus);
+            window.removeEventListener("blur", this.handleBlur);
+        }
+
+        if (this.pollingService) {
+            this.pollingService.stopPolling();
+            this.pollingService.forgetSubscriptions?.();
+            this.pollingService = null;
+        }
+
+        for (const [name, service] of this.providers.entries()) {
+            try {
+                service.destroy();
+            } catch (e) {
+                logger.error("governance", `[ConnectionManager] Error destroying ${name}`, e);
+            }
+        }
+        this.providers.clear();
+        this.activeProvider = "";
+        this.hiddenAt = null;
+        this.pendingSwitch = null;
+        this.isDestroying = false;
+        marketState.connectionStatus = "disconnected";
+    }
 }
 
 export const connectionManager = new ConnectionManager();
+
+if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        connectionManager.destroy();
+    });
+}
