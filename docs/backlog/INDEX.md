@@ -4,7 +4,7 @@
 
 264 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 7 · ✅ done 205
+Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 205
 
 ---
 
@@ -238,7 +238,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 7 · ✅ done 20
 | [BUG-0312](bugs/BUG-0312-docs-backlog-items.md) | Stale code references in done backlog items | P2 | ✅ done | docs |
 | [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | calculation |
 | [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | ✅ done | market |
-| [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | 🟢 ready | exchange |
+| [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | 🟡 in-progress | exchange |
 | [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟢 ready | market |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | chat |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | calculator |
@@ -470,7 +470,7 @@ Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 7 · ✅ done 20
 | [BUG-0312](bugs/BUG-0312-docs-backlog-items.md) | Stale code references in done backlog items | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | none | community, pro, private | none | none | — |
