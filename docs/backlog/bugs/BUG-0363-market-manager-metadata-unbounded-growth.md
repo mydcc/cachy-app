@@ -2,7 +2,7 @@
 id: BUG-0363
 title: MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction
 type: bug
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,8 @@ data_class: none
 adr: none
 depends_on: []
 size: S
+assignee: claude
+branch: fix/bug-0363-market-metadata-eviction
 ---
 
 # BUG-0363 — MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction

@@ -101,6 +101,8 @@ export class MarketManager {
     this.symbolCache = new SymbolCache((symbol: string) => {
       this.klineBufferManager.releaseSymbol(symbol);
       delete this.data[symbol];
+      delete this.symbolMeta[symbol];
+      delete this.positionTiers[symbol];
     });
     this.marketTelemetry = new MarketTelemetry();
 
@@ -134,6 +136,8 @@ export class MarketManager {
     this.pendingUpdates.clear();
     this.klineBufferManager.clear();
     this.data = {};
+    this.symbolMeta = {};
+    this.positionTiers = {};
   }
 
   public getOrCreateSymbol(symbol: string): MarketData {
@@ -351,6 +355,8 @@ export class MarketManager {
     this.klineBufferManager.clear();
     this.symbolCache.clear();
     this.data = {};
+    this.symbolMeta = {};
+    this.positionTiers = {};
   }
 
   cleanup() {
