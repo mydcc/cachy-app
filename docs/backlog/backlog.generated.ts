@@ -1220,6 +1220,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0382-alert-engine-never-initialised.md"
   },
   {
+    "id": "BUG-0386",
+    "title": "TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "branch": "fix/bug-0383-tpsl-drag-order-not-found",
+    "file": "bugs/BUG-0386-tpsl-drag-order-not-found.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -3103,6 +3123,45 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "claude",
     "file": "bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md"
+  },
+  {
+    "id": "BUG-0383",
+    "title": "Alert management UI unreachable — AlertDefinitionsModal has no entry point",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude",
+    "branch": "fix/bug-0382-alerts-entry",
+    "file": "bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md"
+  },
+  {
+    "id": "BUG-0385",
+    "title": "TP/SL drag can modify wrong plan when position plan and pending bracket coexist",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "none",
+    "file": "bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md"
   },
   {
     "id": "FEAT-0019",
@@ -5048,6 +5107,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "claude",
     "file": "bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md"
+  },
+  {
+    "id": "BUG-0384",
+    "title": "Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "none",
+    "file": "bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md"
   },
   {
     "id": "FEAT-0022",
