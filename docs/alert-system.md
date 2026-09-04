@@ -101,9 +101,12 @@ and English**. A rule a trader cannot read back is a rule they cannot trust.
 
 ## When a rule fires
 
-The verdict goes to `notificationService`, which owns channel policy: in-app, browser
-notification, sound. Nothing reaches the network. The trigger method chosen on the
-rule selects which channels announce it.
+The verdict goes to `notificationService`, which owns channel policy. Built-in channels
+(in-app, browser notification, sound) never reach the network — the rule and its evaluation
+stay on the device. External channels (Email, Discord, Telegram) are **opt-in** via
+[`FEAT-0397`](backlog/features/FEAT-0397-notification-channels.md): the trader configures
+credentials, the service calls external APIs only if those channels are armed. The trigger
+method chosen on the rule selects which channels announce it.
 
 Above `notify`, the verdict instead becomes an order intent, and every existing
 guard — the order gate, the risk limits, the confirmation settings — applies
