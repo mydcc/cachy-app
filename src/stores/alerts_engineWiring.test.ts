@@ -34,13 +34,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // The store's init is client-only (the WASM glue does not exist during SSR).
 // The `unit` project pins `browser` to false, so the startup path has to be
-// declared explicitly here or it would no-op and the test would pass vacuously.
-vi.mock("$app/environment", () => ({
-  browser: true,
-  dev: false,
-  building: false,
-  version: "0.0.1",
-}));
+// declared explicitly or it would no-op and every test would pass vacuously.
+//
+// Set per test in `beforeEach` rather than once at module scope: the SSR test
+// needs `browser: false`, and undoing a module-scope `vi.mock` with
+// `vi.doUnmock` drops back to the real alias (where `browser` is false) for
+// every test that follows, which silently makes them vacuous again.
+const mockEnvironment = (isBrowser: boolean) =>
+  vi.doMock("$app/environment", () => ({
+    browser: isBrowser,
+    dev: false,
+    building: false,
+    version: "0.0.1",
+  }));
 
 vi.mock("../services/logger", () => ({
   logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn() },
@@ -50,10 +56,12 @@ vi.mock("../services/toastService.svelte", () => ({
   toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
+// Returns the key itself, so assertions can name the string that reached the
+// user rather than depending on the German or English wording.
 vi.mock("../locales/i18n", () => ({
   _: {
     subscribe: (run: (v: unknown) => void) => {
-      run(() => "alert");
+      run((key: string) => key);
       return () => {};
     },
   },
@@ -136,8 +144,13 @@ const fakeLoader = async () =>
 describe("BUG-0382 — alert engine startup wiring", () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.clearAllMocks();
+    mockEnvironment(true);
     localStorage.clear();
     localStorage.setItem(STORAGE_KEY, JSON.stringify([ARMED_BEFORE_RELOAD]));
+    // The fake engine mutates its own alert objects when they fire; hand each
+    // test a fresh copy so one test's fired alert cannot arrive still-fired.
+    ARMED_BEFORE_RELOAD.active = true;
   });
 
   it("leaves the engine unloaded until something initialises it", async () => {
@@ -197,12 +210,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
   });
 
   it("does not initialise during SSR", async () => {
-    vi.doMock("$app/environment", () => ({
-      browser: false,
-      dev: false,
-      building: false,
-      version: "0.0.1",
-    }));
+    mockEnvironment(false);
     vi.resetModules();
 
     const { alertEngine } = await import("../services/alertEngine/alertEngine");
@@ -213,8 +221,6 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     expect(loader).not.toHaveBeenCalled();
     expect(alertEngine.isLoaded).toBe(false);
-
-    vi.doUnmock("$app/environment");
   });
 
   it("can retry after a failed load instead of caching the rejection forever", async () => {
@@ -226,5 +232,54 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     await alertEngine.ensureLoaded(fakeLoader);
     expect(alertEngine.isLoaded).toBe(true);
+  });
+
+  describe("a failed load is reported to the user, not just to the log", () => {
+    it("marks the engine failed and raises an error toast", async () => {
+      const { toastService } = await import("../services/toastService.svelte");
+      const { alertState, initAlertEngine } = await import("./alerts.svelte");
+
+      const failing = vi.fn().mockRejectedValue(new Error("wasm 404"));
+      await expect(initAlertEngine(failing as never)).rejects.toThrow("wasm 404");
+
+      // Persistent, so the alerts modal can warn a trader who arms an alert
+      // long after the startup toast has gone.
+      expect(alertState.engineStatus).toBe("failed");
+      expect(toastService.error).toHaveBeenCalledWith(
+        "dashboard.alerts.engineUnavailable",
+      );
+    });
+
+    it("keeps definitions on a failed load, so they survive to the next reload", async () => {
+      const { alertState, initAlertEngine } = await import("./alerts.svelte");
+
+      const failing = vi.fn().mockRejectedValue(new Error("wasm 404"));
+      await expect(initAlertEngine(failing as never)).rejects.toThrow("wasm 404");
+
+      expect(alertState.definitions.map((a) => a.id)).toEqual([ARMED_BEFORE_RELOAD.id]);
+    });
+
+    it("reports ready on success, and raises no error toast", async () => {
+      const { toastService } = await import("../services/toastService.svelte");
+      const { alertState, initAlertEngine } = await import("./alerts.svelte");
+
+      await initAlertEngine(fakeLoader);
+
+      expect(alertState.engineStatus).toBe("ready");
+      expect(toastService.error).not.toHaveBeenCalled();
+    });
+
+    it("stays idle during SSR — nothing failed, so nothing is reported", async () => {
+      mockEnvironment(false);
+      vi.resetModules();
+
+      const { toastService } = await import("../services/toastService.svelte");
+      const { alertState, initAlertEngine } = await import("./alerts.svelte");
+
+      await initAlertEngine(fakeLoader);
+
+      expect(alertState.engineStatus).toBe("idle");
+      expect(toastService.error).not.toHaveBeenCalled();
+    });
   });
 });

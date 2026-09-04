@@ -27,11 +27,21 @@ export interface AlertState {
     definitions: AlertDefinition[];
 }
 
+/**
+ * Whether the evaluation engine is actually running.
+ *
+ * `failed` is the state that matters: definitions are still stored, but
+ * nothing evaluates them, so an armed alert cannot fire. That has to be
+ * visible in the UI — a stored alert that silently never fires is BUG-0382.
+ */
+export type AlertEngineStatus = "idle" | "ready" | "failed";
+
 class AlertsManager {
     // Local-First Class A Data
     private static STORAGE_KEY = "cachy_alerts_v1";
 
     definitions = $state<AlertDefinition[]>([]);
+    engineStatus = $state<AlertEngineStatus>("idle");
 
     constructor() {
         this.loadFromStorage();
@@ -114,12 +124,24 @@ export const alertState = new AlertsManager();
  * Client-only: `ensureLoaded()` dynamically imports `/wasm/technicals_wasm.js`,
  * which does not exist during SSR.
  *
- * Rejects if the WASM load fails, so a caller can decide how loudly to fail;
- * it never leaves the engine half-initialised.
+ * On failure this reports to the user itself — a toast now, and
+ * `engineStatus: "failed"` for as long as it lasts — rather than leaving each
+ * caller to remember. Alerts that are stored but never evaluated must not fail
+ * silently a second time. It still rejects afterwards so a caller (or a test)
+ * can tell that startup did not complete.
  */
 export async function initAlertEngine(loadModule?: WasmModuleLoader): Promise<void> {
     if (!browser) return;
 
-    await alertEngine.ensureLoaded(loadModule);
+    try {
+        await alertEngine.ensureLoaded(loadModule);
+    } catch (e) {
+        alertState.engineStatus = "failed";
+        const t = get(_) as (key: string) => string;
+        toastService.error(t("dashboard.alerts.engineUnavailable"));
+        throw e;
+    }
+
     alertState.syncEngine();
+    alertState.engineStatus = "ready";
 }

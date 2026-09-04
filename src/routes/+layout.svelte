@@ -314,20 +314,15 @@ import { afterNavigate } from "$app/navigation";
     // BUG-0382: bring the alert engine up and re-register alerts rehydrated
     // from localStorage. Without this the engine's WASM instance stays null,
     // every call on it early-returns, and no alert ever fires.
-    // A failed WASM load must not take down app startup — alerts are not
-    // required for the calculator, journal or risk management to work — so it
-    // is logged rather than surfaced as an error modal.
-    initAlertEngine().catch((err) => {
-      import("../services/logger")
-        .then((m) =>
-          m.logger.error(
-            "alerts",
-            "[Layout] Alert engine failed to initialise — alerts will not fire",
-            err,
-          ),
-        )
-        .catch(() => {});
-    });
+    //
+    // A failure is already logged, toasted and recorded as
+    // `alertState.engineStatus = "failed"` inside initAlertEngine(), and the
+    // alerts modal shows it for as long as it lasts. Swallowing the rejection
+    // here only keeps it from reaching the global unhandledrejection handler,
+    // which would stack a blocking error modal on top of a report the user has
+    // already seen — and alerts are not required for the calculator, journal
+    // or risk management to work.
+    initAlertEngine().catch(() => {});
 
     // Global Error Handling
     const handleGlobalError = (event: ErrorEvent) => {
