@@ -368,7 +368,10 @@ describe("backupService", () => {
 
       expect(result.success).toBe(false);
       expect(result.rejectedSections).toContain("settings");
-      expect(result.message).toContain("Backup restore rejected");
+      // BUG-0354: the service returns a translation key + params, not a hardcoded
+      // English sentence. The UI layer resolves it via $_().
+      expect(result.message).toBe("app.backupRejected");
+      expect(result.messageParams).toEqual({ sections: "settings" });
 
       // Verify that localStorage was NOT modified (fail-closed atomic behavior)
       expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY)).toBe(initialSettings);

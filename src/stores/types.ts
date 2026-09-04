@@ -22,8 +22,22 @@ export interface TradeValues {
   riskPercentage: Decimal;
   entryPrice: Decimal;
   leverage: Decimal;
+  /**
+   * The flat fee rate, a PERCENTAGE (`0.06` = 0.06%). Stays the fallback for
+   * both legs so a caller that knows nothing about maker/taker is unaffected.
+   */
   fees: Decimal;
-  exitFees?: Decimal; // Optional: if defined, used for exit calculation
+  /**
+   * FEAT-0253: the entry leg's rate when the caller knows the order type —
+   * `MARKET` is a taker fill, `LIMIT` a maker fill. Falls back to `fees`.
+   */
+  entryFees?: Decimal;
+  /**
+   * FEAT-0253: the exit leg's rate. Assumed taker by default because how the
+   * position actually closes is unknowable while the plan is made — a risk
+   * tool errs toward overstating cost. Falls back to `fees`.
+   */
+  exitFees?: Decimal;
   maintenanceMarginRate?: Decimal; // Optional: Maintenance Margin Rate (e.g. 0.005 for 0.5%)
   symbol: string;
   useAtrSl: boolean;

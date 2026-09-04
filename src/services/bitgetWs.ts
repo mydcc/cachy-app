@@ -60,7 +60,7 @@ const WATCHDOG_TIMEOUT = 35000;
 const RECONNECT_DELAY = 1000; // Base delay
 const CONNECTION_TIMEOUT_MS = 5000;
 
-class BitgetWebSocketService {
+export class BitgetWebSocketService {
   private static instanceCount = 0;
   private instanceId = 0;
   private ws: WebSocket | null = null;
@@ -87,6 +87,7 @@ class BitgetWebSocketService {
   // Throttling
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200;
+  private readonly THROTTLE_TTL = 5000;
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
@@ -111,6 +112,8 @@ class BitgetWebSocketService {
 
       this.globalMonitorInterval = setInterval(() => {
         if (this.isDestroyed) return;
+
+        this.pruneThrottleMap();
 
         const status = marketState.connectionStatus;
 
@@ -158,6 +161,15 @@ class BitgetWebSocketService {
     this.throttleMap.set(key, Date.now());
   }
 
+  private pruneThrottleMap(): void {
+    const now = Date.now();
+    for (const [key, timestamp] of this.throttleMap.entries()) {
+      if (now - timestamp > this.THROTTLE_TTL) {
+        this.throttleMap.delete(key);
+      }
+    }
+  }
+
   destroy() {
     logger.log("governance", `[BitgetWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
@@ -170,6 +182,7 @@ class BitgetWebSocketService {
       window.removeEventListener("offline", this.handleOffline);
     }
     this.cleanup();
+    this.throttleMap.clear();
 
     // Permanent teardown: drop subscription state only when the service is
     // being destroyed, never on the transient reconnect-driven `cleanup()`

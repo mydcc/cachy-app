@@ -2,7 +2,9 @@
 id: BUG-0355
 title: Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely
 type: bug
-status: ready
+status: done
+assignee: antigravity
+shipped: 1.6.0-beta.216
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -64,9 +66,9 @@ Entries added to `this.throttleMap` via `shouldThrottle` or `commitThrottle` rem
 
 ## Acceptance criteria
 
-- [ ] A unit test proves that keys older than `THROTTLE_TTL` are evicted from `throttleMap` by the monitor interval.
-- [ ] Calling `destroy()` clears all remaining keys in `throttleMap`.
-- [ ] Active throttle keys under 5000ms are preserved and not evicted prematurely.
+- [x] A unit test proves that keys older than `THROTTLE_TTL` are evicted from `throttleMap` by the monitor interval.
+- [x] Calling `destroy()` clears all remaining keys in `throttleMap`.
+- [x] Active throttle keys under 5000ms are preserved and not evicted prematurely.
 
 ## Out of scope
 

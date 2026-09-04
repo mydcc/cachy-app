@@ -280,20 +280,6 @@
     };
   });
 
-  // Watch for symbol or provider changes (Ticker & Price)
-  $effect(() => {
-    if (symbol) {
-      untrack(() => {
-        marketWatcher.register(symbol, "price");
-        marketWatcher.register(symbol, "ticker");
-      });
-      return () => {
-        marketWatcher.unregister(symbol, "price");
-        marketWatcher.unregister(symbol, "ticker");
-      };
-    }
-  });
-
   // Depth Subscription
   $effect(() => {
     if (symbol && settingsState.showMarketActivity) {
