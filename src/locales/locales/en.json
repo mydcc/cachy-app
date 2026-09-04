@@ -319,6 +319,8 @@
       "addAlert": "Add Alert",
       "priceLimit": "Price",
       "gapDetected": "Market Data Gap Detected. Alert evaluation may have missed intermediate prices.",
+      "engineUnavailable": "The alert engine failed to load. Alerts will not fire.",
+      "engineUnavailableHint": "The alert engine is not running. Alerts are saved but will only be evaluated after a successful page reload.",
       "createSuccess": "Alert created successfully.",
       "deleteAlert": "Delete Alert",
       "noHistory": "No history",

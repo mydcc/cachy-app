@@ -52,29 +52,55 @@ export interface AlertEvent {
   price: string;
 }
 
+export type WasmModuleLoader = () => Promise<WasmModule>;
+
+/**
+ * Loads the WASM glue and initialises its binary. Extracted so a test can
+ * substitute a fake module at this seam and still exercise the real
+ * `ensureLoaded` path. Mocking the whole service instead would only prove that
+ * a mock was called, not that `instance` is ever assigned — which is precisely
+ * what BUG-0382 got wrong.
+ */
+const loadWasmModule: WasmModuleLoader = async () => {
+  const wasmJsPath = '/wasm/technicals_wasm.js';
+  const wasmBinaryPath = '/wasm/technicals_wasm_bg.wasm';
+
+  const mod = (await import(/* @vite-ignore */ wasmJsPath)) as WasmModule;
+  await mod.default(wasmBinaryPath);
+  return mod;
+};
+
 class AlertEngineService {
   private wasmModule: WasmModule | null = null;
   private instance: WasmAlertEngineInstance | null = null;
   private loadingPromise: Promise<void> | null = null;
   private onAlertFiredCallbacks: ((event: AlertEvent) => void)[] = [];
 
-  async ensureLoaded(): Promise<void> {
+  /**
+   * Whether the engine can actually evaluate. While this is false every method
+   * below early-returns and no alert can fire — the state BUG-0382 shipped in.
+   */
+  get isLoaded(): boolean {
+    return this.instance !== null;
+  }
+
+  async ensureLoaded(loadModule: WasmModuleLoader = loadWasmModule): Promise<void> {
     if (this.wasmModule) return;
     if (this.loadingPromise) return this.loadingPromise;
 
     this.loadingPromise = (async () => {
       try {
-        const wasmJsPath = '/wasm/technicals_wasm.js';
-        const wasmBinaryPath = '/wasm/technicals_wasm_bg.wasm';
-
-        const mod = await import(/* @vite-ignore */ wasmJsPath);
-        await mod.default(wasmBinaryPath);
+        const mod = await loadModule();
 
         this.wasmModule = mod;
         this.instance = new mod.AlertEngineWasm();
 
         logger.log('alerts', '[AlertEngine] WASM Alert Engine loaded successfully.');
       } catch (err) {
+        // Clear the cached promise so a later attempt can retry. Leaving the
+        // rejected promise in place would make one transient failure permanent
+        // for the lifetime of the tab.
+        this.loadingPromise = null;
         logger.error('alerts', '[AlertEngine] Failed to load WASM alert engine', err);
         throw err;
       }
