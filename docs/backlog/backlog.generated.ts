@@ -2793,7 +2793,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0298",
     "title": "safeFetch fails open when the SSRF dispatcher cannot initialize",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "shipped": "1.6.0-beta.219",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3081,6 +3083,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "claude",
     "file": "bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md"
+  },
+  {
+    "id": "BUG-0382",
+    "title": "Security headers delivery on Express static assets and Lighthouse performance optimization",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "estimate": "1",
+    "assignee": "Jules",
+    "file": "bugs/BUG-0382-missing-security-headers-and-lighthouse-performance.md"
   },
   {
     "id": "FEAT-0019",
