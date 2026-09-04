@@ -179,7 +179,9 @@ describe("urlValidator", () => {
       vi.stubGlobal("fetch", fetchSpy);
       try {
         const { safeFetch } = await import("./urlValidator");
-        await expect(safeFetch("https://example.com")).rejects.toThrow("SSRF guard unavailable");
+        // Public IP literal: dns.lookup() resolves it without network access,
+        // keeping this test hermetic (no live-DNS dependency).
+        await expect(safeFetch("https://93.184.216.34/")).rejects.toThrow("SSRF guard unavailable");
         expect(fetchSpy).not.toHaveBeenCalled();
       } finally {
         vi.unstubAllGlobals();
