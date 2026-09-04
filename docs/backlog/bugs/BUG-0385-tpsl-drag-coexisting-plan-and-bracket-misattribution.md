@@ -22,7 +22,7 @@ the position plan's `sourceOrderId` — the wrong plan gets modified on
 the venue, silently.
 
 ## Evidence
-BUG-0383 fix in `handleTpSlDrop()` looks up
+BUG-0386 fix in `handleTpSlDrop()` looks up
 `tpSlState.plansFor(normalizedSymbol)` and reads
 `plans.profit` / `plans.loss` — the plan store has no key linking a
 plan to the order id whose chart line was dragged. When a position plan
@@ -55,4 +55,4 @@ symbol-level `plansFor()`. Position plans keep the current lookup.
 
 ## Links
 - `src/lib/windows/implementations/CandleChartView.svelte` — `handleTpSlDrop()`
-- `docs/backlog/bugs/BUG-0383-tpsl-drag-order-not-found.md` — parent fix
+- `docs/backlog/bugs/BUG-0386-tpsl-drag-order-not-found.md` — parent fix

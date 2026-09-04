@@ -1,8 +1,8 @@
 ---
-id: BUG-0383
+id: BUG-0386
 title: TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,10 +11,14 @@ data_class: none
 adr: none
 depends_on: []
 assignee: claude
-branch: fix-bug-0383-tpsl-drag
+branch: fix/bug-0383-tpsl-drag-order-not-found
 ---
 
-# BUG-0383 — TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound
+# BUG-0386 — TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound
+
+> Renumbered from BUG-0383: the id was created in parallel with
+> `BUG-0383-alert-definitions-modal-has-no-entry-point.md`. The fix
+> shipped via the branch noted above.
 
 ## Symptom
 Dragging a TP or SL line in the chart window to change the level shows
@@ -46,7 +50,7 @@ via `tpSlState.plansFor(normalizedSymbol)` and send
 failed mutation (payload + error) via `logger.warn("api", ...)` so the
 toast is reproducible from the console.
 
-Implemented on branch `fix-bug-0383-tpsl-drag` (this PR).
+Implemented on branch `fix/bug-0383-tpsl-drag-order-not-found`.
 
 ## Acceptance criteria
 - [ ] Dragging a TP or SL line for a position plan updates the trigger
