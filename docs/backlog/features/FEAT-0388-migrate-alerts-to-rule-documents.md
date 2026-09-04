@@ -35,6 +35,10 @@ untouched as a fallback until a later release removes it.
 Migrated rules arrive at `consequence_level: notify` with
 `provenance.source: human` — they were armed by the trader, not proposed.
 
+Once the rule engine is live, the legacy engine stops reading `cachy_alerts_v1`; the old
+key becomes a dormant fallback and a future release may remove it. This prevents double-fire
+(migrated alert firing once from the new engine, once from the legacy path).
+
 Class A throughout: the conversion happens on the device and nothing is reported
 anywhere.
 

@@ -24,7 +24,7 @@ only exists on a screen nobody is looking at is not an alarm.
 
 ## Proposal
 
-A fourth channel in the existing `notificationService`, beside in-app and browser.
+A third channel in the existing `notificationService`, beside in-app and browser.
 It is a channel, not a parallel notification system — the service already owns the
 policy of which channels announce what, and adding a second mechanism beside it is how
 that policy stops being one thing.

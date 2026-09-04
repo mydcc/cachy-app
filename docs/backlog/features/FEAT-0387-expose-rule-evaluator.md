@@ -42,7 +42,7 @@ Export the evaluator and drive it from a candle-close loop.
 **Rust.** Add `rule_evaluate` to `exports.rs` following the two-layer pattern already
 established there: an internal `evaluate_json` returning `Result<_, Refused>`, plus a
 three-line `#[wasm_bindgen]` shell that converts the refusal into a `JsValue`. The
-input carries the document plus the `EvalContext` payload; the output is a verdict
+input carries the document plus the `Ctx` payload; the output is a verdict
 naming which conditions held.
 
 **TypeScript.** Extend `ruleSchema` in `src/lib/rules/ruleSchema.ts` with `evaluate`,

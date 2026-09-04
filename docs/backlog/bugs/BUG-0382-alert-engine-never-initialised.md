@@ -134,7 +134,7 @@ Checked against the code on `develop`, criterion by criterion:
 |---|---|
 | Test reproduces the defect | `src/stores/alerts_engineWiring.test.ts` exists and exercises `initAlertEngine` through a substituted module loader — the seam the fix was designed around |
 | Engine loaded after startup | `initAlertEngine()` is called at `src/routes/+layout.svelte:325` |
-| Rehydrated alerts reach the engine | `initAlertEngine` calls `alertState.syncEngine()` after `ensureLoaded()` (`src/stores/alerts.svelte.ts:145`) |
+| Rehydrated alerts reach the engine | `initAlertEngine` calls `alertState.syncEngine()` after `ensureLoaded()` (`src/stores/alerts.svelte.ts:91`) |
 | Fired event marks the definition inactive | `alertEngine.onAlertFired` handler in `src/stores/alerts.svelte.ts` |
 | No initialisation during SSR | `if (!browser) return` guards the function |
 

@@ -18,7 +18,7 @@
   <!-- chart area stays visible: the reason this is a panel and not a modal -->
   <rect class="chart" x="16" y="16" width="480" height="588" rx="4"/>
   <text class="tm" x="34" y="44">Chart bleibt sichtbar und bedienbar</text>
-  <text class="ts" x="34" y="64">Rechtsklick auf die Preisskala → „Alarm hier“ (FEAT-0387)</text>
+  <text class=”ts” x=”34” y=”64”>Rechtsklick auf die Preisskala → „Alarm hier” (FEAT-0395)</text>
   <polyline points="40,300 90,260 140,290 190,220 240,250 290,180 340,210 390,150 440,175"
             fill="none" stroke="#4d5560" stroke-width="2"/>
 
@@ -61,7 +61,7 @@
   <text class="acc" x="532" y="296" font-size="13">+ Bedingung hinzufügen (2/5)</text>
   <rect x="532" y="316" width="332" height="1" fill="#3a414d"/>
 
-  <!-- footer: FEAT-0385 -->
+  <!-- footer: FEAT-0393 -->
   <text class="tm" x="532" y="344">Trigger-Methode</text>
   <text class="t"  x="864" y="344" text-anchor="end">In-App, Browser, Ton ▾</text>
   <text class="tm" x="532" y="374">Frequenz</text>
