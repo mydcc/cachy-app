@@ -24,7 +24,7 @@
 
 import type { IndicatorSettings } from '../types/indicators';
 import { toastService } from './toastService.svelte';
-import { getCapabilities } from './capabilityDetection';
+import { getCapabilities, type BrowserCapabilities } from './capabilityDetection';
 import { _ } from '../locales/i18n';
 import { get } from 'svelte/store';
 
@@ -46,7 +46,11 @@ interface EngineMetrics {
     lastMedian: number;
 }
 
-class CalculationStrategy {
+export class CalculationStrategy {
+  constructor() {
+    this.warmCapabilities();
+  }
+
   private metrics: Record<CalculationEngine, EngineMetrics> = {
     ts: { calls: 0, totalTime: 0, errors: 0, lastMedian: 0 },
     wasm: { calls: 0, totalTime: 0, errors: 0, lastMedian: 0 },
@@ -117,23 +121,33 @@ class CalculationStrategy {
     }
   }
 
+  private capabilitiesSnapshot: BrowserCapabilities | null = null;
+  private capabilitiesRequested = false;
+
+  /** Fire-and-forget capability prefetch so exportTelemetry() stays sync. */
+  warmCapabilities() {
+    if (this.capabilitiesRequested) return;
+    this.capabilitiesRequested = true;
+    getCapabilities().then((caps) => { this.capabilitiesSnapshot = caps; }).catch(() => {});
+  }
+
   exportTelemetry() {
-    const caps = getCapabilities();
+    const caps = this.capabilitiesSnapshot;
     const totalCalls = Object.values(this.metrics).reduce((sum, m) => sum + m.calls, 0);
     return {
         stats: this.metrics,
         performanceHistory: this.performanceHistory,
         capabilities: {
             ts: true,
-            wasm: caps.wasm,
-            simd: caps.wasmSIMD,
-            sharedMemory: caps.sharedMemory,
-            gpu: caps.gpu
+            wasm: caps?.wasm ?? (typeof WebAssembly !== 'undefined'),
+            simd: caps?.wasmSIMD ?? false,
+            sharedMemory: caps?.sharedMemory ?? false,
+            gpu: caps?.gpu ?? false
         },
         context: {
-            lowBattery: !caps.battery.charging && caps.battery.level < 0.2,
-            lowMemory: caps.deviceMemory < 4,
-            isMobile: caps.isMobile
+            lowBattery: !!caps && !!caps.battery && !caps.battery.charging && caps.battery.level < 0.2,
+            lowMemory: (caps?.deviceMemory ?? 8) < 4,
+            isMobile: caps?.isMobile ?? false
         },
         // Derived from the actual degradation rule in selectEngine() (median > 500ms)
         circuitBreaker: {

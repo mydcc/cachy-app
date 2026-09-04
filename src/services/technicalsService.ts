@@ -258,7 +258,12 @@ export const technicalsService = {
     } catch (e) {
       logger.warn('technicals', "Engine fallback triggered", e);
       calculationStrategy.recordMetrics(engine, performance.now() - startTime, false, klines.length);
-      return this.calculateTechnicalsInline(klines, finalSettings);
+      // Record the successful inline fallback separately so the panel
+      // doesn't over-state the failed engine's failure count.
+      const t0 = performance.now();
+      const result = this.calculateTechnicalsInline(klines, finalSettings);
+      calculationStrategy.recordMetrics('ts', performance.now() - t0, true, klines.length);
+      return result;
     }
   },
 
