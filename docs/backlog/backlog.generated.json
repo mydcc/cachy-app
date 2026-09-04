@@ -1191,10 +1191,10 @@
       "file": "bugs/BUG-0382-alert-engine-never-initialised.md"
     },
     {
-      "id": "BUG-0383",
+      "id": "BUG-0386",
       "title": "TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound",
       "type": "bug",
-      "status": "in-progress",
+      "status": "done",
       "priority": "P1",
       "milestone": "none",
       "editions": [
@@ -1207,8 +1207,8 @@
       "adr": "none",
       "depends_on": [],
       "assignee": "claude",
-      "branch": "fix-bug-0383-tpsl-drag",
-      "file": "bugs/BUG-0383-tpsl-drag-order-not-found.md"
+      "branch": "fix/bug-0383-tpsl-drag-order-not-found",
+      "file": "bugs/BUG-0386-tpsl-drag-order-not-found.md"
     },
     {
       "id": "FEAT-0014",

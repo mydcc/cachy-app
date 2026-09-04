@@ -381,7 +381,7 @@
     async function handleTpSlDrop(kind: TpSlKind, orderId: string, price: Decimal) {
         const planType = kind === "takeProfit" ? "PROFIT" : "LOSS";
         const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
-        // BUG-0383: `orderId` is the synthetic per-leg id (`<baseId>-tp` /
+        // BUG-0386: `orderId` is the synthetic per-leg id (`<baseId>-tp` /
         // `<baseId>-sl`, BUG-0292) that only exists locally. The venue knows
         // the row it was split from — send that id, not the leg id.
         const plans = tpSlState.plansFor(normalizedSymbol);
@@ -399,7 +399,7 @@
             );
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            // BUG-0383: the toast alone gave no reproducible trace — log the
+            // BUG-0386: the toast alone gave no reproducible trace — log the
             // failed mutation (payload + error) before surfacing it.
             logger.warn("api", "TP/SL drag update failed", {
                 orderId: plan?.sourceOrderId ?? orderId,
