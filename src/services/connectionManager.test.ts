@@ -32,7 +32,7 @@ vi.mock("./logger", () => ({
   },
 }));
 
-import { connectionManager } from "./connectionManager";
+import { connectionManager, ConnectionManager } from "./connectionManager";
 import type { ManagedService, PollingService } from "./connectionManager";
 
 function makeProvider() {
@@ -253,6 +253,44 @@ describe("ConnectionManager", () => {
 
       expect(bitunix.destroy).toHaveBeenCalledTimes(1);
       expect(bitunix.connect).toHaveBeenCalledWith(true);
+    });
+  });
+
+  describe("destroy", () => {
+    it("removes document and window listeners with exact references on destroy()", () => {
+      const docRemoveSpy = vi.spyOn(document, "removeEventListener");
+      const winRemoveSpy = vi.spyOn(window, "removeEventListener");
+      const docAddSpy = vi.spyOn(document, "addEventListener");
+      const winAddSpy = vi.spyOn(window, "addEventListener");
+
+      const manager = new ConnectionManager();
+
+      const visListener = docAddSpy.mock.calls.find((call) => call[0] === "visibilitychange")?.[1];
+      const focusListener = winAddSpy.mock.calls.find((call) => call[0] === "focus")?.[1];
+      const blurListener = winAddSpy.mock.calls.find((call) => call[0] === "blur")?.[1];
+
+      expect(visListener).toBeDefined();
+      expect(focusListener).toBeDefined();
+      expect(blurListener).toBeDefined();
+
+      manager.destroy();
+
+      expect(docRemoveSpy).toHaveBeenCalledWith("visibilitychange", visListener);
+      expect(winRemoveSpy).toHaveBeenCalledWith("focus", focusListener);
+      expect(winRemoveSpy).toHaveBeenCalledWith("blur", blurListener);
+    });
+
+    it("clears providers, polling service, and stops pending switches on destroy()", () => {
+      const manager = new ConnectionManager();
+      const provider = makeProvider();
+      const polling = makePolling();
+      manager.registerProvider("bitunix", provider);
+      manager.registerPolling(polling);
+
+      manager.destroy();
+
+      expect(polling.stopPolling).toHaveBeenCalledTimes(1);
+      expect(provider.destroy).toHaveBeenCalledTimes(1);
     });
   });
 });
