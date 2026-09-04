@@ -1,0 +1,59 @@
+# The evaluation core's own tests.
+#
+# Until this workflow existed, nothing in CI ran `cargo test`. `deploy-build.yml`
+# compiles the crate only as a side effect of `npm run build:wasm`, and
+# `scripts/build_wasm.sh` deliberately skips the build (exit 0) when a toolchain
+# or the wasm32 target is missing — so a broken rule validator or a regressed
+# alert condition could reach `develop` behind a green tick. FEAT-0027 put the
+# money-touching decisions in this crate precisely because Rust could be held to
+# a higher standard than the UI; that only means something if something checks.
+#
+# Scope note: this job runs the tests and the target build, not `cargo fmt
+# --check` or `cargo clippy -D warnings`. Both currently fail on pre-existing
+# code in `lib.rs`, `utils.rs` and `alert_exports.rs` (27 fmt diffs, 29 clippy
+# warnings), and turning them on here would land a red gate that says nothing
+# about the change under review. Cleaning that up is real work with its own
+# blast radius and belongs in its own item, not smuggled into a schema PR.
+name: Rust Core
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "technicals-wasm/**"
+      - ".github/workflows/rust-core.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "technicals-wasm/**"
+      - ".github/workflows/rust-core.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: cargo test + wasm32 build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # The host target runs the tests; wasm32 proves the crate still links
+          # for the target it actually ships to. Both matter — everything behind
+          # `#[wasm_bindgen]` is unreachable from a host test (js-sys panics off
+          # wasm32), so only the build catches a break there.
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: technicals-wasm
+
+      - name: cargo test
+        working-directory: technicals-wasm
+        run: cargo test --verbose
+
+      - name: cargo build --target wasm32-unknown-unknown
+        working-directory: technicals-wasm
+        run: cargo build --release --target wasm32-unknown-unknown
