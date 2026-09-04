@@ -24,6 +24,7 @@
 
 import type { IndicatorSettings } from '../types/indicators';
 import { toastService } from './toastService.svelte';
+import { getCapabilities } from './capabilityDetection';
 import { _ } from '../locales/i18n';
 import { get } from 'svelte/store';
 
@@ -117,14 +118,34 @@ class CalculationStrategy {
   }
 
   exportTelemetry() {
-    return { 
+    const caps = getCapabilities();
+    const totalCalls = Object.values(this.metrics).reduce((sum, m) => sum + m.calls, 0);
+    return {
         stats: this.metrics,
         performanceHistory: this.performanceHistory,
-        // Mock other fields expected by DebugPanel for now
-        capabilities: { ts: true, wasm: false, simd: false, sharedMemory: false, gpu: false },
-        context: { lowBattery: false, lowMemory: false, isMobile: false },
-        circuitBreaker: {} as Record<string, EngineCircuitBreakerHealth>,
-        usagePercent: {} as Record<string, number>
+        capabilities: {
+            ts: true,
+            wasm: caps.wasm,
+            simd: caps.wasmSIMD,
+            sharedMemory: caps.sharedMemory,
+            gpu: caps.gpu
+        },
+        context: {
+            lowBattery: !caps.battery.charging && caps.battery.level < 0.2,
+            lowMemory: caps.deviceMemory < 4,
+            isMobile: caps.isMobile
+        },
+        // Derived from the actual degradation rule in selectEngine() (median > 500ms)
+        circuitBreaker: {
+            wasm: this.metrics.wasm.lastMedian > 500
+                ? { healthy: false, lastError: 'median > 500ms — degraded to ts', failures: 1 }
+                : { healthy: true, lastError: '', failures: 0 }
+        } as Record<string, EngineCircuitBreakerHealth>,
+        usagePercent: Object.fromEntries(
+            Object.entries(this.metrics).map(([engine, m]) => [
+                engine, totalCalls > 0 ? Math.round((m.calls / totalCalls) * 100) : 0
+            ])
+        ) as Record<string, number>
     };
   }
 }
