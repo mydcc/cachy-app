@@ -28,6 +28,7 @@
   import { onMount, type Component } from "svelte";
   import { initAutoBackup, autoBackupState } from "../services/autoBackupService.svelte";
   import { initFileTargets } from "../services/fileTargetBackupService.svelte";
+  import { initAlertEngine } from "../stores/alerts.svelte";
 import { afterNavigate } from "$app/navigation";
   import { page } from "$app/stores";
   import { trackPageView } from "../services/trackingService";
@@ -309,6 +310,24 @@ import { afterNavigate } from "$app/navigation";
 
     // Initialize Zoom Plugin (Client-side only)
     initZoomPlugin();
+
+    // BUG-0382: bring the alert engine up and re-register alerts rehydrated
+    // from localStorage. Without this the engine's WASM instance stays null,
+    // every call on it early-returns, and no alert ever fires.
+    // A failed WASM load must not take down app startup — alerts are not
+    // required for the calculator, journal or risk management to work — so it
+    // is logged rather than surfaced as an error modal.
+    initAlertEngine().catch((err) => {
+      import("../services/logger")
+        .then((m) =>
+          m.logger.error(
+            "alerts",
+            "[Layout] Alert engine failed to initialise — alerts will not fire",
+            err,
+          ),
+        )
+        .catch(() => {});
+    });
 
     // Global Error Handling
     const handleGlobalError = (event: ErrorEvent) => {
