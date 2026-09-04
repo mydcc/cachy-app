@@ -2,9 +2,9 @@
 
 # Backlog index
 
-265 items. How to read and add them: [README.md](README.md).
+268 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-progress 3 · ✅ done 206
+Counts by status: 💡 idea 21 · 📋 specced 31 · 🟢 ready 6 · 🟡 in-progress 4 · ✅ done 206
 
 ---
 
@@ -200,6 +200,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | ✅ done | exchange |
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | chat |
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟢 ready | calculation |
+| [BUG-0383](bugs/BUG-0383-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | 🟡 in-progress | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -244,6 +245,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | chat |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | calculator |
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | exchange |
+| [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | exchange |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -303,6 +305,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟢 ready | indicators |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | chat |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | exchange |
+| [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | exchange |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -391,6 +394,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
+| [BUG-0383](bugs/BUG-0383-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -477,6 +481,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
@@ -566,6 +571,7 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -604,4 +610,4 @@ Counts by status: 💡 idea 21 · 📋 specced 29 · 🟢 ready 6 · 🟡 in-pro
 
 ---
 
-Next free number: **0383**
+Next free number: **0386**
