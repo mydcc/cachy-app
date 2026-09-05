@@ -60,7 +60,7 @@ describe("withRecordedOrigins", () => {
     });
   });
 
-  // The core safety property of FEAT-0399: an entry whose alert has since been
+  // The core safety property of FEAT-0401: an entry whose alert has since been
   // deleted IS the orphan record. Rewriting it would destroy the only evidence
   // that the rule was migrated rather than authored by hand.
   it("never rewrites an entry that already exists", () => {

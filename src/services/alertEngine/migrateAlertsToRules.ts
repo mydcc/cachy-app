@@ -95,7 +95,7 @@ function describeAlert(alert: unknown): string {
  * still-armed rule behind, re-firing at the FEAT-0387 cutover for something
  * the trader already saw fire. Deletion is not handled here: a rule whose
  * alert has since been removed from `cachy_alerts_v1` entirely is left as
- * is. What changed with FEAT-0399 is that the two are now *distinguishable*:
+ * is. What changed with FEAT-0401 is that the two are now *distinguishable*:
  * every rule this migration writes is recorded in `cachy_rule_origin_v1`, so
  * a reader can tell a migrated-then-orphaned rule from one a rule editor
  * authored directly. Deciding what to do with an orphan — disable it, drop
@@ -140,7 +140,7 @@ export async function migrateAlertsToRuleDocuments(
     const syncedRules = [...existingRules];
     let rulesChanged = false;
 
-    // FEAT-0399: one timestamp for the whole run, so every rule written and
+    // FEAT-0401: one timestamp for the whole run, so every rule written and
     // every ledger entry recorded below agree on when this migration ran.
     const runAtMs = Date.now();
     const originLedger = readRuleOriginLedger();
@@ -185,7 +185,7 @@ export async function migrateAlertsToRuleDocuments(
           logger.debug("alerts", `Synced rule ${id}'s enabled state to match its alert's active flag (${active})`);
         }
 
-        // FEAT-0399: this rule was migrated by a run that predates the
+        // FEAT-0401: this rule was migrated by a run that predates the
         // ledger. Its alert is still here, so the link is provable now —
         // once the trader deletes that alert it never can be again, and the
         // rule becomes indistinguishable from a hand-authored one forever.
@@ -242,7 +242,7 @@ export async function migrateAlertsToRuleDocuments(
         const rule: unknown = JSON.parse(ruleJson);
         migratedRules.push(rule);
 
-        // FEAT-0399: the key is read back off the produced document, not off
+        // FEAT-0401: the key is read back off the produced document, not off
         // the alert. The conversion currently reuses the alert's id, but the
         // ledger has to be keyed by whatever actually landed in
         // `cachy_rules_v1` — that is the id a later reader looks up.

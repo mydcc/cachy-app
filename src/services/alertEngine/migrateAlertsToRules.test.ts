@@ -272,7 +272,7 @@ function readLedger(): StoredLedger {
   return raw ? JSON.parse(raw) : { schema_version: 0, entries: {} };
 }
 
-describe("FEAT-0399 — record a migration origin ledger", () => {
+describe("FEAT-0401 — record a migration origin ledger", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
