@@ -96,6 +96,12 @@ until `FEAT-0388` migrates off it.
   how to reconcile ids at cutover (e.g. disable or drop any rule whose id has no
   matching alert, if `cachy_rules_v1` still only ever holds migrated rules at that
   point).
+- **Granularity behavior change from FEAT-0388.** Migrated alerts are pinned to `1m`
+  Close evaluation (decision per ADR-0012 decision 3; see FEAT-0388 backlog "Behavior
+  Change Documented for FEAT-0387"). At cutover, surface this to traders clearly:
+  "Legacy alerts fired per-tick; migrated ones fire on candle close. You may see up
+  to 1-minute delay, and mid-candle touch-recoveries will no longer fire." No
+  implementation change needed here, just user communication.
 
 ## Links
 
