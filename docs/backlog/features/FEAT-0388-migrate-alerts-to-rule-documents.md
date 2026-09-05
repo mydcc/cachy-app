@@ -2,7 +2,9 @@
 id: FEAT-0388
 title: Migrate stored price alerts to rule documents
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: worktree-feat-0388-weitermachen-10ee20
 priority: P1
 milestone: M4
 editions: [community, pro, private]
@@ -12,6 +14,7 @@ adr: ADR-0012
 depends_on: [FEAT-0387]
 size: S
 estimate: 2
+start_date: 2026-09-05
 ---
 
 # FEAT-0388 — Migrate stored price alerts to rule documents
@@ -54,9 +57,24 @@ anywhere.
       migration for the remaining entries
 - [ ] No migrated rule carries a `consequence_level` above `notify`
 
+## Behavior Change Documented for FEAT-0387
+
+The migration hardcodes a fixed `1m` Close evaluation granularity (`migrateAlertsToRules.ts:28`)
+instead of inheriting a per-alert default from the old engine's per-tick model. This is
+intentional — ADR-0012 decision 3 states that a rule must explicitly choose its timeframe
+rather than inventing one. At the FEAT-0387 cutover, a migrated alert will:
+
+- Fire on the candle *close* of each 1-minute period, not on intra-candle ticks
+- Have up to 1-minute delay if the level is crossed mid-candle
+- Never fire for a mid-candle touch-and-recover (spike crosses, closes back below)
+
+This is a product choice worth surfacing to traders before cutover.
+
 ## Out of scope
 
-- Deleting `cachy_alerts_v1`. A later release, once the migration has shipped.
+- Deleting `cachy_alerts_v1`. Targeted for `M5` at the earliest — after the rest of
+  the `M4` alerting rework (`FEAT-0387` through `FEAT-0397`) has shipped and had a
+  full milestone to prove itself on real installs.
 
 ## Links
 

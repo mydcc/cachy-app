@@ -19,6 +19,7 @@ import { get } from "svelte/store";
 
 import { browser } from "$app/environment";
 import { alertEngine, type AlertDefinition, type WasmModuleLoader } from "../services/alertEngine/alertEngine";
+import { migrateAlertsToRuleDocuments } from "../services/alertEngine/migrateAlertsToRules";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
 
@@ -132,6 +133,10 @@ export const alertState = new AlertsManager();
  */
 export async function initAlertEngine(loadModule?: WasmModuleLoader): Promise<void> {
     if (!browser) return;
+
+    // FEAT-0388: one-shot, best-effort — migrateAlertsToRuleDocuments()
+    // never throws, so a migration hiccup cannot block the engine below.
+    await migrateAlertsToRuleDocuments();
 
     try {
         await alertEngine.ensureLoaded(loadModule);
