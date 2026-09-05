@@ -446,6 +446,28 @@ describe("IndicatorLayer", () => {
         expect((env.panes[3] as MockPane).setHeight).not.toHaveBeenCalled();
     });
 
+    it("keeps collapsed strips at 20px when the window grows past the capped pane height", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({
+            rsi: { ...on({ length: 14, source: "close" }), visible: false },
+        }));
+        layer.render(makeRows(60));
+        expect(factorOf(env.panes, 2)).toBe(20);
+
+        // Grow the window while open panes already sit at the capped 80px:
+        // layout count and height do not change, so without a re-apply the
+        // stale stretch factors (encoding the old pixel area) would scale
+        // every pane up proportionally — including the strip.
+        const strip = env.panes[2] as MockPane;
+        const setStretch = strip.setStretchFactor as ReturnType<typeof vi.fn>;
+        const callsBefore = setStretch.mock.calls.length;
+        layer.setAvailableHeight(1400);
+
+        expect(setStretch.mock.calls.length).toBeGreaterThan(callsBefore);
+        expect(setStretch.mock.calls[setStretch.mock.calls.length - 1][0]).toBe(20);
+    });
+
     it("clears reported panes when the indicator layer is destroyed", () => {
         const onPanesChanged = vi.fn();
         const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);

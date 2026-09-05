@@ -179,6 +179,12 @@ export class IndicatorLayer {
      * only needs setHeight on the panes that already exist. That split
      * matters because ResizeObserver fires continuously while dragging, and
      * tearing every series down on each of those frames visibly stutters.
+     *
+     * Stretch factors encode absolute px sizes for the pixel area they were
+     * computed for, so even an unchanged layout needs a re-apply when the
+     * area itself changed (e.g. growing the window while open panes already
+     * sit at the capped height): without it the stale factors scale every
+     * pane up proportionally and collapsed strips grow past 20px.
      */
     setAvailableHeight(h: number): void {
         if (h === this.availableHeight) return;
@@ -187,7 +193,13 @@ export class IndicatorLayer {
         const next = this.computeLayout();
         const countChanged = next.count !== this.layout.count;
         const heightChanged = next.height !== this.layout.height;
-        if (!countChanged && !heightChanged) return;
+        if (!countChanged && !heightChanged) {
+            // Same layout, new pixel area: re-apply so absolute sizes
+            // (especially the 20px strips) survive the resize. Cheap —
+            // only setStretchFactor calls, no teardown or rebuild.
+            this.applyPaneHeights();
+            return;
+        }
 
         if (countChanged && this.lastRows) {
             this.render(this.lastRows); // recomputes and stores the layout
