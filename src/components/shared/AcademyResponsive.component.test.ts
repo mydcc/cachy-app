@@ -162,6 +162,24 @@ function splitLayout(view: HTMLElement): HTMLElement {
     return split!;
 }
 
+/*
+ * Fluid-wrap contract: the pattern list and the strategy column keep
+ * readable minima (200px / 280px) and the rows wrap instead of squeezing
+ * or overflowing when the window is only slightly narrowed.
+ */
+function expectFluidColumns(view: HTMLElement) {
+    const sidebar = view.children[0] as HTMLElement;
+    expect(sidebar.classList.contains("@md:min-w-[200px]")).toBe(true);
+    expect(view.classList.contains("@md:flex-wrap")).toBe(true);
+
+    const split = splitLayout(view);
+    expect(split.classList.contains("@lg:flex-wrap")).toBe(true);
+    const left = split.children[0] as HTMLElement;
+    const right = split.children[1] as HTMLElement;
+    expect(left.classList.contains("@lg:flex-[2_1_320px]")).toBe(true);
+    expect(right.classList.contains("@lg:flex-[1_1_280px]")).toBe(true);
+}
+
 describe("Academy window resize responsiveness (container queries)", () => {
     it("AcademyContent root is a query container, not viewport-driven", async () => {
         const root = await renderAcademy();
@@ -184,6 +202,8 @@ describe("Academy window resize responsiveness (container queries)", () => {
         expect(sidebar.classList.contains("@md:w-1/4")).toBe(true);
         expect(sidebar.classList.contains("md:w-1/4")).toBe(false);
 
+        expectFluidColumns(view);
+
         const split = splitLayout(view);
         expect(split.classList.contains("lg:flex-row")).toBe(false);
     });
@@ -202,6 +222,8 @@ describe("Academy window resize responsiveness (container queries)", () => {
         const view = activeViewRoot(root);
         expect(view.classList.contains("@md:flex-row")).toBe(true);
         expect(view.classList.contains("md:flex-row")).toBe(false);
+
+        expectFluidColumns(view);
 
         const split = splitLayout(view);
         expect(split.classList.contains("lg:flex-row")).toBe(false);

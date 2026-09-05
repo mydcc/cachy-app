@@ -138,10 +138,10 @@
     }
 </script>
 
-<div class="flex flex-col @md:flex-row h-full gap-4 min-h-0 min-w-0">
+<div class="flex flex-col @md:flex-row @md:flex-wrap h-full gap-4 min-h-0 min-w-0">
     <!-- Sidebar -->
     <div
-        class="w-full @md:w-1/4 @lg:w-1/5 flex flex-col gap-4 max-h-[35vh] shrink-0 @md:max-h-none @md:shrink min-w-0 border-b border-[var(--border-color)] pb-4 @md:border-b-0 @md:border-r @md:pr-4"
+        class="w-full @md:w-1/4 @lg:w-1/5 @md:min-w-[200px] flex flex-col gap-4 max-h-[35vh] shrink-0 @md:max-h-none @md:shrink min-w-0 border-b border-[var(--border-color)] pb-4 @md:border-b-0 @md:border-r @md:pr-4"
     >
         <!-- Search & Filter -->
         <div
@@ -221,7 +221,7 @@
 
     <!-- Main Content -->
     <div
-        class="w-full @md:w-3/4 @lg:w-4/5 flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2 flex-1 min-h-0 min-w-0 @md:flex-none"
+        class="w-full @md:w-3/4 @lg:w-4/5 @md:min-w-[300px] flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2 flex-1 min-h-0 min-w-0 @md:flex-none"
     >
         {#if currentPattern}
             <!-- Header -->
@@ -282,9 +282,9 @@
             </div>
 
             <!-- Split Layout: Chart/Desc vs Strategy/Interp -->
-            <div class="flex flex-col @lg:flex-row gap-6 h-full min-w-0">
+            <div class="flex flex-col @lg:flex-row @lg:flex-wrap gap-6 h-full min-w-0">
                 <!-- Left Column (66%) -->
-                <div class="w-full @lg:w-2/3 flex flex-col gap-6 min-w-0">
+                <div class="w-full @lg:flex-[2_1_320px] flex flex-col gap-6 min-w-0">
                     <!-- Chart Visualization -->
                     <div class="w-full min-w-0">
                         <ChartPatternChart pattern={currentPattern} />
@@ -324,7 +324,7 @@
                 </div>
 
                 <!-- Right Column (33%) -->
-                <div class="w-full @lg:w-1/3 flex flex-col gap-6 h-full min-w-0">
+                <div class="w-full @lg:flex-[1_1_280px] flex flex-col gap-6 h-full min-w-0">
                     <!-- Trading Strategy -->
                     <div
                         class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]"
