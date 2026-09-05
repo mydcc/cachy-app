@@ -320,6 +320,8 @@ export type TranslationKey =
   | "dashboard.alerts.cutoverNoticeTitle"
   | "dashboard.alerts.cutoverNoticeBody"
   | "dashboard.alerts.cutoverNoticeDismiss"
+  | "dashboard.alerts.orphanSuspendedHint"
+  | "dashboard.alerts.orphanWithheldHint"
   | "dashboard.generalInputs.header"
   | "dashboard.generalInputs.longButton"
   | "dashboard.generalInputs.shortButton"

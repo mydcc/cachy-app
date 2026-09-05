@@ -97,6 +97,27 @@
         </div>
     {/if}
 
+    <!--
+      FEAT-0387 cutover — the "report" half of suspend-and-report
+      (reconcileOrphanedRules.ts). Not dismissible and not derived once: it
+      reflects `alertState.orphanReport` as it stands right now, the same way
+      the engine-failed banner above does, because `withheld` names alarms
+      still armed *despite unresolved doubt* — a trader has to see that for as
+      long as it is true, not just once. `suspended` naturally stops appearing
+      on its own once nothing new needs suspending (an already-disabled rule
+      is not re-reported), so no acknowledgement bookkeeping is needed either.
+    -->
+    {#if alertState.orphanReport && (alertState.orphanReport.suspended.length > 0 || alertState.orphanReport.withheld.length > 0)}
+        <div class="engine-warning" role={alertState.orphanReport.withheld.length > 0 ? "alert" : "status"}>
+            {#if alertState.orphanReport.suspended.length > 0}
+                <p>{$_('dashboard.alerts.orphanSuspendedHint', { values: { count: alertState.orphanReport.suspended.length } })}</p>
+            {/if}
+            {#if alertState.orphanReport.withheld.length > 0}
+                <p>{$_('dashboard.alerts.orphanWithheldHint', { values: { count: alertState.orphanReport.withheld.length } })}</p>
+            {/if}
+        </div>
+    {/if}
+
     <div class="alert-form">
         <h4>{$_('dashboard.alerts.addAlert')}</h4>
         <div class="input-group">

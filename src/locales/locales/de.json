@@ -331,7 +331,9 @@
       "symbol": "Symbol",
       "cutoverNoticeTitle": "Deine Alarme lösen jetzt anders aus",
       "cutoverNoticeBody": "Bestehende Alarme werden ab sofort beim Abschluss jeder 1-Minuten-Kerze geprüft statt bei jeder einzelnen Preisänderung. Zwei Dinge ändern sich dadurch: Ein Alarm kann bis zu eine Minute später kommen, und ein kurzes Durchstechen deiner Marke, das sich noch in derselben Minute zurückbildet, löst keinen Alarm mehr aus.",
-      "cutoverNoticeDismiss": "Verstanden"
+      "cutoverNoticeDismiss": "Verstanden",
+      "orphanSuspendedHint": "Migrierte Alarme deaktiviert: {count}. Der ursprüngliche Preisalarm existiert für diese nicht mehr, deshalb wurden sie automatisch abgeschaltet.",
+      "orphanWithheldHint": "Migrierte Alarme mit ungeklärter Herkunft: {count}. Wir konnten nicht sicher feststellen, ob der ursprüngliche Preisalarm gelöscht wurde, deshalb bleiben sie vorsichtshalber aktiv und können weiterhin auslösen."
     },
     "generalInputs": {
       "header": "Allgemein",
@@ -1149,7 +1151,7 @@
     "feeRates": "Gebührenraten — {venue}",
     "feeRatesMaker": "Maker (%)",
     "feeRatesTaker": "Taker (%)",
-      "feeRatesDesc": "Deine persönlichen Gebühren (abhängig von deinem Broker-Level). Sie werden für die simulierte Berechnung im Frontend verwendet. Standardwerte: 0.014/0.042 pro Venue — passe sie an deine echten Raten an. Das Journal erhält später die tatsächlich berechneten Broker-Gebühren.",
+    "feeRatesDesc": "Deine persönlichen Gebühren (abhängig von deinem Broker-Level). Sie werden für die simulierte Berechnung im Frontend verwendet. Standardwerte: 0.014/0.042 pro Venue — passe sie an deine echten Raten an. Das Journal erhält später die tatsächlich berechneten Broker-Gebühren.",
     "providerLabel": "Börsen-Anbieter",
     "securityNote": "Schlüssel werden lokal in deinem Browser gespeichert.",
     "imgbbHeader": "ImgBB Bild-Hosting",
