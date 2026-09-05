@@ -34,7 +34,7 @@
       const targetPrice = newAlertPrice.toString();
 
       const newAlert = {
-          id: String(Math.floor(Math.random() * 100000000)),
+          id: crypto.randomUUID(),
           symbol: newAlertSymbol,
           condition: { price_reached: targetPrice },
           active: true
