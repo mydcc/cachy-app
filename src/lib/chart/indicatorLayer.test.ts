@@ -86,7 +86,7 @@ function makeChart() {
         }),
         panes: () => panes,
         applyOptions: vi.fn(),
-        timeScale: () => ({ applyOptions: vi.fn(), fitContent: vi.fn() }),
+        timeScale: () => ({ applyOptions: vi.fn(), fitContent: vi.fn(), height: () => 30 }),
         priceScale: () => ({ width: () => 60 }),
     } as unknown as IChartApi<Time>;
     return { chart, panes };

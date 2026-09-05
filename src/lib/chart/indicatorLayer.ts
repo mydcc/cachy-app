@@ -311,11 +311,13 @@ export class IndicatorLayer {
         const subTotal = stripCount * STRIP_HEIGHT + openCount * this.layout.height;
         if (subTotal === 0) return;
 
-        // The pane area in px is conserved by lightweight-charts; reading
-        // it keeps the candle pane at exactly the leftover instead of
-        // guessing the time-axis/separator chrome.
-        let paneArea = 0;
-        for (const pane of panes) paneArea += pane.getHeight();
+        // The pane area in px is conserved by lightweight-charts, but pane
+        // heights read via getHeight() are stale right after panes were
+        // materialized (the widget layout recalc runs asynchronously), so
+        // the area is derived deterministically instead: the chart's
+        // container height minus the time axis and the pane separators.
+        let paneArea = this.availableHeight - this.chart.timeScale().height();
+        if (panes.length > 1) paneArea -= panes.length - 1; // separators
         panes[0].setStretchFactor(Math.max(PRICE_PANE_MIN, paneArea - subTotal));
         for (const idx of this.createdPaneIndices) {
             const pane = panes[idx];
