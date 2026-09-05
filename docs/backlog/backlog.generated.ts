@@ -5903,6 +5903,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0398-engine-debug-panel-telemetry.md"
   },
   {
+    "id": "FEAT-0399",
+    "title": "Remove the legacy cachy_alerts_v1 store and evaluation path",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "M5",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0388",
+      "FEAT-0389"
+    ],
+    "file": "features/FEAT-0399-remove-legacy-alerts-v1.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",
