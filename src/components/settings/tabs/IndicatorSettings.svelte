@@ -114,6 +114,11 @@
                             <span class="text-sm">{$_("settings.technicals.signals")}</span>
                             <Toggle bind:checked={indicatorState.panelSections.signals} />
                         </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.fullHeight")}</span>
+                            <Toggle bind:checked={settingsState.technicalsFullHeight} />
+                        </div>
+                        <p class="text-xs text-[var(--text-secondary)] -mt-2">{$_("settings.technicals.fullHeightDesc")}</p>
                     </div>
                 </section>
 

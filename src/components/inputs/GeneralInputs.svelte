@@ -115,7 +115,7 @@
 
   // Guard the degenerate input so a mirrored rate can never be `""` or
   // `undefined`: a Settings fee field the user cleared stores `""`. That falls
-  // back to the flat default (0.06) rather than feeding the calculator a
+  // back to the flat default (0.0420) rather than feeding the calculator a
   // zero-fee sizing. The check is explicit, not `||`: a literal `"0"` (a venue
   // promo or rebate rate) is a legitimate zero-percent fee and must pass
   // through; only undefined and the empty string are degenerate.
@@ -178,15 +178,24 @@
   const exitFee = $derived(resolveFor(exitRole));
 
   /*
-   * The headline field keeps showing the exit-leg rate, as it did before the
-   * split: that is the rate the Settings MAKER/TAKER choice governs, and it is
-   * the conservative one of the two. It is read-only exactly when it comes
-   * from the broker — mirroring the leverage field since FEAT-0328 — and stays
-   * editable in paper trading and whenever no rate could be derived.
+   * Read-only fee line: Settings is the only place a rate is written, so this
+   * panel never offers an input. It shows both rates neutrally — maker and
+   * taker — with one provenance chip beside the label. Deliberately no
+   * entry/exit words: which role a fill pays is decided by what the user does
+   * (market pays taker, limit pays maker), so fixing either leg as a label
+   * would state something unknowable. The sizing maths still resolves both
+   * legs separately below (`entryFee` follows the order type, `exitFee` the
+   * Settings assumption).
    */
-  const headline = $derived(exitFee);
-  const headlineReadonly = $derived(headline.provenance === "broker");
-  const activeRole = $derived(exitRole);
+  const makerFee = $derived(resolveFor("maker"));
+  const takerFee = $derived(resolveFor("taker"));
+  const dominantProvenance = $derived<"broker" | "manual" | "assumed">(
+    makerFee.provenance === "broker" || takerFee.provenance === "broker"
+      ? "broker"
+      : makerFee.provenance === "manual" || takerFee.provenance === "manual"
+        ? "manual"
+        : "assumed",
+  );
 
   function provenanceLabel(provenance: "broker" | "assumed" | "manual"): string {
     if (provenance === "broker") return $_("dashboard.generalInputs.feeFromBroker");
@@ -198,39 +207,14 @@
     return role === "maker" ? $_("journal.table.maker") : $_("journal.table.taker");
   }
 
-  /**
-   * Editing the headline writes back to the Settings rate for that role — the
-   * only place a user-entered rate lives. Refused while the value is the
-   * broker's: overwriting a number the exchange actually charged with a typed
-   * guess is the exact confusion this item exists to remove.
-   */
-  function commitHeadline(input: HTMLInputElement) {
-    if (headlineReadonly) {
-      input.value = headline.display;
-      return;
-    }
-    // A decimal comma is what a German keyboard produces; accept it rather
-    // than treating a legitimate entry as junk.
-    const raw = input.value.trim().replace(",", ".");
-    if (toDecimalOrNull(raw) === null) {
-      // Refuse silently-wrong input rather than storing a rate that cannot be
-      // parsed back. Restoring the field is the feedback: the number the
-      // calculator is actually using reappears in place of what was typed.
-      input.value = headline.display;
-      return;
-    }
-    settingsState.feeRates = {
-      ...settingsState.feeRates,
-      [exchange]: { ...feeRates, [activeRole]: raw },
-    };
-  }
-
   $effect(() => {
     // `untrack` so each effect depends on the resolved rate only. Reading the
     // local value reactively would re-run the effect on its own write. As with
     // the leverage mirror, write `tradeState` directly — those are the values
     // the sizing maths reads; there is no `fees` prop anymore.
-    const flat = headline.display;
+    // `tradeState.fees` keeps mirroring the exit leg, as before the split:
+    // that is the rate the Settings MAKER/TAKER choice governs.
+    const flat = exitFee.display;
     if (untrack(() => tradeState.fees) !== flat) tradeState.fees = flat;
   });
 
@@ -333,68 +317,44 @@
       {/if}
 
       <!--
-        Fees. FEAT-0253: the field shows the exit-leg rate and says where that
-        number came from. It is read-only exactly when the broker supplied it —
-        the same rule the leverage chip follows — and editable otherwise, which
-        covers paper trading and a fresh account with no fills yet.
-
-        Below it, both legs are spelled out: which role each pays, why it pays
-        that role, and the provenance of each rate. A user must be able to see
-        at a glance that the exit number is an assumption and not a quote.
+        Fees, read-only. FEAT-0253: Settings is the only place a rate is
+        written — this panel only shows both rates. The provenance chip sits
+        beside the label; the line itself names maker and taker only, never
+        entry or exit, because the user's own action decides which role a
+        fill pays.
       -->
-      <div class="flex flex-col gap-1 min-w-0 flex-1">
-        <label
-          for="fees-input"
-          class="text-[11px] font-medium text-[var(--text-secondary)]"
-          >{$_("dashboard.generalInputs.fees")}</label
+      <div class="flex w-fit min-w-0 flex-col gap-1">
+        <div class="flex items-center justify-between gap-2">
+          <span
+            id="fees-label"
+            class="text-[11px] font-medium text-[var(--text-secondary)]"
+            >{$_("dashboard.generalInputs.fees")}</span
+          >
+          <span class="fee-badge" data-provenance={dominantProvenance}
+            >{provenanceLabel(dominantProvenance)}</span
+          >
+        </div>
+        <div
+          class="fee-summary"
+          role="note"
+          aria-labelledby="fees-label"
+          aria-label={$_("dashboard.generalInputs.feeSummaryAria", {
+            values: {
+              maker: `${makerFee.display}% ${roleLabel("maker")}`,
+              taker: `${takerFee.display}% ${roleLabel("taker")}`,
+              provenance: provenanceLabel(dominantProvenance),
+            },
+          })}
+          title={dominantProvenance === "assumed"
+            ? undefined
+            : `${roleLabel("maker")} ${makerFee.display}% (${provenanceLabel(makerFee.provenance)}) · ${roleLabel("taker")} ${takerFee.display}% (${provenanceLabel(takerFee.provenance)})`}
         >
-        <div class="relative flex items-center">
-          <input
-            id="fees-input"
-            name="fees"
-            type="text"
-            data-track-id="input-fees"
-            readonly={headlineReadonly}
-            value={headline.display}
-            onchange={(e) => commitHeadline(e.target as HTMLInputElement)}
-            class="fee-input w-full"
-            aria-describedby="fee-provenance"
-          />
-          <!--
-            The unit belongs next to the number, not only in the label above:
-            `values.fees` is a PERCENTAGE (0.06 means 0.06%), and the division
-            by 100 happens inside the calculator. Showing "%" here is what
-            stops the value being read as a fraction (BUG-0329).
-          -->
-          <span class="fee-role">
-            <span class="fee-unit">%</span>
-            {roleLabel(activeRole)}
-          </span>
-        </div>
-        <div class="fee-legs" id="fee-provenance">
-          <span class="fee-leg">
-            <span class="fee-leg-name"
-              >{$_("dashboard.generalInputs.feeEntryLeg")}</span
-            >
-            <span class="fee-leg-value"
-              >{roleLabel(entryRole)} {entryFee.display}%</span
-            >
-            <span class="fee-badge" data-provenance={entryFee.provenance}
-              >{provenanceLabel(entryFee.provenance)}</span
-            >
-          </span>
-          <span class="fee-leg">
-            <span class="fee-leg-name"
-              >{$_("dashboard.generalInputs.feeExitLeg")}</span
-            >
-            <span class="fee-leg-value"
-              >{roleLabel(exitRole)} {exitFee.display}%</span
-            >
-            <span class="fee-badge" data-provenance={exitFee.provenance}
-              >{provenanceLabel(exitFee.provenance)}</span
-            >
-          </span>
-        </div>
+          <span
+            class="fee-dot"
+            data-provenance={dominantProvenance}
+            aria-hidden="true"
+          ></span>
+          <span class="fee-text">{makerFee.display}% {$_("dashboard.generalInputs.feeMakerShort")} · {takerFee.display}% {$_("dashboard.generalInputs.feeTakerShort")}</span></div>
       </div>
     </div>
 
@@ -405,8 +365,9 @@
 
 <style>
   /*
-   * Sized to match the chips `ExchangeAccountControls` renders beside it, so
-   * the three columns read as one row rather than three stacked controls.
+   * Read-only summary, sized to match the chips `ExchangeAccountControls`
+   * renders beside it, so the row reads as one line rather than stacked
+   * controls. Replaces the old input + two leg rows (~90px) with ~36px.
    */
   .fee-input {
     min-height: 2.25rem;
@@ -423,41 +384,35 @@
   .fee-input:focus {
     border-color: var(--accent-color);
   }
-  .fee-role {
-    position: absolute;
-    right: 0.6rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.625rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--text-tertiary);
-    pointer-events: none;
-  }
-  /* The unit reads as part of the number, the role as the annotation. */
-  .fee-unit {
-    letter-spacing: normal;
-    color: var(--text-secondary);
-  }
-  .fee-legs {
+  .fee-summary {
+    min-height: 2.25rem;
     display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-    font-size: 0.625rem;
-  }
-  .fee-leg {
-    display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.375rem;
+    white-space: nowrap;
     min-width: 0;
-  }
-  .fee-leg-name {
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .fee-leg-value {
+    padding: var(--space-2) 0.5rem;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
     color: var(--text-primary);
+    max-width: 100%;
+  }
+  .fee-dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+    background-color: var(--text-tertiary);
+  }
+  .fee-dot[data-provenance="broker"] {
+    background-color: var(--accent-color);
+  }
+  .fee-dot[data-provenance="manual"] {
+    background-color: var(--text-secondary);
+  }
+  .fee-text {
     font-weight: 600;
     white-space: nowrap;
   }
@@ -469,6 +424,7 @@
    * a hardcoded colour would break across the 20+ themes.
    */
   .fee-badge {
+    font-size: 0.625rem;
     padding: 0 0.3rem;
     border-radius: var(--radius-sm, 0.25rem);
     border: 1px solid var(--border-color);

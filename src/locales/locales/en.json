@@ -345,7 +345,10 @@
       "feeExitLeg": "Exit",
       "feeFromBroker": "from broker",
       "feeAssumed": "assumed",
-      "feeManual": "manual"
+      "feeManual": "manual",
+      "feeSummaryAria": "Fee rates: {maker}, {taker}, {provenance}",
+      "feeMakerShort": "M",
+      "feeTakerShort": "T"
     },
     "portfolioInputs": {
       "header": "Portfolio",
@@ -1144,7 +1147,7 @@
     "feeRates": "Fee Rates — {venue}",
     "feeRatesMaker": "Maker (%)",
     "feeRatesTaker": "Taker (%)",
-    "feeRatesDesc": "Your personal fees (depending on your broker level). They are used for the simulated calculation in the frontend. Defaults: 0.02/0.06 per venue — adjust them to your actual rates. The journal will later receive the actually charged broker fees.",
+      "feeRatesDesc": "Your personal fees (depending on your broker level). They are used for the simulated calculation in the frontend. Defaults: 0.014/0.042 per venue — adjust them to your actual rates. The journal will later receive the actually charged broker fees.",
     "providerLabel": "Exchange Provider",
     "securityNote": "Keys are stored locally in your browser.",
     "imgbbHeader": "ImgBB Image Hosting",
@@ -1350,6 +1353,8 @@
         "description": "Choose which indicators are drawn in the chart window. Hidden indicators keep calculating and stay visible in the Technicals panel."
       },
       "signals": "Signals",
+      "fullHeight": "Full height",
+      "fullHeightDesc": "Shows all indicators without an inner scroll box (desktop only).",
       "calculationEngine": "Calculation Engine",
       "engine": "Engine",
       "mode": "Mode",
