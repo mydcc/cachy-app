@@ -209,9 +209,29 @@ describe("FEAT-0388 — migrate stored price alerts to rule documents", () => {
     );
   });
 
-  it("skips and logs an alert whose id already has an unrelated rule in cachy_rules_v1", async () => {
+  it("disables an already-migrated rule when its alert fires after that first run, without duplicating or reloading wasm", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+    expect(readRules()[0].enabled).toBe(true);
+
+    // The trader's alert fires between runs — the shipped engine writes
+    // active: false back to cachy_alerts_v1 for exactly this alert id.
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([{ ...ACTIVE_ALERT, active: false }]));
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const rules = readRules();
+    expect(rules).toHaveLength(1);
+    expect(rules[0].enabled).toBe(false);
+    expect(fakeLoader).toHaveBeenCalledTimes(1);
+  });
+
+  it("syncs enabled to match an alert's active flag for a pre-existing same-id rule, and logs it, without reloading wasm", async () => {
     const { logger } = await import("../logger");
-    localStorage.setItem(RULES_KEY, JSON.stringify([{ id: ACTIVE_ALERT.id, symbol: "PRESEEDED" }]));
+    localStorage.setItem(
+      RULES_KEY,
+      JSON.stringify([{ id: ACTIVE_ALERT.id, symbol: "PRESEEDED", enabled: false }]),
+    );
     localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
     const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
 
@@ -220,10 +240,11 @@ describe("FEAT-0388 — migrate stored price alerts to rule documents", () => {
     const rules = readRules();
     expect(rules).toHaveLength(1);
     expect(rules[0].symbol).toBe("PRESEEDED");
+    expect(rules[0].enabled).toBe(true);
     expect(fakeLoader).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalledWith(
       "alerts",
-      expect.stringContaining("already exists in cachy_rules_v1"),
+      expect.stringContaining("Synced rule"),
     );
   });
 

@@ -87,6 +87,15 @@ until `FEAT-0388` migrates off it.
   updates, but `docs/adr/0009-candle-depth-and-background-store-isolation.md` forbids
   a background consumer writing into `marketState`. The loop must read without
   writing, or sit beside the store.
+- **Orphaned migrated rules.** `FEAT-0388`'s migration keeps a rule's `enabled` flag
+  in sync with its source alert's `active` flag on every run, but if the alert is
+  deleted from `cachy_alerts_v1` entirely (`AlertDefinitionsModal.removeAlert`), the
+  migrated rule is left behind, still enabled, in `cachy_rules_v1` — nothing in the
+  migration can safely tell a now-orphaned migrated rule apart from one a future rule
+  editor authored directly. Before this item starts evaluating rules for real, decide
+  how to reconcile ids at cutover (e.g. disable or drop any rule whose id has no
+  matching alert, if `cachy_rules_v1` still only ever holds migrated rules at that
+  point).
 
 ## Links
 

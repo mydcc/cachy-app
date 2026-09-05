@@ -59,6 +59,14 @@ function idOf(entry: unknown): string | undefined {
   return undefined;
 }
 
+function activeOf(alert: unknown): boolean | undefined {
+  if (alert && typeof alert === "object" && "active" in alert) {
+    const active = (alert as { active: unknown }).active;
+    return typeof active === "boolean" ? active : undefined;
+  }
+  return undefined;
+}
+
 function describeAlert(alert: unknown): string {
   return idOf(alert) ?? "<unidentifiable entry>";
 }
@@ -74,6 +82,16 @@ function describeAlert(alert: unknown): string {
  * would silently stop converting anything armed after the first run ever
  * fired — the same shape of failure this migration exists to prevent, just
  * moved to its own tail.
+ *
+ * A rule that already exists for an alert's id has its `enabled` field kept
+ * in sync with that alert's current `active` flag on every run — otherwise
+ * an alert that fires *after* its first migration would leave a stale,
+ * still-armed rule behind, re-firing at the FEAT-0387 cutover for something
+ * the trader already saw fire. Deletion is not handled here: a rule whose
+ * alert has since been removed from `cachy_alerts_v1` entirely is left as
+ * is, since nothing here can safely tell a migrated-then-orphaned rule
+ * apart from one a future rule editor authored directly — that
+ * reconciliation belongs to whatever reads `cachy_rules_v1` first (FEAT-0387).
  *
  * Never throws — this is called unconditionally from `initAlertEngine()`
  * before the alert engine itself loads, and a migration hiccup must not
@@ -102,22 +120,39 @@ export async function migrateAlertsToRuleDocuments(
       existingRules = [];
     }
 
-    const existingIds = new Set(existingRules.map(idOf).filter((id): id is string => id !== undefined));
-    const claimedIds = new Set(existingIds);
-    const pending: unknown[] = [];
+    const rulesById = new Map<string, number>();
+    existingRules.forEach((rule, index) => {
+      const id = idOf(rule);
+      if (id !== undefined && !rulesById.has(id)) rulesById.set(id, index);
+    });
+
+    const claimedIds = new Set(rulesById.keys());
+    const toConvert: unknown[] = [];
+    const syncedRules = [...existingRules];
+    let rulesChanged = false;
 
     for (const alert of alerts) {
       const id = idOf(alert);
       if (id === undefined) {
         // No id to reconcile by — attempt it anyway; the wasm conversion
         // will refuse it and it lands in the per-item malformed-entry log.
-        pending.push(alert);
+        toConvert.push(alert);
         continue;
       }
-      if (existingIds.has(id)) {
-        logger.debug("alerts", `Skipping alert ${id} during migration: a rule with this id already exists in cachy_rules_v1`);
+
+      const existingIndex = rulesById.get(id);
+      if (existingIndex !== undefined) {
+        const active = activeOf(alert);
+        const rule = syncedRules[existingIndex];
+        const enabled = rule && typeof rule === "object" ? (rule as { enabled?: unknown }).enabled : undefined;
+        if (active !== undefined && enabled !== active) {
+          syncedRules[existingIndex] = { ...(rule as Record<string, unknown>), enabled: active };
+          rulesChanged = true;
+          logger.debug("alerts", `Synced rule ${id}'s enabled state to match its alert's active flag (${active})`);
+        }
         continue;
       }
+
       if (claimedIds.has(id)) {
         // Two stored alerts sharing an id (a weak id generator upstream can
         // produce this) would otherwise both migrate and mint duplicate
@@ -125,23 +160,33 @@ export async function migrateAlertsToRuleDocuments(
         logger.debug("alerts", `Skipping alert ${id} during migration: duplicate id within cachy_alerts_v1`);
         continue;
       }
+
       claimedIds.add(id);
-      pending.push(alert);
+      toConvert.push(alert);
     }
-    if (pending.length === 0) return;
+
+    if (toConvert.length === 0) {
+      if (rulesChanged) {
+        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
+      }
+      return;
+    }
 
     let ruleModule: RuleFromAlertModule;
     try {
       ruleModule = await loadModule();
     } catch (e) {
       logger.error("alerts", "Failed to load wasm module for alert migration", e);
+      if (rulesChanged) {
+        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
+      }
       return;
     }
 
     const createdAtMs = Date.now();
     const migratedRules: unknown[] = [];
 
-    for (const alert of pending) {
+    for (const alert of toConvert) {
       try {
         const ruleJson = ruleModule.rule_from_alert_json(
           JSON.stringify(alert),
@@ -158,8 +203,8 @@ export async function migrateAlertsToRuleDocuments(
       }
     }
 
-    if (migratedRules.length > 0) {
-      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([...existingRules, ...migratedRules]));
+    if (migratedRules.length > 0 || rulesChanged) {
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([...syncedRules, ...migratedRules]));
     }
   } catch (e) {
     logger.error("alerts", "Alert migration failed unexpectedly", e);
