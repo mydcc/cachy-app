@@ -44,6 +44,11 @@
 </script>
 
 <div class="indicator-pane-header" class:collapsed={collapsed}>
+    <span class="label">
+        <span class="name">{title}</span>
+        {#if params}<span class="params">{params}</span>{/if}
+        {#if value}<span class="value">{value}</span>{/if}
+    </span>
     <button
         class="chevron"
         type="button"
@@ -62,9 +67,6 @@
             <path d="M2 3.5 L5 6.5 L8 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
     </button>
-    <span class="name">{title}</span>
-    {#if params}<span class="params">{params}</span>{/if}
-    {#if value}<span class="value">{value}</span>{/if}
 </div>
 
 <style>
@@ -73,10 +75,11 @@
         top: 0;
         bottom: 0;
         left: 8px;
+        right: 8px;
         z-index: 2;
         display: flex;
         align-items: center;
-        gap: 5px;
+        justify-content: space-between;
         font-size: 11px;
         line-height: 1.3;
         white-space: nowrap;
@@ -92,6 +95,12 @@
     .indicator-pane-header:not(.collapsed) {
         bottom: auto;
         height: 18px;
+    }
+
+    .label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .chevron {
