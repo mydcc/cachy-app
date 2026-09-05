@@ -199,10 +199,6 @@ describe("Academy window resize responsiveness (container queries)", () => {
         // to p-6 on any wide desktop no matter how narrow the window is.
         expect(root.classList.contains("@sm:p-6")).toBe(true);
         expect(root.classList.contains("sm:p-6")).toBe(false);
-        // Right gutter clears the 10px inset resize grip + frame border
-        // so right-aligned content never slides under the window edge.
-        expect(root.classList.contains("pr-6")).toBe(true);
-        expect(root.classList.contains("@sm:pr-8")).toBe(true);
     });
 
     it("ChartPatternsView stacks below the container md breakpoint", async () => {

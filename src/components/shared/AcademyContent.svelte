@@ -43,7 +43,7 @@
    }
 </script>
 
-<div class="@container flex flex-col h-full min-h-0 min-w-0 p-4 @sm:p-6 pr-6 @sm:pr-8">
+<div class="@container flex flex-col h-full min-h-0 min-w-0 p-4 @sm:p-6">
    <!-- Tab Header -->
    <div
       class="flex flex-wrap border-b border-[var(--border-color)] mb-4 shrink-0 bg-[var(--bg-secondary)] rounded-t-lg p-1 gap-1"
