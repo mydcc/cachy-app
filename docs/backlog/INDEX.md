@@ -2,9 +2,9 @@
 
 # Backlog index
 
-282 items. How to read and add them: [README.md](README.md).
+284 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-progress 3 · ✅ done 214
+Counts by status: 💡 idea 23 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 4 · ✅ done 214
 
 ---
 
@@ -115,10 +115,12 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | alerts |
+| [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | 📋 specced | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | ✅ done | alerts |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟡 in-progress | alerts |
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 🟡 in-progress | alerts |
+| [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | 🟡 in-progress | alerts |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
@@ -409,6 +411,7 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -444,6 +447,7 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
+| [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -638,4 +642,4 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 
 ---
 
-Next free number: **0400**
+Next free number: **0403**
