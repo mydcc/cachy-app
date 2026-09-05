@@ -14,6 +14,7 @@ import type { IndicatorSettings } from "../types/indicators";
 const defaultSettings: IndicatorSettings = {
   historyLimit: 750,
   precision: 4,
+  lineWidth: 1,
   autoOptimize: true,
   preferredEngine: 'auto',
   performanceMode: 'balanced',
@@ -31,6 +32,8 @@ const defaultSettings: IndicatorSettings = {
 
   rsi: {
     enabled: true,
+    visible: true,
+    showInChart: true,
     length: 14,
     source: "close",
     showSignal: true,
@@ -42,6 +45,8 @@ const defaultSettings: IndicatorSettings = {
   },
   stochRsi: {
     enabled: true,
+    visible: true,
+    showInChart: true,
     length: 14,
     rsiLength: 14,
     kPeriod: 3,
@@ -50,6 +55,8 @@ const defaultSettings: IndicatorSettings = {
   },
   macd: {
     enabled: true,
+    visible: true,
+    showInChart: true,
     fastLength: 12,
     slowLength: 26,
     signalLength: 9,
@@ -59,16 +66,22 @@ const defaultSettings: IndicatorSettings = {
   },
   stochastic: {
     enabled: false,
+    visible: true,
+    showInChart: true,
     kPeriod: 14,
     kSmoothing: 3,
     dPeriod: 3,
   },
   williamsR: {
     enabled: false,
+    visible: true,
+    showInChart: true,
     length: 14,
   },
   cci: {
     enabled: true,
+    visible: true,
+    showInChart: true,
     length: 20,
     source: "hlc3",
     threshold: 100,
@@ -77,22 +90,29 @@ const defaultSettings: IndicatorSettings = {
   },
   adx: {
     enabled: false,
+    visible: true,
+    showInChart: true,
     adxSmoothing: 14,
     diLength: 14,
     threshold: 25,
   },
   ao: {
     enabled: false,
+    visible: true,
+    showInChart: true,
     fastLength: 5,
     slowLength: 34,
   },
   momentum: {
     enabled: false,
+    visible: true,
+    showInChart: true,
     length: 10,
     source: "close",
   },
   ema: {
     enabled: true,
+    visible: true,
     ema1: { length: 21, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     ema2: { length: 50, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     ema3: { length: 200, offset: 0, smoothingType: "sma", smoothingLength: 14 },
@@ -100,15 +120,17 @@ const defaultSettings: IndicatorSettings = {
   },
   sma: {
     enabled: false,
+    visible: true,
     sma1: { length: 9 },
     sma2: { length: 21 },
     sma3: { length: 50 },
   },
-  wma: { enabled: false, length: 14 },
-  vwma: { enabled: false, length: 20 },
-  hma: { enabled: false, length: 9 },
+  wma: { enabled: false, visible: true, length: 14 },
+  vwma: { enabled: false, visible: true, length: 20 },
+  hma: { enabled: false, visible: true, length: 9 },
   ichimoku: {
     enabled: false,
+    visible: true,
     conversionPeriod: 9,
     basePeriod: 26,
     spanBPeriod: 52,
@@ -116,60 +138,79 @@ const defaultSettings: IndicatorSettings = {
   },
   pivots: {
     enabled: true,
+    visible: true,
+    showInChart: true,
     type: "classic",
     viewMode: "integrated",
   },
   atr: {
     enabled: false,
+    visible: true,
     length: 14,
   },
   choppiness: {
     enabled: false,
+    visible: true,
+    showInChart: true,
     length: 14,
   },
   superTrend: {
     enabled: true,
+    visible: true,
     factor: 3,
     period: 10,
   },
   atrTrailingStop: {
     enabled: false,
+    visible: true,
     period: 14,
     multiplier: 3.5,
   },
   obv: {
     enabled: false,
+    visible: true,
+    showInChart: true,
     smoothingLength: 0,
   },
   mfi: {
     enabled: false,
+    visible: true,
+    showInChart: true,
     length: 14,
   },
   vwap: {
     enabled: true,
+    visible: true,
     length: 0,
     anchor: "session",
   },
   parabolicSar: {
     enabled: false,
+    visible: true,
     start: 0.02,
     increment: 0.02,
     max: 0.2,
   },
   volumeMa: {
     enabled: false,
+    visible: true,
     length: 20,
     maType: "sma",
   },
   volumeProfile: {
     enabled: false,
+    visible: true,
     rows: 24,
   },
   volume: {
     enabled: true,
+    visible: true,
+    showInChart: true,
   },
   bollingerBands: {
     enabled: true,
+    visible: true,
+    showInChart: true,
     length: 20,
     stdDev: 2,
     source: "close",
@@ -181,6 +222,7 @@ const STORE_KEY = "cachy_indicator_settings";
 class IndicatorManager {
   historyLimit = $state(defaultSettings.historyLimit);
   precision = $state(defaultSettings.precision);
+  lineWidth = $state(defaultSettings.lineWidth);
   autoOptimize = $state(defaultSettings.autoOptimize);
   preferredEngine = $state(defaultSettings.preferredEngine);
   performanceMode = $state(defaultSettings.performanceMode);
@@ -232,6 +274,7 @@ class IndicatorManager {
   private _snapshot = $derived({
     historyLimit: this.historyLimit,
     precision: this.precision,
+    lineWidth: this.lineWidth,
     autoOptimize: this.autoOptimize,
     preferredEngine: this.preferredEngine,
     performanceMode: this.performanceMode,
@@ -315,18 +358,28 @@ class IndicatorManager {
     try {
       const parsed = JSON.parse(stored);
 
-      // Migration for enabled flags (if missing)
-      const merge = <T extends { enabled?: boolean }>(key: keyof IndicatorSettings, fallback: T): T => {
+      // Migration for per-indicator flags (if missing)
+      const merge = <T extends { enabled?: boolean; visible?: boolean; showInChart?: boolean }>(key: keyof IndicatorSettings, fallback: T): T => {
           const val: Partial<T> = parsed[key] || {};
           // Ensure enabled key exists
           if (val.enabled === undefined && fallback.enabled !== undefined) {
              val.enabled = fallback.enabled;
+          }
+          // Ensure visible key exists (introduced with collapsible chart panes)
+          if (val.visible === undefined && fallback.visible !== undefined) {
+             val.visible = fallback.visible;
+          }
+          // Ensure showInChart key exists (introduced with chart pane toggles:
+          // old entries keep showing their pane)
+          if (val.showInChart === undefined && fallback.showInChart !== undefined) {
+             val.showInChart = fallback.showInChart;
           }
           return { ...fallback, ...val };
       }
 
       this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
       this.precision = parsed.precision ?? defaultSettings.precision;
+      this.lineWidth = parsed.lineWidth ?? defaultSettings.lineWidth;
       this.autoOptimize = parsed.autoOptimize ?? defaultSettings.autoOptimize;
       this.preferredEngine = parsed.preferredEngine || defaultSettings.preferredEngine;
       this.performanceMode = parsed.performanceMode || defaultSettings.performanceMode;
@@ -367,6 +420,7 @@ class IndicatorManager {
       this.ema = parsed.ema
         ? {
           enabled: parsed.ema.enabled !== undefined ? parsed.ema.enabled : defaultSettings.ema.enabled,
+          visible: parsed.ema.visible ?? defaultSettings.ema.visible,
           ema1: {
             ...defaultSettings.ema.ema1,
             ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
@@ -430,6 +484,7 @@ class IndicatorManager {
 
     this.historyLimit = next.historyLimit;
     this.precision = next.precision;
+    this.lineWidth = next.lineWidth;
     this.autoOptimize = next.autoOptimize;
     this.preferredEngine = next.preferredEngine;
     this.performanceMode = next.performanceMode;
@@ -468,6 +523,7 @@ class IndicatorManager {
     const d = defaultSettings;
     this.historyLimit = d.historyLimit;
     this.precision = d.precision;
+    this.lineWidth = d.lineWidth;
     this.autoOptimize = d.autoOptimize;
     this.preferredEngine = d.preferredEngine;
     this.performanceMode = d.performanceMode;

@@ -1231,7 +1231,8 @@
         "oscillators": "Oscillators",
         "trend": "Trend",
         "volatility": "Volatility",
-        "volume": "Volume"
+        "volume": "Volume",
+        "chart": "Chart"
       },
       "strongBuy": "Strong Buy",
       "strongSell": "Strong Sell",
@@ -1261,6 +1262,7 @@
       "adx": "ADX",
       "pivot": "Pivot",
       "precision": "Data Precision",
+      "lineWidth": "Line width",
       "historyLimit": "History Scope (Candles)",
       "syncRsi": "Synchronize RSI Timeframe",
       "syncRsiDesc": "Use chart timeframe for RSI",
@@ -1340,6 +1342,11 @@
       },
       "panelConfiguration": "Panel Configuration",
       "toggleVisibility": "Toggle visibility",
+      "chartPanes": {
+        "title": "Chart panes",
+        "description": "Choose which indicator panes are drawn in the chart window. Hidden indicators keep calculating and stay visible in the Technicals panel.",
+        "overlaysTitle": "Overlays"
+      },
       "signals": "Signals",
       "calculationEngine": "Calculation Engine",
       "engine": "Engine",
@@ -3126,6 +3133,12 @@
     "loadingHistory": "LOADING HISTORY ...",
     "fetchingMarketData": "FETCHING MARKET DATA ...",
     "countdownLabel": "Countdown to candle close"
+  },
+  "chart": {
+    "pane": {
+      "collapse": "Collapse pane",
+      "expand": "Expand pane"
+    }
   },
   "rules": {
     "coreUnavailable": "The rule checker is not loaded. Nothing was validated — the rule stays disarmed.",
