@@ -6,9 +6,6 @@ on:
       - 'docs/architecture/**'
       - '.github/workflows/architecture-diagram.yml'
 
-permissions:
-  contents: read
-
 jobs:
   check:
     name: Validate diagram & HTML freshness
