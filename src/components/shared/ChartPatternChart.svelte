@@ -17,10 +17,14 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
+  import { _ } from "../../locales/i18n";
+  import type { TranslationKey } from "../../locales/schema";
   import {
     type ChartPatternDefinition,
+    type ChartPatternLabels,
     type InteractiveElement,
     type ThemeColors,
+    CHART_PATTERN_LABEL_KEYS,
     DEFAULT_PATTERN_COLORS
   } from "../../services/chartPatterns";
   import { portal } from "../../lib/actions/portal";
@@ -125,6 +129,18 @@
     ctx.globalAlpha = 1.0;
   }
 
+  function getChartLabels(): ChartPatternLabels {
+    // Resolved here (not in draw.ts) so the pure canvas module stays
+    // free of hardcoded text. Read inside draw()'s $effect, so a locale
+    // switch redraws the annotations automatically.
+    return Object.fromEntries(
+        CHART_PATTERN_LABEL_KEYS.map((key) => [
+            key,
+            $_(`chartPatterns.labels.${key}` as TranslationKey),
+        ]),
+    ) as ChartPatternLabels;
+  }
+
   function draw() {
     if (!ctx || !width || !height) return;
 
@@ -159,7 +175,8 @@
             width,
             height,
             (el) => interactiveElements.push(el),
-            colors
+            colors,
+            getChartLabels()
         );
       } catch (e) {
         console.error("Error drawing pattern:", e);

@@ -18,8 +18,8 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { _ } from "../../locales/i18n";
+    import type { TranslationKey } from "../../locales/schema";
     import { CHART_PATTERNS } from "../../services/chartPatterns";
-    import type { ChartPatternDefinition } from "../../services/chartPatterns.types";
     import ChartPatternChart from "./ChartPatternChart.svelte";
     import { markdown } from "../../actions/markdown";
     import { safeJsonParse } from "../../utils/safeJson";
@@ -66,10 +66,11 @@
         );
     }
 
-    // Derived filtered list
+    // Derived filtered list (names/categories resolve via locale,
+    // so search and filter follow the active language)
     let filteredPatterns = $derived(
         CHART_PATTERNS.filter((p) => {
-            const matchesSearch = p.name
+            const matchesSearch = getPatternName(p.id)
                 .toLowerCase()
                 .includes(searchQuery.toLowerCase());
 
@@ -77,7 +78,8 @@
             if (selectedCategory === "Favorites") {
                 matchesCategory = favorites.has(p.id);
             } else if (selectedCategory !== "All") {
-                matchesCategory = p.category === selectedCategory;
+                matchesCategory =
+                    getPatternCategory(p.id) === selectedCategory;
             }
 
             return matchesSearch && matchesCategory;
@@ -89,7 +91,7 @@
         [
             "All",
             "Favorites",
-            ...new Set(CHART_PATTERNS.map((p) => p.category)),
+            ...new Set(CHART_PATTERNS.map((p) => getPatternCategory(p.id))),
         ].sort((a, b) => {
             // Keep All and Favorites at top
             if (a === "All") return -1;
@@ -110,26 +112,63 @@
         selectedPatternId = id;
     }
 
+    type ChartPatternTextKey =
+        | "name"
+        | "category"
+        | "description"
+        | "trading"
+        | "advancedConsiderations"
+        | "performanceStats";
+
     function getLocalizedText(
-        pattern: ChartPatternDefinition | null | undefined,
-        key: "description" | "trading" | "advancedConsiderations" | "performanceStats",
+        patternId: string,
+        key: ChartPatternTextKey,
     ): string {
-        // Prioritize explicit property on object since we are not using full i18n keys for this new feature yet
-        if (pattern && pattern[key]) {
-            return pattern[key];
+        // Mirror CandlestickPatternsView: pattern content lives in
+        // chartPatterns.<id> locale entries, not on the pattern object.
+        const i18nKey = `chartPatterns.${patternId}.${key}` as TranslationKey;
+        const text = $_(i18nKey);
+        if (text === i18nKey) {
+            return "No description available.";
         }
-        return "No description available.";
+        return text;
+    }
+
+    function getPatternName(patternId: string): string {
+        return getLocalizedText(patternId, "name");
+    }
+
+    function getPatternCategory(patternId: string): string {
+        return getLocalizedText(patternId, "category");
+    }
+
+    function getCharacteristics(patternId: string): string[] {
+        const items: string[] = [];
+        // characteristics are stored as a locale array and looked up by
+        // index — the same convention the validators use when flattening.
+        for (let i = 0; i < 20; i++) {
+            const i18nKey =
+                `chartPatterns.${patternId}.characteristics.${i}` as TranslationKey;
+            const text = $_(i18nKey);
+            if (text === i18nKey) break;
+            items.push(text);
+        }
+        return items;
     }
 
     function getCategoryIcon(category: string) {
+        // Categories are localized display values; match both languages.
         switch (category) {
             case "Umkehrmuster":
+            case "Reversal":
                 // U-Turn / Reversal Icon
                 return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
             case "Fortsetzungsmuster":
+            case "Continuation":
                 // Trend / Continuation Icon
                 return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" /></svg>`;
             case "Gap-Typen":
+            case "Gap Types":
                 // Gap / Pause Icon
                 return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>`;
             default:
@@ -185,9 +224,9 @@
                             pattern.id
                                 ? 'text-[var(--btn-accent-text)]'
                                 : 'text-[var(--text-secondary)]'}"
-                            title={pattern.category}
+                            title={getPatternCategory(pattern.id)}
                         >
-                            {@html getCategoryIcon(pattern.category)}
+                            {@html getCategoryIcon(getPatternCategory(pattern.id))}
                         </div>
                         {#if favorites.has(pattern.id)}
                             <svg
@@ -204,7 +243,7 @@
                             </svg>
                         {/if}
                         <span class="truncate font-bold tracking-tight"
-                            >{pattern.name}</span
+                            >{getPatternName(pattern.id)}</span
                         >
                     </div>
                 </button>
@@ -231,14 +270,14 @@
                         <h2
                             class="text-xl @md:text-2xl font-bold text-[var(--accent-color)] break-words min-w-0"
                         >
-                            {currentPattern.name}
+                            {getPatternName(currentPattern.id)}
                         </h2>
                         <button
                             class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"
                             onclick={() => toggleFavorite(currentPattern.id)}
                             title={favorites.has(currentPattern.id)
-                                ? "Remove from Favorites"
-                                : "Add to Favorites"}
+                                ? $_("marketOverview.tooltips.removeFavorite")
+                                : $_("marketOverview.tooltips.addFavorite")}
                         >
                             {#if favorites.has(currentPattern.id)}
                                 <svg
@@ -275,8 +314,8 @@
                     <span
                         class="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex items-center gap-2 shrink-0"
                     >
-                        {@html getCategoryIcon(currentPattern.category)}
-                        {currentPattern.category}
+                        {@html getCategoryIcon(getPatternCategory(currentPattern.id))}
+                        {getPatternCategory(currentPattern.id)}
                     </span>
                 </div>
             </div>
@@ -302,7 +341,7 @@
                         <div
                             class="prose dark:prose-invert text-sm max-w-none min-w-0 overflow-x-auto break-words"
                             use:markdown={getLocalizedText(
-                                currentPattern,
+                                currentPattern.id,
                                 "description",
                             )}
                         ></div>
@@ -316,7 +355,7 @@
                         <ul
                             class="list-disc list-inside text-sm text-[var(--text-primary)]"
                         >
-                            {#each currentPattern.characteristics as char}
+                            {#each getCharacteristics(currentPattern.id) as char}
                                 <li>{char}</li>
                             {/each}
                         </ul>
@@ -337,7 +376,7 @@
                         <div
                             class="prose dark:prose-invert text-sm max-w-none min-w-0 overflow-x-auto break-words"
                             use:markdown={getLocalizedText(
-                                currentPattern,
+                                currentPattern.id,
                                 "trading",
                             )}
                         ></div>
@@ -355,7 +394,7 @@
                         <div
                             class="prose dark:prose-invert text-sm max-w-none min-w-0 overflow-x-auto break-words"
                             use:markdown={getLocalizedText(
-                                currentPattern,
+                                currentPattern.id,
                                 "advancedConsiderations",
                             )}
                         ></div>
@@ -368,7 +407,7 @@
                         <div
                             class="prose dark:prose-invert text-sm max-w-none min-w-0 overflow-x-auto break-words"
                             use:markdown={getLocalizedText(
-                                currentPattern,
+                                currentPattern.id,
                                 "performanceStats",
                             )}
                         ></div>
