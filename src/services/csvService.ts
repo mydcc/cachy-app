@@ -22,6 +22,7 @@ import {
   parseDecimal,
   parseDateString,
   normalizeJournalEntry,
+  generateId,
 } from "../utils/utils";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
@@ -361,7 +362,7 @@ export const csvService = {
             } else {
               // Generate a safe unique internal ID (UUID)
               // This ensures uniqueness during the import session better than a hash or predictable random
-              internalId = crypto.randomUUID();
+              internalId = generateId();
             }
           }
 
