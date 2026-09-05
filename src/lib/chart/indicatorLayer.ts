@@ -293,26 +293,34 @@ export class IndicatorLayer {
     }
 
     private applyPaneHeights(): void {
-        // setHeight() routes through changePanesHeight, which clamps to
-        // MIN_PANE_HEIGHT (30) and redistributes pixel deltas across all
-        // other panes — sequential calls perturb each other and a strip can
-        // never go below 30px that way. The layout pass itself is purely
-        // stretch-factor based (paneHeight = stretchFactor * stretchPixels,
-        // floor 2px), so strips are set via setStretchFactor and open panes
-        // via setHeight. setStretchFactor does NOT touch neighbors.
+        // setHeight() routes through changePanesHeight, which rewrites the
+        // stretch factors of ALL panes from their current pixel heights —
+        // sequential setHeight calls perturb each other, so a strip can
+        // never end up at 30px that way. The layout pass itself is purely
+        // stretch-factor based (paneHeight = factor * paneArea /
+        // totalStretch, with the sum of heights conserved), so every
+        // pane's target height is expressed as a factor and applied in ONE
+        // pass: strips 30px, open panes layout.height, the candle pane
+        // absorbs the remainder. setStretchFactor touches no neighbor, so
+        // order does not matter.
         const panes = this.chart.panes();
-        const stripFactor = 0.02;
+        if (panes.length < 2) return;
+
+        const stripCount = this.stripPaneIndices.size;
+        const openCount = this.createdPaneIndices.length - stripCount;
+        const subTotal = stripCount * STRIP_HEIGHT + openCount * this.layout.height;
+        if (subTotal === 0) return;
+
+        // The pane area in px is conserved by lightweight-charts; reading
+        // it keeps the candle pane at exactly the leftover instead of
+        // guessing the time-axis/separator chrome.
+        let paneArea = 0;
+        for (const pane of panes) paneArea += pane.getHeight();
+        panes[0].setStretchFactor(Math.max(PRICE_PANE_MIN, paneArea - subTotal));
         for (const idx of this.createdPaneIndices) {
             const pane = panes[idx];
             if (!pane) continue;
-            if (this.stripPaneIndices.has(idx)) {
-                // Tiny stretch factor — the pane shrinks to the layout floor
-                // (2px). The header is an absolutely positioned overlay, so
-                // the pane itself only needs to shrink out of the way.
-                pane.setStretchFactor(stripFactor);
-            } else {
-                pane.setHeight(this.layout.height);
-            }
+            pane.setStretchFactor(this.stripPaneIndices.has(idx) ? STRIP_HEIGHT : this.layout.height);
         }
     }
 
@@ -342,8 +350,6 @@ export class IndicatorLayer {
         if (collapsed) {
             this.stripsClaimed++;
             this.stripPaneIndices.add(idx);
-            const pane = this.chart.panes()[idx];
-            if (pane) pane.setHeight(STRIP_HEIGHT);
         }
         return idx;
     }
@@ -384,12 +390,6 @@ export class IndicatorLayer {
         );
         series.setData(buildVolumeData(rows, up, down) as never);
         this.managed.push({ series: series as ISeriesApi<"Histogram"> });
-    }
-
-    private setPaneHeight(idx: number): void {
-        if (this.stripPaneIndices.has(idx)) return;
-        const pane = this.chart.panes()[idx];
-        if (pane) pane.setHeight(this.layout.height);
     }
 
     private src(source?: string): SourceKind {
@@ -560,7 +560,6 @@ export class IndicatorLayer {
             const idxVol = this.openSubPane(isCollapsed("volume"), "volume");
             if (idxVol !== null) {
                 if (!isCollapsed("volume")) this.addVolume(rows, idxVol);
-                this.setPaneHeight(idxVol);
                 this.recordPane(idxVol, "volume", "");
             }
         }
@@ -574,7 +573,6 @@ export class IndicatorLayer {
                     const d = getSourceData(rows, this.src(s.rsi.source));
                     this.addLine(rows, JSIndicators.rsi(d, len), idx, "--accent-color", "#2962ff");
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "rsi", `${len}`);
             }
         }
@@ -589,7 +587,6 @@ export class IndicatorLayer {
                     this.addLine(rows, m.macd, idx, "--accent-color", "#2962ff");
                     this.addLine(rows, m.signal, idx, "--warning-color", "#ffb300");
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "macd", `${s.macd.fastLength} ${s.macd.slowLength} ${s.macd.signalLength}`);
             }
         }
@@ -605,7 +602,6 @@ export class IndicatorLayer {
                     this.addLine(rows, sr.k, idx, "--accent-color", "#2962ff");
                     this.addLine(rows, sr.d, idx, "--warning-color", "#ffb300");
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "stochRsi", `${rsiPeriod} ${s.stochRsi.kPeriod} ${s.stochRsi.dPeriod}`);
             }
         }
@@ -619,7 +615,6 @@ export class IndicatorLayer {
                     const d = getSourceData(rows, this.src(s.cci.source));
                     this.addLine(rows, JSIndicators.cci(d, len), idx, "--accent-color", "#2962ff");
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "cci", `${len}`);
             }
         }
@@ -633,7 +628,6 @@ export class IndicatorLayer {
                     const d = getSourceData(rows, this.src(s.momentum.source));
                     this.addLine(rows, JSIndicators.mom(d, len), idx, "--success-color", "#26a69a");
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "momentum", `${len}`);
             }
         }
@@ -652,7 +646,6 @@ export class IndicatorLayer {
                         "#ef5350",
                     );
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "williamsR", `${len}`);
             }
         }
@@ -663,7 +656,6 @@ export class IndicatorLayer {
             if (idx !== null) {
                 if (!isCollapsed("obv"))
                     this.addLine(rows, JSIndicators.obv(a.closes, a.volume), idx, "--text-tertiary", "#9aa0a6");
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "obv", "");
             }
         }
@@ -682,7 +674,6 @@ export class IndicatorLayer {
                         "#2962ff",
                     );
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "mfi", `${len}`);
             }
         }
@@ -701,7 +692,6 @@ export class IndicatorLayer {
                         "#2962ff",
                     );
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "adx", `${len}`);
             }
         }
@@ -716,7 +706,6 @@ export class IndicatorLayer {
                     const ao = JSIndicators.ao(a.highs, a.lows, fast, slow);
                     this.addLine(rows, ao, idx, "--warning-color", "#ffb300");
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "ao", `${fast} ${slow}`);
             }
         }
@@ -735,7 +724,6 @@ export class IndicatorLayer {
                         "#9aa0a6",
                     );
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "choppiness", `${len}`);
             }
         }
@@ -752,7 +740,6 @@ export class IndicatorLayer {
                     this.addLine(rows, k, idx, "--accent-color", "#2962ff");
                     this.addLine(rows, d, idx, "--warning-color", "#ffb300");
                 }
-                this.setPaneHeight(idx);
                 this.recordPane(idx, "stochastic", `${kPeriod} ${dPeriod}`);
             }
         }

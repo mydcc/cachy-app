@@ -31,6 +31,8 @@ function makePane(index: number): MockPane {
         getStretchFactor: vi.fn(function (this: { stretchFactor: number }) {
             return this.stretchFactor;
         }),
+        // The layer reads pane heights to compute the stretch-factor pass.
+        getHeight: vi.fn(() => 80),
         getSeries: () => [],
         attachPrimitive: vi.fn(),
         detachPrimitive: vi.fn(),
@@ -90,11 +92,11 @@ function makeChart() {
     return { chart, panes };
 }
 
-/** Heights the layer assigned to sub-pane `idx`, in call order. */
-function heightsFor(panes: IPaneApi<Time>[], idx: number): number[] {
+/** Stretch factor currently assigned to pane `idx` (factor == target px). */
+function factorOf(panes: IPaneApi<Time>[], idx: number): number | undefined {
     const pane = panes[idx];
-    if (!pane) return [];
-    return (pane.setHeight as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0] as number);
+    if (!pane) return undefined;
+    return (pane as unknown as { stretchFactor: number }).stretchFactor;
 }
 
 function on(extra: Record<string, unknown> = {}) {
@@ -280,7 +282,8 @@ describe("IndicatorLayer", () => {
             "volume", "rsi", "macd", "stochRsi", "cci",
         ]);
         // (451 - 140 price floor) / 5 panes = 62px each, above the 56px floor.
-        expect(heightsFor(env.panes, 1).at(-1)).toBe(62);
+        // Height is expressed as stretch factor (factor == target px height).
+        expect(factorOf(env.panes, 1)).toBe(62);
     });
 
     it("caps at what fits once the panes would fall below the readable floor", () => {
@@ -298,7 +301,7 @@ describe("IndicatorLayer", () => {
 
         const panes = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
         expect(panes).toHaveLength(4);
-        expect(heightsFor(env.panes, 1).at(-1)).toBe(65);
+        expect(factorOf(env.panes, 1)).toBe(65);
     });
 
     it("re-renders with more panes when the chart window grows", () => {
@@ -339,7 +342,7 @@ describe("IndicatorLayer", () => {
 
         layer.setAvailableHeight(471); // same 5 panes, 66px each
 
-        expect(heightsFor(env.panes, 1).at(-1)).toBe(66);
+        expect(factorOf(env.panes, 1)).toBe(66);
         // No teardown/rebuild: ResizeObserver fires on every drag frame.
         expect((env.chart.addSeries as ReturnType<typeof vi.fn>).mock.calls.length).toBe(seriesCallsAfterRender);
     });
@@ -356,8 +359,8 @@ describe("IndicatorLayer", () => {
         // Pane 2 must exist even though no series is created on it —
         // otherwise a collapsed pane between open ones shifts indices.
         expect(env.panes[2]).toBeTruthy();
-        const strip = env.panes[2] as unknown as { stretchFactor: number };
-        expect(strip.stretchFactor).toBeLessThan(0.1);
+        // Strip height = 30px, expressed as stretch factor.
+        expect(factorOf(env.panes, 2)).toBe(30);
         // Only volume got a series; rsi stays series-free while collapsed.
         expect(subPaneIndices(env.chart)).toEqual([1]);
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
@@ -394,14 +397,14 @@ describe("IndicatorLayer", () => {
         // volume=1, rsi strip=2, macd=3 — the strip must not shift macd.
         // (macd reports twice: histogram + line share the same pane index.)
         expect(subPaneIndices(env.chart)).toEqual([1, 3, 3]);
-        expect(heightsFor(env.panes, 2).at(-1)).toBe(30);
-        expect(heightsFor(env.panes, 3).at(-1)).not.toBeUndefined();
+        expect(factorOf(env.panes, 2)).toBe(30); // strip factor == 30px
+        expect(factorOf(env.panes, 3)).not.toBeUndefined();
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
         expect(lastCall.map((p: { paneIndex: number }) => p.paneIndex)).toEqual([1, 2, 3]);
         expect(lastCall[2]).toMatchObject({ paneIndex: 3, key: "macd", collapsed: false });
     });
 
-    it("re-clamps strip heights after all panes materialize", () => {
+    it("assigns heights in one stretch-factor pass after all panes materialize", () => {
         const layer = new IndicatorLayer(env.chart, getColor);
         layer.setAvailableHeight(1000);
         Object.assign(indicatorState, makeState({
@@ -410,16 +413,18 @@ describe("IndicatorLayer", () => {
         }));
         layer.render(makeRows(60));
 
-        // Strips shrink via setStretchFactor (setHeight clamps to 30px and
-        // perturbs neighbors) — the final stretch factor must be tiny, and
-        // the last setHeight on the strip must not be a large value.
-        const strip = env.panes[2] as unknown as { stretchFactor: number };
-        expect(strip.stretchFactor).toBeLessThan(0.1);
-        // Open panes end at the layout height, not whatever intermediate
-        // value an earlier pass left behind.
-        const openHeight = heightsFor(env.panes, 3).at(-1);
-        expect(openHeight).not.toBeUndefined();
-        expect(heightsFor(env.panes, 1).at(-1)).toBe(openHeight);
+        // Height must be set via setStretchFactor (setHeight rewrites the
+        // factors of ALL panes from their current pixel heights, so
+        // sequential calls perturb each other). Strips = 30, open panes =
+        // layout height, and the candle pane absorbs the remainder.
+        const stripFactor = (env.panes[2] as unknown as { stretchFactor: number }).stretchFactor;
+        expect(stripFactor).toBe(30);
+        const openFactor = factorOf(env.panes, 3);
+        expect(openFactor).not.toBeUndefined();
+        expect(factorOf(env.panes, 1)).toBe(openFactor);
+        // 1 height call across the whole render: the single factor pass.
+        expect((env.panes[1] as MockPane).setHeight).not.toHaveBeenCalled();
+        expect((env.panes[3] as MockPane).setHeight).not.toHaveBeenCalled();
     });
 
     it("clears reported panes when the indicator layer is destroyed", () => {
