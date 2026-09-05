@@ -293,17 +293,26 @@ export class IndicatorLayer {
     }
 
     private applyPaneHeights(): void {
-        // Re-apply EVERY pane height here, strips included: setHeight uses
-        // stretch factors and later pane creation / neighbor resizing dilutes
-        // earlier calls, so a claim-time strip height never survives to
-        // render end. This final pass is the only thing that holds strips
-        // at STRIP_HEIGHT once all panes exist.
+        // setHeight() routes through changePanesHeight, which clamps to
+        // MIN_PANE_HEIGHT (30) and redistributes pixel deltas across all
+        // other panes — sequential calls perturb each other and a strip can
+        // never go below 30px that way. The layout pass itself is purely
+        // stretch-factor based (paneHeight = stretchFactor * stretchPixels,
+        // floor 2px), so strips are set via setStretchFactor and open panes
+        // via setHeight. setStretchFactor does NOT touch neighbors.
+        const panes = this.chart.panes();
+        const stripFactor = 0.02;
         for (const idx of this.createdPaneIndices) {
-            const pane = this.chart.panes()[idx];
+            const pane = panes[idx];
             if (!pane) continue;
-            pane.setHeight(
-                this.stripPaneIndices.has(idx) ? STRIP_HEIGHT : this.layout.height,
-            );
+            if (this.stripPaneIndices.has(idx)) {
+                // Tiny stretch factor — the pane shrinks to the layout floor
+                // (2px). The header is an absolutely positioned overlay, so
+                // the pane itself only needs to shrink out of the way.
+                pane.setStretchFactor(stripFactor);
+            } else {
+                pane.setHeight(this.layout.height);
+            }
         }
     }
 

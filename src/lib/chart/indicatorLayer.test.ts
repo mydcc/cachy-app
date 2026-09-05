@@ -15,18 +15,29 @@ function makeSeries() {
     } as unknown as ISeriesApi<"Line"> & ISeriesApi<"Histogram"> & ISeriesApi<"Candlestick">;
 }
 
-type MockPane = IPaneApi<Time> & { series: unknown[]; preserveEmptyPane: boolean };
+type MockPane = IPaneApi<Time> & {
+    series: unknown[];
+    preserveEmptyPane: boolean;
+    stretchFactor: number;
+};
 
 function makePane(index: number): MockPane {
     return {
         paneIndex: () => index,
         setHeight: vi.fn(),
+        setStretchFactor: vi.fn(function (this: { stretchFactor: number }, f: number) {
+            this.stretchFactor = f;
+        }),
+        getStretchFactor: vi.fn(function (this: { stretchFactor: number }) {
+            return this.stretchFactor;
+        }),
         getSeries: () => [],
         attachPrimitive: vi.fn(),
         detachPrimitive: vi.fn(),
         priceScale: () => ({ width: () => 60 }),
         series: [],
         preserveEmptyPane: false,
+        stretchFactor: 1,
     } as unknown as MockPane;
 }
 
@@ -345,7 +356,8 @@ describe("IndicatorLayer", () => {
         // Pane 2 must exist even though no series is created on it —
         // otherwise a collapsed pane between open ones shifts indices.
         expect(env.panes[2]).toBeTruthy();
-        expect(heightsFor(env.panes, 2).at(-1)).toBe(30);
+        const strip = env.panes[2] as unknown as { stretchFactor: number };
+        expect(strip.stretchFactor).toBeLessThan(0.1);
         // Only volume got a series; rsi stays series-free while collapsed.
         expect(subPaneIndices(env.chart)).toEqual([1]);
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
@@ -398,10 +410,11 @@ describe("IndicatorLayer", () => {
         }));
         layer.render(makeRows(60));
 
-        // The FINAL setHeight on the strip must be STRIP_HEIGHT — a claim-time
-        // call is not enough, because later pane creation and neighbor
-        // setHeight redistribution dilute it in the real chart.
-        expect(heightsFor(env.panes, 2).at(-1)).toBe(30);
+        // Strips shrink via setStretchFactor (setHeight clamps to 30px and
+        // perturbs neighbors) — the final stretch factor must be tiny, and
+        // the last setHeight on the strip must not be a large value.
+        const strip = env.panes[2] as unknown as { stretchFactor: number };
+        expect(strip.stretchFactor).toBeLessThan(0.1);
         // Open panes end at the layout height, not whatever intermediate
         // value an earlier pass left behind.
         const openHeight = heightsFor(env.panes, 3).at(-1);
