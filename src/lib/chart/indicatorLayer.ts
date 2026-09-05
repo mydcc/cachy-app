@@ -272,14 +272,24 @@ export class IndicatorLayer {
      * Recompute the pane-header values for a live tick without rebuilding
      * panes. render()'s values are a snapshot of the last full render, so on
      * a fast live update they would go stale — dangerous for a trading
-     * readout. This recomputes each visible sub-pane indicator on the last
-     * row of the stored data and re-reports panes so headers remount with
-     * fresh values. Series data itself is NOT touched here; the caller
-     * updates the candle series separately.
+     * readout. The caller passes the current tick's OHLCV, which is merged
+     * into the last stored row before every visible sub-pane indicator is
+     * recomputed and re-reported so headers remount with fresh values.
+     * Series data itself is NOT touched here; the caller updates the candle
+     * series separately.
      */
-    updateHeaderValues(): void {
+    updateHeaderValues(tick: { open: number; high: number; low: number; close: number; volume: number }): void {
         const rows = this.lastRows;
         if (!rows || rows.length === 0 || this.panesInfo.length === 0) return;
+        // Merge the live tick into the stored last row: lastRows is frozen
+        // at the last full render, so recomputing from it verbatim would
+        // produce the same value every tick.
+        const last = rows[rows.length - 1];
+        last.open = tick.open;
+        last.high = tick.high;
+        last.low = tick.low;
+        last.close = tick.close;
+        last.volume = tick.volume;
         const a = {
             closes: getSourceData(rows, "close"),
             opens: getSourceData(rows, "open"),

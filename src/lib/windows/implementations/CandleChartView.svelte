@@ -702,11 +702,19 @@
 
                             // Header values must track live ticks — a stale
                             // readout on a trading chart is dangerous. The
-                            // layer recomputes pane-header values from the
-                            // current klines and re-reports them (headers
+                            // layer merges this tick into its stored last row
+                            // and recomputes pane-header values (headers
                             // remount with the fresh number); series data in
                             // the sub-panes refreshes on the next full render.
-                            indicatorLayer?.updateHeaderValues();
+                            // Optional call: the component-test mock provides
+                            // a no-op layer without this method.
+                            indicatorLayer?.updateHeaderValues?.({
+                                open: Number(currentLastKline.open),
+                                high: Number(currentLastKline.high),
+                                low: Number(currentLastKline.low),
+                                close: Number(currentLastKline.close),
+                                volume: Number(currentLastKline.volume),
+                            });
 
                             if (win.currentPrice !== undefined) {
                                 // Format from the raw kline string via

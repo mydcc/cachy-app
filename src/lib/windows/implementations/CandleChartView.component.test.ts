@@ -148,6 +148,7 @@ vi.mock("../../../lib/chart/indicatorLayer", () => ({
         render(): void {}
         applyTheme(): void {}
         setAvailableHeight(): void {}
+        updateHeaderValues(): void {}
         destroy(): void {}
     },
 }));
