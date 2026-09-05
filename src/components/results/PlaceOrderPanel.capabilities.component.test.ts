@@ -276,11 +276,16 @@ describe("FEAT-0017 — PlaceOrderPanel reads exchange capabilities", () => {
         });
 
         it.each(["bitunix", "bitget"])(
-            "hides time in force entirely on a market order on %s",
+            "keeps time in force laid out but invisible on a market order on %s",
             async (exchange) => {
                 await mountFor(exchange);
-                // Market is the default entry type; TIF does not apply.
-                expect(tifSelect()).toBeNull();
+                // Market is the default entry type; TIF does not apply, but
+                // the control keeps its box so the rows below never jump.
+                const select = tifSelect();
+                expect(select).not.toBeNull();
+                const wrap = select!.closest("div")!;
+                expect(wrap.classList.contains("invisible")).toBe(true);
+                expect(wrap.getAttribute("aria-hidden")).toBe("true");
             },
         );
 
@@ -317,6 +322,27 @@ describe("FEAT-0017 — PlaceOrderPanel reads exchange capabilities", () => {
             await settle();
 
             expect(tifSelect()?.value).toBe("IOC");
+        });
+    });
+
+    describe("time in force keeps its box in market mode (no layout jump)", () => {
+        it("renders the control hidden but present on a market order", async () => {
+            await mountFor("bitunix");
+
+            const select = tifSelect();
+            expect(select).not.toBeNull();
+            const wrap = select!.closest("div")!;
+            expect(wrap.classList.contains("invisible")).toBe(true);
+            expect(wrap.getAttribute("aria-hidden")).toBe("true");
+        });
+
+        it("reveals the same control on a limit order", async () => {
+            await mountFor("bitunix");
+            await selectLimit();
+
+            const wrap = tifSelect()!.closest("div")!;
+            expect(wrap.classList.contains("invisible")).toBe(false);
+            expect(wrap.getAttribute("aria-hidden")).toBe("false");
         });
     });
 

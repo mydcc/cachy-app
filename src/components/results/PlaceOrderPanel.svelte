@@ -61,10 +61,12 @@
 
   const exchange = $derived(settingsState.apiProvider);
   const caps = $derived(capabilitiesOf(exchange));
+  const tifSupported = $derived(caps.timeInForce.length > 0);
 
   let entryType = $state<OrderEntryType>("market");
   let timeInForce = $state<TimeInForce>("GTC");
   let submitting = $state(false);
+  const tifVisible = $derived(entryType === "limit");
   let result = $state<PlacementResult | null>(null);
 
   /*
@@ -304,8 +306,7 @@
   <!-- FEAT-0026: the state that decides where the money goes, written on the
        surface that sends it. -->
   <div class="flex items-center justify-between gap-2 flex-wrap">
-    <h2 class="section-header">{$_("orderEntry.title")}</h2>
-    <ActiveAccountChip />
+    <h2 class="section-header min-w-0 flex-1"><span>{$_("orderEntry.title")}</span><span class="shrink-0"><ActiveAccountChip /></span></h2>
   </div>
 
   <!-- Order type & TimeInForce row -->
@@ -330,11 +331,16 @@
       time-in-force. A control that vanishes reads as a missing feature in
       Cachy; a disabled one with a reason says the venue does not take it.
       Same rule as the order-type buttons beside it.
+
+      Always rendered, even for market entries: in market mode the wrapper
+      is visibility-hidden, so it keeps its exact box and the rows below
+      never jump when the order type switches. Hidden content stays out of
+      the accessibility tree via aria-hidden.
     -->
-    {#if entryType === "limit"}
-      {@const tifSupported = caps.timeInForce.length > 0}
       <div
         class="flex items-center gap-1.5"
+        class:invisible={!tifVisible}
+        aria-hidden={!tifVisible}
         title={!tifSupported
           ? $_(unsupportedTimeInForceReasonKey(exchange) as TranslationKey)
           : undefined}
@@ -365,7 +371,6 @@
           {/if}
         </select>
       </div>
-    {/if}
   </div>
 
   <!-- What will be sent, from the calculator -->
@@ -446,6 +451,11 @@
 </div>
 
 <style>
+  /* This panel titles a live action, not a section: normal case. Scoped,
+     so the global uppercase .section-header everywhere else is untouched. */
+  .section-header {
+    text-transform: none;
+  }
   .type-btn {
     padding: 0.35rem 0.6rem;
     font-size: 0.8125rem;

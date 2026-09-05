@@ -280,19 +280,16 @@
             ? 'animate-spin'
             : ''}"
           onclick={() => handleFetchBalance(false)}
-          title={paperState.enabled
-            ? $_("dashboard.portfolioInputs.fetchBalanceTitlePaper")
-            : $_("dashboard.portfolioInputs.fetchBalanceTitle")}
+          title={!hasApiKeys && !paperState.enabled
+            ? $_("dashboard.alerts.noApiKeys")
+            : paperState.enabled
+              ? $_("dashboard.portfolioInputs.fetchBalanceTitlePaper")
+              : $_("dashboard.portfolioInputs.fetchBalanceTitle")}
           disabled={isFetchingBalance || (!isConnected && !paperState.enabled)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
         </button>
       </div>
-      {#if !hasApiKeys}
-        <p class="mt-1 text-xs text-[var(--color-warning)]">
-          {$_("dashboard.alerts.noApiKeys")}
-        </p>
-      {/if}
     </div>
 
     <div class="flex-[0.75] min-w-0">

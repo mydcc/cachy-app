@@ -19,10 +19,7 @@
   import TakeProfitRow from "../shared/TakeProfitRow.svelte";
   import { app } from "../../services/app";
   import { _ } from "../../locales/i18n";
-  import { createEventDispatcher } from "svelte";
   import type { IndividualTpResult } from "../../stores/types";
-
-  const dispatch = createEventDispatcher();
 
   interface Props {
     targets: Array<{
@@ -49,7 +46,6 @@
   function removeRow(index: number) {
     if (index === 0) return;
     app.removeTakeProfitRow(index);
-    dispatch("remove", index);
   }
 </script>
 
@@ -85,7 +81,7 @@
 
   <!-- Target Rows (clean vertical list) -->
   <div class="space-y-2">
-    {#each targets as target, i (i)}
+    {#each targets as target, i (target)}
       <TakeProfitRow
         index={i}
         price={target.price}
