@@ -4938,6 +4938,30 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0397-notification-channels.md"
   },
   {
+    "id": "FEAT-0400",
+    "title": "Collapse chart indicator sub-panes to header strips",
+    "type": "feature",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/chart-pane-collapse",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "estimate": "2",
+    "size": "S",
+    "target_date": "2026-09-18",
+    "start_date": "2026-09-04",
+    "file": "features/FEAT-0400-collapse-chart-indicator-sub-panes.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",

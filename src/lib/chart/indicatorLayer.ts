@@ -740,9 +740,4 @@ export class IndicatorLayer {
             }
         }
     }
-
-    /** Re-runs render with the last rows; used when `visible` flags change. */
-    refresh(): void {
-        if (this.lastRows) this.render(this.lastRows);
-    }
 }

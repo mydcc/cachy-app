@@ -2,9 +2,9 @@
 
 # Backlog index
 
-282 items. How to read and add them: [README.md](README.md).
+283 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-progress 3 · ✅ done 214
+Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-progress 4 · ✅ done 214
 
 ---
 
@@ -105,6 +105,7 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | mascot |
 | [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | trade-panel |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | trade-panel |
+| [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | 🟡 in-progress | chart |
 | [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | 🟡 in-progress | engine |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
@@ -575,6 +576,7 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md), [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) |
 | [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | 💡 idea | M9 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -638,4 +640,4 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 
 ---
 
-Next free number: **0400**
+Next free number: **0401**

@@ -1,5 +1,5 @@
 ---
-id: FEAT-0379
+id: FEAT-0398
 title: Collapse chart indicator sub-panes to header strips
 type: feature
 status: in-progress
@@ -18,7 +18,7 @@ target_date: 2026-09-18
 start_date: 2026-09-04
 ---
 
-# FEAT-0379 — Collapse chart indicator sub-panes to header strips
+# FEAT-0398 — Collapse chart indicator sub-panes to header strips
 
 GitHub issue: #2658
 
