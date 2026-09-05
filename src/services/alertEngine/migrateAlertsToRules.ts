@@ -103,10 +103,31 @@ export async function migrateAlertsToRuleDocuments(
     }
 
     const existingIds = new Set(existingRules.map(idOf).filter((id): id is string => id !== undefined));
-    const pending = alerts.filter((alert) => {
+    const claimedIds = new Set(existingIds);
+    const pending: unknown[] = [];
+
+    for (const alert of alerts) {
       const id = idOf(alert);
-      return id === undefined || !existingIds.has(id);
-    });
+      if (id === undefined) {
+        // No id to reconcile by — attempt it anyway; the wasm conversion
+        // will refuse it and it lands in the per-item malformed-entry log.
+        pending.push(alert);
+        continue;
+      }
+      if (existingIds.has(id)) {
+        logger.debug("alerts", `Skipping alert ${id} during migration: a rule with this id already exists in cachy_rules_v1`);
+        continue;
+      }
+      if (claimedIds.has(id)) {
+        // Two stored alerts sharing an id (a weak id generator upstream can
+        // produce this) would otherwise both migrate and mint duplicate
+        // rule ids. Keep the first, skip and log the rest.
+        logger.debug("alerts", `Skipping alert ${id} during migration: duplicate id within cachy_alerts_v1`);
+        continue;
+      }
+      claimedIds.add(id);
+      pending.push(alert);
+    }
     if (pending.length === 0) return;
 
     let ruleModule: RuleFromAlertModule;

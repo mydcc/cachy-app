@@ -25,7 +25,7 @@ vi.mock("$app/environment", () => ({
 }));
 
 vi.mock("../logger", () => ({
-  logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn() },
+  logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
 const ALERTS_KEY = "cachy_alerts_v1";
@@ -190,6 +190,41 @@ describe("FEAT-0388 — migrate stored price alerts to rule documents", () => {
 
     expect(fakeLoader).not.toHaveBeenCalled();
     expect(readRules()).toHaveLength(0);
+  });
+
+  it("migrates only the first of two stored alerts sharing an id, and logs the duplicate", async () => {
+    const { logger } = await import("../logger");
+    const duplicate = { ...ACTIVE_ALERT, symbol: "SOLUSDT" };
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT, duplicate]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const rules = readRules();
+    expect(rules).toHaveLength(1);
+    expect(rules[0].symbol).toBe(ACTIVE_ALERT.symbol);
+    expect(logger.debug).toHaveBeenCalledWith(
+      "alerts",
+      expect.stringContaining("duplicate id within cachy_alerts_v1"),
+    );
+  });
+
+  it("skips and logs an alert whose id already has an unrelated rule in cachy_rules_v1", async () => {
+    const { logger } = await import("../logger");
+    localStorage.setItem(RULES_KEY, JSON.stringify([{ id: ACTIVE_ALERT.id, symbol: "PRESEEDED" }]));
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const rules = readRules();
+    expect(rules).toHaveLength(1);
+    expect(rules[0].symbol).toBe("PRESEEDED");
+    expect(fakeLoader).not.toHaveBeenCalled();
+    expect(logger.debug).toHaveBeenCalledWith(
+      "alerts",
+      expect.stringContaining("already exists in cachy_rules_v1"),
+    );
   });
 
   it("never throws, even when the wasm loader itself rejects", async () => {
