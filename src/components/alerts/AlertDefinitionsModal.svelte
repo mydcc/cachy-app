@@ -2,6 +2,7 @@
   import { alertState } from "../../stores/alerts.svelte";
   import ModalFrame from "../shared/ModalFrame.svelte";
   import { _ } from "../../locales/i18n";
+  import { generateId } from "../../utils/utils";
 
 
 
@@ -34,7 +35,7 @@
       const targetPrice = newAlertPrice.toString();
 
       const newAlert = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           symbol: newAlertSymbol,
           condition: { price_reached: targetPrice },
           active: true
