@@ -101,12 +101,12 @@ already present; `check-translations` stays green).
 
 ## Acceptance criteria
 
-- [ ] Button visible in left control panel; opens `AlertDefinitionsModal`.
-- [ ] Modal closes via its existing close handler.
-- [ ] Alerts created in the modal reach `alertState` and are evaluated
+- [x] Button visible in left control panel; opens `AlertDefinitionsModal`.
+- [x] Modal closes via its existing close handler.
+- [x] Alerts created in the modal reach `alertState` and are evaluated
       by the alert engine (manual smoke test).
-- [ ] `dashboard.alerts.manage` referenced in code (no longer a dead key).
-- [ ] No hardcoded colors (CSS var / paired class reuse from `control-btn`).
+- [x] `dashboard.alerts.manage` referenced in code (no longer a dead key).
+- [x] No hardcoded colors (CSS var / paired class reuse from `control-btn`).
 
 ## Links
 
