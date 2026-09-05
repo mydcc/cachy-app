@@ -4,7 +4,7 @@ title: Engine Debug Panel with real telemetry
 type: feature
 status: in-progress
 assignee: claude
-branch: fix/engine-debug-panel-telemetry
+branch: worktree-feat-0388-weitermachen-10ee20
 priority: P3
 milestone: M3
 editions: [community, pro, private]

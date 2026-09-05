@@ -62,6 +62,33 @@ describe('MarketManager', () => {
     expect(market.positionTiers['BTCUSDT'][0].maintenanceMarginRate?.toString()).toBe('0.004');
   });
 
+  it('prunes symbolMeta and positionTiers when a symbol is evicted', () => {
+    settingsState.marketCacheSize = 2;
+    const tiers = [
+      { level: 1, startValue: new Decimal(0), endValue: new Decimal(50000), leverage: 125, maintenanceMarginRate: new Decimal('0.004') },
+    ];
+    for (const sym of ['AAA', 'BBB', 'CCC']) {
+      market.setSymbolMeta(sym, {
+        symbol: sym,
+        basePrecision: 4,
+        minLeverage: 1,
+        maxLeverage: 125,
+        symbolStatus: 'OPEN',
+        isApiSupported: true,
+      });
+      market.setPositionTiers(sym, tiers);
+      market.touchSymbol(sym);
+    }
+    // metadata.size = 3 > marketCacheSize = 2 → LRU 'AAA' (first inserted) is evicted
+    market.cleanup();
+
+    expect(market.symbolMeta['AAA']).toBeUndefined();
+    expect(market.positionTiers['AAA']).toBeUndefined();
+    expect(market.symbolMeta['BBB']).toBeDefined();
+    expect(market.positionTiers['CCC']).toBeDefined();
+    settingsState.marketCacheSize = 20; // restore default for shared settingsState
+  });
+
   it('should initialize empty klines', () => {
     market.updateSymbolKlines('BTC', '1m', []);
     const data = market.data['BTC'];
