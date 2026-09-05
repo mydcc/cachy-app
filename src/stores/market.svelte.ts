@@ -23,6 +23,7 @@ import { settingsState } from "./settings.svelte";
 import { isUnsafeObjectKey } from "../utils/utils";
 import { SymbolCache } from "./market/symbolCache";
 import { KlineBufferManager } from "./market/klineBuffers";
+import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
 import { MarketTelemetry } from "./market/telemetry.svelte";
 import { applyUpdate } from "./market/applyUpdate";
 import { updatePrice, updateTicker, updateDepth, updateKline } from "./market/legacyUpdates";
@@ -103,6 +104,9 @@ export class MarketManager {
       delete this.data[symbol];
       delete this.symbolMeta[symbol];
       delete this.positionTiers[symbol];
+      // FEAT-0387: the rule loop keeps a high-water mark per series, which
+      // would otherwise outlive every symbol this cache ever held.
+      ruleEvaluationLoop.forgetSymbol(symbol);
     });
     this.marketTelemetry = new MarketTelemetry();
 
@@ -332,6 +336,20 @@ export class MarketManager {
     const current = this.getOrCreateSymbol(symbol);
     this.klineBufferManager.applySymbolKlines(symbol, timeframe, klines, source, enforceLimit, current);
     this.data[symbol] = current;
+
+    // FEAT-0387 (shadow mode): the rule evaluator observes candle closes here
+    // and writes nothing back — ADR-0009 keeps a background consumer out of
+    // `marketState`. Called after the candles have landed so the loop's own
+    // reader sees the same data.
+    //
+    // Guarded here as well as inside the loop, matching how the legacy engine
+    // is called in `applyUpdate.ts`: the loop promising not to throw is not
+    // the same as the chart being safe if it ever does.
+    try {
+      ruleEvaluationLoop.observeCandles(symbol, timeframe, klines);
+    } catch (e) {
+      import("../services/logger").then(m => m.logger.error("alerts", `[Shadow] Rule loop failed for ${symbol} ${timeframe}`, e)).catch(() => {});
+    }
   }
 
   // Legacy update methods refactored to use updateSymbol

@@ -37,7 +37,8 @@
     "docs:links": "node scripts/check-doc-links.mjs",
     "arch": "npm run arch:validate && npm run arch:build",
     "arch:validate": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs validate dataflow docs/architecture/cachy-architecture.dataflow.json --quality showcase",
-    "arch:build": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs deliver dataflow docs/architecture/cachy-architecture.dataflow.json docs/architecture/cachy-architecture.dataflow.html"
+    "arch:build": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs deliver dataflow docs/architecture/cachy-architecture.dataflow.json docs/architecture/cachy-architecture.dataflow.html",
+    "shadow:run": "node scripts/shadow-run.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

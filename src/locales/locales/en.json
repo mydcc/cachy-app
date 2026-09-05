@@ -328,7 +328,12 @@
       "crossesUp": "Crosses Up",
       "crossesDown": "Crosses Down",
       "reaches": "Reaches",
-      "symbol": "Symbol"
+      "symbol": "Symbol",
+      "cutoverNoticeTitle": "Your alerts now trigger differently",
+      "cutoverNoticeBody": "Existing alerts are now checked at the close of each 1-minute candle instead of on every single price change. Two things follow from that: an alert can arrive up to a minute later, and a brief spike through your level that recovers within the same minute no longer triggers one.",
+      "cutoverNoticeDismiss": "Got it",
+      "orphanSuspendedHint": "Migrated alarms disabled: {count}. Their original price alert no longer exists, so they were switched off automatically.",
+      "orphanWithheldHint": "Migrated alarms with unresolved origin: {count}. We could not tell for certain whether the original price alert was deleted, so they are being kept active as a precaution and can still trigger."
     },
     "generalInputs": {
       "header": "General",
@@ -1144,7 +1149,7 @@
     "feeRates": "Fee Rates — {venue}",
     "feeRatesMaker": "Maker (%)",
     "feeRatesTaker": "Taker (%)",
-      "feeRatesDesc": "Your personal fees (depending on your broker level). They are used for the simulated calculation in the frontend. Defaults: 0.014/0.042 per venue — adjust them to your actual rates. The journal will later receive the actually charged broker fees.",
+    "feeRatesDesc": "Your personal fees (depending on your broker level). They are used for the simulated calculation in the frontend. Defaults: 0.014/0.042 per venue — adjust them to your actual rates. The journal will later receive the actually charged broker fees.",
     "providerLabel": "Exchange Provider",
     "securityNote": "Keys are stored locally in your browser.",
     "imgbbHeader": "ImgBB Image Hosting",

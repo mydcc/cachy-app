@@ -209,6 +209,264 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     expect(stillArmed?.active).toBe(true);
   });
 
+  describe("FEAT-0387 — the rule engine's own core must load before it is trusted", () => {
+    // A live session found this the hard way: `alertEngine.ensureLoaded()`
+    // above loads the LEGACY engine's wasm. Nothing loaded the rule
+    // evaluator's own core (`ruleSchema`'s), so every evaluation threw
+    // `RuleCoreUnavailableError`, caught and logged by the gate — a second,
+    // independent instance of exactly this file's bug, invisible to every
+    // test that mocks `ruleSchema` instead of exercising its real loader.
+
+    it("loads the rule schema core at startup", async () => {
+      const loadSpy = vi.fn(async () => {});
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: loadSpy, isReady: () => true },
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      expect(loadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not arm the rule loop when the core failed to load", async () => {
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: {
+          load: vi.fn(async () => {
+            throw new Error("wasm fetch failed");
+          }),
+          isReady: () => false,
+        },
+      }));
+      const startSpy = vi.fn();
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        // Present so the mock stays complete even though this test's own
+        // `isReady: () => false` means neither is ever actually reached —
+        // a stale `vi.doMock` registration outlives `vi.resetModules()` and
+        // would otherwise break a later, unrelated test that imports the
+        // real module's shape.
+        isSeriesObserved: vi.fn(() => false),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: startSpy,
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+
+      // A failed core must not abort startup — the legacy engine is the one
+      // thing guaranteed to still work, and it must come up regardless.
+      await expect(initAlertEngine(fakeLoader)).resolves.toBeUndefined();
+      expect(startSpy).not.toHaveBeenCalled();
+    });
+
+    it("arms the rule loop, with the notifying sink, once the core is ready", async () => {
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      const startSpy = vi.fn();
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: startSpy,
+      }));
+
+      const { initAlertEngine, notifyingRuleSink } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      // A second argument (the mid-session re-sync hook) is expected in live
+      // mode; its own behaviour is covered separately below.
+      expect(startSpy).toHaveBeenCalledWith(notifyingRuleSink, expect.any(Function));
+    });
+  });
+
+  describe("FEAT-0387 — the shadow-mode rollback must actually be a pure addition", () => {
+    // A live session's own review found this: coverage was computed the same
+    // way regardless of which sink armed the loop, so `ledgerSink` — which
+    // records and notifies nobody — left a covered alert served by *neither*
+    // engine. That is BUG-0382 exactly, reached through a "rollback" that was
+    // supposed to be the safe direction.
+
+    function seedCoveredRule() {
+      localStorage.setItem(
+        "cachy_rules_v1",
+        JSON.stringify([
+          {
+            id: ARMED_BEFORE_RELOAD.id,
+            symbol: ARMED_BEFORE_RELOAD.symbol,
+            trigger_timeframe: "1m",
+            enabled: true,
+          },
+        ]),
+      );
+      localStorage.setItem(
+        "cachy_rule_origin_v1",
+        JSON.stringify({
+          schema_version: 1,
+          entries: {
+            [ARMED_BEFORE_RELOAD.id]: {
+              alertId: ARMED_BEFORE_RELOAD.id,
+              migratedAtMs: 1_757_030_400_000,
+            },
+          },
+        }),
+      );
+    }
+
+    it("shadow mode keeps a covered alert on the legacy engine", async () => {
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: vi.fn(),
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader, "shadow");
+
+      // Fails on the un-fixed code: coverage was computed the same way
+      // regardless of mode, so this alert would already be missing from the
+      // legacy engine here — served by neither, since ledgerSink notifies
+      // nobody.
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+    });
+
+    it("shadow mode arms the loop with the recording sink, not the notifying one", async () => {
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      const ledgerSinkStub = vi.fn();
+      const startSpy = vi.fn();
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: ledgerSinkStub,
+        startRuleEvaluationLoop: startSpy,
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader, "shadow");
+
+      // undefined, not a re-sync function: shadow mode must not touch legacy
+      // coverage at all, mid-session included.
+      expect(startSpy).toHaveBeenCalledWith(ledgerSinkStub, undefined);
+    });
+
+    it("live mode (the default) does remove a covered alert from the legacy engine", async () => {
+      // The contrast case: same seeded coverage, no mode argument — proves
+      // the two tests above are about the mode switch, not about coverage
+      // never applying at all.
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: vi.fn(),
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+    });
+  });
+
+  describe("FEAT-0387 — coverage stays in step with series observed mid-session", () => {
+    // Review round 3's finding: coverage was a startup snapshot, but the
+    // notifying loop is armed for the whole session and is series-driven. A
+    // rule whose series only becomes observed after init would stay covered
+    // by neither engine's fresh knowledge — armed and notifying on the rule
+    // path, still held (per the stale snapshot) or not held (if init happened
+    // to see it observed) on the legacy path, with nothing keeping the two in
+    // step as the market store's subscriptions change.
+
+    function seedCoveredRule() {
+      localStorage.setItem(
+        "cachy_rules_v1",
+        JSON.stringify([
+          {
+            id: ARMED_BEFORE_RELOAD.id,
+            symbol: ARMED_BEFORE_RELOAD.symbol,
+            trigger_timeframe: "1m",
+            enabled: true,
+          },
+        ]),
+      );
+      localStorage.setItem(
+        "cachy_rule_origin_v1",
+        JSON.stringify({
+          schema_version: 1,
+          entries: {
+            [ARMED_BEFORE_RELOAD.id]: {
+              alertId: ARMED_BEFORE_RELOAD.id,
+              migratedAtMs: 1_757_030_400_000,
+            },
+          },
+        }),
+      );
+    }
+
+    it("re-syncs the legacy engine when the rule's series is later observed", async () => {
+      // Not observed at startup: the alert stays on the legacy engine from
+      // the initial sync, same as any uncovered alert.
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      let observed = false;
+      let capturedOnClose: (() => void) | undefined;
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => observed),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: vi.fn((_sink: unknown, onClose?: () => void) => {
+          capturedOnClose = onClose;
+        }),
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      // Fails without the fix: the alert was never covered, so this asserts
+      // the baseline the rest of the test builds on.
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+      expect(capturedOnClose).toBeInstanceOf(Function);
+
+      // The series becomes observed mid-session (a chart opened, an
+      // indicator subscribed) and the loop reports a close.
+      observed = true;
+      capturedOnClose?.();
+
+      // Fails on the un-fixed code: nothing re-ran syncEngine, so the alert
+      // would still be sitting on the legacy engine while the rule path — armed
+      // since startup — now also evaluates and notifies for it.
+      expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+    });
+
+    it("shadow mode never wires the re-sync hook, even once ready", async () => {
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      const startSpy = vi.fn();
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: startSpy,
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader, "shadow");
+
+      // A resync hook in shadow mode would start removing alerts from the
+      // legacy engine on behalf of a sink that never notifies for them —
+      // recreating the exact gap the mode split exists to close.
+      expect(startSpy.mock.calls[0][1]).toBeUndefined();
+    });
+  });
+
   it("does not initialise during SSR", async () => {
     mockEnvironment(false);
     vi.resetModules();
