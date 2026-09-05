@@ -1186,7 +1186,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0360",
     "title": "TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1199,6 +1199,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "size": "S",
+    "assignee": "claude",
+    "branch": "fix/2584-2587-2588-bugfixes",
     "file": "bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md"
   },
   {
@@ -2047,7 +2049,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0388",
     "title": "Migrate stored price alerts to rule documents",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-feat-0388-weitermachen-10ee20",
     "priority": "P1",
     "milestone": "M4",
     "editions": [
@@ -2063,6 +2067,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "S",
     "estimate": "2",
+    "start_date": "2026-09-05",
     "file": "features/FEAT-0388-migrate-alerts-to-rule-documents.md"
   },
   {
@@ -3098,7 +3103,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0363",
     "title": "MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3111,6 +3116,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "size": "S",
+    "assignee": "claude",
+    "branch": "fix/2584-2587-2588-bugfixes",
     "file": "bugs/BUG-0363-market-manager-metadata-unbounded-growth.md"
   },
   {
@@ -5309,7 +5316,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0362",
     "title": "VisibilityController attaches uncleaned document visibilitychange listener without destroy method",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5322,6 +5329,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "size": "XS",
+    "assignee": "claude",
+    "branch": "fix/2584-2587-2588-bugfixes",
     "file": "bugs/BUG-0362-visibility-controller-listener-leak.md"
   },
   {
@@ -5865,6 +5874,30 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "antigravity",
     "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0377-gemini-key-header-not-query.md"
+  },
+  {
+    "id": "FEAT-0398",
+    "title": "Engine Debug Panel with real telemetry",
+    "type": "feature",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-feat-0388-weitermachen-10ee20",
+    "priority": "P3",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "engine",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "estimate": "1",
+    "size": "S",
+    "target_date": "2026-09-12",
+    "start_date": "2026-09-04",
+    "file": "features/FEAT-0398-engine-debug-panel-telemetry.md"
   },
   {
     "id": "IDEA-0036",
