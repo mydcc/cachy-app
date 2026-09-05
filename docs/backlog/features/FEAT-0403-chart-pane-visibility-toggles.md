@@ -2,7 +2,7 @@
 id: FEAT-0403
 title: Toggle chart indicator panes per indicator in Settings
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feat/chart-pane-collapse
 priority: P2
@@ -50,14 +50,18 @@ switches, with a dedicated place in Settings to control the chart side.
 
 ## Acceptance Criteria
 
-- [ ] New "Chart" tab in Technicals settings lists all 13 sub-pane indicators with toggles, plus Bollinger Bands and Pivots in an Overlays section.
-- [ ] Switching a toggle off removes that pane from the chart immediately (next render); switching on restores it with its previous collapsed/open state.
-- [ ] A hidden indicator keeps calculating and stays visible in the Technicals panel and alarms.
-- [ ] `showInChart` persists across sessions; existing installs migrate to visible (`true`).
-- [ ] Layer unit tests: hidden pane claims no pane index and shifts no neighbor; hidden Bollinger/Pivot overlays draw nothing.
+- [x] New "Chart" tab in Technicals settings lists all 13 sub-pane indicators with toggles, plus Bollinger Bands and Pivots in an Overlays section.
+- [x] Switching a toggle off removes that pane from the chart immediately (next render); switching on restores it with its previous collapsed/open state.
+- [x] A hidden indicator keeps calculating and stays visible in the Technicals panel and alarms.
+- [x] `showInChart` persists across sessions; existing installs migrate to visible (`true`).
+- [x] Layer unit tests: hidden pane claims no pane index and shifts no neighbor; hidden Bollinger/Pivot overlays draw nothing.
 
 ## Out of Scope
 
 - Hiding other price-pane overlays (EMA, VWAP, …) — only Bollinger and Pivots are covered.
 - Reordering panes or per-pane height controls.
 - A hide action on the chart pane header itself (Settings is the control).
+
+## Shipped
+
+Squash-merged into `develop` via PR #2659 (manual browser checks for Chart-tab toggles + Technicals-panel separation passed).

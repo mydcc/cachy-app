@@ -2,7 +2,7 @@
 id: FEAT-0400
 title: Collapse chart indicator sub-panes to header strips
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feat/chart-pane-collapse
 priority: P2
@@ -48,3 +48,7 @@ across sessions.
 
 - Changing indicator calculation when collapsed (stays active).
 - Reordering panes or drag handles.
+
+## Shipped
+
+Squash-merged into `develop` via PR #2659 (manual browser checks for collapse/expand + persistence passed).
