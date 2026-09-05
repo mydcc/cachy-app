@@ -282,6 +282,7 @@ rollback_to_previous() {
     chown -R www:www "$SCRIPT_DIR/build" 2>/dev/null || true
     graceful_shutdown "$PORT"
     START_LOG="$LOG_DIR/start_$(date +%Y%m%d_%H%M%S).log"
+    log "Rollback start command output: $START_LOG"
     eval "$START_CMD" > "$START_LOG" 2>&1 200>&- &
     sleep 2
     health_check "$(echo "$HEALTH_CHECK_URL" | sed "s/{{PORT}}/$PORT/")"
@@ -301,14 +302,24 @@ rotate_logs() {
 }
 
 check_disk_space() {
-    # Aborts before backup/build when less than MIN_FREE_MB is free on the
-    # project filesystem. A full disk mid-swap corrupts the deployment.
+    # Aborts before backup/build when less than MIN_FREE_MB is free. Checks
+    # the project, log and backup filesystems — LOG_DIR/BACKUP_DIR are often
+    # separate mounts (/var/log, /backups), so checking only the project dir
+    # would miss a full log/backup disk. Devices checked twice are skipped.
     local min_free="${MIN_FREE_MB:-1024}"
-    local avail
-    avail=$(df -m "$SCRIPT_DIR" 2>/dev/null | awk 'NR==2 {print $4}')
-    if [[ -n "$avail" ]] && [[ "$avail" -lt "$min_free" ]]; then
-        error_exit "Only ${avail}MB free on $(df "$SCRIPT_DIR" 2>/dev/null | awk 'NR==2 {print $1}') — need at least ${min_free}MB (MIN_FREE_MB). Clean up or extend the disk."
-    fi
+    local checked="" dir target dev avail
+    for dir in "$SCRIPT_DIR" "$LOG_DIR" "$BACKUP_DIR"; do
+        target="$dir"
+        [[ -e "$target" ]] || target=$(dirname "$target")
+        dev=$(df "$target" 2>/dev/null | awk 'NR==2 {print $1}')
+        [[ -z "$dev" ]] && continue
+        case " $checked " in *" $dev "*) continue;; esac
+        checked="$checked $dev"
+        avail=$(df -m "$target" 2>/dev/null | awk 'NR==2 {print $4}')
+        if [[ -n "$avail" ]] && [[ "$avail" -lt "$min_free" ]]; then
+            error_exit "Only ${avail}MB free on $dev ($dir) — need at least ${min_free}MB (MIN_FREE_MB). Clean up or extend the disk."
+        fi
+    done
 }
 
 # --- 5. Environment & Mode Selection ---
@@ -452,6 +463,12 @@ git pull || error_exit "Git pull failed"
 
 # 2. Backup
 log "${CYAN}[BACKUP]${NC} Securing current state..."
+# Reclaim space BEFORE the disk guard runs: a streak of failed deploys leaves
+# build/start logs behind, and pre-rotation versions left timestamped
+# build_old_* piles. Both are dead weight, so drop them first — otherwise a
+# near-full disk aborts exactly the run that would have cleaned it up.
+rm -rf build_old_*
+rotate_logs
 check_disk_space
 create_backup "$ENV_TYPE"
 
@@ -556,12 +573,9 @@ log "${CYAN}[SWAP]${NC} Setting permissions and swapping build..."
 chown -R www:www "$WORK_DIR_TMP/build" 2>/dev/null || true
 chmod -R 755 "$WORK_DIR_TMP/build" 2>/dev/null || true
 
-# One-time cleanup of the pre-rotation era: timestamped build_old_* piles
-# accumulated forever because nothing ever deleted them. BACKUP_DIR already
-# holds the versioned history, so these are safe to drop. Runs into the void
-# after the first deploy with this version.
-rm -rf build_old_*
 # Single previous build under a fixed name — no accumulation possible.
+# (Timestamped build_old_* leftovers from older versions were already dropped
+# before the backup stage above.)
 rm -rf build_previous
 [[ -d "build" ]] && mv build build_previous
 mv "$WORK_DIR_TMP/build" ./
