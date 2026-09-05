@@ -115,7 +115,7 @@
 
   // Guard the degenerate input so a mirrored rate can never be `""` or
   // `undefined`: a Settings fee field the user cleared stores `""`. That falls
-  // back to the flat default (0.06) rather than feeding the calculator a
+  // back to the flat default (0.0420) rather than feeding the calculator a
   // zero-fee sizing. The check is explicit, not `||`: a literal `"0"` (a venue
   // promo or rebate rate) is a legitimate zero-percent fee and must pass
   // through; only undefined and the empty string are degenerate.

@@ -79,7 +79,7 @@ describe("default fee rate is the taker-leg fallback", () => {
   });
 
   it("moves break-even by roughly twice the rate, confirming the unit end to end", () => {
-    // Entry 30000 at 0.06% per leg -> break-even ~0.12% above entry. Had the
+    // Entry 30000 at 0.042% per leg -> break-even ~0.084% above entry. Had the
     // constant been stored as a fraction this would be ~0.0012% and the
     // assertion would not survive it.
     const base = calculateBaseMetrics(
