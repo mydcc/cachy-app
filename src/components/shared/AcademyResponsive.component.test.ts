@@ -170,7 +170,17 @@ function splitLayout(view: HTMLElement): HTMLElement {
 function expectFluidColumns(view: HTMLElement) {
     const sidebar = view.children[0] as HTMLElement;
     expect(sidebar.classList.contains("@md:min-w-[200px]")).toBe(true);
-    expect(view.classList.contains("@md:flex-wrap")).toBe(true);
+    const main = view.children[1] as HTMLElement;
+    expect(main.classList.contains("@md:min-w-[300px]")).toBe(true);
+    /*
+     * Regression pin: `@md:flex-wrap` on this row once pushed the whole
+     * detail view onto a second flex line — w-1/4 + w-3/4 already sum to
+     * 100%, so the 16px gap always forced a wrap and `overflow-hidden`
+     * clipped the content away, leaving only the pattern list visible.
+     * The row must never wrap; the flexible main column absorbs the gap.
+     */
+    expect(view.classList.contains("@md:flex-wrap")).toBe(false);
+    expect(main.classList.contains("@md:flex-none")).toBe(false);
 
     const split = splitLayout(view);
     expect(split.classList.contains("@lg:flex-wrap")).toBe(true);
