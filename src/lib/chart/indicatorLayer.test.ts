@@ -331,6 +331,23 @@ describe("IndicatorLayer", () => {
         expect(lastCall[1]).toMatchObject({ paneIndex: 2, key: "rsi", collapsed: true });
     });
 
+    it("keeps the strip pane alive when its neighbors' series are removed", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({
+            rsi: { ...on({ length: 14, source: "close" }), visible: false },
+        }));
+        layer.render(makeRows(60));
+        expect(env.panes[2]).toBeTruthy();
+
+        // Teardown removes every managed series; the empty strip pane must
+        // survive that cleanup (preserveEmptyPane), not be spliced out.
+        for (const m of layer["managed"] as { series: unknown }[]) {
+            env.chart.removeSeries(m.series as never);
+        }
+        expect(env.panes[2]).toBeTruthy();
+    });
+
     it("keeps indices stable when a collapsed pane sits between open ones", () => {
         const onPanesChanged = vi.fn();
         const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);

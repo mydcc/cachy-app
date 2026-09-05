@@ -38,11 +38,11 @@ across sessions.
 
 ## Acceptance Criteria
 
-- [ ] Chevron button in every indicator sub-pane header toggles collapse/expand.
-- [ ] Collapsed pane shrinks to a header strip; other panes redistribute space.
-- [ ] Collapse state is chart-display only (`visible`), separate from indicator `enabled`.
-- [ ] State persists via the indicator store.
-- [ ] i18n labels (DE/EN) for collapse/expand.
+- [x] Chevron button in every indicator sub-pane header toggles collapse/expand.
+- [x] Collapsed pane shrinks to a header strip; other panes redistribute space.
+- [x] Collapse state is chart-display only (`visible`), separate from indicator `enabled`.
+- [x] State persists via the indicator store.
+- [x] i18n labels (DE/EN) for collapse/expand.
 
 ## Out of Scope
 

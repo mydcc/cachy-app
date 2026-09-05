@@ -125,7 +125,6 @@ export class IndicatorLayer {
     private subPaneCursor = 1;
     private stripsClaimed = 0;
     private stripPaneIndices = new Set<number>();
-    private overflowedKeys = new Set<string>();
     private availableHeight = MIN_CHART_HEIGHT;
     private lastRows: ChartRow[] | null = null;
     private onPanesChanged?: (panes: IndicatorPaneInfo[]) => void;
@@ -240,7 +239,6 @@ export class IndicatorLayer {
         this.subPaneCursor = 1;
         this.stripsClaimed = 0;
         this.stripPaneIndices.clear();
-        this.overflowedKeys.clear();
         this.panesInfo = [];
     }
 
@@ -312,7 +310,6 @@ export class IndicatorLayer {
             ? this.stripsClaimed >= this.layout.strips
             : opensClaimed >= opensFit;
         if (outOfRoom) {
-            this.overflowedKeys.add(key);
             return null;
         }
         const idx = this.subPaneCursor++;
