@@ -164,9 +164,6 @@
     tradeState.targets = event.detail;
   }
 
-  function handleTpRemove(event: CustomEvent<number>) {
-    app.removeTakeProfitRow(event.detail);
-  }
 
   function handleThemeSwitch(direction: "forward" | "backward" = "forward") {
     const currentIndex = themes.indexOf(uiState.currentTheme);
@@ -321,7 +318,7 @@
   {/if}
 
   <main
-    class="w-full max-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-4 sm:p-8 fade-in relative shrink-0 overflow-hidden"
+    class="w-full max-w-3xl xl:min-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-4 sm:p-8 fade-in relative shrink-0 overflow-hidden"
     class:xl:col-start-2={settingsState.showSidebars}
     class:panel-tilt={isProPanelTilt}
     onanimationend={handleTiltAnimationEnd}
@@ -479,7 +476,6 @@
           <TakeProfitTargets
             bind:targets={tradeState.targets}
             on:change={handleTargetsChange}
-            on:remove={handleTpRemove}
             calculatedTpDetails={resultsState.calculatedTpDetails}
           />
         </div>
@@ -755,7 +751,7 @@
     <!-- Right Sidebar: Market Data & Favorites (Sticky) -->
     <div class="hidden xl:flex justify-self-start self-stretch">
       <div
-        class="sticky top-8 flex flex-col gap-3 shrink-0 transition-all duration-300 z-40 h-fit {sidebarWidthClass}"
+        class="sticky top-8 flex flex-col gap-3 shrink-0 transition-colors duration-300 z-40 h-fit {sidebarWidthClass}"
       >
         <!-- Main current symbol -->
         {#if settingsState.showMarketOverview}

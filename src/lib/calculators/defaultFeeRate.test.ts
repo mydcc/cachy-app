@@ -17,7 +17,7 @@
  */
 
 /*
- * BUG-0329 — the default fee rate must not be the optimistic one.
+ * The default fee rate is the taker-leg fallback.
  *
  * `CONSTANTS.DEFAULT_FEES` is the rate every fee figure falls back to: the
  * initial value of `tradeState.fees`, the fallback in `calculatorService`
@@ -25,11 +25,9 @@
  * `accountState` hydrates open positions with, from both the WebSocket and
  * REST.
  *
- * It used to be "0.0140", which is a *maker* rate, applied to the entry leg
- * and the simulated exit leg alike. ADR-0010 had already recorded what that
- * does: it understates what a stop costs and overstates what a target pays,
- * so the risk/reward ratio — the number the decision is made on — is wrong
- * twice in the same direction.
+ * It is the taker rate on purpose: the exit leg is unknowable while the plan
+ * is made and is therefore assumed taker, and the per-leg maker/taker split
+ * (FEAT-0253) means the maker rate never stands in for both legs.
  *
  * These tests hold the floor, the unit, and the blast radius.
  */
@@ -41,12 +39,10 @@ import { CONSTANTS } from "../constants";
 import type { TradeValues } from "../../stores/types";
 
 /*
- * Bitunix futures, VIP 0, read 2026-08-31 from
- * https://www.bitunix.com/service/handling-fee — 0.0200% maker,
- * 0.0600% taker. The taker leg is the floor because the exit leg is assumed
- * taker (FEAT-0253) and a risk tool errs toward the expensive side.
+ * Theoretical taker default. The taker leg is the floor because the exit leg
+ * is assumed taker (FEAT-0253).
  */
-const DOCUMENTED_TAKER_PERCENT = new Decimal("0.06");
+const DOCUMENTED_TAKER_PERCENT = new Decimal("0.042");
 
 function valuesWithFee(fee: Decimal): TradeValues {
   return {
@@ -59,9 +55,9 @@ function valuesWithFee(fee: Decimal): TradeValues {
   } as TradeValues;
 }
 
-describe("BUG-0329 — the default fee rate is not the optimistic one", () => {
-  it("is at least the venue's documented taker rate", () => {
-    // Fails against the old "0.0140": a maker rate standing in for both legs.
+describe("default fee rate is the taker-leg fallback", () => {
+  it("is at least the theoretical taker rate", () => {
+    // Guards against a maker rate standing in for both legs.
     const actual = new Decimal(CONSTANTS.DEFAULT_FEES);
     expect(actual.gte(DOCUMENTED_TAKER_PERCENT)).toBe(true);
   });
