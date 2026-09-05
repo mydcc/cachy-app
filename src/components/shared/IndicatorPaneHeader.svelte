@@ -32,13 +32,15 @@
         title: string;
         /** Its settings, e.g. "14" or "12 26 9"; empty when it has none. */
         params?: string;
+        /** Last indicator value, e.g. "70.12"; empty when it has none. */
+        value?: string;
         /** True when this pane is currently collapsed to a strip. */
         collapsed?: boolean;
         /** Toggles collapse state; CandleChartView writes the store and re-renders. */
         onToggle: () => void;
     }
 
-    let { title, params = "", collapsed = false, onToggle }: Props = $props();
+    let { title, params = "", value = "", collapsed = false, onToggle }: Props = $props();
 </script>
 
 <div class="indicator-pane-header" class:collapsed={collapsed}>
@@ -62,6 +64,7 @@
     </button>
     <span class="name">{title}</span>
     {#if params}<span class="params">{params}</span>{/if}
+    {#if value}<span class="value">{value}</span>{/if}
 </div>
 
 <style>
@@ -122,5 +125,9 @@
 
     .params {
         color: var(--text-tertiary);
+    }
+
+    .value {
+        color: var(--accent-color, #2962ff);
     }
 </style>

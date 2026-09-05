@@ -495,6 +495,7 @@
                 props: {
                     title: get(_)(p.titleKey as TranslationKey) || p.key,
                     params: p.params,
+                    value: p.value,
                     collapsed: p.collapsed,
                     onToggle: () => {
                         indicatorState.update((s) => {
