@@ -4933,6 +4933,32 @@
       "file": "features/FEAT-0400-collapse-chart-indicator-sub-panes.md"
     },
     {
+      "id": "FEAT-0401",
+      "title": "Toggle chart indicator panes per indicator in Settings",
+      "type": "feature",
+      "status": "in-progress",
+      "assignee": "opencode",
+      "branch": "feat/chart-pane-collapse",
+      "priority": "P2",
+      "milestone": "M3",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "chart",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0400"
+      ],
+      "estimate": "2",
+      "size": "S",
+      "target_date": "2026-09-18",
+      "start_date": "2026-09-05",
+      "file": "features/FEAT-0401-chart-pane-visibility-toggles.md"
+    },
+    {
       "id": "BUG-0007",
       "title": "Several UI strings are hardcoded instead of translated",
       "type": "bug",
@@ -6176,5 +6202,5 @@
       "file": "ideas/IDEA-0326-feedback-system.md"
     }
   ],
-  "count": 283
+  "count": 284
 }
