@@ -359,8 +359,8 @@ describe("IndicatorLayer", () => {
         // Pane 2 must exist even though no series is created on it —
         // otherwise a collapsed pane between open ones shifts indices.
         expect(env.panes[2]).toBeTruthy();
-        // Strip height = 30px, expressed as stretch factor.
-        expect(factorOf(env.panes, 2)).toBe(30);
+        // Strip height = 16px, expressed as stretch factor.
+        expect(factorOf(env.panes, 2)).toBe(16);
         // Only volume got a series; rsi stays series-free while collapsed.
         expect(subPaneIndices(env.chart)).toEqual([1]);
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
@@ -397,7 +397,7 @@ describe("IndicatorLayer", () => {
         // volume=1, rsi strip=2, macd=3 — the strip must not shift macd.
         // (macd reports twice: histogram + line share the same pane index.)
         expect(subPaneIndices(env.chart)).toEqual([1, 3, 3]);
-        expect(factorOf(env.panes, 2)).toBe(30); // strip factor == 30px
+        expect(factorOf(env.panes, 2)).toBe(16); // strip factor == 16px
         expect(factorOf(env.panes, 3)).not.toBeUndefined();
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
         expect(lastCall.map((p: { paneIndex: number }) => p.paneIndex)).toEqual([1, 2, 3]);
@@ -415,10 +415,10 @@ describe("IndicatorLayer", () => {
 
         // Height must be set via setStretchFactor (setHeight rewrites the
         // factors of ALL panes from their current pixel heights, so
-        // sequential calls perturb each other). Strips = 30, open panes =
+        // sequential calls perturb each other). Strips = 16, open panes =
         // layout height, and the candle pane absorbs the remainder.
         const stripFactor = (env.panes[2] as unknown as { stretchFactor: number }).stretchFactor;
-        expect(stripFactor).toBe(30);
+        expect(stripFactor).toBe(16);
         const openFactor = factorOf(env.panes, 3);
         expect(openFactor).not.toBeUndefined();
         expect(factorOf(env.panes, 1)).toBe(openFactor);

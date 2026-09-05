@@ -26,7 +26,7 @@ const MIN_PANE_HEIGHT = 56;
 const PRICE_PANE_MIN = 140;
 
 /** Height of a collapsed sub-pane strip: header row only, no chart content. */
-const STRIP_HEIGHT = 30;
+const STRIP_HEIGHT = 16;
 
 /** One currently-visible sub-pane, reported to the caller after each render. */
 export interface IndicatorPaneInfo {
