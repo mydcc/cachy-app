@@ -2,7 +2,8 @@
 id: BUG-0362
 title: VisibilityController attaches uncleaned document visibilitychange listener without destroy method
 type: bug
-status: in-progress
+status: done
+shipped: 1.6.0-beta.231
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -56,9 +57,9 @@ Listener is registered with an anonymous closure and no teardown method exists o
 
 ## Acceptance criteria
 
-- [ ] `VisibilityController` provides a `destroy()` method that removes the `visibilitychange` listener.
-- [ ] `ActiveTechnicalsManager.destroy()` cleans up sub-controllers and active timers.
-- [ ] A unit test verifies that `removeEventListener` is called when `destroy()` is executed.
+- [x] `VisibilityController` provides a `destroy()` method that removes the `visibilitychange` listener.
+- [x] `ActiveTechnicalsManager.destroy()` cleans up sub-controllers and active timers.
+- [x] A unit test verifies that `removeEventListener` is called when `destroy()` is executed.
 
 ## Out of scope
 
@@ -72,3 +73,21 @@ None.
 
 - `src/services/activeTechnicals/visibilityController.ts:40-47`
 - `src/services/activeTechnicalsManager.svelte.ts:43-60`
+
+## Resolution
+
+Shipped in PR #2676 (squash-merged as `3bf1e1a2`, release 1.6.0-beta.231).
+
+- `VisibilityController` registers a named `onVisibilityChange` handler and
+  exposes `destroy()` that removes the exact listener reference.
+- `ActiveTechnicalsManager.destroy()` delegates to the controller and also
+  clears throttle timers, tears down active `$effect` cleanups, resets
+  registry subscriber counts (via new `SubscriptionRegistry.clear()`),
+  `pausedCalculations`, `executor.workerState`, the debounce markers and
+  the marketWatcher price/ticker/kline registrations read from the
+  registered keys — a destroy->re-register of the same key restarts
+  monitoring from scratch instead of being suppressed by stale state.
+- Both singletons are wired into `import.meta.hot.dispose`, closing the
+  production symptom (surviving listener after module re-init under HMR).
+- Coverage: destroy test asserts the exact handler reference, cleared
+  bookkeeping and the marketWatcher unregister calls.

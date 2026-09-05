@@ -2,7 +2,8 @@
 id: BUG-0363
 title: MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction
 type: bug
-status: in-progress
+status: done
+shipped: 1.6.0-beta.231
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -76,9 +77,9 @@ And clear both records in `MarketManager.clear()` / `cleanup()`.
 
 ## Acceptance criteria
 
-- [ ] Evicting a symbol via `symbolCache.enforceLimit()` deletes its corresponding entries from `marketState.symbolMeta` and `marketState.positionTiers`.
-- [ ] Existing functionality (fetching metadata on demand if the symbol is viewed again) remains intact.
-- [ ] A unit test verifies that `symbolMeta` and `positionTiers` are pruned upon eviction.
+- [x] Evicting a symbol via `symbolCache.enforceLimit()` deletes its corresponding entries from `marketState.symbolMeta` and `marketState.positionTiers`.
+- [x] Existing functionality (fetching metadata on demand if the symbol is viewed again) remains intact.
+- [x] A unit test verifies that `symbolMeta` and `positionTiers` are pruned upon eviction.
 
 ## Out of scope
 
@@ -93,3 +94,18 @@ None.
 - `src/stores/market.svelte.ts:66-75`
 - `src/stores/market.svelte.ts:101-104`
 - `src/stores/market/symbolCache.ts`
+
+## Resolution
+
+Shipped in PR #2676 (squash-merged as `3bf1e1a2`, release 1.6.0-beta.231).
+
+- The `SymbolCache` eviction callback now deletes the evicted symbol's
+  entries from `symbolMeta` and `positionTiers` (covers both
+  `enforceLimit()` LRU eviction and TTL-based `cleanupStale()`).
+- `destroy()` and `reset()` clear both records too; `cleanup()` was
+  deliberately left untouched — it runs every 30s and blanket-clearing
+  metadata there would have broken the refetch cache.
+- On-demand refetch when a symbol is viewed again remains intact via
+  `app.ts` (`fetchTradingPairInfo` / `fetchPositionTiers`).
+- Coverage: `market.test.ts` verifies LRU eviction prunes both maps and
+  keeps the remaining symbols.
