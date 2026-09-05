@@ -20,7 +20,6 @@ import { logger } from "../logger";
 
 const ALERTS_STORAGE_KEY = "cachy_alerts_v1";
 const RULES_STORAGE_KEY = "cachy_rules_v1";
-const MIGRATED_MARKER_KEY = "cachy_alerts_migrated_v1";
 
 // FEAT-0388: the old engine evaluated on every tick and had no notion of a
 // timeframe; the rule schema requires one (ADR-0012 decision 3). "1m" is
@@ -52,81 +51,96 @@ function readJsonArray(key: string): unknown[] {
   return Array.isArray(parsed) ? parsed : [];
 }
 
-function describeAlert(alert: unknown): string {
-  if (alert && typeof alert === "object" && "id" in alert) {
-    return String((alert as { id: unknown }).id);
+function idOf(entry: unknown): string | undefined {
+  if (entry && typeof entry === "object" && "id" in entry) {
+    const id = (entry as { id: unknown }).id;
+    return typeof id === "string" ? id : undefined;
   }
-  return "<unidentifiable entry>";
+  return undefined;
+}
+
+function describeAlert(alert: unknown): string {
+  return idOf(alert) ?? "<unidentifiable entry>";
 }
 
 /**
  * Migrates alerts stored under `cachy_alerts_v1` into rule documents under
- * `cachy_rules_v1`, once. `cachy_alerts_v1` is never modified or deleted —
- * it stays a dormant fallback per FEAT-0388.
+ * `cachy_rules_v1`. `cachy_alerts_v1` is never modified or deleted — it
+ * stays a dormant fallback per FEAT-0388.
  *
- * Idempotency relies solely on `cachy_alerts_migrated_v1`: once set, this
- * no-ops immediately, which is simpler than reconciling ids against existing
- * rules and is enough since the marker is set in the same pass that writes
- * the rules.
+ * Idempotency is per-alert-id against `cachy_rules_v1`, not a single global
+ * "already migrated" flag: an alert armed after an earlier run has no
+ * matching rule id yet and is picked up on the next one. A permanent marker
+ * would silently stop converting anything armed after the first run ever
+ * fired — the same shape of failure this migration exists to prevent, just
+ * moved to its own tail.
+ *
+ * Never throws — this is called unconditionally from `initAlertEngine()`
+ * before the alert engine itself loads, and a migration hiccup must not
+ * block that.
  */
 export async function migrateAlertsToRuleDocuments(
   loadModule: RuleModuleLoader = loadRuleModule,
 ): Promise<void> {
   if (!browser) return;
-  if (localStorage.getItem(MIGRATED_MARKER_KEY)) return;
 
-  let alerts: unknown[];
   try {
-    alerts = readJsonArray(ALERTS_STORAGE_KEY);
-  } catch (e) {
-    logger.error("alerts", "Failed to parse cachy_alerts_v1 during migration", e);
-    return;
-  }
-
-  if (alerts.length === 0) {
-    localStorage.setItem(MIGRATED_MARKER_KEY, "true");
-    return;
-  }
-
-  let ruleModule: RuleFromAlertModule;
-  try {
-    ruleModule = await loadModule();
-  } catch (e) {
-    logger.error("alerts", "Failed to load wasm module for alert migration", e);
-    return;
-  }
-
-  let existingRules: unknown[];
-  try {
-    existingRules = readJsonArray(RULES_STORAGE_KEY);
-  } catch (e) {
-    logger.error("alerts", "Failed to parse cachy_rules_v1 during migration", e);
-    existingRules = [];
-  }
-
-  const createdAtMs = Date.now();
-  const migratedRules: unknown[] = [];
-
-  for (const alert of alerts) {
+    let alerts: unknown[];
     try {
-      const ruleJson = ruleModule.rule_from_alert_json(
-        JSON.stringify(alert),
-        DEFAULT_TRIGGER_TIMEFRAME,
-        createdAtMs,
-      );
-      migratedRules.push(JSON.parse(ruleJson));
+      alerts = readJsonArray(ALERTS_STORAGE_KEY);
     } catch (e) {
-      logger.error(
-        "alerts",
-        `Skipping malformed alert during migration (${describeAlert(alert)})`,
-        e,
-      );
+      logger.error("alerts", "Failed to parse cachy_alerts_v1 during migration", e);
+      return;
     }
-  }
+    if (alerts.length === 0) return;
 
-  if (migratedRules.length > 0) {
-    localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([...existingRules, ...migratedRules]));
-  }
+    let existingRules: unknown[];
+    try {
+      existingRules = readJsonArray(RULES_STORAGE_KEY);
+    } catch (e) {
+      logger.error("alerts", "Failed to parse cachy_rules_v1 during migration", e);
+      existingRules = [];
+    }
 
-  localStorage.setItem(MIGRATED_MARKER_KEY, "true");
+    const existingIds = new Set(existingRules.map(idOf).filter((id): id is string => id !== undefined));
+    const pending = alerts.filter((alert) => {
+      const id = idOf(alert);
+      return id === undefined || !existingIds.has(id);
+    });
+    if (pending.length === 0) return;
+
+    let ruleModule: RuleFromAlertModule;
+    try {
+      ruleModule = await loadModule();
+    } catch (e) {
+      logger.error("alerts", "Failed to load wasm module for alert migration", e);
+      return;
+    }
+
+    const createdAtMs = Date.now();
+    const migratedRules: unknown[] = [];
+
+    for (const alert of pending) {
+      try {
+        const ruleJson = ruleModule.rule_from_alert_json(
+          JSON.stringify(alert),
+          DEFAULT_TRIGGER_TIMEFRAME,
+          createdAtMs,
+        );
+        migratedRules.push(JSON.parse(ruleJson));
+      } catch (e) {
+        logger.error(
+          "alerts",
+          `Skipping malformed alert during migration (${describeAlert(alert)})`,
+          e,
+        );
+      }
+    }
+
+    if (migratedRules.length > 0) {
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([...existingRules, ...migratedRules]));
+    }
+  } catch (e) {
+    logger.error("alerts", "Alert migration failed unexpectedly", e);
+  }
 }

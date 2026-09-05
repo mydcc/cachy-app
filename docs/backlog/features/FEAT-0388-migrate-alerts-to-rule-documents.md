@@ -59,7 +59,9 @@ anywhere.
 
 ## Out of scope
 
-- Deleting `cachy_alerts_v1`. A later release, once the migration has shipped.
+- Deleting `cachy_alerts_v1`. Targeted for `M5` at the earliest — after the rest of
+  the `M4` alerting rework (`FEAT-0387` through `FEAT-0397`) has shipped and had a
+  full milestone to prove itself on real installs.
 
 ## Links
 

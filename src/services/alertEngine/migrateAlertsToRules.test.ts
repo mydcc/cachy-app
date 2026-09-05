@@ -30,7 +30,6 @@ vi.mock("../logger", () => ({
 
 const ALERTS_KEY = "cachy_alerts_v1";
 const RULES_KEY = "cachy_rules_v1";
-const MARKER_KEY = "cachy_alerts_migrated_v1";
 
 const ACTIVE_ALERT = {
   id: "alert-active",
@@ -127,7 +126,7 @@ describe("FEAT-0388 — migrate stored price alerts to rule documents", () => {
     }
   });
 
-  it("running migration twice does not duplicate rules", async () => {
+  it("running migration twice does not duplicate rules, and skips reloading the wasm module once nothing is pending", async () => {
     localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
     const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
 
@@ -136,6 +135,24 @@ describe("FEAT-0388 — migrate stored price alerts to rule documents", () => {
 
     expect(readRules()).toHaveLength(1);
     expect(fakeLoader).toHaveBeenCalledTimes(1);
+  });
+
+  it("picks up an alert armed after an earlier migration run, without duplicating the one already migrated", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+    expect(readRules()).toHaveLength(1);
+
+    // A rule is not the only reader here in real life, but nothing else
+    // touches cachy_alerts_v1 in this test — appending simulates the trader
+    // arming a second alert after the app already migrated the first one.
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT, FIRED_ALERT]));
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const rules = readRules();
+    expect(rules).toHaveLength(2);
+    expect(rules.map((r) => r.id).sort()).toEqual([ACTIVE_ALERT.id, FIRED_ALERT.id].sort());
+    expect(fakeLoader).toHaveBeenCalledTimes(2);
   });
 
   it("skips a malformed entry, logs the reason, and still migrates the remaining valid ones", async () => {
@@ -166,13 +183,23 @@ describe("FEAT-0388 — migrate stored price alerts to rule documents", () => {
     expect(localStorage.getItem(ALERTS_KEY)).toBe(rawAlerts);
   });
 
-  it("sets the idempotency marker and no-ops when there are no stored alerts", async () => {
+  it("no-ops without touching the wasm module when there are no stored alerts", async () => {
     const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
 
     await migrateAlertsToRuleDocuments(fakeLoader);
 
-    expect(localStorage.getItem(MARKER_KEY)).toBeTruthy();
     expect(fakeLoader).not.toHaveBeenCalled();
+    expect(readRules()).toHaveLength(0);
+  });
+
+  it("never throws, even when the wasm loader itself rejects", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    const failingLoader = vi.fn(async () => {
+      throw new Error("wasm module failed to load");
+    });
+
+    await expect(migrateAlertsToRuleDocuments(failingLoader)).resolves.toBeUndefined();
     expect(readRules()).toHaveLength(0);
   });
 });
