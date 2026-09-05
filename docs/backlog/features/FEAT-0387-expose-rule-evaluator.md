@@ -99,9 +99,29 @@ The behaviour change is surfaced in the alert list (`cutoverNotice.ts`,
 a covered alert, naming both consequences — up to a minute of delay, and no firing for
 a mid-candle touch that recovers.
 
-**Still open before this can be called done:** a shadow period with actual data.
-`compareShadowLedger()` reports the disagreement between the two paths and has not been
-run against a real session yet.
+## Proving the evaluator actually runs
+
+Every other test around the loop substitutes something — `ruleSchema`'s tests use a
+`fakeCore` with hardcoded verdicts, the gate runs on that same fake, the loop's tests
+mock the gate away. Correct individually, and together they left the one thing that
+matters unproven: that TypeScript, the wasm evaluator and real candles agree at all. A
+disagreement over timeframe spelling, context JSON or warmup count would make the loop
+run, produce nothing, log nothing, and take every covered alert quiet with it —
+`BUG-0382` with a new cause, invisible to mocked tests because the mock is the part that
+would disagree.
+
+`ruleEvaluation.integration.test.ts` closes that: real loop, real gate, real
+`ruleSchema`, real wasm (the artefact is committed, so it runs on a bare checkout), and
+documents built by the same `rule_from_alert_json` the migration uses.
+
+`npm run shadow:run` measures the behaviour change on demand — both wasm engines over
+the same candles, the legacy one per tick and the rule one per close, reporting matched
+firings with their delay, legacy-only firings (the intra-candle touch that recovers) and
+rule-only firings, which the cutover does not predict and which fail the run.
+
+**Still open:** a short live session with `startRuleEvaluationLoop(ledgerSink)`, read
+with `compareShadowLedger()`. The offline run feeds candles directly and never touches
+the market store or a websocket, so it cannot see a subscription that never arrives.
 
 ## Out of scope
 
