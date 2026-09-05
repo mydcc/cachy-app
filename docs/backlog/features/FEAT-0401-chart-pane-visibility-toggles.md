@@ -36,7 +36,8 @@ switches, with a dedicated place in Settings to control the chart side.
 - Add a per-indicator `showInChart` flag (default `true`), persisted in the
   indicator store with migration, for every indicator that can claim a chart
   sub-pane (volume, rsi, macd, stochRsi, cci, momentum, williamsR, obv, mfi,
-  adx, ao, choppiness, stochastic).
+  adx, ao, choppiness, stochastic) plus the Bollinger Bands and Pivot
+  price-pane overlays.
 - Add a new "Chart" tab to the Technicals settings listing exactly those
   indicators with one toggle each bound to `showInChart`.
 - The indicator layer skips pane creation (and its series) for indicators
@@ -49,15 +50,14 @@ switches, with a dedicated place in Settings to control the chart side.
 
 ## Acceptance Criteria
 
-- [ ] New "Chart" tab in Technicals settings lists all 13 sub-pane indicators with toggles.
+- [ ] New "Chart" tab in Technicals settings lists all 13 sub-pane indicators with toggles, plus Bollinger Bands and Pivots in an Overlays section.
 - [ ] Switching a toggle off removes that pane from the chart immediately (next render); switching on restores it with its previous collapsed/open state.
 - [ ] A hidden indicator keeps calculating and stays visible in the Technicals panel and alarms.
 - [ ] `showInChart` persists across sessions; existing installs migrate to visible (`true`).
-- [ ] i18n labels (DE/EN) for the tab and section.
-- [ ] Layer unit test: hidden pane claims no pane index and shifts no neighbor.
+- [ ] Layer unit tests: hidden pane claims no pane index and shifts no neighbor; hidden Bollinger/Pivot overlays draw nothing.
 
 ## Out of Scope
 
-- Hiding price-pane overlays (EMA, Bollinger, VWAP, …) — they have no sub-pane.
+- Hiding other price-pane overlays (EMA, VWAP, …) — only Bollinger and Pivots are covered.
 - Reordering panes or per-pane height controls.
 - A hide action on the chart pane header itself (Settings is the control).
