@@ -4,7 +4,7 @@
 
 281 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 22 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-progress 6 · ✅ done 211
+Counts by status: 💡 idea 22 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-progress 3 · ✅ done 214
 
 ---
 
@@ -211,7 +211,7 @@ Counts by status: 💡 idea 22 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0355](bugs/BUG-0355-bitget-ws-throttle-map-leak.md) | Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely | P1 | ✅ done | exchange |
 | [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | ✅ done | exchange |
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | chat |
-| [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟡 in-progress | calculation |
+| [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | calculation |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
@@ -253,7 +253,7 @@ Counts by status: 💡 idea 22 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | calculation |
 | [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | ✅ done | market |
 | [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | ✅ done | exchange |
-| [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟡 in-progress | market |
+| [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | ✅ done | market |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | chat |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | calculator |
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | exchange |
@@ -315,7 +315,7 @@ Counts by status: 💡 idea 22 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | api |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | ui |
 | [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | ui |
-| [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟡 in-progress | indicators |
+| [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | ✅ done | indicators |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | chat |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | exchange |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | exchange |
@@ -405,7 +405,7 @@ Counts by status: 💡 idea 22 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0355](bugs/BUG-0355-bitget-ws-throttle-map-leak.md) | Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
@@ -492,7 +492,7 @@ Counts by status: 💡 idea 22 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
@@ -593,7 +593,7 @@ Counts by status: 💡 idea 22 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | none | community, pro, private | none | none | — |
