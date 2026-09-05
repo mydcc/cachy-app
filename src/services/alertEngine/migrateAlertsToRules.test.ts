@@ -260,6 +260,107 @@ describe("FEAT-0388 — migrate stored price alerts to rule documents", () => {
   });
 });
 
+describe("BUG-0402 — a migrated rule tracks its alert's threshold after an edit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("resyncs a migrated rule's threshold when the alert's price is edited", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+    expect(readRules()[0].conditions).toMatchObject({ right: { value: "50000.0" } });
+
+    const editedAlert = { ...ACTIVE_ALERT, condition: { price_reached: "60000.0" } };
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([editedAlert]));
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const rules = readRules();
+    expect(rules).toHaveLength(1);
+    expect(rules[0].conditions).toMatchObject({ right: { value: "60000.0" } });
+    expect(fakeLoader).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not reload wasm or touch the rule when the alert's threshold is unchanged", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([{ ...ACTIVE_ALERT }]));
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(fakeLoader).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the rule's original provenance.created_at_ms across a threshold resync", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+    const originalCreatedAt = (readRules()[0].provenance as { created_at_ms: number }).created_at_ms;
+
+    const editedAlert = { ...ACTIVE_ALERT, condition: { price_reached: "60000.0" } };
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([editedAlert]));
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const provenance = readRules()[0].provenance as { created_at_ms: number };
+    expect(provenance.created_at_ms).toBe(originalCreatedAt);
+  });
+
+  it("also carries the alert's current active flag across a threshold resync", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const editedAlert = { ...ACTIVE_ALERT, condition: { price_reached: "60000.0" }, active: false };
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([editedAlert]));
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const rules = readRules();
+    expect(rules[0].enabled).toBe(false);
+    expect(rules[0].conditions).toMatchObject({ right: { value: "60000.0" } });
+  });
+
+  it("leaves the stored rule untouched when a resync conversion fails", async () => {
+    const { logger } = await import("../logger");
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+    const before = readRules()[0];
+
+    const editedAlert = { ...ACTIVE_ALERT, condition: { price_reached: "60000.0" } };
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([editedAlert]));
+    const failingResyncLoader = vi.fn(async () => ({
+      rule_from_alert_json: () => {
+        throw new Error("refused: malformed conversion");
+      },
+    }));
+
+    await migrateAlertsToRuleDocuments(failingResyncLoader);
+
+    expect(readRules()[0]).toEqual(before);
+    expect(logger.error).toHaveBeenCalledWith(
+      "alerts",
+      expect.stringContaining("Skipping resync"),
+      expect.anything(),
+    );
+  });
+
+  it("does not resync a rule whose conditions do not match the expected shape", async () => {
+    localStorage.setItem(
+      RULES_KEY,
+      JSON.stringify([{ id: ACTIVE_ALERT.id, symbol: "BTCUSDT", enabled: true, conditions: { kind: "account" } }]),
+    );
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([{ ...ACTIVE_ALERT, condition: { price_reached: "60000.0" } }]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(fakeLoader).not.toHaveBeenCalled();
+    expect(readRules()[0].conditions).toEqual({ kind: "account" });
+  });
+});
+
 const ORIGIN_KEY = "cachy_rule_origin_v1";
 
 interface StoredLedger {
