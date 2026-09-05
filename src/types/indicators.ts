@@ -33,14 +33,12 @@ export interface IndicatorSettings {
     signals: boolean;
   };
 
-  // Per-indicator flags:
-  // - `enabled` = master switch: computation, Technical Panel and alarms.
-  // - `visible` = chart-only display switch: pane shown vs collapsed to a strip.
-  // - `showInChart` = chart-only pane switch: pane drawn at all vs fully
-  //   hidden (Settings "Chart" tab). On sub-pane indicators plus the
-  //   Bollinger Bands and Pivot overlays.
-  // Settings control `enabled` and `showInChart`; the chart pane header
-  // chevron toggles `visible`.
+  // Per-indicator flags — fully independent switches:
+  // - `enabled` = Technicals panel + alarms only. Never affects the chart.
+  // - `showInChart` = chart display only (Settings "Chart" tab). Opt-in:
+  //   every entry defaults to hidden; the chart obeys nothing else.
+  // - `visible` = chart-only collapse state: open pane vs collapsed strip
+  //   (chart pane header chevron).
   rsi: {
     enabled: boolean;
     visible: boolean;
@@ -124,6 +122,7 @@ export interface IndicatorSettings {
   ema: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     ema1: {
       length: number;
       offset: number;
@@ -147,16 +146,24 @@ export interface IndicatorSettings {
   sma: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     sma1: { length: number; };
     sma2: { length: number; };
     sma3: { length: number; };
   };
-  wma: { enabled: boolean; visible: boolean; length: number; };
-  vwma: { enabled: boolean; visible: boolean; length: number; };
-  hma: { enabled: boolean; visible: boolean; length: number; };
+  wma: { enabled: boolean; visible: boolean; showInChart: boolean; length: number; };
+    vwma: {
+    enabled: boolean;
+    visible: boolean;
+    showInChart: boolean; length: number; };
+    hma: {
+    enabled: boolean;
+    visible: boolean;
+    showInChart: boolean; length: number; };
   ichimoku: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     conversionPeriod: number;
     basePeriod: number;
     spanBPeriod: number;
@@ -171,13 +178,20 @@ export interface IndicatorSettings {
   };
   atr: { enabled: boolean; visible: boolean; length: number; };
   choppiness: { enabled: boolean; visible: boolean; showInChart: boolean; length: number; };
-  superTrend: { enabled: boolean; visible: boolean; factor: number; period: number; };
-  atrTrailingStop: { enabled: boolean; visible: boolean; period: number; multiplier: number; };
+    superTrend: {
+    enabled: boolean;
+    visible: boolean;
+    showInChart: boolean; factor: number; period: number; };
+    atrTrailingStop: {
+    enabled: boolean;
+    visible: boolean;
+    showInChart: boolean; period: number; multiplier: number; };
   obv: { enabled: boolean; visible: boolean; showInChart: boolean; smoothingLength: number; };
   mfi: { enabled: boolean; visible: boolean; showInChart: boolean; length: number; };
   vwap: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     length: number;
     anchor: "session" | "fixed";
     anchorPoint?: number;
@@ -185,6 +199,7 @@ export interface IndicatorSettings {
   parabolicSar: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     start: number;
     increment: number;
     max: number;

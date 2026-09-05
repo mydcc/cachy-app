@@ -46,7 +46,7 @@ export interface IndicatorPaneInfo {
  * with the i18n key for its on-chart label.
  *
  * Single source of truth: both the pane budget (computeLayout) and the
- * renderer (renderSubPanes) decide "is this on?" through `isPaneActive`
+ * renderer (renderSubPanes) decide "is this on?" through `isShownInChart`
  * over this list, so the count and what actually gets drawn cannot drift
  * apart.
  */
@@ -67,18 +67,6 @@ const SUB_PANES: { key: string; titleKey: string }[] = [
 ];
 
 /**
- * Reads the same `enabled` field the Settings tab binds to. Settings is the
- * only place these are switched — the chart deliberately has no on/off
- * control, because a control living inside the pane it hides cannot be used
- * to bring that pane back.
- */
-function isEnabled(key: string): boolean {
-    const s = indicatorState as unknown as Record<string, { enabled?: boolean } | undefined>;
-    const entry = s[key];
-    return entry !== undefined && entry.enabled !== false;
-}
-
-/**
  * Reads the per-indicator `visible` flag, toggled by the pane header
  * chevron. Settings stays unaware of it: `enabled` decides whether an
  * indicator is computed at all (Technical Panel, alarms), `visible` only
@@ -92,23 +80,16 @@ function isCollapsed(key: string): boolean {
 
 /**
  * Reads the per-indicator `showInChart` flag, toggled in the Technicals
- * settings "Chart" tab. This decides whether the chart draws the sub-pane
- * at all — independent of `enabled` (which keeps driving computation,
- * Technicals panel and alarms) and `visible` (open pane vs collapsed
- * strip). Missing on old stored entries means shown.
+ * settings "Chart" tab. This is the ONLY switch the chart obeys —
+ * deliberately independent of `enabled`, which drives only the Technicals
+ * panel and alarms. An indicator disabled for the panel but enabled for
+ * the chart still draws (and vice versa). Missing means hidden, matching
+ * the store's opt-in default (every stored entry carries the key
+ * explicitly after migration).
  */
 function isShownInChart(key: string): boolean {
     const s = indicatorState as unknown as Record<string, { showInChart?: boolean } | undefined>;
-    return s[key]?.showInChart !== false;
-}
-
-/**
- * Master gate for chart sub-panes: enabled for calculation AND opted into
- * chart display. A hidden pane claims no pane index, draws no series and
- * reports nothing — while the indicator itself keeps calculating.
- */
-function isPaneActive(key: string): boolean {
-    return isEnabled(key) && isShownInChart(key);
+    return s[key]?.showInChart === true;
 }
 
 interface PaneLayout {
@@ -133,10 +114,11 @@ interface ManagedSeries {
  * geringer chartfenstergröße") so a tiny window never gets cluttered with
  * unusable mini-panes.
  *
- * Above that floor the panes share the space instead: what is switched on in
- * Settings gets drawn, shrinking together down to MIN_PANE_HEIGHT, and only
- * what cannot fit even at that height is dropped. Silently omitting an
- * indicator the user explicitly enabled is the last resort, not the default.
+ * Above that floor the panes share the space instead: what is switched on
+ * for the chart in Settings (Chart tab) gets drawn, shrinking together
+ * down to MIN_PANE_HEIGHT, and only what cannot fit even at that height
+ * is dropped. Silently omitting an indicator the user explicitly enabled
+ * is the last resort, not the default.
  */
 export class IndicatorLayer {
     private chart: IChartApi;
@@ -397,19 +379,19 @@ export class IndicatorLayer {
         const none: PaneLayout = { count: 0, height: PREFERRED_PANE_HEIGHT, strips: 0 };
         if (this.availableHeight < MIN_CHART_HEIGHT) return none;
 
-        const enabled = SUB_PANES.filter((p) => isPaneActive(p.key));
-        if (enabled.length === 0) return none;
+        const shown = SUB_PANES.filter((p) => isShownInChart(p.key));
+        if (shown.length === 0) return none;
 
         const budget = this.availableHeight - PRICE_PANE_MIN;
 
         // Collapsed panes claim their strip first — a strip is the cheapest
         // thing we can show — then the open panes share what is left over.
-        const collapsedCount = enabled.filter((p) => isCollapsed(p.key)).length;
+        const collapsedCount = shown.filter((p) => isCollapsed(p.key)).length;
         const stripCapacity = Math.floor(budget / STRIP_HEIGHT);
         const strips = Math.min(collapsedCount, stripCapacity);
 
         const remaining = budget - strips * STRIP_HEIGHT;
-        const openWanted = enabled.length - collapsedCount;
+        const openWanted = shown.length - collapsedCount;
         const capacity = Math.max(0, Math.floor(remaining / MIN_PANE_HEIGHT));
         const openCount = Math.min(openWanted, capacity);
         if (openCount === 0 && strips === 0) return none;
@@ -578,7 +560,7 @@ export class IndicatorLayer {
         const P0 = 0;
 
         // Pivot points (horizontal levels on the price pane, from prior bar)
-        if (s.pivots && s.pivots.enabled !== false && s.pivots.showInChart !== false && this.candleSeries && rows.length >= 2) {
+        if (s.pivots && isShownInChart("pivots") && this.candleSeries && rows.length >= 2) {
             const prev = rows[rows.length - 2];
             const res = calculatePivotsFromValues(
                 prev.high,
@@ -613,7 +595,7 @@ export class IndicatorLayer {
         }
 
         // EMA (1-3)
-        if (s.ema.enabled !== false) {
+        if (isShownInChart("ema")) {
             const srcE = this.src(s.ema.source);
             const dE = getSourceData(rows, srcE);
             if (s.ema.ema1?.length)
@@ -625,7 +607,7 @@ export class IndicatorLayer {
         }
 
         // SMA (1-3)
-        if (s.sma.enabled !== false) {
+        if (isShownInChart("sma")) {
             if (s.sma.sma1?.length)
                 this.addLine(rows, JSIndicators.sma(a.closes, s.sma.sma1.length), P0, "--success-color", "#26a69a");
             if (s.sma.sma2?.length)
@@ -635,11 +617,11 @@ export class IndicatorLayer {
         }
 
         // WMA / HMA / VWMA
-        if (s.wma.enabled !== false && s.wma.length)
+        if (isShownInChart("wma") && s.wma.length)
             this.addLine(rows, JSIndicators.wma(a.closes, s.wma.length), P0, "--accent-color", "#2962ff");
-        if (s.hma.enabled !== false && s.hma.length)
+        if (isShownInChart("hma") && s.hma.length)
             this.addLine(rows, JSIndicators.hma(a.closes, s.hma.length), P0, "--text-tertiary", "#9aa0a6");
-        if (s.vwma.enabled !== false && s.vwma.length)
+        if (isShownInChart("vwma") && s.vwma.length)
             this.addLine(
                 rows,
                 JSIndicators.vwma(a.closes, a.volume, s.vwma.length),
@@ -649,7 +631,7 @@ export class IndicatorLayer {
             );
 
         // Bollinger Bands
-        if (s.bollingerBands.enabled !== false && s.bollingerBands.showInChart !== false && s.bollingerBands.length) {
+        if (isShownInChart("bollingerBands") && s.bollingerBands.length) {
             const bb = JSIndicators.bb(a.closes, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
             this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff");
             this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6");
@@ -657,7 +639,7 @@ export class IndicatorLayer {
         }
 
         // VWAP (session/fixed anchored)
-        if (s.vwap.enabled !== false && s.vwap.length) {
+        if (isShownInChart("vwap") && s.vwap.length) {
             const times = rows.map((r) => Number(r.time) as UTCTimestamp);
             const vw = JSIndicators.vwap(a.highs, a.lows, a.closes, a.volume, times, {
                 mode: s.vwap.anchor ?? "session",
@@ -666,7 +648,7 @@ export class IndicatorLayer {
         }
 
         // Ichimoku
-        if (s.ichimoku.enabled !== false) {
+        if (isShownInChart("ichimoku")) {
             const ich = JSIndicators.ichimoku(
                 a.highs,
                 a.lows,
@@ -682,19 +664,19 @@ export class IndicatorLayer {
         }
 
         // SuperTrend
-        if (s.superTrend.enabled !== false && s.superTrend.period) {
+        if (isShownInChart("superTrend") && s.superTrend.period) {
             const st = JSIndicators.superTrend(a.highs, a.lows, a.closes, s.superTrend.period, s.superTrend.factor ?? 3);
             this.addLine(rows, st.value, P0, "--accent-color", "#2962ff");
         }
 
         // Parabolic SAR
-        if (s.parabolicSar.enabled !== false) {
+        if (isShownInChart("parabolicSar")) {
             const ps = JSIndicators.psar(a.highs, a.lows, s.parabolicSar.start ?? 0.02, s.parabolicSar.increment ?? 0.02, s.parabolicSar.max ?? 0.2);
             this.addLine(rows, ps, P0, "--warning-color", "#ffb300");
         }
 
         // ATR Trailing Stop (buy/sell)
-        if (s.atrTrailingStop.enabled !== false && s.atrTrailingStop.period) {
+        if (isShownInChart("atrTrailingStop") && s.atrTrailingStop.period) {
             const ats = JSIndicators.atrTrailingStop(
                 a.highs,
                 a.lows,
@@ -722,7 +704,7 @@ export class IndicatorLayer {
         const s = indicatorState;
 
         // Volume pane (highest priority; shown whenever there is room).
-        if (isPaneActive("volume")) {
+        if (isShownInChart("volume")) {
             const idxVol = this.openSubPane(isCollapsed("volume"), "volume");
             if (idxVol !== null) {
                 if (!isCollapsed("volume")) this.addVolume(rows, idxVol);
@@ -731,7 +713,7 @@ export class IndicatorLayer {
         }
 
         // RSI
-        if (isPaneActive("rsi")) {
+        if (isShownInChart("rsi")) {
             const idx = this.openSubPane(isCollapsed("rsi"), "rsi");
             if (idx !== null) {
                 const len = s.rsi.length ?? 14;
@@ -743,7 +725,7 @@ export class IndicatorLayer {
         }
 
         // MACD
-        if (isPaneActive("macd")) {
+        if (isShownInChart("macd")) {
             const idx = this.openSubPane(isCollapsed("macd"), "macd");
             if (idx !== null) {
                 const d = getSourceData(rows, this.src(s.macd.source));
@@ -757,7 +739,7 @@ export class IndicatorLayer {
         }
 
         // StochRSI
-        if (isPaneActive("stochRsi")) {
+        if (isShownInChart("stochRsi")) {
             const idx = this.openSubPane(isCollapsed("stochRsi"), "stochRsi");
             if (idx !== null) {
                 const rsiPeriod = s.stochRsi.rsiLength || s.stochRsi.length || 14;
@@ -772,7 +754,7 @@ export class IndicatorLayer {
         }
 
         // CCI
-        if (isPaneActive("cci")) {
+        if (isShownInChart("cci")) {
             const idx = this.openSubPane(isCollapsed("cci"), "cci");
             if (idx !== null) {
                 const len = s.cci.length ?? 20;
@@ -784,7 +766,7 @@ export class IndicatorLayer {
         }
 
         // Momentum
-        if (isPaneActive("momentum")) {
+        if (isShownInChart("momentum")) {
             const idx = this.openSubPane(isCollapsed("momentum"), "momentum");
             if (idx !== null) {
                 const len = s.momentum.length ?? 10;
@@ -796,7 +778,7 @@ export class IndicatorLayer {
         }
 
         // Williams %R
-        if (isPaneActive("williamsR")) {
+        if (isShownInChart("williamsR")) {
             const idx = this.openSubPane(isCollapsed("williamsR"), "williamsR");
             if (idx !== null) {
                 const len = s.williamsR.length ?? 14;
@@ -809,7 +791,7 @@ export class IndicatorLayer {
         }
 
         // OBV
-        if (isPaneActive("obv")) {
+        if (isShownInChart("obv")) {
             const idx = this.openSubPane(isCollapsed("obv"), "obv");
             if (idx !== null) {
                 if (!isCollapsed("obv"))
@@ -819,7 +801,7 @@ export class IndicatorLayer {
         }
 
         // MFI
-        if (isPaneActive("mfi")) {
+        if (isShownInChart("mfi")) {
             const idx = this.openSubPane(isCollapsed("mfi"), "mfi");
             if (idx !== null) {
                 const len = s.mfi.length ?? 14;
@@ -832,7 +814,7 @@ export class IndicatorLayer {
         }
 
         // ADX
-        if (isPaneActive("adx")) {
+        if (isShownInChart("adx")) {
             const idx = this.openSubPane(isCollapsed("adx"), "adx");
             if (idx !== null) {
                 const len = s.adx.diLength ?? s.adx.adxSmoothing ?? 14;
@@ -845,7 +827,7 @@ export class IndicatorLayer {
         }
 
         // Awesome Oscillator
-        if (isPaneActive("ao")) {
+        if (isShownInChart("ao")) {
             const idx = this.openSubPane(isCollapsed("ao"), "ao");
             if (idx !== null) {
                 const fast = s.ao.fastLength ?? 5;
@@ -859,7 +841,7 @@ export class IndicatorLayer {
         }
 
         // Choppiness
-        if (isPaneActive("choppiness")) {
+        if (isShownInChart("choppiness")) {
             const idx = this.openSubPane(isCollapsed("choppiness"), "choppiness");
             if (idx !== null) {
                 const len = s.choppiness.length ?? 14;
@@ -872,7 +854,7 @@ export class IndicatorLayer {
         }
 
         // Stochastic
-        if (isPaneActive("stochastic")) {
+        if (isShownInChart("stochastic")) {
             const idx = this.openSubPane(isCollapsed("stochastic"), "stochastic");
             if (idx !== null) {
                 const kPeriod = s.stochastic.kPeriod ?? 14;
