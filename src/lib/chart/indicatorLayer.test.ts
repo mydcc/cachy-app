@@ -468,6 +468,51 @@ describe("IndicatorLayer", () => {
         expect(setStretch.mock.calls[setStretch.mock.calls.length - 1][0]).toBe(20);
     });
 
+    it("draws no bollinger lines when hidden via showInChart, all three when shown", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(1000);
+        const addSeries = env.chart.addSeries as ReturnType<typeof vi.fn>;
+        Object.assign(indicatorState, makeState({
+            bollingerBands: { ...on({ length: 20, stdDev: 2, source: "close" }), showInChart: false },
+        }));
+        layer.render(makeRows(60));
+
+        // Only the volume histogram — no upper/middle/lower band lines.
+        expect(addSeries.mock.calls.length).toBe(1);
+
+        Object.assign(indicatorState, makeState({
+            bollingerBands: on({ length: 20, stdDev: 2, source: "close" }),
+        }));
+        addSeries.mockClear();
+        layer.render(makeRows(60));
+
+        // Volume + upper/middle/lower bands.
+        expect(addSeries.mock.calls.length).toBe(4);
+    });
+
+    it("draws no pivot price lines when hidden via showInChart", () => {
+        const candle = makeSeries();
+        const layer = new IndicatorLayer(env.chart, getColor, candle);
+        layer.setAvailableHeight(1000);
+        const createPriceLine = candle.createPriceLine as ReturnType<typeof vi.fn>;
+        Object.assign(indicatorState, makeState({
+            pivots: { ...on({ type: "classic" }), showInChart: false },
+        }));
+        layer.render(makeRows(60));
+
+        expect(createPriceLine).not.toHaveBeenCalled();
+
+        Object.assign(indicatorState, makeState({
+            pivots: on({ type: "classic" }),
+        }));
+        (env.chart.addSeries as ReturnType<typeof vi.fn>).mockClear();
+        layer.render(makeRows(60));
+
+        // R3..S3 levels land on the price pane; volume still draws.
+        expect(createPriceLine).toHaveBeenCalled();
+        expect(subPaneIndices(env.chart)).toEqual([1]);
+    });
+
     it("clears reported panes when the indicator layer is destroyed", () => {
         const onPanesChanged = vi.fn();
         const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);

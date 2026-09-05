@@ -2624,6 +2624,7 @@ export type TranslationKey =
   | "settings.technicals.tabs.chart"
   | "settings.technicals.chartPanes.title"
   | "settings.technicals.chartPanes.description"
+  | "settings.technicals.chartPanes.overlaysTitle"
   | "rules.coreUnavailable"
   | "rules.refusal.unknownField"
   | "rules.refusal.unknownIndicator"

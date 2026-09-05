@@ -138,6 +138,7 @@ const defaultSettings: IndicatorSettings = {
   pivots: {
     enabled: true,
     visible: true,
+    showInChart: true,
     type: "classic",
     viewMode: "integrated",
   },
@@ -208,6 +209,7 @@ const defaultSettings: IndicatorSettings = {
   bollingerBands: {
     enabled: true,
     visible: true,
+    showInChart: true,
     length: 20,
     stdDev: 2,
     source: "close",

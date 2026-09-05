@@ -35,7 +35,8 @@ export interface IndicatorSettings {
   // - `enabled` = master switch: computation, Technical Panel and alarms.
   // - `visible` = chart-only display switch: pane shown vs collapsed to a strip.
   // - `showInChart` = chart-only pane switch: pane drawn at all vs fully
-  //   hidden (Settings "Chart" tab). Only on indicators with a sub-pane.
+  //   hidden (Settings "Chart" tab). On sub-pane indicators plus the
+  //   Bollinger Bands and Pivot overlays.
   // Settings control `enabled` and `showInChart`; the chart pane header
   // chevron toggles `visible`.
   rsi: {
@@ -162,6 +163,7 @@ export interface IndicatorSettings {
   pivots: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     type: "classic" | "woodie" | "camarilla" | "fibonacci";
     viewMode: "integrated" | "separated" | "abstract";
   };
@@ -196,6 +198,7 @@ export interface IndicatorSettings {
   bollingerBands: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     length: number;
     stdDev: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";

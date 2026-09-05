@@ -1343,7 +1343,8 @@
       "toggleVisibility": "Toggle visibility",
       "chartPanes": {
         "title": "Chart panes",
-        "description": "Choose which indicator panes are drawn in the chart window. Hidden indicators keep calculating and stay visible in the Technicals panel."
+        "description": "Choose which indicator panes are drawn in the chart window. Hidden indicators keep calculating and stay visible in the Technicals panel.",
+        "overlaysTitle": "Overlays"
       },
       "signals": "Signals",
       "calculationEngine": "Calculation Engine",

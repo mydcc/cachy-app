@@ -470,6 +470,24 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Price-pane overlays: same independence as sub-panes —
+                     hidden here, still calculated for the Technicals panel. -->
+                <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
+                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
+                        <span>{$_("settings.technicals.chartPanes.overlaysTitle")}</span>
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.bollingerBands.title")}</span>
+                            <Toggle bind:checked={indicatorState.bollingerBands.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.pivotsTitle")}</span>
+                            <Toggle bind:checked={indicatorState.pivots.showInChart} />
+                        </div>
+                    </div>
+                </section>
             </div>
         {/if}
     </div>

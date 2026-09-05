@@ -569,7 +569,7 @@ export class IndicatorLayer {
         const P0 = 0;
 
         // Pivot points (horizontal levels on the price pane, from prior bar)
-        if (s.pivots && s.pivots.enabled !== false && this.candleSeries && rows.length >= 2) {
+        if (s.pivots && s.pivots.enabled !== false && s.pivots.showInChart !== false && this.candleSeries && rows.length >= 2) {
             const prev = rows[rows.length - 2];
             const res = calculatePivotsFromValues(
                 prev.high,
@@ -640,7 +640,7 @@ export class IndicatorLayer {
             );
 
         // Bollinger Bands
-        if (s.bollingerBands.enabled !== false && s.bollingerBands.length) {
+        if (s.bollingerBands.enabled !== false && s.bollingerBands.showInChart !== false && s.bollingerBands.length) {
             const bb = JSIndicators.bb(a.closes, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
             this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
             this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6", { lineWidth: 1 });
