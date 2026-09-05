@@ -224,6 +224,9 @@ Features:
 
 - ✅ Concurrency lock — a second run refuses to start while one is in progress
 - ✅ Automatic backup (last 5 deployments kept, configurable via `MAX_BACKUPS`)
+- ✅ Single previous build (`build_previous`, removed after success unless `KEEP_PREVIOUS=1`) — no timestamped `build_old_*` pile; legacy piles are deleted on the next deploy
+- ✅ Log rotation (newest `MAX_BUILD_LOGS=20` build/start logs kept, `deploy_*.log` older than `LOG_RETENTION_DAYS=14` days deleted)
+- ✅ Disk-space guard (`MIN_FREE_MB=1024`) — aborts before backup/build when the disk is nearly full
 - ✅ Atomic build in a shadow directory — a failed build never touches the live one
 - ✅ Graceful service shutdown (SIGTERM → SIGKILL)
 - ✅ Build artifact validation
@@ -240,12 +243,12 @@ Features:
 5. **Pull latest code** - `git reset --hard && git pull`
 6. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci --legacy-peer-deps && npm run build` there. **A failed build aborts without touching the running deployment.**
 7. **Validate build** - checks that `build/index.js` exists
-8. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_old_<timestamp>`, move the new one in
+8. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_previous` (fixed name, so nothing accumulates), move the new one in. Timestamped `build_old_*` leftovers from older versions are deleted once on the next deploy.
 9. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
    Its output is captured to `logs/start_<timestamp>.log` rather than discarded, and an immediate exit of the
    start command (e.g. a bad path) is flagged before the health check even begins.
 10. **Health check** - verify the service responds at `/api/health`
-11. **Auto-rollback** - restore the backup if the health check fails
+11. **Auto-rollback** - restore `build_previous` and restart when the health check fails; the previous build is deleted only after the health check passes (unless `KEEP_PREVIOUS=1`)
 
 ### Manual rollback
 
@@ -256,12 +259,12 @@ The script rolls back on its own when the health check fails. To do it by hand:
 ls -la /backups/cachy/stable/
 ls -la /backups/cachy/beta/
 
-# The build the last deployment replaced is also still on disk:
-ls -d /www/wwwroot/cachy.app/build_old_*
+# With KEEP_PREVIOUS=1 the build the last deployment replaced is still on disk:
+ls -d /www/wwwroot/cachy.app/build_previous
 ```
 
-Restore by moving the wanted `build/` directory back into place and restarting
-the Node project. `BACKUP_DIR` is set in `.deploy.conf` and falls back to
+Restore by moving `build_previous` (if kept) or the wanted `build/` directory
+from `BACKUP_DIR` back into place and restarting the Node project. `BACKUP_DIR` is set in `.deploy.conf` and falls back to
 `<project>/backups` when the configured path is not writable.
 
 ---
@@ -427,9 +430,9 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 
 2. **A previous run left work behind:**
 
-   ```bash
-   ls -d .deploy_work build_old_*   # shadow build dir and superseded builds
-   ```
+    ```bash
+    ls -d .deploy_work build_previous   # shadow build dir and superseded build
+    ```
 
    `deploy.sh` removes `.deploy_work` itself on both success and build failure.
    If it is still there, the run was interrupted — it is safe to delete.

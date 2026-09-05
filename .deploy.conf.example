@@ -73,6 +73,24 @@ HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
 # Backups kept per environment. Defaults to 5 when unset.
 MAX_BACKUPS=5
 
+# Newest build_*.log / start_*.log files kept in LOG_DIR. Older ones are
+# deleted after each successful deploy. Defaults to 20 when unset.
+MAX_BUILD_LOGS=20
+
+# deploy_*.log files older than this many days are deleted after each
+# successful deploy. Defaults to 14 when unset.
+LOG_RETENTION_DAYS=14
+
+# Minimum free disk space (MB) on the project filesystem required before
+# backup/build. The deploy aborts when less is free. Defaults to 1024.
+MIN_FREE_MB=1024
+
+# Keep the swapped-aside previous build in build_previous after a successful
+# deploy (1) or delete it (0, default). The versioned BACKUP_DIR history is
+# kept either way; 1 only helps if you want a manual mv-rollback days later
+# without touching BACKUP_DIR.
+KEEP_PREVIOUS=0
+
 # ---------------------------------------------------------------------------
 # CI artifact deployment  —  ./deploy.sh --ci   (optional)
 # ---------------------------------------------------------------------------
