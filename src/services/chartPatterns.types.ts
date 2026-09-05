@@ -54,17 +54,10 @@ export type ChartPatternDrawFunction = (
   colors: ThemeColors
 ) => void;
 
-export interface ChartPatternData {
+export interface ChartPatternRef {
   id: string;
-  name: string;
-  description: string;
-  characteristics: string[];
-  trading: string;
-  advancedConsiderations?: string;
-  performanceStats?: string;
-  category: string;
 }
 
-export interface ChartPatternDefinition extends ChartPatternData {
+export interface ChartPatternDefinition extends ChartPatternRef {
   drawFunction: ChartPatternDrawFunction;
 }
