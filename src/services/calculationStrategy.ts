@@ -24,6 +24,7 @@
 
 import type { IndicatorSettings } from '../types/indicators';
 import { toastService } from './toastService.svelte';
+import { getCapabilities, type BrowserCapabilities } from './capabilityDetection';
 import { _ } from '../locales/i18n';
 import { get } from 'svelte/store';
 
@@ -45,7 +46,13 @@ interface EngineMetrics {
     lastMedian: number;
 }
 
-class CalculationStrategy {
+export class CalculationStrategy {
+  private lastLagToastAt = 0;
+
+  constructor() {
+    this.warmCapabilities();
+  }
+
   private metrics: Record<CalculationEngine, EngineMetrics> = {
     ts: { calls: 0, totalTime: 0, errors: 0, lastMedian: 0 },
     wasm: { calls: 0, totalTime: 0, errors: 0, lastMedian: 0 },
@@ -89,7 +96,7 @@ class CalculationStrategy {
     const m = this.metrics[engine];
     m.calls++;
     m.totalTime += duration;
-    m.lastMedian = duration; // Simple median for now
+    m.lastMedian = duration; // latest single duration standing in for a median — one spike degrades wasm until another wasm run (no auto recovery)
     if (!success) m.errors++;
     
     // Add to history
@@ -106,25 +113,62 @@ class CalculationStrategy {
         this.performanceHistory.shift();
     }
 
-    // Threshold warning (Step 5)
+    // Threshold warning (Step 5). Toasts are throttled so a slow live path
+    // can't stack one toast per recalculation on a weak device.
     if (duration > 500) {
         console.error(`[ACE] CRITICAL: Engine ${engine} took ${duration.toFixed(2)}ms`);
-        toastService.error(get(_)("calculationStrategy.criticalLag", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }));
+        if (Date.now() - this.lastLagToastAt > 30_000) {
+            this.lastLagToastAt = Date.now();
+            toastService.error(get(_)("calculationStrategy.criticalLag", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }));
+        }
     } else if (duration > 100) {
         console.warn(`[ACE] Warning: Engine ${engine} took ${duration.toFixed(2)}ms`);
-        toastService.warning(get(_)("calculationStrategy.slowCalc", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }), 2000);
+        if (Date.now() - this.lastLagToastAt > 30_000) {
+            this.lastLagToastAt = Date.now();
+            toastService.warning(get(_)("calculationStrategy.slowCalc", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }), 2000);
+        }
     }
   }
 
+  private capabilitiesSnapshot: BrowserCapabilities | null = null;
+  private capabilitiesRequested = false;
+
+  /** Fire-and-forget capability prefetch so exportTelemetry() stays sync. */
+  warmCapabilities() {
+    if (this.capabilitiesRequested) return;
+    this.capabilitiesRequested = true;
+    getCapabilities().then((caps) => { this.capabilitiesSnapshot = caps; }).catch(() => {});
+  }
+
   exportTelemetry() {
-    return { 
+    const caps = this.capabilitiesSnapshot;
+    const totalCalls = Object.values(this.metrics).reduce((sum, m) => sum + m.calls, 0);
+    return {
         stats: this.metrics,
         performanceHistory: this.performanceHistory,
-        // Mock other fields expected by DebugPanel for now
-        capabilities: { ts: true, wasm: false, simd: false, sharedMemory: false, gpu: false },
-        context: { lowBattery: false, lowMemory: false, isMobile: false },
-        circuitBreaker: {} as Record<string, EngineCircuitBreakerHealth>,
-        usagePercent: {} as Record<string, number>
+        capabilities: {
+            ts: true,
+            wasm: caps?.wasm ?? (typeof WebAssembly !== 'undefined'),
+            simd: caps?.wasmSIMD ?? false,
+            sharedMemory: caps?.sharedMemory ?? false,
+            gpu: caps?.gpu ?? false
+        },
+        context: {
+            lowBattery: !!caps && !!caps.battery && !caps.battery.charging && caps.battery.level < 0.2,
+            lowMemory: (caps?.deviceMemory ?? 8) < 4,
+            isMobile: caps?.isMobile ?? false
+        },
+        // Derived from the actual degradation rule in selectEngine() (median > 500ms)
+        circuitBreaker: {
+            wasm: this.metrics.wasm.lastMedian > 500
+                ? { healthy: false, lastError: 'median > 500ms — degraded to ts', failures: 1 }
+                : { healthy: true, lastError: '', failures: 0 }
+        } as Record<string, EngineCircuitBreakerHealth>,
+        usagePercent: Object.fromEntries(
+            Object.entries(this.metrics).map(([engine, m]) => [
+                engine, totalCalls > 0 ? Math.round((m.calls / totalCalls) * 100) : 0
+            ])
+        ) as Record<string, number>
     };
   }
 }

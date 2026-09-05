@@ -23,7 +23,7 @@ import { indicatorState } from "../stores/indicator.svelte";
 import type { Kline, TechnicalsData, IndicatorResult, KlineBuffers } from "./technicalsTypes";
 import { getEmptyData } from "./technicalsTypes";
 import { toNumFast } from "../utils/fastConversion";
-import { calculationStrategy } from "./calculationStrategy";
+import { calculationStrategy, type CalculationEngine } from "./calculationStrategy";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { getCapabilities } from "./capabilityDetection";
 import { toastService } from "./toastService.svelte";
@@ -215,10 +215,12 @@ export const technicalsService = {
     }
 
     const engine = calculationStrategy.selectEngine(klines.length, finalSettings);
-    
+    const startTime = performance.now();
+
     try {
       let finalResult: TechnicalsData | undefined;
-      
+      let usedEngine = engine === 'gpu' ? 'gpu' : engine;
+
       if (engine === 'wasm') {
         const { wasmCalculator } = await import("./wasmCalculator");
         if (wasmCalculator.isAvailable()) {
@@ -232,12 +234,15 @@ export const technicalsService = {
       }
 
       if (!finalResult) {
+          usedEngine = 'ts';
           if (workerManager.isHealthy()) {
             finalResult = await this.calculateWithWorker(klines, finalSettings);
           } else {
             finalResult = this.calculateTechnicalsInline(klines, finalSettings);
           }
       }
+
+      calculationStrategy.recordMetrics(usedEngine as CalculationEngine, performance.now() - startTime, true, klines.length);
 
       // Cache storage
 
@@ -252,7 +257,13 @@ export const technicalsService = {
       return finalResult;
     } catch (e) {
       logger.warn('technicals', "Engine fallback triggered", e);
-      return this.calculateTechnicalsInline(klines, finalSettings);
+      calculationStrategy.recordMetrics(engine, performance.now() - startTime, false, klines.length);
+      // Record the successful inline fallback separately so the panel
+      // doesn't over-state the failed engine's failure count.
+      const t0 = performance.now();
+      const result = this.calculateTechnicalsInline(klines, finalSettings);
+      calculationStrategy.recordMetrics('ts', performance.now() - t0, true, klines.length);
+      return result;
     }
   },
 
