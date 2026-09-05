@@ -1260,7 +1260,8 @@
         "oscillators": "Oszillatoren",
         "trend": "Trend",
         "volatility": "Volatilität",
-        "volume": "Volumen"
+        "volume": "Volumen",
+        "chart": "Chart"
       },
       "strongBuy": "Stark Kaufen",
       "strongSell": "Stark Verkaufen",
@@ -1369,6 +1370,10 @@
       },
       "panelConfiguration": "Panel-Konfiguration",
       "toggleVisibility": "Sichtbarkeit umschalten",
+      "chartPanes": {
+        "title": "Chart-Panes",
+        "description": "Wähle, welche Indikator-Panes im Chartfenster gezeichnet werden. Ausgeblendete Indikatoren werden weiter berechnet und bleiben im Technicals-Panel sichtbar."
+      },
       "signals": "Signale",
       "calculationEngine": "Berechnungs-Engine",
       "engine": "Engine",

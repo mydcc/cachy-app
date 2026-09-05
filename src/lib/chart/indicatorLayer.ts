@@ -46,8 +46,9 @@ export interface IndicatorPaneInfo {
  * with the i18n key for its on-chart label.
  *
  * Single source of truth: both the pane budget (computeLayout) and the
- * renderer (renderSubPanes) decide "is this on?" through `isEnabled` over
- * this list, so the count and what actually gets drawn cannot drift apart.
+ * renderer (renderSubPanes) decide "is this on?" through `isPaneActive`
+ * over this list, so the count and what actually gets drawn cannot drift
+ * apart.
  */
 const SUB_PANES: { key: string; titleKey: string }[] = [
     { key: "volume", titleKey: "settings.technicals.volume" },
@@ -87,6 +88,27 @@ function isCollapsed(key: string): boolean {
     const s = indicatorState as unknown as Record<string, { visible?: boolean } | undefined>;
     const entry = s[key];
     return entry !== undefined && entry.visible === false;
+}
+
+/**
+ * Reads the per-indicator `showInChart` flag, toggled in the Technicals
+ * settings "Chart" tab. This decides whether the chart draws the sub-pane
+ * at all — independent of `enabled` (which keeps driving computation,
+ * Technicals panel and alarms) and `visible` (open pane vs collapsed
+ * strip). Missing on old stored entries means shown.
+ */
+function isShownInChart(key: string): boolean {
+    const s = indicatorState as unknown as Record<string, { showInChart?: boolean } | undefined>;
+    return s[key]?.showInChart !== false;
+}
+
+/**
+ * Master gate for chart sub-panes: enabled for calculation AND opted into
+ * chart display. A hidden pane claims no pane index, draws no series and
+ * reports nothing — while the indicator itself keeps calculating.
+ */
+function isPaneActive(key: string): boolean {
+    return isEnabled(key) && isShownInChart(key);
 }
 
 interface PaneLayout {
@@ -363,7 +385,7 @@ export class IndicatorLayer {
         const none: PaneLayout = { count: 0, height: PREFERRED_PANE_HEIGHT, strips: 0 };
         if (this.availableHeight < MIN_CHART_HEIGHT) return none;
 
-        const enabled = SUB_PANES.filter((p) => isEnabled(p.key));
+        const enabled = SUB_PANES.filter((p) => isPaneActive(p.key));
         if (enabled.length === 0) return none;
 
         const budget = this.availableHeight - PRICE_PANE_MIN;
@@ -679,7 +701,7 @@ export class IndicatorLayer {
         const s = indicatorState;
 
         // Volume pane (highest priority; shown whenever there is room).
-        if (isEnabled("volume")) {
+        if (isPaneActive("volume")) {
             const idxVol = this.openSubPane(isCollapsed("volume"), "volume");
             if (idxVol !== null) {
                 if (!isCollapsed("volume")) this.addVolume(rows, idxVol);
@@ -688,7 +710,7 @@ export class IndicatorLayer {
         }
 
         // RSI
-        if (isEnabled("rsi")) {
+        if (isPaneActive("rsi")) {
             const idx = this.openSubPane(isCollapsed("rsi"), "rsi");
             if (idx !== null) {
                 const len = s.rsi.length ?? 14;
@@ -700,7 +722,7 @@ export class IndicatorLayer {
         }
 
         // MACD
-        if (isEnabled("macd")) {
+        if (isPaneActive("macd")) {
             const idx = this.openSubPane(isCollapsed("macd"), "macd");
             if (idx !== null) {
                 const d = getSourceData(rows, this.src(s.macd.source));
@@ -714,7 +736,7 @@ export class IndicatorLayer {
         }
 
         // StochRSI
-        if (isEnabled("stochRsi")) {
+        if (isPaneActive("stochRsi")) {
             const idx = this.openSubPane(isCollapsed("stochRsi"), "stochRsi");
             if (idx !== null) {
                 const rsiPeriod = s.stochRsi.rsiLength || s.stochRsi.length || 14;
@@ -729,7 +751,7 @@ export class IndicatorLayer {
         }
 
         // CCI
-        if (isEnabled("cci")) {
+        if (isPaneActive("cci")) {
             const idx = this.openSubPane(isCollapsed("cci"), "cci");
             if (idx !== null) {
                 const len = s.cci.length ?? 20;
@@ -741,7 +763,7 @@ export class IndicatorLayer {
         }
 
         // Momentum
-        if (isEnabled("momentum")) {
+        if (isPaneActive("momentum")) {
             const idx = this.openSubPane(isCollapsed("momentum"), "momentum");
             if (idx !== null) {
                 const len = s.momentum.length ?? 10;
@@ -753,7 +775,7 @@ export class IndicatorLayer {
         }
 
         // Williams %R
-        if (isEnabled("williamsR")) {
+        if (isPaneActive("williamsR")) {
             const idx = this.openSubPane(isCollapsed("williamsR"), "williamsR");
             if (idx !== null) {
                 const len = s.williamsR.length ?? 14;
@@ -766,7 +788,7 @@ export class IndicatorLayer {
         }
 
         // OBV
-        if (isEnabled("obv")) {
+        if (isPaneActive("obv")) {
             const idx = this.openSubPane(isCollapsed("obv"), "obv");
             if (idx !== null) {
                 if (!isCollapsed("obv"))
@@ -776,7 +798,7 @@ export class IndicatorLayer {
         }
 
         // MFI
-        if (isEnabled("mfi")) {
+        if (isPaneActive("mfi")) {
             const idx = this.openSubPane(isCollapsed("mfi"), "mfi");
             if (idx !== null) {
                 const len = s.mfi.length ?? 14;
@@ -789,7 +811,7 @@ export class IndicatorLayer {
         }
 
         // ADX
-        if (isEnabled("adx")) {
+        if (isPaneActive("adx")) {
             const idx = this.openSubPane(isCollapsed("adx"), "adx");
             if (idx !== null) {
                 const len = s.adx.diLength ?? s.adx.adxSmoothing ?? 14;
@@ -802,7 +824,7 @@ export class IndicatorLayer {
         }
 
         // Awesome Oscillator
-        if (isEnabled("ao")) {
+        if (isPaneActive("ao")) {
             const idx = this.openSubPane(isCollapsed("ao"), "ao");
             if (idx !== null) {
                 const fast = s.ao.fastLength ?? 5;
@@ -816,7 +838,7 @@ export class IndicatorLayer {
         }
 
         // Choppiness
-        if (isEnabled("choppiness")) {
+        if (isPaneActive("choppiness")) {
             const idx = this.openSubPane(isCollapsed("choppiness"), "choppiness");
             if (idx !== null) {
                 const len = s.choppiness.length ?? 14;
@@ -829,7 +851,7 @@ export class IndicatorLayer {
         }
 
         // Stochastic
-        if (isEnabled("stochastic")) {
+        if (isPaneActive("stochastic")) {
             const idx = this.openSubPane(isCollapsed("stochastic"), "stochastic");
             if (idx !== null) {
                 const kPeriod = s.stochastic.kPeriod ?? 14;

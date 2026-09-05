@@ -1231,7 +1231,8 @@
         "oscillators": "Oscillators",
         "trend": "Trend",
         "volatility": "Volatility",
-        "volume": "Volume"
+        "volume": "Volume",
+        "chart": "Chart"
       },
       "strongBuy": "Strong Buy",
       "strongSell": "Strong Sell",
@@ -1340,6 +1341,10 @@
       },
       "panelConfiguration": "Panel Configuration",
       "toggleVisibility": "Toggle visibility",
+      "chartPanes": {
+        "title": "Chart panes",
+        "description": "Choose which indicator panes are drawn in the chart window. Hidden indicators keep calculating and stay visible in the Technicals panel."
+      },
       "signals": "Signals",
       "calculationEngine": "Calculation Engine",
       "engine": "Engine",

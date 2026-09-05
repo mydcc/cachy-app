@@ -32,6 +32,7 @@ const defaultSettings: IndicatorSettings = {
   rsi: {
     enabled: true,
     visible: true,
+    showInChart: true,
     length: 14,
     source: "close",
     showSignal: true,
@@ -44,6 +45,7 @@ const defaultSettings: IndicatorSettings = {
   stochRsi: {
     enabled: true,
     visible: true,
+    showInChart: true,
     length: 14,
     rsiLength: 14,
     kPeriod: 3,
@@ -53,6 +55,7 @@ const defaultSettings: IndicatorSettings = {
   macd: {
     enabled: true,
     visible: true,
+    showInChart: true,
     fastLength: 12,
     slowLength: 26,
     signalLength: 9,
@@ -63,6 +66,7 @@ const defaultSettings: IndicatorSettings = {
   stochastic: {
     enabled: false,
     visible: true,
+    showInChart: true,
     kPeriod: 14,
     kSmoothing: 3,
     dPeriod: 3,
@@ -70,11 +74,13 @@ const defaultSettings: IndicatorSettings = {
   williamsR: {
     enabled: false,
     visible: true,
+    showInChart: true,
     length: 14,
   },
   cci: {
     enabled: true,
     visible: true,
+    showInChart: true,
     length: 20,
     source: "hlc3",
     threshold: 100,
@@ -84,6 +90,7 @@ const defaultSettings: IndicatorSettings = {
   adx: {
     enabled: false,
     visible: true,
+    showInChart: true,
     adxSmoothing: 14,
     diLength: 14,
     threshold: 25,
@@ -91,12 +98,14 @@ const defaultSettings: IndicatorSettings = {
   ao: {
     enabled: false,
     visible: true,
+    showInChart: true,
     fastLength: 5,
     slowLength: 34,
   },
   momentum: {
     enabled: false,
     visible: true,
+    showInChart: true,
     length: 10,
     source: "close",
   },
@@ -140,6 +149,7 @@ const defaultSettings: IndicatorSettings = {
   choppiness: {
     enabled: false,
     visible: true,
+    showInChart: true,
     length: 14,
   },
   superTrend: {
@@ -157,11 +167,13 @@ const defaultSettings: IndicatorSettings = {
   obv: {
     enabled: false,
     visible: true,
+    showInChart: true,
     smoothingLength: 0,
   },
   mfi: {
     enabled: false,
     visible: true,
+    showInChart: true,
     length: 14,
   },
   vwap: {
@@ -191,6 +203,7 @@ const defaultSettings: IndicatorSettings = {
   volume: {
     enabled: true,
     visible: true,
+    showInChart: true,
   },
   bollingerBands: {
     enabled: true,
@@ -341,7 +354,7 @@ class IndicatorManager {
       const parsed = JSON.parse(stored);
 
       // Migration for per-indicator flags (if missing)
-      const merge = <T extends { enabled?: boolean; visible?: boolean }>(key: keyof IndicatorSettings, fallback: T): T => {
+      const merge = <T extends { enabled?: boolean; visible?: boolean; showInChart?: boolean }>(key: keyof IndicatorSettings, fallback: T): T => {
           const val: Partial<T> = parsed[key] || {};
           // Ensure enabled key exists
           if (val.enabled === undefined && fallback.enabled !== undefined) {
@@ -350,6 +363,11 @@ class IndicatorManager {
           // Ensure visible key exists (introduced with collapsible chart panes)
           if (val.visible === undefined && fallback.visible !== undefined) {
              val.visible = fallback.visible;
+          }
+          // Ensure showInChart key exists (introduced with chart pane toggles:
+          // old entries keep showing their pane)
+          if (val.showInChart === undefined && fallback.showInChart !== undefined) {
+             val.showInChart = fallback.showInChart;
           }
           return { ...fallback, ...val };
       }

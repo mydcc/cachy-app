@@ -404,6 +404,25 @@ describe("IndicatorLayer", () => {
         expect(lastCall[2]).toMatchObject({ paneIndex: 3, key: "macd", collapsed: false });
     });
 
+    it("draws no pane at all for indicators hidden via showInChart", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({
+            rsi: { ...on({ length: 14, source: "close" }), showInChart: false },
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
+        }));
+        layer.render(makeRows(60));
+
+        // volume=1, macd=2 — the hidden rsi claims no pane index, draws no
+        // series and shifts nothing (macd's two series share pane 2).
+        expect(subPaneIndices(env.chart)).toEqual([1, 2, 2]);
+        expect(env.panes).toHaveLength(3); // candle + volume + macd only
+        const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(lastCall.map((p: { key: string }) => p.key)).toEqual(["volume", "macd"]);
+        expect(lastCall.map((p: { paneIndex: number }) => p.paneIndex)).toEqual([1, 2]);
+    });
+
     it("assigns heights in one stretch-factor pass after all panes materialize", () => {
         const layer = new IndicatorLayer(env.chart, getColor);
         layer.setAvailableHeight(1000);

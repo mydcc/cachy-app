@@ -34,10 +34,14 @@ export interface IndicatorSettings {
   // Per-indicator flags:
   // - `enabled` = master switch: computation, Technical Panel and alarms.
   // - `visible` = chart-only display switch: pane shown vs collapsed to a strip.
-  // Settings control `enabled`; the chart pane header chevron toggles `visible`.
+  // - `showInChart` = chart-only pane switch: pane drawn at all vs fully
+  //   hidden (Settings "Chart" tab). Only on indicators with a sub-pane.
+  // Settings control `enabled` and `showInChart`; the chart pane header
+  // chevron toggles `visible`.
   rsi: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     showSignal: boolean;
@@ -50,6 +54,7 @@ export interface IndicatorSettings {
   stochRsi: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     length: number;
     rsiLength: number;
     kPeriod: number;
@@ -59,6 +64,7 @@ export interface IndicatorSettings {
   macd: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     fastLength: number;
     slowLength: number;
     signalLength: number;
@@ -69,6 +75,7 @@ export interface IndicatorSettings {
   stochastic: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     kPeriod: number;
     kSmoothing: number;
     dPeriod: number;
@@ -76,11 +83,13 @@ export interface IndicatorSettings {
   williamsR: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     length: number;
   };
   cci: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     threshold: number;
@@ -90,6 +99,7 @@ export interface IndicatorSettings {
   adx: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     adxSmoothing: number;
     diLength: number;
     threshold: number;
@@ -97,12 +107,14 @@ export interface IndicatorSettings {
   ao: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     fastLength: number;
     slowLength: number;
   };
   momentum: {
     enabled: boolean;
     visible: boolean;
+    showInChart: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
   };
@@ -154,11 +166,11 @@ export interface IndicatorSettings {
     viewMode: "integrated" | "separated" | "abstract";
   };
   atr: { enabled: boolean; visible: boolean; length: number; };
-  choppiness: { enabled: boolean; visible: boolean; length: number; };
+  choppiness: { enabled: boolean; visible: boolean; showInChart: boolean; length: number; };
   superTrend: { enabled: boolean; visible: boolean; factor: number; period: number; };
   atrTrailingStop: { enabled: boolean; visible: boolean; period: number; multiplier: number; };
-  obv: { enabled: boolean; visible: boolean; smoothingLength: number; };
-  mfi: { enabled: boolean; visible: boolean; length: number; };
+  obv: { enabled: boolean; visible: boolean; showInChart: boolean; smoothingLength: number; };
+  mfi: { enabled: boolean; visible: boolean; showInChart: boolean; length: number; };
   vwap: {
     enabled: boolean;
     visible: boolean;
@@ -180,7 +192,7 @@ export interface IndicatorSettings {
     maType: "sma" | "ema" | "wma";
   };
   volumeProfile: { enabled: boolean; visible: boolean; rows: number; };
-  volume: { enabled: boolean; visible: boolean; };
+  volume: { enabled: boolean; visible: boolean; showInChart: boolean; };
   bollingerBands: {
     enabled: boolean;
     visible: boolean;
