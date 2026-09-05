@@ -1,5 +1,5 @@
 ---
-id: FEAT-0401
+id: FEAT-0403
 title: Toggle chart indicator panes per indicator in Settings
 type: feature
 status: in-progress
@@ -18,7 +18,7 @@ target_date: 2026-09-18
 start_date: 2026-09-05
 ---
 
-# FEAT-0401 — Toggle chart indicator panes per indicator in Settings
+# FEAT-0403 — Toggle chart indicator panes per indicator in Settings
 
 ## Problem
 

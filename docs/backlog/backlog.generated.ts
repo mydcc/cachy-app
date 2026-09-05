@@ -1243,6 +1243,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0386-tpsl-drag-order-not-found.md"
   },
   {
+    "id": "BUG-0402",
+    "title": "A migrated rule keeps the old price after its alert is edited",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0388"
+    ],
+    "file": "bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -2070,6 +2090,31 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "start_date": "2026-09-05",
     "file": "features/FEAT-0388-migrate-alerts-to-rule-documents.md"
+  },
+  {
+    "id": "FEAT-0401",
+    "title": "Record a migration origin ledger for rules converted from legacy alerts",
+    "type": "feature",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-migrate-alerts-to-rules-47d8cf",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0388"
+    ],
+    "size": "S",
+    "estimate": "2",
+    "start_date": "2026-09-05",
+    "file": "features/FEAT-0401-record-migration-origin-ledger.md"
   },
   {
     "id": "BUG-0005",
@@ -4962,7 +5007,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0400-collapse-chart-indicator-sub-panes.md"
   },
   {
-    "id": "FEAT-0401",
+    "id": "FEAT-0403",
     "title": "Toggle chart indicator panes per indicator in Settings",
     "type": "feature",
     "status": "in-progress",
@@ -4985,7 +5030,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "S",
     "target_date": "2026-09-18",
     "start_date": "2026-09-05",
-    "file": "features/FEAT-0401-chart-pane-visibility-toggles.md"
+    "file": "features/FEAT-0403-chart-pane-visibility-toggles.md"
   },
   {
     "id": "BUG-0007",
