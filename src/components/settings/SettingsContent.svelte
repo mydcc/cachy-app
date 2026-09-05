@@ -121,7 +121,7 @@
                 } else {
                     uiState.showError(
                         result.message.startsWith("app.")
-                            ? $_(result.message as TranslationKey, result.messageParams)
+                            ? $_(result.message as TranslationKey, { values: result.messageParams })
                             : result.message,
                     );
                 }

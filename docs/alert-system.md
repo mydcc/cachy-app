@@ -71,6 +71,22 @@ Two rules follow from this, and both are enforced rather than documented:
 Closed-candle evaluation is the default because an alarm that fires on a value which
 reverts before the candle closes teaches a trader to distrust every alarm.
 
+### Cutover note for alerts armed before this system
+
+Alerts armed through the legacy price-alert panel (`AlertDefinitionsModal`, stored under
+`cachy_alerts_v1`) evaluated on **every incoming price tick** — a threshold crossed
+intra-tick fired immediately. Once [`FEAT-0388`](backlog/features/FEAT-0388-migrate-alerts-to-rule-documents.md)
+converts a stored alert into a `RuleDocument`, that alert instead fires **once per
+closed candle of its `trigger_timeframe`**, per the rule above. A price that touches the
+threshold and reverts within the same candle no longer fires it, and a fire can lag the
+old tick-based behaviour by up to one candle.
+
+This is a deliberate behaviour change, not a regression: it is the same trade-off
+described above, now also applied to alerts that predate it. A trader relying on
+sub-candle timing for an existing alert should re-arm it with a finer
+`trigger_timeframe` after the migration ships; the migration itself does not alter
+`symbol` or threshold (see `FEAT-0388`'s acceptance criteria).
+
 ## Where a trader arms a rule
 
 | Entry point | Gives |

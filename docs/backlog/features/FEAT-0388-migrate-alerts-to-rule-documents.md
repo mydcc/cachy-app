@@ -45,6 +45,22 @@ key becomes a dormant fallback and a future release may remove it. This prevents
 Class A throughout: the conversion happens on the device and nothing is reported
 anywhere.
 
+**Reconciliation ledger.** After migration, `cachy_rules_v1` and `cachy_alerts_v1` are
+allowed to drift: the trader can delete a migrated rule from the Manage tab, or arm new
+rules unrelated to any legacy alert. That makes "does this legacy alert have a matching
+rule" unreliable in both directions — a missing rule can mean either "never migrated" or
+"migrated, then the trader deleted it," and those are not the same event. The migration
+therefore also writes `cachy_alerts_migrated_v1`, an append-only `Set<legacy alert id>`
+recording which ids were successfully converted, independent of what later happens to
+`cachy_rules_v1`. Whether "migrated, then deleted" should also drop the alert from
+`cachy_alerts_v1` is a **product decision**, not an engineering one — it depends on
+whether a trader expects a deleted rule to reappear on a fresh install or a second
+device. That decision is out of scope here and belongs to whichever milestone plans the
+`cachy_alerts_v1` removal (see Out of scope); this item only guarantees the ledger this
+decision will need exists. A safe removal of `cachy_alerts_v1` later only ever has to
+check "is every id in `cachy_alerts_v1` present in `cachy_alerts_migrated_v1`?" — it
+never has to look at the current, possibly-edited state of `cachy_rules_v1`.
+
 ## Acceptance criteria
 
 - [ ] Every alert stored under `cachy_alerts_v1` exists as a valid `RuleDocument` in
@@ -56,10 +72,13 @@ anywhere.
 - [ ] A malformed stored entry is skipped with a logged reason and does not abort the
       migration for the remaining entries
 - [ ] No migrated rule carries a `consequence_level` above `notify`
+- [ ] Every successfully migrated legacy id is recorded in `cachy_alerts_migrated_v1`,
+      and that record is unaffected by later edits or deletions in `cachy_rules_v1`
 
 ## Behavior Change Documented for FEAT-0387
 
-The migration hardcodes a fixed `1m` Close evaluation granularity (`migrateAlertsToRules.ts:28`)
+The migration hardcodes a fixed `1m` Close evaluation granularity
+(`DEFAULT_TRIGGER_TIMEFRAME` in `src/services/alertEngine/migrateAlertsToRules.ts`)
 instead of inheriting a per-alert default from the old engine's per-tick model. This is
 intentional — ADR-0012 decision 3 states that a rule must explicitly choose its timeframe
 rather than inventing one. At the FEAT-0387 cutover, a migrated alert will:
@@ -74,7 +93,10 @@ This is a product choice worth surfacing to traders before cutover.
 
 - Deleting `cachy_alerts_v1`. Targeted for `M5` at the earliest — after the rest of
   the `M4` alerting rework (`FEAT-0387` through `FEAT-0397`) has shipped and had a
-  full milestone to prove itself on real installs.
+  full milestone to prove itself on real installs. That release also decides whether
+  a rule the trader deleted post-migration should remove the legacy entry too, using
+  `cachy_alerts_migrated_v1` to tell "never migrated" apart from "migrated, then
+  deleted" before it does.
 
 ## Links
 
