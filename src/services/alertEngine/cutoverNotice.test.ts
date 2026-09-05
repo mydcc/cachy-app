@@ -37,8 +37,19 @@ vi.mock("../../lib/rules/ruleSchema", () => ({
   ruleSchema: { isReady: () => true },
 }));
 
+// shouldShowCutoverNotice() dynamically imports this for the real,
+// market-store-backed series check. Stubbed to "yes" — this file tests the
+// notice's own rules (only-if-affected, only-once), not series observation,
+// which `ruleCoverage.test.ts` already covers.
+vi.mock("./ruleLoopWiring", () => ({
+  isSeriesObserved: () => true,
+}));
+
 function withCoveredAlert(): void {
-  localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1" }]));
+  localStorage.setItem(
+    RULES_STORAGE_KEY,
+    JSON.stringify([{ id: "r1", symbol: "BTCUSDT", trigger_timeframe: "1m" }]),
+  );
   localStorage.setItem(
     RULE_ORIGIN_STORAGE_KEY,
     JSON.stringify({
@@ -54,44 +65,53 @@ describe("cutover notice", () => {
     vi.clearAllMocks();
   });
 
-  it("is shown to a trader whose alerts the rule engine took over", () => {
+  it("is shown to a trader whose alerts the rule engine took over", async () => {
     withCoveredAlert();
 
-    expect(shouldShowCutoverNotice()).toBe(true);
+    expect(await shouldShowCutoverNotice()).toBe(true);
   });
 
-  it("is not shown to a trader with no covered alerts", () => {
-    expect(shouldShowCutoverNotice()).toBe(false);
+  it("is not shown to a trader with no covered alerts", async () => {
+    expect(await shouldShowCutoverNotice()).toBe(false);
   });
 
-  it("is not shown when the covering rule is disabled — nothing changed for them", () => {
+  it("is not shown when the covering rule is disabled — nothing changed for them", async () => {
     withCoveredAlert();
-    localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1", enabled: false }]));
+    localStorage.setItem(
+      RULES_STORAGE_KEY,
+      JSON.stringify([{ id: "r1", symbol: "BTCUSDT", trigger_timeframe: "1m", enabled: false }]),
+    );
 
-    expect(shouldShowCutoverNotice()).toBe(false);
+    expect(await shouldShowCutoverNotice()).toBe(false);
   });
 
-  it("is shown once and not again after acknowledgement", () => {
+  it("is shown once and not again after acknowledgement", async () => {
     withCoveredAlert();
-    expect(shouldShowCutoverNotice()).toBe(true);
+    expect(await shouldShowCutoverNotice()).toBe(true);
 
     acknowledgeCutoverNotice();
 
-    expect(shouldShowCutoverNotice()).toBe(false);
+    expect(await shouldShowCutoverNotice()).toBe(false);
     expect(localStorage.getItem(CUTOVER_NOTICE_STORAGE_KEY)).not.toBeNull();
   });
 
-  it("stays acknowledged even if the alert set changes later", () => {
+  it("stays acknowledged even if the alert set changes later", async () => {
     withCoveredAlert();
     acknowledgeCutoverNotice();
-    localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1" }, { id: "r2" }]));
+    localStorage.setItem(
+      RULES_STORAGE_KEY,
+      JSON.stringify([
+        { id: "r1", symbol: "BTCUSDT", trigger_timeframe: "1m" },
+        { id: "r2", symbol: "ETHUSDT", trigger_timeframe: "1m" },
+      ]),
+    );
 
-    expect(shouldShowCutoverNotice()).toBe(false);
+    expect(await shouldShowCutoverNotice()).toBe(false);
   });
 
-  it("stays hidden when the rule store is unreadable", () => {
+  it("stays hidden when the rule store is unreadable", async () => {
     localStorage.setItem(RULES_STORAGE_KEY, "not json");
 
-    expect(shouldShowCutoverNotice()).toBe(false);
+    expect(await shouldShowCutoverNotice()).toBe(false);
   });
 });

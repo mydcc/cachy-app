@@ -30,6 +30,7 @@ import {
     alertsForLegacyEngine,
     disarmRule,
     originAlertIdOf,
+    readCoveredAlertIds,
     releaseCoverage,
 } from "../services/alertEngine/ruleCoverage";
 import { recordFiring, recordLegacyFiring } from "../services/alertEngine/shadowLedger";
@@ -127,11 +128,18 @@ class AlertsManager {
      * Filtering here rather than at the evaluation call site means the legacy
      * engine never holds a covered alert at all, so a double fire is not
      * suppressed after the fact — it cannot be produced. An alert whose rule
-     * is missing, disabled or unmigrated is not covered and stays on this
-     * path, which is why the cutover cannot open a silent gap.
+     * is missing, disabled, unmigrated, or whose series is not being observed
+     * is not covered and stays on this path, which is why the cutover cannot
+     * open a silent gap.
+     *
+     * `covered` is supplied by the caller rather than always recomputed here:
+     * `initAlertEngine()` must be able to pass an explicit empty set for a
+     * shadow run, and the default — `readCoveredAlertIds()`'s own safe
+     * default — keeps every alert on this engine for any caller that does not
+     * know to ask for real coverage.
      */
-    syncEngine() {
-        alertEngine.setAlerts(alertsForLegacyEngine(this.definitions));
+    syncEngine(covered: ReadonlySet<string> = readCoveredAlertIds()) {
+        alertEngine.setAlerts(alertsForLegacyEngine(this.definitions, covered));
     }
 }
 
@@ -205,6 +213,21 @@ export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
 };
 
 /**
+ * `"live"` covers alerts the rule engine has taken over and notifies on their
+ * behalf — the shipped cutover. `"shadow"` is the measurement mode: the loop
+ * still evaluates and records to the ledger, but coverage is forced empty, so
+ * every alert stays exactly where it was before this feature existed.
+ *
+ * The two must move together. Coverage answers "does anything besides the
+ * legacy engine notify for this alert", and in shadow mode the answer is no —
+ * `ledgerSink` records and notifies nobody. Computing real coverage while
+ * arming `ledgerSink` would strip an alert from the legacy engine for an
+ * observer that will never tell the trader: neither engine serves it, the
+ * exact "neither" this cutover exists to rule out.
+ */
+export type AlertEngineMode = "live" | "shadow";
+
+/**
  * Brings the alert engine up at client startup. BUG-0382: without this, every
  * method on `alertEngine` early-returns on a null instance and no alert can
  * ever fire, even though the market hot path calls `evaluate()` on every tick.
@@ -222,8 +245,16 @@ export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
  * caller to remember. Alerts that are stored but never evaluated must not fail
  * silently a second time. It still rejects afterwards so a caller (or a test)
  * can tell that startup did not complete.
+ *
+ * Rolling the live cutover back to a measurement-only run is meant to be one
+ * argument: `initAlertEngine(loadModule, "shadow")`. See `AlertEngineMode`
+ * for why `mode` has to reach both the coverage decision and the sink choice
+ * together, not just the sink.
  */
-export async function initAlertEngine(loadModule?: WasmModuleLoader): Promise<void> {
+export async function initAlertEngine(
+    loadModule?: WasmModuleLoader,
+    mode: AlertEngineMode = "live",
+): Promise<void> {
     if (!browser) return;
 
     // FEAT-0388: one-shot, best-effort — migrateAlertsToRuleDocuments()
@@ -260,7 +291,25 @@ export async function initAlertEngine(loadModule?: WasmModuleLoader): Promise<vo
         throw e;
     }
 
-    alertState.syncEngine();
+    // Imported once, here, rather than at module scope: the wiring — and the
+    // market store it reads — stays out of the import graph on the path this
+    // function returns early from. `ensureLoaded()` above is client-only for
+    // the same reason; the graph has to agree with the guard or SSR pulls in
+    // the whole client half anyway. Both `isSeriesObserved` (needed for
+    // coverage, below) and `startRuleEvaluationLoop` (needed after) come from
+    // the same module, so one import covers both.
+    const { isSeriesObserved, ledgerSink, startRuleEvaluationLoop } = await import(
+        "../services/alertEngine/ruleLoopWiring"
+    );
+
+    // FEAT-0387 cutover: real coverage only in live mode. A shadow run must
+    // remove nothing from the legacy engine — that is what makes it a pure
+    // addition rather than a second, quieter cutover.
+    const covered =
+        mode === "live" && ruleSchema.isReady()
+            ? readCoveredAlertIds(isSeriesObserved)
+            : new Set<string>();
+    alertState.syncEngine(covered);
     alertState.engineStatus = "ready";
 
     // FEAT-0387 cutover: last, and only once the legacy engine is up, and only
@@ -269,14 +318,7 @@ export async function initAlertEngine(loadModule?: WasmModuleLoader): Promise<vo
     // throw inside the gate, caught and logged, evaluating nothing — but it
     // is pure overhead on the market hot path for a loop that has already
     // been excluded from coverage above.
-    //
-    // Imported here rather than at module scope so the wiring — and the market
-    // store it reads — stays out of the import graph on the path this function
-    // returns early from. `ensureLoaded()` above is client-only for the same
-    // reason; the graph has to agree with the guard or SSR pulls in the whole
-    // client half anyway.
     if (ruleSchema.isReady()) {
-        const { startRuleEvaluationLoop } = await import("../services/alertEngine/ruleLoopWiring");
-        startRuleEvaluationLoop(notifyingRuleSink);
+        startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink);
     }
 }

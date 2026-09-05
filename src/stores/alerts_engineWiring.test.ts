@@ -240,6 +240,13 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       }));
       const startSpy = vi.fn();
       vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        // Present so the mock stays complete even though this test's own
+        // `isReady: () => false` means neither is ever actually reached —
+        // a stale `vi.doMock` registration outlives `vi.resetModules()` and
+        // would otherwise break a later, unrelated test that imports the
+        // real module's shape.
+        isSeriesObserved: vi.fn(() => false),
+        ledgerSink: vi.fn(),
         startRuleEvaluationLoop: startSpy,
       }));
 
@@ -257,6 +264,8 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       }));
       const startSpy = vi.fn();
       vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: vi.fn(),
         startRuleEvaluationLoop: startSpy,
       }));
 
@@ -264,6 +273,100 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       await initAlertEngine(fakeLoader);
 
       expect(startSpy).toHaveBeenCalledWith(notifyingRuleSink);
+    });
+  });
+
+  describe("FEAT-0387 — the shadow-mode rollback must actually be a pure addition", () => {
+    // A live session's own review found this: coverage was computed the same
+    // way regardless of which sink armed the loop, so `ledgerSink` — which
+    // records and notifies nobody — left a covered alert served by *neither*
+    // engine. That is BUG-0382 exactly, reached through a "rollback" that was
+    // supposed to be the safe direction.
+
+    function seedCoveredRule() {
+      localStorage.setItem(
+        "cachy_rules_v1",
+        JSON.stringify([
+          {
+            id: ARMED_BEFORE_RELOAD.id,
+            symbol: ARMED_BEFORE_RELOAD.symbol,
+            trigger_timeframe: "1m",
+            enabled: true,
+          },
+        ]),
+      );
+      localStorage.setItem(
+        "cachy_rule_origin_v1",
+        JSON.stringify({
+          schema_version: 1,
+          entries: {
+            [ARMED_BEFORE_RELOAD.id]: {
+              alertId: ARMED_BEFORE_RELOAD.id,
+              migratedAtMs: 1_757_030_400_000,
+            },
+          },
+        }),
+      );
+    }
+
+    it("shadow mode keeps a covered alert on the legacy engine", async () => {
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: vi.fn(),
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader, "shadow");
+
+      // Fails on the un-fixed code: coverage was computed the same way
+      // regardless of mode, so this alert would already be missing from the
+      // legacy engine here — served by neither, since ledgerSink notifies
+      // nobody.
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+    });
+
+    it("shadow mode arms the loop with the recording sink, not the notifying one", async () => {
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      const ledgerSinkStub = vi.fn();
+      const startSpy = vi.fn();
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: ledgerSinkStub,
+        startRuleEvaluationLoop: startSpy,
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader, "shadow");
+
+      expect(startSpy).toHaveBeenCalledWith(ledgerSinkStub);
+    });
+
+    it("live mode (the default) does remove a covered alert from the legacy engine", async () => {
+      // The contrast case: same seeded coverage, no mode argument — proves
+      // the two tests above are about the mode switch, not about coverage
+      // never applying at all.
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: vi.fn(),
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
     });
   });
 

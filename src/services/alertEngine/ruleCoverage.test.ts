@@ -18,6 +18,13 @@
 /**
  * The cutover's safety property, stated as tests: every alert is evaluated by
  * exactly one engine. Never both (double fire), never neither (BUG-0382).
+ *
+ * Coverage requires three things to hold at once — core loaded, series
+ * observed, sink notifying (the last is `alerts.svelte.ts`'s job, not this
+ * module's) — because any one alone is not proof the rule path can produce a
+ * verdict. `isObserved`/`isReady` default to "true" here so most tests read
+ * as "given the preconditions hold, does the rule logic decide correctly";
+ * the dedicated tests below flip one precondition at a time.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -48,8 +55,25 @@ vi.mock("../../lib/rules/ruleSchema", () => ({
   ruleSchema: { isReady: () => isReady() },
 }));
 
-function storeRules(rules: ReadonlyArray<{ id: string; enabled?: boolean }>): void {
-  localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(rules));
+// The market-store-backed predicate this module deliberately has no import
+// on. A `vi.fn()` so the series-observed tests can flip it per rule/symbol;
+// every other test just needs "yes, something is watching this series".
+const isObserved = vi.fn(() => true);
+
+function storeRules(
+  rules: ReadonlyArray<{
+    id: string;
+    symbol?: string;
+    trigger_timeframe?: string;
+    enabled?: boolean;
+  }>,
+): void {
+  const withDefaults = rules.map((rule) => ({
+    symbol: "BTCUSDT",
+    trigger_timeframe: "1m",
+    ...rule,
+  }));
+  localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(withDefaults));
 }
 
 function storeLedger(pairs: ReadonlyArray<[ruleId: string, alertId: string]>): void {
@@ -69,6 +93,7 @@ describe("rule coverage", () => {
     localStorage.clear();
     vi.clearAllMocks();
     isReady.mockReturnValue(true);
+    isObserved.mockReturnValue(true);
   });
 
   describe("readCoveredAlertIds", () => {
@@ -81,6 +106,38 @@ describe("rule coverage", () => {
       storeRules([{ id: "r1" }]);
       storeLedger([["r1", "a1"]]);
 
+      expect([...readCoveredAlertIds(isObserved)]).toEqual([]);
+    });
+
+    it("covers nothing while the rule's series is not observed", () => {
+      // The other gap a live session found: an armed, core-ready rule whose
+      // trigger-timeframe series the market store never subscribes to (e.g.
+      // a 1m-pinned migrated rule on a symbol only ever charted at 4h) can
+      // never produce a verdict, so it must not be taken off the legacy
+      // engine either.
+      isObserved.mockReturnValue(false);
+      storeRules([{ id: "r1" }]);
+      storeLedger([["r1", "a1"]]);
+
+      expect([...readCoveredAlertIds(isObserved)]).toEqual([]);
+    });
+
+    it("asks whether the exact rule's symbol and trigger timeframe are observed", () => {
+      storeRules([{ id: "r1", symbol: "ETHUSDT", trigger_timeframe: "5m" }]);
+      storeLedger([["r1", "a1"]]);
+
+      readCoveredAlertIds(isObserved);
+
+      expect(isObserved).toHaveBeenCalledWith("ETHUSDT", "5m");
+    });
+
+    it("covers nothing by default — omitting the predicate is the safe state", () => {
+      // No predicate supplied: the default assumes nothing is observed, so a
+      // caller that forgets to wire the real market-store check gets "keep
+      // everything on the legacy engine" rather than a silent gap.
+      storeRules([{ id: "r1" }]);
+      storeLedger([["r1", "a1"]]);
+
       expect([...readCoveredAlertIds()]).toEqual([]);
     });
 
@@ -88,39 +145,39 @@ describe("rule coverage", () => {
       storeRules([{ id: "r1" }]);
       storeLedger([["r1", "a1"]]);
 
-      expect([...readCoveredAlertIds()]).toEqual(["a1"]);
+      expect([...readCoveredAlertIds(isObserved)]).toEqual(["a1"]);
     });
 
     it("does not cover an alert whose rule is disabled", () => {
       storeRules([{ id: "r1", enabled: false }]);
       storeLedger([["r1", "a1"]]);
 
-      expect([...readCoveredAlertIds()]).toEqual([]);
+      expect([...readCoveredAlertIds(isObserved)]).toEqual([]);
     });
 
     it("does not cover an alert whose rule was deleted", () => {
       storeRules([]);
       storeLedger([["r1", "a1"]]);
 
-      expect([...readCoveredAlertIds()]).toEqual([]);
+      expect([...readCoveredAlertIds(isObserved)]).toEqual([]);
     });
 
     it("does not cover an alert that was never migrated", () => {
       storeRules([{ id: "r1" }]);
       storeLedger([]);
 
-      expect([...readCoveredAlertIds()]).toEqual([]);
+      expect([...readCoveredAlertIds(isObserved)]).toEqual([]);
     });
 
     it("covers nothing when the rule store is missing or unusable", () => {
       storeLedger([["r1", "a1"]]);
-      expect([...readCoveredAlertIds()]).toEqual([]);
+      expect([...readCoveredAlertIds(isObserved)]).toEqual([]);
 
       localStorage.setItem(RULES_STORAGE_KEY, "not json");
-      expect([...readCoveredAlertIds()]).toEqual([]);
+      expect([...readCoveredAlertIds(isObserved)]).toEqual([]);
 
       localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify({ not: "a list" }));
-      expect([...readCoveredAlertIds()]).toEqual([]);
+      expect([...readCoveredAlertIds(isObserved)]).toEqual([]);
     });
   });
 
@@ -134,7 +191,8 @@ describe("rule coverage", () => {
         ["a3", "a3"],
       ]);
 
-      expect(alertsForLegacyEngine(alerts).map((a) => a.id)).toEqual(["a2"]);
+      const covered = readCoveredAlertIds(isObserved);
+      expect(alertsForLegacyEngine(alerts, covered).map((a) => a.id)).toEqual(["a2"]);
     });
 
     it("keeps every alert when nothing is covered", () => {
@@ -145,7 +203,8 @@ describe("rule coverage", () => {
       storeRules([{ id: "a1", enabled: false }]);
       storeLedger([["a1", "a1"]]);
 
-      expect(alertsForLegacyEngine(alerts).map((a) => a.id)).toContain("a1");
+      const covered = readCoveredAlertIds(isObserved);
+      expect(alertsForLegacyEngine(alerts, covered).map((a) => a.id)).toContain("a1");
     });
   });
 
@@ -160,8 +219,11 @@ describe("rule coverage", () => {
       expect(releaseCoverage("a1")).toBe(true);
 
       const stored = JSON.parse(localStorage.getItem(RULES_STORAGE_KEY) ?? "[]");
-      expect(stored).toEqual([{ id: "r1", enabled: false }, { id: "r2" }]);
-      expect([...readCoveredAlertIds()]).toEqual(["a2"]);
+      expect(stored.map((r: { id: string; enabled?: boolean }) => ({ id: r.id, enabled: r.enabled }))).toEqual([
+        { id: "r1", enabled: false },
+        { id: "r2", enabled: undefined },
+      ]);
+      expect([...readCoveredAlertIds(isObserved)]).toEqual(["a2"]);
     });
 
     it("reports no change for an alert nothing covered", () => {
@@ -186,7 +248,10 @@ describe("rule coverage", () => {
       expect(disarmRule("r1")).toBe(true);
 
       const stored = JSON.parse(localStorage.getItem(RULES_STORAGE_KEY) ?? "[]");
-      expect(stored).toEqual([{ id: "r1", enabled: false }, { id: "r2" }]);
+      expect(stored.map((r: { id: string; enabled?: boolean }) => ({ id: r.id, enabled: r.enabled }))).toEqual([
+        { id: "r1", enabled: false },
+        { id: "r2", enabled: undefined },
+      ]);
     });
 
     it("reports the alert a rule came from, and nothing for an authored one", () => {

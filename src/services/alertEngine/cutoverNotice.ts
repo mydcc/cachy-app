@@ -50,12 +50,18 @@ export const CUTOVER_NOTICE_STORAGE_KEY = "cachy_cutover_notice_v1";
  * put an unclosable banner in front of someone's alert list, and the notice
  * has no safety function — the alarms work either way.
  */
-export function shouldShowCutoverNotice(): boolean {
+export async function shouldShowCutoverNotice(): Promise<boolean> {
   if (!browser) return false;
 
   try {
     if (localStorage.getItem(CUTOVER_NOTICE_STORAGE_KEY) !== null) return false;
-    return readCoveredAlertIds().size > 0;
+
+    // Dynamic, not static: this file stays free of a market-store import for
+    // the same reason `ruleCoverage.ts` does, and without the real predicate
+    // `readCoveredAlertIds()` safely reports nothing — the notice would never
+    // show at all rather than showing for an alert that cannot actually fire.
+    const { isSeriesObserved } = await import("./ruleLoopWiring");
+    return readCoveredAlertIds(isSeriesObserved).size > 0;
   } catch (e) {
     logger.warn("alerts", "[Cutover] Could not decide on the behaviour notice", e);
     return false;

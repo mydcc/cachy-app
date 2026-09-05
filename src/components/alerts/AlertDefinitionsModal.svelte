@@ -19,8 +19,12 @@
   let activeTab = $state<"active" | "history">("active");
   // Read once when the modal opens, not derived from the alert list: the
   // notice must not vanish mid-read because the trader deleted the last
-  // covered alert while it was on screen.
-  let showCutoverNotice = $state(shouldShowCutoverNotice());
+  // covered alert while it was on screen. Resolved asynchronously — the check
+  // now asks whether the rule's series is actually observed, which reaches
+  // into the market store — so the modal opens with the notice hidden and it
+  // appears a moment later if it applies, rather than blocking the open.
+  let showCutoverNotice = $state(false);
+  shouldShowCutoverNotice().then((shouldShow) => { showCutoverNotice = shouldShow; });
 
   function dismissCutoverNotice() {
       acknowledgeCutoverNotice();

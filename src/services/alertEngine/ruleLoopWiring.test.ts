@@ -28,6 +28,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { marketState } from "../../stores/market.svelte";
 import {
+  isSeriesObserved,
   ledgerSink,
   readClosedCandles,
   readStoredRules,
@@ -109,6 +110,27 @@ describe("rule loop wiring", () => {
 
       expect(readClosedCandles("ETHUSDT", "1m")).toEqual([]);
       expect(readClosedCandles("BTCUSDT", "4h")).toEqual([]);
+    });
+  });
+
+  describe("isSeriesObserved", () => {
+    it("is true once the series has produced a closed candle", () => {
+      marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
+
+      expect(isSeriesObserved("BTCUSDT", "1m")).toBe(true);
+    });
+
+    it("is false for a series with only the forming candle", () => {
+      marketState.applySymbolKlines("BTCUSDT", "1m", [CANDLES[0]]);
+
+      expect(isSeriesObserved("BTCUSDT", "1m")).toBe(false);
+    });
+
+    it("is false for a symbol or timeframe nothing has subscribed to", () => {
+      marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
+
+      expect(isSeriesObserved("ETHUSDT", "1m")).toBe(false);
+      expect(isSeriesObserved("BTCUSDT", "4h")).toBe(false);
     });
   });
 

@@ -46,19 +46,39 @@ import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { readRuleOriginLedger } from "./ruleOriginLedger";
 
+/** Whether the market store has a live series for a rule's symbol+timeframe. */
+export type SeriesObservedPredicate = (symbol: string, timeframe: string) => boolean;
+
+/**
+ * The safe default: until a caller supplies the real, market-store-backed
+ * check, no series counts as observed, so coverage stays empty rather than
+ * silently assuming a subscription exists. This file has no import on the
+ * market store on purpose (it sits on `initAlertEngine()`'s SSR-early-return
+ * import graph), so the real predicate always comes from the one caller that
+ * already bridges to it — `ruleLoopWiring.isSeriesObserved`, wired in by
+ * `alerts.svelte.ts`.
+ */
+const assumeNothingObserved: SeriesObservedPredicate = () => false;
+
 /**
  * The ids of legacy alerts the rule engine now evaluates.
  *
- * An alert is covered when the origin ledger names a rule that came from it,
- * that rule is still in `cachy_rules_v1`, and it is armed. All three have to
- * hold: the ledger alone only proves a rule once existed, and a disabled rule
- * evaluates nothing — treating either as coverage is the silent gap.
+ * An alert is covered when three things all hold: the origin ledger names a
+ * rule that came from it, that rule is still armed in `cachy_rules_v1`, and
+ * the market store is observed to be producing candles for the rule's exact
+ * symbol and trigger timeframe. All three are load-bearing — the ledger alone
+ * only proves a rule once existed, a disabled rule evaluates nothing, and an
+ * armed rule whose series never arrives can never produce a verdict. Treating
+ * any one of them as coverage on its own is the silent gap.
  *
- * Returns an empty set on any doubt. An empty set means "the legacy engine
- * keeps everything", which is the state the app has shipped in all along and
- * cannot be a regression.
+ * Returns an empty set on any doubt, including when `isSeriesObserved` is left
+ * at its default. An empty set means "the legacy engine keeps everything",
+ * which is the state the app has shipped in all along and cannot be a
+ * regression.
  */
-export function readCoveredAlertIds(): ReadonlySet<string> {
+export function readCoveredAlertIds(
+  isSeriesObserved: SeriesObservedPredicate = assumeNothingObserved,
+): ReadonlySet<string> {
   const none: ReadonlySet<string> = new Set();
   if (!browser) return none;
 
@@ -83,19 +103,25 @@ export function readCoveredAlertIds(): ReadonlySet<string> {
       return none;
     }
 
-    const armedRuleIds = new Set<string>();
+    // Keeps the full document, not just the id: deciding coverage needs the
+    // rule's symbol and trigger timeframe below, to ask whether that exact
+    // series is actually being observed.
+    const armedRulesById = new Map<string, RuleDocument>();
     for (const rule of parsed as RuleDocument[]) {
       if (rule === null || typeof rule !== "object") continue;
       if (typeof rule.id !== "string") continue;
       if (rule.enabled === false) continue;
-      armedRuleIds.add(rule.id);
+      armedRulesById.set(rule.id, rule);
     }
 
     const covered = new Set<string>();
     const ledger = readRuleOriginLedger();
     for (const [ruleId, entry] of Object.entries(ledger.entries)) {
-      if (!armedRuleIds.has(ruleId)) continue;
+      const rule = armedRulesById.get(ruleId);
+      if (rule === undefined) continue;
       if (typeof entry?.alertId !== "string") continue;
+      if (typeof rule.symbol !== "string" || typeof rule.trigger_timeframe !== "string") continue;
+      if (!isSeriesObserved(rule.symbol, rule.trigger_timeframe)) continue;
       covered.add(entry.alertId);
     }
     return covered;

@@ -70,6 +70,27 @@ export function readClosedCandles(symbol: string, timeframe: string): Evaluation
 }
 
 /**
+ * Whether the market store has ever produced a closed candle for this symbol
+ * and timeframe — proof a subscription is actually live, not just requested.
+ *
+ * Migrated rules are pinned to `1m` (FEAT-0388), but the app only subscribes
+ * to the timeframes the chart or the active indicators actually use — nothing
+ * ties an armed rule's trigger timeframe to a guaranteed subscription. Without
+ * this check, coverage would take a `1m`-triggered alert off the legacy
+ * engine while its symbol is only ever watched on `4h`: covered, armed,
+ * core-ready, and permanently silent because its series never arrives. That
+ * is a silent gap indistinguishable from BUG-0382 to the trader.
+ *
+ * `.length > 0` rather than warmup-aware: this answers "is the series alive
+ * at all", which the gate's own warmup check already covers once it is. A
+ * series that has produced one close will keep producing them; one that has
+ * produced none might never start.
+ */
+export function isSeriesObserved(symbol: string, timeframe: string): boolean {
+  return readClosedCandles(symbol, timeframe).length > 0;
+}
+
+/**
  * The stored rule set.
  *
  * Read per candle close rather than cached: a close happens once per timeframe
