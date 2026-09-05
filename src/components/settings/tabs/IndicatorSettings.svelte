@@ -33,6 +33,7 @@
         { id: "trend", label: $_("settings.technicals.tabs.trend") },
         { id: "volatility", label: $_("settings.technicals.tabs.volatility") },
         { id: "volume", label: $_("settings.technicals.tabs.volume") },
+        { id: "chart", label: $_("settings.technicals.tabs.chart") },
     ];
     let activeCategory = $state("general");
 
@@ -161,14 +162,22 @@
                             {$_("settings.technicals.displayPreferences")}
                         </h4>
                          <div class="space-y-2">
-                            <Field
-                                id="precision"
-                                label={$_("settings.technicals.precision")}
-                                type="number"
-                                bind:value={indicatorState.precision}
-                                min={0}
-                                max={8}
-                            />
+                             <Field
+                                 id="precision"
+                                 label={$_("settings.technicals.precision")}
+                                 type="number"
+                                 bind:value={indicatorState.precision}
+                                 min={0}
+                                 max={8}
+                             />
+                             <Field
+                                 id="linewidth"
+                                 label={$_("settings.technicals.lineWidth")}
+                                 type="number"
+                                 bind:value={indicatorState.lineWidth}
+                                 min={1}
+                                 max={4}
+                             />
                             <div class="flex flex-col gap-2 mt-2">
                                 <span class="text-xs text-[var(--text-secondary)]">{$_("settings.technicals.pnlMode")}</span>
                                 <div class="flex bg-[var(--bg-tertiary)] rounded p-1">
@@ -399,6 +408,94 @@
                 <IndicatorCard title={$_("settings.technicals.volumeProfile")} bind:enabled={indicatorState.volumeProfile.enabled}>
                      <Field id="vp-rows" label={$_("settings.technicals.rows")} type="number" bind:value={indicatorState.volumeProfile.rows} />
                 </IndicatorCard>
+            </div>
+
+        {:else if activeCategory === "chart"}
+            <div class="space-y-6 max-w-5xl mx-auto">
+                <!-- Chart Pane Visibility: which enabled indicators draw a
+                     sub-pane in the chart window. Independent of `enabled`
+                     (computation + Technicals panel) — a hidden indicator
+                     keeps calculating, it just has no pane. -->
+                <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
+                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-2 pb-2 border-b border-[var(--border-color)]">
+                        <span>{$_("settings.technicals.chartPanes.title")}</span>
+                    </h4>
+                    <p class="text-xs text-[var(--text-secondary)] mb-4">
+                        {$_("settings.technicals.chartPanes.description")}
+                    </p>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.volume")}</span>
+                            <Toggle bind:checked={indicatorState.volume.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.rsi.title")}</span>
+                            <Toggle bind:checked={indicatorState.rsi.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.macd.title")}</span>
+                            <Toggle bind:checked={indicatorState.macd.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.stochRsi.title")}</span>
+                            <Toggle bind:checked={indicatorState.stochRsi.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.cci")}</span>
+                            <Toggle bind:checked={indicatorState.cci.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.momentum")}</span>
+                            <Toggle bind:checked={indicatorState.momentum.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.williamsR")}</span>
+                            <Toggle bind:checked={indicatorState.williamsR.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.obv")}</span>
+                            <Toggle bind:checked={indicatorState.obv.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.mfi")}</span>
+                            <Toggle bind:checked={indicatorState.mfi.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.adx")}</span>
+                            <Toggle bind:checked={indicatorState.adx.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.awesomeOsc")}</span>
+                            <Toggle bind:checked={indicatorState.ao.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.choppiness")}</span>
+                            <Toggle bind:checked={indicatorState.choppiness.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.stochasticTitle")}</span>
+                            <Toggle bind:checked={indicatorState.stochastic.showInChart} />
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Price-pane overlays: same independence as sub-panes —
+                     hidden here, still calculated for the Technicals panel. -->
+                <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
+                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
+                        <span>{$_("settings.technicals.chartPanes.overlaysTitle")}</span>
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.bollingerBands.title")}</span>
+                            <Toggle bind:checked={indicatorState.bollingerBands.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">{$_("settings.technicals.pivotsTitle")}</span>
+                            <Toggle bind:checked={indicatorState.pivots.showInChart} />
+                        </div>
+                    </div>
+                </section>
             </div>
         {/if}
     </div>

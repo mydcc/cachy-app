@@ -25,6 +25,9 @@ const MIN_PANE_HEIGHT = 56;
 /** The candle pane never shrinks below this to make room for sub-panes. */
 const PRICE_PANE_MIN = 140;
 
+/** Height of a collapsed sub-pane strip: header row only, no chart content. */
+const STRIP_HEIGHT = 20;
+
 /** One currently-visible sub-pane, reported to the caller after each render. */
 export interface IndicatorPaneInfo {
     paneIndex: number;
@@ -32,6 +35,10 @@ export interface IndicatorPaneInfo {
     titleKey: string;
     /** Settings shown next to the name, e.g. "14" or "12 26 9"; "" if none. */
     params: string;
+    /** Last indicator value, e.g. "70.12" — readable even when collapsed. */
+    value: string;
+    /** True when this pane renders as a collapsed strip (header only). */
+    collapsed: boolean;
 }
 
 /**
@@ -39,8 +46,9 @@ export interface IndicatorPaneInfo {
  * with the i18n key for its on-chart label.
  *
  * Single source of truth: both the pane budget (computeLayout) and the
- * renderer (renderSubPanes) decide "is this on?" through `isEnabled` over
- * this list, so the count and what actually gets drawn cannot drift apart.
+ * renderer (renderSubPanes) decide "is this on?" through `isPaneActive`
+ * over this list, so the count and what actually gets drawn cannot drift
+ * apart.
  */
 const SUB_PANES: { key: string; titleKey: string }[] = [
     { key: "volume", titleKey: "settings.technicals.volume" },
@@ -70,11 +78,46 @@ function isEnabled(key: string): boolean {
     return entry !== undefined && entry.enabled !== false;
 }
 
+/**
+ * Reads the per-indicator `visible` flag, toggled by the pane header
+ * chevron. Settings stays unaware of it: `enabled` decides whether an
+ * indicator is computed at all (Technical Panel, alarms), `visible` only
+ * whether the chart draws it as an open pane or as a collapsed strip.
+ */
+function isCollapsed(key: string): boolean {
+    const s = indicatorState as unknown as Record<string, { visible?: boolean } | undefined>;
+    const entry = s[key];
+    return entry !== undefined && entry.visible === false;
+}
+
+/**
+ * Reads the per-indicator `showInChart` flag, toggled in the Technicals
+ * settings "Chart" tab. This decides whether the chart draws the sub-pane
+ * at all — independent of `enabled` (which keeps driving computation,
+ * Technicals panel and alarms) and `visible` (open pane vs collapsed
+ * strip). Missing on old stored entries means shown.
+ */
+function isShownInChart(key: string): boolean {
+    const s = indicatorState as unknown as Record<string, { showInChart?: boolean } | undefined>;
+    return s[key]?.showInChart !== false;
+}
+
+/**
+ * Master gate for chart sub-panes: enabled for calculation AND opted into
+ * chart display. A hidden pane claims no pane index, draws no series and
+ * reports nothing — while the indicator itself keeps calculating.
+ */
+function isPaneActive(key: string): boolean {
+    return isEnabled(key) && isShownInChart(key);
+}
+
 interface PaneLayout {
-    /** How many sub-panes are drawn. */
+    /** How many sub-panes are drawn (open panes + collapsed strips). */
     count: number;
-    /** Height in px each of them gets. */
+    /** Height in px each OPEN pane gets (strips are always STRIP_HEIGHT). */
     height: number;
+    /** How many of `count` are collapsed strips. */
+    strips: number;
 }
 
 interface ManagedSeries {
@@ -104,11 +147,13 @@ export class IndicatorLayer {
     private createdPaneIndices: number[] = [];
     private priceLines: IPriceLine[] = [];
     private subPaneCursor = 1;
+    private stripsClaimed = 0;
+    private stripPaneIndices = new Set<number>();
     private availableHeight = MIN_CHART_HEIGHT;
     private lastRows: ChartRow[] | null = null;
     private onPanesChanged?: (panes: IndicatorPaneInfo[]) => void;
     private panesInfo: IndicatorPaneInfo[] = [];
-    private layout: PaneLayout = { count: 0, height: PREFERRED_PANE_HEIGHT };
+    private layout: PaneLayout = { count: 0, height: PREFERRED_PANE_HEIGHT, strips: 0 };
 
     constructor(
         chart: IChartApi,
@@ -134,6 +179,12 @@ export class IndicatorLayer {
      * only needs setHeight on the panes that already exist. That split
      * matters because ResizeObserver fires continuously while dragging, and
      * tearing every series down on each of those frames visibly stutters.
+     *
+     * Stretch factors encode absolute px sizes for the pixel area they were
+     * computed for, so even an unchanged layout needs a re-apply when the
+     * area itself changed (e.g. growing the window while open panes already
+     * sit at the capped height): without it the stale factors scale every
+     * pane up proportionally and collapsed strips grow past 20px.
      */
     setAvailableHeight(h: number): void {
         if (h === this.availableHeight) return;
@@ -142,7 +193,13 @@ export class IndicatorLayer {
         const next = this.computeLayout();
         const countChanged = next.count !== this.layout.count;
         const heightChanged = next.height !== this.layout.height;
-        if (!countChanged && !heightChanged) return;
+        if (!countChanged && !heightChanged) {
+            // Same layout, new pixel area: re-apply so absolute sizes
+            // (especially the 20px strips) survive the resize. Cheap —
+            // only setStretchFactor calls, no teardown or rebuild.
+            this.applyPaneHeights();
+            return;
+        }
 
         if (countChanged && this.lastRows) {
             this.render(this.lastRows); // recomputes and stores the layout
@@ -184,6 +241,10 @@ export class IndicatorLayer {
         const ctx = { closes, opens, highs, lows, volume };
         this.renderOverlays(rows, ctx);
         this.renderSubPanes(rows, ctx);
+        // All panes now exist — set final heights AFTER materialization,
+        // otherwise strip heights set during claiming are diluted away by
+        // lightweight-charts' stretch-factor redistribution.
+        this.applyPaneHeights();
         this.onPanesChanged?.(this.panesInfo);
     }
 
@@ -216,14 +277,25 @@ export class IndicatorLayer {
         }
         this.createdPaneIndices = [];
         this.subPaneCursor = 1;
+        this.stripsClaimed = 0;
+        this.stripPaneIndices.clear();
         this.panesInfo = [];
     }
 
     // ---- helpers --------------------------------------------------------
 
-    private recordPane(paneIndex: number, key: string, params: string): void {
+    private recordPane(paneIndex: number, key: string, params: string, value = ""): void {
         const titleKey = SUB_PANES.find((p) => p.key === key)?.titleKey;
-        if (titleKey) this.panesInfo.push({ paneIndex, key, titleKey, params });
+        if (titleKey) this.panesInfo.push({ paneIndex, key, titleKey, params, value, collapsed: isCollapsed(key) });
+    }
+
+    /** Last finite value of an indicator series, formatted for the pane header. */
+    private lastValue(values: ArrayLike<number>): string {
+        for (let i = values.length - 1; i >= 0; i--) {
+            const v = values[i];
+            if (Number.isFinite(v)) return v.toFixed(2);
+        }
+        return "";
     }
 
     private color(key: string, fallback: string): string {
@@ -231,39 +303,211 @@ export class IndicatorLayer {
     }
 
     /**
+     * Recompute the pane-header values for a live tick without rebuilding
+     * panes. render()'s values are a snapshot of the last full render, so on
+     * a fast live update they would go stale — dangerous for a trading
+     * readout. The caller passes the current tick's OHLCV, which is merged
+     * into the last stored row before every visible sub-pane indicator is
+     * recomputed and re-reported so headers remount with fresh values.
+     * Series data itself is NOT touched here; the caller updates the candle
+     * series separately.
+     */
+    updateHeaderValues(tick: { open: number; high: number; low: number; close: number; volume: number }): void {
+        const rows = this.lastRows;
+        if (!rows || rows.length === 0 || this.panesInfo.length === 0) return;
+        // Merge the live tick into the stored last row: lastRows is frozen
+        // at the last full render, so recomputing from it verbatim would
+        // produce the same value every tick.
+        const last = rows[rows.length - 1];
+        last.open = tick.open;
+        last.high = tick.high;
+        last.low = tick.low;
+        last.close = tick.close;
+        last.volume = tick.volume;
+        const a = {
+            closes: getSourceData(rows, "close"),
+            opens: getSourceData(rows, "open"),
+            highs: getSourceData(rows, "high"),
+            lows: getSourceData(rows, "low"),
+            volume: new Float64Array(rows.length),
+        };
+        for (let i = 0; i < rows.length; i++) a.volume[i] = rows[i].volume;
+        const s = indicatorState;
+        for (const info of this.panesInfo) {
+            switch (info.key) {
+                case "rsi":
+                    info.value = this.lastValue(JSIndicators.rsi(a.closes, s.rsi.length ?? 14));
+                    break;
+                case "macd": {
+                    const m = JSIndicators.macd(
+                        a.closes,
+                        s.macd.fastLength,
+                        s.macd.slowLength,
+                        s.macd.signalLength,
+                    );
+                    info.value = this.lastValue(m.macd);
+                    break;
+                }
+                case "stochRsi": {
+                    const p = s.stochRsi;
+                    const sr = JSIndicators.stochRsi(a.closes, p.rsiLength || p.length || 14, p.kPeriod, p.dPeriod, 3);
+                    info.value = this.lastValue(sr.k);
+                    break;
+                }
+                case "cci":
+                    info.value = this.lastValue(JSIndicators.cci(a.closes, s.cci.length ?? 20));
+                    break;
+                case "momentum":
+                    info.value = this.lastValue(JSIndicators.mom(a.closes, s.momentum.length ?? 10));
+                    break;
+                case "williamsR":
+                    info.value = this.lastValue(JSIndicators.williamsR(a.highs, a.lows, a.closes, s.williamsR.length ?? 14));
+                    break;
+                case "obv":
+                    info.value = this.lastValue(JSIndicators.obv(a.closes, a.volume));
+                    break;
+                case "mfi":
+                    info.value = this.lastValue(JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, s.mfi.length ?? 14));
+                    break;
+                case "adx":
+                    info.value = this.lastValue(JSIndicators.adx(a.highs, a.lows, a.closes, s.adx.diLength ?? s.adx.adxSmoothing ?? 14));
+                    break;
+                case "ao":
+                    info.value = this.lastValue(JSIndicators.ao(a.highs, a.lows, s.ao.fastLength ?? 5, s.ao.slowLength ?? 34));
+                    break;
+                case "choppiness":
+                    info.value = this.lastValue(JSIndicators.choppiness(a.highs, a.lows, a.closes, s.choppiness.length ?? 14));
+                    break;
+                case "stochastic": {
+                    const k = JSIndicators.stoch(a.highs, a.lows, a.closes, s.stochastic.kPeriod ?? 14);
+                    info.value = this.lastValue(k);
+                    break;
+                }
+            }
+        }
+        this.onPanesChanged?.(this.panesInfo);
+    }
+
+    /**
      * How many sub-panes fit and how tall each one gets, for the indicators
-     * currently switched on in Settings.
+     * currently switched on in Settings. Collapsed panes reserve a strip of
+     * STRIP_HEIGHT first; open panes share whatever budget is left over.
      */
     private computeLayout(): PaneLayout {
-        const none: PaneLayout = { count: 0, height: PREFERRED_PANE_HEIGHT };
+        const none: PaneLayout = { count: 0, height: PREFERRED_PANE_HEIGHT, strips: 0 };
         if (this.availableHeight < MIN_CHART_HEIGHT) return none;
 
-        const wanted = SUB_PANES.filter((p) => isEnabled(p.key)).length;
-        if (wanted === 0) return none;
+        const enabled = SUB_PANES.filter((p) => isPaneActive(p.key));
+        if (enabled.length === 0) return none;
 
         const budget = this.availableHeight - PRICE_PANE_MIN;
-        const capacity = Math.max(0, Math.floor(budget / MIN_PANE_HEIGHT));
-        const count = Math.min(wanted, capacity);
-        if (count === 0) return none;
 
-        const height = Math.min(
-            PREFERRED_PANE_HEIGHT,
-            Math.max(MIN_PANE_HEIGHT, Math.floor(budget / count)),
-        );
-        return { count, height };
+        // Collapsed panes claim their strip first — a strip is the cheapest
+        // thing we can show — then the open panes share what is left over.
+        const collapsedCount = enabled.filter((p) => isCollapsed(p.key)).length;
+        const stripCapacity = Math.floor(budget / STRIP_HEIGHT);
+        const strips = Math.min(collapsedCount, stripCapacity);
+
+        const remaining = budget - strips * STRIP_HEIGHT;
+        const openWanted = enabled.length - collapsedCount;
+        const capacity = Math.max(0, Math.floor(remaining / MIN_PANE_HEIGHT));
+        const openCount = Math.min(openWanted, capacity);
+        if (openCount === 0 && strips === 0) return none;
+
+        const height = openCount
+            ? Math.min(
+                  PREFERRED_PANE_HEIGHT,
+                  Math.max(MIN_PANE_HEIGHT, Math.floor(remaining / openCount)),
+              )
+            : PREFERRED_PANE_HEIGHT;
+        return { count: openCount + strips, height, strips };
     }
 
     private applyPaneHeights(): void {
+        // setHeight() routes through changePanesHeight, which rewrites the
+        // stretch factors of ALL panes from their current pixel heights —
+        // sequential setHeight calls perturb each other, so a strip can
+        // never end up at 30px that way. The layout pass itself is purely
+        // stretch-factor based (paneHeight = factor * paneArea /
+        // totalStretch, with the sum of heights conserved), so every
+        // pane's target height is expressed as a factor and applied in ONE
+        // pass: strips 30px, open panes layout.height, the candle pane
+        // absorbs the remainder. setStretchFactor touches no neighbor, so
+        // order does not matter.
+        const panes = this.chart.panes();
+        if (panes.length < 2) return;
+
+        const stripCount = this.stripPaneIndices.size;
+        const openCount = this.createdPaneIndices.length - stripCount;
+        const subTotal = stripCount * STRIP_HEIGHT + openCount * this.layout.height;
+        if (subTotal === 0) return;
+
+        // The pane area in px is conserved by lightweight-charts, but pane
+        // heights read via getHeight() are stale right after panes were
+        // materialized (the widget layout recalc runs asynchronously), so
+        // the area is derived deterministically instead: the chart's
+        // container height minus the time axis and the pane separators.
+        let paneArea = this.availableHeight - this.chart.timeScale().height();
+        if (panes.length > 1) paneArea -= panes.length - 1; // separators
+        panes[0].setStretchFactor(Math.max(PRICE_PANE_MIN, paneArea - subTotal));
         for (const idx of this.createdPaneIndices) {
-            const pane = this.chart.panes()[idx];
-            if (pane) pane.setHeight(this.layout.height);
+            const pane = panes[idx];
+            if (!pane) continue;
+            pane.setStretchFactor(this.stripPaneIndices.has(idx) ? STRIP_HEIGHT : this.layout.height);
         }
+        this.lockStripSeparators(panes);
     }
 
-    private openSubPane(): number | null {
-        if (this.subPaneCursor > this.layout.count) return null;
+    /**
+     * A collapsed strip is fixed-height — the drag handles of the
+     * separators directly above and below a strip must not let the user
+     * resize it. lightweight-charts has no per-separator switch (only the
+     * global layout.panes.enableResize), so pointer events on those
+     * separator cells are disabled instead. Separator k sits between pane
+     * k and pane k+1; its cell is the td[colspan] LWC renders.
+     */
+    private lockStripSeparators(panes: readonly unknown[]): void {
+        const firstPane = panes[0] as { getHTMLElement?: () => HTMLElement } | undefined;
+        const table = firstPane?.getHTMLElement?.().closest("table");
+        if (!table) return;
+        const cells = table.querySelectorAll<HTMLTableCellElement>("td[colspan]");
+        const isStrip = (idx: number) => this.stripPaneIndices.has(idx);
+        cells.forEach((cell, k) => {
+            if (isStrip(k) || isStrip(k + 1)) {
+                cell.style.pointerEvents = "none";
+            } else if (cell.style.pointerEvents === "none") {
+                cell.style.pointerEvents = "";
+            }
+        });
+    }
+
+    /**
+     * Claims the next pane slot, honouring the two separate budgets from
+     * computeLayout: collapsed indicators may only take strip slots, open
+     * ones only open slots. Returns null once the matching budget is
+     * exhausted — the indicator is then overflowed (dropped for now; a
+     * taller window brings it back because the layout is a pure function).
+     */
+    private openSubPane(collapsed: boolean, _key: string): number | null {
+        const opensFit = this.layout.count - this.layout.strips;
+        const opensClaimed = this.subPaneCursor - 1 - this.stripsClaimed;
+        const outOfRoom = collapsed
+            ? this.stripsClaimed >= this.layout.strips
+            : opensClaimed >= opensFit;
+        if (outOfRoom) {
+            return null;
+        }
         const idx = this.subPaneCursor++;
+        // lightweight-charts clamps addSeries' paneIndex down to the existing
+        // pane count, so claimed indices must be materialized in ascending
+        // order. preserveEmptyPane keeps collapsed strips (which get no
+        // series) alive instead of being silently dropped.
+        while (this.chart.panes().length <= idx) this.chart.addPane(true);
         this.createdPaneIndices.push(idx);
+        if (collapsed) {
+            this.stripsClaimed++;
+            this.stripPaneIndices.add(idx);
+        }
         return idx;
     }
 
@@ -273,15 +517,14 @@ export class IndicatorLayer {
         paneIndex: number,
         colorKey: string,
         fallback: string,
-        opts: Record<string, unknown> = {},
     ): void {
         const series = this.chart.addSeries(
             LineSeries,
             {
                 color: this.color(colorKey, fallback),
+                lineWidth: this.indicatorLineWidth(),
                 priceLineVisible: false,
                 crosshairMarkerVisible: false,
-                ...opts,
             } as never,
             paneIndex,
         );
@@ -305,13 +548,18 @@ export class IndicatorLayer {
         this.managed.push({ series: series as ISeriesApi<"Histogram"> });
     }
 
-    private setPaneHeight(idx: number): void {
-        const pane = this.chart.panes()[idx];
-        if (pane) pane.setHeight(this.layout.height);
-    }
-
     private src(source?: string): SourceKind {
         return (source as SourceKind) || "close";
+    }
+
+    /**
+     * Chart-wide indicator line width from Settings (1-4px, default 1).
+     * Old stored entries have no `lineWidth` key — and anything outside
+     * 1-4 would trip the chart library — so both fall back to 1.
+     */
+    private indicatorLineWidth(): 1 | 2 | 3 | 4 {
+        const w = (indicatorState as unknown as { lineWidth?: unknown }).lineWidth;
+        return w === 2 || w === 3 || w === 4 ? w : 1;
     }
 
     // ---- overlays (price pane, shared right scale) ----------------------
@@ -330,7 +578,7 @@ export class IndicatorLayer {
         const P0 = 0;
 
         // Pivot points (horizontal levels on the price pane, from prior bar)
-        if (s.pivots && s.pivots.enabled !== false && this.candleSeries && rows.length >= 2) {
+        if (s.pivots && s.pivots.enabled !== false && s.pivots.showInChart !== false && this.candleSeries && rows.length >= 2) {
             const prev = rows[rows.length - 2];
             const res = calculatePivotsFromValues(
                 prev.high,
@@ -356,7 +604,7 @@ export class IndicatorLayer {
                     price,
                     title,
                     color: this.color(primary ? "--accent-color" : "--text-tertiary", primary ? "#2962ff" : "#9aa0a6"),
-                    lineWidth: primary ? 2 : 1,
+                    lineWidth: this.indicatorLineWidth(),
                     lineStyle: primary ? 0 : 2,
                     axisLabelVisible: true,
                 });
@@ -401,11 +649,11 @@ export class IndicatorLayer {
             );
 
         // Bollinger Bands
-        if (s.bollingerBands.enabled !== false && s.bollingerBands.length) {
+        if (s.bollingerBands.enabled !== false && s.bollingerBands.showInChart !== false && s.bollingerBands.length) {
             const bb = JSIndicators.bb(a.closes, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
-            this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
-            this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6", { lineWidth: 1 });
-            this.addLine(rows, bb.lower, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
+            this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff");
+            this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6");
+            this.addLine(rows, bb.lower, P0, "--accent-color", "#2962ff");
         }
 
         // VWAP (session/fixed anchored)
@@ -427,10 +675,10 @@ export class IndicatorLayer {
                 s.ichimoku.spanBPeriod,
                 0,
             );
-            this.addLine(rows, ich.conversion, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
-            this.addLine(rows, ich.base, P0, "--danger-color", "#ef5350", { lineWidth: 1 });
-            this.addLine(rows, ich.spanA, P0, "--success-color", "#26a69a", { lineWidth: 1 });
-            this.addLine(rows, ich.spanB, P0, "--warning-color", "#ffb300", { lineWidth: 1 });
+            this.addLine(rows, ich.conversion, P0, "--accent-color", "#2962ff");
+            this.addLine(rows, ich.base, P0, "--danger-color", "#ef5350");
+            this.addLine(rows, ich.spanA, P0, "--success-color", "#26a69a");
+            this.addLine(rows, ich.spanB, P0, "--warning-color", "#ffb300");
         }
 
         // SuperTrend
@@ -442,7 +690,7 @@ export class IndicatorLayer {
         // Parabolic SAR
         if (s.parabolicSar.enabled !== false) {
             const ps = JSIndicators.psar(a.highs, a.lows, s.parabolicSar.start ?? 0.02, s.parabolicSar.increment ?? 0.02, s.parabolicSar.max ?? 0.2);
-            this.addLine(rows, ps, P0, "--warning-color", "#ffb300", { lineWidth: 1 });
+            this.addLine(rows, ps, P0, "--warning-color", "#ffb300");
         }
 
         // ATR Trailing Stop (buy/sell)
@@ -454,8 +702,8 @@ export class IndicatorLayer {
                 s.atrTrailingStop.period,
                 s.atrTrailingStop.multiplier ?? 3,
             );
-            this.addLine(rows, ats.buyStop, P0, "--success-color", "#26a69a", { lineWidth: 1 });
-            this.addLine(rows, ats.sellStop, P0, "--danger-color", "#ef5350", { lineWidth: 1 });
+            this.addLine(rows, ats.buyStop, P0, "--success-color", "#26a69a");
+            this.addLine(rows, ats.sellStop, P0, "--danger-color", "#ef5350");
         }
     }
 
@@ -474,181 +722,168 @@ export class IndicatorLayer {
         const s = indicatorState;
 
         // Volume pane (highest priority; shown whenever there is room).
-        if (isEnabled("volume")) {
-            const idxVol = this.openSubPane();
+        if (isPaneActive("volume")) {
+            const idxVol = this.openSubPane(isCollapsed("volume"), "volume");
             if (idxVol !== null) {
-                this.addVolume(rows, idxVol);
-                this.setPaneHeight(idxVol);
+                if (!isCollapsed("volume")) this.addVolume(rows, idxVol);
                 this.recordPane(idxVol, "volume", "");
             }
         }
 
         // RSI
-        if (isEnabled("rsi")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("rsi")) {
+            const idx = this.openSubPane(isCollapsed("rsi"), "rsi");
             if (idx !== null) {
                 const len = s.rsi.length ?? 14;
                 const d = getSourceData(rows, this.src(s.rsi.source));
-                this.addLine(rows, JSIndicators.rsi(d, len), idx, "--accent-color", "#2962ff");
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "rsi", `${len}`);
+                const series = JSIndicators.rsi(d, len);
+                if (!isCollapsed("rsi")) this.addLine(rows, series, idx, "--accent-color", "#2962ff");
+                this.recordPane(idx, "rsi", `${len}`, this.lastValue(series));
             }
         }
 
         // MACD
-        if (isEnabled("macd")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("macd")) {
+            const idx = this.openSubPane(isCollapsed("macd"), "macd");
             if (idx !== null) {
                 const d = getSourceData(rows, this.src(s.macd.source));
                 const m = JSIndicators.macd(d, s.macd.fastLength, s.macd.slowLength, s.macd.signalLength);
-                this.addLine(rows, m.macd, idx, "--accent-color", "#2962ff");
-                this.addLine(rows, m.signal, idx, "--warning-color", "#ffb300");
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "macd", `${s.macd.fastLength} ${s.macd.slowLength} ${s.macd.signalLength}`);
+                if (!isCollapsed("macd")) {
+                    this.addLine(rows, m.macd, idx, "--accent-color", "#2962ff");
+                    this.addLine(rows, m.signal, idx, "--warning-color", "#ffb300");
+                }
+                this.recordPane(idx, "macd", `${s.macd.fastLength} ${s.macd.slowLength} ${s.macd.signalLength}`, this.lastValue(m.macd));
             }
         }
 
         // StochRSI
-        if (isEnabled("stochRsi")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("stochRsi")) {
+            const idx = this.openSubPane(isCollapsed("stochRsi"), "stochRsi");
             if (idx !== null) {
-                const d = getSourceData(rows, this.src(s.stochRsi.source));
                 const rsiPeriod = s.stochRsi.rsiLength || s.stochRsi.length || 14;
+                const d = getSourceData(rows, this.src(s.stochRsi.source));
                 const sr = JSIndicators.stochRsi(d, rsiPeriod, s.stochRsi.kPeriod, s.stochRsi.dPeriod, 3);
-                this.addLine(rows, sr.k, idx, "--accent-color", "#2962ff");
-                this.addLine(rows, sr.d, idx, "--warning-color", "#ffb300");
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "stochRsi", `${rsiPeriod} ${s.stochRsi.kPeriod} ${s.stochRsi.dPeriod}`);
+                if (!isCollapsed("stochRsi")) {
+                    this.addLine(rows, sr.k, idx, "--accent-color", "#2962ff");
+                    this.addLine(rows, sr.d, idx, "--warning-color", "#ffb300");
+                }
+                this.recordPane(idx, "stochRsi", `${rsiPeriod} ${s.stochRsi.kPeriod} ${s.stochRsi.dPeriod}`, this.lastValue(sr.k));
             }
         }
 
         // CCI
-        if (isEnabled("cci")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("cci")) {
+            const idx = this.openSubPane(isCollapsed("cci"), "cci");
             if (idx !== null) {
                 const len = s.cci.length ?? 20;
                 const d = getSourceData(rows, this.src(s.cci.source));
-                this.addLine(rows, JSIndicators.cci(d, len), idx, "--accent-color", "#2962ff");
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "cci", `${len}`);
+                const series = JSIndicators.cci(d, len);
+                if (!isCollapsed("cci")) this.addLine(rows, series, idx, "--accent-color", "#2962ff");
+                this.recordPane(idx, "cci", `${len}`, this.lastValue(series));
             }
         }
 
         // Momentum
-        if (isEnabled("momentum")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("momentum")) {
+            const idx = this.openSubPane(isCollapsed("momentum"), "momentum");
             if (idx !== null) {
                 const len = s.momentum.length ?? 10;
                 const d = getSourceData(rows, this.src(s.momentum.source));
-                this.addLine(rows, JSIndicators.mom(d, len), idx, "--success-color", "#26a69a");
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "momentum", `${len}`);
+                const series = JSIndicators.mom(d, len);
+                if (!isCollapsed("momentum")) this.addLine(rows, series, idx, "--success-color", "#26a69a");
+                this.recordPane(idx, "momentum", `${len}`, this.lastValue(series));
             }
         }
 
         // Williams %R
-        if (isEnabled("williamsR")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("williamsR")) {
+            const idx = this.openSubPane(isCollapsed("williamsR"), "williamsR");
             if (idx !== null) {
                 const len = s.williamsR.length ?? 14;
-                this.addLine(
-                    rows,
-                    JSIndicators.williamsR(a.highs, a.lows, a.closes, len),
-                    idx,
-                    "--danger-color",
-                    "#ef5350",
-                );
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "williamsR", `${len}`);
+                const series = JSIndicators.williamsR(a.highs, a.lows, a.closes, len);
+                if (!isCollapsed("williamsR")) {
+                    this.addLine(rows, series, idx, "--danger-color", "#ef5350");
+                }
+                this.recordPane(idx, "williamsR", `${len}`, this.lastValue(series));
             }
         }
 
         // OBV
-        if (isEnabled("obv")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("obv")) {
+            const idx = this.openSubPane(isCollapsed("obv"), "obv");
             if (idx !== null) {
-                this.addLine(rows, JSIndicators.obv(a.closes, a.volume), idx, "--text-tertiary", "#9aa0a6");
-                this.setPaneHeight(idx);
+                if (!isCollapsed("obv"))
+                    this.addLine(rows, JSIndicators.obv(a.closes, a.volume), idx, "--text-tertiary", "#9aa0a6");
                 this.recordPane(idx, "obv", "");
             }
         }
 
         // MFI
-        if (isEnabled("mfi")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("mfi")) {
+            const idx = this.openSubPane(isCollapsed("mfi"), "mfi");
             if (idx !== null) {
                 const len = s.mfi.length ?? 14;
-                this.addLine(
-                    rows,
-                    JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, len),
-                    idx,
-                    "--accent-color",
-                    "#2962ff",
-                );
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "mfi", `${len}`);
+                const series = JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, len);
+                if (!isCollapsed("mfi")) {
+                    this.addLine(rows, series, idx, "--accent-color", "#2962ff");
+                }
+                this.recordPane(idx, "mfi", `${len}`, this.lastValue(series));
             }
         }
 
         // ADX
-        if (isEnabled("adx")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("adx")) {
+            const idx = this.openSubPane(isCollapsed("adx"), "adx");
             if (idx !== null) {
                 const len = s.adx.diLength ?? s.adx.adxSmoothing ?? 14;
-                this.addLine(
-                    rows,
-                    JSIndicators.adx(a.highs, a.lows, a.closes, len),
-                    idx,
-                    "--accent-color",
-                    "#2962ff",
-                );
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "adx", `${len}`);
+                const series = JSIndicators.adx(a.highs, a.lows, a.closes, len);
+                if (!isCollapsed("adx")) {
+                    this.addLine(rows, series, idx, "--accent-color", "#2962ff");
+                }
+                this.recordPane(idx, "adx", `${len}`, this.lastValue(series));
             }
         }
 
         // Awesome Oscillator
-        if (isEnabled("ao")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("ao")) {
+            const idx = this.openSubPane(isCollapsed("ao"), "ao");
             if (idx !== null) {
                 const fast = s.ao.fastLength ?? 5;
                 const slow = s.ao.slowLength ?? 34;
                 const ao = JSIndicators.ao(a.highs, a.lows, fast, slow);
-                this.addLine(rows, ao, idx, "--warning-color", "#ffb300");
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "ao", `${fast} ${slow}`);
+                if (!isCollapsed("ao")) {
+                    this.addLine(rows, ao, idx, "--warning-color", "#ffb300");
+                }
+                this.recordPane(idx, "ao", `${fast} ${slow}`, this.lastValue(ao));
             }
         }
 
         // Choppiness
-        if (isEnabled("choppiness")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("choppiness")) {
+            const idx = this.openSubPane(isCollapsed("choppiness"), "choppiness");
             if (idx !== null) {
                 const len = s.choppiness.length ?? 14;
-                this.addLine(
-                    rows,
-                    JSIndicators.choppiness(a.highs, a.lows, a.closes, len),
-                    idx,
-                    "--text-tertiary",
-                    "#9aa0a6",
-                );
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "choppiness", `${len}`);
+                const series = JSIndicators.choppiness(a.highs, a.lows, a.closes, len);
+                if (!isCollapsed("choppiness")) {
+                    this.addLine(rows, series, idx, "--text-tertiary", "#9aa0a6");
+                }
+                this.recordPane(idx, "choppiness", `${len}`, this.lastValue(series));
             }
         }
 
         // Stochastic
-        if (isEnabled("stochastic")) {
-            const idx = this.openSubPane();
+        if (isPaneActive("stochastic")) {
+            const idx = this.openSubPane(isCollapsed("stochastic"), "stochastic");
             if (idx !== null) {
                 const kPeriod = s.stochastic.kPeriod ?? 14;
                 const dPeriod = s.stochastic.dPeriod ?? 3;
                 const k = JSIndicators.stoch(a.highs, a.lows, a.closes, kPeriod);
                 const d = JSIndicators.sma(k, dPeriod);
-                this.addLine(rows, k, idx, "--accent-color", "#2962ff");
-                this.addLine(rows, d, idx, "--warning-color", "#ffb300");
-                this.setPaneHeight(idx);
-                this.recordPane(idx, "stochastic", `${kPeriod} ${dPeriod}`);
+                if (!isCollapsed("stochastic")) {
+                    this.addLine(rows, k, idx, "--accent-color", "#2962ff");
+                    this.addLine(rows, d, idx, "--warning-color", "#ffb300");
+                }
+                this.recordPane(idx, "stochastic", `${kPeriod} ${dPeriod}`, this.lastValue(k));
             }
         }
     }

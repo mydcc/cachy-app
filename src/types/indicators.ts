@@ -15,6 +15,8 @@
 export interface IndicatorSettings {
   historyLimit: number;
   precision: number;
+  /** Chart-wide indicator line width in px (1-4), Settings → Technicals. */
+  lineWidth: number;
   autoOptimize: boolean;
   preferredEngine: 'auto' | 'ts' | 'wasm' | 'gpu';
   performanceMode: 'balanced' | 'quality' | 'speed';
@@ -31,8 +33,18 @@ export interface IndicatorSettings {
     signals: boolean;
   };
 
+  // Per-indicator flags:
+  // - `enabled` = master switch: computation, Technical Panel and alarms.
+  // - `visible` = chart-only display switch: pane shown vs collapsed to a strip.
+  // - `showInChart` = chart-only pane switch: pane drawn at all vs fully
+  //   hidden (Settings "Chart" tab). On sub-pane indicators plus the
+  //   Bollinger Bands and Pivot overlays.
+  // Settings control `enabled` and `showInChart`; the chart pane header
+  // chevron toggles `visible`.
   rsi: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     showSignal: boolean;
@@ -44,6 +56,8 @@ export interface IndicatorSettings {
   };
   stochRsi: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     length: number;
     rsiLength: number;
     kPeriod: number;
@@ -52,6 +66,8 @@ export interface IndicatorSettings {
   };
   macd: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     fastLength: number;
     slowLength: number;
     signalLength: number;
@@ -61,16 +77,22 @@ export interface IndicatorSettings {
   };
   stochastic: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     kPeriod: number;
     kSmoothing: number;
     dPeriod: number;
   };
   williamsR: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     length: number;
   };
   cci: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     threshold: number;
@@ -79,22 +101,29 @@ export interface IndicatorSettings {
   };
   adx: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     adxSmoothing: number;
     diLength: number;
     threshold: number;
   };
   ao: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     fastLength: number;
     slowLength: number;
   };
   momentum: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     length: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
   };
   ema: {
     enabled: boolean;
+    visible: boolean;
     ema1: {
       length: number;
       offset: number;
@@ -117,15 +146,17 @@ export interface IndicatorSettings {
   };
   sma: {
     enabled: boolean;
+    visible: boolean;
     sma1: { length: number; };
     sma2: { length: number; };
     sma3: { length: number; };
   };
-  wma: { enabled: boolean; length: number; };
-  vwma: { enabled: boolean; length: number; };
-  hma: { enabled: boolean; length: number; };
+  wma: { enabled: boolean; visible: boolean; length: number; };
+  vwma: { enabled: boolean; visible: boolean; length: number; };
+  hma: { enabled: boolean; visible: boolean; length: number; };
   ichimoku: {
     enabled: boolean;
+    visible: boolean;
     conversionPeriod: number;
     basePeriod: number;
     spanBPeriod: number;
@@ -133,36 +164,43 @@ export interface IndicatorSettings {
   };
   pivots: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     type: "classic" | "woodie" | "camarilla" | "fibonacci";
     viewMode: "integrated" | "separated" | "abstract";
   };
-  atr: { enabled: boolean; length: number; };
-  choppiness: { enabled: boolean; length: number; };
-  superTrend: { enabled: boolean; factor: number; period: number; };
-  atrTrailingStop: { enabled: boolean; period: number; multiplier: number; };
-  obv: { enabled: boolean; smoothingLength: number; };
-  mfi: { enabled: boolean; length: number; };
+  atr: { enabled: boolean; visible: boolean; length: number; };
+  choppiness: { enabled: boolean; visible: boolean; showInChart: boolean; length: number; };
+  superTrend: { enabled: boolean; visible: boolean; factor: number; period: number; };
+  atrTrailingStop: { enabled: boolean; visible: boolean; period: number; multiplier: number; };
+  obv: { enabled: boolean; visible: boolean; showInChart: boolean; smoothingLength: number; };
+  mfi: { enabled: boolean; visible: boolean; showInChart: boolean; length: number; };
   vwap: {
     enabled: boolean;
+    visible: boolean;
     length: number;
     anchor: "session" | "fixed";
     anchorPoint?: number;
   };
   parabolicSar: {
     enabled: boolean;
+    visible: boolean;
     start: number;
     increment: number;
     max: number;
   };
   volumeMa: {
     enabled: boolean;
+    visible: boolean;
     length: number;
     maType: "sma" | "ema" | "wma";
   };
-  volumeProfile: { enabled: boolean; rows: number; };
-  volume: { enabled: boolean; };
+  volumeProfile: { enabled: boolean; visible: boolean; rows: number; };
+  volume: { enabled: boolean; visible: boolean; showInChart: boolean; };
   bollingerBands: {
     enabled: boolean;
+    visible: boolean;
+    showInChart: boolean;
     length: number;
     stdDev: number;
     source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
