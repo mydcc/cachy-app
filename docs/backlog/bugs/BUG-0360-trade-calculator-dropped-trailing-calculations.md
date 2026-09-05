@@ -2,7 +2,8 @@
 id: BUG-0360
 title: TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval
 type: bug
-status: in-progress
+status: done
+shipped: 1.6.0-beta.231
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -71,9 +72,9 @@ The throttling logic in `TradeCalculator` implements leading-edge throttling wit
 
 ## Acceptance criteria
 
-- [ ] A test simulates rapid consecutive input mutations (e.g. at 0ms, 50ms, 100ms) and proves that after the throttle window elapses, the calculation for the final state (100ms) executes.
-- [ ] Trailing timer is cancelled and reset if a newer mutation arrives before it fires.
-- [ ] No race conditions where stale calculations overwrite newer ones.
+- [x] A test simulates rapid consecutive input mutations (e.g. at 0ms, 50ms, 100ms) and proves that after the throttle window elapses, the calculation for the final state (100ms) executes.
+- [x] Trailing timer is cancelled and reset if a newer mutation arrives before it fires.
+- [x] No race conditions where stale calculations overwrite newer ones.
 
 ## Out of scope
 
@@ -88,3 +89,23 @@ None.
 
 - `src/services/tradeCalculator.svelte.ts:82-99`
 - `src/services/calculatorService.ts`
+
+## Resolution
+
+Shipped in PR #2676 (squash-merged as `3bf1e1a2`, release 1.6.0-beta.231).
+
+- Blocked throttle runs now schedule a trailing `executeCalculation()` with
+  the remaining window; each newer mutation clears and reschedules that
+  timer (AC1/AC2). Validation/execution moved into a shared
+  `executeCalculation()` used by both the leading and trailing edge, so the
+  trailing run re-reads `tradeState` live — no stale snapshot can overwrite
+  a newer one (AC3).
+- `destroy()` cancels a pending trailing timer, stops the `$effect.root`
+  watcher via a stored stop function and resets `lastCalcTime`,
+  `calculateFn`, `initialized` so a re-init (tests / HMR) starts clean.
+- Wired into the app lifecycle via `import.meta.hot.dispose` in
+  `tradeCalculator.svelte.ts`, matching the pattern of the other app
+  singletons.
+- Coverage: new `src/services/tradeCalculator.test.ts` (fake timers) proves
+  the final-state trailing run, collapse of a rapid burst into one trailing
+  calculation, and destroy-cancel.
