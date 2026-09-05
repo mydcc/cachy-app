@@ -1260,7 +1260,8 @@
         "oscillators": "Oszillatoren",
         "trend": "Trend",
         "volatility": "Volatilität",
-        "volume": "Volumen"
+        "volume": "Volumen",
+        "chart": "Chart"
       },
       "strongBuy": "Stark Kaufen",
       "strongSell": "Stark Verkaufen",
@@ -1308,6 +1309,7 @@
       "adx": "ADX",
       "pivot": "Pivot",
       "precision": "Datenpräzision",
+      "lineWidth": "Linienstärke",
       "historyLimit": "Historien-Umfang (Kerzen)",
       "syncRsi": "RSI-Timeframe synchronisieren",
       "syncRsiDesc": "RSI nutzt Chart-Timeframe",
@@ -1369,6 +1371,10 @@
       },
       "panelConfiguration": "Panel-Konfiguration",
       "toggleVisibility": "Sichtbarkeit umschalten",
+      "chartPanes": {
+        "title": "Chart-Anzeige",
+        "description": "Wähle, welche Indikatoren im Chartfenster gezeichnet werden. Ausgeblendete Indikatoren werden weiter berechnet und bleiben im Technicals-Panel sichtbar."
+      },
       "signals": "Signale",
       "calculationEngine": "Berechnungs-Engine",
       "engine": "Engine",
@@ -3127,6 +3133,12 @@
     "loadingHistory": "LADE HISTORIE ...",
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
     "countdownLabel": "Countdown bis zur Kerzenschließung"
+  },
+  "chart": {
+    "pane": {
+      "collapse": "Pane einklappen",
+      "expand": "Pane ausklappen"
+    }
   },
   "rules": {
     "coreUnavailable": "Die Regel-Prüfung ist nicht geladen. Es wurde nichts geprüft — die Regel bleibt unscharf.",

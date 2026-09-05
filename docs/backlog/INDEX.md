@@ -2,9 +2,9 @@
 
 # Backlog index
 
-282 items. How to read and add them: [README.md](README.md).
+287 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-progress 3 · ✅ done 214
+Counts by status: 💡 idea 23 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 5 · ✅ done 216
 
 ---
 
@@ -76,6 +76,7 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | ✅ done | trade-panel |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | ✅ done | exchange |
 | [BUG-0331](bugs/BUG-0331-flash-close-strips-protection-before-refusal.md) | A refused flash close leaves the position open with its stops cancelled | P1 | ✅ done | trade-panel |
+| [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | 🟡 in-progress | chart |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | ✅ done | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
@@ -105,6 +106,8 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | mascot |
 | [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | trade-panel |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | trade-panel |
+| [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | chart |
+| [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | chart |
 | [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | 🟡 in-progress | engine |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
@@ -115,10 +118,12 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | alerts |
+| [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | 📋 specced | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | ✅ done | alerts |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟡 in-progress | alerts |
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 🟡 in-progress | alerts |
+| [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | 🟡 in-progress | alerts |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
@@ -409,6 +414,8 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
+| [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -444,6 +451,7 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
+| [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -575,6 +583,8 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md), [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) |
 | [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | 💡 idea | M9 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | M3 | community, pro, private | none | none | — |
+| [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -638,4 +648,4 @@ Counts by status: 💡 idea 23 · 📋 specced 39 · 🟢 ready 3 · 🟡 in-pro
 
 ---
 
-Next free number: **0400**
+Next free number: **0405**
