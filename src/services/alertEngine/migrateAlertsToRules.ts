@@ -24,8 +24,8 @@ import {
   type RuleOriginEntry,
 } from "./ruleOriginLedger";
 
-const ALERTS_STORAGE_KEY = "cachy_alerts_v1";
-const RULES_STORAGE_KEY = "cachy_rules_v1";
+export const ALERTS_STORAGE_KEY = "cachy_alerts_v1";
+export const RULES_STORAGE_KEY = "cachy_rules_v1";
 
 // FEAT-0388: the old engine evaluated on every tick and had no notion of a
 // timeframe; the rule schema requires one (ADR-0012 decision 3). "1m" is
@@ -89,7 +89,7 @@ function createdAtMsOf(rule: unknown): number | undefined {
 // rule/legacy.rs) — reading the threshold back out of a migrated rule this
 // way is only ever wrong for a rule this migration did not produce, and
 // such a rule fails these type checks and is correctly left alone.
-function ruleThresholdOf(rule: unknown): string | undefined {
+export function ruleThresholdOf(rule: unknown): string | undefined {
   if (!rule || typeof rule !== "object" || !("conditions" in rule)) return undefined;
   const conditions = (rule as { conditions: unknown }).conditions;
   if (!conditions || typeof conditions !== "object" || !("right" in conditions)) return undefined;

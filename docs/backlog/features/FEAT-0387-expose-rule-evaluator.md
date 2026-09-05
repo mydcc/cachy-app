@@ -3,7 +3,7 @@ id: FEAT-0387
 title: Expose the rule evaluator to JavaScript and evaluate on candle close
 type: feature
 status: in-progress
-branch: worktree-expose-rule-evaluator-27b349
+branch: worktree-alert-rule-evaluator-cutover-52ddf9
 assignee: claude-code
 start_date: 2026-09-05
 priority: P1
@@ -62,18 +62,43 @@ until `FEAT-0388` migrates off it.
 
 ## Acceptance criteria
 
-- [ ] `rule_evaluate` is reachable from TypeScript and round-trips a document plus an
+- [x] `rule_evaluate` is reachable from TypeScript and round-trips a document plus an
       evaluation context
-- [ ] A refusal from the evaluator arrives in TypeScript as `RuleRefusedError` with its
+- [x] A refusal from the evaluator arrives in TypeScript as `RuleRefusedError` with its
       `field` intact, not as an opaque string
-- [ ] A rule is evaluated exactly once per close of its trigger timeframe — asserted
+- [x] A rule is evaluated exactly once per close of its trigger timeframe — asserted
       with a test that feeds several ticks inside one candle and counts evaluations
-- [ ] A condition on a coarser timeframe reads the last candle of that timeframe which
+- [x] A condition on a coarser timeframe reads the last candle of that timeframe which
       had closed at the trigger instant, not a later one
-- [ ] A rule with insufficient history returns no verdict rather than a verdict built
+- [x] A rule with insufficient history returns no verdict rather than a verdict built
       from a partial buffer
-- [ ] A `notify` document never yields an order intent, whatever the caller asks for
-- [ ] Evaluation cost stays bounded with many rules armed on the same symbol
+- [x] A `notify` document never yields an order intent, whatever the caller asks for
+- [ ] Evaluation cost stays bounded with many rules armed on the same symbol —
+      **not measured.** Evaluation is per candle close rather than per tick, which is
+      the reduction `FEAT-0368` asks for, but no benchmark backs the claim yet.
+
+## Cutover
+
+Every alert is evaluated by exactly one engine. Coverage is derived per alert from
+`cachy_rule_origin_v1` plus the current rule store (`ruleCoverage.ts`), never from a
+global switch: an alert leaves the legacy engine only when a specific, armed rule is
+proven to hold it, and any doubt — an unmigrated alert, a deleted or disabled rule, an
+unreadable store — leaves it on the legacy path. That is what makes a double fire
+unconstructable and a silent gap impossible.
+
+Coverage is handed back the moment the trader edits or deletes an alert: until the next
+start re-syncs it, the rule still holds the pre-edit threshold (`BUG-0402`), so it is
+disarmed and the legacy engine takes the alert again.
+
+Rolling back is one argument: `startRuleEvaluationLoop(ledgerSink)` in
+`initAlertEngine()` returns the loop to shadow mode, where it evaluates and notifies
+nobody, without touching anything else.
+
+**Still open before this can be called done:** the trader-facing note about the
+behaviour change (close instead of tick, up to a minute of delay, no mid-candle
+touch-recoveries), and a shadow period with actual data — `compareShadowLedger()`
+reports the disagreement between the two paths, and it has not been run against a real
+session yet.
 
 ## Out of scope
 
@@ -87,15 +112,20 @@ until `FEAT-0388` migrates off it.
   updates, but `docs/adr/0009-candle-depth-and-background-store-isolation.md` forbids
   a background consumer writing into `marketState`. The loop must read without
   writing, or sit beside the store.
-- **Orphaned migrated rules.** `FEAT-0388`'s migration keeps a rule's `enabled` flag
-  in sync with its source alert's `active` flag on every run, but if the alert is
-  deleted from `cachy_alerts_v1` entirely (`AlertDefinitionsModal.removeAlert`), the
-  migrated rule is left behind, still enabled, in `cachy_rules_v1` — nothing in the
-  migration can safely tell a now-orphaned migrated rule apart from one a future rule
-  editor authored directly. Before this item starts evaluating rules for real, decide
-  how to reconcile ids at cutover (e.g. disable or drop any rule whose id has no
-  matching alert, if `cachy_rules_v1` still only ever holds migrated rules at that
-  point).
+- ~~**Orphaned migrated rules.**~~ **Decided** — *suspend and report*: an orphan is
+  disabled and kept, never deleted and never left silently armed. Two facts closed
+  this question. First, `FEAT-0401`'s `cachy_rule_origin_v1` ledger tells a migrated
+  rule apart from a hand-authored one, which this item's text still assumed was
+  impossible. Second, the per-rule test alone is unsafe: a missing source alert means
+  "the trader deleted it" *or* "the alert store is gone" (fresh device, cleared site
+  data, a `cachy_rules_v1` backup restored without its counterpart), and only the
+  shape of the whole set separates them. `reconcileOrphanedRules.ts` therefore gates
+  suspension twice — the store must have been *present* (an absent key is not an
+  empty one), and no more than half of the migrated, armed rules may be orphaned
+  (`ORPHAN_RATIO_MIN_SAMPLE` guards small sets, where the ratio says nothing). Both
+  gates fail towards leaving rules armed: a fired alarm the trader thought they
+  removed is noise; a silently disarmed one is a trader standing uncovered. Withheld
+  candidates are reported, not dropped.
 - **Granularity behavior change from FEAT-0388.** Migrated alerts are pinned to `1m`
   Close evaluation (decision per ADR-0012 decision 3; see FEAT-0388 backlog "Behavior
   Change Documented for FEAT-0387"). At cutover, surface this to traders clearly:
