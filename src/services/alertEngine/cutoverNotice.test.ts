@@ -31,6 +31,12 @@ vi.mock("../logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
+// The notice depends on readCoveredAlertIds(), which reports nothing while the
+// rule evaluator's core has not loaded — irrelevant to what this file tests.
+vi.mock("../../lib/rules/ruleSchema", () => ({
+  ruleSchema: { isReady: () => true },
+}));
+
 function withCoveredAlert(): void {
   localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1" }]));
   localStorage.setItem(

@@ -25,6 +25,7 @@ import {
     type OrphanReconciliation,
 } from "../services/alertEngine/reconcileOrphanedRules";
 import { ruleThresholdOf } from "../services/alertEngine/migrateAlertsToRules";
+import { ruleSchema } from "../lib/rules/ruleSchema";
 import {
     alertsForLegacyEngine,
     disarmRule,
@@ -236,6 +237,20 @@ export async function initAlertEngine(loadModule?: WasmModuleLoader): Promise<vo
     // be re-linked.
     alertState.orphanReport = reconcileStoredRules();
 
+    // FEAT-0387 cutover: the rule evaluator's own core, loaded before coverage
+    // is computed. `ruleCoverage.readCoveredAlertIds()` treats an unloaded core
+    // as "nothing is covered" precisely so this ordering matters: computing
+    // coverage before this settles would report an alert as covered — and
+    // drop it from the legacy engine below — for an evaluator that might still
+    // be mid-fetch. A failure here is caught and logged, never thrown: it must
+    // not block the legacy engine, which is the one thing guaranteed to still
+    // work when it does.
+    try {
+        await ruleSchema.load();
+    } catch (e) {
+        logger.error("alerts", "[Cutover] Rule schema core failed to load — every alert stays on the legacy engine", e);
+    }
+
     try {
         await alertEngine.ensureLoaded(loadModule);
     } catch (e) {
@@ -248,16 +263,20 @@ export async function initAlertEngine(loadModule?: WasmModuleLoader): Promise<vo
     alertState.syncEngine();
     alertState.engineStatus = "ready";
 
-    // FEAT-0387 cutover: last, and only once the legacy engine is up. The
-    // rule loop now notifies, so arming it earlier would leave a window in
-    // which it is the only thing watching the market — and `syncEngine()`
-    // above has already handed it the alerts it covers.
+    // FEAT-0387 cutover: last, and only once the legacy engine is up, and only
+    // if the evaluator it would drive can actually produce a verdict. Arming
+    // an unready loop would not be unsafe by itself — every candle close would
+    // throw inside the gate, caught and logged, evaluating nothing — but it
+    // is pure overhead on the market hot path for a loop that has already
+    // been excluded from coverage above.
     //
     // Imported here rather than at module scope so the wiring — and the market
     // store it reads — stays out of the import graph on the path this function
     // returns early from. `ensureLoaded()` above is client-only for the same
     // reason; the graph has to agree with the guard or SSR pulls in the whole
     // client half anyway.
-    const { startRuleEvaluationLoop } = await import("../services/alertEngine/ruleLoopWiring");
-    startRuleEvaluationLoop(notifyingRuleSink);
+    if (ruleSchema.isReady()) {
+        const { startRuleEvaluationLoop } = await import("../services/alertEngine/ruleLoopWiring");
+        startRuleEvaluationLoop(notifyingRuleSink);
+    }
 }

@@ -209,6 +209,64 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     expect(stillArmed?.active).toBe(true);
   });
 
+  describe("FEAT-0387 — the rule engine's own core must load before it is trusted", () => {
+    // A live session found this the hard way: `alertEngine.ensureLoaded()`
+    // above loads the LEGACY engine's wasm. Nothing loaded the rule
+    // evaluator's own core (`ruleSchema`'s), so every evaluation threw
+    // `RuleCoreUnavailableError`, caught and logged by the gate — a second,
+    // independent instance of exactly this file's bug, invisible to every
+    // test that mocks `ruleSchema` instead of exercising its real loader.
+
+    it("loads the rule schema core at startup", async () => {
+      const loadSpy = vi.fn(async () => {});
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: loadSpy, isReady: () => true },
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      expect(loadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not arm the rule loop when the core failed to load", async () => {
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: {
+          load: vi.fn(async () => {
+            throw new Error("wasm fetch failed");
+          }),
+          isReady: () => false,
+        },
+      }));
+      const startSpy = vi.fn();
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        startRuleEvaluationLoop: startSpy,
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+
+      // A failed core must not abort startup — the legacy engine is the one
+      // thing guaranteed to still work, and it must come up regardless.
+      await expect(initAlertEngine(fakeLoader)).resolves.toBeUndefined();
+      expect(startSpy).not.toHaveBeenCalled();
+    });
+
+    it("arms the rule loop, with the notifying sink, once the core is ready", async () => {
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      const startSpy = vi.fn();
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        startRuleEvaluationLoop: startSpy,
+      }));
+
+      const { initAlertEngine, notifyingRuleSink } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      expect(startSpy).toHaveBeenCalledWith(notifyingRuleSink);
+    });
+  });
+
   it("does not initialise during SSR", async () => {
     mockEnvironment(false);
     vi.resetModules();

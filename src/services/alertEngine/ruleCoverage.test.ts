@@ -38,6 +38,16 @@ vi.mock("../logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
+// Coverage is reported only once the rule evaluator's own core is loaded
+// (a covered alert with a core that never loaded would be dropped from the
+// legacy engine for an evaluator that will never run it). A `vi.fn()`, not a
+// constant, so the one test about this gate can flip it; every other test in
+// this file is unrelated to loading and leaves it at the default.
+const isReady = vi.fn(() => true);
+vi.mock("../../lib/rules/ruleSchema", () => ({
+  ruleSchema: { isReady: () => isReady() },
+}));
+
 function storeRules(rules: ReadonlyArray<{ id: string; enabled?: boolean }>): void {
   localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(rules));
 }
@@ -58,9 +68,22 @@ describe("rule coverage", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    isReady.mockReturnValue(true);
   });
 
   describe("readCoveredAlertIds", () => {
+    it("covers nothing while the rule evaluator's core has not loaded", () => {
+      // The gap a live session actually hit: the rule store names an armed
+      // rule for this alert, but the evaluator that would run it never
+      // finished loading. Reporting coverage here would drop the alert from
+      // the legacy engine for an engine that will never evaluate it.
+      isReady.mockReturnValue(false);
+      storeRules([{ id: "r1" }]);
+      storeLedger([["r1", "a1"]]);
+
+      expect([...readCoveredAlertIds()]).toEqual([]);
+    });
+
     it("covers an alert whose migrated rule is armed", () => {
       storeRules([{ id: "r1" }]);
       storeLedger([["r1", "a1"]]);

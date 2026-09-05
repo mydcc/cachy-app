@@ -40,6 +40,7 @@
  */
 
 import { browser } from "$app/environment";
+import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type { RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
@@ -60,6 +61,17 @@ import { readRuleOriginLedger } from "./ruleOriginLedger";
 export function readCoveredAlertIds(): ReadonlySet<string> {
   const none: ReadonlySet<string> = new Set();
   if (!browser) return none;
+
+  // The rule store can name an armed rule for an alert while the evaluator
+  // that would actually run it has failed to load — a slow or failed wasm
+  // fetch, independent of the legacy engine's own load. Reporting coverage in
+  // that state would take the alert off the legacy path for an engine that
+  // will never evaluate it: the double failure this whole module exists to
+  // rule out, arrived at through two subsystems that load independently.
+  if (!ruleSchema.isReady()) {
+    logger.warn("alerts", "[Cutover] Rule schema core not loaded — no alert reported as covered");
+    return none;
+  }
 
   try {
     const raw = localStorage.getItem(RULES_STORAGE_KEY);
