@@ -10,6 +10,7 @@
 import { browser } from "$app/environment";
 import type { JournalEntry } from "../stores/types";
 import type { getJournalAnalysis } from "../lib/calculators/aggregator";
+import { generateId } from "../utils/utils";
 
 type AnalysisResult = ReturnType<typeof getJournalAnalysis>;
 
@@ -58,7 +59,7 @@ class AggregatorService {
             return getJournalAnalysis(journal);
         }
 
-        const id = crypto.randomUUID();
+        const id = generateId();
         return new Promise((resolve, reject) => {
             this.pendingResolves.set(id, resolve);
             this.pendingRejects.set(id, reject);
