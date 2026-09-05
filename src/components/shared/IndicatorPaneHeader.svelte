@@ -41,7 +41,7 @@
     let { title, params = "", collapsed = false, onToggle }: Props = $props();
 </script>
 
-<div class="indicator-pane-header">
+<div class="indicator-pane-header" class:collapsed={collapsed}>
     <button
         class="chevron"
         type="button"
@@ -81,6 +81,14 @@
            chevron button re-enables pointer events, nothing else. */
         pointer-events: none;
         user-select: none;
+    }
+
+    /* Open pane: pin to the top edge like a chart legend instead of
+       centering in the full pane height. Collapsed (20px strip) keeps
+       full-height stretch so the content sits centered. */
+    .indicator-pane-header:not(.collapsed) {
+        bottom: auto;
+        height: 18px;
     }
 
     .chevron {
