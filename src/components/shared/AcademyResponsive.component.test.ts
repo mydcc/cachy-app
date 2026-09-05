@@ -164,14 +164,16 @@ function splitLayout(view: HTMLElement): HTMLElement {
 
 /*
  * Fluid-wrap contract: the pattern list and the strategy column keep
- * readable minima (200px / 280px) and the rows wrap instead of squeezing
- * or overflowing when the window is only slightly narrowed.
+ * readable minima (200px / 280px) and the detail-split row wraps instead
+ * of squeezing when the window is only slightly narrowed. The middle
+ * (content) column deliberately has NO minimum — it keeps shrinking with
+ * the window so content reflows instead of sliding under the frame edge.
  */
 function expectFluidColumns(view: HTMLElement) {
     const sidebar = view.children[0] as HTMLElement;
     expect(sidebar.classList.contains("@md:min-w-[200px]")).toBe(true);
     const main = view.children[1] as HTMLElement;
-    expect(main.classList.contains("@md:min-w-[300px]")).toBe(true);
+    expect(main.classList.contains("@md:min-w-[300px]")).toBe(false);
     /*
      * Regression pin: `@md:flex-wrap` on this row once pushed the whole
      * detail view onto a second flex line — w-1/4 + w-3/4 already sum to

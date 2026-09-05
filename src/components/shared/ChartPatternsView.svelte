@@ -221,7 +221,7 @@
 
     <!-- Main Content -->
     <div
-        class="w-full @md:min-w-[300px] flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2 flex-1 min-h-0 min-w-0"
+        class="w-full flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2 flex-1 min-h-0 min-w-0"
     >
         {#if currentPattern}
             <!-- Header -->
