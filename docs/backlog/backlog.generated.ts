@@ -1186,7 +1186,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0360",
     "title": "TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.231",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3103,7 +3104,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0363",
     "title": "MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.231",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5316,7 +5318,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0362",
     "title": "VisibilityController attaches uncleaned document visibilitychange listener without destroy method",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
+    "shipped": "1.6.0-beta.231",
     "priority": "P3",
     "milestone": "none",
     "editions": [
