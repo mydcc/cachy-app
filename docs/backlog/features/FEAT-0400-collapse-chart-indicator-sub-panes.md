@@ -1,9 +1,9 @@
 ---
-id: FEAT-0398
+id: FEAT-0400
 title: Collapse chart indicator sub-panes to header strips
 type: feature
 status: in-progress
-assignee: claude
+assignee: opencode
 branch: feat/chart-pane-collapse
 priority: P2
 milestone: M3
@@ -18,7 +18,7 @@ target_date: 2026-09-18
 start_date: 2026-09-04
 ---
 
-# FEAT-0398 — Collapse chart indicator sub-panes to header strips
+# FEAT-0400 — Collapse chart indicator sub-panes to header strips
 
 GitHub issue: #2658
 

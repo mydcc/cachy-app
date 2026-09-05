@@ -4942,7 +4942,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Collapse chart indicator sub-panes to header strips",
     "type": "feature",
     "status": "in-progress",
-    "assignee": "claude",
+    "assignee": "opencode",
     "branch": "feat/chart-pane-collapse",
     "priority": "P2",
     "milestone": "M3",
