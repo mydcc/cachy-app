@@ -15,7 +15,9 @@ function makeSeries() {
     } as unknown as ISeriesApi<"Line"> & ISeriesApi<"Histogram"> & ISeriesApi<"Candlestick">;
 }
 
-function makePane(index: number) {
+type MockPane = IPaneApi<Time> & { series: unknown[]; preserveEmptyPane: boolean };
+
+function makePane(index: number): MockPane {
     return {
         paneIndex: () => index,
         setHeight: vi.fn(),
@@ -23,7 +25,9 @@ function makePane(index: number) {
         attachPrimitive: vi.fn(),
         detachPrimitive: vi.fn(),
         priceScale: () => ({ width: () => 60 }),
-    } as unknown as IPaneApi<Time>;
+        series: [],
+        preserveEmptyPane: false,
+    } as unknown as MockPane;
 }
 
 function makeChart() {
@@ -34,11 +38,13 @@ function makeChart() {
         // past the current count — an index that was never materialized
         // drifts onto the last existing pane, exactly like in production.
         addSeries: vi.fn((_type: unknown, _opts: unknown, paneIndex?: number) => {
+            const series = makeSeries();
             if (typeof paneIndex === "number") {
                 const idx = Math.min(panes.length, paneIndex);
                 while (panes.length <= idx) panes.push(makePane(panes.length));
+                (panes[idx] as MockPane).series.push(series);
             }
-            return makeSeries();
+            return series;
         }),
         addPane: vi.fn((preserveEmptyPane?: boolean) => {
             const pane = makePane(panes.length);
@@ -46,7 +52,22 @@ function makeChart() {
             panes.push(pane);
             return pane;
         }),
-        removeSeries: vi.fn(),
+        removeSeries: vi.fn((series: unknown) => {
+            // Mirror lightweight-charts: removing a series cleans up panes
+            // that became empty, unless they were created with
+            // preserveEmptyPane. Without this the strip-survival test
+            // cannot fail.
+            for (let i = panes.length - 1; i >= 1; i--) {
+                const p = panes[i] as MockPane;
+                const idx = p.series.indexOf(series);
+                if (idx === -1) continue;
+                p.series.splice(idx, 1);
+            }
+            for (let i = panes.length - 1; i >= 1; i--) {
+                const p = panes[i] as MockPane;
+                if (!p.preserveEmptyPane && p.series.length === 0) panes.splice(i, 1);
+            }
+        }),
         removePane: vi.fn((idx: number) => {
             if (idx >= 0 && idx < panes.length) panes.splice(idx, 1);
         }),
