@@ -110,8 +110,17 @@ class ActiveTechnicalsManager {
         for (const cleanup of this.activeEffects.values()) cleanup();
         this.activeEffects.clear();
         // Reset remaining bookkeeping so ref-counting cannot suppress
-        // re-registration of a previously monitored key.
+        // re-registration of a previously monitored key. Read the
+        // registered keys before clearing so their marketWatcher
+        // registrations can be dropped too.
+        const registeredKeys = [...this.registry.subscribers.keys()];
         this.registry.clear();
+        for (const key of registeredKeys) {
+            const [symbol, timeframe] = key.split(":");
+            marketWatcher.unregister(symbol, "price");
+            marketWatcher.unregister(symbol, "ticker");
+            marketWatcher.unregister(symbol, `kline_${timeframe}`);
+        }
         this.visibility.pausedCalculations.clear();
         this.executor.workerState.clear();
         this.lastActiveSymbolChange = 0;

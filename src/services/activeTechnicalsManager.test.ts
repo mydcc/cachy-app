@@ -327,6 +327,7 @@ describe("ActiveTechnicalsManager", () => {
       internals.registry.subscribers.set("ETHUSDT:1h", 2);
       internals.pausedCalculations.add("ETHUSDT:1h");
       internals.workerState.set("ETHUSDT:1h", { initialized: true, lastTime: 1 });
+      const unregisterSpy = vi.mocked(marketWatcher.unregister);
 
       const removeSpy = vi.spyOn(document, "removeEventListener");
       const clearSpy = vi.spyOn(globalThis, "clearTimeout");
@@ -347,6 +348,10 @@ describe("ActiveTechnicalsManager", () => {
       expect(internals.subscribers.size).toBe(0);
       expect(internals.pausedCalculations.size).toBe(0);
       expect(internals.workerState.size).toBe(0);
+      // marketWatcher registrations from startMonitoring are dropped as well.
+      expect(unregisterSpy).toHaveBeenCalledWith("ETHUSDT", "price");
+      expect(unregisterSpy).toHaveBeenCalledWith("ETHUSDT", "ticker");
+      expect(unregisterSpy).toHaveBeenCalledWith("ETHUSDT", "kline_1h");
 
       removeSpy.mockRestore();
       clearSpy.mockRestore();
