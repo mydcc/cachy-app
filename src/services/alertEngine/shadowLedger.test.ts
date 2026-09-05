@@ -39,12 +39,13 @@ function legacy(id: string, recordedAtMs: number, symbol = "BTCUSDT"): ShadowFir
 
 function shadow(
   id: string,
-  anchorMs: number,
+  recordedAtMs: number,
   symbol = "BTCUSDT",
+  anchorMs = CANDLE_OPEN_MS,
 ): ShadowFiringRecord {
   return {
     source: "shadow",
-    recordedAtMs: anchorMs + 60_000,
+    recordedAtMs,
     symbol,
     id,
     timeframe: "1m",
@@ -52,6 +53,16 @@ function shadow(
     verdict: "fires",
   };
 }
+
+/**
+ * Epoch-scale timestamps on purpose. An earlier version of `delaysMs`
+ * subtracted a wall-clock `recordedAtMs` from the candle's `anchorMs`, which
+ * looks plausible with small synthetic numbers and produces the candle's age —
+ * or a large negative — with real ones. These constants are what makes that
+ * class of mistake fail the test rather than pass it.
+ */
+const CANDLE_OPEN_MS = 1_757_030_400_000;
+const CANDLE_CLOSE_MS = CANDLE_OPEN_MS + 60_000;
 
 describe("shadowLedger", () => {
   beforeEach(() => {
@@ -142,17 +153,30 @@ describe("shadowLedger", () => {
       expect(comparison.shadowCount).toBe(1);
     });
 
-    it("measures the close-versus-tick delay against the candle anchor", () => {
-      // Legacy fired mid-candle at 30s; the candle it belongs to closed at 60s.
-      recordFiring(legacy("a1", 30_000));
-      recordFiring(shadow("a1", 60_000));
+    it("measures the delay between the two wall-clock firing times", () => {
+      // Legacy fired mid-candle, 30s after it opened; the rule path fired 50ms
+      // after that candle closed.
+      recordFiring(legacy("a1", CANDLE_OPEN_MS + 30_000));
+      recordFiring(shadow("a1", CANDLE_CLOSE_MS + 50));
 
-      expect(compareShadowLedger().delaysMs).toEqual([30_000]);
+      expect(compareShadowLedger().delaysMs).toEqual([30_050]);
     });
 
-    it("surfaces a legacy firing the shadow path never saw", () => {
+    it("never reports a delay on the scale of an epoch timestamp", () => {
+      recordFiring(legacy("a1", CANDLE_OPEN_MS + 30_000));
+      recordFiring(shadow("a1", CANDLE_CLOSE_MS + 50));
+
+      // A candle's open time subtracted from a wall clock is ~1.7e12, not a
+      // delay. Anything past an hour here means the two sides are being
+      // compared on different footings again.
+      const [delay] = compareShadowLedger().delaysMs;
+      expect(delay).toBeGreaterThan(0);
+      expect(delay).toBeLessThan(3_600_000);
+    });
+
+    it("surfaces a legacy firing the rule path never saw", () => {
       // The touch-and-recover case: a spike crossed and closed back below.
-      recordFiring(legacy("a1", 30_000));
+      recordFiring(legacy("a1", CANDLE_OPEN_MS + 30_000));
 
       const comparison = compareShadowLedger();
 
@@ -161,14 +185,14 @@ describe("shadowLedger", () => {
     });
 
     it("surfaces a shadow firing with no legacy counterpart", () => {
-      recordFiring(shadow("a1", 60_000));
+      recordFiring(shadow("a1", CANDLE_CLOSE_MS));
 
       expect(compareShadowLedger().shadowOnly.map((r) => r.id)).toEqual(["a1"]);
     });
 
     it("does not pair records across symbols", () => {
-      recordFiring(legacy("a1", 30_000, "BTCUSDT"));
-      recordFiring(shadow("a1", 60_000, "ETHUSDT"));
+      recordFiring(legacy("a1", CANDLE_OPEN_MS + 30_000, "BTCUSDT"));
+      recordFiring(shadow("a1", CANDLE_CLOSE_MS, "ETHUSDT"));
 
       const comparison = compareShadowLedger();
 

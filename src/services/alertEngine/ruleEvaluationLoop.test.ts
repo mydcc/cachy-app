@@ -239,6 +239,27 @@ describe("RuleEvaluationLoop", () => {
       ).toEqual([]);
     });
 
+    it("forgets every series of an evicted symbol", () => {
+      const { loop } = loopWith([
+        rule(),
+        rule({ id: "r5m", trigger_timeframe: "5m" }),
+        rule({ id: "eth", symbol: "ETHUSDT" }),
+      ]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "5m", [{ time: 1_000 }]);
+      loop.observeCandles("ETHUSDT", "1m", [{ time: 1_000 }]);
+
+      loop.forgetSymbol("BTCUSDT");
+
+      // Both BTC series start over, so their next candle closes nothing.
+      expect(loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }])).toEqual([]);
+      expect(loop.observeCandles("BTCUSDT", "5m", [{ time: 301_000 }])).toEqual([]);
+      // ETH was not touched and still has its high-water mark, so it closes.
+      expect(loop.observeCandles("ETHUSDT", "1m", [{ time: 61_000 }]).map((f) => f.rule.id)).toEqual([
+        "eth",
+      ]);
+    });
+
     it("forgets a series on request", () => {
       const { loop } = loopWith([rule()]);
       loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);

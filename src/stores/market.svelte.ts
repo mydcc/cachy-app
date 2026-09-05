@@ -104,6 +104,9 @@ export class MarketManager {
       delete this.data[symbol];
       delete this.symbolMeta[symbol];
       delete this.positionTiers[symbol];
+      // FEAT-0387: the rule loop keeps a high-water mark per series, which
+      // would otherwise outlive every symbol this cache ever held.
+      ruleEvaluationLoop.forgetSymbol(symbol);
     });
     this.marketTelemetry = new MarketTelemetry();
 

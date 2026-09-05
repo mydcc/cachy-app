@@ -111,17 +111,6 @@ export const ledgerSink: FiringSink = ({ rule, verdict, anchorMs }) => {
   });
 };
 
-/** The legacy engine's side of the comparison. */
-export function recordLegacyFiring(alertId: string, symbol: string, price: string): void {
-  recordFiring({
-    source: "legacy",
-    recordedAtMs: Date.now(),
-    symbol,
-    id: alertId,
-    price,
-  });
-};
-
 /**
  * Points the loop at the live market store and at the sink the caller chose.
  *

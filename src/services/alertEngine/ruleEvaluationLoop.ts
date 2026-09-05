@@ -232,9 +232,24 @@ export class RuleEvaluationLoop {
     return candles;
   }
 
-  /** Forget a series, e.g. when the symbol is evicted from the market cache. */
+  /** Forget one series. */
   forgetSeries(symbol: string, timeframe: string): void {
     this.highestOpenMs.delete(`${symbol}:${timeframe}`);
+  }
+
+  /**
+   * Forget every series of a symbol, called when the market cache evicts it.
+   *
+   * Two reasons, one small and one smaller: the map would otherwise keep a
+   * row per timeframe for every symbol ever seen, and a stale high-water mark
+   * makes the first candle after a re-subscription look like a close that
+   * already happened, skipping it.
+   */
+  forgetSymbol(symbol: string): void {
+    const prefix = `${symbol}:`;
+    for (const key of this.highestOpenMs.keys()) {
+      if (key.startsWith(prefix)) this.highestOpenMs.delete(key);
+    }
   }
 
   /** Drop all series state. Used by HMR teardown and by tests. */

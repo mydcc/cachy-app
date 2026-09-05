@@ -166,6 +166,25 @@ export function recordFiring(record: ShadowFiringRecord): boolean {
   }
 }
 
+/**
+ * The legacy engine's side of the comparison.
+ *
+ * Lives here rather than with the loop's wiring so the alert store can record
+ * a legacy firing without importing that wiring — and with it the market store
+ * — on the module path. `initAlertEngine` returns before any of that during
+ * SSR, and the import graph has to agree with that or the client-only half is
+ * pulled in anyway.
+ */
+export function recordLegacyFiring(alertId: string, symbol: string, price: string): void {
+  recordFiring({
+    source: "legacy",
+    recordedAtMs: Date.now(),
+    symbol,
+    id: alertId,
+    price,
+  });
+}
+
 /** Empties the ledger — for a fresh measurement window. */
 export function clearShadowLedger(): boolean {
   if (!browser) return false;
@@ -187,8 +206,14 @@ export interface ShadowComparison {
   /** Shadow firings with no legacy record for the same symbol and id. */
   shadowOnly: ShadowFiringRecord[];
   /**
-   * Delays in ms between a legacy firing and its shadow counterpart, computed
-   * against the shadow record's `anchorMs` where present.
+   * Delays in ms between a legacy firing and its counterpart on the rule path,
+   * both measured on the wall clock.
+   *
+   * Not computed against `anchorMs`: that is the candle's *open* time, an
+   * epoch value on a different footing from `recordedAtMs`, and subtracting
+   * one from the other yields the candle's age rather than any delay. Both
+   * sides already carry the quantity being compared — when each path decided
+   * to fire — so that is what is subtracted.
    */
   delaysMs: number[];
 }
@@ -221,8 +246,7 @@ export function compareShadowLedger(ledger: ShadowLedger = readShadowLedger()): 
       legacyOnly.push(record);
       continue;
     }
-    const shadowAt = counterpart.anchorMs ?? counterpart.recordedAtMs;
-    delaysMs.push(shadowAt - record.recordedAtMs);
+    delaysMs.push(counterpart.recordedAtMs - record.recordedAtMs);
   }
 
   return {

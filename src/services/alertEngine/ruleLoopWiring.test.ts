@@ -31,10 +31,9 @@ import {
   ledgerSink,
   readClosedCandles,
   readStoredRules,
-  recordLegacyFiring,
   startRuleEvaluationLoop,
 } from "./ruleLoopWiring";
-import { readShadowLedger } from "./shadowLedger";
+import { readShadowLedger, recordLegacyFiring } from "./shadowLedger";
 import { ruleEvaluationLoop } from "./ruleEvaluationLoop";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 

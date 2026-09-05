@@ -24,10 +24,6 @@ import {
     reconcileStoredRules,
     type OrphanReconciliation,
 } from "../services/alertEngine/reconcileOrphanedRules";
-import {
-    recordLegacyFiring,
-    startRuleEvaluationLoop,
-} from "../services/alertEngine/ruleLoopWiring";
 import { ruleThresholdOf } from "../services/alertEngine/migrateAlertsToRules";
 import {
     alertsForLegacyEngine,
@@ -35,7 +31,7 @@ import {
     originAlertIdOf,
     releaseCoverage,
 } from "../services/alertEngine/ruleCoverage";
-import { recordFiring } from "../services/alertEngine/shadowLedger";
+import { recordFiring, recordLegacyFiring } from "../services/alertEngine/shadowLedger";
 import type { FiringSink } from "../services/alertEngine/ruleEvaluationLoop";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
@@ -256,5 +252,12 @@ export async function initAlertEngine(loadModule?: WasmModuleLoader): Promise<vo
     // rule loop now notifies, so arming it earlier would leave a window in
     // which it is the only thing watching the market — and `syncEngine()`
     // above has already handed it the alerts it covers.
+    //
+    // Imported here rather than at module scope so the wiring — and the market
+    // store it reads — stays out of the import graph on the path this function
+    // returns early from. `ensureLoaded()` above is client-only for the same
+    // reason; the graph has to agree with the guard or SSR pulls in the whole
+    // client half anyway.
+    const { startRuleEvaluationLoop } = await import("../services/alertEngine/ruleLoopWiring");
     startRuleEvaluationLoop(notifyingRuleSink);
 }
