@@ -269,6 +269,82 @@ export class IndicatorLayer {
     }
 
     /**
+     * Recompute the pane-header values for a live tick without rebuilding
+     * panes. render()'s values are a snapshot of the last full render, so on
+     * a fast live update they would go stale — dangerous for a trading
+     * readout. This recomputes each visible sub-pane indicator on the last
+     * row of the stored data and re-reports panes so headers remount with
+     * fresh values. Series data itself is NOT touched here; the caller
+     * updates the candle series separately.
+     */
+    updateHeaderValues(): void {
+        const rows = this.lastRows;
+        if (!rows || rows.length === 0 || this.panesInfo.length === 0) return;
+        const a = {
+            closes: getSourceData(rows, "close"),
+            opens: getSourceData(rows, "open"),
+            highs: getSourceData(rows, "high"),
+            lows: getSourceData(rows, "low"),
+            volume: new Float64Array(rows.length),
+        };
+        for (let i = 0; i < rows.length; i++) a.volume[i] = rows[i].volume;
+        const s = indicatorState;
+        for (const info of this.panesInfo) {
+            switch (info.key) {
+                case "rsi":
+                    info.value = this.lastValue(JSIndicators.rsi(a.closes, s.rsi.length ?? 14));
+                    break;
+                case "macd": {
+                    const m = JSIndicators.macd(
+                        a.closes,
+                        s.macd.fastLength,
+                        s.macd.slowLength,
+                        s.macd.signalLength,
+                    );
+                    info.value = this.lastValue(m.macd);
+                    break;
+                }
+                case "stochRsi": {
+                    const p = s.stochRsi;
+                    const sr = JSIndicators.stochRsi(a.closes, p.rsiLength || p.length || 14, p.kPeriod, p.dPeriod, 3);
+                    info.value = this.lastValue(sr.k);
+                    break;
+                }
+                case "cci":
+                    info.value = this.lastValue(JSIndicators.cci(a.closes, s.cci.length ?? 20));
+                    break;
+                case "momentum":
+                    info.value = this.lastValue(JSIndicators.mom(a.closes, s.momentum.length ?? 10));
+                    break;
+                case "williamsR":
+                    info.value = this.lastValue(JSIndicators.williamsR(a.highs, a.lows, a.closes, s.williamsR.length ?? 14));
+                    break;
+                case "obv":
+                    info.value = this.lastValue(JSIndicators.obv(a.closes, a.volume));
+                    break;
+                case "mfi":
+                    info.value = this.lastValue(JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, s.mfi.length ?? 14));
+                    break;
+                case "adx":
+                    info.value = this.lastValue(JSIndicators.adx(a.highs, a.lows, a.closes, s.adx.diLength ?? s.adx.adxSmoothing ?? 14));
+                    break;
+                case "ao":
+                    info.value = this.lastValue(JSIndicators.ao(a.highs, a.lows, s.ao.fastLength ?? 5, s.ao.slowLength ?? 34));
+                    break;
+                case "choppiness":
+                    info.value = this.lastValue(JSIndicators.choppiness(a.highs, a.lows, a.closes, s.choppiness.length ?? 14));
+                    break;
+                case "stochastic": {
+                    const k = JSIndicators.stoch(a.highs, a.lows, a.closes, s.stochastic.kPeriod ?? 14);
+                    info.value = this.lastValue(k);
+                    break;
+                }
+            }
+        }
+        this.onPanesChanged?.(this.panesInfo);
+    }
+
+    /**
      * How many sub-panes fit and how tall each one gets, for the indicators
      * currently switched on in Settings. Collapsed panes reserve a strip of
      * STRIP_HEIGHT first; open panes share whatever budget is left over.

@@ -700,6 +700,14 @@
                             };
                             candleSeries.update(update);
 
+                            // Header values must track live ticks — a stale
+                            // readout on a trading chart is dangerous. The
+                            // layer recomputes pane-header values from the
+                            // current klines and re-reports them (headers
+                            // remount with the fresh number); series data in
+                            // the sub-panes refreshes on the next full render.
+                            indicatorLayer?.updateHeaderValues();
+
                             if (win.currentPrice !== undefined) {
                                 // Format from the raw kline string via
                                 // Decimal: a hard-coded toFixed(2) truncated
