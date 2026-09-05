@@ -272,7 +272,9 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       const { initAlertEngine, notifyingRuleSink } = await import("./alerts.svelte");
       await initAlertEngine(fakeLoader);
 
-      expect(startSpy).toHaveBeenCalledWith(notifyingRuleSink);
+      // A second argument (the mid-session re-sync hook) is expected in live
+      // mode; its own behaviour is covered separately below.
+      expect(startSpy).toHaveBeenCalledWith(notifyingRuleSink, expect.any(Function));
     });
   });
 
@@ -346,7 +348,9 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       const { initAlertEngine } = await import("./alerts.svelte");
       await initAlertEngine(fakeLoader, "shadow");
 
-      expect(startSpy).toHaveBeenCalledWith(ledgerSinkStub);
+      // undefined, not a re-sync function: shadow mode must not touch legacy
+      // coverage at all, mid-session included.
+      expect(startSpy).toHaveBeenCalledWith(ledgerSinkStub, undefined);
     });
 
     it("live mode (the default) does remove a covered alert from the legacy engine", async () => {
@@ -367,6 +371,99 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       await initAlertEngine(fakeLoader);
 
       expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+    });
+  });
+
+  describe("FEAT-0387 — coverage stays in step with series observed mid-session", () => {
+    // Review round 3's finding: coverage was a startup snapshot, but the
+    // notifying loop is armed for the whole session and is series-driven. A
+    // rule whose series only becomes observed after init would stay covered
+    // by neither engine's fresh knowledge — armed and notifying on the rule
+    // path, still held (per the stale snapshot) or not held (if init happened
+    // to see it observed) on the legacy path, with nothing keeping the two in
+    // step as the market store's subscriptions change.
+
+    function seedCoveredRule() {
+      localStorage.setItem(
+        "cachy_rules_v1",
+        JSON.stringify([
+          {
+            id: ARMED_BEFORE_RELOAD.id,
+            symbol: ARMED_BEFORE_RELOAD.symbol,
+            trigger_timeframe: "1m",
+            enabled: true,
+          },
+        ]),
+      );
+      localStorage.setItem(
+        "cachy_rule_origin_v1",
+        JSON.stringify({
+          schema_version: 1,
+          entries: {
+            [ARMED_BEFORE_RELOAD.id]: {
+              alertId: ARMED_BEFORE_RELOAD.id,
+              migratedAtMs: 1_757_030_400_000,
+            },
+          },
+        }),
+      );
+    }
+
+    it("re-syncs the legacy engine when the rule's series is later observed", async () => {
+      // Not observed at startup: the alert stays on the legacy engine from
+      // the initial sync, same as any uncovered alert.
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      let observed = false;
+      let capturedOnClose: (() => void) | undefined;
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => observed),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: vi.fn((_sink: unknown, onClose?: () => void) => {
+          capturedOnClose = onClose;
+        }),
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      // Fails without the fix: the alert was never covered, so this asserts
+      // the baseline the rest of the test builds on.
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+      expect(capturedOnClose).toBeInstanceOf(Function);
+
+      // The series becomes observed mid-session (a chart opened, an
+      // indicator subscribed) and the loop reports a close.
+      observed = true;
+      capturedOnClose?.();
+
+      // Fails on the un-fixed code: nothing re-ran syncEngine, so the alert
+      // would still be sitting on the legacy engine while the rule path — armed
+      // since startup — now also evaluates and notifies for it.
+      expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+    });
+
+    it("shadow mode never wires the re-sync hook, even once ready", async () => {
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      const startSpy = vi.fn();
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => true),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: startSpy,
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader, "shadow");
+
+      // A resync hook in shadow mode would start removing alerts from the
+      // legacy engine on behalf of a sink that never notifies for them —
+      // recreating the exact gap the mode split exists to close.
+      expect(startSpy.mock.calls[0][1]).toBeUndefined();
     });
   });
 

@@ -312,6 +312,26 @@ export async function initAlertEngine(
     alertState.syncEngine(covered);
     alertState.engineStatus = "ready";
 
+    // FEAT-0387 cutover: coverage above is a startup snapshot, but the market
+    // store keeps subscribing to new series for as long as the session runs —
+    // a symbol the trader charts at 4h when the app opens can gain a 1m
+    // subscription minutes later (a different chart, an indicator). Without
+    // this, a rule whose series became observed only after startup would stay
+    // armed and notifying on the rule path while its alert was never taken
+    // off the legacy engine, since `syncEngine` above never runs again: both
+    // engines would serve it, which is the double fire this cutover exists to
+    // rule out — reached through staleness rather than construction.
+    //
+    // Only wired in live mode. Shadow mode must not touch legacy coverage at
+    // all, for the same reason it forces `covered` empty above: a re-sync
+    // here would start removing alerts from the legacy engine on behalf of a
+    // sink that never notifies for them, recreating the exact "neither
+    // engine" gap the mode split was built to close.
+    const onClose =
+        mode === "live"
+            ? () => alertState.syncEngine(readCoveredAlertIds(isSeriesObserved))
+            : undefined;
+
     // FEAT-0387 cutover: last, and only once the legacy engine is up, and only
     // if the evaluator it would drive can actually produce a verdict. Arming
     // an unready loop would not be unsafe by itself — every candle close would
@@ -319,6 +339,6 @@ export async function initAlertEngine(
     // is pure overhead on the market hot path for a loop that has already
     // been excluded from coverage above.
     if (ruleSchema.isReady()) {
-        startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink);
+        startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink, onClose);
     }
 }

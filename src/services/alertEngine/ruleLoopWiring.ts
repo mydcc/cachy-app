@@ -32,7 +32,7 @@ import type { EvaluationCandle, RuleDocument } from "../../lib/rules/types";
 import { marketState } from "../../stores/market.svelte";
 import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
-import { ruleEvaluationLoop, type FiringSink } from "./ruleEvaluationLoop";
+import { ruleEvaluationLoop, type FiringSink, type SeriesCloseHook } from "./ruleEvaluationLoop";
 import { recordFiring } from "./shadowLedger";
 
 /**
@@ -140,14 +140,20 @@ export const ledgerSink: FiringSink = ({ rule, verdict, anchorMs }) => {
  * engine the thing a trader actually hears. Defaulting to the recording sink
  * keeps the safe behaviour the default — a caller that forgets to pass one
  * gets an evaluator, never a surprise notifier.
+ *
+ * `onClose` is the caller's chance to keep something else in step with which
+ * series just produced a close — `alerts.svelte.ts` uses it to re-sync legacy
+ * coverage the moment a rule's series starts being observed mid-session,
+ * rather than only at the startup snapshot `initAlertEngine()` took.
  */
-export function startRuleEvaluationLoop(onFiring: FiringSink = ledgerSink): void {
+export function startRuleEvaluationLoop(onFiring: FiringSink = ledgerSink, onClose?: SeriesCloseHook): void {
   if (!browser) return;
 
   ruleEvaluationLoop.configure({
     readCandles: readClosedCandles,
     readRules: readStoredRules,
     onFiring,
+    onClose,
   });
   logger.log(
     "alerts",

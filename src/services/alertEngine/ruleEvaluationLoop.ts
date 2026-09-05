@@ -63,11 +63,29 @@ export interface RuleFiring {
 /** Where a verdict goes. In shadow mode this only logs. */
 export type FiringSink = (firing: RuleFiring) => void;
 
+/**
+ * Called once per genuine close of any series, before that close is
+ * evaluated — regardless of whether any rule ends up firing.
+ *
+ * Exists so a caller whose *other* decisions depend on which series are
+ * observed (FEAT-0387's coverage: an alert is only taken off the legacy
+ * engine while its rule's series is live) can keep that decision fresh. A
+ * series that was not observed at startup — the app's active chart or
+ * indicators did not need it yet — can start producing closes at any later
+ * point in the session; coverage computed once at startup would not know.
+ * Firing this before `evaluateSeries` runs means a caller that re-syncs
+ * coverage here has already dropped the newly-covered alert from the legacy
+ * engine by the time the rule engine could notify for the same event.
+ */
+export type SeriesCloseHook = (symbol: string, timeframe: string, anchorMs: number) => void;
+
 export interface RuleEvaluationLoopOptions {
   readCandles: CandleReader;
   readRules: RuleReader;
   /** Defaults to the shadow sink, which reports and notifies nobody. */
   onFiring?: FiringSink;
+  /** No-op by default — most callers have nothing that depends on this. */
+  onClose?: SeriesCloseHook;
 }
 
 /**
@@ -101,6 +119,7 @@ export class RuleEvaluationLoop {
   private readCandles: CandleReader = NO_CANDLES;
   private readRules: RuleReader = NO_RULES;
   private onFiring: FiringSink = shadowSink;
+  private onClose: SeriesCloseHook = () => {};
 
   constructor(options?: RuleEvaluationLoopOptions) {
     if (options) this.configure(options);
@@ -119,6 +138,7 @@ export class RuleEvaluationLoop {
     this.readCandles = options.readCandles;
     this.readRules = options.readRules;
     this.onFiring = options.onFiring ?? shadowSink;
+    this.onClose = options.onClose ?? (() => {});
   }
 
   /**
@@ -136,6 +156,11 @@ export class RuleEvaluationLoop {
     try {
       const anchorMs = this.advance(symbol, timeframe, candles);
       if (anchorMs === undefined) return [];
+
+      // Before evaluating: a caller re-syncing coverage here has already
+      // dropped a newly-covered alert from the legacy engine by the time a
+      // rule below could notify for this same close.
+      this.onClose(symbol, timeframe, anchorMs);
 
       return this.evaluateSeries(symbol, timeframe, anchorMs);
     } catch (e) {

@@ -269,4 +269,63 @@ describe("RuleEvaluationLoop", () => {
       expect(loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }])).toEqual([]);
     });
   });
+
+  describe("onClose", () => {
+    it("fires once per genuine close, with the anchor", () => {
+      const onClose = vi.fn();
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [],
+        onClose,
+      });
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      expect(onClose).not.toHaveBeenCalled();
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+      expect(onClose).toHaveBeenCalledExactlyOnceWith("BTCUSDT", "1m", 1_000);
+    });
+
+    it("does not fire again for ticks inside the same candle", () => {
+      const onClose = vi.fn();
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [],
+        onClose,
+      });
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+      onClose.mockClear();
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("runs before the rule below can fire, so a caller can react first", () => {
+      // FEAT-0387 review round 3: a caller uses this to re-sync which alerts
+      // the legacy engine still holds, based on which series are observed.
+      // For that to close the race rather than narrow it, the hook has to
+      // run before this close's own evaluation can notify anyone.
+      const order: string[] = [];
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule()],
+        onClose: () => order.push("close"),
+        onFiring: () => order.push("fire"),
+      });
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      expect(order[0]).toBe("close");
+    });
+
+    it("defaults to a no-op — most callers have nothing that depends on it", () => {
+      const { loop } = loopWith([]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+
+      expect(() => loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }])).not.toThrow();
+    });
+  });
 });
