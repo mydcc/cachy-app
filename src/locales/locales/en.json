@@ -2202,7 +2202,490 @@
     "characteristics": "Characteristics",
     "tradingStrategy": "Trading Strategy",
     "interpretation": "Interpretation & Context",
-    "performance": "Performance"
+    "performance": "Performance",
+    "headAndShoulders": {
+      "name": "H&S (Head and Shoulders)",
+      "category": "Reversal",
+      "description": "An H&S pattern is a bearish reversal formation that typically occurs at the end of an uptrend. It consists of three highs, with the middle high (head) higher than the two outer highs (shoulders). A neckline connects the lows between the highs.",
+      "characteristics": [
+        "Occurs after an uptrend.",
+        "Three peaks: left shoulder, head (highest peak), right shoulder.",
+        "Neckline connects the lows between the peaks.",
+        "Volume is often higher on the left shoulder and the head, lower on the right shoulder."
+      ],
+      "trading": "A sell signal is generated when price breaks down through the neckline. The price target is often calculated as the distance from the head to the neckline, projected down from the breakout point.<br><br><strong>Probability of a good trade:</strong> Medium to high, especially with a clean neckline break on elevated volume followed by confirmation (e.g. pullback to the neckline, which then holds as resistance).<br><strong>Trade entry with TP and SL:</strong> Entry: short position at or after the neckline break. Stop-loss (SL): just above the neckline or above the right shoulder. Take-profit (TP): at least the head-to-neckline distance, projected down from the breakout point.",
+      "advancedConsiderations": "<strong>Failed breakouts:</strong> A failed upside breakout through the neckline can be a strong bullish signal (see H&S top failure). A downside break that quickly closes back above the neckline can also be a trap.<br><strong>Variations:</strong> The neckline can slope slightly. The shoulders do not need to be exactly equal in height.<br><strong>Context:</strong> Stronger signal after a longer, established uptrend. Bearish divergences in RSI or MACD can reinforce the signal.<br><strong>Combinations:</strong> Can be part of a larger topping formation or follow the failed breakout of another pattern.",
+      "performanceStats": "Historically one of the more reliable reversal formations. Win rate varies by market and timeframe but is often above 60-70% with textbook structure and confirmation. The risk-reward ratio is often favorable since the price target is clearly defined."
+    },
+    "inverseHeadAndShoulders": {
+      "name": "Inverse H&S (iH&S)",
+      "category": "Reversal",
+      "description": "An inverse H&S formation is a bullish reversal pattern that typically occurs at the end of a downtrend. It is the mirror image of the H&S pattern.",
+      "characteristics": [
+        "Occurs after a downtrend.",
+        "Three lows: left shoulder, head (deepest point), right shoulder.",
+        "Neckline connects the highs between the lows.",
+        "Volume can expand on the breakout above the neckline."
+      ],
+      "trading": "A buy signal is generated when price breaks up through the neckline. The price target is often calculated as the distance from the head to the neckline, projected up from the breakout point.<br><br><strong>Probability of a good trade:</strong> Medium to high, especially with a clean neckline break on elevated volume followed by confirmation (e.g. pullback to the neckline, which then holds as support).<br><strong>Trade entry with TP and SL:</strong> Entry: long position at or after the neckline break. SL: just below the neckline or below the right shoulder. TP: at least the head-to-neckline distance, projected up from the breakout point.",
+      "advancedConsiderations": "<strong>Failed breakouts:</strong> A failed downside breakout through the neckline can be a strong bearish signal (see inverse H&S bottom failure).<br><strong>Variations:</strong> The neckline can slope slightly. The shoulders do not need to be exactly equal in depth.<br><strong>Context:</strong> Stronger signal after a longer, established downtrend. Bullish divergences in RSI or MACD can reinforce the signal.",
+      "performanceStats": "Similarly reliable as the H&S top. Win rate is comparable, and the risk-reward ratio can be attractive."
+    },
+    "headAndShouldersTopFailure": {
+      "name": "H&S Top Failure",
+      "category": "Reversal",
+      "description": "An H&S top failure occurs when an H&S pattern starts to form but price fails to break down through the neckline sustainably, instead rising back above the right shoulder or even the head. This can be a strong bullish signal.",
+      "characteristics": [
+        "Developing H&S top structure (left shoulder, head, right shoulder).",
+        "Price fails to break down through the neckline significantly.",
+        "Instead price rises again, often above the level of the right shoulder or the head.",
+        "Signals that sellers were not strong enough to reverse the trend."
+      ],
+      "trading": "A buy signal emerges when price regains strength after the failed neckline break and rises above key resistance levels of the unfinished H&S pattern.<br><br><strong>Probability of a good trade:</strong> Medium to high, as the failed breakout often traps short sellers and can trigger a strong countermove.<br><strong>Trade entry with TP and SL:</strong> Entry: long position when price rises above the right shoulder or the head of the failed H&S pattern. SL: below the neckline or the low of the right shoulder. TP: based on prior resistance levels or Fibonacci projections of the preceding uptrend.",
+      "advancedConsiderations": "Watch the volume: a failed break with low volume on the neckline-break attempt, followed by a higher-volume advance, is a stronger signal.",
+      "performanceStats": "Failed breakouts can be strong signals since they catch market participants on the wrong foot. Reliability depends on the strength of the reversal."
+    },
+    "headAndShouldersBottomFailure": {
+      "name": "Inverse H&S Bottom Failure",
+      "category": "Reversal",
+      "description": "An inverse H&S bottom failure occurs when an inverse H&S pattern starts to form but price fails to break up through the neckline sustainably, instead falling back below the right shoulder or even the head. This can be a strong bearish signal.",
+      "characteristics": [
+        "Developing inverse H&S structure (left shoulder, head, right shoulder).",
+        "Price fails to break up through the neckline significantly.",
+        "Instead price falls again, often below the level of the right shoulder or the head.",
+        "Signals that buyers were not strong enough to reverse the trend."
+      ],
+      "trading": "A sell signal emerges when price shows renewed weakness after the failed neckline break and falls below key support levels of the unfinished inverse H&S pattern.<br><br><strong>Probability of a good trade:</strong> Medium to high.<br><strong>Trade entry with TP and SL:</strong> Entry: short position when price falls below the right shoulder or the head of the failed inverse H&S pattern. SL: above the neckline or the high of the right shoulder. TP: based on prior support levels or Fibonacci projections of the preceding downtrend.",
+      "advancedConsiderations": "Watch the volume: a failed break with low volume on the neckline-break attempt, followed by a higher-volume decline, is a stronger signal.",
+      "performanceStats": "Analogous to the H&S top failure, only in the opposite direction."
+    },
+    "doubleTop": {
+      "name": "Double Top",
+      "category": "Reversal",
+      "description": "A double top is a bearish reversal pattern that occurs after a significant uptrend. It consists of two roughly equal highs with a moderate low in between.",
+      "characteristics": [
+        "Two consecutive highs at a similar level.",
+        "An intermediate low (support line) between the highs.",
+        "Volume is often higher on the first high than on the second."
+      ],
+      "trading": "A sell signal is generated when price falls below the support line (the intermediate low). The price target is often the height of the pattern (distance from the highs to the support line), projected downward.<br><br><strong>Probability of a good trade:</strong> Medium to high when the support break is confirmed by volume. Probability is higher when the second high does not exceed the first and bearish divergences appear in indicators.<br><strong>Trade entry with TP and SL:</strong> Entry: short position after the support-line break. SL: just above the support line (which is now resistance) or above the highs. TP: pattern height projected down from the breakout point.",
+      "advancedConsiderations": "<strong>Failed breakouts:</strong> A downside break below the support line that quickly closes back above it can be a trap. An upside breakout above the highs negates the pattern.<br><strong>Variations:</strong> The highs do not need to match exactly; slight deviations are normal. The intermediate low can vary in depth.<br><strong>Context:</strong> Stronger after a long uptrend. Bearish divergences (e.g. in RSI) between the two highs add conviction.<br><strong>Combinations:</strong> Can be part of a larger distribution phase.",
+      "performanceStats": "Considered a reliable reversal pattern. Win rate can be improved with confirmation signals such as volume or divergences."
+    },
+    "doubleBottom": {
+      "name": "Double Bottom",
+      "category": "Reversal",
+      "description": "A double bottom is a bullish reversal pattern that occurs after a significant downtrend. It consists of two roughly equal lows with a moderate high in between.",
+      "characteristics": [
+        "Two consecutive lows at a similar level.",
+        "An intermediate high (resistance line) between the lows.",
+        "Volume can be lighter on the second low and expand on the breakout."
+      ],
+      "trading": "A buy signal is generated when price rises above the resistance line (the intermediate high). The price target is often the height of the pattern (distance from the lows to the resistance line), projected upward.<br><br><strong>Probability of a good trade:</strong> Medium to high when the resistance break is confirmed by volume. Probability is higher when the second low does not undercut the first and bullish divergences appear in indicators.<br><strong>Trade entry with TP and SL:</strong> Entry: long position after the resistance-line break. SL: just below the resistance line (which is now support) or below the lows. TP: pattern height projected up from the breakout point.",
+      "advancedConsiderations": "<strong>Failed breakouts:</strong> An upside break above the resistance line that quickly closes back below it can be a trap. A break below the lows negates the pattern.<br><strong>Variations:</strong> The lows do not need to match exactly. The intermediate high can vary in height.<br><strong>Context:</strong> Stronger after a long downtrend. Bullish divergences (e.g. in RSI) between the two lows add conviction.<br><strong>Combinations:</strong> Can be part of a larger accumulation phase.",
+      "performanceStats": "Considered a reliable reversal pattern. Analogous to the double top; confirmation signals matter."
+    },
+    "tripleTop": {
+      "name": "Triple Top",
+      "category": "Reversal",
+      "description": "A triple top is a bearish reversal pattern, similar to the double top but with three highs at roughly the same level. It signals a stronger resistance zone.",
+      "characteristics": [
+        "Three consecutive highs at a similar level.",
+        "Two intermediate lows (support line) between the highs.",
+        "Volume often declines with each successive high."
+      ],
+      "trading": "A sell signal is generated when price falls below the support line (formed by the intermediate lows). The price target is often the height of the pattern.<br><br><strong>Probability of a good trade:</strong> High, since it represents stronger confirmation of resistance than a double top. Volume confirmation on the break matters.<br><strong>Trade entry with TP and SL:</strong> Entry: short position after the support-line break. SL: just above the support line or above the highs. TP: pattern height projected down from the breakout point.",
+      "advancedConsiderations": "<strong>Context:</strong> A triple top after a very strong uptrend carries more weight. Watch for divergences in indicators across the three highs.",
+      "performanceStats": "Stronger than a double top since resistance was confirmed three times. Good win rate on a clean break."
+    },
+    "tripleBottom": {
+      "name": "Triple Bottom",
+      "category": "Reversal",
+      "description": "A triple bottom is a bullish reversal pattern, similar to the double bottom but with three lows at roughly the same level. It signals a stronger support zone.",
+      "characteristics": [
+        "Three consecutive lows at a similar level.",
+        "Two intermediate highs (resistance line) between the lows.",
+        "Volume can be lighter on the third low and expand on the breakout."
+      ],
+      "trading": "A buy signal is generated when price rises above the resistance line (formed by the intermediate highs). The price target is often the height of the pattern.<br><br><strong>Probability of a good trade:</strong> High, since it represents stronger confirmation of support than a double bottom. Volume confirmation on the break matters.<br><strong>Trade entry with TP and SL:</strong> Entry: long position after the resistance-line break. SL: just below the resistance line or below the lows. TP: pattern height projected up from the breakout point.",
+      "advancedConsiderations": "<strong>Context:</strong> A triple bottom after a very strong downtrend carries more weight. Watch for divergences in indicators across the three lows.",
+      "performanceStats": "Stronger than a double bottom. Good win rate on a clean break."
+    },
+    "fallingWedge": {
+      "name": "Falling Wedge",
+      "category": "Reversal",
+      "description": "A falling wedge is typically a bullish reversal formation but can also appear as a continuation pattern in an uptrend. It is formed by two converging, downward-sloping lines.",
+      "characteristics": [
+        "Two downward-sloping lines (resistance and support) that converge.",
+        "The upper line (resistance) falls more steeply than the lower line (support).",
+        "Volume often contracts during formation and expands sharply on the breakout."
+      ],
+      "trading": "A buy signal emerges when price breaks out above the upper resistance line. The price target is often the widest part of the wedge, projected from the breakout point.<br><br><strong>Probability of a good trade:</strong> Medium to high, especially when the breakout happens on high volume and the wedge forms after a downtrend (reversal).<br><strong>Trade entry with TP and SL:</strong> Entry: long position after the breakout above the upper wedge line. SL: below the breakout point or below the most recent low inside the wedge. TP: height of the wedge base, projected up from the breakout point.",
+      "advancedConsiderations": "<strong>Context and interpretation (duality):</strong> Can act as a reversal or a continuation pattern.",
+      "performanceStats": "Falling wedges have a relatively high success rate as bullish patterns, especially after a downtrend."
+    },
+    "risingWedge": {
+      "name": "Rising Wedge",
+      "category": "Reversal",
+      "description": "A rising wedge is typically a bearish reversal formation but can also appear as a continuation pattern in a downtrend. It is formed by two converging, upward-sloping lines.",
+      "characteristics": [
+        "Two upward-sloping lines (resistance and support) that converge.",
+        "The lower line (support) rises more steeply than the upper line (resistance).",
+        "Volume often contracts during formation and expands on the breakout."
+      ],
+      "trading": "A sell signal emerges when price breaks down below the lower support line. The price target is often the widest part of the wedge, projected from the breakout point.<br><br><strong>Probability of a good trade:</strong> Medium to high, especially when the breakout happens on high volume and the wedge forms after an uptrend (reversal).<br><strong>Trade entry with TP and SL:</strong> Entry: short position after the breakdown below the lower wedge line. SL: above the breakout point or above the most recent high inside the wedge. TP: height of the wedge base, projected down from the breakout point.",
+      "advancedConsiderations": "<strong>Context and interpretation (duality):</strong> Can act as a reversal or a continuation pattern. Bearish divergences in oscillators raise the probability.",
+      "performanceStats": "Rising wedges have a relatively high success rate as bearish patterns."
+    },
+    "diamondTop": {
+      "name": "Diamond Top",
+      "category": "Reversal",
+      "description": "A diamond top is a rare but reliable bearish reversal formation that occurs after an uptrend. It resembles a combination of a broadening top and a symmetrical triangle.",
+      "characteristics": [
+        "Occurs after a significant uptrend.",
+        "Starts with diverging highs and lows (broadening phase).",
+        "Followed by converging highs and lows (triangle phase).",
+        "The four swing points form a diamond shape."
+      ],
+      "trading": "A sell signal emerges when price breaks down through the lower-right trendline of the diamond. The price target is often determined by measuring the largest vertical distance inside the diamond and projecting it down from the breakout point.<br><br><strong>Probability of a good trade:</strong> Medium. Diamond formations are rarer and can be harder to identify.<br><strong>Trade entry with TP and SL:</strong> Entry: short position after the break of the lower-right trendline. SL: above the most recent high inside the diamond. TP: diamond height projected down from the breakout point."
+    },
+    "diamondBottom": {
+      "name": "Diamond Bottom",
+      "category": "Reversal",
+      "description": "A diamond bottom is a rare but reliable bullish reversal formation that occurs after a downtrend. It is the mirror image of the diamond top.",
+      "characteristics": [
+        "Occurs after a significant downtrend.",
+        "Starts with diverging lows and highs (broadening phase).",
+        "Followed by converging lows and highs (triangle phase).",
+        "The four swing points form a diamond shape."
+      ],
+      "trading": "A buy signal emerges when price breaks up through the upper-right trendline of the diamond. The price target is often determined by measuring the largest vertical distance inside the diamond and projecting it up from the breakout point.<br><br><strong>Probability of a good trade:</strong> Medium.<br><strong>Trade entry with TP and SL:</strong> Entry: long position after the break of the upper-right trendline. SL: below the most recent low inside the diamond. TP: diamond height projected up from the breakout point."
+    },
+    "roundingTop": {
+      "name": "Rounding Top",
+      "category": "Reversal",
+      "description": "A rounding top is a bearish reversal formation representing a gradual transition from an uptrend to a downtrend. It has an inverted U-shape.",
+      "characteristics": [
+        "Gradual, rounded peak.",
+        "Volume often declines while the top forms and can expand on a support break (if present).",
+        "Signals fading buying power and growing willingness to sell."
+      ],
+      "trading": "A sell signal can emerge when price breaks a significant support line below the top, or once the downtrend is confirmed after the rounding.<br><br><strong>Probability of a good trade:</strong> Medium. The pattern develops slowly. Confirmation of the downtrend is essential.<br><strong>Trade entry with TP and SL:</strong> Entry: short position after a support-line break. SL: above the highest point of the top. TP: can be projected from the height of the top."
+    },
+    "roundingBottom": {
+      "name": "Rounding Bottom",
+      "category": "Reversal",
+      "description": "A rounding bottom (also saucer bottom) is a bullish reversal formation representing a gradual transition from a downtrend to an uptrend. It has a U-shape.",
+      "characteristics": [
+        "Gradual, rounded bottom.",
+        "Volume often declines while the bottom forms and rises as the uptrend begins.",
+        "Signals fading selling pressure and growing buying power."
+      ],
+      "trading": "A buy signal can emerge when price breaks a significant resistance line above the bottom, or once the uptrend is confirmed after the rounding.<br><br><strong>Probability of a good trade:</strong> Medium.<br><strong>Trade entry with TP and SL:</strong> Entry: long position after a resistance-line break. SL: below the lowest point of the bottom. TP: bottom height projected upward."
+    },
+    "broadeningTop": {
+      "name": "Broadening Top",
+      "category": "Reversal",
+      "description": "A broadening top (also megaphone top) is a bearish reversal formation characterized by increasing volatility. It consists of three rising highs and two falling lows, with diverging trendlines.",
+      "characteristics": [
+        "Two diverging trendlines: upper rising, lower falling.",
+        "At least three higher highs and two lower lows.",
+        "Signals growing uncertainty and volatility, often at the end of an uptrend."
+      ],
+      "trading": "A sell signal can emerge when price falls below the lower trendline after the third high. Hard to trade due to high volatility.<br><br><strong>Probability of a good trade:</strong> Medium.<br><strong>Trade entry with TP and SL:</strong> Entry: short position after the lower-trendline break. SL: above the third high. TP: formation height projected down from the breakout point."
+    },
+    "broadeningBottom": {
+      "name": "Broadening Bottom",
+      "category": "Reversal",
+      "description": "A broadening bottom (also megaphone bottom) is a bullish reversal formation characterized by increasing volatility. It consists of three falling lows and two rising highs.",
+      "characteristics": [
+        "Two diverging trendlines: upper rising, lower falling.",
+        "At least three lower lows and two higher highs.",
+        "Signals growing uncertainty and volatility, often at the end of a downtrend."
+      ],
+      "trading": "A buy signal can emerge when price rises above the upper trendline after the third low.<br><br><strong>Probability of a good trade:</strong> Medium.<br><strong>Trade entry with TP and SL:</strong> Entry: long position after the upper-trendline break. SL: below the third low. TP: formation height projected up from the breakout point."
+    },
+    "islandReversal": {
+      "name": "Island Reversal",
+      "category": "Reversal",
+      "description": "An island reversal is a strong reversal formation characterized by a price gap, a consolidation phase, and another gap in the opposite direction.",
+      "characteristics": [
+        "A gap in the direction of the trend.",
+        "A consolidation period (the island).",
+        "A gap in the opposite direction that isolates the island.",
+        "Signals a sharp and often emotional reversal."
+      ],
+      "trading": "A bearish island reversal (top) forms after an uptrend, a bullish island reversal (bottom) after a downtrend.<br><br><strong>Probability of a good trade:</strong> High when both gaps are clearly defined.<br><strong>Trade entry with TP and SL:</strong> Entry: after the second gap in the new direction. SL: on the other side of the island. TP: often significant."
+    },
+    "pipeBottom": {
+      "name": "Pipe Bottom",
+      "category": "Reversal",
+      "description": "A pipe bottom is a bullish reversal formation characterized by two long, parallel or slightly converging down candles with deep lows, followed by a strong upward move.",
+      "characteristics": [
+        "Occurs after a downtrend.",
+        "Two long bearish candles (pipes) with similar or deeper lows.",
+        "Signals seller capitulation followed by strong buying interest."
+      ],
+      "trading": "A buy signal emerges when price rises decisively after the two pipes.<br><br><strong>Probability of a good trade:</strong> Medium to high.<br><strong>Trade entry with TP and SL:</strong> Entry: long position once price forms a strong bullish candle after the pipes. SL: below the pipe lows."
+    },
+    "pipeTop": {
+      "name": "Pipe Top",
+      "category": "Reversal",
+      "description": "A pipe top is a bearish reversal formation, the mirror image of the pipe bottom. It is characterized by two long up candles with high highs.",
+      "characteristics": [
+        "Occurs after an uptrend.",
+        "Two long bullish candles (pipes) with similar or higher highs.",
+        "Signals buyer exhaustion."
+      ],
+      "trading": "A sell signal emerges when price falls decisively after the two pipes.<br><br><strong>Probability of a good trade:</strong> Medium to high.<br><strong>Trade entry with TP and SL:</strong> Entry: short position once the reversal is confirmed. SL: above the pipe highs."
+    },
+    "bumpAndRunReversalTop": {
+      "name": "Bump and Run Reversal Top",
+      "category": "Reversal",
+      "description": "A bearish reversal formation. It starts with a moderate uptrend (lead-in), followed by a steep, excessive advance (bump) that breaks the original trendline.",
+      "characteristics": [
+        "Lead-in phase: moderate uptrend.",
+        "Bump phase: excessively steep advance.",
+        "Run phase: after the bump fails, price falls below the lead-in trendline."
+      ],
+      "trading": "Sell signal on the lead-in trendline break.<br><br><strong>Trade entry with TP and SL:</strong> Entry: short after the lead-in trendline break. SL: above the bump high."
+    },
+    "bumpAndRunReversalBottom": {
+      "name": "Bump and Run Reversal Bottom",
+      "category": "Reversal",
+      "description": "A bullish reversal formation. It starts with a moderate downtrend, followed by a steep decline (bump).",
+      "characteristics": [
+        "Lead-in phase: moderate downtrend.",
+        "Bump phase: excessively steep decline.",
+        "Run phase: after the bump fails, price rises above the lead-in trendline."
+      ],
+      "trading": "Buy signal on the upside break of the lead-in trendline.<br><br><strong>Trade entry with TP and SL:</strong> Entry: long after the lead-in trendline break. SL: below the bump low."
+    },
+    "spikeTop": {
+      "name": "Spike Top",
+      "category": "Reversal",
+      "description": "A spike top (V-top) is a sharp, fast reversal formation without significant consolidation.",
+      "characteristics": [
+        "Very fast, almost vertical advance.",
+        "Sharp peak.",
+        "Very fast decline."
+      ],
+      "trading": "Hard to trade. Wait for confirmation. Often a sign of excess."
+    },
+    "spikeBottom": {
+      "name": "Spike Bottom",
+      "category": "Reversal",
+      "description": "A spike bottom (V-bottom) is a sharp, fast bullish reversal formation.",
+      "characteristics": [
+        "Very fast, almost vertical decline.",
+        "Sharp low.",
+        "Very fast advance."
+      ],
+      "trading": "Hard to trade. Wait for confirmation."
+    },
+    "threeDrivesTop": {
+      "name": "Three Drives to a Top",
+      "category": "Reversal",
+      "description": "A bearish reversal formation with three symmetrical highs.",
+      "characteristics": [
+        "Three consecutive highs (drives).",
+        "Two corrective phases between the drives.",
+        "Often Fibonacci relationships."
+      ],
+      "trading": "Sell signal once the third drive completes."
+    },
+    "threeDrivesBottom": {
+      "name": "Three Drives to a Bottom",
+      "category": "Reversal",
+      "description": "A bullish reversal formation with three symmetrical lows.",
+      "characteristics": [
+        "Three consecutive lows (drives).",
+        "Two corrective phases.",
+        "Often Fibonacci relationships."
+      ],
+      "trading": "Buy signal once the third drive completes."
+    },
+    "hornTop": {
+      "name": "Horn Top",
+      "category": "Reversal",
+      "description": "A bearish reversal formation with two sharp highs (horns) and an intermediate low.",
+      "characteristics": [
+        "Two sharp, pointed highs.",
+        "Intermediate low relatively shallow."
+      ],
+      "trading": "Sell signal on the break of the intermediate low."
+    },
+    "hornBottom": {
+      "name": "Horn Bottom",
+      "category": "Reversal",
+      "description": "A bullish reversal formation with two sharp lows (horns) and an intermediate high.",
+      "characteristics": [
+        "Two sharp, pointed lows.",
+        "Intermediate high relatively shallow."
+      ],
+      "trading": "Buy signal on the break of the intermediate high."
+    },
+    "eveAdamTop": {
+      "name": "Eve & Adam Top",
+      "category": "Reversal",
+      "description": "Bearish reversal: rounded high (Eve) followed by a sharp high (Adam).",
+      "characteristics": [
+        "Eve top: broad, rounded high.",
+        "Adam top: narrow, sharp high."
+      ],
+      "trading": "Sell on the neckline break."
+    },
+    "eveAdamBottom": {
+      "name": "Eve & Adam Bottom",
+      "category": "Reversal",
+      "description": "Bullish reversal: rounded low (Eve) followed by a sharp low (Adam).",
+      "characteristics": [
+        "Eve bottom: broad, rounded low.",
+        "Adam bottom: narrow, sharp low."
+      ],
+      "trading": "Buy on the neckline break."
+    },
+    "invertedCupAndHandleReversal": {
+      "name": "Inverted Cup and Handle (Reversal)",
+      "category": "Reversal",
+      "description": "Bearish reversal formation, the mirror image of the cup and handle.",
+      "characteristics": [
+        "Inverted cup (rounded high).",
+        "Handle (smaller consolidation)."
+      ],
+      "trading": "Sell signal on the breakdown below handle support."
+    },
+    "symmetricalTriangleContinuationBullish": {
+      "name": "Symmetrical Triangle (Bullish Cont.)",
+      "category": "Continuation",
+      "description": "Symmetrical triangle in an uptrend.",
+      "characteristics": [
+        "Prior uptrend.",
+        "Converging lines."
+      ],
+      "trading": "Buy on the upside breakout."
+    },
+    "symmetricalTriangleContinuationBearish": {
+      "name": "Symmetrical Triangle (Bearish Cont.)",
+      "category": "Continuation",
+      "description": "Symmetrical triangle in a downtrend.",
+      "characteristics": [
+        "Prior downtrend.",
+        "Converging lines."
+      ],
+      "trading": "Sell on the downside breakout."
+    },
+    "cupAndHandle": {
+      "name": "Cup and Handle",
+      "category": "Continuation",
+      "description": "Bullish continuation formation.",
+      "characteristics": [
+        "Cup (round bottom).",
+        "Handle (consolidation)."
+      ],
+      "trading": "Buy on the breakout above the handle."
+    },
+    "invertedCupAndHandleContinuation": {
+      "name": "Inverted Cup and Handle (Continuation)",
+      "category": "Continuation",
+      "description": "Bearish continuation formation.",
+      "characteristics": [
+        "Inverted cup.",
+        "Handle."
+      ],
+      "trading": "Sell on the downside breakout."
+    },
+    "bullishPennant": {
+      "name": "Bullish Pennant",
+      "category": "Continuation",
+      "description": "Short-term continuation after a strong advance.",
+      "characteristics": [
+        "Flagpole.",
+        "Small symmetrical triangle (pennant)."
+      ],
+      "trading": "Buy on the breakout."
+    },
+    "bearishPennant": {
+      "name": "Bearish Pennant",
+      "category": "Continuation",
+      "description": "Short-term continuation after a strong decline.",
+      "characteristics": [
+        "Flagpole.",
+        "Small symmetrical triangle (pennant)."
+      ],
+      "trading": "Sell on the breakout."
+    },
+    "ascendingChannel": {
+      "name": "Ascending Channel",
+      "category": "Continuation",
+      "description": "Channel with upward-sloping trendlines.",
+      "characteristics": [
+        "Parallel upward-sloping lines.",
+        "HH and HL."
+      ],
+      "trading": "Trades inside the channel or on the breakout (caution)."
+    },
+    "descendingChannel": {
+      "name": "Descending Channel",
+      "category": "Continuation",
+      "description": "Channel with downward-sloping trendlines.",
+      "characteristics": [
+        "Parallel downward-sloping lines.",
+        "LH and LL."
+      ],
+      "trading": "Trades inside the channel or on the breakout."
+    },
+    "rectangleContinuationBullish": {
+      "name": "Rectangle (Bullish Cont.)",
+      "category": "Continuation",
+      "description": "Rectangle after an uptrend.",
+      "characteristics": [
+        "Prior uptrend.",
+        "Horizontal boundaries."
+      ],
+      "trading": "Buy on the upside breakout."
+    },
+    "rectangleContinuationBearish": {
+      "name": "Rectangle (Bearish Cont.)",
+      "category": "Continuation",
+      "description": "Rectangle after a downtrend.",
+      "characteristics": [
+        "Prior downtrend.",
+        "Horizontal boundaries."
+      ],
+      "trading": "Sell on the downside breakout."
+    },
+    "deadCatBounce": {
+      "name": "Dead Cat Bounce",
+      "category": "Continuation",
+      "description": "Short-lived recovery after a sharp sell-off, followed by further decline.",
+      "characteristics": [
+        "Sharp price drop.",
+        "Brief, weak recovery.",
+        "Downtrend continuation."
+      ],
+      "trading": "No long entry signal. Warning sign."
+    },
+    "runawayGap": {
+      "name": "Runaway Gap",
+      "category": "Gap Types",
+      "description": "Gap in the middle of a trend, signaling acceleration.",
+      "characteristics": [
+        "Established trend.",
+        "Medium to high volume."
+      ],
+      "trading": "Enter in the direction of the trend."
+    },
+    "exhaustionGap": {
+      "name": "Exhaustion Gap",
+      "category": "Gap Types",
+      "description": "Gap at the end of a trend, signaling reversal.",
+      "characteristics": [
+        "End of a trend.",
+        "High volume or blow-off."
+      ],
+      "trading": "Wait for the countermove."
+    }
   },
   "bitunixErrors": {
     "10001": "Network Error",
