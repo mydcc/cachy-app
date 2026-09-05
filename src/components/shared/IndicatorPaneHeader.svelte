@@ -16,8 +16,12 @@
 -->
 
 <!--
-  Name plate for one indicator sub-pane, mounted into that pane's own element
-  by CandleChartView.
+  Name plate for one indicator sub-pane, mounted into that pane's own
+  chart cell by CandleChartView.
+
+  Layout: name, params and value stay left-aligned; only the collapse
+  chevron sits at the right edge of the chart area, immediately left of
+  the price scale.
 
   Carries the pane's collapse chevron: collapsing turns the pane into a
   header-only strip, so the control stays reachable in both states. This is

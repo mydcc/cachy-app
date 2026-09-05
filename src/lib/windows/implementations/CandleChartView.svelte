@@ -481,8 +481,19 @@
 
         for (const p of panes) {
             const pane = chart.panes()[p.paneIndex];
-            const el = pane?.getHTMLElement();
-            if (!el) continue;
+            const row = pane?.getHTMLElement();
+            if (!row) continue;
+            // getHTMLElement() is the pane's table ROW: left axis cell,
+            // chart cell, right axis cell. The header must live in the
+            // middle chart cell (lightweight-charts keeps it position:
+            // relative with explicit px size) so its right edge — where
+            // the collapse chevron sits — aligns with the chart area,
+            // immediately left of the price scale. Mounting into the row
+            // would push the chevron right of the scale instead.
+            const el =
+                row.children.length === 3
+                    ? (row.children[1] as HTMLElement)
+                    : row;
             // The header is absolutely positioned to sit inside just this
             // pane; without an explicit positioning context here it would
             // escape to the nearest ancestor that has one (chart-container),
