@@ -177,6 +177,30 @@ no `1m` subscription, coverage correctly reports empty and the cutover notice st
 hidden; with a genuinely observed series (`5m`, in the verification), coverage and the
 notice both behave as before.
 
+## Third review round
+
+**Medium — coverage was a startup snapshot, the loop is session-long.** A migrated
+rule whose series was not observed at `initAlertEngine()` time stayed on the legacy
+engine from the initial sync. If that series became observed later in the same
+session (a different chart opened, an indicator subscribed), the rule loop — already
+armed since startup — started evaluating and notifying for it while the legacy engine
+still held the same alert: both engines serving one alert, the "double fire is
+unconstructable" claim holding only at the instant coverage was computed, not for the
+session it was believed to cover.
+
+Fixed with `RuleEvaluationLoop`'s new `onClose(symbol, timeframe, anchorMs)` hook,
+called once per genuine close, before that close is evaluated. `initAlertEngine`
+wires it, live mode only, to re-run `readCoveredAlertIds` and `syncEngine` — so a
+newly-covered alert is off the legacy engine before the rule engine could notify for
+the same event. Shadow mode never wires the hook, for the same reason it forces
+coverage empty at startup.
+
+**Minor — the "report" half of suspend-and-report had no consumer.** `orphanReport`
+was assigned and never read. Now surfaced as a banner in the alert list: `suspended`
+counts (naturally stop appearing once nothing new needs suspending) and `withheld`
+counts (shown for as long as an alarm stays armed despite unresolved doubt — that one
+cannot be a one-time acknowledgement, because the doubt does not resolve itself).
+
 ## Out of scope
 
 - Any UI. The panel is `FEAT-0389`.
