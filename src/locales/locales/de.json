@@ -1309,6 +1309,7 @@
       "adx": "ADX",
       "pivot": "Pivot",
       "precision": "Datenpräzision",
+      "lineWidth": "Linienstärke",
       "historyLimit": "Historien-Umfang (Kerzen)",
       "syncRsi": "RSI-Timeframe synchronisieren",
       "syncRsiDesc": "RSI nutzt Chart-Timeframe",

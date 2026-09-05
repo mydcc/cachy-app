@@ -1262,6 +1262,7 @@
       "adx": "ADX",
       "pivot": "Pivot",
       "precision": "Data Precision",
+      "lineWidth": "Line width",
       "historyLimit": "History Scope (Candles)",
       "syncRsi": "Synchronize RSI Timeframe",
       "syncRsiDesc": "Use chart timeframe for RSI",

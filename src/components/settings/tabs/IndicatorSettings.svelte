@@ -162,14 +162,22 @@
                             {$_("settings.technicals.displayPreferences")}
                         </h4>
                          <div class="space-y-2">
-                            <Field
-                                id="precision"
-                                label={$_("settings.technicals.precision")}
-                                type="number"
-                                bind:value={indicatorState.precision}
-                                min={0}
-                                max={8}
-                            />
+                             <Field
+                                 id="precision"
+                                 label={$_("settings.technicals.precision")}
+                                 type="number"
+                                 bind:value={indicatorState.precision}
+                                 min={0}
+                                 max={8}
+                             />
+                             <Field
+                                 id="linewidth"
+                                 label={$_("settings.technicals.lineWidth")}
+                                 type="number"
+                                 bind:value={indicatorState.lineWidth}
+                                 min={1}
+                                 max={4}
+                             />
                             <div class="flex flex-col gap-2 mt-2">
                                 <span class="text-xs text-[var(--text-secondary)]">{$_("settings.technicals.pnlMode")}</span>
                                 <div class="flex bg-[var(--bg-tertiary)] rounded p-1">

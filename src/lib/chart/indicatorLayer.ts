@@ -517,15 +517,14 @@ export class IndicatorLayer {
         paneIndex: number,
         colorKey: string,
         fallback: string,
-        opts: Record<string, unknown> = {},
     ): void {
         const series = this.chart.addSeries(
             LineSeries,
             {
                 color: this.color(colorKey, fallback),
+                lineWidth: this.indicatorLineWidth(),
                 priceLineVisible: false,
                 crosshairMarkerVisible: false,
-                ...opts,
             } as never,
             paneIndex,
         );
@@ -551,6 +550,16 @@ export class IndicatorLayer {
 
     private src(source?: string): SourceKind {
         return (source as SourceKind) || "close";
+    }
+
+    /**
+     * Chart-wide indicator line width from Settings (1-4px, default 1).
+     * Old stored entries have no `lineWidth` key — and anything outside
+     * 1-4 would trip the chart library — so both fall back to 1.
+     */
+    private indicatorLineWidth(): 1 | 2 | 3 | 4 {
+        const w = (indicatorState as unknown as { lineWidth?: unknown }).lineWidth;
+        return w === 2 || w === 3 || w === 4 ? w : 1;
     }
 
     // ---- overlays (price pane, shared right scale) ----------------------
@@ -595,7 +604,7 @@ export class IndicatorLayer {
                     price,
                     title,
                     color: this.color(primary ? "--accent-color" : "--text-tertiary", primary ? "#2962ff" : "#9aa0a6"),
-                    lineWidth: primary ? 2 : 1,
+                    lineWidth: this.indicatorLineWidth(),
                     lineStyle: primary ? 0 : 2,
                     axisLabelVisible: true,
                 });
@@ -642,9 +651,9 @@ export class IndicatorLayer {
         // Bollinger Bands
         if (s.bollingerBands.enabled !== false && s.bollingerBands.showInChart !== false && s.bollingerBands.length) {
             const bb = JSIndicators.bb(a.closes, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
-            this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
-            this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6", { lineWidth: 1 });
-            this.addLine(rows, bb.lower, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
+            this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff");
+            this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6");
+            this.addLine(rows, bb.lower, P0, "--accent-color", "#2962ff");
         }
 
         // VWAP (session/fixed anchored)
@@ -666,10 +675,10 @@ export class IndicatorLayer {
                 s.ichimoku.spanBPeriod,
                 0,
             );
-            this.addLine(rows, ich.conversion, P0, "--accent-color", "#2962ff", { lineWidth: 1 });
-            this.addLine(rows, ich.base, P0, "--danger-color", "#ef5350", { lineWidth: 1 });
-            this.addLine(rows, ich.spanA, P0, "--success-color", "#26a69a", { lineWidth: 1 });
-            this.addLine(rows, ich.spanB, P0, "--warning-color", "#ffb300", { lineWidth: 1 });
+            this.addLine(rows, ich.conversion, P0, "--accent-color", "#2962ff");
+            this.addLine(rows, ich.base, P0, "--danger-color", "#ef5350");
+            this.addLine(rows, ich.spanA, P0, "--success-color", "#26a69a");
+            this.addLine(rows, ich.spanB, P0, "--warning-color", "#ffb300");
         }
 
         // SuperTrend
@@ -681,7 +690,7 @@ export class IndicatorLayer {
         // Parabolic SAR
         if (s.parabolicSar.enabled !== false) {
             const ps = JSIndicators.psar(a.highs, a.lows, s.parabolicSar.start ?? 0.02, s.parabolicSar.increment ?? 0.02, s.parabolicSar.max ?? 0.2);
-            this.addLine(rows, ps, P0, "--warning-color", "#ffb300", { lineWidth: 1 });
+            this.addLine(rows, ps, P0, "--warning-color", "#ffb300");
         }
 
         // ATR Trailing Stop (buy/sell)
@@ -693,8 +702,8 @@ export class IndicatorLayer {
                 s.atrTrailingStop.period,
                 s.atrTrailingStop.multiplier ?? 3,
             );
-            this.addLine(rows, ats.buyStop, P0, "--success-color", "#26a69a", { lineWidth: 1 });
-            this.addLine(rows, ats.sellStop, P0, "--danger-color", "#ef5350", { lineWidth: 1 });
+            this.addLine(rows, ats.buyStop, P0, "--success-color", "#26a69a");
+            this.addLine(rows, ats.sellStop, P0, "--danger-color", "#ef5350");
         }
     }
 

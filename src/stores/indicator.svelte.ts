@@ -14,6 +14,7 @@ import type { IndicatorSettings } from "../types/indicators";
 const defaultSettings: IndicatorSettings = {
   historyLimit: 750,
   precision: 4,
+  lineWidth: 1,
   autoOptimize: true,
   preferredEngine: 'auto',
   performanceMode: 'balanced',
@@ -221,6 +222,7 @@ const STORE_KEY = "cachy_indicator_settings";
 class IndicatorManager {
   historyLimit = $state(defaultSettings.historyLimit);
   precision = $state(defaultSettings.precision);
+  lineWidth = $state(defaultSettings.lineWidth);
   autoOptimize = $state(defaultSettings.autoOptimize);
   preferredEngine = $state(defaultSettings.preferredEngine);
   performanceMode = $state(defaultSettings.performanceMode);
@@ -272,6 +274,7 @@ class IndicatorManager {
   private _snapshot = $derived({
     historyLimit: this.historyLimit,
     precision: this.precision,
+    lineWidth: this.lineWidth,
     autoOptimize: this.autoOptimize,
     preferredEngine: this.preferredEngine,
     performanceMode: this.performanceMode,
@@ -376,6 +379,7 @@ class IndicatorManager {
 
       this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
       this.precision = parsed.precision ?? defaultSettings.precision;
+      this.lineWidth = parsed.lineWidth ?? defaultSettings.lineWidth;
       this.autoOptimize = parsed.autoOptimize ?? defaultSettings.autoOptimize;
       this.preferredEngine = parsed.preferredEngine || defaultSettings.preferredEngine;
       this.performanceMode = parsed.performanceMode || defaultSettings.performanceMode;
@@ -480,6 +484,7 @@ class IndicatorManager {
 
     this.historyLimit = next.historyLimit;
     this.precision = next.precision;
+    this.lineWidth = next.lineWidth;
     this.autoOptimize = next.autoOptimize;
     this.preferredEngine = next.preferredEngine;
     this.performanceMode = next.performanceMode;
@@ -518,6 +523,7 @@ class IndicatorManager {
     const d = defaultSettings;
     this.historyLimit = d.historyLimit;
     this.precision = d.precision;
+    this.lineWidth = d.lineWidth;
     this.autoOptimize = d.autoOptimize;
     this.preferredEngine = d.preferredEngine;
     this.performanceMode = d.performanceMode;

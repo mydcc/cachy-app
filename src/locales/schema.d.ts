@@ -1143,6 +1143,7 @@ export type TranslationKey =
   | "settings.technicals.adx"
   | "settings.technicals.pivot"
   | "settings.technicals.precision"
+  | "settings.technicals.lineWidth"
   | "settings.technicals.historyLimit"
   | "settings.technicals.syncRsi"
   | "settings.technicals.syncRsiDesc"

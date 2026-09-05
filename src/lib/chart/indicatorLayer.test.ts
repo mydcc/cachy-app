@@ -510,7 +510,34 @@ describe("IndicatorLayer", () => {
 
         // R3..S3 levels land on the price pane; volume still draws.
         expect(createPriceLine).toHaveBeenCalled();
+        const priceLineCalls = createPriceLine.mock.calls;
+        // All pivot levels share the configured width (default 1px).
+        expect(priceLineCalls[priceLineCalls.length - 1][0]).toMatchObject({ lineWidth: 1 });
         expect(subPaneIndices(env.chart)).toEqual([1]);
+    });
+
+    it("draws indicator lines with the configured width (default 1px)", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(1000);
+        const addSeries = env.chart.addSeries as ReturnType<typeof vi.fn>;
+        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }));
+        layer.render(makeRows(60));
+
+        // Volume histogram + RSI line, all with the default width.
+        // (The volume histogram carries no lineWidth — only line series do.)
+        const lineOpts = (calls: unknown[][]) =>
+            calls.map((c) => c[1]).filter((o) => o && typeof o === "object" && "color" in (o as object));
+        const defaultOpts = lineOpts(addSeries.mock.calls);
+        expect(defaultOpts.length).toBeGreaterThan(0);
+        for (const opts of defaultOpts) expect(opts).toMatchObject({ lineWidth: 1 });
+
+        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }), { lineWidth: 2 });
+        addSeries.mockClear();
+        layer.render(makeRows(60));
+
+        const wideOpts = lineOpts(addSeries.mock.calls);
+        expect(wideOpts.length).toBeGreaterThan(0);
+        for (const opts of wideOpts) expect(opts).toMatchObject({ lineWidth: 2 });
     });
 
     it("clears reported panes when the indicator layer is destroyed", () => {
