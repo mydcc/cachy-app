@@ -119,9 +119,35 @@ the same candles, the legacy one per tick and the rule one per close, reporting 
 firings with their delay, legacy-only firings (the intra-candle touch that recovers) and
 rule-only firings, which the cutover does not predict and which fail the run.
 
-**Still open:** a short live session with `startRuleEvaluationLoop(ledgerSink)`, read
-with `compareShadowLedger()`. The offline run feeds candles directly and never touches
-the market store or a websocket, so it cannot see a subscription that never arrives.
+## The live run, and what it found
+
+Done. And it found something the integration test and the offline script both
+missed, because both load `ruleSchema`'s wasm core themselves as part of their own
+setup: **production never did.** `alertEngine.ensureLoaded()` loads the legacy
+engine's wasm; nothing loaded the rule evaluator's own core. Every real evaluation
+threw `RuleCoreUnavailableError` inside the gate, caught and logged by the loop's
+"never throws" guarantee — silently, since the `alerts` log category is off by
+default. Every migrated rule was armed, covered, and permanently inert. `BUG-0382`
+again, through a second subsystem that loads independently of the one `BUG-0382` was
+about.
+
+Fixed: `initAlertEngine()` now awaits `ruleSchema.load()` before coverage is
+computed, and `readCoveredAlertIds()` reports nothing while the core is not ready —
+a rule the store shows as armed does not count as covered for an evaluator that
+cannot run it, so the alert stays on the legacy path rather than falling between
+both. The loop only arms once the core is confirmed ready.
+
+Re-verified live against the running app on real `BTCUSDT` candles after the fix:
+`ruleSchema.isReady()` true, a real close evaluated without throwing, the gate's own
+dedup state showed the market-store-driven path had already evaluated the same
+anchor automatically (proving the automatic wiring ran, not a manual poke), and a
+throwaway loop instance fed the real historical candles spanning a genuine cross
+wrote a `"fires"` verdict to the shadow ledger end to end.
+
+A secondary bug surfaced in the same session: `compareShadowLedger()` only counted
+`source: "shadow"` records, but the live cutover records `source: "rule"` —
+comparing a live session's ledger would have reported the rule engine as having
+never fired at all. Also fixed.
 
 ## Out of scope
 
