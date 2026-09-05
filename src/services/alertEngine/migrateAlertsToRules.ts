@@ -17,6 +17,12 @@
 
 import { browser } from "$app/environment";
 import { logger } from "../logger";
+import {
+  readRuleOriginLedger,
+  withRecordedOrigins,
+  writeRuleOriginLedger,
+  type RuleOriginEntry,
+} from "./ruleOriginLedger";
 
 const ALERTS_STORAGE_KEY = "cachy_alerts_v1";
 const RULES_STORAGE_KEY = "cachy_rules_v1";
@@ -89,9 +95,12 @@ function describeAlert(alert: unknown): string {
  * still-armed rule behind, re-firing at the FEAT-0387 cutover for something
  * the trader already saw fire. Deletion is not handled here: a rule whose
  * alert has since been removed from `cachy_alerts_v1` entirely is left as
- * is, since nothing here can safely tell a migrated-then-orphaned rule
- * apart from one a future rule editor authored directly — that
- * reconciliation belongs to whatever reads `cachy_rules_v1` first (FEAT-0387).
+ * is. What changed with FEAT-0399 is that the two are now *distinguishable*:
+ * every rule this migration writes is recorded in `cachy_rule_origin_v1`, so
+ * a reader can tell a migrated-then-orphaned rule from one a rule editor
+ * authored directly. Deciding what to do with an orphan — disable it, drop
+ * it, surface it — is still the cutover's call (FEAT-0387), not this
+ * migration's. This function supplies the evidence and stops there.
  *
  * Never throws — this is called unconditionally from `initAlertEngine()`
  * before the alert engine itself loads, and a migration hiccup must not
@@ -131,6 +140,31 @@ export async function migrateAlertsToRuleDocuments(
     const syncedRules = [...existingRules];
     let rulesChanged = false;
 
+    // FEAT-0399: one timestamp for the whole run, so every rule written and
+    // every ledger entry recorded below agree on when this migration ran.
+    const runAtMs = Date.now();
+    const originLedger = readRuleOriginLedger();
+    const originRecords: { ruleId: string; entry: RuleOriginEntry }[] = [];
+
+    /**
+     * Merges this run's origin records into the ledger and persists it.
+     * Called at every exit that has written rules — including the ones that
+     * give up early, because a back-fill record stays true whether or not the
+     * conversion below ever got to run.
+     *
+     * The append-only rule lives in `withRecordedOrigins`, not here: callers
+     * push a record for every link they can prove and let the merge decide
+     * what is new, so there is exactly one place that can drop an entry.
+     */
+    const persistOrigins = (): void => {
+      if (originRecords.length === 0) return;
+      const { ledger, added } = withRecordedOrigins(originLedger, originRecords);
+      if (added === 0) return;
+      if (writeRuleOriginLedger(ledger)) {
+        logger.debug("alerts", `Recorded ${added} rule origin(s) in the migration ledger`);
+      }
+    };
+
     for (const alert of alerts) {
       const id = idOf(alert);
       if (id === undefined) {
@@ -150,6 +184,17 @@ export async function migrateAlertsToRuleDocuments(
           rulesChanged = true;
           logger.debug("alerts", `Synced rule ${id}'s enabled state to match its alert's active flag (${active})`);
         }
+
+        // FEAT-0399: this rule was migrated by a run that predates the
+        // ledger. Its alert is still here, so the link is provable now —
+        // once the trader deletes that alert it never can be again, and the
+        // rule becomes indistinguishable from a hand-authored one forever.
+        // Treating an id match as "this rule is that alert's rule" is the
+        // same assumption the `enabled` sync above already ships on.
+        originRecords.push({
+          ruleId: id,
+          entry: { alertId: id, migratedAtMs: runAtMs, backfilled: true },
+        });
         continue;
       }
 
@@ -169,6 +214,7 @@ export async function migrateAlertsToRuleDocuments(
       if (rulesChanged) {
         localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
       }
+      persistOrigins();
       return;
     }
 
@@ -180,10 +226,10 @@ export async function migrateAlertsToRuleDocuments(
       if (rulesChanged) {
         localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
       }
+      persistOrigins();
       return;
     }
 
-    const createdAtMs = Date.now();
     const migratedRules: unknown[] = [];
 
     for (const alert of toConvert) {
@@ -191,9 +237,20 @@ export async function migrateAlertsToRuleDocuments(
         const ruleJson = ruleModule.rule_from_alert_json(
           JSON.stringify(alert),
           DEFAULT_TRIGGER_TIMEFRAME,
-          createdAtMs,
+          runAtMs,
         );
-        migratedRules.push(JSON.parse(ruleJson));
+        const rule: unknown = JSON.parse(ruleJson);
+        migratedRules.push(rule);
+
+        // FEAT-0399: the key is read back off the produced document, not off
+        // the alert. The conversion currently reuses the alert's id, but the
+        // ledger has to be keyed by whatever actually landed in
+        // `cachy_rules_v1` — that is the id a later reader looks up.
+        const ruleId = idOf(rule);
+        const alertId = idOf(alert);
+        if (ruleId !== undefined && alertId !== undefined) {
+          originRecords.push({ ruleId, entry: { alertId, migratedAtMs: runAtMs } });
+        }
       } catch (e) {
         logger.error(
           "alerts",
@@ -206,6 +263,12 @@ export async function migrateAlertsToRuleDocuments(
     if (migratedRules.length > 0 || rulesChanged) {
       localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([...syncedRules, ...migratedRules]));
     }
+
+    // Rules first, ledger second, deliberately: if the ledger write is the
+    // one that fails, the trader still has their migrated rules and the
+    // bookkeeping is back-filled on the next run. The other order would risk
+    // a ledger claiming rules that were never written.
+    persistOrigins();
   } catch (e) {
     logger.error("alerts", "Alert migration failed unexpectedly", e);
   }
