@@ -43,13 +43,13 @@
    }
 </script>
 
-<div class="flex flex-col h-full min-h-0 p-4 sm:p-6">
+<div class="@container flex flex-col h-full min-h-0 min-w-0 p-4 @sm:p-6">
    <!-- Tab Header -->
    <div
-      class="flex border-b border-[var(--border-color)] mb-4 shrink-0 bg-[var(--bg-secondary)] rounded-t-lg p-1 gap-1"
+      class="flex flex-wrap border-b border-[var(--border-color)] mb-4 shrink-0 bg-[var(--bg-secondary)] rounded-t-lg p-1 gap-1"
    >
       <button
-         class="flex-1 py-2.5 text-center text-[10px] font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
+         class="flex-1 min-w-[140px] py-2.5 text-center text-[10px] font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
          'chartPatterns'
             ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm'
             : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
@@ -58,7 +58,7 @@
          {$_("chartPatterns.title") || "Chart Patterns"}
       </button>
       <button
-         class="flex-1 py-2.5 text-center text-[10px] font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
+         class="flex-1 min-w-[140px] py-2.5 text-center text-[10px] font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
          'candlestickPatterns'
             ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm'
             : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
@@ -69,7 +69,7 @@
    </div>
 
    <!-- Content -->
-   <div class="flex-1 overflow-hidden">
+   <div class="flex-1 overflow-hidden min-w-0">
       {#if activeTab === "chartPatterns"}
          <ChartPatternsView />
       {:else}
