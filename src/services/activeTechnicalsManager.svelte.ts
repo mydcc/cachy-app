@@ -357,3 +357,11 @@ class ActiveTechnicalsManager {
 }
 
 export const activeTechnicalsManager = new ActiveTechnicalsManager();
+
+// HMR: remove the document visibilitychange listener, clear throttle
+// timers and tear down active effects on module disposal (BUG-0362).
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    activeTechnicalsManager.destroy();
+  });
+}

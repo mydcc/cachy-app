@@ -149,3 +149,12 @@ class TradeCalculator {
 }
 
 export const tradeCalculator = new TradeCalculator();
+
+// HMR: stop the reactive watcher and any pending trailing timer on module
+// disposal, so a re-evaluated module starts clean instead of stacking a
+// second $effect.root next to the detached one (BUG-0360).
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    tradeCalculator.destroy();
+  });
+}
