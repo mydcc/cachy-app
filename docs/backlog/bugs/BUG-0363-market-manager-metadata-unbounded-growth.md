@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 size: S
 assignee: claude
-branch: fix/bug-0363-market-metadata-eviction
+branch: fix/2584-2587-2588-bugfixes
 ---
 
 # BUG-0363 — MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction

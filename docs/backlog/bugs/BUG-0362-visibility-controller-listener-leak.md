@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 size: XS
 assignee: claude
-branch: fix/bug-0362-visibility-listener-destroy
+branch: fix/2584-2587-2588-bugfixes
 ---
 
 # BUG-0362 — VisibilityController attaches uncleaned document visibilitychange listener without destroy method

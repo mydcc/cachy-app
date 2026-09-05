@@ -98,8 +98,10 @@ class ActiveTechnicalsManager {
 
     /**
      * Lifecycle cleanup for HMR / re-init: removes the document
-     * visibilitychange listener, clears pending throttle timers and tears
-     * down active reactive effects (BUG-0362).
+     * visibilitychange listener, clears pending throttle timers, tears down
+     * active reactive effects and resets all bookkeeping state so a
+     * destroy->re-register of the same key restarts monitoring from scratch
+     * (BUG-0362).
      */
     destroy() {
         this.visibility.destroy();
@@ -107,6 +109,13 @@ class ActiveTechnicalsManager {
         this.throttles.clear();
         for (const cleanup of this.activeEffects.values()) cleanup();
         this.activeEffects.clear();
+        // Reset remaining bookkeeping so ref-counting cannot suppress
+        // re-registration of a previously monitored key.
+        this.registry.clear();
+        this.visibility.pausedCalculations.clear();
+        this.executor.workerState.clear();
+        this.lastActiveSymbolChange = 0;
+        this.lastActiveSymbol = "";
     }
 
     /**

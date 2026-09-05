@@ -319,11 +319,14 @@ describe("ActiveTechnicalsManager", () => {
   });
 
   describe("destroy", () => {
-    it("removes the visibilitychange listener, clears throttles and tears down active effects", async () => {
+    it("removes the exact visibilitychange handler, clears throttles, tears down effects and resets bookkeeping", async () => {
       // Seed state so the teardown assertions are not vacuous: one pending
       // throttle timer and one registered effect cleanup.
       internals.throttles.set("ETHUSDT:1h", setTimeout(() => {}, 9999));
       internals.activeEffects.set("ETHUSDT:1h", vi.fn());
+      internals.registry.subscribers.set("ETHUSDT:1h", 2);
+      internals.pausedCalculations.add("ETHUSDT:1h");
+      internals.workerState.set("ETHUSDT:1h", { initialized: true, lastTime: 1 });
 
       const removeSpy = vi.spyOn(document, "removeEventListener");
       const clearSpy = vi.spyOn(globalThis, "clearTimeout");
@@ -332,11 +335,18 @@ describe("ActiveTechnicalsManager", () => {
       activeTechnicalsManager.destroy();
       await vi.advanceTimersByTimeAsync(0);
 
-      expect(removeSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+      // Assert on the exact named handler reference, not just any function:
+      // a swapped-in handler would silently leave the original registered.
+      const { visibility } = activeTechnicalsManager as unknown as { visibility: { onVisibilityChange: () => void } };
+      expect(removeSpy).toHaveBeenCalledWith("visibilitychange", visibility.onVisibilityChange);
       expect(clearSpy).toHaveBeenCalled();
       expect(effectCleanup).toHaveBeenCalledTimes(1);
       expect(internals.throttles.size).toBe(0);
       expect(internals.activeEffects.size).toBe(0);
+      // Bookkeeping reset: re-register of the same key must not be suppressed.
+      expect(internals.subscribers.size).toBe(0);
+      expect(internals.pausedCalculations.size).toBe(0);
+      expect(internals.workerState.size).toBe(0);
 
       removeSpy.mockRestore();
       clearSpy.mockRestore();

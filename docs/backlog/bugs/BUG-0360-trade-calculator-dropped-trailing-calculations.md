@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 size: S
 assignee: claude
-branch: fix/bug-0360-trailing-calculation
+branch: fix/2584-2587-2588-bugfixes
 ---
 
 # BUG-0360 — TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval
