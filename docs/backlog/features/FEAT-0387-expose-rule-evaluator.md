@@ -83,16 +83,19 @@ Every alert is evaluated by exactly one engine. Coverage is derived per alert fr
 `cachy_rule_origin_v1` plus the current rule store (`ruleCoverage.ts`), never from a
 global switch: an alert leaves the legacy engine only when a specific, armed rule is
 proven to hold it, and any doubt — an unmigrated alert, a deleted or disabled rule, an
-unreadable store — leaves it on the legacy path. That is what makes a double fire
-unconstructable and a silent gap impossible.
+unreadable store, a core that has not loaded, a series nothing subscribes to — leaves it
+on the legacy path. That is what makes a double fire unconstructable and a silent gap
+impossible; see "Second review round" below for the two ways that promise was not yet
+true and how it was made true.
 
 Coverage is handed back the moment the trader edits or deletes an alert: until the next
 start re-syncs it, the rule still holds the pre-edit threshold (`BUG-0402`), so it is
 disarmed and the legacy engine takes the alert again.
 
-Rolling back is one argument: `startRuleEvaluationLoop(ledgerSink)` in
-`initAlertEngine()` returns the loop to shadow mode, where it evaluates and notifies
-nobody, without touching anything else.
+Rolling back is one argument: `initAlertEngine(loadModule, "shadow")`. `mode` reaches
+both the coverage decision and the sink together — real coverage only happens in
+`"live"` mode, so shadow mode removes nothing from the legacy engine while the loop
+still evaluates and records, purely as an addition.
 
 The behaviour change is surfaced in the alert list (`cutoverNotice.ts`,
 `AlertDefinitionsModal`): a dismissible notice, shown only to a trader who actually has
@@ -148,6 +151,31 @@ A secondary bug surfaced in the same session: `compareShadowLedger()` only count
 `source: "shadow"` records, but the live cutover records `source: "rule"` —
 comparing a live session's ledger would have reported the rule engine as having
 never fired at all. Also fixed.
+
+## Second review round
+
+Two more High findings, both from the same root the first round's fixes did not yet
+cover: coverage was granted without proof the rule path can produce a verdict *when it
+matters* — core-loaded, series-observed, sink-notifying are all three preconditions, and
+only the first was checked.
+
+**The shadow-mode rollback was not safe.** `syncEngine()` stripped covered alerts from
+the legacy engine regardless of which sink armed the loop. `ledgerSink` records and never
+notifies, so the documented rollback actually left a covered alert served by *neither*
+engine — the ironic case: the author's own live shadow run only produced a meaningful
+comparison because the load bug happened to make coverage empty at the time. Fixed by
+making the mode argument reach both decisions together (see Cutover, above) — coverage is
+real only in `"live"` mode.
+
+**Coverage was granted without checking the series is actually observed.** Migrated
+rules are pinned to `1m`, but the app only subscribes to whatever the chart or active
+indicators use — often not `1m`. A covered rule whose series never arrives is armed,
+core-ready, and permanently silent on both paths. Fixed: `readCoveredAlertIds()` now
+takes an `isSeriesObserved` predicate (`ruleLoopWiring.isSeriesObserved`) and defaults to
+"nothing observed" — omitting it is the safe state, not a silent gap. Verified live: with
+no `1m` subscription, coverage correctly reports empty and the cutover notice stays
+hidden; with a genuinely observed series (`5m`, in the verification), coverage and the
+notice both behave as before.
 
 ## Out of scope
 
