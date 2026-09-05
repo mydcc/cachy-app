@@ -25,6 +25,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { CHART_PATTERNS } from './chartPatterns';
+import { CHART_PATTERN_LABEL_KEYS } from './chartPatterns.types';
 import de from '../locales/locales/de.json';
 import en from '../locales/locales/en.json';
 
@@ -72,6 +73,24 @@ describe('Chart pattern locale parity', () => {
                     expect(nonEmpty(e[field]), `empty EN ${p.id}.${field}`).toBe(true);
                 }
             }
+        }
+    });
+
+    it('chart canvas labels have matching DE/EN entries', () => {
+        const dLabels = dePatterns['labels'] as Record<string, unknown> | undefined;
+        const eLabels = enPatterns['labels'] as Record<string, unknown> | undefined;
+        expect(dLabels, 'missing DE chartPatterns.labels').toBeDefined();
+        expect(eLabels, 'missing EN chartPatterns.labels').toBeDefined();
+        if (!dLabels || !eLabels) return;
+        // CHART_PATTERN_LABEL_KEYS in chartPatterns.types.ts must stay in
+        // sync with this section; every key needs both languages non-empty.
+        expect(Object.keys(eLabels).sort()).toEqual(Object.keys(dLabels).sort());
+        expect([...CHART_PATTERN_LABEL_KEYS].sort()).toEqual(Object.keys(dLabels).sort());
+        for (const [key, value] of Object.entries(eLabels)) {
+            expect(nonEmpty(value), `empty EN labels.${key}`).toBe(true);
+        }
+        for (const [key, value] of Object.entries(dLabels)) {
+            expect(nonEmpty(value), `empty DE labels.${key}`).toBe(true);
         }
     });
 });

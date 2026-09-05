@@ -23,8 +23,10 @@ export type {
   InteractiveElement,
   ThemeColors,
   AddInteractiveElement,
-  ChartPatternDefinition
+  ChartPatternDefinition,
+  ChartPatternLabels
 } from './chartPatterns.types';
+export { CHART_PATTERN_LABEL_KEYS } from './chartPatterns.types';
 
 export { DEFAULT_PATTERN_COLORS } from './chartPatterns.helpers';
 
