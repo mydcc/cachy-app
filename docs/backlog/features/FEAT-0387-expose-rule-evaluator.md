@@ -94,11 +94,14 @@ Rolling back is one argument: `startRuleEvaluationLoop(ledgerSink)` in
 `initAlertEngine()` returns the loop to shadow mode, where it evaluates and notifies
 nobody, without touching anything else.
 
-**Still open before this can be called done:** the trader-facing note about the
-behaviour change (close instead of tick, up to a minute of delay, no mid-candle
-touch-recoveries), and a shadow period with actual data — `compareShadowLedger()`
-reports the disagreement between the two paths, and it has not been run against a real
-session yet.
+The behaviour change is surfaced in the alert list (`cutoverNotice.ts`,
+`AlertDefinitionsModal`): a dismissible notice, shown only to a trader who actually has
+a covered alert, naming both consequences — up to a minute of delay, and no firing for
+a mid-candle touch that recovers.
+
+**Still open before this can be called done:** a shadow period with actual data.
+`compareShadowLedger()` reports the disagreement between the two paths and has not been
+run against a real session yet.
 
 ## Out of scope
 
