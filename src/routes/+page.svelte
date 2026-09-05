@@ -152,19 +152,6 @@
     uiState.showError(e.detail);
   }
 
-  function handleTargetsChange(
-    event: CustomEvent<
-      Array<{
-        price: string | null;
-        percent: string | null;
-        isLocked: boolean;
-      }>
-    >,
-  ) {
-    tradeState.targets = event.detail;
-  }
-
-
   function handleThemeSwitch(direction: "forward" | "backward" = "forward") {
     const currentIndex = themes.indexOf(uiState.currentTheme);
     const limit = themes.length;
@@ -475,7 +462,6 @@
         <div id="tp-targets-card">
           <TakeProfitTargets
             bind:targets={tradeState.targets}
-            on:change={handleTargetsChange}
             calculatedTpDetails={resultsState.calculatedTpDetails}
           />
         </div>
