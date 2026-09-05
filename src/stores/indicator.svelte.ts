@@ -33,7 +33,7 @@ const defaultSettings: IndicatorSettings = {
   rsi: {
     enabled: true,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     length: 14,
     source: "close",
     showSignal: true,
@@ -46,7 +46,7 @@ const defaultSettings: IndicatorSettings = {
   stochRsi: {
     enabled: true,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     length: 14,
     rsiLength: 14,
     kPeriod: 3,
@@ -56,7 +56,7 @@ const defaultSettings: IndicatorSettings = {
   macd: {
     enabled: true,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     fastLength: 12,
     slowLength: 26,
     signalLength: 9,
@@ -67,7 +67,7 @@ const defaultSettings: IndicatorSettings = {
   stochastic: {
     enabled: false,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     kPeriod: 14,
     kSmoothing: 3,
     dPeriod: 3,
@@ -75,13 +75,13 @@ const defaultSettings: IndicatorSettings = {
   williamsR: {
     enabled: false,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     length: 14,
   },
   cci: {
     enabled: true,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     length: 20,
     source: "hlc3",
     threshold: 100,
@@ -91,7 +91,7 @@ const defaultSettings: IndicatorSettings = {
   adx: {
     enabled: false,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     adxSmoothing: 14,
     diLength: 14,
     threshold: 25,
@@ -99,20 +99,21 @@ const defaultSettings: IndicatorSettings = {
   ao: {
     enabled: false,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     fastLength: 5,
     slowLength: 34,
   },
   momentum: {
     enabled: false,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     length: 10,
     source: "close",
   },
   ema: {
     enabled: true,
     visible: true,
+    showInChart: false,
     ema1: { length: 21, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     ema2: { length: 50, offset: 0, smoothingType: "sma", smoothingLength: 14 },
     ema3: { length: 200, offset: 0, smoothingType: "sma", smoothingLength: 14 },
@@ -121,16 +122,18 @@ const defaultSettings: IndicatorSettings = {
   sma: {
     enabled: false,
     visible: true,
+    showInChart: false,
     sma1: { length: 9 },
     sma2: { length: 21 },
     sma3: { length: 50 },
   },
-  wma: { enabled: false, visible: true, length: 14 },
-  vwma: { enabled: false, visible: true, length: 20 },
-  hma: { enabled: false, visible: true, length: 9 },
+  wma: { enabled: false, visible: true, showInChart: false, length: 14 },
+  vwma: { enabled: false, visible: true, showInChart: false, length: 20 },
+  hma: { enabled: false, visible: true, showInChart: false, length: 9 },
   ichimoku: {
     enabled: false,
     visible: true,
+    showInChart: false,
     conversionPeriod: 9,
     basePeriod: 26,
     spanBPeriod: 52,
@@ -139,7 +142,7 @@ const defaultSettings: IndicatorSettings = {
   pivots: {
     enabled: true,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     type: "classic",
     viewMode: "integrated",
   },
@@ -151,42 +154,46 @@ const defaultSettings: IndicatorSettings = {
   choppiness: {
     enabled: false,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     length: 14,
   },
   superTrend: {
     enabled: true,
     visible: true,
+    showInChart: false,
     factor: 3,
     period: 10,
   },
   atrTrailingStop: {
     enabled: false,
     visible: true,
+    showInChart: false,
     period: 14,
     multiplier: 3.5,
   },
   obv: {
     enabled: false,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     smoothingLength: 0,
   },
   mfi: {
     enabled: false,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     length: 14,
   },
   vwap: {
     enabled: true,
     visible: true,
+    showInChart: false,
     length: 0,
     anchor: "session",
   },
   parabolicSar: {
     enabled: false,
     visible: true,
+    showInChart: false,
     start: 0.02,
     increment: 0.02,
     max: 0.2,
@@ -205,12 +212,12 @@ const defaultSettings: IndicatorSettings = {
   volume: {
     enabled: true,
     visible: true,
-    showInChart: true,
+    showInChart: false,
   },
   bollingerBands: {
     enabled: true,
     visible: true,
-    showInChart: true,
+    showInChart: false,
     length: 20,
     stdDev: 2,
     source: "close",
@@ -369,8 +376,9 @@ class IndicatorManager {
           if (val.visible === undefined && fallback.visible !== undefined) {
              val.visible = fallback.visible;
           }
-          // Ensure showInChart key exists (introduced with chart pane toggles:
-          // old entries keep showing their pane)
+          // Ensure showInChart key exists (introduced with chart pane toggles,
+          // opt-in since BUG-0404: missing keys migrate to hidden; entries
+          // stored earlier keep their persisted value)
           if (val.showInChart === undefined && fallback.showInChart !== undefined) {
              val.showInChart = fallback.showInChart;
           }
@@ -421,6 +429,7 @@ class IndicatorManager {
         ? {
           enabled: parsed.ema.enabled !== undefined ? parsed.ema.enabled : defaultSettings.ema.enabled,
           visible: parsed.ema.visible ?? defaultSettings.ema.visible,
+          showInChart: parsed.ema.showInChart ?? defaultSettings.ema.showInChart,
           ema1: {
             ...defaultSettings.ema.ema1,
             ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),

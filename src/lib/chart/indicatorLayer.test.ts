@@ -100,7 +100,7 @@ function factorOf(panes: IPaneApi<Time>[], idx: number): number | undefined {
 }
 
 function on(extra: Record<string, unknown> = {}) {
-    return { enabled: true, ...extra };
+    return { enabled: true, showInChart: true, ...extra };
 }
 
 function makeRows(n: number): ChartRow[] {
@@ -148,7 +148,7 @@ function makeState(overrides: Record<string, unknown> = {}) {
         choppiness: { ...off(), length: 14 },
         stochastic: { ...off(), kPeriod: 14, dPeriod: 3 },
         mfi: { ...off(), length: 14 },
-        volume: { enabled: true },
+        volume: { enabled: true, showInChart: true },
         ...overrides,
     };
 }
@@ -179,16 +179,16 @@ describe("IndicatorLayer", () => {
     it("does not open sub-panes when the chart is too short (height gating)", () => {
         const layer = new IndicatorLayer(env.chart, getColor);
         layer.setAvailableHeight(200); // below MIN_CHART_HEIGHT (360)
-        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }));
+        Object.assign(indicatorState, makeState({ rsi: on({ length: 14, source: "close" }) }));
         layer.render(makeRows(60));
 
         expect(subPaneIndices(env.chart).length).toBe(0);
     });
 
-    it("opens exactly the enabled sub-panes when tall enough (enabled gating)", () => {
+    it("opens exactly the chart-enabled sub-panes when tall enough (showInChart gating)", () => {
         const layer = new IndicatorLayer(env.chart, getColor);
         layer.setAvailableHeight(1000);
-        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }));
+        Object.assign(indicatorState, makeState({ rsi: on({ length: 14, source: "close" }) }));
         layer.render(makeRows(60));
 
         const indices = subPaneIndices(env.chart);
@@ -201,7 +201,7 @@ describe("IndicatorLayer", () => {
     it("tears down previously managed series before re-rendering", () => {
         const layer = new IndicatorLayer(env.chart, getColor);
         layer.setAvailableHeight(1000);
-        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }));
+        Object.assign(indicatorState, makeState({ rsi: on({ length: 14, source: "close" }) }));
         layer.render(makeRows(60));
         const beforeSecond = (env.chart.removeSeries as ReturnType<typeof vi.fn>).mock.calls.length;
 
@@ -210,7 +210,7 @@ describe("IndicatorLayer", () => {
         expect((env.chart.removeSeries as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(beforeSecond);
     });
 
-    it("skips disabled indicators so they do not consume a slot", () => {
+    it("skips hidden indicators so they do not consume a slot", () => {
         const layer = new IndicatorLayer(env.chart, getColor);
         layer.setAvailableHeight(1000);
         Object.assign(indicatorState, makeState()); // everything off
@@ -225,7 +225,7 @@ describe("IndicatorLayer", () => {
         const onPanesChanged = vi.fn();
         const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(1000);
-        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }));
+        Object.assign(indicatorState, makeState({ rsi: on({ length: 14, source: "close" }) }));
         layer.render(makeRows(60));
 
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
@@ -240,7 +240,7 @@ describe("IndicatorLayer", () => {
         const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(1000);
         Object.assign(indicatorState, makeState({
-            volume: { enabled: false },
+            volume: { enabled: false, showInChart: false },
             macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
         }));
         layer.render(makeRows(60));
@@ -251,11 +251,11 @@ describe("IndicatorLayer", () => {
         ]);
     });
 
-    it("omits the volume pane from onPanesChanged when volume is disabled", () => {
+    it("omits the volume pane from onPanesChanged when volume is hidden from the chart", () => {
         const onPanesChanged = vi.fn();
         const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
         layer.setAvailableHeight(1000);
-        Object.assign(indicatorState, makeState({ volume: { enabled: false } }));
+        Object.assign(indicatorState, makeState({ volume: { enabled: true, showInChart: false } }));
         layer.render(makeRows(60));
 
         const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
@@ -520,7 +520,7 @@ describe("IndicatorLayer", () => {
         const layer = new IndicatorLayer(env.chart, getColor);
         layer.setAvailableHeight(1000);
         const addSeries = env.chart.addSeries as ReturnType<typeof vi.fn>;
-        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }));
+        Object.assign(indicatorState, makeState({ rsi: on({ length: 14, source: "close" }) }));
         layer.render(makeRows(60));
 
         // Volume histogram + RSI line, all with the default width.
@@ -531,13 +531,58 @@ describe("IndicatorLayer", () => {
         expect(defaultOpts.length).toBeGreaterThan(0);
         for (const opts of defaultOpts) expect(opts).toMatchObject({ lineWidth: 1 });
 
-        Object.assign(indicatorState, makeState({ rsi: { enabled: true, length: 14, source: "close" } }), { lineWidth: 2 });
+        Object.assign(indicatorState, makeState({ rsi: on({ length: 14, source: "close" }) }), { lineWidth: 2 });
         addSeries.mockClear();
         layer.render(makeRows(60));
 
         const wideOpts = lineOpts(addSeries.mock.calls);
         expect(wideOpts.length).toBeGreaterThan(0);
         for (const opts of wideOpts) expect(opts).toMatchObject({ lineWidth: 2 });
+    });
+
+    it("draws a sub-pane when disabled for Technicals but enabled for the chart", () => {
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({
+            volume: { enabled: true, showInChart: false },
+            rsi: { enabled: false, showInChart: true, length: 14, source: "close" },
+        }));
+        layer.render(makeRows(60));
+
+        // Only the RSI pane at index 1: a Technicals-disabled indicator
+        // must not suppress chart display.
+        expect(subPaneIndices(env.chart)).toEqual([1]);
+        const lastCall = onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+        expect(lastCall.map((p: { key: string }) => p.key)).toEqual(["rsi"]);
+    });
+
+    it("draws overlays when disabled for Technicals but enabled for the chart", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(1000);
+        const addSeries = env.chart.addSeries as ReturnType<typeof vi.fn>;
+        Object.assign(indicatorState, makeState({
+            volume: { enabled: true, showInChart: false },
+            ema: { enabled: false, showInChart: true, source: "close", ema1: { length: 9 }, ema2: { length: 21 }, ema3: { length: 50 } },
+        }));
+        layer.render(makeRows(60));
+
+        // All three EMA lines land on the price pane despite enabled: false.
+        expect(addSeries.mock.calls.length).toBe(3);
+        expect(subPaneIndices(env.chart)).toEqual([]);
+    });
+
+    it("hides an overlay when showInChart is false despite enabled", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(1000);
+        const addSeries = env.chart.addSeries as ReturnType<typeof vi.fn>;
+        Object.assign(indicatorState, makeState({
+            volume: { enabled: true, showInChart: false },
+            superTrend: { ...on({ period: 10, factor: 3 }), showInChart: false },
+        }));
+        layer.render(makeRows(60));
+
+        expect(addSeries.mock.calls.length).toBe(0);
     });
 
     it("clears reported panes when the indicator layer is destroyed", () => {

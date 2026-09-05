@@ -1263,6 +1263,32 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md"
   },
   {
+    "id": "BUG-0404",
+    "title": "Chart indicator toggles incomplete and coupled to Technicals switches",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0404-chart-indicator-toggles",
+    "priority": "P1",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0403"
+    ],
+    "estimate": "3",
+    "size": "M",
+    "target_date": "2026-09-19",
+    "start_date": "2026-09-05",
+    "file": "bugs/BUG-0404-chart-indicator-toggles-independence.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",

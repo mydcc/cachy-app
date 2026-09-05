@@ -412,87 +412,143 @@
 
         {:else if activeCategory === "chart"}
             <div class="space-y-6 max-w-5xl mx-auto">
-                <!-- Chart Pane Visibility: which enabled indicators draw a
-                     sub-pane in the chart window. Independent of `enabled`
-                     (computation + Technicals panel) — a hidden indicator
-                     keeps calculating, it just has no pane. -->
+                <!-- Chart visibility: which indicators draw in the chart
+                     window — grouped by the same categories as the other
+                     tabs, two columns to save space. Independent of
+                     `enabled` (Technicals panel + alarms): a hidden
+                     indicator keeps calculating, it just is not drawn. -->
+                <p class="text-xs text-[var(--text-secondary)]">
+                    <span class="text-sm font-semibold text-[var(--text-primary)]">{$_("settings.technicals.chartPanes.title")}</span><br />
+                    {$_("settings.technicals.chartPanes.description")}
+                </p>
                 <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
-                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-2 pb-2 border-b border-[var(--border-color)]">
-                        <span>{$_("settings.technicals.chartPanes.title")}</span>
+                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
+                        <span>{$_("settings.technicals.tabs.oscillators")}</span>
                     </h4>
-                    <p class="text-xs text-[var(--text-secondary)] mb-4">
-                        {$_("settings.technicals.chartPanes.description")}
-                    </p>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.volume")}</span>
-                            <Toggle bind:checked={indicatorState.volume.showInChart} />
-                        </div>
-                        <div class="flex justify-between items-center">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                        <div class="flex justify-between items-center gap-3">
                             <span class="text-sm">{$_("settings.technicals.rsi.title")}</span>
                             <Toggle bind:checked={indicatorState.rsi.showInChart} />
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.macd.title")}</span>
-                            <Toggle bind:checked={indicatorState.macd.showInChart} />
-                        </div>
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center gap-3">
                             <span class="text-sm">{$_("settings.technicals.stochRsi.title")}</span>
                             <Toggle bind:checked={indicatorState.stochRsi.showInChart} />
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.cci")}</span>
-                            <Toggle bind:checked={indicatorState.cci.showInChart} />
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.stochasticTitle")}</span>
+                            <Toggle bind:checked={indicatorState.stochastic.showInChart} />
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.momentum")}</span>
-                            <Toggle bind:checked={indicatorState.momentum.showInChart} />
-                        </div>
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center gap-3">
                             <span class="text-sm">{$_("settings.technicals.williamsR")}</span>
                             <Toggle bind:checked={indicatorState.williamsR.showInChart} />
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.obv")}</span>
-                            <Toggle bind:checked={indicatorState.obv.showInChart} />
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.cci")}</span>
+                            <Toggle bind:checked={indicatorState.cci.showInChart} />
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.mfi")}</span>
-                            <Toggle bind:checked={indicatorState.mfi.showInChart} />
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.momentum")}</span>
+                            <Toggle bind:checked={indicatorState.momentum.showInChart} />
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.adx")}</span>
-                            <Toggle bind:checked={indicatorState.adx.showInChart} />
-                        </div>
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center gap-3">
                             <span class="text-sm">{$_("settings.technicals.awesomeOsc")}</span>
                             <Toggle bind:checked={indicatorState.ao.showInChart} />
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.choppiness")}</span>
-                            <Toggle bind:checked={indicatorState.choppiness.showInChart} />
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.stochasticTitle")}</span>
-                            <Toggle bind:checked={indicatorState.stochastic.showInChart} />
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.mfi")}</span>
+                            <Toggle bind:checked={indicatorState.mfi.showInChart} />
                         </div>
                     </div>
                 </section>
 
-                <!-- Price-pane overlays: same independence as sub-panes —
-                     hidden here, still calculated for the Technicals panel. -->
                 <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
                     <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
-                        <span>{$_("settings.technicals.chartPanes.overlaysTitle")}</span>
+                        <span>{$_("settings.technicals.tabs.trend")}</span>
                     </h4>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.macd.title")}</span>
+                            <Toggle bind:checked={indicatorState.macd.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.adx")}</span>
+                            <Toggle bind:checked={indicatorState.adx.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.superTrend.title")}</span>
+                            <Toggle bind:checked={indicatorState.superTrend.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.ichimoku")}</span>
+                            <Toggle bind:checked={indicatorState.ichimoku.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.parabolicSar")}</span>
+                            <Toggle bind:checked={indicatorState.parabolicSar.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.pivotsTitle")}</span>
+                            <Toggle bind:checked={indicatorState.pivots.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.emaTitle")}</span>
+                            <Toggle bind:checked={indicatorState.ema.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.smaTitle")}</span>
+                            <Toggle bind:checked={indicatorState.sma.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.wma")}</span>
+                            <Toggle bind:checked={indicatorState.wma.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.vwma")}</span>
+                            <Toggle bind:checked={indicatorState.vwma.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.hma")}</span>
+                            <Toggle bind:checked={indicatorState.hma.showInChart} />
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
+                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
+                        <span>{$_("settings.technicals.tabs.volatility")}</span>
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                        <div class="flex justify-between items-center gap-3">
                             <span class="text-sm">{$_("settings.technicals.bollingerBands.title")}</span>
                             <Toggle bind:checked={indicatorState.bollingerBands.showInChart} />
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm">{$_("settings.technicals.pivotsTitle")}</span>
-                            <Toggle bind:checked={indicatorState.pivots.showInChart} />
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.choppiness")}</span>
+                            <Toggle bind:checked={indicatorState.choppiness.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.atrStop.title")}</span>
+                            <Toggle bind:checked={indicatorState.atrTrailingStop.showInChart} />
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm">
+                    <h4 class="text-sm font-semibold tracking-wide text-[var(--text-primary)] mb-4 pb-2 border-b border-[var(--border-color)]">
+                        <span>{$_("settings.technicals.tabs.volume")}</span>
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.volume")}</span>
+                            <Toggle bind:checked={indicatorState.volume.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.obv")}</span>
+                            <Toggle bind:checked={indicatorState.obv.showInChart} />
+                        </div>
+                        <div class="flex justify-between items-center gap-3">
+                            <span class="text-sm">{$_("settings.technicals.vwap")}</span>
+                            <Toggle bind:checked={indicatorState.vwap.showInChart} />
                         </div>
                     </div>
                 </section>

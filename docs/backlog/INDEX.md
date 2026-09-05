@@ -2,9 +2,9 @@
 
 # Backlog index
 
-286 items. How to read and add them: [README.md](README.md).
+287 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 4 · ✅ done 216
+Counts by status: 💡 idea 23 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 5 · ✅ done 216
 
 ---
 
@@ -76,6 +76,7 @@ Counts by status: 💡 idea 23 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | ✅ done | trade-panel |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | ✅ done | exchange |
 | [BUG-0331](bugs/BUG-0331-flash-close-strips-protection-before-refusal.md) | A refused flash close leaves the position open with its stops cancelled | P1 | ✅ done | trade-panel |
+| [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | 🟡 in-progress | chart |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | ✅ done | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
@@ -414,6 +415,7 @@ Counts by status: 💡 idea 23 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
+| [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -646,4 +648,4 @@ Counts by status: 💡 idea 23 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 
 ---
 
-Next free number: **0404**
+Next free number: **0405**
