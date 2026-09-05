@@ -32,12 +32,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Let SvelteKit serve static assets with correct caching headers. Security
-// headers are already set by the middleware above; only cache behavior
-// differs per file here. path is a filesystem path (backslashes on Windows).
+// Let SvelteKit serve static assets with correct caching headers.
+// express.static does not inherit headers set in preceding middleware, so
+// applySecurityHeaders(res) must be called explicitly in setHeaders.
 app.use(express.static('build/client', {
   index: false,
   setHeaders: (res, path) => {
+    applySecurityHeaders(res);
     res.setHeader('Cache-Control', cacheControlFor(path));
   }
 }));
