@@ -39,7 +39,6 @@ import { paperState, type PaperFill, type PaperPosition } from "../stores/paperT
 import { journalState } from "../stores/journal.svelte";
 import { logger } from "./logger";
 import type { JournalEntry } from "../stores/types";
-import { generateId } from "../utils/utils";
 
 interface FillTotals {
     openQty: Decimal;
@@ -176,7 +175,7 @@ class PaperJournalService {
         );
 
         const entry: JournalEntry = {
-            id: generateId(),
+            id: crypto.randomUUID(),
             // Traceable back to the simulated position it describes, the way
             // a synced live entry carries the venue's position id.
             tradeId: position.positionId,

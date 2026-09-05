@@ -845,8 +845,6 @@ export class BitunixWebSocketService {
           byte.toString(16).padStart(2, "0"),
         ).join("");
       } else {
-        // Intentionally unguarded: exchange signing already requires crypto.subtle /
-        // a secure context — see docs/adr/0013-client-side-exchange-signing.md.
         nonce = crypto.randomUUID().replace(/-/g, "");
       }
 

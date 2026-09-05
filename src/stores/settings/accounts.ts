@@ -45,7 +45,6 @@
 
 import type { ApiKeys } from "../settings.svelte";
 import type { EncryptedBlob } from "../../services/cryptoService";
-import { generateId } from "../../utils/utils";
 
 /**
  * The credential shape this build writes and understands.
@@ -238,8 +237,8 @@ export function newAccountId(existing: readonly ExchangeAccount[]): string {
         ...Object.values(LEGACY_ACCOUNT_IDS),
     ]);
 
-    let id = generateId();
-    while (taken.has(id)) id = generateId();
+    let id = crypto.randomUUID();
+    while (taken.has(id)) id = crypto.randomUUID();
     return id;
 }
 

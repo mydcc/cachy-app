@@ -27,7 +27,6 @@ import { calculationStrategy, type CalculationEngine } from "./calculationStrate
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { getCapabilities } from "./capabilityDetection";
 import { toastService } from "./toastService.svelte";
-import { generateId } from "../utils/utils";
 
 export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
@@ -136,7 +135,7 @@ class TechnicalsWorkerManager {
     const w = this.getWorker();
     if (!w) throw new Error("workerErrors.notAvailable");
     
-    const id = generateId();
+    const id = crypto.randomUUID();
     return new Promise((resolve, reject) => {
       this.pendingResolves.set(id, resolve);
       this.pendingRejects.set(id, reject);

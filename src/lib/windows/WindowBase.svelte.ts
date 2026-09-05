@@ -24,7 +24,6 @@ import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
 import { Z_LAYERS } from "./zLayers";
-import { generateId } from "../../utils/utils";
 
 /** A custom control rendered in the window header (e.g. a timeframe picker). */
 export interface HeaderControl {
@@ -56,7 +55,7 @@ export interface WindowSerializedState {
  */
 export abstract class WindowBase {
     /** Unique ID for this instance. Defaults to a random UUID. */
-    id: string = generateId();
+    id: string = crypto.randomUUID();
     /** Categorical type used for registry lookups and component selection. */
     windowType: WindowType = $state("window");
 

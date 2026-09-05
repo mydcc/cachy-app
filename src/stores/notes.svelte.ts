@@ -10,7 +10,6 @@
 import { browser } from "$app/environment";
 import { settingsState } from "./settings.svelte";
 import { untrack } from "svelte";
-import { generateId } from "../utils/utils";
 
 export interface NoteMessage {
   id: string;
@@ -71,7 +70,7 @@ class NotesManager {
     const limit = settingsState.maxPrivateNotes || 50;
 
     const newNote: NoteMessage = {
-      id: generateId(),
+      id: crypto.randomUUID(),
       text,
       timestamp: Date.now(),
     };

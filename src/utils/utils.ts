@@ -58,31 +58,6 @@ export function unwrapApiEnvelope<T>(
 }
 
 /**
- * `crypto.randomUUID()` throws outside a secure context (exactly `https://` or
- * `http://localhost`/`127.0.0.1` — a LAN IP like `http://192.168.1.20:3000` does
- * NOT qualify). Cachy's own default self-hosted quick-start (docs/INSTALL.md) runs
- * over plain HTTP, and opening it from another device via a LAN IP is a normal
- * self-hosting shape. This wraps randomUUID with a Math.random()-based fallback for
- * general-purpose, non-cryptographic ids (list/dedup keys, DOM ids). Never use this
- * where unpredictability actually matters (exchange signing nonces, order ids) —
- * see docs/adr/0013-client-side-exchange-signing.md.
- */
-export function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    try {
-      return crypto.randomUUID();
-    } catch {
-      // fall through to the non-secure-context fallback below
-    }
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-/**
  * `never[]` rather than `unknown[]` in the constraint: parameters are
  * contravariant, so `unknown[]` rejects any callback with concrete parameter
  * types — it forced callers to type their debounced function as taking
@@ -478,7 +453,7 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
   if (!trade || typeof trade !== "object") {
     // Return a minimal valid dummy if completely malformed
     return {
-      id: generateId(),
+      id: crypto.randomUUID(),
       date: new Date().toISOString(),
       symbol: "UNKNOWN",
       tradeType: "long",

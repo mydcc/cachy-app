@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
-import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal, formatDynamicDecimal, unwrapApiEnvelope, deriveTickSizeFromPrice, generateId } from "./utils";
+import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal, formatDynamicDecimal, unwrapApiEnvelope, deriveTickSizeFromPrice } from "./utils";
 
 // Regression (BUG-0060): PositionsSidebar.svelte read `data.positions`/
 // `data.error` straight off the response of /api/positions and /api/account,
@@ -316,43 +316,5 @@ describe("deriveTickSizeFromPrice", () => {
     expect(deriveTickSizeFromPrice(null)).toBeNull();
     expect(deriveTickSizeFromPrice("MARKET")).toBeNull();
     expect(deriveTickSizeFromPrice(-5)).toBeNull();
-  });
-});
-
-// `crypto.randomUUID()` throws outside a secure context (exactly `https://` or
-// `http://localhost`/`127.0.0.1`) — a LAN IP like `http://192.168.1.20:3000`
-// does NOT qualify, which is a normal self-hosting shape for this app
-// (docs/INSTALL.md's own quick-start runs over plain HTTP). generateId() must
-// keep working in both cases.
-describe("generateId", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-  it("delegates to crypto.randomUUID() when it is available (secure context)", () => {
-    const fixedUuid = "11111111-2222-4333-8444-555555555555";
-    vi.stubGlobal("crypto", { randomUUID: () => fixedUuid });
-    expect(generateId()).toBe(fixedUuid);
-  });
-
-  it("falls back to a Math.random()-based id when crypto.randomUUID throws (non-secure context)", () => {
-    vi.stubGlobal("crypto", {
-      randomUUID: () => {
-        throw new Error("The operation is insecure.");
-      },
-    });
-    expect(generateId()).toMatch(uuidPattern);
-  });
-
-  it("falls back to a Math.random()-based id when crypto.randomUUID is not a function", () => {
-    vi.stubGlobal("crypto", {});
-    expect(generateId()).toMatch(uuidPattern);
-  });
-
-  it("falls back to a Math.random()-based id when crypto itself is unavailable", () => {
-    vi.stubGlobal("crypto", undefined);
-    expect(generateId()).toMatch(uuidPattern);
   });
 });

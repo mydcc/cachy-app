@@ -816,8 +816,6 @@ class TradeService {
              * rolling back. Assigning it here would send the recovery path
              * chasing an order that was never added.
              */
-            // Intentionally unguarded: exchange signing already requires crypto.subtle /
-            // a secure context — see docs/adr/0013-client-side-exchange-signing.md.
             const candidateOrderId = "opt-" + crypto.randomUUID().replace(/-/g, "").slice(0, 28);
 
             const provider = settingsState.apiProvider || "bitunix";
@@ -1166,8 +1164,6 @@ class TradeService {
      */
     public newClientOrderId(): string {
         // Bitunix caps clientId at 64 chars (07_trade.md); this is ~30.
-        // Intentionally unguarded: exchange signing already requires crypto.subtle /
-        // a secure context — see docs/adr/0013-client-side-exchange-signing.md.
         const stamp = Date.now().toString(36);
         const rand = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
         return `cachy-${stamp}-${rand}`;
