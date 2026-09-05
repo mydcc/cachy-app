@@ -139,7 +139,7 @@ export class RuleEvaluationLoop {
 
       return this.evaluateSeries(symbol, timeframe, anchorMs);
     } catch (e) {
-      logger.error("alerts", `[Shadow] Rule evaluation failed for ${symbol} ${timeframe}`, e);
+      logger.error("alerts", `[RuleEngine] Rule evaluation failed for ${symbol} ${timeframe}`, e);
       return [];
     }
   }
@@ -151,6 +151,19 @@ export class RuleEvaluationLoop {
    * Out-of-order and repeated candles are normal on a reconnect or a REST
    * backfill; only a strictly greater open time closes something, so a
    * late-arriving older candle cannot re-fire an anchor the gate already saw.
+   *
+   * **Known limit, not fixed here.** A batch that jumps several candles at
+   * once — a REST backfill after a reconnect gap — only ever reports the one
+   * anchor that was the high-water mark before the jump; every candle that
+   * opened and closed strictly between it and the batch's newest open is
+   * never reported. Reporting each of them would not actually recover their
+   * verdicts, though: `readCandles` always returns the *current* full closed
+   * history, not a snapshot truncated to a specific historical anchor, so
+   * evaluating "at" an intermediate anchor would run against the same
+   * post-backfill data as evaluating at the newest one — identical verdicts,
+   * consuming extra gate-dedup slots for no new information. A real fix needs
+   * `CandleReader` to answer "as of this anchor", which is a larger change
+   * than this file's edge case earns on its own.
    */
   private advance(
     symbol: string,
