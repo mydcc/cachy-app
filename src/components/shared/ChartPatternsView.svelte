@@ -138,10 +138,10 @@
     }
 </script>
 
-<div class="flex flex-col md:flex-row h-full gap-4 min-h-0">
+<div class="flex flex-col @md:flex-row h-full gap-4 min-h-0 min-w-0">
     <!-- Sidebar -->
     <div
-        class="w-full md:w-1/4 lg:w-1/5 flex flex-col gap-4 max-h-[35vh] shrink-0 md:max-h-none md:shrink border-b border-[var(--border-color)] pb-4 md:border-b-0 md:border-r md:pr-4"
+        class="w-full @md:w-1/4 @lg:w-1/5 @md:min-w-[200px] flex flex-col gap-4 max-h-[35vh] shrink-0 @md:max-h-none @md:shrink min-w-0 border-b border-[var(--border-color)] pb-4 @md:border-b-0 @md:border-r @md:pr-4"
     >
         <!-- Search & Filter -->
         <div
@@ -221,15 +221,15 @@
 
     <!-- Main Content -->
     <div
-        class="w-full md:w-3/4 lg:w-4/5 flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2 flex-1 min-h-0 md:flex-none"
+        class="w-full flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2 flex-1 min-h-0 min-w-0"
     >
         {#if currentPattern}
             <!-- Header -->
-            <div>
-                <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-3">
+            <div class="min-w-0">
+                <div class="flex flex-wrap gap-2 justify-between items-start">
+                    <div class="flex flex-wrap items-center gap-3 min-w-0">
                         <h2
-                            class="text-2xl font-bold text-[var(--accent-color)]"
+                            class="text-xl @md:text-2xl font-bold text-[var(--accent-color)] break-words min-w-0"
                         >
                             {currentPattern.name}
                         </h2>
@@ -273,7 +273,7 @@
                     </div>
 
                     <span
-                        class="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex items-center gap-2"
+                        class="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex items-center gap-2 shrink-0"
                     >
                         {@html getCategoryIcon(currentPattern.category)}
                         {currentPattern.category}
@@ -282,11 +282,11 @@
             </div>
 
             <!-- Split Layout: Chart/Desc vs Strategy/Interp -->
-            <div class="flex flex-col lg:flex-row gap-6 h-full">
+            <div class="flex flex-col @lg:flex-row @lg:flex-wrap gap-6 h-full min-w-0">
                 <!-- Left Column (66%) -->
-                <div class="w-full lg:w-2/3 flex flex-col gap-6">
+                <div class="w-full @lg:flex-[2_1_320px] flex flex-col gap-6 min-w-0">
                     <!-- Chart Visualization -->
-                    <div class="w-full">
+                    <div class="w-full min-w-0">
                         <ChartPatternChart pattern={currentPattern} />
                     </div>
 
@@ -300,7 +300,7 @@
                             {$_("chartPatterns.description")}
                         </h3>
                         <div
-                            class="prose dark:prose-invert text-sm max-w-none"
+                            class="prose dark:prose-invert text-sm max-w-none min-w-0 overflow-x-auto break-words"
                             use:markdown={getLocalizedText(
                                 currentPattern,
                                 "description",
@@ -324,7 +324,7 @@
                 </div>
 
                 <!-- Right Column (33%) -->
-                <div class="w-full lg:w-1/3 flex flex-col gap-6 h-full">
+                <div class="w-full @lg:flex-[1_1_280px] flex flex-col gap-6 h-full min-w-0">
                     <!-- Trading Strategy -->
                     <div
                         class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]"
@@ -335,7 +335,7 @@
                             {$_("chartPatterns.tradingStrategy")}
                         </h3>
                         <div
-                            class="prose dark:prose-invert text-sm max-w-none"
+                            class="prose dark:prose-invert text-sm max-w-none min-w-0 overflow-x-auto break-words"
                             use:markdown={getLocalizedText(
                                 currentPattern,
                                 "trading",
@@ -353,7 +353,7 @@
                             {$_("chartPatterns.interpretation")}
                         </h3>
                         <div
-                            class="prose dark:prose-invert text-sm max-w-none"
+                            class="prose dark:prose-invert text-sm max-w-none min-w-0 overflow-x-auto break-words"
                             use:markdown={getLocalizedText(
                                 currentPattern,
                                 "advancedConsiderations",
@@ -366,7 +366,7 @@
                             {$_("chartPatterns.performance")}
                         </h3>
                         <div
-                            class="prose dark:prose-invert text-sm max-w-none"
+                            class="prose dark:prose-invert text-sm max-w-none min-w-0 overflow-x-auto break-words"
                             use:markdown={getLocalizedText(
                                 currentPattern,
                                 "performanceStats",
@@ -397,5 +397,11 @@
     /* Markdown Styles specifically for formulas */
     :global(.katex) {
         font-size: 1.1em;
+        max-width: 100%;
+    }
+    :global(.katex-display) {
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-width: 100%;
     }
 </style>
