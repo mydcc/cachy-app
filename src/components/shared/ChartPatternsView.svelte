@@ -20,7 +20,6 @@
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import { CHART_PATTERNS } from "../../services/chartPatterns";
-    import type { ChartPatternDefinition } from "../../services/chartPatterns.types";
     import ChartPatternChart from "./ChartPatternChart.svelte";
     import { markdown } from "../../actions/markdown";
     import { safeJsonParse } from "../../utils/safeJson";
