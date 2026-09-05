@@ -30,7 +30,7 @@
     const res = await restoreFromOpfs();
     if (!res.success) {
       errorMessage = res.message.startsWith("app.")
-        ? $_(res.message as TranslationKey, res.messageParams)
+        ? $_(res.message as TranslationKey, { values: res.messageParams })
         : res.message;
     }
   }
