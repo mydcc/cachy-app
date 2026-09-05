@@ -389,6 +389,26 @@ describe("IndicatorLayer", () => {
         expect(lastCall[2]).toMatchObject({ paneIndex: 3, key: "macd", collapsed: false });
     });
 
+    it("re-clamps strip heights after all panes materialize", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(1000);
+        Object.assign(indicatorState, makeState({
+            rsi: { ...on({ length: 14, source: "close" }), visible: false },
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source: "close" }),
+        }));
+        layer.render(makeRows(60));
+
+        // The FINAL setHeight on the strip must be STRIP_HEIGHT — a claim-time
+        // call is not enough, because later pane creation and neighbor
+        // setHeight redistribution dilute it in the real chart.
+        expect(heightsFor(env.panes, 2).at(-1)).toBe(30);
+        // Open panes end at the layout height, not whatever intermediate
+        // value an earlier pass left behind.
+        const openHeight = heightsFor(env.panes, 3).at(-1);
+        expect(openHeight).not.toBeUndefined();
+        expect(heightsFor(env.panes, 1).at(-1)).toBe(openHeight);
+    });
+
     it("clears reported panes when the indicator layer is destroyed", () => {
         const onPanesChanged = vi.fn();
         const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);

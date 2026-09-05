@@ -205,6 +205,10 @@ export class IndicatorLayer {
         const ctx = { closes, opens, highs, lows, volume };
         this.renderOverlays(rows, ctx);
         this.renderSubPanes(rows, ctx);
+        // All panes now exist — set final heights AFTER materialization,
+        // otherwise strip heights set during claiming are diluted away by
+        // lightweight-charts' stretch-factor redistribution.
+        this.applyPaneHeights();
         this.onPanesChanged?.(this.panesInfo);
     }
 
@@ -289,10 +293,17 @@ export class IndicatorLayer {
     }
 
     private applyPaneHeights(): void {
+        // Re-apply EVERY pane height here, strips included: setHeight uses
+        // stretch factors and later pane creation / neighbor resizing dilutes
+        // earlier calls, so a claim-time strip height never survives to
+        // render end. This final pass is the only thing that holds strips
+        // at STRIP_HEIGHT once all panes exist.
         for (const idx of this.createdPaneIndices) {
-            if (this.stripPaneIndices.has(idx)) continue; // strips keep their STRIP_HEIGHT
             const pane = this.chart.panes()[idx];
-            if (pane) pane.setHeight(this.layout.height);
+            if (!pane) continue;
+            pane.setHeight(
+                this.stripPaneIndices.has(idx) ? STRIP_HEIGHT : this.layout.height,
+            );
         }
     }
 
