@@ -3,6 +3,10 @@
   import ModalFrame from "../shared/ModalFrame.svelte";
   import { _ } from "../../locales/i18n";
   import { generateId } from "../../utils/utils";
+  import {
+      acknowledgeCutoverNotice,
+      shouldShowCutoverNotice,
+  } from "../../services/alertEngine/cutoverNotice";
 
 
 
@@ -13,6 +17,16 @@
   }>();
 
   let activeTab = $state<"active" | "history">("active");
+  // Read once when the modal opens, not derived from the alert list: the
+  // notice must not vanish mid-read because the trader deleted the last
+  // covered alert while it was on screen.
+  let showCutoverNotice = $state(shouldShowCutoverNotice());
+
+  function dismissCutoverNotice() {
+      acknowledgeCutoverNotice();
+      showCutoverNotice = false;
+  }
+
   let newAlertSymbol = $state("BTCUSDT");
   let newAlertPrice = $state("");
 
@@ -58,6 +72,24 @@
     {#if alertState.engineStatus === "failed"}
         <div class="engine-warning" role="alert">
             {$_('dashboard.alerts.engineUnavailableHint')}
+        </div>
+    {/if}
+
+    <!--
+      FEAT-0387: migrated alerts are evaluated on 1m candle close instead of
+      per tick. Shown here rather than as a startup toast because this is the
+      screen a trader is on when they think about their alarms, and a toast
+      about a permanent behaviour change is gone before it is read. Only
+      appears while the trader actually has a covered alert, and only until
+      they acknowledge it.
+    -->
+    {#if showCutoverNotice}
+        <div class="cutover-notice" role="status">
+            <h4>{$_('dashboard.alerts.cutoverNoticeTitle')}</h4>
+            <p>{$_('dashboard.alerts.cutoverNoticeBody')}</p>
+            <button class="cutover-dismiss" onclick={dismissCutoverNotice}>
+                {$_('dashboard.alerts.cutoverNoticeDismiss')}
+            </button>
         </div>
     {/if}
 
@@ -128,6 +160,36 @@
         border-left: 3px solid var(--warning-color, var(--border-color));
         color: var(--text-primary);
         font-size: 0.85rem;
+    }
+    .cutover-notice {
+        margin-bottom: var(--space-4);
+        padding: var(--space-3);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-sm);
+        border-left: 3px solid var(--accent-color, var(--border-color));
+        color: var(--text-primary);
+        font-size: 0.85rem;
+    }
+    .cutover-notice h4 {
+        margin: 0 0 var(--space-2) 0;
+        font-size: 0.9rem;
+    }
+    .cutover-notice p {
+        margin: 0 0 var(--space-3) 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+    .cutover-dismiss {
+        padding: var(--space-1) var(--space-3);
+        background: transparent;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 0.8rem;
+    }
+    .cutover-dismiss:hover {
+        background: var(--bg-tertiary, var(--bg-secondary));
     }
     .alert-form {
         margin-bottom: var(--space-6);

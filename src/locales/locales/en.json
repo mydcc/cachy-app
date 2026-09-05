@@ -328,7 +328,10 @@
       "crossesUp": "Crosses Up",
       "crossesDown": "Crosses Down",
       "reaches": "Reaches",
-      "symbol": "Symbol"
+      "symbol": "Symbol",
+      "cutoverNoticeTitle": "Your alerts now trigger differently",
+      "cutoverNoticeBody": "Existing alerts are now checked at the close of each 1-minute candle instead of on every single price change. Two things follow from that: an alert can arrive up to a minute later, and a brief spike through your level that recovers within the same minute no longer triggers one.",
+      "cutoverNoticeDismiss": "Got it"
     },
     "generalInputs": {
       "header": "General",

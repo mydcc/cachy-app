@@ -328,7 +328,10 @@
       "crossesUp": "Kreuzt nach oben",
       "crossesDown": "Kreuzt nach unten",
       "reaches": "Erreicht",
-      "symbol": "Symbol"
+      "symbol": "Symbol",
+      "cutoverNoticeTitle": "Deine Alarme lösen jetzt anders aus",
+      "cutoverNoticeBody": "Bestehende Alarme werden ab sofort beim Abschluss jeder 1-Minuten-Kerze geprüft statt bei jeder einzelnen Preisänderung. Zwei Dinge ändern sich dadurch: Ein Alarm kann bis zu eine Minute später kommen, und ein kurzes Durchstechen deiner Marke, das sich noch in derselben Minute zurückbildet, löst keinen Alarm mehr aus.",
+      "cutoverNoticeDismiss": "Verstanden"
     },
     "generalInputs": {
       "header": "Allgemein",
