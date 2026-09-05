@@ -24,9 +24,50 @@ import { tradeState } from "../stores/trade.svelte";
  */
 class TradeCalculator {
     private lastCalcTime = 0;
+    private trailingTimer: ReturnType<typeof setTimeout> | null = null;
     private readonly CALC_THROTTLE_MS = 250;
     private calculateFn: (() => void) | null = null;
     private initialized = false;
+    private stopEffects: (() => void) | null = null;
+
+    /**
+     * Validates inputs and runs the calculation. Used by both the leading
+     * edge (direct effect run) and the trailing edge (scheduled timer) so a
+     * rapid mutation burst always ends in a calculation of the final state
+     * (BUG-0360).
+     */
+    private executeCalculation() {
+        const _s = tradeState;
+        if (
+            _s.accountSize !== undefined &&
+            _s.riskPercentage !== undefined &&
+            _s.entryPrice !== undefined &&
+            _s.symbol !== undefined &&
+            _s.tradeType !== undefined &&
+            _s.targets !== undefined
+        ) {
+            untrack(() => {
+                this.calculateFn?.();
+                this.lastCalcTime = Date.now();
+            });
+        }
+    }
+
+    /** Clears any pending trailing calculation (BUG-0360). */
+    destroy() {
+        if (this.trailingTimer) {
+            clearTimeout(this.trailingTimer);
+            this.trailingTimer = null;
+        }
+        // Stop the reactive watcher so a re-init starts clean instead of
+        // stacking another $effect.root on top of the old one.
+        this.stopEffects?.();
+        this.stopEffects = null;
+        // Full teardown: reset throttle state and allow re-init (tests / HMR).
+        this.lastCalcTime = 0;
+        this.calculateFn = null;
+        this.initialized = false;
+    }
 
     /**
      * Initialize the calculator watcher.
@@ -39,7 +80,7 @@ class TradeCalculator {
 
         // Use $effect.root to ensure the effect lives as long as the app
         // independent of any component lifecycle.
-        $effect.root(() => {
+        this.stopEffects = $effect.root(() => {
             $effect(() => {
                 // 1. Establish dependencies (Accessing values tracks them)
                 const _s = tradeState;
@@ -87,27 +128,33 @@ class TradeCalculator {
 
                 /* eslint-enable @typescript-eslint/no-unused-expressions */
 
-                // 2. Throttle check
+                // 2. Throttle check — schedule a trailing execution for the
+                // final state instead of dropping the update (BUG-0360)
                 const now = Date.now();
-                if (now - this.lastCalcTime < this.CALC_THROTTLE_MS) return;
+                if (now - this.lastCalcTime < this.CALC_THROTTLE_MS) {
+                    const remaining = this.CALC_THROTTLE_MS - (now - this.lastCalcTime);
+                    if (this.trailingTimer) clearTimeout(this.trailingTimer);
+                    this.trailingTimer = setTimeout(() => {
+                        this.trailingTimer = null;
+                        this.executeCalculation();
+                    }, remaining);
+                    return;
+                }
 
                 // 3. Validation and Execution
-                if (
-                    _s.accountSize !== undefined &&
-                    _s.riskPercentage !== undefined &&
-                    _s.entryPrice !== undefined &&
-                    _s.symbol !== undefined &&
-                    _s.tradeType !== undefined &&
-                    _s.targets !== undefined
-                ) {
-                    untrack(() => {
-                        this.calculateFn?.();
-                        this.lastCalcTime = Date.now();
-                    });
-                }
+                this.executeCalculation();
             });
         });
     }
 }
 
 export const tradeCalculator = new TradeCalculator();
+
+// HMR: stop the reactive watcher and any pending trailing timer on module
+// disposal, so a re-evaluated module starts clean instead of stacking a
+// second $effect.root next to the detached one (BUG-0360).
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    tradeCalculator.destroy();
+  });
+}

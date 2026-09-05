@@ -2,7 +2,7 @@
 id: BUG-0362
 title: VisibilityController attaches uncleaned document visibilitychange listener without destroy method
 type: bug
-status: ready
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,8 @@ data_class: none
 adr: none
 depends_on: []
 size: XS
+assignee: claude
+branch: fix/2584-2587-2588-bugfixes
 ---
 
 # BUG-0362 — VisibilityController attaches uncleaned document visibilitychange listener without destroy method

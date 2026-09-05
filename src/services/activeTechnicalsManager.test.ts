@@ -317,4 +317,44 @@ describe("ActiveTechnicalsManager", () => {
       expect(internals.throttles.has("BTCUSDT:1h")).toBe(false);
     });
   });
+
+  describe("destroy", () => {
+    it("removes the exact visibilitychange handler, clears throttles, tears down effects and resets bookkeeping", async () => {
+      // Seed state so the teardown assertions are not vacuous: one pending
+      // throttle timer and one registered effect cleanup.
+      internals.throttles.set("ETHUSDT:1h", setTimeout(() => {}, 9999));
+      internals.activeEffects.set("ETHUSDT:1h", vi.fn());
+      internals.registry.subscribers.set("ETHUSDT:1h", 2);
+      internals.pausedCalculations.add("ETHUSDT:1h");
+      internals.workerState.set("ETHUSDT:1h", { initialized: true, lastTime: 1 });
+      const unregisterSpy = vi.mocked(marketWatcher.unregister);
+
+      const removeSpy = vi.spyOn(document, "removeEventListener");
+      const clearSpy = vi.spyOn(globalThis, "clearTimeout");
+      const effectCleanup = internals.activeEffects.get("ETHUSDT:1h")!;
+
+      activeTechnicalsManager.destroy();
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Assert on the exact named handler reference, not just any function:
+      // a swapped-in handler would silently leave the original registered.
+      const { visibility } = activeTechnicalsManager as unknown as { visibility: { onVisibilityChange: () => void } };
+      expect(removeSpy).toHaveBeenCalledWith("visibilitychange", visibility.onVisibilityChange);
+      expect(clearSpy).toHaveBeenCalled();
+      expect(effectCleanup).toHaveBeenCalledTimes(1);
+      expect(internals.throttles.size).toBe(0);
+      expect(internals.activeEffects.size).toBe(0);
+      // Bookkeeping reset: re-register of the same key must not be suppressed.
+      expect(internals.subscribers.size).toBe(0);
+      expect(internals.pausedCalculations.size).toBe(0);
+      expect(internals.workerState.size).toBe(0);
+      // marketWatcher registrations from startMonitoring are dropped as well.
+      expect(unregisterSpy).toHaveBeenCalledWith("ETHUSDT", "price");
+      expect(unregisterSpy).toHaveBeenCalledWith("ETHUSDT", "ticker");
+      expect(unregisterSpy).toHaveBeenCalledWith("ETHUSDT", "kline_1h");
+
+      removeSpy.mockRestore();
+      clearSpy.mockRestore();
+    });
+  });
 });
