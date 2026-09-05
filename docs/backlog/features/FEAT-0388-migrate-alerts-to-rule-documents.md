@@ -77,7 +77,8 @@ never has to look at the current, possibly-edited state of `cachy_rules_v1`.
 
 ## Behavior Change Documented for FEAT-0387
 
-The migration hardcodes a fixed `1m` Close evaluation granularity (`migrateAlertsToRules.ts:28`)
+The migration hardcodes a fixed `1m` Close evaluation granularity
+(`DEFAULT_TRIGGER_TIMEFRAME` in `src/services/alertEngine/migrateAlertsToRules.ts`)
 instead of inheriting a per-alert default from the old engine's per-tick model. This is
 intentional — ADR-0012 decision 3 states that a rule must explicitly choose its timeframe
 rather than inventing one. At the FEAT-0387 cutover, a migrated alert will:
