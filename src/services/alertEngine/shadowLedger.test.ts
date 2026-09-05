@@ -64,6 +64,24 @@ function shadow(
 const CANDLE_OPEN_MS = 1_757_030_400_000;
 const CANDLE_CLOSE_MS = CANDLE_OPEN_MS + 60_000;
 
+/** What `notifyingRuleSink` records once the cutover is live — not "shadow". */
+function ruleFiring(
+  id: string,
+  recordedAtMs: number,
+  symbol = "BTCUSDT",
+  anchorMs = CANDLE_OPEN_MS,
+): ShadowFiringRecord {
+  return {
+    source: "rule",
+    recordedAtMs,
+    symbol,
+    id,
+    timeframe: "1m",
+    anchorMs,
+    verdict: "fires",
+  };
+}
+
 describe("shadowLedger", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -199,6 +217,21 @@ describe("shadowLedger", () => {
       expect(comparison.legacyOnly).toHaveLength(1);
       expect(comparison.shadowOnly).toHaveLength(1);
       expect(comparison.delaysMs).toEqual([]);
+    });
+
+    it("counts a live rule firing ('rule' source) the same as a shadow one", () => {
+      // Once the cutover notifies, notifyingRuleSink records source: "rule",
+      // not "shadow". A comparison that only recognised "shadow" would read a
+      // live session's ledger as if the rule engine had never fired —
+      // reporting the exact silent gap the shadow run exists to catch.
+      recordFiring(legacy("a1", CANDLE_OPEN_MS + 30_000));
+      recordFiring(ruleFiring("a1", CANDLE_CLOSE_MS + 50));
+
+      const comparison = compareShadowLedger();
+
+      expect(comparison.shadowCount).toBe(1);
+      expect(comparison.legacyOnly).toEqual([]);
+      expect(comparison.delaysMs).toEqual([30_050]);
     });
   });
 });

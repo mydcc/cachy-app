@@ -200,10 +200,11 @@ export function clearShadowLedger(): boolean {
 
 export interface ShadowComparison {
   legacyCount: number;
+  /** Records from either "shadow" or "rule" — the rule path, notifying or not. */
   shadowCount: number;
-  /** Legacy firings with no shadow record for the same symbol and id. */
+  /** Legacy firings with no rule-path record for the same symbol and id. */
   legacyOnly: ShadowFiringRecord[];
-  /** Shadow firings with no legacy record for the same symbol and id. */
+  /** Rule-path firings with no legacy record for the same symbol and id. */
   shadowOnly: ShadowFiringRecord[];
   /**
    * Delays in ms between a legacy firing and its counterpart on the rule path,
@@ -229,7 +230,11 @@ export interface ShadowComparison {
  */
 export function compareShadowLedger(ledger: ShadowLedger = readShadowLedger()): ShadowComparison {
   const legacy = ledger.records.filter((r) => r.source === "legacy");
-  const shadow = ledger.records.filter((r) => r.source === "shadow");
+  // Both "shadow" (evaluated, notified nobody) and "rule" (evaluated and
+  // notified) are the rule path's side of the comparison. Filtering to
+  // "shadow" alone would read the ledger of a live-cutover session as if the
+  // rule engine had never fired at all — the opposite of what this reports.
+  const shadow = ledger.records.filter((r) => r.source === "shadow" || r.source === "rule");
 
   const keyOf = (r: ShadowFiringRecord) => `${r.symbol}:${r.id}`;
   const shadowByKey = new Map<string, ShadowFiringRecord>();
