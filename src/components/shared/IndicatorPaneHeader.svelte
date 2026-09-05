@@ -68,6 +68,7 @@
     .indicator-pane-header {
         position: absolute;
         top: 0;
+        bottom: 0;
         left: 8px;
         z-index: 2;
         display: flex;
