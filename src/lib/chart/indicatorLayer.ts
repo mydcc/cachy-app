@@ -26,7 +26,7 @@ const MIN_PANE_HEIGHT = 56;
 const PRICE_PANE_MIN = 140;
 
 /** Height of a collapsed sub-pane strip: header row only, no chart content. */
-const STRIP_HEIGHT = 16;
+const STRIP_HEIGHT = 20;
 
 /** One currently-visible sub-pane, reported to the caller after each render. */
 export interface IndicatorPaneInfo {
@@ -324,6 +324,30 @@ export class IndicatorLayer {
             if (!pane) continue;
             pane.setStretchFactor(this.stripPaneIndices.has(idx) ? STRIP_HEIGHT : this.layout.height);
         }
+        this.lockStripSeparators(panes);
+    }
+
+    /**
+     * A collapsed strip is fixed-height — the drag handles of the
+     * separators directly above and below a strip must not let the user
+     * resize it. lightweight-charts has no per-separator switch (only the
+     * global layout.panes.enableResize), so pointer events on those
+     * separator cells are disabled instead. Separator k sits between pane
+     * k and pane k+1; its cell is the td[colspan] LWC renders.
+     */
+    private lockStripSeparators(panes: readonly unknown[]): void {
+        const firstPane = panes[0] as { getHTMLElement?: () => HTMLElement } | undefined;
+        const table = firstPane?.getHTMLElement?.().closest("table");
+        if (!table) return;
+        const cells = table.querySelectorAll<HTMLTableCellElement>("td[colspan]");
+        const isStrip = (idx: number) => this.stripPaneIndices.has(idx);
+        cells.forEach((cell, k) => {
+            if (isStrip(k) || isStrip(k + 1)) {
+                cell.style.pointerEvents = "none";
+            } else if (cell.style.pointerEvents === "none") {
+                cell.style.pointerEvents = "";
+            }
+        });
     }
 
     /**

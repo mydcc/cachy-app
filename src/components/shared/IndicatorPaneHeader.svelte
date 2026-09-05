@@ -67,14 +67,14 @@
 <style>
     .indicator-pane-header {
         position: absolute;
-        top: 1px;
+        top: 0;
         left: 8px;
         z-index: 2;
         display: flex;
         align-items: center;
         gap: 5px;
         font-size: 11px;
-        line-height: 1.2;
+        line-height: 1.3;
         white-space: nowrap;
         /* The header itself must not swallow chart pan/zoom — only the
            chevron button re-enables pointer events, nothing else. */
