@@ -303,7 +303,7 @@ export class IndicatorLayer {
      * exhausted — the indicator is then overflowed (dropped for now; a
      * taller window brings it back because the layout is a pure function).
      */
-    private openSubPane(collapsed: boolean, key: string): number | null {
+    private openSubPane(collapsed: boolean, _key: string): number | null {
         const opensFit = this.layout.count - this.layout.strips;
         const opensClaimed = this.subPaneCursor - 1 - this.stripsClaimed;
         const outOfRoom = collapsed
