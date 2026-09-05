@@ -47,6 +47,8 @@ interface EngineMetrics {
 }
 
 export class CalculationStrategy {
+  private lastLagToastAt = 0;
+
   constructor() {
     this.warmCapabilities();
   }
@@ -94,7 +96,7 @@ export class CalculationStrategy {
     const m = this.metrics[engine];
     m.calls++;
     m.totalTime += duration;
-    m.lastMedian = duration; // Simple median for now
+    m.lastMedian = duration; // latest single duration standing in for a median — one spike degrades wasm until another wasm run (no auto recovery)
     if (!success) m.errors++;
     
     // Add to history
@@ -111,13 +113,20 @@ export class CalculationStrategy {
         this.performanceHistory.shift();
     }
 
-    // Threshold warning (Step 5)
+    // Threshold warning (Step 5). Toasts are throttled so a slow live path
+    // can't stack one toast per recalculation on a weak device.
     if (duration > 500) {
         console.error(`[ACE] CRITICAL: Engine ${engine} took ${duration.toFixed(2)}ms`);
-        toastService.error(get(_)("calculationStrategy.criticalLag", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }));
+        if (Date.now() - this.lastLagToastAt > 30_000) {
+            this.lastLagToastAt = Date.now();
+            toastService.error(get(_)("calculationStrategy.criticalLag", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }));
+        }
     } else if (duration > 100) {
         console.warn(`[ACE] Warning: Engine ${engine} took ${duration.toFixed(2)}ms`);
-        toastService.warning(get(_)("calculationStrategy.slowCalc", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }), 2000);
+        if (Date.now() - this.lastLagToastAt > 30_000) {
+            this.lastLagToastAt = Date.now();
+            toastService.warning(get(_)("calculationStrategy.slowCalc", { values: { engine: engine.toUpperCase(), duration: duration.toFixed(0) } }), 2000);
+        }
     }
   }
 
