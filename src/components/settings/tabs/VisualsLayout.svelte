@@ -20,19 +20,20 @@
     import { settingsState } from "../../../stores/settings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import Toggle from "../../shared/Toggle.svelte";
+    import SettingsGrid from "../shared/SettingsGrid.svelte";
 </script>
 
 <section class="settings-section animate-fade-in">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <SettingsGrid gap="gap-4">
         <!-- News Open Behavior -->
-        <div class="toggle-card flex-col items-start gap-2 col-span-1 md:col-span-2">
+        <div class="toggle-card flex-col items-start gap-2 col-span-full">
             <div class="flex justify-between items-center w-full">
-                <div class="flex flex-col">
+                <div class="flex flex-col min-w-0 flex-1">
                     <span class="text-sm font-medium">{$_("settings.newsOpenBehavior")}</span>
                     <span class="text-xs text-[var(--text-secondary)]">{$_("settings.newsOpenBehaviorDesc")}</span>
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 w-full mt-2">
+            <SettingsGrid gap="gap-2">
                 <button
                     type="button"
                     class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
@@ -89,11 +90,11 @@
                         <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
                     {/if}
                 </button>
-            </div>
+            </SettingsGrid>
         </div>
 
-        <label class="toggle-card">
-            <div class="flex flex-col">
+        <label class="toggle-card gap-3">
+            <div class="flex flex-col min-w-0 flex-1">
                 <span class="text-sm font-medium"
                     >{$_("settings.showSidebars")}</span
                 >
@@ -105,8 +106,8 @@
             <Toggle bind:checked={settingsState.showSidebars} />
         </label>
 
-        <label class="toggle-card">
-            <div class="flex flex-col">
+        <label class="toggle-card gap-3">
+            <div class="flex flex-col min-w-0 flex-1">
                 <span class="text-sm font-medium"
                     >{$_("settings.enableSidePanel")}</span
                 >
@@ -123,5 +124,5 @@
                     uiState.toggleAssistant((e.currentTarget as HTMLInputElement).checked)}
             />
         </label>
-    </div>
+    </SettingsGrid>
 </section>
