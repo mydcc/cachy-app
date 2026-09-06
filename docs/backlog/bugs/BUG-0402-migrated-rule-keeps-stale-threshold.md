@@ -2,7 +2,7 @@
 id: BUG-0402
 title: A migrated rule keeps the old price after its alert is edited
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: M4
 editions: [community, pro, private]

@@ -88,7 +88,7 @@
         percent={target.percent}
         isLocked={target.isLocked}
         tpDetail={calculatedTpDetails.find((d) => d.index === i)}
-        on:remove={() => removeRow(i)}
+        onremove={() => removeRow(i)}
       />
     {/each}
   </div>
