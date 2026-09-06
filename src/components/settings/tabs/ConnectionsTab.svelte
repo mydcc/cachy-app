@@ -23,6 +23,7 @@
     import { RSS_PRESETS } from "../../../config/rssPresets";
     import ApiQuotaStatus from "../ApiQuotaStatus.svelte";
     import AccountList from "../AccountList.svelte";
+    import SettingsGrid from "../shared/SettingsGrid.svelte";
 
     // Helper for masking inputs
     let showKeys: Record<string, boolean> = $state({});
@@ -232,7 +233,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SettingsGrid gap="gap-6">
                     <!-- CryptoPanic -->
                     <div class="api-card">
                         <div class="header">
@@ -248,7 +249,7 @@
                                     class="api-input"
                                 />
                             </div>
-                            <div class="grid grid-cols-2 gap-2 mt-3">
+                            <SettingsGrid gap="gap-2" extraClass="mt-3">
                                 <div class="field-group">
                                     <label for="cp-filter"
                                         >{$_("settings.connections.filter")}</label
@@ -312,7 +313,7 @@
                                         >
                                     </select>
                                 </div>
-                            </div>
+                            </SettingsGrid>
                         </div>
                     </div>
 
@@ -376,7 +377,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </SettingsGrid>
 
                 <!-- API Quota Status -->
                 <div class="mt-6">
@@ -392,7 +393,7 @@
                     {$_("settings.connections.rss")}
                 </h3>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <SettingsGrid gap="gap-4" extraClass="mb-6">
                     {#each RSS_PRESETS as preset}
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <div
@@ -428,7 +429,7 @@
                             </div>
                         </div>
                     {/each}
-                </div>
+                </SettingsGrid>
 
                 <!-- Custom Feeds -->
                 <h4
@@ -443,11 +444,11 @@
                                 <input
                                     type="url"
                                     bind:value={settingsState.customRssFeeds[i]}
-                                    class="api-input"
+                                    class="api-input min-w-0 flex-1"
                                     placeholder={$_("settings.connections.placeholders.url")}
                                 />
                                 <button
-                                    class="text-red-500 hover:text-red-400 p-2"
+                                    class="text-red-500 hover:text-red-400 p-2 shrink-0"
                                     onclick={() => removeCustomFeed(i)}
                                     aria-label={$_("settings.connections.aria.removeFeed")}
                                 >

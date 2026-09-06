@@ -152,7 +152,9 @@
     </div>
 
     <!-- Tab Content Area -->
-    <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+    <!-- Container queries below measure THIS width (the settings window),
+         not the viewport: @container makes the content a query container. -->
+    <div class="@container flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
 
         {#if activeTab === "trading"}
             <TradingTab />
