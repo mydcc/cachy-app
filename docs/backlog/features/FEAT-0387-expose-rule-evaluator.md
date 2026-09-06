@@ -323,6 +323,15 @@ a tick that changes nothing costs one `localStorage` read and no WASM call. The 
 cleared before each arming decision, so a second `initAlertEngine()` replaces it rather
 than stacking another.
 
+## Invariants this relies on
+
+**`ruleSchema.isReady()` never goes back to `false`.** Coverage is recomputed
+continuously; arming the rule loop is decided once at startup. Both read `isReady()`,
+and nothing keeps them in step, so a mid-session `true → false` would push every alert
+back to the legacy engine while the armed loop kept notifying — both engines serving
+one alert. Unreachable today (`core` is assigned and never cleared), and the disarm
+path that would make it safe is [FEAT-0406](FEAT-0406-rule-loop-disarm-path.md).
+
 ## Out of scope
 
 

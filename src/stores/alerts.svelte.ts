@@ -249,6 +249,15 @@ export type AlertEngineMode = "live" | "shadow";
  */
 const COVERAGE_RESYNC_INTERVAL_MS = 60_000;
 
+/**
+ * Module-scope, and session-long by design: it has the same lifetime as the
+ * rule loop and the legacy engine, neither of which is owned by a component
+ * either, so there is no `$effect` teardown or unmount hook to hang it on.
+ * `initAlertEngine()` clears it before each arming decision, which is what
+ * keeps a re-init from stacking timers. Under dev HMR a replaced module leaves
+ * the previous interval running against an orphaned `alertState`; harmless,
+ * and not worth a teardown path that production would never use.
+ */
 let coverageResyncTimer: ReturnType<typeof setInterval> | null = null;
 
 /** Stops the coverage re-sync timer, if one is running. */
@@ -386,6 +395,11 @@ export async function initAlertEngine(
     // that is no longer there.
     stopCoverageResync();
 
+    // Arming is decided once, here; coverage is recomputed on every close and
+    // every timer tick above. The two only stay in agreement because
+    // `ruleSchema.isReady()` never goes back to `false` — see the invariant on
+    // `isReady()` itself, and FEAT-0406 for the disarm path a reloadable core
+    // would need first.
     if (ruleSchema.isReady()) {
         startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink, onClose);
 
