@@ -433,13 +433,14 @@ describe("BUG-0382 — alert engine startup wiring", () => {
   });
 
   describe("FEAT-0387 — coverage stays in step with series observed mid-session", () => {
-    // Review round 3's finding: coverage was a startup snapshot, but the
-    // notifying loop is armed for the whole session and is series-driven. A
-    // rule whose series only becomes observed after init would stay covered
-    // by neither engine's fresh knowledge — armed and notifying on the rule
-    // path, still held (per the stale snapshot) or not held (if init happened
-    // to see it observed) on the legacy path, with nothing keeping the two in
-    // step as the market store's subscriptions change.
+    // Round 3's finding: coverage was a startup snapshot, but the notifying
+    // loop is armed for the whole session and is series-driven. A rule whose
+    // series only becomes observed after init would stay covered by neither
+    // engine's fresh knowledge. Round 4 found the mirror case: a series
+    // observed at init that later goes quiet (trader switches charts) leaves
+    // a covered rule evaluated by nothing, since round 3's fix alone reacted
+    // to a series starting, not to one stopping. Both directions are the same
+    // re-sync mechanism; these tests exercise it each way.
 
     function seedCoveredRule() {
       localStorage.setItem(
@@ -501,6 +502,46 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       // would still be sitting on the legacy engine while the rule path — armed
       // since startup — now also evaluates and notifies for it.
       expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+    });
+
+    it("returns the alert to the legacy engine when its series goes quiet", async () => {
+      // Review round 4's finding, the mirror of the test above: a series
+      // that was observed at startup (chart on 1m) can stop being observed
+      // mid-session (trader switches to 4h) without the market store ever
+      // clearing the candles it already has — a length-based `isSeriesObserved`
+      // would keep reporting "observed" forever. This test does not need the
+      // real recency logic (ruleLoopWiring.test.ts covers that); it only
+      // needs `isSeriesObserved` to report the honest answer and proves
+      // `alerts.svelte.ts`'s own re-sync reacts to it correctly either way.
+      seedCoveredRule();
+      vi.doMock("../lib/rules/ruleSchema", () => ({
+        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
+      }));
+      let observed = true;
+      let capturedOnClose: (() => void) | undefined;
+      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
+        isSeriesObserved: vi.fn(() => observed),
+        ledgerSink: vi.fn(),
+        startRuleEvaluationLoop: vi.fn((_sink: unknown, onClose?: () => void) => {
+          capturedOnClose = onClose;
+        }),
+      }));
+
+      const { initAlertEngine } = await import("./alerts.svelte");
+      await initAlertEngine(fakeLoader);
+
+      // Observed at startup: covered, so taken off the legacy engine.
+      expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+
+      // The subscription drops (trader switched charts) and some other
+      // series' close still drives the loop, triggering a re-sync.
+      observed = false;
+      capturedOnClose?.();
+
+      // Fails without the fix: the alert would stay off the legacy engine —
+      // armed in the trader's mind, evaluated by neither engine, since the
+      // rule path's own series produces no more closes to evaluate it with.
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
     });
 
     it("shadow mode never wires the re-sync hook, even once ready", async () => {

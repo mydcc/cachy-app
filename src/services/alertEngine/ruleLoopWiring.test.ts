@@ -24,7 +24,7 @@
  * and the rule reader sees what the migration wrote.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { marketState } from "../../stores/market.svelte";
 import {
@@ -114,23 +114,70 @@ describe("rule loop wiring", () => {
   });
 
   describe("isSeriesObserved", () => {
-    it("is true once the series has produced a closed candle", () => {
+    // Review round 4: a length check alone stayed "observed" forever once a
+    // series had ever produced a candle, since the market store only clears
+    // one on symbol eviction, never when a timeframe subscription ends. These
+    // tests pin the clock so "observed" can be checked as what it now means:
+    // recent, not merely once-seen.
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("is true right after the most recent candle, even one still forming", () => {
+      vi.setSystemTime(CANDLES[2].time);
       marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
 
       expect(isSeriesObserved("BTCUSDT", "1m")).toBe(true);
     });
 
-    it("is false for a series with only the forming candle", () => {
+    it("is true for a series with only the forming candle, if it's recent", () => {
+      vi.setSystemTime(CANDLES[0].time);
       marketState.applySymbolKlines("BTCUSDT", "1m", [CANDLES[0]]);
 
+      expect(isSeriesObserved("BTCUSDT", "1m")).toBe(true);
+    });
+
+    it("tolerates a short gap — one missed period is not staleness", () => {
+      vi.setSystemTime(CANDLES[2].time);
+      marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
+
+      vi.setSystemTime(CANDLES[2].time + 60_000); // one more minute passes
+      expect(isSeriesObserved("BTCUSDT", "1m")).toBe(true);
+    });
+
+    it("goes stale once the subscription has produced nothing for several periods", () => {
+      // The scenario the finding named: a trader had the chart on 1m (the
+      // series updated, alive), then switched to 4h — 1m candles stop
+      // arriving, but the buffer holding the last one never gets cleared.
+      vi.setSystemTime(CANDLES[2].time);
+      marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
+
+      vi.setSystemTime(CANDLES[2].time + 5 * 60_000); // five silent minutes
+      expect(isSeriesObserved("BTCUSDT", "1m")).toBe(false);
+    });
+
+    it("is false for a series with no candles at all", () => {
       expect(isSeriesObserved("BTCUSDT", "1m")).toBe(false);
     });
 
     it("is false for a symbol or timeframe nothing has subscribed to", () => {
+      vi.setSystemTime(CANDLES[2].time);
       marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
 
       expect(isSeriesObserved("ETHUSDT", "1m")).toBe(false);
       expect(isSeriesObserved("BTCUSDT", "4h")).toBe(false);
+    });
+
+    it("scales the staleness window to the timeframe — a quiet 4h series is not stale after minutes", () => {
+      vi.setSystemTime(CANDLES[2].time);
+      marketState.applySymbolKlines("BTCUSDT", "4h", CANDLES);
+
+      vi.setSystemTime(CANDLES[2].time + 30 * 60_000); // 30 minutes, nothing on a 4h series
+      expect(isSeriesObserved("BTCUSDT", "4h")).toBe(true);
     });
   });
 

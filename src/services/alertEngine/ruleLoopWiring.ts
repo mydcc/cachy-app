@@ -30,6 +30,7 @@
 import { browser } from "$app/environment";
 import type { EvaluationCandle, RuleDocument } from "../../lib/rules/types";
 import { marketState } from "../../stores/market.svelte";
+import { safeTfToMs } from "../../utils/timeUtils";
 import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { ruleEvaluationLoop, type FiringSink, type SeriesCloseHook } from "./ruleEvaluationLoop";
@@ -70,24 +71,54 @@ export function readClosedCandles(symbol: string, timeframe: string): Evaluation
 }
 
 /**
- * Whether the market store has ever produced a closed candle for this symbol
- * and timeframe — proof a subscription is actually live, not just requested.
+ * How many trigger periods of silence turn a once-live series stale.
+ *
+ * Generous on purpose: a live series ticks roughly once a timeframe period,
+ * so three missed periods is well past ordinary WS jitter or a brief
+ * reconnect — those must not cause an alert to bounce between engines on
+ * every hiccup — while still being a small, bounded window compared to a
+ * series that has actually stopped for good.
+ */
+const STALE_SERIES_TIMEFRAME_MULTIPLE = 3;
+
+/**
+ * Whether the market store is *currently* producing candles for this symbol
+ * and timeframe — not merely whether it once did.
  *
  * Migrated rules are pinned to `1m` (FEAT-0388), but the app only subscribes
  * to the timeframes the chart or the active indicators actually use — nothing
- * ties an armed rule's trigger timeframe to a guaranteed subscription. Without
- * this check, coverage would take a `1m`-triggered alert off the legacy
- * engine while its symbol is only ever watched on `4h`: covered, armed,
- * core-ready, and permanently silent because its series never arrives. That
- * is a silent gap indistinguishable from BUG-0382 to the trader.
+ * ties an armed rule's trigger timeframe to a guaranteed subscription, and a
+ * subscription that ends does not clear the candles it already wrote:
+ * `marketState` only forgets a series when the whole *symbol* is evicted
+ * (`forgetSymbol`), never when one timeframe stops being watched. A rule
+ * covered while its chart was on `1m` stays "observed" by a length check
+ * alone even after the trader switches to `4h` and the `1m` feed goes silent
+ * — armed, taken off the legacy engine, and evaluated by nothing, the mirror
+ * image of the gap this same predicate was built to close (round 3: a series
+ * that only *starts* being observed mid-session). A silent gap either way is
+ * indistinguishable from BUG-0382 to the trader.
  *
- * `.length > 0` rather than warmup-aware: this answers "is the series alive
- * at all", which the gate's own warmup check already covers once it is. A
- * series that has produced one close will keep producing them; one that has
- * produced none might never start.
+ * So this asks recency, not existence: the most recent candle in the buffer
+ * (including the one still forming — a live series updates that one on every
+ * tick) has to be no older than a few trigger periods. A series that has
+ * never produced anything fails the same way a stale one does — `stored`
+ * empty and `undefined - anything` both read as "not observed" below.
  */
 export function isSeriesObserved(symbol: string, timeframe: string): boolean {
-  return readClosedCandles(symbol, timeframe).length > 0;
+  try {
+    const stored = marketState.data[symbol]?.klines?.[timeframe];
+    if (!Array.isArray(stored) || stored.length === 0) return false;
+
+    const last = stored[stored.length - 1];
+    const lastOpenMs = last?.time;
+    if (typeof lastOpenMs !== "number" || !Number.isFinite(lastOpenMs)) return false;
+
+    const maxSilenceMs = safeTfToMs(timeframe) * STALE_SERIES_TIMEFRAME_MULTIPLE;
+    return Date.now() - lastOpenMs <= maxSilenceMs;
+  } catch (e) {
+    logger.error("alerts", `[Cutover] Series-observed check failed for ${symbol} ${timeframe}`, e);
+    return false;
+  }
 }
 
 /**

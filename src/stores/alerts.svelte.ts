@@ -313,14 +313,20 @@ export async function initAlertEngine(
     alertState.engineStatus = "ready";
 
     // FEAT-0387 cutover: coverage above is a startup snapshot, but the market
-    // store keeps subscribing to new series for as long as the session runs —
-    // a symbol the trader charts at 4h when the app opens can gain a 1m
-    // subscription minutes later (a different chart, an indicator). Without
-    // this, a rule whose series became observed only after startup would stay
-    // armed and notifying on the rule path while its alert was never taken
-    // off the legacy engine, since `syncEngine` above never runs again: both
-    // engines would serve it, which is the double fire this cutover exists to
-    // rule out — reached through staleness rather than construction.
+    // store keeps subscribing and unsubscribing to series for as long as the
+    // session runs — a symbol the trader charts at 4h when the app opens can
+    // gain a 1m subscription minutes later (a different chart, an indicator),
+    // and just as easily lose one when the trader switches away. Without this,
+    // either direction opens a gap: a rule whose series becomes observed only
+    // after startup would stay armed and notifying on the rule path while its
+    // alert was never taken off the legacy engine (both engines serving it —
+    // the double fire this cutover exists to rule out, reached through
+    // staleness rather than construction); a rule whose series later goes
+    // quiet (round 4: `isSeriesObserved` is recency-based precisely so a
+    // dropped subscription is detected here) would stay off the legacy engine
+    // while nothing evaluates it anymore (BUG-0382, the mirror image). Both
+    // directions are the same re-sync — recomputing coverage fresh each time
+    // catches whichever one just happened.
     //
     // Only wired in live mode. Shadow mode must not touch legacy coverage at
     // all, for the same reason it forces `covered` empty above: a re-sync
