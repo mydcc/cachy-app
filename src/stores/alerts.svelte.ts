@@ -1,5 +1,3 @@
-import { _ } from "../locales/i18n";
-import { get } from "svelte/store";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -17,7 +15,10 @@ import { get } from "svelte/store";
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { get } from "svelte/store";
+
 import { browser } from "$app/environment";
+import { _ } from "../locales/i18n";
 import { alertEngine, type AlertDefinition, type WasmModuleLoader } from "../services/alertEngine/alertEngine";
 import { migrateAlertsToRuleDocuments } from "../services/alertEngine/migrateAlertsToRules";
 import {
