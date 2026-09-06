@@ -287,8 +287,14 @@ frequency of *observed* series closes, not a separate timer.
 Clarification added to `src/stores/alerts.svelte.ts` `initAlertEngine()` documenting
 this strategy explicitly.
 
+**Edge case:** A trader on a `4h` chart with a new `1m`-pinned alert (never observed since start)
+keeps it on the legacy engine (correct); if that trader briefly charts `1m` then returns to `4h`,
+the `1m` series goes silent but coverage remains "covered" until a close fires `onClose`. This
+bounded window (up to one coarse period) is the documented trade-off for event-driven coverage
+re-sync.
+
 ## Out of scope
-## Out of scope
+
 
 - Any UI. The panel is `FEAT-0389`.
 - Migrating stored alerts. That is `FEAT-0388`.
