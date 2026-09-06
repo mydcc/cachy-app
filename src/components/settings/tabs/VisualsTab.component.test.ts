@@ -69,8 +69,9 @@ describe("VisualsTab — section split", () => {
         settle();
 
         expect(host.innerHTML).toContain("tab-visuals");
-        // The news-behavior card is the only col-span-1 block in the tab.
-        expect(host.querySelector(".col-span-1")).toBeTruthy();
+        // The news-behavior card is the only toggle-card block in the tab
+        // (#2722 switched it from col-span-1 to col-span-full).
+        expect(host.querySelector(".toggle-card")).toBeTruthy();
         expect(host.querySelector("#theme-select")).toBeNull();
     });
 
