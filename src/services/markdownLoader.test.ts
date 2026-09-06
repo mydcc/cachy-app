@@ -155,6 +155,13 @@ describe("loadInstruction('changelog')", () => {
       expect(html).not.toContain(GENERATED_RELEASES_MARKER);
       expect(html).not.toContain("CHANGELOG_GENERATED");
       expect(html).toContain("0.94.3");
+      // Release headings carry compare links: the custom heading renderer
+      // must parse inline formatting instead of emitting markdown source
+      // (the 1.5.0 link rendered as literal "[1.5.0](...)" text before the
+      // marked-v18 renderer fix).
+      expect(html).toContain(
+        '<a href="https://github.com/mydcc/cachy-app/compare/',
+      );
     },
   );
 
