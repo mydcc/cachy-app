@@ -333,7 +333,34 @@
       "cutoverNoticeBody": "Existing alerts are now checked at the close of each 1-minute candle instead of on every single price change. Two things follow from that: an alert can arrive up to a minute later, and a brief spike through your level that recovers within the same minute no longer triggers one.",
       "cutoverNoticeDismiss": "Got it",
       "orphanSuspendedHint": "Migrated alarms disabled: {count}. Their original price alert no longer exists, so they were switched off automatically.",
-      "orphanWithheldHint": "Migrated alarms with unresolved origin: {count}. We could not tell for certain whether the original price alert was deleted, so they are being kept active as a precaution and can still trigger."
+      "orphanWithheldHint": "Migrated alarms with unresolved origin: {count}. We could not tell for certain whether the original price alert was deleted, so they are being kept active as a precaution and can still trigger.",
+      "panel": {
+        "title": "Super Alert",
+        "open": "Open the Super Alert panel",
+        "tabs": "Alert builder",
+        "tab": {
+          "templates": "Templates",
+          "combo": "Combo",
+          "price": "Price",
+          "indicators": "Indicators",
+          "candlesticks": "Candlesticks",
+          "manage": "Manage"
+        },
+        "symbol": "Symbol",
+        "priceSource": "Price source",
+        "timeframe": "Timeframe",
+        "sentenceLabel": "This rule means",
+        "arm": "Arm alert",
+        "loading": "Loading tab …",
+        "pendingTitle": "This builder is still to come",
+        "pendingBody": "This tab is part of {item} and has not been built yet. Until then, create price alerts under “Manage”.",
+        "coreUnavailable": "The rule could not be checked because the rule core is not loaded. That does not mean your rule is wrong — it was never checked at all.",
+        "otherRefusals": "Other objections",
+        "storeUnreadable": "The rule store could not be read. Nothing was armed, so your existing alerts are not overwritten.",
+        "armed": "Alert armed.",
+        "armDisabled": "Add a condition first.",
+        "tabLoadFailed": "This tab could not be loaded. Reload the page."
+      }
     },
     "generalInputs": {
       "header": "General",
@@ -3769,6 +3796,72 @@
       "emptyConditionTree": "A group with no conditions has no truth value.",
       "conditionTreeTooDeep": "The conditions are nested too deeply.",
       "duplicateConditionId": "The same condition identifier is used twice."
+    },
+    "sentence": {
+      "frame": "{lead} when, on the {timeframe} close, {condition}",
+      "unless": "— unless {condition}.",
+      "empty": "(no condition yet)",
+      "negate": "not {condition}",
+      "onTimeframe": " (on {timeframe})",
+      "compare": "{left} is {op} {right}{timeframe}",
+      "crossing": "{left} {direction} {right}{timeframe}",
+      "lead": {
+        "notify": "Notifies",
+        "simulate": "Simulates an order",
+        "send": "Sends a {side} order for {size} {basis}"
+      },
+      "op": {
+        "lt": "below",
+        "lte": "at most",
+        "gt": "above",
+        "gte": "at least",
+        "eq": "equal to",
+        "neq": "not equal to"
+      },
+      "cross": {
+        "above": "crosses above",
+        "below": "crosses below",
+        "any": "crosses"
+      },
+      "join": {
+        "all": "and",
+        "any": "or",
+        "none": "and"
+      },
+      "price": {
+        "open": "the open",
+        "high": "the high",
+        "low": "the low",
+        "close": "the close",
+        "hl2": "the median price (HL2)",
+        "hlc3": "the typical price (HLC3)"
+      },
+      "side": {
+        "long": "a long position",
+        "short": "a short position",
+        "either": "a position"
+      },
+      "position": {
+        "open": "{side} is open",
+        "flat": "{side} is closed"
+      },
+      "orderSide": {
+        "buy": "buy",
+        "sell": "sell"
+      },
+      "basis": {
+        "base_quantity": "in the base asset",
+        "quote_notional": "in the quote asset",
+        "percent_of_equity": "% of equity",
+        "percent_risk": "% risk"
+      },
+      "account": {
+        "position_size": "the position size",
+        "unrealised_pnl": "the unrealised profit",
+        "unrealised_pnl_percent": "the unrealised profit in %",
+        "exposure": "the exposure",
+        "available_balance": "the available balance"
+      }
     }
   }
 }

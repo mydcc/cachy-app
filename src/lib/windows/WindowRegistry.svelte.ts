@@ -118,6 +118,47 @@ class WindowRegistry {
             }
         });
 
+        /**
+         * FEAT-0389 -- the Super-Alert side panel.
+         *
+         * A side panel is a floating surface, so ADR-0006 requires it to be a
+         * WindowBase under WindowManager rather than its own fixed overlay.
+         * Two flags carry the whole point of the redesign: `showBackdrop:
+         * false` and `closeOnBlur: false`, so the chart stays visible *and*
+         * clickable beside the panel. The alert modal covered the chart the
+         * trader was reading while deciding where to put the alarm; a panel
+         * that dimmed or closed on the next chart click would keep that cost
+         * under a new name.
+         *
+         * Singleton (`allowMultipleInstances` unset, `maxInstances: 1`): the
+         * panel holds one draft rule, and a second instance would edit the
+         * same document from two places.
+         */
+        this.configs.set('alertpanel', {
+            type: 'alertpanel',
+            flags: {
+                ...baseFlags,
+                isResizable: true,
+                isDraggable: true,
+                allowMaximize: false,
+                allowMinimize: true,
+                canMinimizeToPanel: true,
+                centerByDefault: false,
+                maxInstances: 1,
+                showBackdrop: false,
+                closeOnBlur: false,
+                isResponsive: true, // Edge-to-edge on mobile, where docking has no room
+                edgeToEdgeBreakpoint: 768
+            },
+            layout: {
+                ...baseLayout,
+                width: 420,
+                height: 720,
+                minWidth: 340,
+                minHeight: 420
+            }
+        });
+
         /** Small center-fixed dialog for Alerts and Confirmations. */
         this.configs.set('dialog', {
             type: 'dialog',
