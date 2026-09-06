@@ -20,20 +20,24 @@
  * Fails unless `.node-version` pins an exact Node.js version that satisfies
  * the `engines.node` range in `package.json`.
  *
- *   node scripts/check-node-version.mjs [repo-root]
+ *   node scripts/check-node-version.mjs
  *
  * Why this exists: the pin silently drifted back to Node 20.18.3 twice via
  * sandbox sessions replaying stale files, while `engines` requires
  * `>=22.19.0` (undici 8 fails to import on Node 20 and trips the safeFetch
  * fail-closed guard). A floating pin (`22`, `lts/*`) would not catch that
  * either — the pin must be exact, and it must satisfy `engines`.
+ *
+ * The repository root is derived from this file's own location, never from
+ * arguments or environment: there is no user-controlled input reaching any
+ * path operation below.
  */
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const fail = (msg) => {
   console.error(`❌ node-version check: ${msg}`);
