@@ -2,9 +2,9 @@
 
 # Backlog index
 
-288 items. How to read and add them: [README.md](README.md).
+289 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-progress 5 · ✅ done 219
+Counts by status: 💡 idea 24 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-progress 5 · ✅ done 219
 
 ---
 
@@ -347,6 +347,7 @@ Counts by status: 💡 idea 23 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | ✅ done | chat |
 | [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | chat |
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | ai |
+| [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | alerts |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -635,6 +636,7 @@ Counts by status: 💡 idea 23 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 💡 idea | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -650,4 +652,4 @@ Counts by status: 💡 idea 23 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-pro
 
 ---
 
-Next free number: **0406**
+Next free number: **0407**
