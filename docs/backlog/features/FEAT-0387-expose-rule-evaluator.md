@@ -334,7 +334,6 @@ path that would make it safe is [FEAT-0406](FEAT-0406-rule-loop-disarm-path.md).
 
 ## Out of scope
 
-
 - Any UI. The panel is `FEAT-0389`.
 - Migrating stored alerts. That is `FEAT-0388`.
 - New condition kinds. `Condition::Pattern` is `FEAT-0394`.
