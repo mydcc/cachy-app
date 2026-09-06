@@ -73,7 +73,7 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-hidden p-4 md:p-6">
+      <div class="@container flex-1 overflow-hidden min-w-0 p-4 md:p-6">
          {#if activeTab === "chartPatterns"}
             <ChartPatternsView />
          {:else}

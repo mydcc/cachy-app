@@ -207,7 +207,7 @@ describe("FEAT-0328 — one leverage, one source", () => {
         // the row keeps this column even when the exchange chips are absent.
         await render();
 
-        expect(host.querySelector("#fees-input")).not.toBeNull();
+        expect(host.querySelector(".fee-summary")).not.toBeNull();
     });
 });
 
@@ -247,12 +247,13 @@ describe("FEAT-0253 — the fee mirror uses feePreference for the exit-leg assum
 
     it("falls back to DEFAULT_FEES when the active fee field was cleared", async () => {
         // User clears the Taker field in Settings → stores "" → the guard
-        // catches it and falls back to 0.06 instead of propagating "".
+        // catches it and falls back to the taker default instead of
+        // propagating "".
         (settingsStateMock.feeRates.bitunix as { taker: string }).taker = "";
         tradeStateMock.fees = "0.06";
         await render();
 
-        expect(tradeStateMock.fees).toBe("0.0600");
+        expect(tradeStateMock.fees).toBe("0.0420");
     });
 
     it("passes a literal '0' rate through (promo / rebate, not a degenerate input)", async () => {

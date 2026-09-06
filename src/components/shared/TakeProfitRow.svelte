@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import Tooltip from "./Tooltip.svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
@@ -28,8 +27,6 @@
   import { parseDecimal } from "../../utils/utils";
   import type { Decimal } from "decimal.js";
 
-  const dispatch = createEventDispatcher();
-
   interface Props {
     index: number;
     price: string | null;
@@ -37,6 +34,7 @@
     isLocked: boolean;
     canRemove?: boolean;
     tpDetail?: IndividualTpResult | undefined;
+    onremove?: (index: number) => void;
   }
 
   let {
@@ -46,6 +44,7 @@
     isLocked,
     canRemove = true,
     tpDetail = undefined,
+    onremove,
   }: Props = $props();
 
   function toggleLock() {
@@ -59,7 +58,7 @@
   }
 
   function removeRow() {
-    dispatch("remove", index);
+    onremove?.(index);
   }
 
   const format = (val: string | null) =>

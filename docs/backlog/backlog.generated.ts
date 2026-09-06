@@ -1186,7 +1186,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0360",
     "title": "TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "shipped": "1.6.0-beta.231",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1199,15 +1200,18 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "size": "S",
+    "assignee": "claude",
+    "branch": "fix/2584-2587-2588-bugfixes",
     "file": "bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md"
   },
   {
     "id": "BUG-0382",
     "title": "The price alert engine is never initialised, so no alert ever fires",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "M4",
+    "shipped": "1.6.0-beta.236",
     "editions": [
       "community",
       "pro",
@@ -1238,6 +1242,52 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "claude",
     "branch": "fix/bug-0383-tpsl-drag-order-not-found",
     "file": "bugs/BUG-0386-tpsl-drag-order-not-found.md"
+  },
+  {
+    "id": "BUG-0402",
+    "title": "A migrated rule keeps the old price after its alert is edited",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0388"
+    ],
+    "file": "bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md"
+  },
+  {
+    "id": "BUG-0404",
+    "title": "Chart indicator toggles incomplete and coupled to Technicals switches",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0404-chart-indicator-toggles",
+    "priority": "P1",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0403"
+    ],
+    "estimate": "3",
+    "size": "M",
+    "target_date": "2026-09-19",
+    "start_date": "2026-09-05",
+    "file": "bugs/BUG-0404-chart-indicator-toggles-independence.md"
   },
   {
     "id": "FEAT-0014",
@@ -2047,7 +2097,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0388",
     "title": "Migrate stored price alerts to rule documents",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-feat-0388-weitermachen-10ee20",
     "priority": "P1",
     "milestone": "M4",
     "editions": [
@@ -2063,7 +2115,51 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "S",
     "estimate": "2",
+    "start_date": "2026-09-05",
     "file": "features/FEAT-0388-migrate-alerts-to-rule-documents.md"
+  },
+  {
+    "id": "FEAT-0401",
+    "title": "Record a migration origin ledger for rules converted from legacy alerts",
+    "type": "feature",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-migrate-alerts-to-rules-47d8cf",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0388"
+    ],
+    "size": "S",
+    "estimate": "2",
+    "start_date": "2026-09-05",
+    "file": "features/FEAT-0401-record-migration-origin-ledger.md"
+  },
+  {
+    "id": "FEAT-0405",
+    "title": "Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "ADR-0013",
+    "depends_on": [],
+    "file": "features/FEAT-0405-client-side-signing-cutover.md"
   },
   {
     "id": "BUG-0005",
@@ -3098,7 +3194,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0363",
     "title": "MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "shipped": "1.6.0-beta.231",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3111,6 +3208,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "size": "S",
+    "assignee": "claude",
+    "branch": "fix/2584-2587-2588-bugfixes",
     "file": "bugs/BUG-0363-market-manager-metadata-unbounded-growth.md"
   },
   {
@@ -4464,7 +4563,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0343",
     "title": "Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/audit-followups",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4929,6 +5030,56 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0397-notification-channels.md"
   },
   {
+    "id": "FEAT-0400",
+    "title": "Collapse chart indicator sub-panes to header strips",
+    "type": "feature",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "feat/chart-pane-collapse",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "estimate": "2",
+    "size": "S",
+    "target_date": "2026-09-18",
+    "start_date": "2026-09-04",
+    "file": "features/FEAT-0400-collapse-chart-indicator-sub-panes.md"
+  },
+  {
+    "id": "FEAT-0403",
+    "title": "Toggle chart indicator panes per indicator in Settings",
+    "type": "feature",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "feat/chart-pane-collapse",
+    "priority": "P2",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0400"
+    ],
+    "estimate": "2",
+    "size": "S",
+    "target_date": "2026-09-18",
+    "start_date": "2026-09-05",
+    "file": "features/FEAT-0403-chart-pane-visibility-toggles.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
@@ -5309,7 +5460,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0362",
     "title": "VisibilityController attaches uncleaned document visibilitychange listener without destroy method",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "shipped": "1.6.0-beta.231",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5322,6 +5474,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "size": "XS",
+    "assignee": "claude",
+    "branch": "fix/2584-2587-2588-bugfixes",
     "file": "bugs/BUG-0362-visibility-controller-listener-leak.md"
   },
   {
@@ -5865,6 +6019,51 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "antigravity",
     "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0377-gemini-key-header-not-query.md"
+  },
+  {
+    "id": "FEAT-0398",
+    "title": "Engine Debug Panel with real telemetry",
+    "type": "feature",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-feat-0388-weitermachen-10ee20",
+    "priority": "P3",
+    "milestone": "M3",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "engine",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "estimate": "1",
+    "size": "S",
+    "target_date": "2026-09-12",
+    "start_date": "2026-09-04",
+    "file": "features/FEAT-0398-engine-debug-panel-telemetry.md"
+  },
+  {
+    "id": "FEAT-0399",
+    "title": "Remove the legacy cachy_alerts_v1 store and evaluation path",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "M5",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0388",
+      "FEAT-0389"
+    ],
+    "file": "features/FEAT-0399-remove-legacy-alerts-v1.md"
   },
   {
     "id": "IDEA-0036",

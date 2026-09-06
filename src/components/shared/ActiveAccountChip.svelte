@@ -71,6 +71,15 @@
             ? "Bitget"
             : "Bitunix",
     );
+
+    /*
+     * The default account is named after its venue, so name and venue read
+     * identically ("Bitunix · Bitunix"). Showing it twice states nothing
+     * twice-worthy — one label does. A renamed account ("Main · Bitunix")
+     * keeps both halves. Case-insensitive: "bitunix" vs "Bitunix" is the
+     * same word in different clothes.
+     */
+    const showVenue = $derived(!compact && venue.toLowerCase() !== name.toLowerCase());
 </script>
 
 <span
@@ -82,7 +91,7 @@
 >
     <span class="dot" aria-hidden="true"></span>
     <span class="name">{name}</span>
-    {#if !compact}
+    {#if showVenue}
         <span class="venue">· {venue}</span>
     {/if}
 </span>
@@ -90,6 +99,7 @@
 <style>
     .chip {
         display: inline-flex;
+        cursor: default;
         align-items: center;
         gap: 0.35rem;
         padding: 0.15rem 0.5rem;

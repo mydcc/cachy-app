@@ -588,36 +588,23 @@ export const CONSTANTS = {
   ],
   DEFAULT_LEVERAGE: "10",
   /*
-   * A PERCENTAGE, not a fraction: "0.0600" means 0.06%. The division by 100
-   * happens inside `calculateBreakEvenPrice`. Writing 0.0006 here would make
+   * A PERCENTAGE, not a fraction: "0.0420" means 0.042%. The division by 100
+   * happens inside `calculateBreakEvenPrice`. Writing 0.00042 here would make
    * every fee 100x too small (BUG-0329 pins the unit in a test).
    *
-   * Bitunix futures, VIP 0, read 2026-08-31 from
-   * https://www.bitunix.com/service/handling-fee — 0.0200% maker,
-   * 0.0600% taker. The *taker* rate is the default on purpose: this single
-   * value stands in for both legs, the exit leg is unknowable when the plan
-   * is made and is therefore assumed taker, and a risk tool must err toward
-   * overstating cost. The previous "0.0140" was a maker rate of an older
-   * tariff, which understated a market-in/stop-out round trip about
-   * four-fold (BUG-0329).
-   *
-   * Splitting this into per-venue maker and taker rates, and deriving the
-   * account's real rate from its own fills, is FEAT-0253.
+   * Theoretical default rate (taker leg). Per-venue maker/taker defaults live
+   * in `VENUE_DEFAULT_FEE_RATES` below; the Settings rates and the broker-
+   * derived fills override them (FEAT-0253).
    */
-  DEFAULT_FEES: "0.0600",
+  DEFAULT_FEES: "0.0420",
   DEFAULT_ATR_MULTIPLIER: "1.2",
   BITUNIX_WS_PUBLIC_URL: "wss://fapi.bitunix.com/public/",
   BITUNIX_WS_PRIVATE_URL: "wss://fapi.bitunix.com/private/",
 };
 
 /*
- * Documented default fee rates per venue (futures, VIP 0), PERCENTAGES —
- * "0.0200" means 0.02% maker, same unit as `DEFAULT_FEES` (BUG-0329).
- *
- * Bitunix read 2026-08-31 from https://www.bitunix.com/service/handling-fee
- * (0.0200% maker / 0.0600% taker). Bitget standard contract rates are the
- * same 0.02/0.06 tariff; verify against Bitget's fee page before relying on
- * it for a real account.
+ * Theoretical default fee rates per venue, PERCENTAGES — "0.0140" means
+ * 0.014% maker, same unit as `DEFAULT_FEES` (BUG-0329).
  *
  * FEAT-0253: these are only the prefills for the Settings inputs. The user
  * overrides them with their personal (level- / rebate-adjusted) rates, and
@@ -628,8 +615,8 @@ export const VENUE_DEFAULT_FEE_RATES: Record<
   "bitunix" | "bitget",
   { maker: string; taker: string }
 > = {
-  bitunix: { maker: "0.0200", taker: "0.0600" },
-  bitget: { maker: "0.0200", taker: "0.0600" },
+  bitunix: { maker: "0.0140", taker: "0.0420" },
+  bitget: { maker: "0.0140", taker: "0.0420" },
 };
 
 export const themes = [

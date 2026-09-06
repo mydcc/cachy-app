@@ -19,6 +19,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { CHART_PATTERNS, DEFAULT_PATTERN_COLORS } from './chartPatterns';
 import { PATTERNS_DATA } from './chartPatterns.data';
 import { DRAW_FUNCTIONS } from './chartPatterns.draw';
+import type { ChartPatternLabels } from './chartPatterns.types';
+import de from '../locales/locales/de.json';
+
+// On-canvas annotation labels resolve via chartPatterns.labels.* locale
+// entries at the ChartPatternChart call site; draw functions take them as
+// an explicit parameter so the canvas module stays text-free.
+const labels = de.chartPatterns.labels as unknown as ChartPatternLabels;
 
 // Mock global constructors if not available
 if (typeof Path2D === 'undefined') {
@@ -75,7 +82,7 @@ describe('Chart Patterns Drawing', () => {
 
     CHART_PATTERNS.forEach(pattern => {
       expect(() => {
-        pattern.drawFunction(ctx, width, height, addInteractive, colors);
+        pattern.drawFunction(ctx, width, height, addInteractive, colors, labels);
       }).not.toThrow();
     });
   });
@@ -91,7 +98,7 @@ describe('Chart Patterns Drawing', () => {
     const colors = DEFAULT_PATTERN_COLORS;
 
     if (pattern) {
-      pattern.drawFunction(ctx as unknown as CanvasRenderingContext2D, width, height, addInteractive, colors);
+      pattern.drawFunction(ctx as unknown as CanvasRenderingContext2D, width, height, addInteractive, colors, labels);
 
       // Basic checks to ensure drawing methods are called
       expect(ctx.beginPath).toHaveBeenCalled();

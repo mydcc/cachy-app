@@ -20,9 +20,10 @@
  * FEAT-0253 — the panel must never overstate where a fee rate came from.
  *
  * The derivation itself is unit-tested in `src/lib/fees/`. What can only be
- * checked with the component mounted is the part the user actually sees: which
- * badge each leg carries, whether the field is editable, and that the resolved
- * rates reach the `tradeState` fields the sizing maths reads.
+ * checked with the component mounted is the part the user actually sees: the
+ * read-only entry-fee line (which switches with the Market/Limit choice),
+ * the provenance badge it carries, and that the resolved rates reach the
+ * `tradeState` fields the sizing maths reads.
  *
  * The claim that matters is negative — a rate the broker never sent is never
  * labelled as the broker's. That is what separates a quote from a guess in a
@@ -75,8 +76,8 @@ const settingsStateMock = vi.hoisted(() => ({
     apiProvider: "bitunix",
     feePreference: "taker" as "maker" | "taker",
     feeRates: {
-        bitunix: { maker: "0.0200", taker: "0.0600" },
-        bitget: { maker: "0.0200", taker: "0.0600" },
+        bitunix: { maker: "0.0140", taker: "0.0420" },
+        bitget: { maker: "0.0140", taker: "0.0420" },
     },
 }));
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settingsStateMock }));
@@ -122,16 +123,23 @@ function render() {
     flushSync();
 }
 
-/** The two provenance rows, in render order: entry leg first, then exit. */
-function legs(): Array<{ text: string; provenance: string | undefined }> {
-    return [...host.querySelectorAll<HTMLElement>(".fee-leg")].map((leg) => ({
-        text: leg.textContent?.replace(/\s+/g, " ").trim() ?? "",
-        provenance: leg.querySelector<HTMLElement>(".fee-badge")?.dataset.provenance,
-    }));
+/** The fee column: label row (with provenance chip) + neutral rate line. */
+function feeColumn(): HTMLElement {
+    return host.querySelector<HTMLElement>(".fee-summary")!.parentElement!;
 }
 
-function feeInput(): HTMLInputElement {
-    return host.querySelector<HTMLInputElement>("#fees-input")!;
+/** The neutral rate line text plus the chip provenance beside the label. */
+function summary(): { text: string; provenance: string | undefined } {
+    const line = host.querySelector<HTMLElement>(".fee-summary");
+    const text = line?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    const provenance =
+        feeColumn().querySelector<HTMLElement>(".fee-badge")?.dataset
+            .provenance;
+    return { text, provenance };
+}
+
+function feeSummary(): HTMLElement {
+    return host.querySelector<HTMLElement>(".fee-summary")!;
 }
 
 beforeEach(() => {
@@ -141,8 +149,8 @@ beforeEach(() => {
     settingsStateMock.apiProvider = "bitunix";
     settingsStateMock.feePreference = "taker";
     settingsStateMock.feeRates = {
-        bitunix: { maker: "0.0200", taker: "0.0600" },
-        bitget: { maker: "0.0200", taker: "0.0600" },
+        bitunix: { maker: "0.0140", taker: "0.0420" },
+        bitget: { maker: "0.0140", taker: "0.0420" },
     };
     tradeStateMock.leverage = "20";
     tradeStateMock.fees = "0.06";
@@ -164,13 +172,11 @@ afterEach(() => {
     host.remove();
 });
 
-describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () => {
+describe("FEAT-0253 — the displayed entry fee carries its provenance (AC 7)", () => {
     it("labels an untouched venue default 'assumed', not 'from broker'", () => {
         render();
-        const [entry, exit] = legs();
-        expect(entry.provenance).toBe("assumed");
-        expect(exit.provenance).toBe("assumed");
-        expect(entry.text).toContain("assumed");
+        expect(summary().provenance).toBe("assumed");
+        expect(feeColumn().textContent).toContain("assumed");
     });
 
     it("labels a rate derived from the account's fills 'from broker'", () => {
@@ -180,10 +186,8 @@ describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () =
         tradeStateMock.remoteFeeSamples = { maker: 4, taker: 9 };
         render();
 
-        const [entry, exit] = legs();
-        expect(entry.provenance).toBe("broker");
-        expect(exit.provenance).toBe("broker");
-        expect(exit.text).toContain("0.045");
+        expect(summary().provenance).toBe("broker");
+        expect(summary().text).toContain("0.045");
     });
 
     it("never claims 'from broker' in paper trading, even with a derived rate present", () => {
@@ -194,23 +198,19 @@ describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () =
         paperStateMock.enabled = true;
         render();
 
-        for (const leg of legs()) {
-            expect(leg.provenance).not.toBe("broker");
-        }
+        expect(summary().provenance).not.toBe("broker");
     });
 
     it("labels a Settings rate the user changed 'manual'", () => {
         settingsStateMock.feeRates = {
             ...settingsStateMock.feeRates,
-            bitunix: { maker: "0.0200", taker: "0.0350" },
+            bitunix: { maker: "0.0140", taker: "0.0350" },
         };
         render();
 
-        const [entry, exit] = legs();
         // Entry is a market order → taker → the changed rate.
-        expect(entry.provenance).toBe("manual");
-        // Exit follows feePreference "taker" → the same changed rate.
-        expect(exit.provenance).toBe("manual");
+        expect(summary().provenance).toBe("manual");
+        expect(summary().text).toContain("0.0350");
     });
 
     it("never shows one venue's derived rate as another venue's (cross-venue leak)", () => {
@@ -223,10 +223,8 @@ describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () =
         settingsStateMock.apiProvider = "bitget";
         render();
 
-        for (const leg of legs()) {
-            expect(leg.provenance).not.toBe("broker");
-            expect(leg.text).not.toContain("0.045");
-        }
+        expect(summary().provenance).not.toBe("broker");
+        expect(summary().text).not.toContain("0.045");
     });
 
     it("survives an unparseable stored rate instead of throwing out of a rune", () => {
@@ -236,12 +234,12 @@ describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () =
         for (const bad of ["0,06", "abc", "--1", "1e", " "]) {
             settingsStateMock.feeRates = {
                 ...settingsStateMock.feeRates,
-                bitunix: { maker: "0.0200", taker: bad },
+                bitunix: { maker: "0.0140", taker: bad },
             };
             expect(() => render()).not.toThrow();
-            // Falls back to the documented default, and says so.
-            expect(feeInput().value).toBe("0.0600");
-            expect(legs()[1].provenance).toBe("assumed");
+            // Falls back to the theoretical default, and says so.
+            expect(summary().text).toContain("0.0420");
+            expect(summary().provenance).toBe("assumed");
             if (component) unmount(component);
             component = null;
             host.innerHTML = "";
@@ -254,53 +252,56 @@ describe("FEAT-0253 — every displayed fee carries its provenance (AC 7)", () =
         // user meant is passed through, whatever its formatting.
         settingsStateMock.feeRates = {
             ...settingsStateMock.feeRates,
-            bitunix: { maker: "0.0200", taker: "0." },
+            bitunix: { maker: "0.0140", taker: "0." },
         };
         render();
-        expect(feeInput().value).toBe("0.");
+        expect(summary().text).toContain("0.");
         expect((tradeStateMock.exitFees as Decimal)?.isZero()).toBe(true);
     });
 
     it("falls back per role — a maker rate with no maker fills stays 'assumed'", () => {
         // A live account that has only ever taken liquidity: the taker rate is
-        // real, the maker one is still the documented default and must say so.
+        // real, the maker one is still the theoretical default. The chip shows
+        // the dominant (broker) provenance; the tooltip spells out both legs.
         tradeStateMock.remoteFeeExchange = "bitunix";
         tradeStateMock.remoteTakerFee = new Decimal("0.045");
         tradeStateMock.remoteFeeSamples = { taker: 3 };
         tradeStateMock.entryOrderType = "limit";
         render();
 
-        const [entry, exit] = legs();
-        expect(entry.provenance).toBe("assumed");
-        expect(exit.provenance).toBe("broker");
+        expect(summary().provenance).toBe("broker");
+        expect(summary().text).toContain("0.0140");
+        expect(summary().text).toContain("0.045");
+        expect(feeSummary().title).toContain("assumed");
+        expect(feeSummary().title).toContain("from broker");
     });
 });
 
 describe("FEAT-0253 — the entry leg follows the order type (AC 3)", () => {
     it("charges a market entry the taker rate", () => {
         render();
-        expect(legs()[0].text).toContain("0.0600");
-        expect((tradeStateMock.entryFees as Decimal)?.toString()).toBe("0.06");
+        expect(summary().text).toContain("0.0420");
+        expect((tradeStateMock.entryFees as Decimal)?.toString()).toBe("0.042");
     });
 
     it("charges a limit entry the maker rate", () => {
         tradeStateMock.entryOrderType = "limit";
         render();
-        expect(legs()[0].text).toContain("0.0200");
-        expect((tradeStateMock.entryFees as Decimal)?.toString()).toBe("0.02");
+        expect(summary().text).toContain("0.0140");
+        expect((tradeStateMock.entryFees as Decimal)?.toString()).toBe("0.014");
     });
 
     it("charges a trigger entry the taker rate — it fires as a market order", () => {
         tradeStateMock.entryOrderType = "trigger";
         render();
-        expect((tradeStateMock.entryFees as Decimal)?.toString()).toBe("0.06");
+        expect((tradeStateMock.entryFees as Decimal)?.toString()).toBe("0.042");
     });
 });
 
 describe("FEAT-0253 — the exit leg is the declared assumption (AC 4)", () => {
     it("assumes taker by default, the expensive side", () => {
         render();
-        expect((tradeStateMock.exitFees as Decimal)?.toString()).toBe("0.06");
+        expect((tradeStateMock.exitFees as Decimal)?.toString()).toBe("0.042");
     });
 
     it("follows the Settings selector when the user chooses maker", () => {
@@ -308,35 +309,43 @@ describe("FEAT-0253 — the exit leg is the declared assumption (AC 4)", () => {
         render();
         // The selector changes what a simulated exit *pays*, not merely what
         // is highlighted — so the value the sizing maths reads has to move.
-        expect((tradeStateMock.exitFees as Decimal)?.toString()).toBe("0.02");
+        expect((tradeStateMock.exitFees as Decimal)?.toString()).toBe("0.014");
     });
 });
 
-describe("FEAT-0253 — the fee field mirrors a broker rate read-only (AC 9)", () => {
-    it("is editable when no rate could be derived", () => {
+describe("FEAT-0253 — the fee panel is read-only, Settings is the only writer", () => {
+    it("renders no editable fee input", () => {
         render();
-        expect(feeInput().readOnly).toBe(false);
+        expect(host.querySelector("#fees-input")).toBeNull();
+        expect(host.querySelector("input[name='fees']")).toBeNull();
+        expect(feeSummary()).not.toBeNull();
     });
 
-    it("is read-only once the broker's own rate is known", () => {
+    it("shows both rates neutrally, with no entry/exit words", () => {
+        render();
+        expect(summary().text).toContain("0.0140");
+        expect(summary().text).toContain("0.0420");
+        expect(summary().text).not.toContain("Entry");
+        expect(summary().text).not.toContain("Exit");
+    });
+
+    it("shows no tooltip while the rates are merely assumed", () => {
+        render();
+        expect(summary().provenance).toBe("assumed");
+        expect(feeSummary().getAttribute("title")).toBeNull();
+    });
+
+    it("shows the per-role breakdown on hover once a rate is broker-sourced", () => {
         tradeStateMock.remoteFeeExchange = "bitunix";
         tradeStateMock.remoteTakerFee = new Decimal("0.045");
         tradeStateMock.remoteFeeSamples = { taker: 5 };
         render();
-        expect(feeInput().readOnly).toBe(true);
-        expect(feeInput().value).toBe("0.045");
-    });
-
-    it("stays editable in paper trading, where there is no broker", () => {
-        tradeStateMock.remoteFeeExchange = "bitunix";
-        tradeStateMock.remoteTakerFee = new Decimal("0.045");
-        paperStateMock.enabled = true;
-        render();
-        expect(feeInput().readOnly).toBe(false);
+        expect(summary().provenance).toBe("broker");
+        expect(feeSummary().getAttribute("title")).toContain("0.045");
     });
 
     it("shows a Settings rate as the user typed it, trailing zeros and all", () => {
         render();
-        expect(feeInput().value).toBe("0.0600");
+        expect(summary().text).toContain("0.0420");
     });
 });

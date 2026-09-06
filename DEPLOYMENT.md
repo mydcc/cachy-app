@@ -9,7 +9,7 @@ about how to invoke `deploy.sh`.
 ## Prerequisites
 
 - A server with **aaPanel** installed.
-- **Node.js Version Manager** (installed via aaPanel App Store). Recommended: Node v18 or v20.
+- **Node.js Version Manager** (installed via aaPanel App Store). Required: Node v22.19 or newer (matches `engines` in `package.json`).
 - Domains pointing to the server IP (e.g., `cachy.app` and `dev.cachy.app`).
 - **`START_COMMAND` must not contain a redundant `sudo -u www` if `deploy.sh` itself already runs as
   `www`.** There are two valid ways to run `deploy.sh`, and the right `START_COMMAND` depends on which one
@@ -74,13 +74,12 @@ These two branch names are what `deploy.sh` enforces per mode, via
 
 ## 2. Setup in aaPanel
 
-The following steps apply to both environments (just adjust directory names).
+The following steps apply to both environments (directory names per environment).
 
 ### Step 1: Upload Files
 
-1. Go to **Files** in aaPanel.
-2. Create the folder `/www/wwwroot/cachy.app` (for Production) or `/www/wwwroot/dev.cachy.app` (for Staging).
-3. Upload the project files or clone the repo directly in the terminal:
+1. Create the folder `/www/wwwroot/cachy.app` (for Production) or `/www/wwwroot/dev.cachy.app` (for Staging) under **Files** in aaPanel.
+2. Upload the project files or clone the repo directly in the terminal:
 
     ```bash
     cd /www/wwwroot/cachy.app
@@ -107,22 +106,20 @@ The following steps apply to both environments (just adjust directory names).
 
 ### Step 3: Create Node Project (Website > Node project)
 
-1. Go to **Website** -> **Node project** in the aaPanel menu.
-2. Click on **Add Node project**.
-3. Fill in the fields:
+1. Create a Node project under **Website → Node project**:
+2. Fill in the fields:
     - **Path:** `/www/wwwroot/cachy.app`
     - **Name:** `cachy-prod` (or `cachy-dev`)
     - **Run Command:** Select `Custom Command` and enter: `node server.js` —
       the Express wrapper that applies compression and security headers. It defaults `PORT` to 3001 instead of adapter-node's 3000, for hosts where 3000 is already taken.
     - **Port:** `3001` (default for Production). _Ensure the port is open in the firewall or used internally._
-    - **Node Version:** v18 or higher.
-4. Click **Submit**.
+    - **Node Version:** v22.19 or higher (matches `engines` in `package.json`).
+3. Submit the form.
 
 ### Step 4: Domain Mapping & SSL
 
-1. After creating, click on **Mapping** (or "Domain" depending on version) in the Node projects list.
-2. Add your domain (e.g., `cachy.app`).
-3. Go to the **SSL** tab and apply for a free "Let's Encrypt" certificate. Enable "Force HTTPS".
+1. Under **Mapping** (or "Domain" depending on version) in the Node projects list, add your domain (e.g., `cachy.app`).
+2. Apply for a free "Let's Encrypt" certificate and enable "Force HTTPS" (SSL tab).
 
 ---
 
@@ -224,6 +221,9 @@ Features:
 
 - ✅ Concurrency lock — a second run refuses to start while one is in progress
 - ✅ Automatic backup (last 5 deployments kept, configurable via `MAX_BACKUPS`)
+- ✅ Single previous build (`build_previous`, removed after success unless `KEEP_PREVIOUS=1`) — no timestamped `build_old_*` pile; legacy piles are deleted on the next deploy
+- ✅ Log rotation (newest `MAX_BUILD_LOGS=20` build/start logs kept, `deploy_*.log` older than `LOG_RETENTION_DAYS=14` days deleted)
+- ✅ Disk-space guard (`MIN_FREE_MB=1024`) — aborts before backup/build when the disk is nearly full
 - ✅ Atomic build in a shadow directory — a failed build never touches the live one
 - ✅ Graceful service shutdown (SIGTERM → SIGKILL)
 - ✅ Build artifact validation
@@ -238,14 +238,14 @@ Features:
 3. **Confirm** - production mode requires an explicit `y`
 4. **Create backup** - full build + package-lock.json + Git commit
 5. **Pull latest code** - `git reset --hard && git pull`
-6. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci --legacy-peer-deps && npm run build` there. **A failed build aborts without touching the running deployment.**
+6. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci && npm run build` there. **A failed build aborts without touching the running deployment.**
 7. **Validate build** - checks that `build/index.js` exists
-8. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_old_<timestamp>`, move the new one in
+8. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_previous` (fixed name, so nothing accumulates), move the new one in. Timestamped `build_old_*` leftovers from older versions are deleted once on the next deploy.
 9. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
    Its output is captured to `logs/start_<timestamp>.log` rather than discarded, and an immediate exit of the
    start command (e.g. a bad path) is flagged before the health check even begins.
 10. **Health check** - verify the service responds at `/api/health`
-11. **Auto-rollback** - restore the backup if the health check fails
+11. **Auto-rollback** - restore `build_previous` and restart when the health check fails; the previous build is deleted only after the health check passes (unless `KEEP_PREVIOUS=1`)
 
 ### Manual rollback
 
@@ -256,12 +256,12 @@ The script rolls back on its own when the health check fails. To do it by hand:
 ls -la /backups/cachy/stable/
 ls -la /backups/cachy/beta/
 
-# The build the last deployment replaced is also still on disk:
-ls -d /www/wwwroot/cachy.app/build_old_*
+# With KEEP_PREVIOUS=1 the build the last deployment replaced is still on disk:
+ls -d /www/wwwroot/cachy.app/build_previous
 ```
 
-Restore by moving the wanted `build/` directory back into place and restarting
-the Node project. `BACKUP_DIR` is set in `.deploy.conf` and falls back to
+Restore by moving `build_previous` (if kept) or the wanted `build/` directory
+from `BACKUP_DIR` back into place and restarting the Node project. `BACKUP_DIR` is set in `.deploy.conf` and falls back to
 `<project>/backups` when the configured path is not writable.
 
 ---
@@ -272,10 +272,7 @@ The deployment scripts support Discord webhook notifications for deployment even
 
 ### Setup
 
-1. **Create Discord Webhook:**
-   - Go to Discord Server Settings → Integrations → Webhooks
-   - Click "New Webhook"
-   - Copy the webhook URL
+1. **Create Discord Webhook** (Server Settings → Integrations → Webhooks) and copy its URL.
 
 2. **Configure Environment Variables:**
 
@@ -312,7 +309,7 @@ When configured, you'll receive Discord notifications for:
 
 ### Without Configuration
 
-If `DISCORD_WEBHOOK_URL` is not set, the scripts **run normally without errors** - notifications are simply skipped (silent fail).
+If `DISCORD_WEBHOOK_URL` is not set, the scripts run normally — notifications are skipped.
 
 ---
 
@@ -356,7 +353,7 @@ cd /www/wwwroot/cachy.app
 git pull
 
 # 3. Rebuild
-npm ci --legacy-peer-deps  # npm ci, not npm install — reproducible installs
+npm ci  # npm ci, not npm install — reproducible installs
 npm run build
 
 # 4. Restart the process — NOT optional, see below
@@ -427,9 +424,9 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 
 2. **A previous run left work behind:**
 
-   ```bash
-   ls -d .deploy_work build_old_*   # shadow build dir and superseded builds
-   ```
+    ```bash
+    ls -d .deploy_work build_previous   # shadow build dir and superseded build
+    ```
 
    `deploy.sh` removes `.deploy_work` itself on both success and build failure.
    If it is still there, the run was interrupted — it is safe to delete.
@@ -443,7 +440,7 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 3. **Build fails:**
    - The full build log path is printed on failure — `logs/build_<timestamp>.log`
    - The build runs in `.deploy_work`, so a failure leaves the live deployment untouched
-   - Try manually: `npm ci --legacy-peer-deps && npm run build`
+   - Try manually: `npm ci && npm run build`
 
 4. **`fatal: detected dubious ownership in repository`:**
    - Git refuses to run `git` commands in a working tree owned by a different user than the one running

@@ -37,7 +37,7 @@ Locally, developers and agents follow these rules:
 - **Non-code changes:** If only documentation, markdown, shell scripts, or root configs are touched, tests and `npm run check` are completely unnecessary and are skipped.
 - **Local resource protection:** Local Vitest worker count defaults to max 2 workers (`vite.config.ts`), and test scripts run through `scripts/run-lowpri.sh` (`taskset` CPU affinity clamping to at most half cores, idle I/O priority via `ionice -c 3`, and `nice -n 19`).
 
-The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without this step, the build will fail — in cloud sandbox environments (e.g., Jules Environment Setup), this script must be part of the setup step.
+The dev/build process uses the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without Rust the script keeps the committed `static/wasm/` artifacts and the build still succeeds — in cloud sandbox environments (e.g., Jules Environment Setup), including this script in the setup step still rebuilds the module when a toolchain is present.
 
 ## Verification Proportionality & Multi-Agent Resource Policy
 
@@ -206,7 +206,7 @@ A Jules session starts from a frozen sandbox clone that can be far behind `devel
 
 - **Never `git merge` or `git rebase` `origin/develop` mid-session.** Ignore base drift; change only what the task needs.
 - **Commit only files you actually edited** (`git add <path> <path>`). Never `git add .`, `git add -A`, or whole-worktree commits.
-- **`package.json` / `package-lock.json`** may be touched only for dependency updates; never lower the `version` field.
+- **`package.json` / `package-lock.json`** may be touched only for dependency updates; never lower the `version` field. **`.node-version` and `engines` are raise-only:** never lower either — the pin must stay an exact version (no ranges, no `v` prefix) satisfying `engines` (enforced by the CI `node-version` job).
 - **No sandbox artifacts in branches** (`todo.txt`, `.jules/` notes only when the task itself requires them).
 - **Before pushing:** compare the PR's changed-file list against the task's intended files. If the list is larger, the sandbox is stale — abort the task instead of pushing.
 

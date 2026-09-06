@@ -5,10 +5,12 @@
 ```
 technicalsService.ts          ← entry point (routing + caching)
   ├── calculationStrategy.ts  ← engine selection
-  ├── technicalsCalculator.ts ← TypeScript engine (pure math)
+  ├── utils/technicalsCalculator.ts ← TypeScript engine (pure math; also runs inside src/workers/technicals.worker.ts)
   ├── wasmCalculator.ts       ← WASM bridge
   └── webGpuCalculator.ts     ← GPU engine (WGSL shaders)
 ```
+
+Live updates flow through `activeTechnicals/calculationExecutor.ts`, which enforces its own `historyLimit`.
 
 ## Adding a New Indicator
 
@@ -26,7 +28,7 @@ if (shouldCalculate('myIndicator')) {
 
 ### 2. WASM Engine
 
-1. Add Rust function in `cachy-wasm/src/lib.rs`
+1. Add Rust function in `technicals-wasm/src/lib.rs`
 2. Expose via `#[wasm_bindgen]`
 3. Call from `src/services/wasmCalculator.ts`
 
@@ -68,7 +70,7 @@ const myResult = await this.compute('myIndicator', myShader, [inputData], [perio
 
 | Method | Purpose |
 |--------|---------|
-| `selectEngine(candleCount, settings)` | Choose optimal engine |
+| `selectEngine(klineCount, settings)` | Choose optimal engine |
 | `exportTelemetry()` | Full debug snapshot |
 
 ### `technicalsService.ts`
@@ -78,18 +80,15 @@ const myResult = await this.compute('myIndicator', myShader, [inputData], [perio
 | `calculateTechnicals(klines, settings)` | Main entry: routes to engine, caches, records perf |
 | `calculateTechnicalsInline(klines, settings)` | Sync TS calculation (no worker) |
 
-### Circuit Breaker (stub)
+### Circuit Breaker (derived, not enforced)
 
-- **Status**: Interface defined, logic NOT implemented.
-- `calculationStrategy.ts` declares `circuitBreaker: {} as Record<string, EngineCircuitBreakerHealth>` — an empty object.
-- No failure counting, no cooldown timer, no retry-once-before-fallback exists yet.
+- **Status**: Health is derived from the >500ms timing rule via `exportTelemetry()`; selection reapplies the timing rule on the next call.
+- Do not confuse this with the worker crash guard (`technicalsService.ts` disables the worker after >2 consecutive failures) — that protects the worker, not the engine selection.
 - **Planned behavior**: 3 consecutive failures → engine disabled for 5 minutes → half-open (retries once) → successful calculation resets failure count.
 
 ### Performance History
 
-- Stored in `localStorage` key `cachy_engine_perf_history`
-- Max 100 entries, 7-day TTL
-- Persisted every 10 entries (throttled writes)
+- Held in memory only (max 50 entries, no TTL, no `localStorage` persistence; the debug panel shows the last 10).
 
 ## Testing
 
@@ -97,7 +96,7 @@ const myResult = await this.compute('myIndicator', myShader, [inputData], [perio
 # Unit tests (edge cases)
 npx vitest run src/tests/unit/edge_cases.test.ts
 
-# Performance benchmarks
+# Performance benchmarks (TypeScript path only)
 npx vitest run src/tests/performance/engine_benchmark.test.ts
 
 # Memory profiling
@@ -110,7 +109,7 @@ npx vitest run src/tests/performance/load_testing.test.ts
 npx vitest run src/tests/unit/edge_cases.test.ts src/tests/performance/
 
 # Type checking
-npx tsc --noEmit
+npm run check
 ```
 
 ## File Map
@@ -123,7 +122,7 @@ npx tsc --noEmit
 | `src/services/wasmCalculator.ts` | WASM bridge |
 | `src/services/engineBenchmark.ts` | In-app benchmark (call from console) |
 | `src/services/capabilityDetection.ts` | Device/browser capability detection |
-| `src/services/incrementalCache.ts` | Incremental calculation cache |
+| `src/services/incrementalCache.ts` | Incremental calculation cache (standalone, under test — the live path uses technicalsService's inline result cache, not this class) |
 | `src/utils/technicalsCalculator.ts` | Pure TypeScript indicator calculations |
 | `src/utils/indicators.ts` | Low-level math functions (SMA, EMA, RSI, etc.) |
 | `src/shaders/*.wgsl` | GPU compute shaders |

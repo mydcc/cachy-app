@@ -97,6 +97,37 @@ class ActiveTechnicalsManager {
     }
 
     /**
+     * Lifecycle cleanup for HMR / re-init: removes the document
+     * visibilitychange listener, clears pending throttle timers, tears down
+     * active reactive effects and resets all bookkeeping state so a
+     * destroy->re-register of the same key restarts monitoring from scratch
+     * (BUG-0362).
+     */
+    destroy() {
+        this.visibility.destroy();
+        for (const timerId of this.throttles.values()) clearTimeout(timerId);
+        this.throttles.clear();
+        for (const cleanup of this.activeEffects.values()) cleanup();
+        this.activeEffects.clear();
+        // Reset remaining bookkeeping so ref-counting cannot suppress
+        // re-registration of a previously monitored key. Read the
+        // registered keys before clearing so their marketWatcher
+        // registrations can be dropped too.
+        const registeredKeys = [...this.registry.subscribers.keys()];
+        this.registry.clear();
+        for (const key of registeredKeys) {
+            const [symbol, timeframe] = key.split(":");
+            marketWatcher.unregister(symbol, "price");
+            marketWatcher.unregister(symbol, "ticker");
+            marketWatcher.unregister(symbol, `kline_${timeframe}`);
+        }
+        this.visibility.pausedCalculations.clear();
+        this.executor.workerState.clear();
+        this.lastActiveSymbolChange = 0;
+        this.lastActiveSymbol = "";
+    }
+
+    /**
      * Subscribe to updates for a symbol/timeframe pair.
      * Ensures market data is being watched and calculations are running.
      */
@@ -344,3 +375,11 @@ class ActiveTechnicalsManager {
 }
 
 export const activeTechnicalsManager = new ActiveTechnicalsManager();
+
+// HMR: remove the document visibilitychange listener, clear throttle
+// timers and tear down active effects on module disposal (BUG-0362).
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    activeTechnicalsManager.destroy();
+  });
+}

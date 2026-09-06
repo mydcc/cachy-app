@@ -387,7 +387,7 @@
     Margin and position mode share one chip: two halves of how the account
     holds positions, the way the venue's own dialog presents them.
   -->
-  <div class="flex flex-col gap-1 min-w-0">
+  <div class="flex min-w-0 flex-1 flex-col gap-1">
     <span class="text-[11px] font-medium text-[var(--text-secondary)]"
       >{$_("dashboard.generalInputs.marginMode")}</span
     >

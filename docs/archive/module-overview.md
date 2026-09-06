@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # Modulübersicht
 
 Dieses Dokument gibt einen Überblick über die wichtigsten Module in der Anwendung und ihre jeweiligen Aufgaben.

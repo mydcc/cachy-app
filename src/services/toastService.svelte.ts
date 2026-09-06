@@ -22,6 +22,8 @@
  * Manages transient feedback messages using Svelte 5 Runes.
  */
 
+import { generateId } from "../utils/utils";
+
 export type ToastType = "info" | "success" | "warning" | "error";
 
 export interface Toast {
@@ -39,7 +41,7 @@ class ToastService {
     #timers = new Map<string, ReturnType<typeof setTimeout>>();
 
     add(message: string, type: ToastType = "info", duration = 3000) {
-        const id = crypto.randomUUID();
+        const id = generateId();
         const toast: Toast = {
             id,
             message,

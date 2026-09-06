@@ -25,7 +25,7 @@ import { technicalsService } from "../services/technicalsService";
 import { activeExchange } from "../services/exchange";
 import { newsService } from "../services/newsService";
 import { getRelativeTimeString } from "../lib/utils/timeUtils";
-import { parseAiValue } from "../utils/utils";
+import { parseAiValue, generateId } from "../utils/utils";
 import { logger } from "../services/logger";
 import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
@@ -146,7 +146,7 @@ class AiManager {
 
     // 1. Add User Message
     const userMsg: AiMessage = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       role: "user",
       content: text,
       timestamp: Date.now(),
@@ -248,7 +248,7 @@ class AiManager {
       }
 
       // 4. Init Placeholder for Assistant Message
-      const aiMsgId = crypto.randomUUID();
+      const aiMsgId = generateId();
       const aiMsg: AiMessage = {
         id: aiMsgId,
         role: "assistant",
@@ -474,7 +474,7 @@ class AiManager {
 
             // Add ONE system message for the whole batch
             const sysMsg: AiMessage = {
-              id: crypto.randomUUID(),
+              id: generateId(),
               role: "system",
               content: `[PENDING:${actionId}]`,
               timestamp: Date.now(),
@@ -1132,7 +1132,7 @@ class AiManager {
    * Add action to pending queue for user confirmation
    */
   private addPendingAction(actions: AiAction[]): string {
-    const id = crypto.randomUUID();
+    const id = generateId();
     this.pendingActions.set(id, {
       id,
       actions,

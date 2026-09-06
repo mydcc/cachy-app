@@ -49,7 +49,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Websocket Integration:** Real-time data feeds for price, order book, and ticker updates (Bitunix).
 - **API Integration:** Optional API keys for auto-fetching account balance and private data.
 - **Privacy:** Your journal, settings, API keys, presets and notes are stored only in your browser's `localStorage` and are never sent to a Cachy server. The one optional exception is Global Chat message content — off by default, requires an explicit token, and every core function works without it. See [ADR-0001](docs/adr/0001-local-first-boundary.md).
-- **Backup & Restore:** Easily backup all your settings, presets, and journal entries to a JSON file and restore them anytime.
+- **Backup & Restore:** Back up all your settings, presets, and journal entries to a JSON file and restore them anytime.
 - **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
 - **Multilingual:** German and English support.
 
@@ -87,7 +87,7 @@ configure — on first use the app mints its own access token automatically.
 > 🔐 **How API authentication works.** Guarded API routes only accept
 > self-issued, anonymous client tokens (obtained via rate-limited
 > `POST /api/auth/token`, minted for you by the app). Authentication fails
-> closed: an unknown token gets 401 on all 27 guarded routes, while the app
+> closed: an unknown token gets 401 on all guarded routes, while the app
 > itself loads normally. There is no deployment-wide secret that can be
 > forgotten or leaked. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
 
@@ -99,13 +99,13 @@ For a permanent instance behind a reverse proxy, see [`DEPLOYMENT.md`](DEPLOYMEN
 
 ## 🛠️ Development setup
 
-For working *on* Cachy. To just run it, use the Quick Start above.
+For working *on* Cachy. To run it, use the Quick Start above.
 
 ### Prerequisites
 
-- Node.js **v20 or newer** (see `engines` in `package.json`; `.node-version` pins 20.18.3 for tooling)
+- Node.js **v22.19 or newer** (see `engines` in `package.json`)
 - npm
-- _Optional:_ a Rust toolchain with the `wasm32-unknown-unknown` target. `npm run dev` and `npm run build` invoke `scripts/build_wasm.sh` to rebuild the `technicals-wasm` indicator module. Without Rust the script skips the build and the pre-compiled binary committed in `static/wasm/` is used, so a plain `npm install && npm run dev` works out of the box.
+- _Optional:_ a Rust toolchain with the `wasm32-unknown-unknown` target. `npm run dev` and `npm run build` invoke `scripts/build_wasm.sh` to rebuild the `technicals-wasm` indicator module. Without Rust the script keeps the pre-compiled binary committed in `static/wasm/`, so a plain `npm install && npm run dev` works out of the box.
 
 ### Setup
 
@@ -174,7 +174,7 @@ For working *on* Cachy. To just run it, use the Quick Start above.
   npm run lint
   ```
 
-  > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build. `@typescript-eslint/no-explicit-any` and `@typescript-eslint/no-unused-vars` are both `"error"` (roadmap item 21's backlog reached zero; there is no more warning ratchet).
+  > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build. `@typescript-eslint/no-explicit-any` and `@typescript-eslint/no-unused-vars` are both `"error"`.
   >
   > If a rule fires on something deliberate, do not silence it globally: add an inline `eslint-disable-next-line` with a `--` explanation, as done for the Svelte 5 dependency-registration reads in `tradeCalculator.svelte.ts`.
 
@@ -182,7 +182,7 @@ For working *on* Cachy. To just run it, use the Quick Start above.
 
 ## 📦 Deployment
 
-The app is a SvelteKit application and can be deployed as a Node.js server or a static site (with the appropriate adapter).
+The app is a SvelteKit application and is deployed as a Node.js server (adapter-node).
 
 **Production Build:**
 
@@ -207,7 +207,7 @@ See `DEPLOYMENT.md` for detailed instructions.
 **Start at [`docs/README.md`](docs/README.md)** — it maps every document in `docs/`.
 
 - **Installation:** [`docs/INSTALL.md`](docs/INSTALL.md) — running Cachy yourself, from clone to a working balance, including what to do when every API call answers 401.
-- **User Guide:** A detailed guide on how to use the app can be found directly within the application (via the "Guide" button) or in `src/lib/assets/content/guide.en.md`.
+- **User Guide:** `src/lib/assets/content/guide.en.md` (also available in-app).
 - **Contributing, versioning & changelog:** `AGENTS.md` (tool-agnostic rules for all agents) and `CLAUDE.md` (Claude Code-specific extension) for the non-negotiable coding rules and development process, including commit conventions and the semantic-release versioning policy. [`CHANGELOG.md`](CHANGELOG.md) is generated from those commits.
 
 ---

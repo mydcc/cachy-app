@@ -55,6 +55,10 @@ BETA_START_COMMAND="sudo -u www bash /www/server/nodejs/vhost/scripts/devcachyap
 LOG_DIR="/var/log/cachy"
 BACKUP_DIR="/backups/cachy"
 MAX_BACKUPS=5
+MAX_BUILD_LOGS=20
+LOG_RETENTION_DAYS=14
+MIN_FREE_MB=1024
+KEEP_PREVIOUS=0
 HEALTH_CHECK_URL="http://localhost:{{PORT}}/api/health"
 CI_REPO="mydcc/cachy-app"
 CI_ARTIFACT_TAG_STABLE="deploy-stable"
@@ -181,10 +185,20 @@ create_backup() {
     [[ -f "package-lock.json" ]] && cp package-lock.json "$backup_path/"
     git rev-parse HEAD > "$backup_path/git-commit.txt" 2>/dev/null || echo "unknown" > "$backup_path/git-commit.txt"
     
-    # Rotation
-    local backup_count=$(find "$BACKUP_DIR/$env_name" -maxdepth 1 -type d | wc -l)
-    if [[ $backup_count -gt ${MAX_BACKUPS:-5} ]]; then
-        find "$BACKUP_DIR/$env_name" -maxdepth 1 -type d -printf '%T+ %p\n' | sort | head -n -${MAX_BACKUPS:-5} | cut -d' ' -f2- | xargs rm -rf
+    # Rotation: keep the newest MAX_BACKUPS entries, delete the rest.
+    # -mindepth 1 excludes the parent dir itself from the count (without it
+    # the count is off by one and the wrong entry can be deleted). xargs -r
+    # avoids running rm with no input, and -- guards against names starting
+    # with a dash.
+    local max_backups="${MAX_BACKUPS:-5}"
+    local backup_count
+    backup_count=$(find "$BACKUP_DIR/$env_name" -mindepth 1 -maxdepth 1 -type d | wc -l)
+    if [[ $backup_count -gt $max_backups ]]; then
+        find "$BACKUP_DIR/$env_name" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
+            | sort -n \
+            | head -n -"$max_backups" \
+            | cut -d' ' -f2- \
+            | xargs -r rm -rf --
     fi
 }
 
@@ -257,6 +271,55 @@ health_check() {
     elapsed=$(( $(date +%s) - check_start ))
     log "${RED}Health check FAILED after ${elapsed}s. Last observed: ${last_state:-no response at all}${NC}"
     return 1
+}
+
+rollback_to_previous() {
+    # Restores the build that was swapped aside as build_previous and restarts
+    # the service. Returns 0 when the previous build passes the health check.
+    log "${YELLOW}[ROLLBACK]${NC} Restoring previous build..."
+    rm -rf build
+    mv build_previous build
+    chown -R www:www "$SCRIPT_DIR/build" 2>/dev/null || true
+    graceful_shutdown "$PORT"
+    START_LOG="$LOG_DIR/start_$(date +%Y%m%d_%H%M%S).log"
+    log "Rollback start command output: $START_LOG"
+    eval "$START_CMD" > "$START_LOG" 2>&1 200>&- &
+    sleep 2
+    health_check "$(echo "$HEALTH_CHECK_URL" | sed "s/{{PORT}}/$PORT/")"
+}
+
+rotate_logs() {
+    # Keeps LOG_DIR bounded: newest MAX_BUILD_LOGS build/start logs are kept,
+    # deploy logs older than LOG_RETENTION_DAYS are deleted. Failures here
+    # must never fail a deployment, hence the trailing || true guards.
+    local max_logs="${MAX_BUILD_LOGS:-20}"
+    local retention="${LOG_RETENTION_DAYS:-14}"
+    [[ -d "$LOG_DIR" ]] || return 0
+    for pattern in "build_*.log" "start_*.log"; do
+        ls -1t "$LOG_DIR"/$pattern 2>/dev/null | tail -n +$((max_logs + 1)) | xargs -r rm -f -- 2>/dev/null || true
+    done
+    find "$LOG_DIR" -maxdepth 1 -type f -name "deploy_*.log" -mtime +"$retention" -delete 2>/dev/null || true
+}
+
+check_disk_space() {
+    # Aborts before backup/build when less than MIN_FREE_MB is free. Checks
+    # the project, log and backup filesystems — LOG_DIR/BACKUP_DIR are often
+    # separate mounts (/var/log, /backups), so checking only the project dir
+    # would miss a full log/backup disk. Devices checked twice are skipped.
+    local min_free="${MIN_FREE_MB:-1024}"
+    local checked="" dir target dev avail
+    for dir in "$SCRIPT_DIR" "$LOG_DIR" "$BACKUP_DIR"; do
+        target="$dir"
+        [[ -e "$target" ]] || target=$(dirname "$target")
+        dev=$(df "$target" 2>/dev/null | awk 'NR==2 {print $1}')
+        [[ -z "$dev" ]] && continue
+        case " $checked " in *" $dev "*) continue;; esac
+        checked="$checked $dev"
+        avail=$(df -m "$target" 2>/dev/null | awk 'NR==2 {print $4}')
+        if [[ -n "$avail" ]] && [[ "$avail" -lt "$min_free" ]]; then
+            error_exit "Only ${avail}MB free on $dev ($dir) — need at least ${min_free}MB (MIN_FREE_MB). Clean up or extend the disk."
+        fi
+    done
 }
 
 # --- 5. Environment & Mode Selection ---
@@ -400,6 +463,13 @@ git pull || error_exit "Git pull failed"
 
 # 2. Backup
 log "${CYAN}[BACKUP]${NC} Securing current state..."
+# Reclaim space BEFORE the disk guard runs: a streak of failed deploys leaves
+# build/start logs behind, and pre-rotation versions left timestamped
+# build_old_* piles. Both are dead weight, so drop them first — otherwise a
+# near-full disk aborts exactly the run that would have cleaned it up.
+rm -rf build_old_*
+rotate_logs
+check_disk_space
 create_backup "$ENV_TYPE"
 
 # 3. Atomic Build
@@ -503,7 +573,11 @@ log "${CYAN}[SWAP]${NC} Setting permissions and swapping build..."
 chown -R www:www "$WORK_DIR_TMP/build" 2>/dev/null || true
 chmod -R 755 "$WORK_DIR_TMP/build" 2>/dev/null || true
 
-[[ -d "build" ]] && mv build "build_old_$(date +%s)"
+# Single previous build under a fixed name — no accumulation possible.
+# (Timestamped build_old_* leftovers from older versions were already dropped
+# before the backup stage above.)
+rm -rf build_previous
+[[ -d "build" ]] && mv build build_previous
 mv "$WORK_DIR_TMP/build" ./
 rm -rf "$WORK_DIR_TMP"
 
@@ -558,7 +632,15 @@ fi
 if ! health_check "$(echo "$HEALTH_CHECK_URL" | sed "s/{{PORT}}/$PORT/")"; then
     notify_health_check_failed "$ENVIRONMENT" 2>/dev/null || true
     log "${GREY}Start command log: $START_LOG${NC}"
-    error_exit "Service is not responding after restart"
+    if [[ -d "build_previous" ]]; then
+        if rollback_to_previous; then
+            notify_rollback "$ENVIRONMENT" "health check failed for new build" 2>/dev/null || true
+            error_exit "New build failed health check — rolled back to previous build."
+        else
+            error_exit "New build AND rollback both failed the health check."
+        fi
+    fi
+    error_exit "Service is not responding after restart (no previous build to roll back to)"
 fi
 
 # 6. Finalize
@@ -568,6 +650,17 @@ DURATION_SEC=$((TOTAL_DURATION % 60))
 
 # Permissions for the final folder
 chown -R www:www "$SCRIPT_DIR/build" 2>/dev/null || true
+
+# The health check passed, so the versioned copy in BACKUP_DIR is enough
+# history. Drop the swap-aside previous build unless the operator opted into
+# keeping one generation on disk (KEEP_PREVIOUS=1). Either way the disk can no
+# longer fill up with builds.
+if [[ "${KEEP_PREVIOUS:-0}" == "1" ]]; then
+    log "${GREY}Keeping previous build in build_previous (KEEP_PREVIOUS=1)${NC}"
+else
+    rm -rf build_previous
+fi
+rotate_logs
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"

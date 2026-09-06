@@ -35,3 +35,6 @@
 ## 2024-05-19 - Bilingual ARIA Labels and Attributes
 **Learning:** Hardcoded text attributes (like `alt`, `title`, and `aria-label`) in Svelte components violate strict Cachy i18n rules which demand complete bilingual coverage (German and English). Also, when extracting these attributes, if their value interpolates JavaScript variables, the `svelte-i18n` translation function should be called as `$_("key", { values: { varName: value } })`. The localization dictionaries should use standard ICU format (e.g., `WebSocket: {statusText}`). And `scripts/generate-i18n-types.js` must be run to prevent svelte-check schema mismatch errors.
 **Action:** Replaced hardcoded `alt` and `title` attributes in `BackgroundRenderer`, `JournalTable`, `ConnectionStatus`, `CalculationDashboard`, and `TechnicalsPanel` with variables referenced from the `i18n` store.
+## 2026-09-05 - Fix backup rejection message untranslated (BUG-0354)
+**Learning:** When using svelte-i18n's `$_` with dynamic interpolation variables, passing the variables object directly as the second argument causes the raw keys to be rendered instead of the values.
+**Action:** Always wrap the interpolation object in `{ values: ... }` like `$_(key, { values: dynamicObject })`.

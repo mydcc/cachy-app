@@ -28,7 +28,8 @@
   import { Decimal } from "decimal.js";
   import { riskState, type RiskLimitInputs } from "../../stores/riskLimits.svelte";
   import { rmsService, utcDayStart } from "../../services/rmsService";
-  import { modalState } from "../../stores/modal.svelte";
+    import { modalState } from "../../stores/modal.svelte";
+    import SettingsGrid from "./shared/SettingsGrid.svelte";
   import { journalState } from "../../stores/journal.svelte";
 
   // Recomputed whenever the journal changes, so the figure the user reads is
@@ -211,7 +212,7 @@
       {$_("settings.risk.limitsDescription")}
     </p>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <SettingsGrid gap="gap-4">
       {#each fields as field (field.key)}
         <div class="field-group">
           <label for={`risk-${field.key}`}>{field.label}</label>
@@ -220,13 +221,13 @@
               id={`risk-${field.key}`}
               type="text"
               inputmode="decimal"
-              class="input-field w-full"
+              class="input-field w-full min-w-0"
               class:border-danger={rejected === field.key}
               placeholder={$_("settings.risk.notConfigured")}
               value={riskState.limits[field.key] ?? ""}
               oninput={(e) => onLimitInput(field.key, e)}
             />
-            <span class="text-[11px] text-[var(--text-secondary)] w-10"
+            <span class="text-[11px] text-[var(--text-secondary)] w-10 shrink-0"
               >{field.unit}</span
             >
           </div>
@@ -244,19 +245,19 @@
             type="number"
             min="0"
             step="1"
-            class="input-field w-full"
+            class="input-field w-full min-w-0"
             class:border-danger={rejected === "maxOpenPositions"}
             placeholder={$_("settings.risk.notConfigured")}
             value={riskState.limits.maxOpenPositions ?? ""}
             oninput={onMaxPositionsInput}
           />
-          <span class="text-[11px] text-[var(--text-secondary)] w-10"></span>
+          <span class="text-[11px] text-[var(--text-secondary)] w-10 shrink-0"></span>
         </div>
         <p class="text-[10px] text-[var(--text-secondary)]">
           {$_("settings.risk.maxOpenPositionsHint")}
         </p>
       </div>
-    </div>
+    </SettingsGrid>
 
     {#if rejected}
       <p class="text-[11px] mt-3 font-semibold text-[var(--danger-color)]">

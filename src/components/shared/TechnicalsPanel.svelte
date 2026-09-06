@@ -239,8 +239,7 @@
       <div class="text-[var(--danger-color)] text-center text-sm">{error}</div>
     {:else if data}
       <div
-        class="flex-1 overflow-y-auto pr-1 custom-scrollbar"
-        style="max-height: 500px;"
+        class="flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-128 {settingsState.technicalsFullHeight ? 'xl:max-h-none' : ''}"
       >
         <div class="flex flex-col gap-4">
           <!-- DASHBOARD SECTION (Minimalist List) -->

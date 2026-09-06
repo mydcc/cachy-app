@@ -148,26 +148,6 @@
     whitepaperContent = "";
   });
 
-  function handleTradeSetupError(e: CustomEvent<string>) {
-    uiState.showError(e.detail);
-  }
-
-  function handleTargetsChange(
-    event: CustomEvent<
-      Array<{
-        price: string | null;
-        percent: string | null;
-        isLocked: boolean;
-      }>
-    >,
-  ) {
-    tradeState.targets = event.detail;
-  }
-
-  function handleTpRemove(event: CustomEvent<number>) {
-    app.removeTakeProfitRow(event.detail);
-  }
-
   function handleThemeSwitch(direction: "forward" | "backward" = "forward") {
     const currentIndex = themes.indexOf(uiState.currentTheme);
     const limit = themes.length;
@@ -321,7 +301,7 @@
   {/if}
 
   <main
-    class="w-full max-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-4 sm:p-8 fade-in relative shrink-0 overflow-hidden"
+    class="w-full max-w-3xl xl:min-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-4 sm:p-8 fade-in relative shrink-0 overflow-hidden"
     class:xl:col-start-2={settingsState.showSidebars}
     class:panel-tilt={isProPanelTilt}
     onanimationend={handleTiltAnimationEnd}
@@ -442,7 +422,7 @@
           bind:riskAmount={tradeState.riskAmount}
           isRiskAmountLocked={tradeState.isRiskAmountLocked}
           isPositionSizeLocked={tradeState.isPositionSizeLocked}
-          on:toggleRiskAmountLock={() => app.toggleRiskAmountLock()}
+          ontoggleriskamountlock={() => app.toggleRiskAmountLock()}
         />
 
         <PlaceOrderPanel />
@@ -458,15 +438,13 @@
           bind:stopLossPrice={tradeState.stopLossPrice}
           bind:atrMode={tradeState.atrMode}
           bind:atrTimeframe={tradeState.atrTimeframe}
-          on:showError={handleTradeSetupError}
-          on:fetchPrice={() => app.handleFetchPrice()}
-          on:toggleAtrInputs={(e) => {
-            tradeState.useAtrSl = e.detail;
+          ontoggleatrinputs={(value) => {
+            tradeState.useAtrSl = value;
           }}
-          on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
-          on:setAtrMode={(e) => app.setAtrMode(e.detail)}
-          on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
-          on:fetchAtr={() => app.fetchAtr()}
+          onselectsymbolsuggestion={(suggestion) => app.selectSymbolSuggestion(suggestion)}
+          onsetatrmode={(mode) => app.setAtrMode(mode)}
+          onsetatrtimeframe={(timeframe) => app.setAtrTimeframe(timeframe)}
+          onfetchatr={() => app.fetchAtr()}
           atrFormulaDisplay={resultsState.atrFormulaText}
           showAtrFormulaDisplay={resultsState.showAtrFormulaDisplay}
           isPriceFetching={uiState.isPriceFetching}
@@ -478,8 +456,6 @@
         <div id="tp-targets-card">
           <TakeProfitTargets
             bind:targets={tradeState.targets}
-            on:change={handleTargetsChange}
-            on:remove={handleTpRemove}
             calculatedTpDetails={resultsState.calculatedTpDetails}
           />
         </div>
@@ -510,8 +486,8 @@
           liquidationPrice={resultsState.liquidationPrice}
           breakEvenPrice={resultsState.breakEvenPrice}
           isMarginExceeded={resultsState.isMarginExceeded}
-          on:toggleLock={() => app.togglePositionSizeLock()}
-          on:copy={() => uiState.showFeedback("copy")}
+          ontogglelock={() => app.togglePositionSizeLock()}
+          oncopy={() => uiState.showFeedback("copy")}
         />
         {#if resultsState.showTotalMetricsGroup}
           <div id="total-metrics-group" class="result-group">
@@ -755,7 +731,7 @@
     <!-- Right Sidebar: Market Data & Favorites (Sticky) -->
     <div class="hidden xl:flex justify-self-start self-stretch">
       <div
-        class="sticky top-8 flex flex-col gap-3 shrink-0 transition-all duration-300 z-40 h-fit {sidebarWidthClass}"
+        class="sticky top-8 flex flex-col gap-3 shrink-0 transition-colors duration-300 z-40 h-fit {sidebarWidthClass}"
       >
         <!-- Main current symbol -->
         {#if settingsState.showMarketOverview}

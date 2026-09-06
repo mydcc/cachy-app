@@ -406,6 +406,31 @@ describe("SettingsManager -- showTooltips setting", () => {
   });
 });
 
+describe("SettingsManager -- technicalsFullHeight setting", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+  });
+
+  it("defaults technicalsFullHeight to false", () => {
+    const settings = new SettingsManager();
+    expect(settings.technicalsFullHeight).toBe(false);
+    expect(settings.toJSON().technicalsFullHeight).toBe(false);
+  });
+
+  it("loads technicalsFullHeight = true from storage and roundtrips toJSON", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ technicalsFullHeight: true }),
+    );
+
+    const settings = new SettingsManager();
+    expect(settings.technicalsFullHeight).toBe(true);
+    expect(settings.toJSON().technicalsFullHeight).toBe(true);
+  });
+});
+
 describe("SettingsManager feeRates (FEAT-0253) -- defaults, merge, serialize", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -431,12 +456,12 @@ describe("SettingsManager feeRates (FEAT-0253) -- defaults, merge, serialize", (
     settings.feeRates.bitunix.maker = "0.0050";
 
     expect(VENUE_DEFAULT_FEE_RATES.bitunix).toEqual({
-      maker: "0.0200",
-      taker: "0.0600",
+      maker: "0.0140",
+      taker: "0.0420",
     });
     expect(VENUE_DEFAULT_FEE_RATES.bitget).toEqual({
-      maker: "0.0200",
-      taker: "0.0600",
+      maker: "0.0140",
+      taker: "0.0420",
     });
   });
 
@@ -463,7 +488,7 @@ describe("SettingsManager feeRates (FEAT-0253) -- defaults, merge, serialize", (
 
     expect(settings.toJSON().feeRates.bitunix).toEqual({
       maker: "0.0050",
-      taker: "0.0600",
+      taker: "0.0420",
     });
   });
 });

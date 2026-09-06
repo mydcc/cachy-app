@@ -33,6 +33,10 @@ export class VisibilityController {
     public readonly visibleSymbols = new Set<string>();
     public readonly pausedCalculations = new Set<string>();
 
+    // Named handler so destroy() can remove the exact listener reference
+    // registered in the constructor (BUG-0362).
+    private readonly onVisibilityChange = () => this.handleVisibilityChange();
+
     constructor(
         private readonly throttles: Map<string, ReturnType<typeof setTimeout> | number>,
         private readonly scheduleCalculation: (symbol: string, timeframe: string) => void,
@@ -40,9 +44,17 @@ export class VisibilityController {
         if (browser && typeof document !== "undefined") {
             this.isTabVisible = !document.hidden;
 
-            document.addEventListener("visibilitychange", () => {
-                this.handleVisibilityChange();
-            });
+            document.addEventListener("visibilitychange", this.onVisibilityChange);
+        }
+    }
+
+    /**
+     * Removes the document visibilitychange listener. After destroy(), the
+     * controller no longer reacts to tab switches (BUG-0362).
+     */
+    destroy() {
+        if (browser && typeof document !== "undefined") {
+            document.removeEventListener("visibilitychange", this.onVisibilityChange);
         }
     }
 

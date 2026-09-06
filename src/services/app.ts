@@ -30,7 +30,7 @@ import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
 import { APP_VERSION } from "../lib/version";
 import { modalState } from "../stores/modal.svelte";
-import { parseDecimal } from "../utils/utils";
+import { parseDecimal, generateId } from "../utils/utils";
 import { safeJsonParse } from "../utils/safeJson";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
@@ -206,7 +206,7 @@ export const app = {
       ...currentAppState.currentTradeData,
       notes: currentAppState.tradeNotes,
       tags: currentAppState.tags || [],
-      id: crypto.randomUUID(),
+      id: generateId(),
       date: new Date().toISOString(),
       entryDate: new Date().toISOString(),
     } as JournalEntry;

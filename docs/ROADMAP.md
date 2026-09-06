@@ -31,7 +31,7 @@ and the exit criteria; the number floats.
 When a group completes, record the version it actually landed in. Drift is
 information — a group that slipped six minors was bigger than it looked.
 
-Current: **1.6.0-beta.100** on `develop` (beta channel); the next planned cut is
+Current: **1.6.0-beta.242** on `develop` (beta channel; see `package.json` as single source); the next planned cut is
 the **1.6.0** stable release from `main`.
 
 ---
@@ -51,11 +51,14 @@ known-good line to measure everything else against.
 | [BUG-0006](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) | P2 | Sentiment response trusted without validation |
 | [TODO 1](TODO.md) | P0 | Rotate the shared imgbb key and decide whether it stays |
 
+[BUG-0001](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md),
 [BUG-0002](backlog/bugs/BUG-0002-numeric-zero-target-price.md),
-[BUG-0003](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md), and
-[BUG-0004](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md) are all done — the
+[BUG-0003](backlog/bugs/BUG-0003-oms-preserve-latest-unenforced.md),
+[BUG-0004](backlog/bugs/BUG-0004-legacy-aes-cbc-blobs.md),
+[BUG-0005](backlog/bugs/BUG-0005-gpu-chop-field-mismatch.md) and
+[BUG-0006](backlog/bugs/BUG-0006-sentiment-response-unvalidated.md) are all done — the
 string-versus-number question, the eviction rule, and the legacy-blob
-fallback are each decided and enforced, with tests.
+fallback are each decided and enforced, with tests. (Status source: `backlog/INDEX.md`.)
 
 **Exit:** no open P0, the money-affecting defects fixed or accepted in writing,
 `npm run check` clean, suite green, `npx eslint .` clean.
@@ -202,8 +205,7 @@ exchanges without opening the exchange's own UI.
 | [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) | P2 | Alerts bound to chart drawings |
 
 [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) is last and still an
-`idea`: it needs persistent, addressable chart drawings, which do not exist. That
-prerequisite is most of the work and probably its own item.
+`idea`: it needs persistent, addressable chart drawings first — most of the work and probably its own item.
 
 **Build [FEAT-0027](backlog/features/FEAT-0027-alert-engine.md)'s evaluation
 core in Rust → WASM from the start**, extending the existing `technicals-wasm/`
@@ -318,12 +320,14 @@ plan that could do real harm if built early.
 
 Real, wanted, not aimed at a release yet. In
 [`backlog/INDEX.md`](backlog/INDEX.md) under "Unscheduled":
-[BUG-0007](backlog/bugs/BUG-0007-hardcoded-ui-strings.md),
-[BUG-0008](backlog/bugs/BUG-0008-toast-array-unbounded.md),
-[BUG-0009](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md),
-[BUG-0010](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md),
 [FEAT-0022](backlog/features/FEAT-0022-settings-search.md),
 [IDEA-0036](backlog/ideas/IDEA-0036-gamification-fork.md).
+
+([BUG-0007](backlog/bugs/BUG-0007-hardcoded-ui-strings.md),
+[BUG-0008](backlog/bugs/BUG-0008-toast-array-unbounded.md),
+[BUG-0009](backlog/bugs/BUG-0009-symbolpicker-null-resolution.md) and
+[BUG-0010](backlog/bugs/BUG-0010-modal-extraclasses-ignored.md) were listed
+here as filler and have since shipped — see `backlog/INDEX.md`.)
 
 The two P3 bugs are `ready` and small — good filler work when a release is
 waiting on a decision.

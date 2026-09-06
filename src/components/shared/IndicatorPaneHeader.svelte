@@ -16,46 +16,119 @@
 -->
 
 <!--
-  Name plate for one indicator sub-pane, mounted into that pane's own element
-  by CandleChartView.
+  Name plate for one indicator sub-pane, mounted into that pane's own
+  chart cell by CandleChartView.
 
-  Deliberately label-only. An on/off control does not belong here: it would
-  live inside the pane it hides, so switching an indicator off would take its
-  own switch away with it and leave no way back. Indicators are switched in
-  Settings → Indicators, which is the single control surface for them.
+  Layout: name, params and value stay left-aligned; only the collapse
+  chevron sits at the right edge of the chart area, immediately left of
+  the price scale.
+
+  Carries the pane's collapse chevron: collapsing turns the pane into a
+  header-only strip, so the control stays reachable in both states. This is
+  display-only — it toggles `visible`; `enabled` (whether the indicator is
+  computed at all) lives in Settings → Indicators alone.
 -->
 <script lang="ts">
+    import { _ } from "../../locales/i18n";
+
     interface Props {
         /** Translated indicator name, e.g. "RSI". */
         title: string;
         /** Its settings, e.g. "14" or "12 26 9"; empty when it has none. */
         params?: string;
+        /** Last indicator value, e.g. "70.12"; empty when it has none. */
+        value?: string;
+        /** True when this pane is currently collapsed to a strip. */
+        collapsed?: boolean;
+        /** Toggles collapse state; CandleChartView writes the store and re-renders. */
+        onToggle: () => void;
     }
 
-    let { title, params = "" }: Props = $props();
+    let { title, params = "", value = "", collapsed = false, onToggle }: Props = $props();
 </script>
 
-<div class="indicator-pane-header">
-    <span class="name">{title}</span>
-    {#if params}<span class="params">{params}</span>{/if}
+<div class="indicator-pane-header" class:collapsed={collapsed}>
+    <span class="label">
+        <span class="name">{title}</span>
+        {#if params}<span class="params">{params}</span>{/if}
+        {#if value}<span class="value">{value}</span>{/if}
+    </span>
+    <button
+        class="chevron"
+        type="button"
+        aria-label={collapsed ? $_("chart.pane.expand") : $_("chart.pane.collapse")}
+        title={collapsed ? $_("chart.pane.expand") : $_("chart.pane.collapse")}
+        aria-expanded={!collapsed}
+        onclick={onToggle}
+    >
+        <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            class:rotated={collapsed}
+            aria-hidden="true"
+        >
+            <path d="M2 3.5 L5 6.5 L8 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+    </button>
 </div>
 
 <style>
     .indicator-pane-header {
         position: absolute;
-        top: 2px;
+        top: 0;
+        bottom: 0;
         left: 8px;
+        right: 8px;
         z-index: 2;
         display: flex;
-        align-items: baseline;
-        gap: 5px;
+        align-items: center;
+        justify-content: space-between;
         font-size: 11px;
-        line-height: 1.4;
+        line-height: 1.3;
         white-space: nowrap;
-        /* Purely informational, so it must never swallow chart pan/zoom —
-           same convention as the other chart overlays in CandleChartView. */
+        /* The header itself must not swallow chart pan/zoom — only the
+           chevron button re-enables pointer events, nothing else. */
         pointer-events: none;
         user-select: none;
+    }
+
+    /* Open pane: pin to the top edge like a chart legend instead of
+       centering in the full pane height. Collapsed (20px strip) keeps
+       full-height stretch so the content sits centered. */
+    .indicator-pane-header:not(.collapsed) {
+        bottom: auto;
+        height: 18px;
+    }
+
+    .label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .chevron {
+        pointer-events: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
+        cursor: pointer;
+    }
+
+    .chevron:hover {
+        color: var(--text-primary);
+    }
+
+    .chevron svg {
+        transition: transform var(--transition-fast, 150ms) ease;
+    }
+
+    .chevron svg.rotated {
+        transform: rotate(-90deg);
     }
 
     .name {
@@ -65,5 +138,9 @@
 
     .params {
         color: var(--text-tertiary);
+    }
+
+    .value {
+        color: var(--accent-color, #2962ff);
     }
 </style>

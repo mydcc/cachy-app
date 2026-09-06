@@ -58,4 +58,13 @@ export class SubscriptionRegistry {
             }
         }
     }
+
+    /**
+     * Drops all subscriber counts without invoking onLastUnregister —
+     * for full teardown where the monitoring effects are torn down anyway
+     * and per-key shutdown would only fight the same cleanup.
+     */
+    clear() {
+        this.subscribers.clear();
+    }
 }

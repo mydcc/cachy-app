@@ -2,7 +2,7 @@
 
 Welcome to Cachy! This guide is your comprehensive manual for using the application effectively for your trading. It covers everything from basic position calculation to advanced performance analysis.
 
-**Privacy Note:** Cachy operates entirely client-side. All your data (settings, journal, API keys) is stored locally in your browser (`localStorage`). No data is sent to any external server (except for direct API requests to exchanges you configure).
+**Privacy Note:** Cachy stores your data (settings, journal, API keys) locally in your browser (`localStorage`). The app additionally sends anonymous usage statistics (theme, provider, app version — never journal, settings or API keys) to our self-hosted Matomo instance at `s.cachy.app`; opt out anytime under Settings → System → Performance ("Usage Statistics"). Exchange API requests you configure go directly to the exchange.
 
 ---
 
@@ -72,7 +72,7 @@ Cachy provides real-time market awareness tools.
 
 Located at the top (or accessible via sidebar on mobile), this panel shows real-time data for the selected symbol:
 
-- **Live Price:** Updates in real-time via Websockets (if Bitunix is selected).
+- **Live Price:** Updates in real-time via WebSockets for the selected provider (Bitunix or Bitget).
 - **24h Stats:** Change %, High, Low, and Volume.
 - **Funding Rate:** Current funding rate (green = positive, red = negative).
 - **Countdown:** Time remaining until the next funding payment.
@@ -103,26 +103,18 @@ Pivot Points serve as a guide. Traders use them to find targets for profits (Tak
 
 ### Visual Risk/Reward Bar (VisualBar)
 
-Below the input fields, an interactive **VisualBar** visualizes your trade setup:
+VisualBar below the input fields — legend:
 
-**What you see:**
-
-- **Red area (left):** Your risk, from the stop loss up to your entry point.
-- **Green area (right):** Your profit potential, from entry to your take profits.
-- **White markers:** The exact SL, Entry and TP price levels.
-- **TP labels:** The Risk/Reward ratio above each take profit (e.g. "2.5R").
-
-**Why it helps:** At a glance you can tell whether a trade has a healthy
-Risk/Reward profile — a worthwhile setup shows clearly more green (profit) than
-red (risk).
+- **Red area (left):** Risk, from stop loss to entry.
+- **Green area (right):** Profit potential, from entry to take profits.
+- **White markers:** SL, entry and TP price levels.
+- **TP labels:** Risk/Reward ratio per take profit (e.g. "2.5R").
 
 ### Favorites
 
-You can save up to **12 favorite symbols** for quick access. On the calculator
-page, the first 4 appear as quick-select tiles.
-
-- **Add:** Click the Star icon in the Market Overview.
-- **Access:** Click on a favorite in the Sidebar (Desktop) or the Favorites Bar (Mobile) to instantly load it into the calculator.
+Up to **12 favorite symbols** (star icon in the Market Overview); the first 4
+appear as quick-select tiles on the calculator page. Selecting one in the
+Sidebar (Desktop) or Favorites Bar (mobile) loads it into the calculator.
 
 ### Sidebar (Positions)
 
@@ -133,6 +125,8 @@ The sidebar provides a comprehensive view of your active trading environment:
 - **History:** Shows recent trade history.
 - **TP/SL:** Dedicated tab for managing Take-Profit and Stop-Loss orders (Bitunix).
 
+Position and order syncing require Pro mode with API keys configured.
+
 ---
 
 ## 3. Trade Journal
@@ -141,8 +135,8 @@ The Journal is where you track your performance. It supports both manual entry a
 
 ### Manual vs. Synced
 
-- **Manual:** You click "Add to Journal" after calculating a trade. You manually update the status (Won/Lost) and exit price.
-- **Synced (Bitunix):** If you use Bitunix and have API keys configured, Cachy can automatically import your trade history, including realized PnL and fees.
+- **Manual:** You click "Add Trade to Journal" after calculating a trade. You manually update the status (Won/Lost) and exit price.
+- **Synced (Bitunix, Pro):** If you use Bitunix, have API keys configured and Pro mode enabled, Cachy can automatically import your trade history, including realized PnL and fees.
 
 ### Performance Tracking
 
@@ -156,7 +150,7 @@ The Journal analytics are available to all users:
 
 #### Deep Dive Analytics
 
-The "Deep Dive" section offers ten specialized analytics tabs:
+The "Deep Dive" section (Pro) offers ten specialized analytics tabs:
 
 - **Performance:** Trends of your results over time.
 - **Execution:** The quality of your entries and exits.
@@ -165,7 +159,7 @@ The "Deep Dive" section offers ten specialized analytics tabs:
 - **Leakage:** Where fees, slippage and avoidable mistakes eat your profit.
 - **Time:** Which time of day or day of week is most profitable for you.
 - **Strategies:** Tag your trades (e.g., "Breakout", "Reversal") and see which strategies yield the best results.
-- **Behavior:** Winning and losing streaks that help you spot tilt or flow states — including your asset distribution.
+- **Behavior:** Winning and losing streaks that help you spot tilt or flow states.
 - **Forecast:** A Monte Carlo simulation based on your history.
 - **System Quality:** How clean and complete your journal record keeping is.
 
@@ -175,7 +169,7 @@ The "Deep Dive" section offers ten specialized analytics tabs:
 
 Access settings via the Gear icon.
 
-### Access Token (App Access Token)
+### Access Token (self-issued)
 
 Cachy protects your own server's API routes with **self-issued access tokens**:
 On the first call to a protected API route, the app automatically obtains an
@@ -187,7 +181,7 @@ identifies your browser to your server so that other visitors cannot ride along
 on your API routes. The server stores only a hash of the token — never the
 token itself.
 
-- **View/Reset:** Settings → Connections → **Access Token**. The **"Create access token"** button replaces the stored token with a freshly issued one — normally never needed, since the app manages this itself.
+- **View/Reset:** Settings → Connections → **Access Token (self-issued)**. The **"Create access token"** button replaces the stored token with a freshly issued one — normally never needed, since the app manages this itself.
 - **Server restarts:** Tokens live in the server process's memory. After a restart, the app automatically mints a new one and retries.
 - **If something looks broken:** Balance not loading and `401 (Unauthorized)` in the console usually resolves with a page reload; see the troubleshooting section of the installation guide (`docs/INSTALL.md`).
 
@@ -201,11 +195,11 @@ token itself.
 Since Cachy is local-only, your data is your responsibility.
 
 - **Backup:** Go to Settings -> System -> **Create Backup**. This downloads a JSON file with all your settings, journal entries, and presets.
-  - **Optional:** Enable **"Encrypt backup"** and choose a strong password.
-  - With encryption enabled, all API keys and sensitive data are protected with AES-256 encryption.
-- **Restore:** Use **Restore from Backup** to load a previously saved JSON file.
+  - **Optional:** Choose encryption when asked ("Do you want to encrypt this backup with a password?") and set a strong password.
+  - With encryption enabled, all API keys and sensitive data are protected with AES-256 encryption. Note: unencrypted backups exclude API keys and credentials.
+- **Restore:** Use **Load Backup** to load a previously saved JSON file.
   - For encrypted backups you have to enter the correct password.
-  - **Note:** A wrong password results in a "Decryption failed" error.
+  - **Note:** A wrong password results in a "Wrong password. Restore failed." error.
 
 **Keep your backup password safe!** An encrypted backup cannot be restored without it.
 
@@ -218,12 +212,18 @@ Since Cachy is local-only, your data is your responsibility.
 ### Side Panel
 
 The dockable side panel has three modes: **AI Assistant**, **Quick Notes** and
-(opt-in) **Global Chat**. Click the panel's title to cycle between modes; show
-or hide it under **Settings -> Visuals**.
+(opt-in) **Global Chat** — title cycles modes; **Settings → Visuals & Design**
+shows/hides the panel.
 
 - **Quick Notes:** Store notes locally in your browser only.
 - **AI Assistant:** Interact with the context-aware AI for market analysis.
 - **Global Chat:** Opt-in community chat, disabled by default.
+
+### Beyond This Guide
+
+Paper Trading (Settings → Trading) simulates orders without real money.
+Price Alerts notify you on price conditions. The Academy offers quizzes on
+candlestick patterns. News supports up to 5 custom RSS feeds.
 
 ---
 

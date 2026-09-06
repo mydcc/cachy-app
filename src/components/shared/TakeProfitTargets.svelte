@@ -20,10 +20,7 @@
   import Tooltip from "../shared/Tooltip.svelte";
   import { app } from "../../services/app";
   import { _ } from "../../locales/i18n";
-  import { createEventDispatcher } from "svelte";
   import type { IndividualTpResult } from "../../stores/types";
-
-  const dispatch = createEventDispatcher();
 
   interface Props {
     targets: Array<{
@@ -42,7 +39,6 @@
 
   function removeRow(index: number) {
     app.removeTakeProfitRow(index);
-    dispatch("remove", index);
   }
 </script>
 
@@ -85,14 +81,14 @@
   {/if}
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-    {#each targets as target, i}
+    {#each targets as target, i (target)}
       <TakeProfitRow
         index={i}
         price={target.price}
         percent={target.percent}
         isLocked={target.isLocked}
         tpDetail={calculatedTpDetails.find((d) => d.index === i)}
-        on:remove={() => removeRow(i)}
+        onremove={() => removeRow(i)}
       />
     {/each}
   </div>

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-280 items. How to read and add them: [README.md](README.md).
+288 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 211
+Counts by status: 💡 idea 23 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-progress 5 · ✅ done 219
 
 ---
 
@@ -76,6 +76,7 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | ✅ done | trade-panel |
 | [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) | Bitunix TP/SL rows carry no planType, so plansFor never groups them | P1 | ✅ done | exchange |
 | [BUG-0331](bugs/BUG-0331-flash-close-strips-protection-before-refusal.md) | A refused flash close leaves the position open with its stops cancelled | P1 | ✅ done | trade-panel |
+| [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | 🟡 in-progress | chart |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | ✅ done | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
 | [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
@@ -105,6 +106,9 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | mascot |
 | [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | trade-panel |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | trade-panel |
+| [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | chart |
+| [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | chart |
+| [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | 🟡 in-progress | engine |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
 | [IDEA-0255](ideas/IDEA-0255-order-quantity-percent-slider.md) | Add a 0/25/50/75/100% quantity slider to the order-entry form | P3 | 💡 idea | trade-panel |
@@ -113,11 +117,13 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
-| [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | alerts |
+| [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | ✅ done | alerts |
+| [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | ✅ done | alerts |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟡 in-progress | alerts |
-| [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 📋 specced | alerts |
+| [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 🟡 in-progress | alerts |
+| [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | 🟡 in-progress | alerts |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
@@ -140,6 +146,7 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0031](features/FEAT-0031-whitelabel-theming.md) | Rebrand a build without editing source | P2 | 💡 idea | build |
 | [FEAT-0039](features/FEAT-0039-data-extensions.md) | Let users add prompts, presets and themes as data files | P2 | 💡 idea | extensions |
 | [FEAT-0187](features/FEAT-0187-edition-entitlement-switch.md) | Replace the cheat code with a verifiable local entitlement | P2 | 📋 specced | build |
+| [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 💡 idea | alerts |
 | [IDEA-0186](ideas/IDEA-0186-docs-as-public-surface.md) | Audit every public-facing document as a first-contact surface | P3 | 💡 idea | docs |
 
 ### M6
@@ -210,12 +217,13 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0355](bugs/BUG-0355-bitget-ws-throttle-map-leak.md) | Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely | P1 | ✅ done | exchange |
 | [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | ✅ done | exchange |
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | chat |
-| [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟢 ready | calculation |
+| [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | calculation |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | ui |
+| [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | 📋 specced | security |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
@@ -252,7 +260,7 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | calculation |
 | [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | ✅ done | market |
 | [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | ✅ done | exchange |
-| [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟢 ready | market |
+| [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | ✅ done | market |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | chat |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | calculator |
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | exchange |
@@ -283,7 +291,7 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | ✅ done | ui |
 | [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 📋 specced | ui |
 | [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | ui |
-| [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | 📋 specced | ui |
+| [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | ui |
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | 📋 specced | ui |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | 📋 specced | calculation |
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | ui |
@@ -314,7 +322,7 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | api |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | ui |
 | [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | ui |
-| [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟢 ready | indicators |
+| [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | ✅ done | indicators |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | chat |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | exchange |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | exchange |
@@ -404,9 +412,11 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0355](bugs/BUG-0355-bitget-ws-throttle-map-leak.md) | Bitget WebSocket throttleMap is never pruned and leaks memory indefinitely | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0356](bugs/BUG-0356-bitunix-private-ws-reconnect-loop.md) | Bitunix private WebSocket reconnect loop lacks backoff and retries infinitely every 500ms | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | 📋 specced | M4 | community, pro, private | A | none | — |
+| [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | ✅ done | M4 | community, pro, private | A | none | — |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
+| [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -441,7 +451,9 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
-| [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
+| [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
+| [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
+| [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -491,7 +503,7 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0314](bugs/BUG-0314-wasm-traps-silently-poisoned-instance.md) | WASM module traps silently on malformed input and keeps the poisoned instance | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0358](bugs/BUG-0358-market-overview-duplicate-subscriptions.md) | MarketOverview duplicate effects register price and ticker channels twice per tile | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0361](bugs/BUG-0361-connection-manager-listener-leak.md) | ConnectionManager attaches anonymous window and document listeners with no teardown method | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
@@ -551,7 +563,7 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) |
 | [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | none | community, pro, private | none | none | — |
@@ -573,6 +585,8 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md), [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) |
 | [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | 💡 idea | M9 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | M3 | community, pro, private | none | none | — |
+| [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -592,7 +606,7 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | none | community, pro, private | none | none | — |
@@ -619,6 +633,8 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | ✅ done | none | community, pro, private | B | none | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) |
 | [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | none | community, pro, private | A | none | — |
+| [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
+| [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 💡 idea | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -634,4 +650,4 @@ Counts by status: 💡 idea 22 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-pro
 
 ---
 
-Next free number: **0398**
+Next free number: **0406**

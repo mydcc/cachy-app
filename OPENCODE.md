@@ -45,20 +45,19 @@ cd .worktrees/<branch-name>
 
 **Why:** Claude, Antigravity, OpenCode, and jCodeMunch's reindex-on-edit hook all share the same directory. Working directly in the shared checkout causes HEAD conflicts, index races, and uncommitted-change collisions.
 
-**Cleanup after merge/abandon:**
+**Cleanup after merge/abandon (both halves, mandatory):**
 ```bash
-git worktree remove .worktrees/<branch-name>
-git branch -d <branch-name>
+bash scripts/worktree-cleanup.sh <branch-name>
 ```
 
-See `AGENTS.md` § "Git Cleanliness and Parallel Agent Workspaces" for the full rationale.
+See `AGENTS.md` § "Agent Lifecycle: Check, Claim, Clean Up" for the full rationale (the script removes the directory, untracks it from Gortex and deletes the merged branch).
 
 ## Non-Negotiable Rules (from AGENTS.md + CLAUDE.md)
 
 - **Svelte 5 Runes only** — no `export let`, no `$:`, no `createEventDispatcher`, no `<slot>`
 - **decimal.js** for ALL financial values — no native `number` for prices/amounts/balances
 - **No hardcoded colors** — CSS variables or paired theme classes only
-- **`npm run check` before completion** — task is only done when type check passes; mid-task cadence by blast radius (see AGENTS.md "Verification Proportionality")
+- **Fast targeted tests before completion** — run only the tests covering your changes; full `npm test` / `npm run check` are delegated to CI (see AGENTS.md "Verification Standard: Fast & Targeted")
 - **Never push to `develop` or `main` directly** — always via feature branch + PR
 
 ## Commits & PRs

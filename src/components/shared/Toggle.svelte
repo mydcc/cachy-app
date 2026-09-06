@@ -16,6 +16,8 @@
 -->
 
 <script lang="ts">
+  import { generateId } from "../../utils/utils";
+
   interface Props {
     checked?: boolean;
     disabled?: boolean;
@@ -26,7 +28,7 @@
   let {
     checked = $bindable(false),
     disabled = false,
-    id = "toggle-" + crypto.randomUUID().slice(0, 8),
+    id = "toggle-" + generateId().slice(0, 8),
     onchange
   }: Props = $props();
 

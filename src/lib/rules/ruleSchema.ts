@@ -148,6 +148,19 @@ class RuleSchemaService {
     return this.loading;
   }
 
+  /**
+   * Whether the core can answer. Monotonic: `false` until `load()` succeeds,
+   * `true` for the rest of the session.
+   *
+   * That monotonicity is load-bearing outside this file. The FEAT-0387 cutover
+   * decides *coverage* (which alerts leave the legacy engine) continuously and
+   * *arming* (whether the rule loop notifies at all) once at startup, and both
+   * read this. A `true → false` transition would push every alert back to the
+   * legacy engine while the loop stayed armed and notifying — both engines
+   * serving one alert, the double fire that design exists to rule out. So
+   * making the core reloadable means clearing `core` here, and that must not
+   * ship without the loop's missing disarm path: see FEAT-0406.
+   */
   isReady(): boolean {
     return this.core !== null;
   }

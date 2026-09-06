@@ -263,6 +263,7 @@ export interface Settings {
   showTooltips: boolean;
   showTechnicals: boolean;
   showIndicatorParams: boolean;
+  technicalsFullHeight: boolean;
   hideUnfilledOrders: boolean;
   /**
    * Whether simulated fills from paper trading (FEAT-0012) are written to the
@@ -529,6 +530,7 @@ const defaultSettings: Settings = {
   showTooltips: true,
   showTechnicals: false,
   showIndicatorParams: false,
+  technicalsFullHeight: false,
   hideUnfilledOrders: false,
   journalPaperTrades: true,
   positionViewMode: "detailed",
@@ -816,6 +818,7 @@ export class SettingsManager {
   showTooltips = $state<boolean>(defaultSettings.showTooltips);
   showTechnicals = $state<boolean>(defaultSettings.showTechnicals);
   showIndicatorParams = $state<boolean>(defaultSettings.showIndicatorParams);
+  technicalsFullHeight = $state<boolean>(defaultSettings.technicalsFullHeight);
   hideUnfilledOrders = $state<boolean>(defaultSettings.hideUnfilledOrders);
   journalPaperTrades = $state<boolean>(defaultSettings.journalPaperTrades);
   positionViewMode = $state<PositionViewMode | undefined>(
@@ -1808,6 +1811,7 @@ export class SettingsManager {
     this.showTooltips = merged.showTooltips ?? defaultSettings.showTooltips;
     this.showTechnicals = merged.showTechnicals;
     this.showIndicatorParams = merged.showIndicatorParams;
+    this.technicalsFullHeight = merged.technicalsFullHeight;
     this.hideUnfilledOrders = merged.hideUnfilledOrders;
     this.journalPaperTrades = merged.journalPaperTrades ?? defaultSettings.journalPaperTrades;
     this.positionViewMode = merged.positionViewMode;
@@ -2159,6 +2163,7 @@ export class SettingsManager {
       showTooltips: this.showTooltips,
       showTechnicals: this.showTechnicals,
       showIndicatorParams: this.showIndicatorParams,
+      technicalsFullHeight: this.technicalsFullHeight,
       hideUnfilledOrders: this.hideUnfilledOrders,
       journalPaperTrades: this.journalPaperTrades,
       positionViewMode: this.positionViewMode,

@@ -22,7 +22,7 @@
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
   import { onboardingService } from "../../services/onboardingService";
-  import { createEventDispatcher, onMount } from "svelte";
+  import { onMount } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -41,6 +41,7 @@
     riskAmount: string | number | null;
     isRiskAmountLocked: boolean;
     isPositionSizeLocked: boolean;
+    ontoggleriskamountlock?: () => void;
   }
 
   let {
@@ -49,6 +50,7 @@
     riskAmount = $bindable(),
     isRiskAmountLocked = $bindable(),
     isPositionSizeLocked = $bindable(),
+    ontoggleriskamountlock,
   }: Props = $props();
 
   let isConnected = $derived(marketState.connectionStatus === "connected");
@@ -58,10 +60,8 @@
   let hasApiKeys = $derived(Boolean(activeKeys.key) && Boolean(activeKeys.secret));
   let isFetchingBalance = $state(false);
 
-  const dispatch = createEventDispatcher();
-
   function handleLockClick() {
-    dispatch("toggleRiskAmountLock");
+    ontoggleriskamountlock?.();
   }
 
   const format = (val: string | number | null) =>
@@ -280,19 +280,16 @@
             ? 'animate-spin'
             : ''}"
           onclick={() => handleFetchBalance(false)}
-          title={paperState.enabled
-            ? $_("dashboard.portfolioInputs.fetchBalanceTitlePaper")
-            : $_("dashboard.portfolioInputs.fetchBalanceTitle")}
+          title={!hasApiKeys && !paperState.enabled
+            ? $_("dashboard.alerts.noApiKeys")
+            : paperState.enabled
+              ? $_("dashboard.portfolioInputs.fetchBalanceTitlePaper")
+              : $_("dashboard.portfolioInputs.fetchBalanceTitle")}
           disabled={isFetchingBalance || (!isConnected && !paperState.enabled)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
         </button>
       </div>
-      {#if !hasApiKeys}
-        <p class="mt-1 text-xs text-[var(--color-warning)]">
-          {$_("dashboard.alerts.noApiKeys")}
-        </p>
-      {/if}
     </div>
 
     <div class="flex-[0.75] min-w-0">

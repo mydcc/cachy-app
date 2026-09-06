@@ -1,6 +1,6 @@
 {
   "name": "cachy-app",
-  "version": "1.6.0-beta.229",
+  "version": "1.6.0-beta.247",
   "description": "Local-first position size and risk management calculator for crypto traders.",
   "license": "AGPL-3.0-or-later",
   "private": true,
@@ -20,13 +20,14 @@
     "preview": "vite preview",
     "start": "node server.js",
     "check": "svelte-kit sync && bash ./scripts/run-lowpri.sh svelte-check --tsconfig ./tsconfig.json",
+    "check:node": "node scripts/check-node-version.mjs",
     "check:watch": "svelte-kit sync && bash ./scripts/run-lowpri.sh svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "bash ./scripts/run-lowpri.sh vitest run",
     "test:watch": "bash ./scripts/run-lowpri.sh vitest",
     "test:unit": "bash ./scripts/run-lowpri.sh vitest run --project=unit",
-    "test:changed": "bash ./scripts/run-lowpri.sh vitest --changed",
+    "test:changed": "bash ./scripts/run-lowpri.sh vitest run --changed",
     "test:seq": "bash ./scripts/run-lowpri.sh vitest run --no-file-parallelism",
     "test:e2e": "playwright test tests/e2e",
     "test:perf": "vitest run --config vitest.perf.config.ts",
@@ -37,7 +38,8 @@
     "docs:links": "node scripts/check-doc-links.mjs",
     "arch": "npm run arch:validate && npm run arch:build",
     "arch:validate": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs validate dataflow docs/architecture/cachy-architecture.dataflow.json --quality showcase",
-    "arch:build": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs deliver dataflow docs/architecture/cachy-architecture.dataflow.json docs/architecture/cachy-architecture.dataflow.html"
+    "arch:build": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs deliver dataflow docs/architecture/cachy-architecture.dataflow.json docs/architecture/cachy-architecture.dataflow.html",
+    "shadow:run": "node scripts/shadow-run.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",

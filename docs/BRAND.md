@@ -121,7 +121,7 @@ From `CLAUDE.md`, and enforced by review:
 - **No hardcoded colours in components.** No `#ffffff`, no `rgb(...)`. Only CSS
   variables: `var(--bg-primary)`, `var(--text-secondary)`, `var(--accent-color)`.
 - For a background together with its text colour, use the **paired classes** from
-  `src/themes.css` (lines 3081+): `.bg-accent-paired`, `.bg-success-paired`,
+  `src/themes.css` (lines ~3140+): `.bg-accent-paired`, `.bg-success-paired`,
   `.bg-danger-paired`, `.bg-warning-paired`, and the hover variants
   `.hover-bg-accent-paired`, `.hover-bg-success-paired`, `.hover-bg-danger-paired`.
   They set foreground and background together, so contrast holds in all 27 themes.
@@ -135,11 +135,11 @@ in the 26 themes nobody tested.
 
 **Verified:** the app ships a font picker. `src/app.css` declares `@font-face`
 for Inter (the default), IBM Plex Sans, JetBrains Mono, Roboto Mono,
-Source Sans 3, Manrope, Nunito Sans and Red Hat Display; the user's choice is the
+Source Sans 3, Manrope, Nunito Sans, Red Hat Display, Schibsted Grotesk and
+Space Grotesk; the user's choice is the
 `fontFamily` setting.
 
-**Decided: there is no separate headline typeface.** Headings use the same family
-as body text — the one the user picked. That is what the app has always done, and
+**Decided: headings use the same family as body text** — the one the user picked. That is what the app has always done, and
 it is now the brand rule rather than an accident.
 
 The three old documents each claimed something else, and none matched the app:

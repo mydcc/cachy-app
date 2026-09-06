@@ -106,7 +106,7 @@ Request-Beispiel:
     "args":[
         {
             "symbol":"BTCUSDT",
-            "channel":"market_kline_1min"
+            "ch":"market_kline_1min"
         }
     ]
 }
@@ -130,12 +130,12 @@ Request-Beispiel:
    "op":"login",
    "args":[
          {
-             "apiKey":"a91ma19akoo5kjihgvnkllohs61cvdf19v8a65a1a5s61cv6a81va65sdf19v8a65a1",
-             "timestamp": 1747402389682,
-             "nonce":"o9jnhu8ijko2nbhy36fgt0mnjuyhgtsh",
-             "sign":"kkogbwoehuoenlbgagogheooeggehn939uh5gelqq33"
-         }
-   ]
+              "apiKey":"a91ma19akoo5kjihgvnkllohs61cvdf19v8a65a1a5s61cv6a81va65sdf19v8a65a1",
+              "timestamp": 1747402389,
+              "nonce":"o9jnhu8ijko2nbhy36fgt0mnjuyhgtsh",
+              "sign":"kkogbwoehuoenlbgagogheooeggehn939uh5gelqq33"
+          }
+    ]
 }
 ```
 
@@ -193,12 +193,12 @@ def sign():
 Quelle: https://www.bitunix.com/api-docs/futures/websocket/private/Balance%20Channel.html
 
 ### Description
-Balance-Updates.
+Balance-Updates (wire channel: `wallet`).
 
 ### Push Parameters
 | Parameter         | Type     | Description |
 |-------------------|----------|-------------|
-| ch                | String   | Channel-Name: `position` |
+| ch                | String   | Channel-Name: `wallet` |
 | ts                | Int64    | Timestamp |
 | data              | Object   | |
 | > coin            | String   | Coin |
@@ -226,7 +226,7 @@ Abonniert den Order-Channel. Daten werden gepusht bei folgenden Events:
 ### Push Parameters
 | Parameter      | Type   | Description |
 |----------------|--------|-------------|
-| ch             | String | Channel-Name: `position` |
+| ch             | String | Channel-Name: `order` |
 | ts             | Int64  | Timestamp |
 | data           | Object | Subscription-Daten |
 | > event        | String | `CREATE`/`UPDATE`/`CLOSE` |
@@ -296,12 +296,12 @@ Abonniert den Position-Channel. Daten werden gepusht bei folgenden Events:
 Quelle: https://www.bitunix.com/api-docs/futures/websocket/private/Tp%20Sl%20Channel.html
 
 ### Description
-TP/SL-Order-Updates.
+TP/SL-Order-Updates (wire channel: `tp_sl`).
 
 ### Push Parameters
 | Parameter      | Type   | Description |
 |----------------|--------|-------------|
-| ch             | String | Channel-Name: `position` |
+| ch             | String | Channel-Name: `tp_sl` |
 | ts             | Int64  | Timestamp |
 | data           | Object | Subscription-Daten |
 | > event        | String | `CREATE`/`UPDATE`/`CLOSE` |
@@ -315,7 +315,7 @@ TP/SL-Order-Updates.
 | > ctime        | String | Erstell-Timestamp |
 | > type         | String | `LIMIT`/`MARKET` |
 | > tpQty        | String | Take-Profit-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
-| > slQty        | Bool   | Stop-Loss-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
+| > slQty        | String | Stop-Loss-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
 | > tpStopType   | String | Take-Profit-Trigger-Typ: `MARK_PRICE`/`LAST_PRICE` |
 | > tpPrice      | String | Take-Profit-Trigger-Preis |
 | > tpOrderType  | String | Take-Profit-Order-Typ: `LIMIT`/`MARKET` |
@@ -421,7 +421,7 @@ gefolgt von weiteren Updates.
 |-----------|--------------|----------|-------------|
 | op        | String       | Yes      | Operation: `subscribe`/`unsubscribe` |
 | args      | List<Object> | Yes      | Liste der zu abonnierenden Channels |
-| > ch      | String       | Yes      | Channel-Name: `<Preistyp>_kline_<Intervall>`. Preistypen: `market` (Marktpreis) und `mark` (Mark-Preis). Verfügbare Intervalle: `1min, 3min, 5min, 15min, 30min, 60min, 2h, 4h, 6h, 8h, 12h, 1day, 3day, 1week, 1month` (jeweils für beide Preistypen, z.B. `market_kline_1min`, `mark_kline_1min`, `market_kline_3min`, `mark_kline_3min` usw.) |
+| > ch      | String       | Yes      | Channel-Name: `<Preistyp>_kline_<Intervall>`. Preistypen: `market` (Marktpreis) und `mark` (Mark-Preis). Venue-documented intervals: `1min, 3min, 5min, 15min, 30min, 60min, 2h, 4h, 6h, 8h, 12h, 1day, 3day, 1week, 1month` (jeweils für beide Preistypen). Cachy natively subscribes `market_kline_*` for `1min, 5min, 15min, 30min, 60min, 4h, 1day, 1week, 1month` and synthesizes the rest (see `timeframes.md`); `mark_*` is never subscribed. |
 | > symbol  | String       | Yes      | Product ID, z.B. ETHUSDT |
 
 Request-Beispiel:
@@ -724,7 +724,7 @@ Request-Beispiel:
 | > p       | String       | Ausführungspreis |
 | > v       | String       | Ausführungsmenge |
 | > s       | String       | Ausführungsseite: `sell`/`buy` |
-| > t       | String       | Timestamp |
+| > t       | String       | Timestamp (venue sends ISO-8601, e.g. `2026-04-07T05:47:52Z`; Cachy normalizes to epoch ms `number` in `TradeData.t`) |
 
 Push-Daten-Beispiel:
 ```json
@@ -748,3 +748,13 @@ Push-Daten-Beispiel:
     ]
 }
 ```
+
+---
+
+## What Cachy subscribes to
+
+This file documents the full exchange surface. Cachy wires a subset:
+
+- Public: `ticker`, `trade`, `depth_book5`, `market_kline_*` (natively for `1min, 5min, 15min, 30min, 60min, 4h, 1day, 1week, 1month`; the rest synthesized — see `timeframes.md`), `price`. `mark_kline_*`, `tickers` batch, `depth_books/book1/book15` are intentionally unwired.
+- Private: `position`, `order`, `wallet`, `tp_sl` (see Private Channels above).
+- Funding rate: REST batch returns percent and is divided by 100 in `apiService.fetchBitunixFundingRates`; WS `price.fr` is normalized at the same single site — see `QUICK_REFERENCE.md`.

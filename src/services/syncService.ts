@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { parseTimestamp } from "../utils/utils";
+import { parseTimestamp, generateId } from "../utils/utils";
 import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
@@ -334,7 +334,7 @@ export const syncService = {
         const fee = new Decimal(0); // Fees usually not final for open pos
 
         const pendingEntry: JournalEntry = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           tradeId: uniqueId,
           date: new Date(parseTimestamp(p.ctime)).toISOString(),
           symbol: p.symbol,
@@ -521,7 +521,7 @@ export const syncService = {
           addedCount++;
 
           return {
-            id: crypto.randomUUID(),
+            id: generateId(),
             tradeId: uniqueId,
             date: new Date(closeTime).toISOString(),
             entryDate:

@@ -2,9 +2,10 @@
 id: BUG-0382
 title: The price alert engine is never initialised, so no alert ever fires
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: M4
+shipped: 1.6.0-beta.236
 editions: [community, pro, private]
 area: alerts
 data_class: A

@@ -101,9 +101,13 @@ marked.use(
   }),
   {
     renderer: {
-      heading({ text, depth, raw }: Tokens.Heading) {
+      heading({ tokens, depth, raw }: Tokens.Heading) {
         const id = slugify(raw);
-        return `<h${depth} id="${id}">${text}</h${depth}>\n`;
+        // marked v18 passes inline tokens, not pre-rendered HTML: without
+        // parseInline any formatting inside a heading (links, bold, code)
+        // is emitted as literal markdown source. Every generated release
+        // heading carries a compare link, so this broke all of them.
+        return `<h${depth} id="${id}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
       },
     },
   },
