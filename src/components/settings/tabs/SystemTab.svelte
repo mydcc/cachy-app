@@ -25,12 +25,8 @@
     import PerformanceMonitor from "../../shared/PerformanceMonitor.svelte";
     import EngineDebugPanel from "../EngineDebugPanel.svelte";
     import DataMaintenance from "../DataMaintenance.svelte";
-    import SettingsGrid from "../shared/SettingsGrid.svelte";
     import { toastService } from "../../../services/toastService.svelte";
-    import {
-        applyTelemetryConsent,
-        trackCustomEvent,
-    } from "../../../services/trackingService";
+    import { applyTelemetryConsent } from "../../../services/trackingService";
     import { autoBackupState, triggerAutoBackup } from "../../../services/autoBackupService.svelte";
     import { onboardingState } from "../../../stores/onboarding.svelte";
     import {
@@ -44,20 +40,12 @@
         MAX_INTERVAL_MINUTES,
         type FileTargetSlot,
     } from "../../../services/fileTargetBackupService.svelte";
-    import { modalState } from "../../../stores/modal.svelte";
-    import {
-        createBackup,
-        restoreFromBackup,
-    } from "../../../services/backupService";
-    import { wipeLocalData } from "../../../utils/appReset";
-    import type { TranslationKey } from "../../../locales/schema";
-    import HotkeySettings from "../HotkeySettings.svelte";
-    import {
-        HOTKEY_ACTIONS,
-        MODE1_MAP,
-        MODE2_MAP,
-        type HotkeyAction,
-    } from "../../../services/hotkeyService";
+
+    let { onBackup, onRestore, onReset } = $props<{
+        onBackup: () => void;
+        onRestore: (e: Event) => void;
+        onReset: () => void;
+    }>();
 
     function clearAppCache() {
         localStorage.removeItem("cachy_news_cache");
@@ -67,132 +55,6 @@
 
     function reloadApp() {
         window.location.reload();
-    }
-
-    // Backup & restore handlers (moved from SettingsContent; this tab owns them now)
-    async function handleBackup() {
-        const useEncryption = await modalState.show(
-            $_("settings.system.dataMaintenance") || "Data & Backup",
-            $_("app.backupEncryptQuestion") || "Encrypt backup with password?",
-            "confirm",
-        );
-        let password = "";
-
-        if (useEncryption) {
-            const result = await modalState.show(
-                $_("settings.system.dataMaintenance") || "Data & Backup",
-                $_("app.backupPasswordPrompt") || "Enter password:",
-                "prompt",
-            );
-            password = typeof result === "string" ? result : "";
-
-            if (!password) {
-                uiState.showError(
-                    $_("app.backupPasswordRequired") || "Password required.",
-                );
-                return;
-            }
-        }
-
-        await createBackup(password);
-        trackCustomEvent("System", "Backup", "Created");
-    }
-
-    async function handleRestore(e: Event) {
-        const input = e.target as HTMLInputElement;
-        if (!input.files || input.files.length === 0) return;
-
-        const file = input.files[0];
-        const reader = new FileReader();
-
-        reader.onload = async (event) => {
-            const content = event.target?.result as string;
-            const confirmed = await modalState.show(
-                $_("settings.system.dataMaintenance") || "Data & Backup",
-                $_("app.restoreConfirmMessage") ||
-                    "Restore backup? Current data will be replaced.",
-                "confirm",
-            );
-
-            if (confirmed) {
-                let result = await restoreFromBackup(content);
-
-                if (result.needsPassword) {
-                    const pwResult = await modalState.show(
-                        $_("settings.system.dataMaintenance") ||
-                            "Data & Backup",
-                        $_("app.backupPasswordEntryPrompt") ||
-                            "Enter encryption password:",
-                        "prompt",
-                    );
-                    const password =
-                        typeof pwResult === "string" ? pwResult : "";
-
-                    if (password) {
-                        result = await restoreFromBackup(content, password);
-                    } else {
-                        input.value = "";
-                        return;
-                    }
-                }
-
-                if (result.success) {
-                    await modalState.show(
-                        $_("settings.system.dataMaintenance") ||
-                            "Data & Backup",
-                        result.message,
-                        "alert",
-                    );
-                    window.location.reload();
-                } else {
-                    uiState.showError(
-                        result.message.startsWith("app.")
-                            ? $_(result.message as TranslationKey, { values: result.messageParams })
-                            : result.message,
-                    );
-                }
-            }
-            input.value = "";
-        };
-
-        reader.onerror = () => {
-            uiState.showError($_("app.fileReadError"));
-            input.value = "";
-        };
-
-        reader.readAsText(file);
-    }
-
-    async function handleReset() {
-        const confirmed = await modalState.show(
-            $_("settings.system.dangerZone") || "Danger Zone",
-            $_("settings.resetConfirm") ||
-                "Factory Reset? This cannot be undone.",
-            "confirm",
-        );
-        if (confirmed) {
-            await wipeLocalData();
-            window.location.reload();
-        }
-    }
-
-    // Controls (moved from Trading; device controls live with system maintenance)
-    const groupedActions: Record<string, HotkeyAction[]> = {};
-    HOTKEY_ACTIONS.forEach((action) => {
-        if (!groupedActions[action.category]) {
-            groupedActions[action.category] = [];
-        }
-        groupedActions[action.category].push(action);
-    });
-    const categories = Object.keys(groupedActions);
-
-    function getPresetKey(action: HotkeyAction, mode: string): string {
-        if (mode === "mode1") {
-            return MODE1_MAP[action.id] || action.defaultKey;
-        } else if (mode === "mode2") {
-            return MODE2_MAP[action.id] || action.defaultKey;
-        }
-        return action.defaultKey;
     }
 
     // BUG-0286: consent changed — load the Matomo container on opt-in, drop
@@ -241,29 +103,22 @@
             id: "dashboard",
             label: $_("settings.system.dashboard") || "Dashboard",
         },
-        {
-            id: "data",
-            label: $_("settings.system.dataMaintenance") || "Data & Backup",
-        },
+        { id: "data", label: $_("settings.tabs.data") || "Data & Backup" },
         {
             id: "maintenance",
             label: $_("settings.tabs.maintenance") || "Maintenance",
         },
-        {
-            id: "controls",
-            label: $_("settings.profile.hotkeysTitle") || "Hotkeys",
-        },
     ];
 </script>
 
-<div class="system-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-system">
+<div class="system-tab h-full flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-system">
     <!-- Sub-Navigation -->
     <div
-        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
+        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 shrink-0"
     >
         {#each subTabs as tab}
             <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
                 tab.id
                     ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
@@ -274,7 +129,7 @@
         {/each}
     </div>
 
-    <div class="min-w-0">
+    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
         <!-- Performance & Resources -->
         {#if activeSubTab === "performance"}
             <section class="settings-section animate-fade-in">
@@ -290,7 +145,7 @@
                     <EngineDebugPanel />
                 {/if}
 
-                <SettingsGrid gap="gap-4" extraClass="mt-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     <!-- Network Logs -->
                     <div
                         class="action-card flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
@@ -353,7 +208,7 @@
                             onchange={handleTelemetryConsent}
                         />
                     </div>
-                </SettingsGrid>
+                </div>
 
                 <!-- Quick Actions -->
                 <h4
@@ -361,7 +216,7 @@
                 >
                     {$_("settings.system.quickActions")}
                 </h4>
-                <SettingsGrid gap="gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <button
                         class="btn-secondary text-xs py-2 flex items-center justify-center gap-2"
                         onclick={clearAppCache}
@@ -406,10 +261,10 @@
                         >
                         {$_("settings.system.reloadApp") || "Reload App"}
                     </button>
-                </SettingsGrid>
+                </div>
 
-                <label class="toggle-card mt-4 gap-3">
-                    <div class="flex flex-col min-w-0 flex-1">
+                <label class="toggle-card mt-4">
+                    <div class="flex flex-col">
                         <span class="text-sm font-medium"
                             >{$_("settings.system.englishTechnicalTerms")}</span
                         >
@@ -503,7 +358,7 @@
                             {$_("settings.system.fileTargetUnsupported")}
                         </div>
                     {:else}
-                        <SettingsGrid gap="gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {#each [1, 2] as slot (slot)}
                                 {@const info = fileTargetState[slot as FileTargetSlot]}
                                 <div class="p-3 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg">
@@ -588,14 +443,14 @@
                                     {/if}
                                 </div>
                             {/each}
-                        </SettingsGrid>
+                        </div>
                     {/if}
                 </div>
 
-                <SettingsGrid gap="gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button
                         class="flex items-center gap-3 p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-left group"
-                            onclick={handleBackup}
+                        onclick={onBackup}
                     >
                         <div
                             class="p-2 rounded-md bg-blue-500/10 text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-colors"
@@ -675,11 +530,11 @@
                         <input
                             type="file"
                             accept=".json"
-                            onchange={handleRestore}
+                            onchange={onRestore}
                             class="hidden"
                         />
                     </label>
-                </SettingsGrid>
+                </div>
 
                 <div class="mt-8">
                     <DataMaintenance />
@@ -736,79 +591,11 @@
                     </div>
                     <button
                         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-xs font-bold transition-colors"
-                        onclick={handleReset}
+                        onclick={onReset}
                     >
                         {$_("settings.system.resetNow") || "Reset Now"}
                     </button>
                 </div>
-            </section>
-        {/if}
-
-        <!-- Controls (moved from Trading; device controls live with system maintenance) -->
-        {#if activeSubTab === "controls"}
-            <section class="settings-section animate-fade-in">
-                <div class="flex justify-between items-center gap-2 mb-4">
-                    <h3 class="section-title mb-0">
-                        {$_("settings.profile.hotkeysTitle") ||
-                            "Keyboard Shortcuts"}
-                    </h3>
-                    <select
-                        bind:value={settingsState.hotkeyMode}
-                        class="input-field w-auto py-1 text-xs"
-                    >
-                        <option value="mode2"
-                            >{$_("settings.hotkeys.safetyMode")}</option
-                        >
-                        <option value="mode1"
-                            >{$_("settings.hotkeys.directMode")}</option
-                        >
-                        <option value="custom">{$_("settings.hotkeys.customConfig")}</option>
-                    </select>
-                </div>
-
-                {#if settingsState.hotkeyMode === "custom"}
-                    <div
-                        class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                    >
-                        <HotkeySettings />
-                    </div>
-                {:else}
-                    <div
-                        class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] flex flex-col gap-4"
-                    >
-                        <p class="text-xs text-[var(--text-secondary)]">
-                            <strong>{$_("settings.hotkeys.activePreset")}</strong>
-                            {settingsState.hotkeyMode === "mode1"
-                                ? $_("settings.hotkeys.mode1Desc")
-                                : $_("settings.hotkeys.mode2Desc")}
-                            <button
-                                class="text-[var(--accent-color)] underline ml-2"
-                                onclick={() =>
-                                    (settingsState.hotkeyMode = "custom")}
-                                >{$_("settings.hotkeys.switchToCustom")}</button
-                            >
-                        </p>
-                        <div class="flex flex-col gap-6">
-                            {#each categories as category}
-                                <div class="flex flex-col gap-2">
-                                    <h4 class="text-sm font-bold text-[var(--accent-color)] border-b border-[var(--border-color)] pb-1 mb-1">
-                                        {category}
-                                    </h4>
-                                    <SettingsGrid gap="gap-3">
-                                        {#each groupedActions[category] as action}
-                                            <div class="flex justify-between items-center gap-2 p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-                                                <span class="text-sm min-w-0">{action.label}</span>
-                                                <span class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)] shrink-0">
-                                                    {getPresetKey(action, settingsState.hotkeyMode)}
-                                                </span>
-                                            </div>
-                                        {/each}
-                                    </SettingsGrid>
-                                </div>
-                            {/each}
-                        </div>
-                    </div>
-                {/if}
             </section>
         {/if}
     </div>

@@ -19,8 +19,6 @@
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
-    import IndicatorSettings from "./IndicatorSettings.svelte";
-    import SettingsGrid from "../shared/SettingsGrid.svelte";
 
     const priceScaleModes = [
         { value: "linear", labelKey: "settings.chart.scaleLinear" },
@@ -42,9 +40,9 @@
 
 <div class="flex flex-col gap-6">
     <!-- Header with Reset Button -->
-    <div class="flex justify-between items-center gap-2">
+    <div class="flex justify-between items-center">
         <h2 class="text-lg font-semibold text-[var(--text-primary)]">
-            {$_("settings.chart.title") || "Chart Settings"}
+            Chart Einstellungen
         </h2>
         <button
             type="button"
@@ -63,7 +61,7 @@
 
         <div class="space-y-4">
             <!-- Scale Mode & Decimals Mode -->
-            <SettingsGrid gap="gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="field-group">
                     <label for="chart-scale-mode">
                         {$_("settings.chart.scaleMode") || "Preisskala"}
@@ -96,11 +94,11 @@
                         <option value="fixed">
                             {$_("settings.chart.decimalsFixed") || "Fest"}
                         </option>
-                        </select>
-                    </div>
-                </SettingsGrid>
+                    </select>
+                </div>
+            </div>
 
-                <!-- Hint Text -->
+            <!-- Hint Text -->
             <p class="text-[10px] text-[var(--text-secondary)]">
                 {$_("settings.chart.scaleHint")
                     || "Logarithmisch bewertet Preisabstände prozentual gleich - empfohlen für große Kursbereiche."}
@@ -128,9 +126,9 @@
             {/if}
 
             <!-- Scale Toggles -->
-            <SettingsGrid>
-                <label class="toggle-card h-full gap-3">
-                    <div class="flex flex-col min-w-0 flex-1">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label class="toggle-card h-full">
+                    <div class="flex flex-col">
                         <span class="text-sm font-medium"
                             >{$_("settings.chart.autoScale") || "Auto-Skalierung"}</span
                         >
@@ -143,8 +141,8 @@
                     <Toggle bind:checked={settingsState.chartAutoScale} />
                 </label>
 
-                <label class="toggle-card h-full gap-3">
-                    <div class="flex flex-col min-w-0 flex-1">
+                <label class="toggle-card h-full">
+                    <div class="flex flex-col">
                         <span class="text-sm font-medium"
                             >{$_("settings.chart.invertScale")}</span
                         >
@@ -156,7 +154,7 @@
                     </div>
                     <Toggle bind:checked={settingsState.chartInvertScale} />
                 </label>
-            </SettingsGrid>
+            </div>
         </div>
     </section>
 
@@ -166,9 +164,9 @@
             {$_("settings.chart.displaySection") || "Darstellung"}
         </h3>
 
-        <SettingsGrid>
-            <label class="toggle-card h-full gap-3">
-                <div class="flex flex-col min-w-0 flex-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
                     <span class="text-sm font-medium"
                         >{$_("settings.chart.showGrid") || "Gitterlinien"}</span
                     >
@@ -181,8 +179,8 @@
                 <Toggle bind:checked={settingsState.chartShowGrid} />
             </label>
 
-            <label class="toggle-card h-full gap-3">
-                <div class="flex flex-col min-w-0 flex-1">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
                     <span class="text-sm font-medium"
                         >{$_("settings.chart.candleBorders")}</span
                     >
@@ -195,8 +193,8 @@
                 <Toggle bind:checked={settingsState.chartCandleBorders} />
             </label>
 
-            <label class="toggle-card h-full gap-3">
-                <div class="flex flex-col min-w-0 flex-1">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
                     <span class="text-sm font-medium"
                         >{$_("settings.chart.lastValueVisible")
                             || "Aktuelle-Preis-Label"}</span
@@ -210,8 +208,8 @@
                 <Toggle bind:checked={settingsState.chartLastValueVisible} />
             </label>
 
-            <label class="toggle-card h-full gap-3">
-                <div class="flex flex-col min-w-0 flex-1">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
                     <span class="text-sm font-medium"
                         >{$_("settings.chart.watermark")}</span
                     >
@@ -223,7 +221,7 @@
                 </div>
                 <Toggle bind:checked={settingsState.chartWatermark} />
             </label>
-        </SettingsGrid>
+        </div>
     </section>
 
     <!-- Crosshair Settings -->
@@ -232,7 +230,7 @@
             {$_("settings.chart.crosshairSection") || "Fadenkreuz"}
         </h3>
 
-        <SettingsGrid gap="gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="field-group">
                 <label for="chart-crosshair-mode">
                     {$_("settings.chart.crosshairMode") || "Modus"}
@@ -264,9 +262,9 @@
                             {$_(style.labelKey) || style.value}
                         </option>
                     {/each}
-                        </select>
-                    </div>
-                </SettingsGrid>
+                </select>
+            </div>
+        </div>
     </section>
 
     <!-- Time Scale Settings -->
@@ -275,9 +273,9 @@
             {$_("settings.chart.timeSection") || "Zeitachse & Countdown"}
         </h3>
 
-        <SettingsGrid cols={3}>
-            <label class="toggle-card h-full gap-3">
-                <div class="flex flex-col min-w-0 flex-1">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
                     <span class="text-sm font-medium"
                         >{$_("settings.chart.secondsVisible")}</span
                     >
@@ -290,8 +288,8 @@
                 <Toggle bind:checked={settingsState.chartSecondsVisible} />
             </label>
 
-            <label class="toggle-card h-full gap-3">
-                <div class="flex flex-col min-w-0 flex-1">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
                     <span class="text-sm font-medium"
                         >{$_("settings.chart.fixEdges")
                             || "Ränder fixieren"}</span
@@ -305,8 +303,8 @@
                 <Toggle bind:checked={settingsState.chartFixEdges} />
             </label>
 
-            <label class="toggle-card h-full gap-3">
-                <div class="flex flex-col min-w-0 flex-1">
+            <label class="toggle-card h-full">
+                <div class="flex flex-col">
                     <span class="text-sm font-medium"
                         >{$_("settings.chart.countdownEnabled")
                             || "Countdown zur Kerzenschließung"}</span
@@ -319,15 +317,6 @@
                 </div>
                 <Toggle bind:checked={settingsState.chartCountdownEnabled} />
             </label>
-        </SettingsGrid>
-    </section>
-
-    <!-- Indicator Configuration (moved from Trading → Chart & Data; single home for all chart-related settings) -->
-    <section class="settings-section animate-fade-in">
-        <h3 class="section-title">
-            {$_("settings.trading.indicatorConfiguration") ||
-                "Indicator Configuration"}
-        </h3>
-        <IndicatorSettings />
+        </div>
     </section>
 </div>

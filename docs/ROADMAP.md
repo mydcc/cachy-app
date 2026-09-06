@@ -205,7 +205,8 @@ exchanges without opening the exchange's own UI.
 | [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) | P2 | Alerts bound to chart drawings |
 
 [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) is last and still an
-`idea`: it needs persistent, addressable chart drawings first — most of the work and probably its own item.
+`idea`: it needs persistent, addressable chart drawings, which do not exist. That
+prerequisite is most of the work and probably its own item.
 
 **Build [FEAT-0027](backlog/features/FEAT-0027-alert-engine.md)'s evaluation
 core in Rust → WASM from the start**, extending the existing `technicals-wasm/`

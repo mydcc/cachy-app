@@ -110,7 +110,7 @@ Work through them in order.
 Tokens live in the server process's memory, so **restarting the server
 invalidates every issued token**. The app expects this: when a request fails
 with 401, it automatically mints a fresh token and retries once. If the retry
-also failed (e.g. the server came up moments later), reload the page.
+also failed (e.g. the server came up moments later), simply reload the page.
 
 ### b) The token in the browser was cleared
 

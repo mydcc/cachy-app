@@ -1477,8 +1477,7 @@
       "fixEdgesDesc": "Prevent scrolling past the left/right chart edge",
       "countdownEnabled": "Candle Close Countdown",
       "countdownDesc": "Remaining time until the current candle closes",
-      "reset": "Reset",
-      "title": "Chart Settings"
+      "reset": "Reset"
     },
     "tabs": {
       "general": "General",
@@ -1864,7 +1863,7 @@
       "tipsTitle": "Optimization Tips"
     },
     "trading": {
-      "chartTitle": "Data & Market",
+      "chartTitle": "Chart & Data",
       "executionTitle": "Execution & Fees",
       "executionData": "Execution & Data",
       "spinButtons": {
@@ -1899,12 +1898,6 @@
       "selectPeriod": "Select Period",
       "chartUpdateInterval": "Candle Chart Update Rate",
       "chartUpdateIntervalDesc": "Controls how frequently candle real-time prices are redrawn.",
-      "renderRealtime": "0 ms (Realtime / Maximum)",
-      "renderUltra": "20 ms (Ultra / ~50 FPS)",
-      "renderVeryFast": "50 ms (Very fast / ~20 FPS)",
-      "renderFast": "100 ms (Fast / ~10 FPS - Default)",
-      "renderNormal": "200 ms (Normal / ~5 FPS)",
-      "renderEco": "500 ms (Power saving / ~2 FPS)",
       "automationTitle": "Automation & Advanced",
       "autoTrading": "Auto Trading (Beta)",
       "autoTradingDesc": "Enable automated trading features (Coming Soon).",

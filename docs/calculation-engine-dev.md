@@ -82,7 +82,7 @@ const myResult = await this.compute('myIndicator', myShader, [inputData], [perio
 
 ### Circuit Breaker (derived, not enforced)
 
-- **Status**: Health is derived from the >500ms timing rule via `exportTelemetry()`; selection reapplies the timing rule on the next call.
+- **Status**: Health is derived from the >500ms timing rule via `exportTelemetry()`; there is no failure counter beyond `metrics.errors++`, no timed disable, and no half-open retry — selection only applies the timing rule on the next call.
 - Do not confuse this with the worker crash guard (`technicalsService.ts` disables the worker after >2 consecutive failures) — that protects the worker, not the engine selection.
 - **Planned behavior**: 3 consecutive failures → engine disabled for 5 minutes → half-open (retries once) → successful calculation resets failure count.
 

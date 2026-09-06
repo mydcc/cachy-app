@@ -25,7 +25,6 @@
     import Tooltip from "../../shared/Tooltip.svelte";
     import { toastService } from "../../../services/toastService.svelte";
     import { tradeState } from "../../../stores/trade.svelte";
-    import VisualsLayout from "./VisualsLayout.svelte";
 
     let { themes } = $props<{
         themes: Array<{ value: string; label: string }>;
@@ -166,14 +165,14 @@
     };
 </script>
 
-<div class="visuals-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-visuals">
+<div class="visuals-tab h-full flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-visuals">
     <!-- Sub-Navigation -->
     <div
-        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
+        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 shrink-0"
     >
         {#each subTabs as tab}
             <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
                 tab.id
                     ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
@@ -184,7 +183,7 @@
         {/each}
     </div>
 
-    <div class="min-w-0">
+    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
         <!-- Appearance Section -->
         {#if activeSubTab === "appearance"}
             <section class="settings-section animate-fade-in">
@@ -763,7 +762,109 @@
 
         <!-- Layout Section -->
         {#if activeSubTab === "layout"}
-            <VisualsLayout />
+            <section class="settings-section animate-fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- News Open Behavior -->
+                    <div class="toggle-card flex-col items-start gap-2 col-span-1 md:col-span-2">
+                        <div class="flex justify-between items-center w-full">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">{$_("settings.newsOpenBehavior")}</span>
+                                <span class="text-xs text-[var(--text-secondary)]">{$_("settings.newsOpenBehaviorDesc")}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 w-full mt-2">
+                            <button
+                                type="button"
+                                class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
+                                class:border-[var(--accent-color)]={settingsState.newsOpenBehavior === "smart"}
+                                class:bg-[var(--bg-tertiary)]={settingsState.newsOpenBehavior === "smart"}
+                                class:border-[var(--border-color)]={settingsState.newsOpenBehavior !== "smart"}
+                                class:bg-[var(--bg-secondary)]={settingsState.newsOpenBehavior !== "smart"}
+                                onclick={() => settingsState.newsOpenBehavior = "smart"}
+                            >
+                                <span class="font-medium text-[var(--text-primary)]">{$_("settings.newsOpenBehaviorSmart")}</span>
+                                {#if settingsState.newsOpenBehavior === "smart"}
+                                    <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
+                                {/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
+                                class:border-[var(--accent-color)]={settingsState.newsOpenBehavior === "reader"}
+                                class:bg-[var(--bg-tertiary)]={settingsState.newsOpenBehavior === "reader"}
+                                class:border-[var(--border-color)]={settingsState.newsOpenBehavior !== "reader"}
+                                class:bg-[var(--bg-secondary)]={settingsState.newsOpenBehavior !== "reader"}
+                                onclick={() => settingsState.newsOpenBehavior = "reader"}
+                            >
+                                <span class="font-medium text-[var(--text-primary)]">{$_("settings.newsOpenBehaviorReader")}</span>
+                                {#if settingsState.newsOpenBehavior === "reader"}
+                                    <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
+                                {/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
+                                class:border-[var(--accent-color)]={settingsState.newsOpenBehavior === "new_tab"}
+                                class:bg-[var(--bg-tertiary)]={settingsState.newsOpenBehavior === "new_tab"}
+                                class:border-[var(--border-color)]={settingsState.newsOpenBehavior !== "new_tab"}
+                                class:bg-[var(--bg-secondary)]={settingsState.newsOpenBehavior !== "new_tab"}
+                                onclick={() => settingsState.newsOpenBehavior = "new_tab"}
+                            >
+                                <span class="font-medium text-[var(--text-primary)]">{$_("settings.newsOpenBehaviorNewTab")}</span>
+                                {#if settingsState.newsOpenBehavior === "new_tab"}
+                                    <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
+                                {/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
+                                class:border-[var(--accent-color)]={settingsState.newsOpenBehavior === "window"}
+                                class:bg-[var(--bg-tertiary)]={settingsState.newsOpenBehavior === "window"}
+                                class:border-[var(--border-color)]={settingsState.newsOpenBehavior !== "window"}
+                                class:bg-[var(--bg-secondary)]={settingsState.newsOpenBehavior !== "window"}
+                                onclick={() => settingsState.newsOpenBehavior = "window"}
+                            >
+                                <span class="font-medium text-[var(--text-primary)]">{$_("settings.newsOpenBehaviorWindow")}</span>
+                                {#if settingsState.newsOpenBehavior === "window"}
+                                    <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
+                                {/if}
+                            </button>
+                        </div>
+                    </div>
+
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.showSidebars")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.sidePanelDesc")}</span
+                            >
+                        </div>
+                        <Toggle bind:checked={settingsState.showSidebars} />
+                    </label>
+
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.enableSidePanel")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.workspace.aiAssistant")} / {$_(
+                                    "settings.workspace.privateNotes",
+                                )} / {$_("settings.workspace.marketChat")}</span
+                            >
+                        </div>
+                        <Toggle
+                            checked={uiState.showAssistant}
+                            onchange={(e) =>
+                                uiState.toggleAssistant((e.currentTarget as HTMLInputElement).checked)}
+                        />
+                    </label>
+                </div>
+            </section>
         {/if}
 
         <!-- Background Section -->

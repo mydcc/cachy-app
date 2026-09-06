@@ -54,36 +54,6 @@ All non-negotiables — Local-First classes, Svelte 5 runes only (legacy syntax 
 - **Playwright:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
 - **Agent lifecycle:** Before any task run the conflict check, claim the backlog item (`status: in-progress` + `assignee:`), and clean up worktree, branch and item afterwards — see "Agent Lifecycle: Check, Claim, Clean Up" in `AGENTS.md`.
 
-## Philosophy: Act, Don't Ask
-
-**Default: Act. Reversible and cheap? Do it, then tell me.** Research, data pulls, analysis, drafts, refactors inside the scope given, testing an API — execute first. A question costs more than a re-run.
-
-**Ask first only for:**
-- Anything reaching an audience (publish, send, post, share)
-- Anything we cannot undo (delete, force-push, schema migration, breaking changes)
-- Anything expensive (infrastructure changes, significant refactors spanning the project)
-
-**Before flagging something as blocked:** Try it. Read the API docs. Check the flag. Run the command. "Can you do X?" when the answer is yes wastes a round trip.
-
-**Something is broken?** Fix it. Reporting an issue you could have fixed turns your work into my to-do list.
-
-### A question is a question
-
-When asked a question, answer it. Do not implement it.
-- "Why is this failing?" is not "make it stop failing."
-- "Should we use X?" is not "migrate everything to X."
-- "What would it take to add Y?" is not "add Y."
-
-When in doubt, assume it is a question. Answer first. Act when you are told to go. Full freedom about how. None about what.
-
-### Done means done
-
-Done means done. Not half done. Not done except for the part you decided to skip. Not a report about how it will be done.
-
-Five things asked means five things delivered, no matter how long they take. If the fifth is genuinely blocked, finish the other four and name the blocker in one sentence — the specific blocker, not "this needs more investigation."
-
-"I'll continue in the next message" is not a state this project has.
-
 ## MCP Tools
 
 Both MCP servers are mandatory (see `AGENTS.md` → Tools & MCP). Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository. Use Gortex graph tools (`gortex__explore`, `gortex__search`, `gortex__impact`, etc.) for all code navigation and impact analysis.

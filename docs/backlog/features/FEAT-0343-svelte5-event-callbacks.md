@@ -2,7 +2,7 @@
 id: FEAT-0343
 title: "Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks"
 type: feature
-status: done
+status: in-progress
 assignee: opencode
 branch: fix/audit-followups
 priority: P2

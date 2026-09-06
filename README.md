@@ -49,7 +49,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Websocket Integration:** Real-time data feeds for price, order book, and ticker updates (Bitunix).
 - **API Integration:** Optional API keys for auto-fetching account balance and private data.
 - **Privacy:** Your journal, settings, API keys, presets and notes are stored only in your browser's `localStorage` and are never sent to a Cachy server. The one optional exception is Global Chat message content — off by default, requires an explicit token, and every core function works without it. See [ADR-0001](docs/adr/0001-local-first-boundary.md).
-- **Backup & Restore:** Back up all your settings, presets, and journal entries to a JSON file and restore them anytime.
+- **Backup & Restore:** Easily backup all your settings, presets, and journal entries to a JSON file and restore them anytime.
 - **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
 - **Multilingual:** German and English support.
 
@@ -99,7 +99,7 @@ For a permanent instance behind a reverse proxy, see [`DEPLOYMENT.md`](DEPLOYMEN
 
 ## 🛠️ Development setup
 
-For working *on* Cachy. To run it, use the Quick Start above.
+For working *on* Cachy. To just run it, use the Quick Start above.
 
 ### Prerequisites
 
@@ -174,7 +174,7 @@ For working *on* Cachy. To run it, use the Quick Start above.
   npm run lint
   ```
 
-  > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build. `@typescript-eslint/no-explicit-any` and `@typescript-eslint/no-unused-vars` are both `"error"`.
+  > **Lint is a required CI check.** The error count is **0 and must stay 0** — any error fails the build. `@typescript-eslint/no-explicit-any` and `@typescript-eslint/no-unused-vars` are both `"error"` (roadmap item 21's backlog reached zero; there is no more warning ratchet).
   >
   > If a rule fires on something deliberate, do not silence it globally: add an inline `eslint-disable-next-line` with a `--` explanation, as done for the Svelte 5 dependency-registration reads in `tradeCalculator.svelte.ts`.
 
@@ -207,7 +207,7 @@ See `DEPLOYMENT.md` for detailed instructions.
 **Start at [`docs/README.md`](docs/README.md)** — it maps every document in `docs/`.
 
 - **Installation:** [`docs/INSTALL.md`](docs/INSTALL.md) — running Cachy yourself, from clone to a working balance, including what to do when every API call answers 401.
-- **User Guide:** `src/lib/assets/content/guide.en.md` (also available in-app).
+- **User Guide:** A detailed guide on how to use the app can be found directly within the application (via the "Guide" button) or in `src/lib/assets/content/guide.en.md`.
 - **Contributing, versioning & changelog:** `AGENTS.md` (tool-agnostic rules for all agents) and `CLAUDE.md` (Claude Code-specific extension) for the non-negotiable coding rules and development process, including commit conventions and the semantic-release versioning policy. [`CHANGELOG.md`](CHANGELOG.md) is generated from those commits.
 
 ---

@@ -25,7 +25,6 @@
   import { _ } from "../../locales/i18n";
   import { onMount } from "svelte";
   import DOMPurify from "dompurify";
-  import SettingsGrid from "./shared/SettingsGrid.svelte";
 
   let customHotkeys = { ...settingsState.customHotkeys };
   let editingId: string | null = $state(null);
@@ -159,15 +158,15 @@
         >
           {category}
         </h4>
-        <SettingsGrid gap="gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           {#each groupedActions[category] as action}
             <div
               class="flex justify-between items-center p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
             >
-              <span class="text-sm min-w-0">{action.label}</span>
+              <span class="text-sm">{action.label}</span>
 
               <button
-                class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center transition-colors shrink-0
+                class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center transition-colors
                                 {editingId === action.id
                   ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] animate-pulse'
                   : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
@@ -182,7 +181,7 @@
               </button>
             </div>
           {/each}
-        </SettingsGrid>
+        </div>
       </div>
     {/each}
   </div>

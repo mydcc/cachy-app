@@ -59,16 +59,19 @@ Das Dashboard besteht aus drei Hauptbereichen:
 
 ### Navigation
 
-Das Dashboard ist eine einzelne Seite.
+**Sidebar-Menü (links):**
+
+- **Home:** Zurück zur Startseite
+- **Calculator:** Öffnet den Position Size Calculator
+- **Journal:** Öffnet dein Trading Journal
+- **Settings:** Theme, Sprache, Account-Einstellungen
 
 **Top-Bar:**
 
 - **Account Balance:** Zeigt dein aktuelles Kapital
-- **Theme-Button:** Wechselt durch alle 28 installierten Themes (z. B. Dark, Light, Midnight, Dracula, Nord, VIP)
+- **Theme Toggle:** Wechsel zwischen Light/Dark/VIP Themes
 - **Sprach-Umschalter:** DE/EN
 - **Help:** Zugriff auf diese Anleitung
-
-**Einstellungen:** Modal mit 7 Tabs (Trading, Chart, Visuals, AI, Verbindungen, System, Cloud) — Theme, Sprache, Konten, API-Schlüssel, Hotkeys und Backup.
 
 ---
 
@@ -123,6 +126,8 @@ Beispiel: 100 € / 500 € = 0,2 BTC
 
 **✅ Ergebnis:** Du kaufst **0,2 BTC** bei 50.000 €, mit einem Stop-Loss bei 49.500 €. Dein maximales Risiko beträgt exakt 100 € (1% deines Kapitals).
 
+**Der Vorteil:** Kein Raten, kein "ungefähr". Du weißt **auf den Cent genau**, dass du dein Risikolimit einhältst.
+
 ---
 
 <a id="lock-funktionen"></a>
@@ -138,7 +143,9 @@ Wenn du in **festen Geldbeträgen** denkst: "Ich riskiere heute 50 €" (statt i
 
 **Wie es funktioniert:**
 
-"Risk Amount" per 🔒 sperren und Betrag eingeben (z. B. 50 €); "Risk per Trade %" leitet sich daraus ab.
+1. Klicke auf das 🔒 neben "Risk Amount"
+2. Gib deinen gewünschten Betrag ein (z.B. 50 €)
+3. Das Feld "Risk per Trade %" wird automatisch angepasst
 
 **Vorteil:** Flexibilität für Trader, die ihr Risiko lieber in absoluten Beträgen planen.
 
@@ -149,7 +156,10 @@ Wenn du eine **feste Positionsgröße** handeln möchtest (z.B. immer 1 ganze Co
 
 **Wie es funktioniert:**
 
-"Position Size" per 🔒 sperren und Größe eingeben; bei gesetztem Entry und Stop-Loss weist der Rechner das resultierende Risiko aus.
+1. Klicke auf das 🔒 neben "Position Size"
+2. Gib deine gewünschte Größe ein
+3. Passe Entry und Stop-Loss an
+4. Der Calculator zeigt dir nun **rückwärts**, wie hoch dein Risiko bei dieser Größe ist
 
 **Vorteil:** Perfekt für Strategien mit festen Handelsgrößen. Du siehst sofort die Risiko-Konsequenzen.
 
@@ -217,7 +227,7 @@ Professionelle Trader verkaufen ihre Position nicht auf einmal, sondern **schrit
 
 #### Wie es funktioniert
 
-**Definiere bis zu 4 Take-Profit-Ziele:**
+**Definiere bis zu 3 Take-Profit-Ziele:**
 
 **Take-Profit 1:**
 
@@ -322,6 +332,8 @@ Nachdem du Entry, Stop-Loss und Take-Profits eingegeben hast, zeigt die **Visual
 - **Ausgeglichenes Verhältnis:** 1:1 RR (Breakeven bei 50% Win Rate) ⚠️
 - **Mehr Rot als Grün:** Schlechtes RR, Trade überdenken ❌
 
+**Vorteil:** Du siehst sofort, ob dein Trade die Mühe wert ist – ohne Zahlen zu berechnen.
+
 ---
 
 <a id="calculator-zum-journal"></a>
@@ -355,7 +367,7 @@ Der Calculator plant deinen Trade – das **Journal dokumentiert und analysiert*
 ### Schnellzugriff
 
 - Klicke auf **"Journal"** in der Sidebar
-- Oder nutze den Button **"Trade zum Journal hinzufügen"** nach einer Berechnung
+- Oder nutze den Button **"Save to Journal"** (wenn verfügbar)
 
 ---
 
@@ -485,7 +497,7 @@ Erfolgreiches Trading ist ein **wiederholbarer Prozess**:
 
 **5. Emotionen ausschalten**
 
-- Nach 3 Verlusten in Folge: PAUSE (konsistent mit dem Journal-Guide)
+- Nach 2 Verlusten in Folge: PAUSE
 - Nach großem Gewinn: PAUSE (Overconfidence!)
 - Müde, gestresst, emotional? KEIN TRADING
 
@@ -497,8 +509,6 @@ Erfolgreiches Trading ist ein **wiederholbarer Prozess**:
 - **Wichtig:** Ohne Passwort ist ein verschlüsseltes Backup unbrauchbar!
 
 ---
-
-*Hinweis: Diese Anleitung deckt Tastaturkürzel (`Alt+L`/`S`/`R`/`J` u. a.), Paper Trading, Global Chat (Einstellungen → Cloud, Opt-in) und RuleDocument-Alarme noch nicht ab.*
 
 ## Fazit
 

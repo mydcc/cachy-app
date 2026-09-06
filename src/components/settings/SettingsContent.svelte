@@ -17,7 +17,15 @@
 
 <script lang="ts">
     import { uiState } from "../../stores/ui.svelte";
+    import { modalState } from "../../stores/modal.svelte";
     import { _ } from "../../locales/i18n";
+    import {
+        createBackup,
+        restoreFromBackup,
+    } from "../../services/backupService";
+    import { trackCustomEvent } from "../../services/trackingService";
+    import { wipeLocalData } from "../../utils/appReset";
+    import type { TranslationKey } from "../../locales/schema";
 
     // New Tab Components
     import TradingTab from "./tabs/TradingTab.svelte";
@@ -31,13 +39,115 @@
     // Tab State
     const activeTab = $derived(uiState.settingsTab || "trading");
 
-    function selectTab(tab: string, e?: MouseEvent) {
+    function selectTab(tab: string) {
         uiState.settingsTab = tab;
-        // Mobile: the tab bar scrolls horizontally — keep the active tab in view.
-        (e?.currentTarget as HTMLElement | undefined)?.scrollIntoView({
-            inline: "center",
-            block: "nearest",
-        });
+    }
+
+    // System Tab Functions passed down
+    async function handleBackup() {
+        const useEncryption = await modalState.show(
+            $_("settings.system.dataMaintenance") || "Data & Backup",
+            $_("app.backupEncryptQuestion") || "Encrypt backup with password?",
+            "confirm",
+        );
+        let password = "";
+
+        if (useEncryption) {
+            const result = await modalState.show(
+                $_("settings.system.dataMaintenance") || "Data & Backup",
+                $_("app.backupPasswordPrompt") || "Enter password:",
+                "prompt",
+            );
+            password = typeof result === "string" ? result : "";
+
+            if (!password) {
+                uiState.showError(
+                    $_("app.backupPasswordRequired") || "Password required.",
+                );
+                return;
+            }
+        }
+
+        await createBackup(password);
+        trackCustomEvent("System", "Backup", "Created");
+    }
+
+    async function handleRestore(e: Event) {
+        const input = e.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+
+        const file = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = async (event) => {
+            const content = event.target?.result as string;
+            const confirmed = await modalState.show(
+                $_("settings.system.dataMaintenance") || "Data & Backup",
+                $_("app.restoreConfirmMessage") ||
+                    "Restore backup? Current data will be replaced.",
+                "confirm",
+            );
+
+            if (confirmed) {
+                let result = await restoreFromBackup(content);
+
+                if (result.needsPassword) {
+                    const pwResult = await modalState.show(
+                        $_("settings.system.dataMaintenance") ||
+                            "Data & Backup",
+                        $_("app.backupPasswordEntryPrompt") ||
+                            "Enter encryption password:",
+                        "prompt",
+                    );
+                    const password =
+                        typeof pwResult === "string" ? pwResult : "";
+
+                    if (password) {
+                        result = await restoreFromBackup(content, password);
+                    } else {
+                        input.value = "";
+                        return;
+                    }
+                }
+
+                if (result.success) {
+                    await modalState.show(
+                        $_("settings.system.dataMaintenance") ||
+                            "Data & Backup",
+                        result.message,
+                        "alert",
+                    );
+                    window.location.reload();
+                } else {
+                    uiState.showError(
+                        result.message.startsWith("app.")
+                            ? $_(result.message as TranslationKey, { values: result.messageParams })
+                            : result.message,
+                    );
+                }
+            }
+            input.value = "";
+        };
+
+        reader.onerror = () => {
+            uiState.showError($_("app.fileReadError"));
+            input.value = "";
+        };
+
+        reader.readAsText(file);
+    }
+
+    async function handleReset() {
+        const confirmed = await modalState.show(
+            $_("settings.system.dangerZone") || "Danger Zone",
+            $_("settings.resetConfirm") ||
+                "Factory Reset? This cannot be undone.",
+            "confirm",
+        );
+        if (confirmed) {
+            await wipeLocalData();
+            window.location.reload();
+        }
     }
 
     const themes = [
@@ -122,7 +232,7 @@
                {activeTab === tab.id
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)] shadow-inner'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]/50 border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-                onclick={(e) => selectTab(tab.id, e)}
+                onclick={() => selectTab(tab.id)}
                 role="tab"
                 aria-selected={activeTab === tab.id}
             >
@@ -152,9 +262,7 @@
     </div>
 
     <!-- Tab Content Area -->
-    <!-- Container queries below measure THIS width (the settings window),
-         not the viewport: @container makes the content a query container. -->
-    <div class="@container flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+    <div class="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
 
         {#if activeTab === "trading"}
             <TradingTab />
@@ -167,7 +275,11 @@
         {:else if activeTab === "connections"}
             <ConnectionsTab />
         {:else if activeTab === "system"}
-            <SystemTab />
+            <SystemTab
+                onBackup={handleBackup}
+                onRestore={handleRestore}
+                onReset={handleReset}
+            />
         {:else if activeTab === "cloud"}
             <CloudTab />
         {/if}

@@ -34,9 +34,9 @@ Two independent concepts — do not conflate them:
 
 ## Planned Features (Backlog)
 
-Planned features:
+The following advanced features are planned but not yet fully implemented:
 - **Adaptive Learning** (partial): Benchmark infrastructure exists (`src/services/engineBenchmark.ts`) and benchmarks feed `recordMetrics`, but `selectEngine` still uses only static thresholds + the WASM timing rule.
-- **Circuit Breaker** (derived, not enforced): `exportTelemetry()` reports healthy/degraded per engine from the >500ms rule; selection reapplies the timing rule on the next call.
+- **Circuit Breaker** (derived, not enforced): `exportTelemetry()` reports healthy/degraded per engine from the >500ms rule, but there is no failure counter, no timed disable, and no half-open retry — selection only applies the timing rule on the next call.
 - **Dynamic Quality Modes**: No precision-driven engine switching exists; Performance Mode (Speed/Balanced/Quality) currently only toggles buffer-pool reuse.
 
 ## Debug Panel
@@ -59,4 +59,4 @@ Illustrative figures, not asserted by tests (`engine_benchmark.test.ts` only bud
 
 GPU benefits increase with dataset size due to parallel processing.
 
-> Illustrative figures on modern hardware. Run `npx vitest run src/tests/performance/engine_benchmark.test.ts` to reproduce the TypeScript column only; GPU figures are illustrative and unasserted.
+> Illustrative figures on modern hardware. Run `npx vitest run src/tests/performance/engine_benchmark.test.ts` to reproduce the TypeScript column only; there is no automated GPU benchmark.

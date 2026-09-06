@@ -88,11 +88,7 @@ describe("in-app user manual", () => {
   it.each(Object.entries(manuals))(
     "explains the app access token (%s)",
     (_lang, manual) => {
-      // The UI label was renamed from "App Access Token" to the self-issued
-      // wording ("Access Token (self-issued)" / "Zugangstoken (selbst
-      // ausgestellt)"); pin the concept, not the retired name. The exact
-      // current label is pinned by the "names the field" test below.
-      expect(manual).toMatch(/self-issued|selbst\s?ausgestellt/i);
+      expect(manual).toMatch(/App[- ]?(Access|Zugangs)[- ]?[Tt]oken/);
     },
   );
 

@@ -101,8 +101,8 @@ weiterhin von der Börse.
 - **Plan-Orders (Trigger-Orders):** `GET /api/v1/futures/plan/get_history_plan_orders`
   wird im Journal-Sync genutzt
   ([routes/api/sync/orders](../../src/routes/api/sync/orders/+server.ts)),
-  aber die restliche Plan-Order-Familie (place/cancel/get_pending) ist noch nicht
-  gecrawlt. TODO: beim nächsten Crawl unter `docs/bitunix-api/` ergänzen.
+  aber die restliche Plan-Order-Familie (place/cancel/get_pending) **fehlt im
+  Doku-Crawl** unter `docs/bitunix-api/`. TODO: beim nächsten Crawl ergänzen.
 - **CopyTrading** (`03_copytrading.md`): Asset-Query + Sub-Account-Transfers —
   nicht integriert, derzeit out of scope.
 
@@ -155,7 +155,7 @@ Fetched but not surfaced:
 2. ~~**Account-Settings-Block**~~ — erledigt (FEAT-0068):
    `get_leverage_margin_mode` (lesen) + `change_leverage`,
    `change_margin_mode`, `change_position_mode`, `adjust_position_margin`
-   (schreiben). Bitget bleibt offen — das Anfrageformat ist noch ungeprüft.
+   (schreiben). Bitget bleibt offen — kein geprüftes Anfrageformat.
 3. ~~**`place_order` vervollständigen**~~ — erledigt (FEAT-0069): `tpPrice`/`slPrice` atomar, `effect`, `clientId`
 4. ~~**`tpsl/place_order` + `tpsl/position/place_order`**~~ — erledigt (FEAT-0070): TP/SL nachträglich setzen, position-weit und teilweise
 5. **Native Endpoints statt Client-Loops** — `cancel_all_orders`,

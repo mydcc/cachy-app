@@ -74,12 +74,13 @@ These two branch names are what `deploy.sh` enforces per mode, via
 
 ## 2. Setup in aaPanel
 
-The following steps apply to both environments (directory names per environment).
+The following steps apply to both environments (just adjust directory names).
 
 ### Step 1: Upload Files
 
-1. Create the folder `/www/wwwroot/cachy.app` (for Production) or `/www/wwwroot/dev.cachy.app` (for Staging) under **Files** in aaPanel.
-2. Upload the project files or clone the repo directly in the terminal:
+1. Go to **Files** in aaPanel.
+2. Create the folder `/www/wwwroot/cachy.app` (for Production) or `/www/wwwroot/dev.cachy.app` (for Staging).
+3. Upload the project files or clone the repo directly in the terminal:
 
     ```bash
     cd /www/wwwroot/cachy.app
@@ -106,20 +107,22 @@ The following steps apply to both environments (directory names per environment)
 
 ### Step 3: Create Node Project (Website > Node project)
 
-1. Create a Node project under **Website → Node project**:
-2. Fill in the fields:
+1. Go to **Website** -> **Node project** in the aaPanel menu.
+2. Click on **Add Node project**.
+3. Fill in the fields:
     - **Path:** `/www/wwwroot/cachy.app`
     - **Name:** `cachy-prod` (or `cachy-dev`)
     - **Run Command:** Select `Custom Command` and enter: `node server.js` —
       the Express wrapper that applies compression and security headers. It defaults `PORT` to 3001 instead of adapter-node's 3000, for hosts where 3000 is already taken.
     - **Port:** `3001` (default for Production). _Ensure the port is open in the firewall or used internally._
     - **Node Version:** v22.19 or higher (matches `engines` in `package.json`).
-3. Submit the form.
+4. Click **Submit**.
 
 ### Step 4: Domain Mapping & SSL
 
-1. Under **Mapping** (or "Domain" depending on version) in the Node projects list, add your domain (e.g., `cachy.app`).
-2. Apply for a free "Let's Encrypt" certificate and enable "Force HTTPS" (SSL tab).
+1. After creating, click on **Mapping** (or "Domain" depending on version) in the Node projects list.
+2. Add your domain (e.g., `cachy.app`).
+3. Go to the **SSL** tab and apply for a free "Let's Encrypt" certificate. Enable "Force HTTPS".
 
 ---
 
@@ -272,7 +275,10 @@ The deployment scripts support Discord webhook notifications for deployment even
 
 ### Setup
 
-1. **Create Discord Webhook** (Server Settings → Integrations → Webhooks) and copy its URL.
+1. **Create Discord Webhook:**
+   - Go to Discord Server Settings → Integrations → Webhooks
+   - Click "New Webhook"
+   - Copy the webhook URL
 
 2. **Configure Environment Variables:**
 
@@ -309,7 +315,7 @@ When configured, you'll receive Discord notifications for:
 
 ### Without Configuration
 
-If `DISCORD_WEBHOOK_URL` is not set, the scripts run normally — notifications are skipped.
+If `DISCORD_WEBHOOK_URL` is not set, the scripts **run normally without errors** - notifications are simply skipped (silent fail).
 
 ---
 
