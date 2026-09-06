@@ -39,18 +39,24 @@
         children,
         cols = 2,
         gap = "gap-3",
+        extraClass = "",
     }: {
         children: Snippet;
         /** Column count at/above the threshold. Below 560px always 1 column. */
         cols?: 2 | 3;
         /** Gap utility, kept per section rhythm (default gap-3). */
         gap?: string;
+        /**
+         * Escape hatch for non-column extras (e.g. section bottom spacing).
+         * Never column counts, never breakpoints — those live above.
+         */
+        extraClass?: string;
     } = $props();
 
     const gridClass = $derived(
         cols === 3
-            ? `grid grid-cols-1 @min-[560px]:grid-cols-2 @min-[960px]:grid-cols-3 ${gap}`
-            : `grid grid-cols-1 @min-[560px]:grid-cols-2 ${gap}`,
+            ? `grid grid-cols-1 @min-[560px]:grid-cols-2 @min-[960px]:grid-cols-3 ${gap} ${extraClass}`
+            : `grid grid-cols-1 @min-[560px]:grid-cols-2 ${gap} ${extraClass}`,
     );
 </script>
 
