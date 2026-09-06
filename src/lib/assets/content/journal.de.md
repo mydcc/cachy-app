@@ -94,7 +94,7 @@ Die Toolbar über der Tabelle bietet mehrere Filter:
 - **Suchfeld:** Suche nach Symbolen (z.B. "BTC") oder Tags (z.B. "Breakout")
 - **Status-Filter:** Zeige nur Won, Lost oder Open Trades
 - **Datums-Filter:** Von/Bis für zeitliche Eingrenzung
-- **Spalten-Einstellungen:** Über das Zahnrad-Icon kannst du wählen, welche Spalten angezeigt werden
+- **Spalten-Einstellungen:** Zahnrad-Icon: sichtbare Spalten wählen
 
 <a id="tags-notizen"></a>
 
@@ -109,7 +109,7 @@ Die Toolbar über der Tabelle bietet mehrere Filter:
 - Nutze Tags für **Setup-Typen:** `LongSetup`, `ShortSetup`, `Scalp`, `Swing`
 
 **Warum wichtig:**
-Später im **Deep Dive → Strategies** kannst du exakt sehen, welche Strategie Geld druckt und welche Geld verbrennt. Ohne Tags keine Strategie-Analyse!
+Später im **Deep Dive → Strategies** kannst du exakt sehen, welche Strategie Geld druckt und welche Geld verbrennt. Die Strategie-Analyse setzt Tags voraus!
 
 **Notizen:**
 Schreibe kurze Notizen zu jedem Trade: Was war der Plan? Wie hast du dich gefühlt? Was lief gut/schlecht?
@@ -139,22 +139,18 @@ Erkenne sofort, mit welchen Assets du harmonierst und welche Coins dein Konto ve
 
 Das Performance Dashboard bietet 5 spezialisierte Ansichten. Wähle oben in der Button-Leiste zwischen den Tabs.
 
+> **Legende (gilt für alle Charts unten):** Beträge in Kontowährung ($), sofern nicht anders beschriftet. Zeit-X-Achsen zeigen je Titel Datum, Stunden (0–23) oder Trade-Nummern. Grün = Gewinn, Rot = Verlust. Balken zeigen Summen oder Schnitte pro Gruppe, Linien den Verlauf; Punktgröße (wo vorhanden) = Positionsgröße.
+
 <a id="perf-tab"></a>
 
 ### 1. Performance Tab
 
-Dieser Tab zeigt die **Gesundheit deines Accounts** auf einen Blick.
+Dieser Tab fasst die Kontogesundheit zusammen: Equity Curve, Drawdown, Monthly PnL.
 
 #### 📈 Equity Curve (Kapitalverlauf)
 
 **Was zeigt es?**
 Die Entwicklung deines Kapitals über die Zeit. Jeder Trade verändert die Kurve nach oben (Gewinn) oder unten (Verlust).
-
-**Wie lesen?**
-
-- **X-Achse:** Zeitverlauf (Datum)
-- **Y-Achse:** Kapital in $
-- **Linie:** Dein aktueller Kontostand nach jedem Trade
 
 **Interpretation:**
 
@@ -172,14 +168,7 @@ Die Entwicklung deines Kapitals über die Zeit. Jeder Trade verändert die Kurve
 #### 📉 Drawdown Chart
 
 **Was zeigt es?**
-Wie weit bist du vom bisherigen Höchststand (All-Time High) entfernt? Der Drawdown ist der "Schmerz-Indikator".
-
-**Wie lesen?**
-
-- **X-Achse:** Zeitverlauf
-- **Y-Achse:** Drawdown in % (immer negativ oder 0)
-- **0%:** Neues All-Time High
-- **-20%:** Du bist 20% unter deinem bisherigen Höchststand
+Wie weit bist du vom bisherigen Höchststand (All-Time High) entfernt? Der Drawdown ist der „Schmerz-Indikator", in % unter Höchststand (0 % = neues All-Time High).
 
 **Interpretation:**
 
@@ -200,14 +189,7 @@ Drawdown % = ((Aktuelles Kapital - All-Time High) / All-Time High) × 100
 #### 📊 Monthly PnL (Monatlicher Gewinn/Verlust)
 
 **Was zeigt es?**
-Deine Konsistenz über Monate hinweg. Jeder Balken = ein Monat.
-
-**Wie lesen?**
-
-- **X-Achse:** Monate
-- **Y-Achse:** PnL in $
-- **Grüne Balken:** Gewinn-Monat
-- **Rote Balken:** Verlust-Monat
+Deine Konsistenz über Monate hinweg. Jeder Balken = ein Monat, grün = Gewinn, rot = Verlust.
 
 **Interpretation:**
 
@@ -231,11 +213,7 @@ Dieser Tab zeigt die **Qualität deiner Trades** und wichtige Kennzahlen.
 #### 🎯 Win Rate Chart
 
 **Was zeigt es?**
-Ein klassisches Diagramm deiner Win Rate über die Zeit.
-
-**Wie lesen?**
-
-- Zeigt die prozentuale Entwicklung deiner Gewinn-Trades
+Die prozentuale Entwicklung deiner Gewinn-Trades über die Zeit.
 
 **Interpretation:**
 
@@ -297,12 +275,7 @@ Dieser Tab zeigt deine Performance in **Long vs. Short** Trades.
 #### 📊 Long vs Short Bar Chart
 
 **Was zeigt es?**
-Vergleich der PnL zwischen Long- und Short-Positionen.
-
-**Wie lesen?**
-
-- Zwei Balken: Long (grün) vs. Short (rot/orange)
-- Höhe zeigt Gesamt-PnL
+Vergleich der PnL zwischen Long- und Short-Positionen. Balkenhöhe = Gesamt-PnL.
 
 **Interpretation:**
 
@@ -317,12 +290,7 @@ Vergleich der PnL zwischen Long- und Short-Positionen.
 #### 📈 Long vs Short Evolution
 
 **Was zeigt es?**
-Kumulativer PnL von Longs vs. Shorts über die Zeit.
-
-**Wie lesen?**
-
-- Zwei Linien: Eine für Long, eine für Short
-- Zeigt die Entwicklung über den Zeitverlauf
+Kumulativer PnL von Longs vs. Shorts über die Zeit, eine Linie pro Richtung.
 
 **Interpretation:**
 
@@ -355,12 +323,6 @@ Dieser Tab prüft deine **Disziplin und Konsistenz**.
 **Was zeigt es?**
 Deine Performance aufgeschlüsselt nach Tageszeit (0-23 Uhr).
 
-**Wie lesen?**
-
-- **X-Achse:** Stunden (0 = Mitternacht, 12 = Mittag, etc.)
-- **Y-Achse:** PnL in $
-- **Balken:** Grün (Gewinn) oder Rot (Verlust) pro Stunde
-
 **Interpretation:**
 
 - **Profitable Stunden:** Die beste Zeit zum Traden
@@ -378,12 +340,7 @@ Wenn du zwischen 12:00-14:00 Uhr konstant Geld verlierst (Mittagspause, geringe 
 #### 📊 Risk Consistency (Risiko-Konsistenz)
 
 **Was zeigt es?**
-Wie konsistent ist deine Position Size / dein Risiko pro Trade?
-
-**Wie lesen?**
-
-- Zeigt Verteilung deiner Risiko-Levels
-- Idealerweise sollten alle Trades ähnliches Risiko haben
+Wie konsistent ist deine Position Size / dein Risiko pro Trade? Verteilung der Risiko-Levels — idealerweise ähnliches Risiko über alle Trades.
 
 **Interpretation:**
 
@@ -434,10 +391,7 @@ Vergleich zwischen:
 - **Gross PnL:** Gewinn VOR Gebühren
 - **Net PnL:** Gewinn NACH Gebühren
 
-**Wie lesen?**
-
-- Zwei Balken nebeneinander
-- Differenz = Gebühren
+Zwei Balken nebeneinander; die Differenz = Gebühren.
 
 **Interpretation:**
 
@@ -452,13 +406,7 @@ Vergleich zwischen:
 #### 📈 Cumulative Fees (Kumulative Gebühren)
 
 **Was zeigt es?**
-Wie viel Gebühren du über die Zeit insgesamt bezahlt hast.
-
-**Wie lesen?**
-
-- **X-Achse:** Zeit
-- **Y-Achse:** Summierte Gebühren in $
-- **Linie:** Steigt kontinuierlich (Gebühren häufen sich an)
+Wie viel Gebühren du über die Zeit insgesamt bezahlt hast. Die Linie steigt kontinuierlich mit den Gebühren.
 
 **Interpretation:**
 
@@ -471,14 +419,10 @@ Wenn du nach 100 Trades 500$ Gebühren bezahlt hast, aber nur 400$ Gewinn gemach
 #### 🍰 Fee Breakdown (Gebühren-Aufschlüsselung)
 
 **Was zeigt es?**
-Doughnut-Chart mit Aufteilung der Gebührenarten:
+Doughnut-Chart mit Aufteilung der Gebührenarten, als prozentuale Verteilung:
 
 - Trading Fees (Öffnungs-/Schließungsgebühren)
 - Funding Fees (bei Overnight-Positionen)
-
-**Wie lesen?**
-
-- Prozentuale Verteilung der Kostenarten
 
 **Interpretation:**
 
@@ -496,7 +440,7 @@ Doughnut-Chart mit Aufteilung der Gebührenarten:
 
 ## Deep Dive Analysen (Pro)
 
-Die Deep Dive Analysen sind für fortgeschrittene Trader und erfordern Pro-Zugang, freigeschaltet bei aktivem VIP-Theme (Freischaltcode beim Support erfragen). Hier geht es in die Tiefe deiner Performance.
+Die Deep Dive Analysen sind für fortgeschrittene Trader und erfordern Pro-Zugang, freigeschaltet bei aktivem VIP-Theme (Freischaltcode beim Support erfragen). Hier geht es in die Tiefe deiner Performance. Achsen, Farben und Einheiten folgen der Legende oben.
 
 <a id="dd-forecast"></a>
 
@@ -505,13 +449,7 @@ Die Deep Dive Analysen sind für fortgeschrittene Trader und erfordern Pro-Zugan
 #### 🔮 Monte Carlo Simulation
 
 **Was zeigt es?**
-Eine statistische Prognose, wie dein Konto sich in Zukunft entwickeln könnte, basierend auf deiner bisherigen Performance.
-
-**Wie lesen?**
-
-- **X-Achse:** Anzahl zukünftiger Trades
-- **Y-Achse:** Erwartete Eigenkapitalveränderung in Kontowährung ($)
-- **Mehrere Linien:** Drei Kegel-Linien — 90. Perzentil (Best), Median, 10. Perzentil (Worst) — plus Sample-Pfade
+Eine statistische Prognose, wie dein Konto sich in Zukunft entwickeln könnte, basierend auf deiner bisherigen Performance. Drei Kegel-Linien — 90. Perzentil (Best), Median, 10. Perzentil (Worst) — plus Sample-Pfade.
 
 **Interpretation:**
 
@@ -537,13 +475,7 @@ Dieser Tab zeigt, wie sich deine wichtigsten Metriken über die Zeit entwickeln 
 #### 📊 Rolling Win Rate
 
 **Was zeigt es?**
-Deine Win Rate über eine gleitende Periode (z.B. letzte 20 Trades).
-
-**Wie lesen?**
-
-- **X-Achse:** Zeit / Trade-Nummer
-- **Y-Achse:** Win Rate in %
-- **Linie:** Gleitender Durchschnitt deiner Win Rate
+Deine Win Rate über eine gleitende Periode (z.B. letzte 20 Trades), als gleitender Durchschnitt.
 
 **Interpretation:**
 
@@ -560,11 +492,6 @@ Deine Win Rate über eine gleitende Periode (z.B. letzte 20 Trades).
 
 **Was zeigt es?**
 Dein Profit Factor über eine gleitende Periode.
-
-**Wie lesen?**
-
-- **Y-Achse:** Profit Factor (Werte > 1.0 sind profitabel)
-- **Linie:** Gleitender PF
 
 **Interpretation:**
 
@@ -606,13 +533,7 @@ Ein Wasserfall-Diagramm, das zeigt, wie dein Gross PnL durch verschiedene Faktor
 #### 🏷️ Strategy Leakage
 
 **Was zeigt es?**
-Welche Strategien (Tags) die größten Verluste verursachen.
-
-**Wie lesen?**
-
-- **X-Achse:** Verlust in $
-- **Y-Achse:** Tag-Namen
-- **Horizontale Balken:** Je länger, desto größer der Verlust
+Welche Strategien (Tags) die größten Verluste verursachen. Horizontale Balken pro Tag; Länge = Verlust in $.
 
 **Interpretation:**
 
@@ -652,13 +573,6 @@ Wann bist du am besten? Dieser Tab analysiert Zeit-bezogene Muster.
 **Was zeigt es?**
 Detaillierte stündliche Aufschlüsselung mit **Brutto-Gewinnen** (grün) und **Brutto-Verlusten** (rot) pro Stunde.
 
-**Wie lesen?**
-
-- **X-Achse:** Stunden (0-23)
-- **Y-Achse:** PnL in $
-- **Grüne Balken:** Summe aller Gewinne in dieser Stunde
-- **Rote Balken:** Summe aller Verluste in dieser Stunde
-
 **Interpretation:**
 
 - **Nur grün, kein rot:** Perfekte Stunde! ✅
@@ -672,13 +586,7 @@ Stunde 9 (09:00 Uhr): +300$ Gewinn, -20$ Verlust → Netto +280$, exzellent!
 #### 📅 Day of Week PnL
 
 **Was zeigt es?**
-Deine Performance pro Wochentag (Montag bis Sonntag).
-
-**Wie lesen?**
-
-- **X-Achse:** Wochentage
-- **Y-Achse:** PnL
-- **Balken:** Grün/Rot für Gewinn/Verlust
+Deine Performance pro Wochentag (Montag bis Sonntag), Balken grün/rot für Gewinn/Verlust.
 
 **Interpretation:**
 
@@ -692,15 +600,7 @@ Deine Performance pro Wochentag (Montag bis Sonntag).
 #### ⏱️ Duration vs PnL (Bubble Chart)
 
 **Was zeigt es?**
-Ein Streudiagramm (Scatter Plot), das die Haltedauer deiner Trades gegen den Gewinn/Verlust zeigt.
-
-**Wie lesen?**
-
-- **X-Achse:** Dauer in Minuten
-- **Y-Achse:** PnL in $
-- **Punkte:** Jeder Punkt = ein Trade
-- **Farbe:** Grün (Gewinn) oder Rot (Verlust)
-- **Größe:** Kann Positionsgröße darstellen
+Ein Streudiagramm (Scatter Plot), das die Haltedauer deiner Trades gegen den Gewinn/Verlust zeigt. Jeder Punkt = ein Trade; Punktgröße = Positionsgröße.
 
 **Interpretation:**
 
@@ -715,13 +615,7 @@ Grüne Punkte weiter rechts und höher als rote Punkte. (Let Winners Run, Cut Lo
 #### 📊 Duration Analysis (Bucketed)
 
 **Was zeigt es?**
-Trades gruppiert in Zeitfenster (z.B. 0-15 Min, 15-30 Min, 30-60 Min, etc.).
-
-**Wie lesen?**
-
-- **X-Achse:** Zeitfenster
-- **Y-Achse:** PnL
-- **Balken:** Durchschnittlicher PnL pro Zeitfenster
+Trades gruppiert in Zeitfenster (z.B. 0-15 Min, 15-30 Min, 30-60 Min, etc.), Balken = durchschnittlicher PnL pro Fenster.
 
 **Interpretation:**
 
@@ -740,14 +634,7 @@ Trades gruppiert in Zeitfenster (z.B. 0-15 Min, 15-30 Min, 30-60 Min, etc.).
 
 #### 📅 Calendar Heat Map
 
-Eine Kalenderansicht, in der jeder Tag nach dem PnL dieses Tages eingefärbt ist.
-
-**Wie lesen?**
-
-- **Grüne Tage:** Gewinn-Tage
-- **Rote Tage:** Verlust-Tage
-- **Farbintensität:** Je dunkler, desto größer Gewinn/Verlust
-- **Graue/weiße Tage:** Keine Trades
+Eine Kalenderansicht, in der jeder Tag nach dem PnL dieses Tages eingefärbt ist: Grüne Tage = Gewinn, rote Tage = Verlust, Farbintensität = Betrag, grau/weiß = keine Trades. Zeigt Wochen- oder Monatsmuster.
 
 ---
 
@@ -776,13 +663,7 @@ Detaillierte Aufschlüsselung von Gewinnen, Verlusten und Breakevens, getrennt n
 #### 📊 R-Multiple Distribution
 
 **Was zeigt es?**
-Wie oft triffst du 1R, 2R, 3R, etc.?
-
-**Wie lesen?**
-
-- **X-Achse:** R-Multiple (1R = du hast 1× dein Risiko gewonnen)
-- **Y-Achse:** Anzahl Trades
-- **Balken:** Häufigkeit
+Wie oft triffst du 1R, 2R, 3R, etc.? Balken = Häufigkeit pro R-Multiple.
 
 **Was ist R-Multiple?**
 
@@ -813,13 +694,7 @@ Du brauchst keine 90% Win Rate! Wenn du oft 3R gewinnst, reicht eine Win Rate vo
 #### 💰 Risk vs. Realized PnL
 
 **Was zeigt es?**
-Scatter Plot: Korreliert dein Risiko mit dem Ergebnis?
-
-**Wie lesen?**
-
-- **X-Achse:** Initialer Risk Amount ($)
-- **Y-Achse:** Realized PnL ($)
-- **Punkte:** Grün (Gewinn), Rot (Verlust)
+Scatter Plot: Korreliert dein Risiko mit dem Ergebnis? Jeder Punkt = ein Trade (initiales Risiko vs. realisierter PnL).
 
 **Interpretation:**
 
@@ -856,13 +731,7 @@ Performance aufgeschlüsselt nach erkannten Marktbedingungen.
 #### 🔥 Streak Analysis (Detailliert)
 
 **Was zeigt es?**
-Erweiterte Analyse deiner Gewinn- und Verlustserien, inkl. Visualisierung aller Serien.
-
-**Wie lesen?**
-
-- Zeigt jede Serie als Balken oder Linie
-- Länge = Anzahl Trades in Serie
-- Farbe = Gewinn (grün) oder Verlust (rot)
+Erweiterte Analyse deiner Gewinn- und Verlustserien, als Balken oder Linien dargestellt (Länge = Serienlänge).
 
 **Psychologische Bedeutung:**
 
@@ -892,13 +761,7 @@ Erweiterte Analyse deiner Gewinn- und Verlustserien, inkl. Visualisierung aller 
 #### 🏷️ Tag-based PnL
 
 **Was zeigt es?**
-Die Performance jeder Strategie, die du via Tags markiert hast.
-
-**Wie lesen?**
-
-- **X-Achse:** Tags (deine Strategien)
-- **Y-Achse:** PnL in $
-- **Balken:** Grün (profitabel) oder Rot (verlustreich)
+Die Performance jeder Strategie, die du via Tags markiert hast. Balken pro Tag, grün (profitabel) oder rot (verlustreich).
 
 **Interpretation:**
 
@@ -912,7 +775,7 @@ Die Performance jeder Strategie, die du via Tags markiert hast.
 - **Aktion:** Fokus auf Breakouts, vermeide Reversals.
 
 **Warum ist das extrem wertvoll?**
-Ohne Tags kannst du nicht zwischen Strategien unterscheiden. Mit Tags siehst du schwarz auf weiß, was funktioniert!
+Die Strategie-Auswertung gruppiert nach Tags: Mit Tags siehst du schwarz auf weiß, was funktioniert!
 
 #### 📊 Strategy Comparison
 
@@ -1136,7 +999,7 @@ $$
 ### Typische Fehler vermeiden
 
 ❌ **Tags nicht nutzen**
-→ Ohne Tags keine Strategie-Analyse möglich!
+→ Tagge jeden Trade: Die Strategie-Analyse setzt Tags voraus!
 
 ❌ **Notizen zu spät schreiben**
 → Schreibe Notizen SOFORT nach dem Trade, nicht Tage später. Du vergisst sonst wichtige Details.
