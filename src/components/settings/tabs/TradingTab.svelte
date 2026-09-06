@@ -659,8 +659,6 @@
         display: flex;
         flex-direction: column;
         font-weight: var(--font-bold);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
         color: var(--text-secondary);
     }
     .field-group {
@@ -675,6 +673,8 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
     .input-field {
