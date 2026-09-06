@@ -47,6 +47,9 @@
     import type { TranslationKey } from "../../locales/schema";
     import { uiState } from "../../stores/ui.svelte";
     import { logger } from "../../services/logger";
+import { windowManager } from "../../lib/windows/WindowManager.svelte";
+
+let rootElement: HTMLElement | null = null;
 
     /**
      * One dynamic import per tab, so opening the panel pulls in the Manage tab
@@ -159,6 +162,30 @@
         document.getElementById(`alert-tab-${ALERT_PANEL_TABS[next]}`)?.focus();
     }
 
+    function handleKeydown(event: KeyboardEvent) {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            windowManager.close();
+        }
+
+        if (event.key === "Tab" && rootElement) {
+            const focusables = rootElement.querySelectorAll(
+                "button, input, select, textarea, [tabindex]:not([tabindex='-1'])"
+            ) as NodeListOf<HTMLElement>;
+            if (focusables.length > 0) {
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        }
+    }
+
     function arm() {
         const accepted = alertPanelState.validateDraft();
         if (!accepted) return;
@@ -176,7 +203,7 @@
     }
 </script>
 
-<div class="alert-panel">
+<div class="alert-panel" bind:this={rootElement} onkeydown={handleKeydown}>
     <!--
       BUG-0382: while the engine failed to load, rules are stored but nothing
       evaluates them. In the shell rather than in a tab, so it stays on screen
