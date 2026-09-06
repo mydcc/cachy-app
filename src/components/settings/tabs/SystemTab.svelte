@@ -588,9 +588,9 @@
                                     {/if}
                                 </div>
                             {/each}
-                        </div>
+                        </SettingsGrid>
                     {/if}
-                </SettingsGrid>
+                </div>
 
                 <SettingsGrid gap="gap-4">
                     <button
