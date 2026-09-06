@@ -227,30 +227,49 @@ export interface ShadowComparison {
  * the rule id (`legacy.rs`), so the two sides share a key. A record on one
  * side with no partner on the other is the interesting case and is returned
  * whole rather than counted away.
+ *
+ * Pairing is chronological, not "always the first ever seen for this key": a
+ * re-armed alert fires more than once inside the 500-record window, which is
+ * the normal cycle for a trader who re-arms after a hit, not an edge case.
+ * Reusing the very first rule-path record for every later legacy firing of
+ * the same alert would compare a real second delay against an already-spent
+ * first one — a huge, meaningless number standing in for the metric this
+ * whole file exists to produce. Both sequences are walked oldest-first and
+ * each legacy firing consumes the oldest not-yet-consumed rule-path record
+ * for its key, which is its nearest counterpart as long as the two paths
+ * roughly alternate — the shape a legacy/rule pair for one alert actually has.
  */
 export function compareShadowLedger(ledger: ShadowLedger = readShadowLedger()): ShadowComparison {
-  const legacy = ledger.records.filter((r) => r.source === "legacy");
+  const keyOf = (r: ShadowFiringRecord) => `${r.symbol}:${r.id}`;
+
+  const legacy = [...ledger.records.filter((r) => r.source === "legacy")].sort(
+    (a, b) => a.recordedAtMs - b.recordedAtMs,
+  );
   // Both "shadow" (evaluated, notified nobody) and "rule" (evaluated and
   // notified) are the rule path's side of the comparison. Filtering to
   // "shadow" alone would read the ledger of a live-cutover session as if the
   // rule engine had never fired at all — the opposite of what this reports.
   const shadow = ledger.records.filter((r) => r.source === "shadow" || r.source === "rule");
 
-  const keyOf = (r: ShadowFiringRecord) => `${r.symbol}:${r.id}`;
-  const shadowByKey = new Map<string, ShadowFiringRecord>();
+  const shadowQueues = new Map<string, ShadowFiringRecord[]>();
   for (const record of shadow) {
-    if (!shadowByKey.has(keyOf(record))) shadowByKey.set(keyOf(record), record);
+    const key = keyOf(record);
+    const queue = shadowQueues.get(key);
+    if (queue) queue.push(record);
+    else shadowQueues.set(key, [record]);
   }
-  const legacyKeys = new Set(legacy.map(keyOf));
+  for (const queue of shadowQueues.values()) queue.sort((a, b) => a.recordedAtMs - b.recordedAtMs);
 
+  const consumed = new Set<ShadowFiringRecord>();
   const delaysMs: number[] = [];
   const legacyOnly: ShadowFiringRecord[] = [];
   for (const record of legacy) {
-    const counterpart = shadowByKey.get(keyOf(record));
+    const counterpart = shadowQueues.get(keyOf(record))?.shift();
     if (counterpart === undefined) {
       legacyOnly.push(record);
       continue;
     }
+    consumed.add(counterpart);
     delaysMs.push(counterpart.recordedAtMs - record.recordedAtMs);
   }
 
@@ -258,7 +277,7 @@ export function compareShadowLedger(ledger: ShadowLedger = readShadowLedger()): 
     legacyCount: legacy.length,
     shadowCount: shadow.length,
     legacyOnly,
-    shadowOnly: shadow.filter((r) => !legacyKeys.has(keyOf(r))),
+    shadowOnly: shadow.filter((r) => !consumed.has(r)),
     delaysMs,
   };
 }

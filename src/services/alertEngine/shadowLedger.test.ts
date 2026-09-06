@@ -233,5 +233,43 @@ describe("shadowLedger", () => {
       expect(comparison.legacyOnly).toEqual([]);
       expect(comparison.delaysMs).toEqual([30_050]);
     });
+
+    it("pairs a re-armed alert's second firing with its own counterpart, not the first one again", () => {
+      // Review round 4's finding: a trader re-arms an alert after it fires,
+      // and it fires a second time later in the same 500-record window —
+      // ordinary usage, not an edge case. The second legacy firing must pair
+      // with the second rule-path firing, not the first one all over again.
+      const cycle1 = CANDLE_CLOSE_MS;
+      const cycle2 = CANDLE_CLOSE_MS + 10 * 60_000; // ten minutes later
+
+      recordFiring(legacy("a1", cycle1 - 30_000));
+      recordFiring(ruleFiring("a1", cycle1 + 50));
+      recordFiring(legacy("a1", cycle2 - 20_000));
+      recordFiring(ruleFiring("a1", cycle2 + 80));
+
+      const comparison = compareShadowLedger();
+
+      // Fails on the un-fixed code: the second delay would be measured
+      // against the FIRST rule-path record again — a huge, meaningless
+      // number spanning the ten minutes between cycles, not a second ~30s
+      // delay.
+      expect(comparison.delaysMs).toEqual([30_050, 20_080]);
+      expect(comparison.legacyOnly).toEqual([]);
+      expect(comparison.shadowOnly).toEqual([]);
+    });
+
+    it("leaves a genuinely unmatched extra firing in the appropriate *Only list", () => {
+      // One rule-path firing consumed by the paired legacy firing above it;
+      // a second, unpaired one (no matching legacy firing ever arrived) must
+      // still surface rather than being silently absorbed by FIFO matching.
+      recordFiring(legacy("a1", CANDLE_OPEN_MS));
+      recordFiring(ruleFiring("a1", CANDLE_CLOSE_MS));
+      recordFiring(ruleFiring("a1", CANDLE_CLOSE_MS + 5 * 60_000));
+
+      const comparison = compareShadowLedger();
+
+      expect(comparison.delaysMs).toHaveLength(1);
+      expect(comparison.shadowOnly.map((r) => r.recordedAtMs)).toEqual([CANDLE_CLOSE_MS + 5 * 60_000]);
+    });
   });
 });
