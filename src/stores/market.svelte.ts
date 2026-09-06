@@ -348,7 +348,7 @@ export class MarketManager {
     try {
       ruleEvaluationLoop.observeCandles(symbol, timeframe, klines);
     } catch (e) {
-      import("../services/logger").then(m => m.logger.error("alerts", `[Shadow] Rule loop failed for ${symbol} ${timeframe}`, e)).catch(() => {});
+      import("../services/logger").then(m => m.logger.error("alerts", `[Cutover] Rule loop failed for ${symbol} ${timeframe}`, e)).catch(() => {});
     }
   }
 

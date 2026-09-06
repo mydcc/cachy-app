@@ -139,7 +139,7 @@ export function readStoredRules(): RuleDocument[] {
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as RuleDocument[]) : [];
   } catch (e) {
-    logger.error("alerts", "[Shadow] Reading stored rules failed", e);
+    logger.error("alerts", "[Cutover] Reading stored rules failed", e);
     return [];
   }
 }
