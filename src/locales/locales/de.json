@@ -1693,7 +1693,7 @@
     },
     "trading": {
       "executionTitle": "Exekution & Gebühren",
-      "chartTitle": "Chart & Daten",
+      "chartTitle": "Daten & Markt",
       "executionData": "Ausführung & Daten",
       "spinButtons": {
         "always": "Immer sichtbar",

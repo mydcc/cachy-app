@@ -20,22 +20,21 @@
     import { settingsState } from "../../../stores/settings.svelte";
     import { numberInput } from "../../../utils/inputUtils";
     import Toggle from "../../shared/Toggle.svelte";
-    import HotkeySettings from "../HotkeySettings.svelte";
-    import IndicatorSettings from "./IndicatorSettings.svelte";
     import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
     import ConfirmationSettings from "../ConfirmationSettings.svelte";
     import NotificationSettings from "../NotificationSettings.svelte";
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
     import OrderAuditSettings from "../OrderAuditSettings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
-    import {
-        HOTKEY_ACTIONS,
-        MODE1_MAP,
-        MODE2_MAP,
-        type HotkeyAction,
-    } from "../../../services/hotkeyService";
 
-    const activeSubTab = $derived(uiState.settingsTradingSubTab);
+    // "hotkeys" lived here until it moved to System → Controls; unknown
+    // persisted values fall back to "market" so the tab never renders blank.
+    const validSubTabs = ["market", "chart", "risk", "paper", "audit"];
+    const activeSubTab = $derived(
+        validSubTabs.includes(uiState.settingsTradingSubTab)
+            ? uiState.settingsTradingSubTab
+            : "market",
+    );
 
     const exchange = $derived(settingsState.apiProvider);
     const venueName = $derived(
@@ -64,36 +63,17 @@
             id: "audit",
             label: $_("settings.audit.subTab") || "Order Log",
         },
-        { id: "hotkeys", label: $_("settings.tabs.hotkeys") || "Controls" },
     ];
-
-    const groupedActions: Record<string, HotkeyAction[]> = {};
-    HOTKEY_ACTIONS.forEach((action) => {
-        if (!groupedActions[action.category]) {
-            groupedActions[action.category] = [];
-        }
-        groupedActions[action.category].push(action);
-    });
-    const categories = Object.keys(groupedActions);
-
-    function getPresetKey(action: HotkeyAction, mode: string): string {
-        if (mode === "mode1") {
-            return MODE1_MAP[action.id] || action.defaultKey;
-        } else if (mode === "mode2") {
-            return MODE2_MAP[action.id] || action.defaultKey;
-        }
-        return action.defaultKey;
-    }
 </script>
 
-<div class="trading-tab h-full flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-trading">
+<div class="trading-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-trading">
     <!-- Sub-Navigation -->
     <div
-        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 shrink-0"
+        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
     >
         {#each subTabs as tab}
             <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
                 tab.id
                     ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}"
@@ -104,7 +84,7 @@
         {/each}
     </div>
 
-    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+    <div class="min-w-0">
         <!-- Execution & Fees -->
         {#if activeSubTab === "market"}
             <section class="settings-section animate-fade-in">
@@ -298,6 +278,29 @@
                             bind:checked={settingsState.confirmBulkDeletion}
                         />
                     </label>
+
+                    <!-- Automation & Advanced (moved from Chart & Data; execution behaviour lives with execution) -->
+                    <div class="border-t border-[var(--border-color)] pt-4 mt-4 mb-4 col-span-full">
+                        <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                             {$_("settings.trading.automationTitle") || "Automation & Advanced"}
+                        </h4>
+
+                        <label class="toggle-card mb-4">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">{$_("settings.trading.autoTrading")}</span>
+                                <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.trading.autoTradingDesc")}</span>
+                            </div>
+                            <Toggle bind:checked={settingsState.autoTrading} />
+                        </label>
+
+                        <label class="toggle-card">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">{$_("settings.trading.multiAccount")}</span>
+                                <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.trading.multiAccountDesc")}</span>
+                            </div>
+                            <Toggle bind:checked={settingsState.multiAccount} />
+                        </label>
+                    </div>
                 </div>
             </section>
         {/if}
@@ -305,7 +308,7 @@
         <!-- Chart & Data -->
         {#if activeSubTab === "chart"}
             <section class="settings-section animate-fade-in">
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center gap-2 mb-4">
                     <h3 class="section-title mb-0">
                         {$_("settings.trading.chartTitle") || "Chart & Data"}
                     </h3>
@@ -417,7 +420,7 @@
                                     />
 
                                     <!-- Individual Link Toggles -->
-                                    <div class="grid grid-cols-3 gap-2">
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                         <label
                                             class="flex items-center gap-2 cursor-pointer"
                                         >
@@ -604,45 +607,12 @@
                         </div>
                     {/if}
 
-                    <!-- Automation & Advanced -->
-                    <div class="border-t border-[var(--border-color)] pt-4 mt-4 mb-4">
-                        <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-                             {$_("settings.trading.automationTitle") || "Automation & Advanced"}
-                        </h4>
-
-                        <label class="toggle-card mb-4">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-medium">{$_("settings.trading.autoTrading")}</span>
-                                <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.trading.autoTradingDesc")}</span>
-                            </div>
-                            <Toggle bind:checked={settingsState.autoTrading} />
-                        </label>
-
-                        <label class="toggle-card mb-4">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-medium">{$_("settings.trading.multiAccount")}</span>
-                                <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.trading.multiAccountDesc")}</span>
-                            </div>
-                            <Toggle bind:checked={settingsState.multiAccount} />
-                        </label>
-                    </div>
-
-                    <!-- Granular Settings (Always Visible) -->
-                    <div
-                        class="border-t border-[var(--border-color)] pt-4 mt-4"
-                    >
-                        <h4
-                            class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
-                        >
-                            {$_("settings.trading.indicatorConfiguration")}
-                        </h4>
-                        <IndicatorSettings />
-                    </div>
+                    <!-- Granular Settings (moved to the Chart tab; single home for all indicator settings) -->
                 </div>
             </section>
         {/if}
 
-        <!-- Hotkeys -->
+        <!-- Risk & Kill Switch -->
         {#if activeSubTab === "risk"}
             <section class="animate-fade-in space-y-6">
                 <RiskLimitsSettings />
@@ -675,72 +645,6 @@
             </section>
         {/if}
 
-        {#if activeSubTab === "hotkeys"}
-            <section class="settings-section animate-fade-in">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="section-title mb-0">
-                        {$_("settings.profile.hotkeysTitle") ||
-                            "Keyboard Shortcuts"}
-                    </h3>
-                    <select
-                        bind:value={settingsState.hotkeyMode}
-                        class="input-field w-auto py-1 text-xs"
-                    >
-                        <option value="mode2"
-                            >{$_("settings.hotkeys.safetyMode")}</option
-                        >
-                        <option value="mode1"
-                            >{$_("settings.hotkeys.directMode")}</option
-                        >
-                        <option value="custom">{$_("settings.hotkeys.customConfig")}</option>
-                    </select>
-                </div>
-
-                {#if settingsState.hotkeyMode === "custom"}
-                    <div
-                        class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                    >
-                        <HotkeySettings />
-                    </div>
-                {:else}
-                    <div
-                        class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] flex flex-col gap-4"
-                    >
-                        <p class="text-xs text-[var(--text-secondary)]">
-                            <strong>{$_("settings.hotkeys.activePreset")}</strong>
-                            {settingsState.hotkeyMode === "mode1"
-                                ? $_("settings.hotkeys.mode1Desc")
-                                : $_("settings.hotkeys.mode2Desc")}
-                            <button
-                                class="text-[var(--accent-color)] underline ml-2"
-                                onclick={() =>
-                                    (settingsState.hotkeyMode = "custom")}
-                                >{$_("settings.hotkeys.switchToCustom")}</button
-                            >
-                        </p>
-                        <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-6">
-                            {#each categories as category}
-                                <div class="flex flex-col gap-2">
-                                    <h4 class="text-sm font-bold text-[var(--accent-color)] border-b border-[var(--border-color)] pb-1 mb-1">
-                                        {category}
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {#each groupedActions[category] as action}
-                                            <div class="flex justify-between items-center p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-                                                <span class="text-sm">{action.label}</span>
-                                                <span class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)]">
-                                                    {getPresetKey(action, settingsState.hotkeyMode)}
-                                                </span>
-                                            </div>
-                                        {/each}
-                                    </div>
-                                </div>
-                            {/each}
-                        </div>
-                    </div>
-                {/if}
-            </section>
-        {/if}
     </div>
 </div>
 
