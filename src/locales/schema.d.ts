@@ -323,6 +323,7 @@ export type TranslationKey =
   | "dashboard.generalInputs.leverage"
   | "dashboard.generalInputs.fees"
   | "dashboard.generalInputs.leveragePlaceholder"
+  | "dashboard.generalInputs.leverageFromExchange"
   | "dashboard.generalInputs.marginMode"
   | "dashboard.generalInputs.feeEntryLeg"
   | "dashboard.generalInputs.feeExitLeg"

@@ -53,7 +53,7 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/batch_o
    -H "timestamp:1659076670000" \
    -H "language:en-US" \
    -H "Content-Type: application/json" \
- --data '{"symbol":"BTCUSDT","orderList":[{"side":"BUY","price":"60000","qty":"0.5","orderType":"LIMIT","reduceOnly":false,"effect":"GTC","clientId":"c12345","tpPrice":"61000","tpStopType":"MARK","tpOrderType":"LIMIT","tpOrderPrice":"61000.1","slPrice":"59000","slStopType":"LAST","slOrderType":"MARKET"},{"side":"SELL","price":"61000","qty":"0.5","orderType":"LIMIT","reduceOnly":false,"effect":"IOC","clientId":"c12346"}]}'
+ --data '{"symbol":"BTCUSDT","orderList":[{"side":"BUY","price":"60000","qty":"0.5","orderType":"LIMIT","reduceOnly":false,"effect":"GTC","clientId":"c12345","tpPrice":"61000","tpStopType":"MARK_PRICE","tpOrderType":"LIMIT","tpOrderPrice":"61000.1","slPrice":"59000","slStopType":"LAST_PRICE","slOrderType":"MARKET"},{"side":"SELL","price":"61000","qty":"0.5","orderType":"LIMIT","reduceOnly":false,"effect":"IOC","clientId":"c12346"}]}'
 ```
 
 ### Response Parameters
@@ -69,8 +69,10 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/batch_o
 
 ### Response Example
 ```json
-{"code":0,"data":{"successList":[{"id":"11111","clientId":"22222"}],"failureList":[{"clientId":"22222","errorMsg":"Insufficient balance","errorCode":10012}]},"msg":"Success"}
+{"code":0,"data":{"orderId":"11111","clientId":"22222"},"msg":"Success"}
 ```
+
+> `clientId` is capped at 64 chars (Cachy mints one per attempt). No `batch_order` verb, no plan-order verbs, and no `subAccountId`/`queryCanceled`/`includeSubAccounts` are surfaced in `TradingPort` — see `INTEGRATION_STATUS.md` and the adapter verb table in `unsupportedVerbs.test.ts` for what Cachy wires.
 
 ---
 
@@ -326,7 +328,7 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_hist
 
 ### Response Example
 ```json
-{"code":0,"data":{"orderList":[{"orderId":"11111","qty":"1","tradeQty":"0.5","price":"60000","symbol":"BTCUSDT","positionMode":"HEDGE","marginMode":"ISOLATION","leverage":15,"status":"CANCELED","fee":"0.01","realizedPNL":"1.78","type":"LIMIT","effect":"GTC","reduceOnly":false,"clientId":"22222","tpPrice":"61000","tpStopType":"MARK","tpOrderType":"LIMIT","tpOrderPrice":"61000.1","slPrice":"59000","slStopType":"MARK","slOrderType":"LIMIT","slOrderPrice":"59000.1","source":"api","ctime":1597026383085,"mtime":1597026383085}],"total":10},"msg":"Success"}
+{"code":0,"data":{"orderList":[{"orderId":"11111","qty":"1","tradeQty":"0.5","price":"60000","symbol":"BTCUSDT","positionMode":"HEDGE","marginMode":"ISOLATION","leverage":15,"status":"CANCELED","fee":"0.01","realizedPNL":"1.78","type":"LIMIT","effect":"GTC","reduceOnly":false,"clientId":"22222","tpPrice":"61000","tpStopType":"MARK_PRICE","tpOrderType":"LIMIT","tpOrderPrice":"61000.1","slPrice":"59000","slStopType":"MARK_PRICE","slOrderType":"LIMIT","slOrderPrice":"59000.1","source":"api","ctime":1597026383085,"mtime":1597026383085}],"total":10},"msg":"Success"}
 ```
 
 ---
@@ -456,7 +458,7 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_orde
 
 ### Response Example
 ```json
-{"code":0,"data":{"orderId":"11111","qty":"1","tradeQty":"0.5","price":"60000","symbol":"BTCUSDT","positionMode":"HEDGE","marginMode":"ISOLATION","leverage":15,"status":"PART_FILLED","fee":"0.01","realizedPNL":"1.78","type":"LIMIT","effect":"GTC","reduceOnly":false,"clientId":"22222","tpPrice":"61000","tpStopType":"MARK","tpOrderType":"LIMIT","tpOrderPrice":"61000.1","slPrice":"59000","slStopType":"MARK","slOrderType":"LIMIT","slOrderPrice":"59000.1","source":"api","ctime":1597026383085,"mtime":1597026383085},"msg":"Success"}
+{"code":0,"data":{"orderId":"11111","qty":"1","tradeQty":"0.5","price":"60000","symbol":"BTCUSDT","positionMode":"HEDGE","marginMode":"ISOLATION","leverage":15,"status":"PART_FILLED","fee":"0.01","realizedPNL":"1.78","type":"LIMIT","effect":"GTC","reduceOnly":false,"clientId":"22222","tpPrice":"61000","tpStopType":"MARK_PRICE","tpOrderType":"LIMIT","tpOrderPrice":"61000.1","slPrice":"59000","slStopType":"MARK_PRICE","slOrderType":"LIMIT","slOrderPrice":"59000.1","source":"api","ctime":1597026383085,"mtime":1597026383085},"msg":"Success"}
 ```
 
 ---
@@ -502,7 +504,7 @@ Unterparametern.
 
 ### Response Example
 ```json
-{"code":0,"data":{"orderList":[{"orderId":"11111","qty":"1","tradeQty":"0.5","price":"60000","symbol":"BTCUSDT","positionMode":"HEDGE","marginMode":"ISOLATION","leverage":15,"status":"NEW","fee":"0.01","realizedPNL":"1.78","type":"LIMIT","effect":"GTC","reduceOnly":false,"clientId":"22222","tpPrice":"61000","tpStopType":"MARK","tpOrderType":"LIMIT","tpOrderPrice":"61000.1","slPrice":"59000","slStopType":"MARK","slOrderType":"LIMIT","slOrderPrice":"59000.1","source":"api","ctime":1597026383085,"mtime":1597026383085}],"total":10},"msg":"Success"}
+{"code":0,"data":{"orderList":[{"orderId":"11111","qty":"1","tradeQty":"0.5","price":"60000","symbol":"BTCUSDT","positionMode":"HEDGE","marginMode":"ISOLATION","leverage":15,"status":"NEW","fee":"0.01","realizedPNL":"1.78","type":"LIMIT","effect":"GTC","reduceOnly":false,"clientId":"22222","tpPrice":"61000","tpStopType":"MARK_PRICE","tpOrderType":"LIMIT","tpOrderPrice":"61000.1","slPrice":"59000","slStopType":"MARK_PRICE","slOrderType":"LIMIT","slOrderPrice":"59000.1","source":"api","ctime":1597026383085,"mtime":1597026383085}],"total":10},"msg":"Success"}
 ```
 
 ---
@@ -525,8 +527,8 @@ und/oder Preis/Menge).
 |----------------|--------|----------|-------------|
 | orderId        | string | false    | Order ID. `orderId` oder `clientId` erforderlich. Bei beiden hat `orderId` Vorrang |
 | clientId       | string | false    | Individuelle Order-ID. `orderId` oder `clientId` erforderlich. Bei beiden hat `orderId` Vorrang |
-| qty            | string | true     | Menge (Base-Coin) |
-| price          | string | true     | Orderpreis (erforderlich bei `LIMIT`) |
+| qty            | string | true     | Menge (Base-Coin) (exchange requirement; Cachy Safe Modify backfills from the live order when omitted) |
+| price          | string | true     | Orderpreis (erforderlich bei `LIMIT`) (exchange requirement; Cachy Safe Modify backfills from the live order when omitted) |
 | tpPrice        | string | false    | Take-Profit-Trigger-Preis |
 | tpStopType     | string | false    | Take-Profit-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
 | tpOrderType    | string | false    | Take-Profit-Order-Typ: `LIMIT` / `MARKET` |
@@ -545,7 +547,7 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/modify_
    -H "timestamp:1659076670000" \
    -H "language:en-US" \
    -H "Content-Type: application/json" \
- --data '{"orderId":"1111","symbol":"BTCUSDT","price":"60000","qty":"0.5","tpPrice":"61000","tpStopType":"MARK","tpOrderType":"LIMIT","tpOrderPrice":"61000.1"}'
+ --data '{"orderId":"1111","symbol":"BTCUSDT","price":"60000","qty":"0.5","tpPrice":"61000","tpStopType":"MARK_PRICE","tpOrderType":"LIMIT","tpOrderPrice":"61000.1"}'
 ```
 
 ### Response Parameters
@@ -604,7 +606,7 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/place_o
    -H "timestamp:1659076670000" \
    -H "language:en-US" \
    -H "Content-Type: application/json" \
- --data '{"symbol":"BTCUSDT","side":"BUY","price":"60000","qty":"0.5","positionId":"111","tradeSide":"CLOSE","orderType":"LIMIT","reduceOnly":false,"effect":"GTC","clientId":"1110000aaa","tpPrice":"61000","tpStopType":"MARK","tpOrderType":"LIMIT","tpOrderPrice":"61000.1"}'
+ --data '{"symbol":"BTCUSDT","side":"BUY","price":"60000","qty":"0.5","positionId":"111","tradeSide":"CLOSE","orderType":"LIMIT","reduceOnly":false,"effect":"GTC","clientId":"1110000aaa","tpPrice":"61000","tpStopType":"MARK_PRICE","tpOrderType":"LIMIT","tpOrderPrice":"61000.1"}'
 ```
 
 ### Response Parameters

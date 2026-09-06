@@ -2,7 +2,7 @@
 
 Abgleich der offiziellen Bitunix-Futures-API (Crawl vom 08.08.2026, siehe
 [README.md](README.md)) mit dem tatsächlichen Integrationsstand im Code.
-Stand des Abgleichs: **09.08.2026**.
+Stand des Abgleichs: **2026-09-05**.
 
 Zweck: Grundlage für die Tradepanel-UI-Überarbeitung und die geplante
 Trade-Ausführung (zuerst Bitunix, dann Bitget). Kein Plandokument — was wann
@@ -16,7 +16,7 @@ gebaut wird, steht in `docs/MILESTONES.md` / `docs/backlog/`.
 
 Alle Bitunix-REST-Aufrufe laufen über SvelteKit-Proxy-Routen
 (`src/routes/api/*`), signiert mit `generateBitunixSignature`
-([src/utils/server/bitunix.ts](../../src/utils/server/bitunix.ts)).
+([src/utils/server/venues/bitunix.ts](../../src/utils/server/venues/bitunix.ts)).
 Client-seitig kapseln [tradeService](../../src/services/tradeService.ts)
 (Trading-Aktionen), [apiService](../../src/services/apiService.ts)
 (Marktdaten) und [syncService](../../src/services/syncService.ts)
@@ -36,7 +36,7 @@ Login, Reconnect, Resubscribe).
 | `GET …/account/get_leverage_margin_mode` | Hebel & Margin-Mode pro Symbol lesen | ✅ | [routes/api/leverage-margin-mode](../../src/routes/api/leverage-margin-mode/+server.ts) |
 | `POST …/account/change_leverage` | Hebel ändern (je Symbol) | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
 | `POST …/account/change_margin_mode` | ISOLATION/CROSS; nur ohne offene Position/Order auf dem Symbol | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
-| `POST …/account/change_position_mode` | ONE_WAY/HEDGE; nur ohne offene Positionen | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
+| `POST …/account/change_position_mode` | ONE_WAY/HEDGE; nur ohne offene Positionen/Orders | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
 | `POST …/account/adjust_position_margin` | Margin erhöhen/reduzieren; nur Isolated | ✅ | [routes/api/account-settings](../../src/routes/api/account-settings/+server.ts) |
 
 Hebel, Margin-Mode und Position-Mode sind im Tradepanel änderbar
@@ -44,7 +44,7 @@ Hebel, Margin-Mode und Position-Mode sind im Tradepanel änderbar
 die Isolated-Margin einer Position über
 [AdjustMarginModal](../../src/components/shared/AdjustMarginModal.svelte)
 (FEAT-0068). Die dokumentierten Vorbedingungen (Margin-Mode nur ohne
-Position/Order auf dem Symbol, Position-Mode nur ohne offene Positionen)
+Position/Order auf dem Symbol, Position-Mode nur ohne offene Positionen/Orders)
 deaktivieren den jeweiligen Button mit Begründung; durchgesetzt werden sie
 weiterhin von der Börse.
 
@@ -58,7 +58,7 @@ weiterhin von der Börse.
 | `GET …/market/funding_rate` (single) | ❌ | Durch Batch abgedeckt — bewusst nicht nötig |
 | `GET …/market/get_funding_rate_history` | ❌ | — |
 | `GET …/market/depth` (REST) | ❌ | WS `depth_book5` wird stattdessen genutzt |
-| `GET …/market/trading_pairs` | ❌ | **Wichtig für Trade-Ausführung**: `basePrecision`/`quotePrecision`, `minTradeVolume`, `maxLimitOrderVolume`/`maxMarketOrderVolume`, `min`/`maxLeverage`, `priceProtectScope`, `symbolStatus`, `isApiSupported` — ohne diese Daten kann das Tradepanel Orders nicht zuverlässig validieren und runden |
+| `GET …/market/trading_pairs` | 🟡 | `fetchTradingPairInfo` exists and is live-read by `tradeService.placeOrder` (`basePrecision`, `minTradeVolume`, …); adapter declares `tradingPairInfo: true` — verify caller coverage, then flip to ✅ |
 
 ### Position (`05_position.md`)
 
@@ -73,11 +73,11 @@ weiterhin von der Börse.
 | Endpoint | Status | Code / Anmerkung |
 |---|---|---|
 | `POST …/trade/place_order` | ✅ | [routes/api/orders](../../src/routes/api/orders/+server.ts) (`type: "place-order"`), Client: `tradeService.placeOrder()`. Gesendet: `symbol`, `side`, `orderType`, `qty`, `price`, `reduceOnly`, `tradeSide`/`positionId` (Hedge), `triggerPrice`, sowie seit FEAT-0069 `tpPrice`/`tpStopType`/`tpOrderType`/`tpOrderPrice`, die `sl*`-Gegenstücke, `effect` (nur bei LIMIT) und `clientId` (eine ID pro Sendeversuch, bei Retry wiederverwendbar) |
-| `POST …/trade/cancel_orders` | ✅ | `cancelBitunixOrder` in [routes/api/orders](../../src/routes/api/orders/+server.ts) |
-| `POST …/trade/cancel_all_orders` | ❌ | Cachy loopt stattdessen über pending + Einzel-Cancel (`type: "cancel-all"`) — race-anfällig, mehr Rate-Limit-Last |
-| `POST …/trade/close_all_position` | ❌ | `tradeService.closeAllPositions()` feuert parallele MARKET-reduceOnly-Orders |
-| `POST …/trade/flash_close_position` | ❌ | Cachys „Flash Close" (`tradeService.flashClosePosition`) ist eine MARKET-reduceOnly-`place_order`, nicht der native Endpoint |
-| `POST …/trade/modify_order` | ❌ | Offene Order kann nur per cancel + neu platzieren geändert werden |
+| `POST …/trade/cancel_orders` | ✅ | `cancelBitunixOrder` in [routes/api/orders](../../src/routes/api/orders/+server.ts). Known adapter limitation: cancel by `orderId` only — cancel by `clientId` alone is not wired (`tradeService.cancelOrder` returns early without `orderId`). |
+| `POST …/trade/cancel_all_orders` | ✅ | Native `cancel-all-orders` via `routes/api/orders` (`type: "cancel-all"`); client loop removed |
+| `POST …/trade/close_all_position` | ✅ | Native `close-all-positions` for Bitunix (`tradeService.closeAllPositions`, venue `venues/bitunix.ts`) |
+| `POST …/trade/flash_close_position` | ✅ | Native `flash-close-position` when a positionId exists (`tradeService.flashClosePosition`, venue `venues/bitunix.ts`); falls back to MARKET-reduceOnly otherwise |
+| `POST …/trade/modify_order` | ✅ | Native Safe Modify (`tradeService.modifyOrder` backfills missing qty/price from live `get_order_detail`, venue `venues/bitunix.ts`) |
 | `POST …/trade/batch_order` | ❌ | Max. 5 Orders/Request, inkl. TP/SL je Order — interessant für Scale-In/Ladder-Strategien |
 | `GET …/trade/get_pending_orders` | ✅ | [routes/api/orders](../../src/routes/api/orders/+server.ts) |
 | `GET …/trade/get_history_orders` | ✅ | [routes/api/orders](../../src/routes/api/orders/+server.ts), [routes/api/sync/orders](../../src/routes/api/sync/orders/+server.ts) |
@@ -116,7 +116,7 @@ weiterhin von der Börse.
 | `ticker` (24h, einzeln) | public | ✅ | |
 | `tickers` (Batch, inkl. Best-Bid/Ask `bd`/`ak`/`bv`/`av`) | public | ❌ | Best-Bid/Ask wäre fürs Tradepanel nützlich (Spread-Anzeige, Market-Order-Schätzung) |
 | `depth_book5` | public | ✅ | `books`/`book1`/`book15` ungenutzt |
-| `market_kline_*`, `mark_kline_1day` | public | ✅ | Inkl. synthetischer Timeframes via `BROKER_CAPABILITIES` |
+| `market_kline_*` | public | ✅ | Natively subscribed for `1min, 5min, 15min, 30min, 60min, 4h, 1day, 1week, 1month`; rest synthesized via `BROKER_CAPABILITIES`. `mark_*` never subscribed. |
 | `trade` (public Trades) | public | ✅ | |
 | `order` | private | ✅ | |
 | `position` | private | ✅ | |
@@ -139,7 +139,7 @@ Bereits geholt und angezeigt
 `positionMode`, `crossUnrealizedPNL`, `isolationUnrealizedPNL`,
 `totalPositionSize` (client-berechnet).
 
-Verfügbar und integriert:
+Fetched but not surfaced:
 
 - **Hebel + Margin-Mode je Symbol** (`get_leverage_margin_mode`) — lesend und
   schreibend (FEAT-0068)

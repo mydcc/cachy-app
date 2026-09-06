@@ -21,9 +21,9 @@ See `AGENTS.md` → Setup (commands, component-test note, "Fast & Targeted" veri
 **Directory Structure:**
 - `src/services/` — API/WebSocket services (Bitunix/Bitget), calculation logic. Tests alongside (`*.test.ts`).
 - `src/stores/` — Svelte 5 rune stores (`*.svelte.ts`), tests alongside.
-- `src/components/` — UI components (inputs, layout, results, settings, shared).
+- `src/components/` — UI components (alerts, inputs, layout, results, settings, shared).
 - `src/lib/` — Calculator core (`calculator.ts`), utilities, types.
-- `src/routes/[[lang]]/` — i18n routing (German + English, `src/locales/`). New UI strings always in **both** languages.
+- `src/routes/` — app shell (`+page.svelte`/`+layout.svelte`) plus `[[lang]]/(seo)/` pages (academy, changelog, guide, privacy, whitepaper). New UI strings always in **both** `src/locales/locales/{de,en}.json`.
 - `server/` — SpacetimeDB module; has its own CLAUDE.md with separate rules.
 - `technicals-wasm/` — WASM module for indicator calculations.
 
@@ -56,7 +56,7 @@ All non-negotiables — Local-First classes, Svelte 5 runes only (legacy syntax 
 
 ## MCP Tools
 
-Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository.
+Both MCP servers are mandatory (see `AGENTS.md` → Tools & MCP). Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository. Use Gortex graph tools (`gortex__explore`, `gortex__search`, `gortex__impact`, etc.) for all code navigation and impact analysis.
 
 **Gortex — Worktree Session Start (AUTOMATIC):** Every agent MUST run this before any other tool call — non-negotiable:
 

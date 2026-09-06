@@ -25,7 +25,7 @@ https://fapi.bitunix.com
 ## Signature Generation (JavaScript)
 
 ```javascript
-const digest = SHA256(nonce + timestamp + apiKey + bodyString);
+const digest = SHA256(nonce + timestamp + apiKey + queryParamsStr + bodyString);
 const sign = SHA256(digest + secretKey);
 ```
 
@@ -55,8 +55,9 @@ for REST, historically `bitunixWs.ts` for WS, now unused for this).
 
 ## Rate Limits
 
-- Place Order: **10/sec**
-- Cancel Order: **20/sec**
+- Place Order: **10/sec/uid**
+- Cancel Order (`cancel_orders`): **5/sec/uid**
+- Cancel All (`cancel_all_orders`): **10/sec/uid**
 - Get Pending: **10/sec**
 
 ---
@@ -68,6 +69,7 @@ for REST, historically `bitunixWs.ts` for WS, now unused for this).
 - `30001` - Order would liquidate
 - `30013` - Max orders exceeded
 - `30018` - Reduce-only conflict
+- `30042` - Client ID duplicate (Cachy mints `clientId` per attempt)
 
 ---
 
@@ -79,8 +81,8 @@ POST /api/v1/futures/trade/place_order
   "symbol": "BTCUSDT",
   "side": "BUY",
   "orderType": "LIMIT",
-  "qty": 0.01,
-  "price": 50000,
+  "qty": "0.01",
+  "price": "50000",
   "effect": "GTC"
 }
 ```

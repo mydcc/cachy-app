@@ -21,7 +21,7 @@ The entire server-side schema is three fields
 
 ```ts
 table({ name: 'global_message' }, {
-  sender:  t.string(),   // first 8 hex characters of the SpacetimeDB identity
+  sender:  t.string(),   // full SpacetimeDB identity hex (BUG-0373 collision fix); UI abbreviates to 8 chars for display
   text:    t.string(),   // the message, max 1000 characters
   sent_at: t.number(),   // timestamp
 })
@@ -47,7 +47,7 @@ cd server/spacetimedb
 npm install
 ```
 
-Publishing and running it requires the SpacetimeDB CLI (v2.8.2+). The module name you publish under is what users enter as **Module name** in Settings → Cloud; `cachy-server` is the default the app suggests.
+Publishing and running it requires the SpacetimeDB CLI (v2.8.1+; generated bindings are at 2.8.1). The module name you publish under is what users enter as **Module name** in Settings → Cloud; `cachy-server` is the default the app suggests.
 
 ### 2.1 Local Development
 Start a local SpacetimeDB instance:
@@ -133,7 +133,7 @@ implementation is expected to meet.
 
 | | |
 | --- | --- |
-| **What is stored** | Message text, an 8-character sender ID, a timestamp. Nothing else. |
+| **What is stored** | Message text, the full sender identity hex, a timestamp. Nothing else. |
 | **Legal basis** | Consent. The feature is off until the user turns it on, and the settings tab states what leaves the device before they do. |
 | **Retention** | Messages are deleted **90 days** after they are sent. A chat is a conversation, not an archive; nothing in the product reads messages older than the visible history. |
 | **Deletion on request** | Self-service: `delete_my_messages` deletes every message belonging to the caller, identified from `ctx.sender` rather than from an argument. No operator involvement, and no way to erase someone else's messages. |
@@ -157,15 +157,10 @@ self-service: a user exercises it directly, without going through the operator.
 
 ### What still needs a machine this repository does not have
 
-Both reducers typecheck (`npx tsc --noEmit` in `server/spacetimedb`), but they
-have **not been run against a live SpacetimeDB instance** — publishing needs the
-SpacetimeDB CLI, which is not vendored here. Before relying on the policy:
+Both reducers typecheck (`npm run check` covers `server/spacetimedb`), and the committed bindings include `delete_my_messages`. Before relying on the policy:
 
-1. `spacetime publish` the module. The retention sweep is armed in `init`, so a
-   module published before this change keeps its old messages until republished.
-2. `spacetime generate` to regenerate `src/lib/spacetimedb/`. The bindings
-   committed here predate `delete_my_messages`, so a build made from them cannot
-   call it.
+1. `spacetime publish` the module against a live SpacetimeDB instance — publishing needs the SpacetimeDB CLI, which is not vendored here. The retention sweep is armed in `init`, so a module published before this change keeps its old messages until republished.
+2. If the bindings ever lag behind the module, `spacetime generate` to regenerate `src/lib/spacetimedb/`.
 
 The interface is already in place (item 15b): **Settings → Cloud** has a
 "delete my messages" control behind a two-click confirmation. It asks the
