@@ -59,19 +59,16 @@ Das Dashboard besteht aus drei Hauptbereichen:
 
 ### Navigation
 
-**Sidebar-Menü (links):**
-
-- **Home:** Zurück zur Startseite
-- **Calculator:** Öffnet den Position Size Calculator
-- **Journal:** Öffnet dein Trading Journal
-- **Settings:** Theme, Sprache, Account-Einstellungen
+Das Dashboard ist eine einzelne Seite: Journal, Einstellungen und diese Anleitung öffnen sich als Overlays über ihre Buttons. Ein separates Sidebar-Menü mit Home / Calculator / Journal / Settings gibt es nicht.
 
 **Top-Bar:**
 
 - **Account Balance:** Zeigt dein aktuelles Kapital
-- **Theme Toggle:** Wechsel zwischen Light/Dark/VIP Themes
+- **Theme-Button:** Wechselt durch alle 28 installierten Themes (z. B. Dark, Light, Midnight, Dracula, Nord, VIP)
 - **Sprach-Umschalter:** DE/EN
 - **Help:** Zugriff auf diese Anleitung
+
+**Einstellungen:** Modal mit 7 Tabs (Trading, Chart, Visuals, AI, Verbindungen, System, Cloud) — Theme, Sprache, Konten, API-Schlüssel, Hotkeys und Backup.
 
 ---
 
@@ -227,7 +224,7 @@ Professionelle Trader verkaufen ihre Position nicht auf einmal, sondern **schrit
 
 #### Wie es funktioniert
 
-**Definiere bis zu 3 Take-Profit-Ziele:**
+**Definiere bis zu 4 Take-Profit-Ziele:**
 
 **Take-Profit 1:**
 
@@ -367,7 +364,7 @@ Der Calculator plant deinen Trade – das **Journal dokumentiert und analysiert*
 ### Schnellzugriff
 
 - Klicke auf **"Journal"** in der Sidebar
-- Oder nutze den Button **"Save to Journal"** (wenn verfügbar)
+- Oder nutze den Button **"Trade zum Journal hinzufügen"** nach einer Berechnung
 
 ---
 
@@ -497,7 +494,7 @@ Erfolgreiches Trading ist ein **wiederholbarer Prozess**:
 
 **5. Emotionen ausschalten**
 
-- Nach 2 Verlusten in Folge: PAUSE
+- Nach 3 Verlusten in Folge: PAUSE (konsistent mit dem Journal-Guide)
 - Nach großem Gewinn: PAUSE (Overconfidence!)
 - Müde, gestresst, emotional? KEIN TRADING
 
@@ -509,6 +506,8 @@ Erfolgreiches Trading ist ein **wiederholbarer Prozess**:
 - **Wichtig:** Ohne Passwort ist ein verschlüsseltes Backup unbrauchbar!
 
 ---
+
+*Hinweis: Diese Anleitung deckt Tastaturkürzel (`Alt+L`/`S`/`R`/`J` u. a.), Paper Trading, Global Chat (Einstellungen → Cloud, Opt-in) und RuleDocument-Alarme noch nicht ab.*
 
 ## Fazit
 
