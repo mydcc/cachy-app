@@ -65,7 +65,7 @@ export function readClosedCandles(symbol: string, timeframe: string): Evaluation
     }
     return closed;
   } catch (e) {
-    logger.error("alerts", `[Shadow] Reading candles failed for ${symbol} ${timeframe}`, e);
+    logger.error("alerts", `[Cutover] Reading candles failed for ${symbol} ${timeframe}`, e);
     return [];
   }
 }
