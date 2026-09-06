@@ -1,5 +1,7 @@
 # Repository Audit — July 2026
 
+> Historical — July 2026 baseline; see live docs (`docs/README.md`) for current state. Not maintained.
+
 A baseline audit taken as the project moved from two months of rapid prototyping
 to a documented, versioned workflow. It records what was verified, what was
 fixed, and what is still open, so the follow-up work does not have to

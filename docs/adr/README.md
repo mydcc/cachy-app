@@ -48,5 +48,7 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0010](0010-estimates-inform-but-never-determine-what-is-sent.md) | An estimate may inform the trader, but never determines a value sent to an exchange | Proposed |
 | [0011](0011-ai-context-consent-and-local-boundary.md) | AI context consent and the local-first egress boundary | Accepted |
 | [0012](0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md) | A strategy is checkable data, not code and not a model's opinion | Proposed |
+| [0013](0013-client-side-exchange-signing.md) | Client-side exchange request signing and zero-transit credential boundary | Accepted |
+| [0014](0014-layout-design-tokens.md) | Layout design tokens are the single source for radius, spacing and type scale | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._

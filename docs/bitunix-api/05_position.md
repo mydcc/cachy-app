@@ -87,7 +87,7 @@ Ruft offene (pending) Positionen ab.
 | symbol              | string | false    | Trading Pair |
 | positionId          | string | false    | Position ID |
 | subAccountId        | int64  | false    | Mit `subAccountId`: nur Positionen dieses Subaccounts. Ohne: Positionen des Hauptaccounts + aller Subaccounts, auf die der aktuelle API-Key Zugriff hat |
-| includeSubAccounts  | bool   | false    | Subaccount-Abfrage aktivieren/deaktivieren |
+| includeSubAccounts  | bool   | false    | Subaccount-Abfrage aktivieren/deaktivieren (Cachy always queries the accessible scope; per-subaccount filtering is not exposed in the adapter) |
 
 ### Request Example
 ```bash

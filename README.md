@@ -87,7 +87,7 @@ configure — on first use the app mints its own access token automatically.
 > 🔐 **How API authentication works.** Guarded API routes only accept
 > self-issued, anonymous client tokens (obtained via rate-limited
 > `POST /api/auth/token`, minted for you by the app). Authentication fails
-> closed: an unknown token gets 401 on all 27 guarded routes, while the app
+> closed: an unknown token gets 401 on all guarded routes, while the app
 > itself loads normally. There is no deployment-wide secret that can be
 > forgotten or leaked. See [ADR-0002](docs/adr/0002-api-authentication-fails-closed.md).
 
@@ -103,9 +103,9 @@ For working *on* Cachy. To just run it, use the Quick Start above.
 
 ### Prerequisites
 
-- Node.js **v20 or newer** (see `engines` in `package.json`; `.node-version` pins 20.18.3 for tooling)
+- Node.js **v22.19 or newer** (see `engines` in `package.json`)
 - npm
-- _Optional:_ a Rust toolchain with the `wasm32-unknown-unknown` target. `npm run dev` and `npm run build` invoke `scripts/build_wasm.sh` to rebuild the `technicals-wasm` indicator module. Without Rust the script skips the build and the pre-compiled binary committed in `static/wasm/` is used, so a plain `npm install && npm run dev` works out of the box.
+- _Optional:_ a Rust toolchain with the `wasm32-unknown-unknown` target. `npm run dev` and `npm run build` invoke `scripts/build_wasm.sh` to rebuild the `technicals-wasm` indicator module. Without Rust the script keeps the pre-compiled binary committed in `static/wasm/`, so a plain `npm install && npm run dev` works out of the box.
 
 ### Setup
 
@@ -182,7 +182,7 @@ For working *on* Cachy. To just run it, use the Quick Start above.
 
 ## 📦 Deployment
 
-The app is a SvelteKit application and can be deployed as a Node.js server or a static site (with the appropriate adapter).
+The app is a SvelteKit application and is deployed as a Node.js server (adapter-node).
 
 **Production Build:**
 

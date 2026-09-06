@@ -133,7 +133,7 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/account/chang
 
 ### Response Example
 ```json
-{"code":0,"data":[{"positionMode":"ISOLATION"}],"msg":"Success"}
+{"code":0,"data":[{"marginMode":"ISOLATION"}],"msg":"Success"}
 ```
 
 ---
@@ -169,7 +169,7 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/account/chang
 -H "api-key:*******" \
 -H "sign:*" \
 -H "nonce:your-nonce" \
--H "time:1659076670000" \
+-H "timestamp:1659076670000" \
 -H "language:en-US" \
 -H "Content-Type: application/json" \
 --data '{"positionMode":"HEDGE"}'

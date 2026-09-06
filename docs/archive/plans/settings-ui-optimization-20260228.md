@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # Implementation Plan: Settings UI/UX Optimization
 
 ## Approach
