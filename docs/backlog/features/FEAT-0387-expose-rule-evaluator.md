@@ -280,18 +280,48 @@ The solution (Option 2) is a documentation clarification: the existing `onClose`
 strategy already catches both directions — series *starting* to be observed (Round 3)
 and series *becoming* stale (Round 4) — because `readCoveredAlertIds` walks every
 armed rule and calls `isSeriesObserved` for each one. An alert whose series goes quiet
-is detected stale on the next close of *any* observed series. The window (up to one
-coarse period) is a bounded, accepted trade-off: staleness detection is tied to the
-frequency of *observed* series closes, not a separate timer.
+is detected stale on the next close of *any* observed series.
 
-Clarification added to `src/stores/alerts.svelte.ts` `initAlertEngine()` documenting
-this strategy explicitly.
+That much still holds and is why the finding was never a double fire. What this round
+got wrong was the conclusion: the remaining window — up to one coarse period, four
+hours for a trader on a `4h` chart whose `1m` rule series goes quiet — was written up
+as a bounded, accepted trade-off and closed with a comment. It is an alert that is off
+the legacy engine and evaluated by nothing, which is BUG-0382 with a longer fuse, and
+the eighth round closed it properly (below).
 
-**Edge case:** A trader on a `4h` chart with a new `1m`-pinned alert (never observed since start)
-keeps it on the legacy engine (correct); if that trader briefly charts `1m` then returns to `4h`,
-the `1m` series goes silent but coverage remains "covered" until a close fires `onClose`. This
-bounded window (up to one coarse period) is the documented trade-off for event-driven coverage
-re-sync.
+## Eighth review round
+
+**Two doc comments still described the design the round-1 fix replaced.**
+`ShadowFiringRecord.anchorMs` claimed the candle anchor was what a legacy record's
+timestamp must be compared against — contradicting `ShadowComparison.delaysMs` twenty
+lines below it — and `ledgerSink` gave the same reason for recording the anchor, while
+also calling it the moment the candle ended (it is the candle's open time). Neither
+changed behaviour, but either would have talked a reader of `compareShadowLedger` into
+restoring a subtraction that yields the candle's age in place of the delay. Both now
+state what the anchor is for and defer to `delaysMs` for the reasoning.
+
+**Redundant `setAlerts` pushes are skipped.** Coverage re-sync makes `setAlerts` a
+periodic call rather than an occasional one, and nearly every push is identical to the
+one before it — each costing a `JSON.stringify` of the whole alert set plus a crossing
+of the WASM boundary. `AlertEngineService` now remembers the exact payload `set_alerts`
+last accepted and skips a push equal to it. Comparing the *serialised payload* rather
+than the coverage set that produced it is what makes this safe: it is the very argument
+the engine would receive, so an identical one provably changes nothing. Coverage is
+still recomputed on every call — nothing here goes stale by not being looked at — and
+`add_alert`, `remove_alert`, a failed push and a newly constructed instance all drop
+the remembered payload, each covered by its own test.
+
+**Coverage re-sync no longer depends on a series still closing.** This closes the
+round-5 window above. `onClose` catches every coverage change for as long as some
+series is closing; what it cannot do is fire once the closes stop, which is exactly the
+quiet-series case. `initAlertEngine` now drives the same re-sync from a
+`COVERAGE_RESYNC_INTERVAL_MS` (60s) interval as well, in live mode and only alongside
+an armed loop. A minute is chosen against the window it has to detect — `isSeriesObserved`
+calls a series stale after three trigger periods, three minutes at the `1m` timeframe
+migrated rules are pinned to — not against a load budget; with the push-skipping above,
+a tick that changes nothing costs one `localStorage` read and no WASM call. The timer is
+cleared before each arming decision, so a second `initAlertEngine()` replaces it rather
+than stacking another.
 
 ## Out of scope
 
