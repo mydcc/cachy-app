@@ -492,3 +492,113 @@ describe("FEAT-0401 — record a migration origin ledger", () => {
     }
   });
 });
+
+const MIGRATED_ALERTS_LEDGER_KEY = "cachy_alerts_migrated_v1";
+
+function readMigratedAlertIds(): string[] {
+  const raw = localStorage.getItem(MIGRATED_ALERTS_LEDGER_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+/**
+ * Acceptance criterion 7 of FEAT-0388: every successfully migrated legacy
+ * alert id is recorded in `cachy_alerts_migrated_v1`, unaffected by later
+ * edits to `cachy_rules_v1`. Without this ledger, a rule deleted after
+ * migration is indistinguishable from an alert that was never migrated at
+ * all — exactly the ambiguity a future `cachy_alerts_v1` removal needs
+ * resolved. Keyed by alert id, unlike FEAT-0401's `cachy_rule_origin_v1`
+ * above (keyed by rule id, answering a different question: whether a given
+ * rule came from an alert, for orphan detection).
+ */
+describe("FEAT-0388 — the cachy_alerts_migrated_v1 ledger", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("records every freshly migrated alert id", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT, FIRED_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(readMigratedAlertIds().sort()).toEqual([ACTIVE_ALERT.id, FIRED_ALERT.id].sort());
+  });
+
+  it("does not duplicate an entry across repeated migration runs", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(readMigratedAlertIds()).toEqual([ACTIVE_ALERT.id]);
+  });
+
+  it("backfills an entry for an alert whose rule already exists from an earlier run", async () => {
+    localStorage.setItem(
+      RULES_KEY,
+      JSON.stringify([{ id: ACTIVE_ALERT.id, symbol: "PRESEEDED", enabled: true }]),
+    );
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(readMigratedAlertIds()).toContain(ACTIVE_ALERT.id);
+  });
+
+  it("appends to an existing ledger instead of overwriting it", async () => {
+    localStorage.setItem(MIGRATED_ALERTS_LEDGER_KEY, JSON.stringify(["already-recorded"]));
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(readMigratedAlertIds().sort()).toEqual(["already-recorded", ACTIVE_ALERT.id].sort());
+  });
+
+  it("keeps an alert's entry after its migrated rule is deleted from cachy_rules_v1", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+    expect(readMigratedAlertIds()).toContain(ACTIVE_ALERT.id);
+
+    // The trader deletes the migrated rule from the Manage tab. Nothing may
+    // read that as "never migrated" — the ledger is separate from
+    // cachy_rules_v1 for exactly this reason.
+    localStorage.setItem(RULES_KEY, JSON.stringify([]));
+
+    expect(readMigratedAlertIds()).toContain(ACTIVE_ALERT.id);
+  });
+
+  it("does not touch the ledger when there is nothing to migrate", async () => {
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(localStorage.getItem(MIGRATED_ALERTS_LEDGER_KEY)).toBeNull();
+  });
+
+  it("does not record a duplicate id that was skipped and never got its own rule", async () => {
+    const duplicate = { ...ACTIVE_ALERT, symbol: "SOLUSDT" };
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT, duplicate]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(readMigratedAlertIds()).toEqual([ACTIVE_ALERT.id]);
+  });
+
+  it("keeps recording an alert's id across a BUG-0402 threshold resync", async () => {
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([ACTIVE_ALERT]));
+    const { migrateAlertsToRuleDocuments } = await import("./migrateAlertsToRules");
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    const editedAlert = { ...ACTIVE_ALERT, condition: { price_reached: "60000.0" } };
+    localStorage.setItem(ALERTS_KEY, JSON.stringify([editedAlert]));
+    await migrateAlertsToRuleDocuments(fakeLoader);
+
+    expect(readMigratedAlertIds()).toEqual([ACTIVE_ALERT.id]);
+  });
+});
