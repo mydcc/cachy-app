@@ -92,7 +92,7 @@ The toolbar above the table offers several filters:
 - **Search Field:** Search for symbols (e.g., "BTC") or tags (e.g., "Breakout")
 - **Status Filter:** Show only Won, Lost, or Open trades
 - **Date Filter:** From/To for time range selection
-- **Column Settings:** Via the gear icon you can choose which columns to display
+- **Column Settings:** Gear icon: toggle visible columns
 
 <a id="tags-notes"></a>
 
@@ -107,7 +107,7 @@ The toolbar above the table offers several filters:
 - Use tags for **Setup Types:** `LongSetup`, `ShortSetup`, `Scalp`, `Swing`
 
 **Why important:**
-Later in **Deep Dive → Strategies** you can see exactly which strategy prints money and which burns it. Without tags, no strategy analysis!
+Later in **Deep Dive → Strategies** you can see exactly which strategy prints money and which burns it. Strategy analysis requires tags!
 
 **Notes:**
 Write brief notes for each trade: What was the plan? How did you feel? What went well/badly?
@@ -137,22 +137,18 @@ Immediately recognize which assets you harmonize with and which coins destroy yo
 
 The Performance Dashboard offers 5 specialized views. Choose between tabs in the button bar above the charts.
 
+> **Chart legend (applies to all charts below):** Amounts are in account currency ($) unless labeled %. Time-based X-axes show dates, hours (0–23) or trade numbers per chart title. Green = profit, red = loss. Bars show sums or averages per bucket, lines show development over time; point size (where present) encodes position size.
+
 <a id="perf-tab"></a>
 
 ### 1. Performance Tab
 
-This tab shows the **health of your account** at a glance.
+This tab summarizes account health: equity curve, drawdown, monthly PnL.
 
 #### 📈 Equity Curve (Capital Development)
 
 **What does it show?**
 The development of your capital over time. Each trade changes the curve upward (profit) or downward (loss).
-
-**How to read:**
-
-- **X-Axis:** Time progression (date)
-- **Y-Axis:** Capital in $
-- **Line:** Your current account balance after each trade
 
 **Interpretation:**
 
@@ -170,14 +166,7 @@ The development of your capital over time. Each trade changes the curve upward (
 #### 📉 Drawdown Chart
 
 **What does it show?**
-How far are you from your previous peak (All-Time High)? The drawdown is the "pain indicator".
-
-**How to read:**
-
-- **X-Axis:** Time progression
-- **Y-Axis:** Drawdown in % (always negative or 0)
-- **0%:** New All-Time High
-- **-20%:** You are 20% below your previous peak
+How far are you from your previous peak (All-Time High)? The drawdown is the "pain indicator", in % below peak (0% = new All-Time High).
 
 **Interpretation:**
 
@@ -198,14 +187,7 @@ Drawdown % = ((Current Capital - All-Time High) / All-Time High) × 100
 #### 📊 Monthly PnL (Monthly Profit/Loss)
 
 **What does it show?**
-Your consistency over months. Each bar = one month.
-
-**How to read:**
-
-- **X-Axis:** Months
-- **Y-Axis:** PnL in $
-- **Green bars:** Profit month
-- **Red bars:** Loss month
+Your consistency over months. Each bar = one month, green = profit, red = loss.
 
 **Interpretation:**
 
@@ -229,11 +211,7 @@ This tab shows the **quality of your trades** and important metrics.
 #### 🎯 Win Rate Chart
 
 **What does it show?**
-A classic chart of your Win Rate over time.
-
-**How to read:**
-
-- Shows the percentage development of your winning trades
+The percentage development of your winning trades over time.
 
 **Interpretation:**
 
@@ -295,12 +273,7 @@ This tab shows your performance in **Long vs. Short** trades.
 #### 📊 Long vs Short Bar Chart
 
 **What does it show?**
-Comparison of PnL between Long and Short positions.
-
-**How to read:**
-
-- Two bars: Long (green) vs. Short (red/orange)
-- Height shows total PnL
+Comparison of PnL between Long and Short positions. Bar height = total PnL.
 
 **Interpretation:**
 
@@ -315,12 +288,7 @@ Comparison of PnL between Long and Short positions.
 #### 📈 Long vs Short Evolution
 
 **What does it show?**
-Cumulative PnL of Longs vs. Shorts over time.
-
-**How to read:**
-
-- Two lines: One for Long, one for Short
-- Shows development over time
+Cumulative PnL of Longs vs. Shorts over time, one line per direction.
 
 **Interpretation:**
 
@@ -353,12 +321,6 @@ This tab checks your **discipline and consistency**.
 **What does it show?**
 Your performance broken down by time of day (0-23 hours).
 
-**How to read:**
-
-- **X-Axis:** Hours (0 = midnight, 12 = noon, etc.)
-- **Y-Axis:** PnL in $
-- **Bars:** Green (profit) or Red (loss) per hour
-
 **Interpretation:**
 
 - **Profitable hours:** The best time to trade
@@ -376,12 +338,7 @@ If you consistently lose money between 12:00-14:00 (lunch break, low volatility)
 #### 📊 Risk Consistency
 
 **What does it show?**
-How consistent is your position size / your risk per trade?
-
-**How to read:**
-
-- Shows distribution of your risk levels
-- Ideally, all trades should have similar risk
+How consistent is your position size / your risk per trade? Distribution of risk levels — ideally, all trades carry similar risk.
 
 **Interpretation:**
 
@@ -432,10 +389,7 @@ Comparison between:
 - **Gross PnL:** Profit BEFORE fees
 - **Net PnL:** Profit AFTER fees
 
-**How to read:**
-
-- Two bars side by side
-- Difference = fees
+Two bars side by side; the difference = fees.
 
 **Interpretation:**
 
@@ -450,13 +404,7 @@ Comparison between:
 #### 📈 Cumulative Fees
 
 **What does it show?**
-How much fees you have paid in total over time.
-
-**How to read:**
-
-- **X-Axis:** Time
-- **Y-Axis:** Cumulative fees in $
-- **Line:** Rises continuously (fees accumulate)
+How much fees you have paid in total over time. The line rises continuously as fees accumulate.
 
 **Interpretation:**
 
@@ -469,14 +417,10 @@ If after 100 trades you've paid $500 in fees but only made $400 profit → Fees 
 #### 🍰 Fee Breakdown
 
 **What does it show?**
-Donut chart with breakdown of fee types:
+Donut chart with breakdown of fee types, as percentage distribution:
 
 - Trading Fees (opening/closing fees)
 - Funding Fees (for overnight positions)
-
-**How to read:**
-
-- Percentage distribution of cost types
 
 **Interpretation:**
 
@@ -494,7 +438,7 @@ Donut chart with breakdown of fee types:
 
 ## Deep Dive Analytics (Pro)
 
-The Deep Dive analytics are for advanced traders and require Pro access unlocked while the VIP theme is active (ask support for the unlock code). This is where you dive deep into your performance.
+The Deep Dive analytics are for advanced traders and require Pro access unlocked while the VIP theme is active (ask support for the unlock code). This is where you dive deep into your performance. Axes, colors and units follow the legend above.
 
 <a id="dd-forecast"></a>
 
@@ -503,13 +447,7 @@ The Deep Dive analytics are for advanced traders and require Pro access unlocked
 #### 🔮 Monte Carlo Simulation
 
 **What does it show?**
-A statistical forecast of how your account could develop in the future, based on your past performance.
-
-**How to read:**
-
-- **X-Axis:** Number of future trades
-- **Y-Axis:** Expected equity change in account currency ($)
-- **Multiple lines:** Three cone lines — 90th percentile (Best), median, 10th percentile (Worst) — plus sample paths
+A statistical forecast of how your account could develop in the future, based on your past performance. Three cone lines — 90th percentile (Best), median, 10th percentile (Worst) — plus sample paths.
 
 **Interpretation:**
 
@@ -535,13 +473,7 @@ This tab shows how your most important metrics develop over time (rolling/moving
 #### 📊 Rolling Win Rate
 
 **What does it show?**
-Your Win Rate over a moving period (e.g., last 20 trades).
-
-**How to read:**
-
-- **X-Axis:** Time / Trade number
-- **Y-Axis:** Win Rate in %
-- **Line:** Moving average of your Win Rate
+Your Win Rate over a moving period (e.g., last 20 trades), as a moving average.
 
 **Interpretation:**
 
@@ -558,11 +490,6 @@ Your Win Rate over a moving period (e.g., last 20 trades).
 
 **What does it show?**
 Your Profit Factor over a moving period.
-
-**How to read:**
-
-- **Y-Axis:** Profit Factor (values > 1.0 are profitable)
-- **Line:** Moving PF
 
 **Interpretation:**
 
@@ -604,13 +531,7 @@ A waterfall chart showing how your Gross PnL is reduced by various factors:
 #### 🏷️ Strategy Leakage
 
 **What does it show?**
-Which strategies (tags) cause the largest losses.
-
-**How to read:**
-
-- **X-Axis:** Loss in $
-- **Y-Axis:** Tag names
-- **Horizontal bars:** The longer, the larger the loss
+Which strategies (tags) cause the largest losses. Horizontal bars per tag; length = loss in $.
 
 **Interpretation:**
 
@@ -650,13 +571,6 @@ When are you at your best? This tab analyzes time-related patterns.
 **What does it show?**
 Detailed hourly breakdown with **Gross Wins** (green) and **Gross Losses** (red) per hour.
 
-**How to read:**
-
-- **X-Axis:** Hours (0-23)
-- **Y-Axis:** PnL in $
-- **Green bars:** Sum of all wins in this hour
-- **Red bars:** Sum of all losses in this hour
-
 **Interpretation:**
 
 - **Only green, no red:** Perfect hour! ✅
@@ -670,13 +584,7 @@ Hour 9 (9:00 AM): +$300 win, -$20 loss → Net +$280, excellent!
 #### 📅 Day of Week PnL
 
 **What does it show?**
-Your performance per weekday (Monday to Sunday).
-
-**How to read:**
-
-- **X-Axis:** Weekdays
-- **Y-Axis:** PnL
-- **Bars:** Green/Red for profit/loss
+Your performance per weekday (Monday to Sunday), green/red for profit/loss.
 
 **Interpretation:**
 
@@ -690,15 +598,7 @@ Your performance per weekday (Monday to Sunday).
 #### ⏱️ Duration vs PnL (Bubble Chart)
 
 **What does it show?**
-A scatter plot showing the holding duration of your trades against profit/loss.
-
-**How to read:**
-
-- **X-Axis:** Duration in minutes
-- **Y-Axis:** PnL in $
-- **Points:** Each point = one trade
-- **Color:** Green (profit) or Red (loss)
-- **Size:** Can represent position size
+A scatter plot showing the holding duration of your trades against profit/loss. Each point = one trade; point size = position size.
 
 **Interpretation:**
 
@@ -713,13 +613,7 @@ Green points further right and higher than red points. (Let Winners Run, Cut Los
 #### 📊 Duration Analysis (Bucketed)
 
 **What does it show?**
-Trades grouped into time windows (e.g., 0-15 Min, 15-30 Min, 30-60 Min, etc.).
-
-**How to read:**
-
-- **X-Axis:** Time windows
-- **Y-Axis:** PnL
-- **Bars:** Average PnL per time window
+Trades grouped into time windows (e.g., 0-15 Min, 15-30 Min, 30-60 Min, etc.), bars = average PnL per window.
 
 **Interpretation:**
 
@@ -738,19 +632,7 @@ Trades grouped into time windows (e.g., 0-15 Min, 15-30 Min, 30-60 Min, etc.).
 
 #### 📅 Calendar Heat Map
 
-A calendar where each day is color-coded based on the PnL of that day.
-
-**How to read:**
-
-- **Green days:** Profit days
-- **Red days:** Loss days
-- **Color intensity:** The darker, the larger the profit/loss
-- **Gray/White days:** No trades
-
-**Interpretation:**
-
-- At a glance you see profitable vs. loss-making days
-- Recognize weekly or monthly patterns
+A calendar where each day is color-coded by that day's PnL: green days = profit, red days = loss, color intensity = magnitude, gray/white = no trades. Reveals weekly or monthly patterns.
 
 ---
 
@@ -779,13 +661,7 @@ Detailed breakdown of wins, losses and breakevens, separated by Long and Short.
 #### 📊 R-Multiple Distribution
 
 **What does it show?**
-How often do you hit 1R, 2R, 3R, etc.?
-
-**How to read:**
-
-- **X-Axis:** R-Multiple (1R = you won 1× your risk)
-- **Y-Axis:** Number of trades
-- **Bars:** Frequency
+How often do you hit 1R, 2R, 3R, etc.? Bars = frequency per R-multiple.
 
 **What is R-Multiple?**
 
@@ -816,13 +692,7 @@ You don't need a 90% Win Rate! If you often win 3R, a Win Rate of 30% is enough 
 #### 💰 Risk vs. Realized PnL
 
 **What does it show?**
-Scatter plot: Does your risk correlate with the result?
-
-**How to read:**
-
-- **X-Axis:** Initial Risk Amount ($)
-- **Y-Axis:** Realized PnL ($)
-- **Points:** Green (profit), Red (loss)
+Scatter plot: Does your risk correlate with the result? Each point = one trade (initial risk vs. realized PnL).
 
 **Interpretation:**
 
@@ -859,13 +729,7 @@ Performance broken down by recognized market conditions.
 #### 🔥 Streak Analysis (Detailed)
 
 **What does it show?**
-Extended analysis of your winning and losing streaks, including visualization of all streaks.
-
-**How to read:**
-
-- Shows each streak as bars or lines
-- Length = number of trades in streak
-- Color = win (green) or loss (red)
+Extended analysis of your winning and losing streaks, visualized as bars or lines (length = streak length).
 
 **Psychological significance:**
 
@@ -895,13 +759,7 @@ Extended analysis of your winning and losing streaks, including visualization of
 #### 🏷️ Tag-based PnL
 
 **What does it show?**
-The performance of each strategy you have marked via tags.
-
-**How to read:**
-
-- **X-Axis:** Tags (your strategies)
-- **Y-Axis:** PnL in $
-- **Bars:** Green (profitable) or Red (lossy)
+The performance of each strategy you have marked via tags. Bars per tag, green (profitable) or red (lossy).
 
 **Interpretation:**
 
@@ -915,7 +773,7 @@ The performance of each strategy you have marked via tags.
 - **Action:** Focus on Breakouts, avoid Reversals.
 
 **Why is this extremely valuable?**
-Without tags you can't distinguish between strategies. With tags you see in black and white what works!
+Strategy evaluation groups by tags: with tags you see in black and white what works!
 
 #### 📊 Strategy Comparison
 
@@ -950,16 +808,6 @@ The System Quality Number plotted over your trade history.
 - Poor below 1.6, average from 1.6, good from 2.0, excellent from 2.5.
 
 **Note:** The tab needs at least 30 trades; with fewer trades it stays empty.
-
-**Interpretation:**
-
-- At a glance you see profitable vs. loss-making days
-- Recognize weekly or monthly patterns
-
-**Example patterns:**
-
-- Every Friday red? → Avoid Friday trading
-- Always green at beginning of month? → Good time to trade
 
 ---
 
@@ -1149,7 +997,7 @@ $$
 ### Avoid Common Mistakes
 
 ❌ **Not using tags**
-→ Without tags no strategy analysis possible!
+→ Tag every trade: strategy analysis requires tags!
 
 ❌ **Writing notes too late**
 → Write notes IMMEDIATELY after the trade, not days later. You'll forget important details otherwise.
