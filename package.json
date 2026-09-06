@@ -20,6 +20,7 @@
     "preview": "vite preview",
     "start": "node server.js",
     "check": "svelte-kit sync && bash ./scripts/run-lowpri.sh svelte-check --tsconfig ./tsconfig.json",
+    "check:node": "node scripts/check-node-version.mjs",
     "check:watch": "svelte-kit sync && bash ./scripts/run-lowpri.sh svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
