@@ -28,7 +28,8 @@
   import { Decimal } from "decimal.js";
   import { riskState, type RiskLimitInputs } from "../../stores/riskLimits.svelte";
   import { rmsService, utcDayStart } from "../../services/rmsService";
-  import { modalState } from "../../stores/modal.svelte";
+    import { modalState } from "../../stores/modal.svelte";
+    import SettingsGrid from "./shared/SettingsGrid.svelte";
   import { journalState } from "../../stores/journal.svelte";
 
   // Recomputed whenever the journal changes, so the figure the user reads is
@@ -211,7 +212,7 @@
       {$_("settings.risk.limitsDescription")}
     </p>
 
-    <div class="grid grid-cols-1 min-[560px]:grid-cols-2 gap-4">
+    <SettingsGrid gap="gap-4">
       {#each fields as field (field.key)}
         <div class="field-group">
           <label for={`risk-${field.key}`}>{field.label}</label>
@@ -256,7 +257,7 @@
           {$_("settings.risk.maxOpenPositionsHint")}
         </p>
       </div>
-    </div>
+    </SettingsGrid>
 
     {#if rejected}
       <p class="text-[11px] mt-3 font-semibold text-[var(--danger-color)]">
