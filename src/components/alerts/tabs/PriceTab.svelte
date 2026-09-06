@@ -26,7 +26,7 @@
 -->
 
 <script lang="ts">
-    let { symbol }: { symbol: string } = $props();
+    let { symbol: _symbol }: { symbol: string } = $props();
     import { _ } from "../../../locales/i18n";
 </script>
 
