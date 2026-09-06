@@ -992,7 +992,14 @@
                                     {/if}
                                     {#if visibility.action}
                                         <td class="sticky-col-right col-action text-center">
-                                            <button class="action-icon-btn" onclick={() => onOpenTradeDetail?.(subTrade)}>🔍</button>
+                                            <button
+                                                class="action-icon-btn"
+                                                onclick={() => onOpenTradeDetail?.(subTrade)}
+                                                title={$_("journal.drawer.title")}
+                                                aria-label={$_("journal.drawer.title")}
+                                            >
+                                                🔍
+                                            </button>
                                         </td>
                                     {/if}
                                 </tr>
