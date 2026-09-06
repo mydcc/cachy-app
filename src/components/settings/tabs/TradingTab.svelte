@@ -92,6 +92,8 @@
                 <h3 class="section-title mb-4">{$_("settings.trading.executionData")}</h3>
 
                 <SettingsGrid gap="gap-4">
+                    <!-- Fees: preference + per-venue rates belong together -->
+                    <div class="col-span-full flex flex-col gap-4">
                     <!-- Fee Preference -->
                     <div class="field-group">
                         <label for="fee-pref"
@@ -130,7 +132,7 @@
                         what their broker level actually charges. Defaults are
                         prefilled from VENUE_DEFAULT_FEE_RATES.
                     -->
-                    <div class="field-group col-span-1 md:col-span-2">
+                    <div class="field-group border-t border-[var(--border-color)] pt-4">
                         <label for="fee-rate-maker"
                             >{$_("settings.feeRates", {
                                 values: { venue: venueName },
@@ -185,6 +187,7 @@
                         <p class="text-[10px] text-[var(--text-secondary)]">
                             {$_("settings.feeRatesDesc")}
                         </p>
+                    </div>
                     </div>
 
                     <!-- Spin Buttons -->
