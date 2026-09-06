@@ -689,8 +689,7 @@ authenticated (no anonymous access), minimal (no Class A data, not even
 as metadata), and non-essential (the calculator/journal/risk tooling
 works fully without it). See also `CLAUDE.md`'s Local-First section.
 
-**The decision:** nothing to decide right now — there is no proposed
-feature. When one comes up (more SpacetimeDB tables, a new sync
+**The decision:** nothing to decide right now — no feature is proposed; this stays a standing guardrail. When one comes up (more SpacetimeDB tables, a new sync
 feature, anything that would put user data on a Cachy server), it needs
 its own ADR checked against those four conditions before being built,
 not folded into this item.
@@ -855,7 +854,7 @@ No feature list, no target customer definition, nothing scoped.
 > support and institution-specific plugins such as SSO or audit export, not
 > seats in a Cachy-run cloud). The whitepaper's "Phase 3" section is
 > rewritten to match, in the same pass as this resolution — the ambition is
-> real, the path is just self-hosted rather than hosted. Phase 2 (mobile) was
+> real, the path is self-hosted rather than hosted. Phase 2 (mobile) was
 > rewritten alongside it: its "wrap in Capacitor.js" + "Push Notifications"
 > plan had the same problem as item 21 above — it implied server-triggered
 > push, which ADR-0004 forbids — and now matches
@@ -1110,7 +1109,7 @@ does report, which is the same number seen from the other side — PnL is the
 mark distance times the size, so the mark is entry plus PnL per unit
 ([`ClosePositionModal.svelte`](../src/components/shared/ClosePositionModal.svelte)).
 
-**Why not simply default to the entry price:** that prints a realised PnL of
+**Why not default to the entry price:** that prints a realised PnL of
 exactly zero, which reads as *"this close books nothing"* rather than *"the
 mark is unknown"*. Same failure mode [`ADR-0010`](adr/0010-estimates-inform-but-never-determine-what-is-sent.md)
 rejects for the net-of-fees line, where an absent rate hides the figure instead

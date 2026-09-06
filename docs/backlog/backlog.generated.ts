@@ -2144,6 +2144,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0401-record-migration-origin-ledger.md"
   },
   {
+    "id": "FEAT-0405",
+    "title": "Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "ADR-0013",
+    "depends_on": [],
+    "file": "features/FEAT-0405-client-side-signing-cutover.md"
+  },
+  {
     "id": "BUG-0005",
     "title": "GPU-accelerated Choppiness writes to a field nothing reads",
     "type": "bug",
@@ -4545,7 +4563,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0343",
     "title": "Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "opencode",
     "branch": "fix/audit-followups",
     "priority": "P2",
