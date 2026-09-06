@@ -201,6 +201,33 @@ counts (naturally stop appearing once nothing new needs suspending) and `withhel
 counts (shown for as long as an alarm stays armed despite unresolved doubt — that one
 cannot be a one-time acknowledgement, because the doubt does not resolve itself).
 
+## Fourth review round
+
+**Medium — `isSeriesObserved` proved a series once existed, not that it is live.**
+It was `readClosedCandles(...).length > 0` — true forever once a series had ever
+produced a candle, since the market store only clears one on symbol eviction, never
+when a single timeframe's subscription stops. A migrated `1m` alert covered while the
+chart was on `1m` stayed "observed" — and off the legacy engine — after the trader
+switched to `4h` and the `1m` feed went silent. Round 3's `onClose` re-sync kept
+running (driven by whatever series the chart is now on) and kept confirming the same
+stale "yes" every time, because the signal itself never expired: the mirror of round
+3's fix, which closes the series-*starts* gap but cannot see one *stopping*.
+
+Fixed: `isSeriesObserved` now checks recency — the most recent candle (including the
+one still forming) has to be no older than three trigger periods, scaled by
+`safeTfToMs`. Missing entirely and gone-stale both read as "not observed." Three
+periods is deliberately generous, so ordinary WS jitter does not bounce an alert
+between engines on every hiccup. `onClose`'s re-sync needed no change — it already
+recomputes coverage fresh on every close, so it now correctly detects a series going
+quiet the same way it already detected one starting.
+
+**Minor — `compareShadowLedger` reused the first rule-path record for every later
+firing of the same alert.** A re-armed alert firing a second time in the same
+500-record window — the normal cycle, not an edge case — had its real second delay
+measured against the already-spent first counterpart. Fixed: both sequences walked
+oldest-first, each legacy firing consumes the oldest not-yet-consumed counterpart for
+its key.
+
 ## Out of scope
 
 - Any UI. The panel is `FEAT-0389`.
