@@ -78,7 +78,7 @@ Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 | **Math**      | **Decimal.js**          | IEEE 754 floating-point arithmetic (standard JS numbers) is unsafe for finance (e.g., `0.1 + 0.2 !== 0.3`). Decimal.js ensures arbitrary precision. |
 | **Charts**    | **Chart.js**            | Canvas-based rendering for high-performance visualizations (Equity Curves, Scatter Plots) capable of handling thousands of data points.             |
 | **UI/UX**     | **VisualBar component** | `src/components/shared/VisualBar.svelte` — graphical risk/reward visualisation in the calculator, positioned via CSS for real-time updates.          |
-| **Indicators**| **Rust / WebAssembly**  | `technicals-wasm/` compiles to WASM for indicator maths; `src/utils/indicators.ts` (~2000 lines) and `src/utils/technicalsCalculator.ts` hold the TS side. There is no third-party "TechnicalIndicators" library. |
+| **Indicators**| **Rust / WebAssembly**  | `technicals-wasm/` compiles to WASM for indicator maths; `src/utils/indicators.ts` (~2000 lines) and `src/utils/technicalsCalculator.ts` hold the TS side. |
 | **Compute**   | **WebGPU**              | `src/services/webGpuCalculator.ts` with 17 WGSL compute shaders in `src/shaders/`, for work too heavy for the main thread.                          |
 | **Threading** | **Web Workers**         | Two workers in `src/workers/` (indicator computation and aggregation), keeping heavy work off the UI thread.                                        |
 | **Realtime DB**| **SpacetimeDB**        | `server/spacetimedb/` plus generated client bindings in `src/lib/spacetimedb/`. Backs the optional Global Chat only — see chapter 6.                |
@@ -462,7 +462,7 @@ To balance **Responsiveness** vs. **Rate Limits**, Cachy uses a hybrid approach:
 
 ### The "Safe Swap" Synchronization Protocol
 
-> "Safe Swap" is a name used in this document only; it is not an identifier in the codebase. Search for the synchronisation logic in `src/services/syncService.ts` and the WebSocket providers, not for this term.
+> "Safe Swap" names a behavior, not an identifier: find the sync logic in `src/services/syncService.ts` and the WebSocket providers.
 
 A critical challenge in syncing local state with remote API state is handling updates without "flickering" or data loss.
 

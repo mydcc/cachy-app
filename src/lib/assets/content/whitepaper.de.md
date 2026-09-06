@@ -78,7 +78,7 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 | **Mathe**     | **Decimal.js**          | IEEE 754 Gleitkomma-Arithmetik (Standard-JS-Zahlen) ist für Finanzen unsicher (z. B. \`0.1 + 0.2 !== 0.3\`). Decimal.js gewährleistet beliebige Genauigkeit. |
 | **Charts**    | **Chart.js**            | Canvas-basiertes Rendering für hochperformante Visualisierungen (Equity-Kurven, Streudiagramme), die Tausende von Datenpunkten verarbeiten können.           |
 | **UI/UX**     | **VisualBar Component** | \`src/components/shared/VisualBar.svelte\` — grafische Risk/Reward-Visualisierung im Calculator, per CSS positioniert, mit Echtzeit-Updates. |
-| **Indikatoren** | **Rust / WebAssembly** | \`technicals-wasm/\` kompiliert nach WASM für die Indikator-Mathematik; \`src/utils/indicators.ts\` (~2000 Zeilen) und \`src/utils/technicalsCalculator.ts\` bilden die TS-Seite. Eine Fremdbibliothek namens "TechnicalIndicators" existiert nicht. |
+| **Indikatoren** | **Rust / WebAssembly** | \`technicals-wasm/\` kompiliert nach WASM für die Indikator-Mathematik; \`src/utils/indicators.ts\` (~2000 Zeilen) und \`src/utils/technicalsCalculator.ts\` bilden die TS-Seite. |
 | **Compute**   | **WebGPU**              | \`src/services/webGpuCalculator.ts\` mit 17 WGSL-Compute-Shadern in \`src/shaders/\`, für Arbeit, die für den Main Thread zu schwer ist.                       |
 | **Threading** | **Web Workers**         | Zwei Worker in \`src/workers/\` (Indikatorberechnung und Aggregation), die schwere Arbeit vom UI-Thread fernhalten.                                           |
 | **Realtime-DB** | **SpacetimeDB**       | \`server/spacetimedb/\` samt generierter Client-Bindings in \`src/lib/spacetimedb/\`. Trägt ausschließlich den optionalen Global Chat — siehe Kapitel 6.       |
@@ -457,7 +457,7 @@ Um **Reaktionsfähigkeit** vs. **Ratenbegrenzungen** auszubalancieren, verwendet
 
 ### Das "Safe Swap" Synchronisations-Protokoll
 
-> "Safe Swap" ist ein Begriff, der ausschließlich in diesem Dokument verwendet wird — im Code existiert er nicht. Die Synchronisationslogik findest du in \`src/services/syncService.ts\` und den WebSocket-Providern, nicht unter diesem Namen.
+> "Safe Swap" benennt ein Verhalten, keinen Bezeichner: Die Sync-Logik liegt in \`src/services/syncService.ts\` und den WebSocket-Providern.
 
 Eine kritische Herausforderung bei der Synchronisierung des lokalen Zustands mit dem entfernten API-Zustand besteht darin, Updates ohne "Flackern" oder Datenverlust zu handhaben.
 

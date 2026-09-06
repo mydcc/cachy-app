@@ -59,7 +59,7 @@ The Dashboard consists of three main areas:
 
 ### Navigation
 
-The Dashboard is a single page: open the Journal, Settings and this guide as overlays via their buttons. There is no separate Home / Calculator / Journal / Settings sidebar menu.
+The Dashboard is a single page.
 
 **Top Bar:**
 
@@ -123,8 +123,6 @@ Example: €100 / €500 = 0.2 BTC
 
 **✅ Result:** You buy **0.2 BTC** at €50,000, with a stop-loss at €49,500. Your maximum risk is exactly €100 (1% of your capital).
 
-**The Advantage:** No guessing, no "approximately". You know **down to the cent** that you're adhering to your risk limit.
-
 ---
 
 <a id="lock-functions"></a>
@@ -140,9 +138,7 @@ When you think in **fixed monetary amounts**: "I'm risking €50 today" (instead
 
 **How it works:**
 
-1. Click the 🔒 next to "Risk Amount"
-2. Enter your desired amount (e.g., €50)
-3. The "Risk per Trade %" field is automatically adjusted
+Lock "Risk Amount" (🔒) and enter an amount (e.g., €50); "Risk per Trade %" derives from it.
 
 **Advantage:** Flexibility for traders who prefer to plan their risk in absolute amounts.
 
@@ -153,10 +149,7 @@ When you want to trade a **fixed position size** (e.g., always 1 whole coin, alw
 
 **How it works:**
 
-1. Click the 🔒 next to "Position Size"
-2. Enter your desired size
-3. Adjust Entry and Stop-Loss
-4. The Calculator now shows you **backwards** what your risk is with this size
+Lock "Position Size" (🔒) and enter a size; with entry and stop-loss set, the calculator reports the resulting risk.
 
 **Advantage:** Perfect for strategies with fixed trade sizes. You immediately see the risk consequences.
 
