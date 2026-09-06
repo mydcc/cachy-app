@@ -77,6 +77,29 @@ class AlertEngineService {
   private onAlertFiredCallbacks: ((event: AlertEvent) => void)[] = [];
 
   /**
+   * The exact payload `set_alerts` last accepted, or `null` whenever the
+   * engine's alert set is not known to match one.
+   *
+   * FEAT-0387 turns `setAlerts` from an occasional call into a periodic one:
+   * every candle close re-syncs legacy coverage, and so does the re-sync timer
+   * in `alerts.svelte.ts`. Nearly every one of those pushes is identical to the
+   * one before it, and each costs a full `JSON.stringify` of the alert set plus
+   * a crossing of the WASM boundary.
+   *
+   * Comparing the *serialised payload* rather than the coverage set that
+   * produced it is what makes skipping safe. It is the very argument
+   * `set_alerts` would receive, so an identical one provably leaves the engine
+   * in the state it is already in. Coverage itself is still recomputed on every
+   * call — nothing can go stale here by not being looked at.
+   *
+   * Every other path that moves the engine's alert set clears this: `add_alert`,
+   * `remove_alert`, a failed push, and a freshly constructed instance, which
+   * starts empty and would otherwise be skipped into holding nothing at all —
+   * BUG-0382 reached through a cache.
+   */
+  private lastAlertsJson: string | null = null;
+
+  /**
    * Whether the engine can actually evaluate. While this is false every method
    * below early-returns and no alert can fire — the state BUG-0382 shipped in.
    */
@@ -94,6 +117,11 @@ class AlertEngineService {
 
         this.wasmModule = mod;
         this.instance = new mod.AlertEngineWasm();
+        // Belt and braces: a second instance is not reachable today
+        // (ensureLoaded returns early once wasmModule is set), but a new one
+        // holds no alerts, and anything remembered about the previous one
+        // would let the next setAlerts() skip the push that fills it.
+        this.lastAlertsJson = null;
 
         logger.log('alerts', '[AlertEngine] WASM Alert Engine loaded successfully.');
       } catch (err) {
@@ -111,15 +139,27 @@ class AlertEngineService {
 
   setAlerts(alerts: AlertDefinition[]) {
     if (!this.instance) return;
+
+    const alertsJson = JSON.stringify(alerts);
+    if (alertsJson === this.lastAlertsJson) return;
+
     try {
-      this.instance.set_alerts(JSON.stringify(alerts));
+      this.instance.set_alerts(alertsJson);
+      this.lastAlertsJson = alertsJson;
     } catch (e) {
+      // Deliberately not remembered: after a failed push the engine's set is
+      // unknown, and the next call has to send again rather than assume this
+      // one landed.
+      this.lastAlertsJson = null;
       logger.error('alerts', '[AlertEngine] Error setting alerts', e);
     }
   }
 
   addAlert(alert: AlertDefinition) {
     if (!this.instance) return;
+    // Cleared before the call, not after: whether it throws or not, the set
+    // this holds no longer describes the engine.
+    this.lastAlertsJson = null;
     try {
       this.instance.add_alert(JSON.stringify(alert));
     } catch (e) {
@@ -129,6 +169,7 @@ class AlertEngineService {
 
   removeAlert(id: string) {
     if (!this.instance) return;
+    this.lastAlertsJson = null;
     try {
       this.instance.remove_alert(id);
     } catch (e) {
