@@ -54,14 +54,14 @@
     ];
 </script>
 
-<div class="ai-tab h-full flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-ai">
+<div class="ai-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-ai">
     <!-- Sub-Navigation -->
     <div
-        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 shrink-0"
+        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
     >
         {#each subTabs as tab}
             <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
                 tab.id
                     ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
@@ -72,7 +72,7 @@
         {/each}
     </div>
 
-    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+    <div class="min-w-0">
         {#if settingsState.decryptionFailures > 0 || settingsState.deviceKeyLost}
             <div class="mb-6 flex items-start gap-3 text-sm text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--warning-color)] p-4 rounded-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warning-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-0.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
