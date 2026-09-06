@@ -333,6 +333,18 @@ export async function initAlertEngine(
     // here would start removing alerts from the legacy engine on behalf of a
     // sink that never notifies for them, recreating the exact "neither
     // engine" gap the mode split was built to close.
+    //
+    // FEAT-0387 round 5 — staleness detection must be timer-driven, not just
+    // event-driven. A rule whose series becomes quiet can sit inert for up to
+    // a full coarse timeframe after silence starts, because `onClose` only
+    // re-syncs when *some* series closes. If the trader charts only 4h and
+    // a 1m rule's series goes quiet, the 1m staleness is not detected until
+    // the next 4h close — up to 4 hours later (BUG-0382, the mirror image of
+    // round 4, which fixed series *starting* to be observed). The fix: on
+    // every close, re-check ALL currently-covered rules to see if their
+    // series have gone stale. `readCoveredAlertIds` already does this by
+    // calling `isSeriesObserved` for each rule, so it correctly catches both
+    // directions (series starting + series stopping).
     const onClose =
         mode === "live"
             ? () => alertState.syncEngine(readCoveredAlertIds(isSeriesObserved))
