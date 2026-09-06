@@ -25,11 +25,11 @@ read the position book.
 
 That is why alerts and bots are not two systems:
 
-| Surface | Shows rules with | Where |
-|---|---|---|
-| **Super-Alert panel** | `notify` | Bell in the left control panel, chart right-click, indicator settings |
-| **Automation tab** | `simulate` | Settings → Automation (paper bots) |
-| **Automation tab** | `send` | Settings → Automation, behind the order gate |
+| Surface | Shows rules with | Where | Status |
+|---|---|---|---|
+| **Super-Alert panel** | `notify` | Bell in the left control panel, chart right-click, indicator settings | Planned (FEAT-0389/0395) — today: `AlertDefinitionsModal` (`price_reached`) |
+| **Automation tab** | `simulate` | Settings → Automation (paper bots) | Planned (FEAT-0396, idea) |
+| **Automation tab** | `send` | Settings → Automation, behind the order gate | Planned |
 
 One condition language, one evaluator, one set of tests. A backtest and a live alarm
 cannot disagree about what "RSI(14) below 30 on the 4h close" means, because there is
@@ -57,7 +57,9 @@ conditions or consequence level does. That is what makes a journal entry able to
 
 ## Evaluation
 
-A rule is evaluated **once per close of its trigger timeframe**. Every condition then
+> Status: legacy `cachy_alerts_v1` price alerts evaluate per tick today (`alertEngine.evaluate` on every price tick); RuleDocument candle-close evaluation applies after FEAT-0387/0388 land.
+
+A `RuleDocument` is evaluated **once per close of its trigger timeframe**. Every condition then
 reads the last candle of *its own* timeframe that had already closed at that instant.
 
 Two rules follow from this, and both are enforced rather than documented:
@@ -87,7 +89,7 @@ sub-candle timing for an existing alert should re-arm it with a finer
 `trigger_timeframe` after the migration ships; the migration itself does not alter
 `symbol` or threshold (see `FEAT-0388`'s acceptance criteria).
 
-## Where a trader arms a rule
+## Where a trader arms a rule (planned; today: `AlertDefinitionsModal` with a single `price_reached` condition)
 
 | Entry point | Gives |
 |---|---|
@@ -117,8 +119,8 @@ and English**. A rule a trader cannot read back is a rule they cannot trust.
 
 ## When a rule fires
 
-The verdict goes to `notificationService`, which owns channel policy. Built-in channels
-(in-app, browser notification, sound) never reach the network — the rule and its evaluation
+The verdict goes to `notificationService`, which owns channel policy. Today: in-app + browser only. Sound (FEAT-0392) and Email/Discord/Telegram (FEAT-0397) are planned and will be opt-in with trader-configured credentials. Built-in channels
+never reach the network — the rule and its evaluation
 stay on the device. External channels (Email, Discord, Telegram) are **opt-in** via
 [`FEAT-0397`](backlog/features/FEAT-0397-notification-channels.md): the trader configures
 credentials, the service calls external APIs only if those channels are armed. The trigger

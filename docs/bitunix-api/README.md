@@ -33,11 +33,15 @@ OpenAPI-Dokumentation unter:
 - **Public**: Keine Authentifizierung nötig (Marktdaten, Konfiguration)
 - **Private**: Erfordert Signatur via `api-key`, `nonce`, `timestamp`, `sign`
 
+### Private WS channels (wire names)
+
+Cachy subscribes `position`, `order`, `wallet` (balance), `tp_sl` — see `08_websocket.md`. `depth_books/book1/book15`, `tickers` batch, funding history, tiers, `trading_pairs`, batch/plan-order verbs are intentionally unwired — see `INTEGRATION_STATUS.md` and the adapter verb table in `unsupportedVerbs.test.ts`.
+
 ### Pflicht-Header für alle REST-Requests
 | Header | Beschreibung |
 |---|---|
 | `api-key` | API-Key des Requests |
-| `nonce` | Zufälliger 32-Bit-String |
+| `nonce` | 32-char hex string (128-bit random) |
 | `timestamp` | Aktueller Timestamp in Millisekunden |
 | `sign` | Signatur-String (siehe `01_sign.md`) |
 | `Content-Type` | Immer `application/json` |

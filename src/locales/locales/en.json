@@ -342,6 +342,7 @@
       "leverage": "Leverage",
       "fees": "Fees (%)",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
+      "leverageFromExchange": "Comes from the exchange. Change via the leverage chip under “On exchange”.",
       "marginMode": "Margin Mode",
       "feeEntryLeg": "Entry",
       "feeExitLeg": "Exit",

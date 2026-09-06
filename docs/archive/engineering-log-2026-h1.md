@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # Roadmap
 
 The project's first roadmap, written at the point where two months of rapid

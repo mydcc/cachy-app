@@ -46,8 +46,8 @@ erforderlich.
 Der Header jedes REST-Requests muss folgende Keys enthalten:
 
 - `api-key`: API-Key des Requests
-- `nonce`: Zufälliger String, 32-Bit, vom Aufrufer generiert
-- `timestamp`: Aktueller Timestamp in Millisekunden
+- `nonce`: 32-char hex string (128-bit random), vom Aufrufer generiert
+- `timestamp`: Aktueller Timestamp in Millisekunden (REST; WS login uses seconds — see `08_websocket.md`)
 - `sign`: Signatur-String (siehe `01_sign.md`)
 - `Content-Type`: einheitlich `application/json`
 

@@ -12,7 +12,7 @@ reverse proxy, [`DEPLOYMENT.md`](../DEPLOYMENT.md) covers that in detail.
 
 ## 1. Prerequisites
 
-- **Node.js v20 or newer** and npm. (`.node-version` pins 20.18.3 for tooling.)
+- **Node.js v22.19 or newer** and npm (see `engines` in `package.json`).
 - **A Rust toolchain is optional.** The build script rebuilds the technical
   indicator module when Rust is available and otherwise falls back to the
   pre-compiled binary committed in `static/wasm/`, so a plain install works out
@@ -43,7 +43,7 @@ cp .env.example .env
 the code by a test, so nothing the app reads is missing from it. **Nothing in it
 is required to run Cachy** — the file exists for optional knobs:
 
-- `PORT` — listen port (default `3000` for the plain build)
+- `PORT` — listen port (default `3000` for `node build/index.js`, `3001` for `node server.js` / `npm start`)
 - `ORIGIN` — the public URL, needed for correct CSRF/form handling behind a proxy
 - `ADDRESS_HEADER` / `XFF_DEPTH` — make rate limiting see real client IPs behind a reverse proxy
 - `LOG_STREAM_KEY` — protects the debug log stream endpoint
@@ -70,7 +70,7 @@ If you created a `.env`, start with
 > **Why not `npm start`?** It runs `node server.js` (compression +
 > security headers) without `--env-file`, which has the same limitation —
 > use `node --env-file=.env server.js` to combine your `.env` with those
-> extras. (`--env-file` needs Node 20 or newer, which Cachy requires anyway.)
+> extras. (`--env-file` needs Node 20 or newer, which is covered by the required Node v22.19+.)
 
 > If you change anything in `.env` later, **restart the process**. The running
 > server reads its configuration once, at startup.
@@ -82,7 +82,7 @@ If you created a `.env`, start with
 Open Cachy — that's all the setup there is. On its first request to a protected
 API route, the app obtains a self-issued access token from your own server
 (`POST /api/auth/token`) and stores it in your browser. You can see (and
-regenerate) it under **Settings → Connections → Access Token**; normally you
+regenerate) it under **Settings → Connections → Access Token (self-issued)**; normally you
 never need to touch it.
 
 Once you are in, add your exchange API keys under the same tab and start using

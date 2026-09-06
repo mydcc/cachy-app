@@ -108,7 +108,7 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/get_fun
 | Parameter    | Type   | Description |
 |--------------|--------|-------------|
 | markPrice    | string | Mark Price |
-| fundingRate  | string | Funding Rate |
+| fundingRate  | string | Funding Rate (already a fraction, do NOT divide by 100 — unlike the batch endpoint) |
 | fundingTime  | int64  | Funding Timestamp |
 
 ### Response Example
@@ -178,7 +178,7 @@ Interface zum Abrufen der historischen Futures-Kline-Daten.
 | symbol     | string | true     | Trading Pair, basierend auf symbolName, z.B. BTCUSDT |
 | startTime  | int64  | false    | Startzeit: Klines nach diesem Zeitpunkt, Unix ms, z.B. 1672410780000 |
 | endTime    | int64  | false    | Endzeit: Klines vor diesem Zeitpunkt, Unix ms, z.B. 1672410780000 |
-| interval   | string | true     | Kline-Intervall: `1m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M` |
+| interval   | string | true     | Kline-Intervall (venue lists): `1m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M`. Cachy natively requests `1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M` and synthesizes the rest (see `timeframes.md`). |
 | limit      | int    | false    | Default: 100, Maximum: 200 |
 | type       | string | false    | Kline-Typ: `LAST_PRICE`, `MARK_PRICE`; Default: `LAST_PRICE` |
 
@@ -284,7 +284,7 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/trading
 | maxLeverage           | int     | Max. Leverage |
 | minLeverage           | int     | Min. Leverage |
 | defaultLeverage       | int     | Standard-Leverage |
-| defaultMarginMode     | string  | Standard Margin Mode: `Isolation` / `Cross` |
+| defaultMarginMode     | string  | Standard Margin Mode: `Isolation` / `Cross` (observed as int in example; treat as opaque until confirmed) |
 | priceProtectScope     | string  | Preis-Schutzbereich. Beispiel: Mark Price = 10000, priceProtectScope=0.02 → min. Sell-Order-Preis = 10000*(1-0.02)=9800; max. Buy-Order-Preis = 10000*(1+0.02)=10200 |
 | symbolStatus          | string  | `OPEN`: normaler Handel; `CANCEL_ONLY`: nur Stornierung; `STOP`: keine Positionseröffnung/-schließung möglich |
 | isApiSupported        | bool    | `true`: API-Trading aktiviert; `false`: API-Trading deaktiviert |

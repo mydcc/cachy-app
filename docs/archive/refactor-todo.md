@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # Refactoring TODOs
 
 Dieses Dokument listet die anstehenden Refactoring-Aufgaben auf, um die Codebasis zu verbessern.

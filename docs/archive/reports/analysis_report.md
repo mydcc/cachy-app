@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # In-Depth Analysis Report: cachy-app Hardening
 
 ## 🔴 CRITICAL (Risk of financial loss, crash, or security vulnerability)

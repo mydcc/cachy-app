@@ -9,7 +9,7 @@ Quelle: https://www.bitunix.com/api-docs/futures/common/sign.html
 | Name        | Type   | Mandatory | Description                        |
 |-------------|--------|-----------|-------------------------------------|
 | `api-key`   | string | Y         | Beantragter API-Key                 |
-| `nonce`     | string | Y         | Zufälliger String, 32-Bit           |
+| `nonce`     | string | Y         | 32-char hex string (128-bit random)           |
 | `timestamp` | string | Y         | Aktueller Timestamp, Millisekunden  |
 | `sign`      | string | Y         | Signatur-String                     |
 
@@ -94,6 +94,8 @@ if __name__ == "__main__":
     main()
 ```
 
+> Always sign the exact serialized body string sent on the wire; pretty-printing invalidates the signature.
+
 ## WebSocket API Signature Parameters
 
 WebSocket-API-Requests erfordern Authentifizierung. Folgende Felder müssen in
@@ -107,6 +109,8 @@ allen Request-Parametern (`params`) enthalten sein:
 | `sign`      | string | Y         | Signatur-String    |
 
 ### Signatur-Schritte (WebSocket)
+
+The following applies to `login` (no additional params). Per-channel subscribe frames are unauthenticated.
 
 1. Alle Felder in `params` außer `sign` aufsteigend nach ASCII-Wert des Keys
    sortieren, **alle Leerzeichen entfernen**. Beispiel:

@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # In-Depth Code Analysis & Status Report
 
 ## Status Quo & Vulnerabilities (Step 1)
