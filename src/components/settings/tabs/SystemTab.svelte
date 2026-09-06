@@ -25,6 +25,7 @@
     import PerformanceMonitor from "../../shared/PerformanceMonitor.svelte";
     import EngineDebugPanel from "../EngineDebugPanel.svelte";
     import DataMaintenance from "../DataMaintenance.svelte";
+    import SettingsGrid from "../shared/SettingsGrid.svelte";
     import { toastService } from "../../../services/toastService.svelte";
     import {
         applyTelemetryConsent,
@@ -289,7 +290,7 @@
                     <EngineDebugPanel />
                 {/if}
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <SettingsGrid gap="gap-4" extraClass="mt-6">
                     <!-- Network Logs -->
                     <div
                         class="action-card flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
@@ -352,7 +353,7 @@
                             onchange={handleTelemetryConsent}
                         />
                     </div>
-                </div>
+                </SettingsGrid>
 
                 <!-- Quick Actions -->
                 <h4
@@ -360,7 +361,7 @@
                 >
                     {$_("settings.system.quickActions")}
                 </h4>
-                <div class="grid grid-cols-2 gap-4">
+                <SettingsGrid gap="gap-4">
                     <button
                         class="btn-secondary text-xs py-2 flex items-center justify-center gap-2"
                         onclick={clearAppCache}
@@ -405,10 +406,10 @@
                         >
                         {$_("settings.system.reloadApp") || "Reload App"}
                     </button>
-                </div>
+                </SettingsGrid>
 
-                <label class="toggle-card mt-4">
-                    <div class="flex flex-col">
+                <label class="toggle-card mt-4 gap-3">
+                    <div class="flex flex-col min-w-0 flex-1">
                         <span class="text-sm font-medium"
                             >{$_("settings.system.englishTechnicalTerms")}</span
                         >
@@ -502,7 +503,7 @@
                             {$_("settings.system.fileTargetUnsupported")}
                         </div>
                     {:else}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <SettingsGrid gap="gap-3">
                             {#each [1, 2] as slot (slot)}
                                 {@const info = fileTargetState[slot as FileTargetSlot]}
                                 <div class="p-3 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg">
@@ -589,9 +590,9 @@
                             {/each}
                         </div>
                     {/if}
-                </div>
+                </SettingsGrid>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SettingsGrid gap="gap-4">
                     <button
                         class="flex items-center gap-3 p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-left group"
                             onclick={handleBackup}
@@ -678,7 +679,7 @@
                             class="hidden"
                         />
                     </label>
-                </div>
+                </SettingsGrid>
 
                 <div class="mt-8">
                     <DataMaintenance />
@@ -793,7 +794,7 @@
                                     <h4 class="text-sm font-bold text-[var(--accent-color)] border-b border-[var(--border-color)] pb-1 mb-1">
                                         {category}
                                     </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <SettingsGrid gap="gap-3">
                                         {#each groupedActions[category] as action}
                                             <div class="flex justify-between items-center gap-2 p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
                                                 <span class="text-sm min-w-0">{action.label}</span>
@@ -802,7 +803,7 @@
                                                 </span>
                                             </div>
                                         {/each}
-                                    </div>
+                                    </SettingsGrid>
                                 </div>
                             {/each}
                         </div>
