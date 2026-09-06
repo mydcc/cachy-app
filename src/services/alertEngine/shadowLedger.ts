@@ -75,8 +75,13 @@ export interface ShadowFiringRecord {
   timeframe?: string;
   /**
    * Shadow only: open time of the closed candle the verdict was computed on.
-   * This, not `recordedAtMs`, is what a legacy record's timestamp has to be
-   * compared against — the delay being measured is candle-close versus tick.
+   *
+   * Diagnostic context, not a comparison basis. Subtracting this from a legacy
+   * record's `recordedAtMs` yields the candle's age, not a delay between the
+   * two paths — the two values sit on different footings. `compareShadowLedger`
+   * subtracts the two wall-clock `recordedAtMs` values instead; `delaysMs`
+   * carries the full reasoning. Reinstating an `anchorMs`-based subtraction
+   * here reintroduces the round-1 bug.
    */
   anchorMs?: number;
   /** Shadow only: the verdict, kept verbatim so a refusal reason survives. */

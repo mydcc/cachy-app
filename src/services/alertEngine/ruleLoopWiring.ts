@@ -147,9 +147,10 @@ export function readStoredRules(): RuleDocument[] {
 /**
  * The shadow sink: writes the verdict to the ledger and notifies nobody.
  *
- * Recorded against the candle's `anchorMs` as well as the wall clock, because
- * the delay being measured is close-versus-tick and only the anchor says when
- * the candle the verdict belongs to actually ended.
+ * `anchorMs` is recorded alongside the wall clock so a row says which candle
+ * the verdict belongs to. It is not what the delay is measured against:
+ * `compareShadowLedger` subtracts the two `recordedAtMs` values, for the
+ * reasons `ShadowComparison.delaysMs` sets out.
  */
 export const ledgerSink: FiringSink = ({ rule, verdict, anchorMs }) => {
   recordFiring({
