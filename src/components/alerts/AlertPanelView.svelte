@@ -50,6 +50,20 @@
 import { windowManager } from "../../lib/windows/WindowManager.svelte";
 
 let rootElement: HTMLElement | null = null;
+let windowId: string = "";
+
+interface Props {
+    symbol?: string;
+    windowId?: string;
+}
+
+let { symbol, windowId: windowIdProp }: Props = $props();
+
+$effect(() => {
+    if (windowIdProp) {
+        windowId = windowIdProp;
+    }
+});
 
     /**
      * One dynamic import per tab, so opening the panel pulls in the Manage tab
@@ -59,7 +73,7 @@ let rootElement: HTMLElement | null = null;
      * directory into one chunk -- the acceptance criterion would then pass by
      * inspection and fail in the build.
      */
-    const TAB_LOADERS: Record<AlertPanelTab, () => Promise<{ default: Component<{}> }>> = {
+    const TAB_LOADERS: Record<AlertPanelTab, () => Promise<{ default: Component<Record<string, never>> }>> = {
         templates: () => import("./tabs/TemplatesTab.svelte"),
         combo: () => import("./tabs/ComboTab.svelte"),
         price: () => import("./tabs/PriceTab.svelte"),
@@ -100,7 +114,7 @@ let rootElement: HTMLElement | null = null;
 
     let priceSource = $state<PriceField>("close");
 
-    let TabComponent = $state<Component<{}> | null>(null);
+    let TabComponent = $state<Component<Record<string, never>> | null>(null);
     let tabLoadFailed = $state(false);
 
     /**
@@ -165,7 +179,9 @@ let rootElement: HTMLElement | null = null;
     function handleKeydown(event: KeyboardEvent) {
         if (event.key === "Escape") {
             event.preventDefault();
-            windowManager.close();
+            if (windowId) {
+                windowManager.close(windowId);
+            }
         }
 
         if (event.key === "Tab" && rootElement) {
