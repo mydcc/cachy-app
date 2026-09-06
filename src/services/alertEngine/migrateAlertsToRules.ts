@@ -21,6 +21,12 @@ import { logger } from "../logger";
 const ALERTS_STORAGE_KEY = "cachy_alerts_v1";
 const RULES_STORAGE_KEY = "cachy_rules_v1";
 
+// FEAT-0388: append-only record of legacy alert ids that have a
+// corresponding rule document, independent of what later happens to that
+// rule. See `recordMigratedIds` for why this can't be reconstructed from
+// `cachy_rules_v1` alone.
+const MIGRATED_LEDGER_KEY = "cachy_alerts_migrated_v1";
+
 // FEAT-0388: the old engine evaluated on every tick and had no notion of a
 // timeframe; the rule schema requires one (ADR-0012 decision 3). "1m" is
 // used as a fixed default rather than an inferred heuristic, per the
@@ -72,6 +78,40 @@ function describeAlert(alert: unknown): string {
 }
 
 /**
+ * Records legacy alert ids as migrated, merging into whatever the ledger
+ * already holds. Never removes an id: a rule the trader deletes later from
+ * `cachy_rules_v1` must still read as "migrated, then deleted" here, not
+ * "never migrated" — that distinction is the whole reason this ledger
+ * exists instead of deriving the answer from `cachy_rules_v1` directly (see
+ * FEAT-0388's Reconciliation ledger note).
+ *
+ * No-ops when every id is already recorded, so a run that converts nothing
+ * new does not touch storage.
+ */
+function recordMigratedIds(ids: Set<string>): void {
+  if (ids.size === 0) return;
+
+  let existing: Set<string>;
+  try {
+    const stored = readJsonArray(MIGRATED_LEDGER_KEY);
+    existing = new Set(stored.filter((entry): entry is string => typeof entry === "string"));
+  } catch (e) {
+    logger.error("alerts", "Failed to parse cachy_alerts_migrated_v1 during migration", e);
+    existing = new Set();
+  }
+
+  const merged = new Set(existing);
+  for (const id of ids) merged.add(id);
+  if (merged.size === existing.size) return;
+
+  try {
+    localStorage.setItem(MIGRATED_LEDGER_KEY, JSON.stringify([...merged].sort()));
+  } catch (e) {
+    logger.error("alerts", "Failed to persist cachy_alerts_migrated_v1 during migration", e);
+  }
+}
+
+/**
  * Migrates alerts stored under `cachy_alerts_v1` into rule documents under
  * `cachy_rules_v1`. `cachy_alerts_v1` is never modified or deleted — it
  * stays a dormant fallback per FEAT-0388.
@@ -92,6 +132,11 @@ function describeAlert(alert: unknown): string {
  * is, since nothing here can safely tell a migrated-then-orphaned rule
  * apart from one a future rule editor authored directly — that
  * reconciliation belongs to whatever reads `cachy_rules_v1` first (FEAT-0387).
+ *
+ * Every alert id that ends this run with a matching rule document — freshly
+ * converted or already migrated in an earlier run — is recorded in
+ * `cachy_alerts_migrated_v1` via `recordMigratedIds`. A duplicate skipped
+ * above never reaches that ledger, since it never got a rule of its own.
  *
  * Never throws — this is called unconditionally from `initAlertEngine()`
  * before the alert engine itself loads, and a migration hiccup must not
@@ -129,6 +174,7 @@ export async function migrateAlertsToRuleDocuments(
     const claimedIds = new Set(rulesById.keys());
     const toConvert: unknown[] = [];
     const syncedRules = [...existingRules];
+    const migratedIds = new Set<string>();
     let rulesChanged = false;
 
     for (const alert of alerts) {
@@ -142,6 +188,7 @@ export async function migrateAlertsToRuleDocuments(
 
       const existingIndex = rulesById.get(id);
       if (existingIndex !== undefined) {
+        migratedIds.add(id);
         const active = activeOf(alert);
         const rule = syncedRules[existingIndex];
         const enabled = rule && typeof rule === "object" ? (rule as { enabled?: unknown }).enabled : undefined;
@@ -169,6 +216,7 @@ export async function migrateAlertsToRuleDocuments(
       if (rulesChanged) {
         localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
       }
+      recordMigratedIds(migratedIds);
       return;
     }
 
@@ -180,6 +228,7 @@ export async function migrateAlertsToRuleDocuments(
       if (rulesChanged) {
         localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
       }
+      recordMigratedIds(migratedIds);
       return;
     }
 
@@ -194,6 +243,8 @@ export async function migrateAlertsToRuleDocuments(
           createdAtMs,
         );
         migratedRules.push(JSON.parse(ruleJson));
+        const convertedId = idOf(alert);
+        if (convertedId !== undefined) migratedIds.add(convertedId);
       } catch (e) {
         logger.error(
           "alerts",
@@ -206,6 +257,7 @@ export async function migrateAlertsToRuleDocuments(
     if (migratedRules.length > 0 || rulesChanged) {
       localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([...syncedRules, ...migratedRules]));
     }
+    recordMigratedIds(migratedIds);
   } catch (e) {
     logger.error("alerts", "Alert migration failed unexpectedly", e);
   }
