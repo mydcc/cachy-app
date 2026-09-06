@@ -56,7 +56,7 @@
      * directory into one chunk -- the acceptance criterion would then pass by
      * inspection and fail in the build.
      */
-    const TAB_LOADERS: Record<AlertPanelTab, () => Promise<{ default: Component<any> }>> = {
+    const TAB_LOADERS: Record<AlertPanelTab, () => Promise<{ default: Component<{}> }>> = {
         templates: () => import("./tabs/TemplatesTab.svelte"),
         combo: () => import("./tabs/ComboTab.svelte"),
         price: () => import("./tabs/PriceTab.svelte"),
@@ -97,7 +97,7 @@
 
     let priceSource = $state<PriceField>("close");
 
-    let TabComponent = $state<Component<any> | null>(null);
+    let TabComponent = $state<Component<{}> | null>(null);
     let tabLoadFailed = $state(false);
 
     /**
@@ -128,7 +128,7 @@
     // against the real locale files, which is the check the union would have
     // given us.
     const translate: SentenceTranslator = (key, values) =>
-        values ? $_(key as TranslationKey, { values }) : $_(key as TranslationKey);
+        $_(key as TranslationKey, { values: values || {} });
 
     let sentence = $derived(renderRuleSentence(alertPanelState.draft, translate));
 
