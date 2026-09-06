@@ -19,6 +19,7 @@
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
+    import IndicatorSettings from "./IndicatorSettings.svelte";
 
     const priceScaleModes = [
         { value: "linear", labelKey: "settings.chart.scaleLinear" },
@@ -40,9 +41,9 @@
 
 <div class="flex flex-col gap-6">
     <!-- Header with Reset Button -->
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center gap-2">
         <h2 class="text-lg font-semibold text-[var(--text-primary)]">
-            Chart Einstellungen
+            {$_("settings.chart.title") || "Chart Settings"}
         </h2>
         <button
             type="button"
@@ -318,5 +319,14 @@
                 <Toggle bind:checked={settingsState.chartCountdownEnabled} />
             </label>
         </div>
+    </section>
+
+    <!-- Indicator Configuration (moved from Trading → Chart & Data; single home for all chart-related settings) -->
+    <section class="settings-section animate-fade-in">
+        <h3 class="section-title">
+            {$_("settings.trading.indicatorConfiguration") ||
+                "Indicator Configuration"}
+        </h3>
+        <IndicatorSettings />
     </section>
 </div>
