@@ -148,10 +148,6 @@
     whitepaperContent = "";
   });
 
-  function handleTradeSetupError(e: CustomEvent<string>) {
-    uiState.showError(e.detail);
-  }
-
   function handleThemeSwitch(direction: "forward" | "backward" = "forward") {
     const currentIndex = themes.indexOf(uiState.currentTheme);
     const limit = themes.length;
@@ -426,7 +422,7 @@
           bind:riskAmount={tradeState.riskAmount}
           isRiskAmountLocked={tradeState.isRiskAmountLocked}
           isPositionSizeLocked={tradeState.isPositionSizeLocked}
-          on:toggleRiskAmountLock={() => app.toggleRiskAmountLock()}
+          ontoggleriskamountlock={() => app.toggleRiskAmountLock()}
         />
 
         <PlaceOrderPanel />
@@ -442,15 +438,13 @@
           bind:stopLossPrice={tradeState.stopLossPrice}
           bind:atrMode={tradeState.atrMode}
           bind:atrTimeframe={tradeState.atrTimeframe}
-          on:showError={handleTradeSetupError}
-          on:fetchPrice={() => app.handleFetchPrice()}
-          on:toggleAtrInputs={(e) => {
-            tradeState.useAtrSl = e.detail;
+          ontoggleatrinputs={(value) => {
+            tradeState.useAtrSl = value;
           }}
-          on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
-          on:setAtrMode={(e) => app.setAtrMode(e.detail)}
-          on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
-          on:fetchAtr={() => app.fetchAtr()}
+          onselectsymbolsuggestion={(suggestion) => app.selectSymbolSuggestion(suggestion)}
+          onsetatrmode={(mode) => app.setAtrMode(mode)}
+          onsetatrtimeframe={(timeframe) => app.setAtrTimeframe(timeframe)}
+          onfetchatr={() => app.fetchAtr()}
           atrFormulaDisplay={resultsState.atrFormulaText}
           showAtrFormulaDisplay={resultsState.showAtrFormulaDisplay}
           isPriceFetching={uiState.isPriceFetching}
@@ -492,8 +486,8 @@
           liquidationPrice={resultsState.liquidationPrice}
           breakEvenPrice={resultsState.breakEvenPrice}
           isMarginExceeded={resultsState.isMarginExceeded}
-          on:toggleLock={() => app.togglePositionSizeLock()}
-          on:copy={() => uiState.showFeedback("copy")}
+          ontogglelock={() => app.togglePositionSizeLock()}
+          oncopy={() => uiState.showFeedback("copy")}
         />
         {#if resultsState.showTotalMetricsGroup}
           <div id="total-metrics-group" class="result-group">

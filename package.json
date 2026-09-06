@@ -27,7 +27,7 @@
     "test": "bash ./scripts/run-lowpri.sh vitest run",
     "test:watch": "bash ./scripts/run-lowpri.sh vitest",
     "test:unit": "bash ./scripts/run-lowpri.sh vitest run --project=unit",
-    "test:changed": "bash ./scripts/run-lowpri.sh vitest --changed",
+    "test:changed": "bash ./scripts/run-lowpri.sh vitest run --changed",
     "test:seq": "bash ./scripts/run-lowpri.sh vitest run --no-file-parallelism",
     "test:e2e": "playwright test tests/e2e",
     "test:perf": "vitest run --config vitest.perf.config.ts",
