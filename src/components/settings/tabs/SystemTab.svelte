@@ -43,20 +43,20 @@
         MAX_INTERVAL_MINUTES,
         type FileTargetSlot,
     } from "../../../services/fileTargetBackupService.svelte";
-    import { modalState } from "../../stores/modal.svelte";
+    import { modalState } from "../../../stores/modal.svelte";
     import {
         createBackup,
         restoreFromBackup,
-    } from "../../services/backupService";
-    import { wipeLocalData } from "../../utils/appReset";
-    import type { TranslationKey } from "../../locales/schema";
+    } from "../../../services/backupService";
+    import { wipeLocalData } from "../../../utils/appReset";
+    import type { TranslationKey } from "../../../locales/schema";
     import HotkeySettings from "../HotkeySettings.svelte";
     import {
         HOTKEY_ACTIONS,
         MODE1_MAP,
         MODE2_MAP,
         type HotkeyAction,
-    } from "../../services/hotkeyService";
+    } from "../../../services/hotkeyService";
 
     function clearAppCache() {
         localStorage.removeItem("cachy_news_cache");
