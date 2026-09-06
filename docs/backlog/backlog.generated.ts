@@ -2073,7 +2073,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Expose the rule evaluator to JavaScript and evaluate on candle close",
     "type": "feature",
     "status": "in-progress",
-    "branch": "worktree-expose-rule-evaluator-27b349",
+    "branch": "worktree-alert-rule-evaluator-cutover-52ddf9",
     "assignee": "claude-code",
     "start_date": "2026-09-05",
     "priority": "P1",
@@ -2142,6 +2142,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "estimate": "2",
     "start_date": "2026-09-05",
     "file": "features/FEAT-0401-record-migration-origin-ledger.md"
+  },
+  {
+    "id": "FEAT-0405",
+    "title": "Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "ADR-0013",
+    "depends_on": [],
+    "file": "features/FEAT-0405-client-side-signing-cutover.md"
   },
   {
     "id": "BUG-0005",
@@ -4545,7 +4563,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0343",
     "title": "Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "opencode",
     "branch": "fix/audit-followups",
     "priority": "P2",
@@ -6046,6 +6064,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0389"
     ],
     "file": "features/FEAT-0399-remove-legacy-alerts-v1.md"
+  },
+  {
+    "id": "FEAT-0406",
+    "title": "Give the rule evaluation loop a disarm path, coupled to coverage",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0387"
+    ],
+    "size": "S",
+    "estimate": "2",
+    "file": "features/FEAT-0406-rule-loop-disarm-path.md"
   },
   {
     "id": "IDEA-0036",

@@ -59,19 +59,16 @@ The Dashboard consists of three main areas:
 
 ### Navigation
 
-**Sidebar Menu (left):**
-
-- **Home:** Back to homepage
-- **Calculator:** Opens the Position Size Calculator
-- **Journal:** Opens your Trading Journal
-- **Settings:** Theme, language, account settings
+The Dashboard is a single page.
 
 **Top Bar:**
 
 - **Account Balance:** Shows your current capital
-- **Theme Toggle:** Switch between Light/Dark/VIP themes
+- **Theme button:** Cycles through all 28 installed themes (e.g. Dark, Light, Midnight, Dracula, Nord, VIP)
 - **Language Switcher:** DE/EN
 - **Help:** Access to this guide
+
+**Settings:** 7-tab modal (Trading, Chart, Visuals, AI, Connections, System, Cloud) — theme, language, accounts, API keys, hotkeys and backup.
 
 ---
 
@@ -126,8 +123,6 @@ Example: €100 / €500 = 0.2 BTC
 
 **✅ Result:** You buy **0.2 BTC** at €50,000, with a stop-loss at €49,500. Your maximum risk is exactly €100 (1% of your capital).
 
-**The Advantage:** No guessing, no "approximately". You know **down to the cent** that you're adhering to your risk limit.
-
 ---
 
 <a id="lock-functions"></a>
@@ -143,9 +138,7 @@ When you think in **fixed monetary amounts**: "I'm risking €50 today" (instead
 
 **How it works:**
 
-1. Click the 🔒 next to "Risk Amount"
-2. Enter your desired amount (e.g., €50)
-3. The "Risk per Trade %" field is automatically adjusted
+Lock "Risk Amount" (🔒) and enter an amount (e.g., €50); "Risk per Trade %" derives from it.
 
 **Advantage:** Flexibility for traders who prefer to plan their risk in absolute amounts.
 
@@ -156,10 +149,7 @@ When you want to trade a **fixed position size** (e.g., always 1 whole coin, alw
 
 **How it works:**
 
-1. Click the 🔒 next to "Position Size"
-2. Enter your desired size
-3. Adjust Entry and Stop-Loss
-4. The Calculator now shows you **backwards** what your risk is with this size
+Lock "Position Size" (🔒) and enter a size; with entry and stop-loss set, the calculator reports the resulting risk.
 
 **Advantage:** Perfect for strategies with fixed trade sizes. You immediately see the risk consequences.
 
@@ -226,7 +216,7 @@ Professional traders don't sell their position all at once, but **gradually at m
 
 #### How it works:
 
-**Define up to 3 Take-Profit targets:**
+**Define up to 4 Take-Profit targets:**
 
 **Take-Profit 1:**
 
@@ -334,7 +324,7 @@ The Calculator plans your trade – the **Journal documents and analyzes** it.
 ### Quick Access:
 
 - Click **"Journal"** in the sidebar
-- Or use the **"Save to Journal"** button (if available)
+- Or use the **"Add Trade to Journal"** button after a calculation
 
 ---
 
@@ -464,11 +454,13 @@ Successful trading is a **repeatable process**:
 
 **5. Turn Off Emotions**
 
-- After 2 losses in a row: PAUSE
+- After 3 losses in a row: PAUSE (consistent with the Journal guide)
 - After big win: PAUSE (Overconfidence!)
 - Tired, stressed, emotional? NO TRADING
 
 ---
+
+*Note: this guide does not yet cover keyboard shortcuts (`Alt+L`/`S`/`R`/`J` and more), paper trading, Global Chat (Settings → Cloud, opt-in), or RuleDocument alerts.*
 
 ## Conclusion
 
