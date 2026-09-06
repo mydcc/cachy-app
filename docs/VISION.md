@@ -149,19 +149,17 @@ definition in ADR-0003, it ships in Community.
 their own infrastructure and pay nothing. That is not a leak in the business
 model, it is what makes the privacy claim credible.
 
-## What Cachy is not
+## Product boundaries
 
-- **Not a signal service.** It does not tell users what to trade in exchange for
-  a subscription.
-- **Not a broker or a custodian.** It never holds funds. Credentials are the
+- **User-decided trading.** Users decide what to trade; Cachy provides position sizing, risk management and journaling.
+- **Non-custodial by design.** It never holds funds. Credentials are the
   user's and stay on the device.
-- **Not a backtesting platform.** Historical strategy research is a different
+- **Live-state tool.** Historical strategy research is a different
   product; Cachy operates on live and near-live state.
-- **Not a game.** The 3D background and the SpacetimeDB substrate make a
-  gamified version technically easy and it is explicitly out of scope for this
-  product — trading is where users lose real money and the interface should not
-  suggest otherwise. If it happens, it happens as a separate fork with a
-  separate name, not as a feature here.
+- **Neutral interface for real money.** The 3D background stays decoration:
+  trading is where users lose real money and the interface does not
+  suggest otherwise. A gamified fork would ship under a separate name,
+  not as a feature here.
 
 ## Non-negotiables for anyone building on this
 

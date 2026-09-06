@@ -59,7 +59,7 @@ Das Dashboard besteht aus drei Hauptbereichen:
 
 ### Navigation
 
-Das Dashboard ist eine einzelne Seite: Journal, Einstellungen und diese Anleitung öffnen sich als Overlays über ihre Buttons. Ein separates Sidebar-Menü mit Home / Calculator / Journal / Settings gibt es nicht.
+Das Dashboard ist eine einzelne Seite.
 
 **Top-Bar:**
 
@@ -140,9 +140,7 @@ Wenn du in **festen Geldbeträgen** denkst: "Ich riskiere heute 50 €" (statt i
 
 **Wie es funktioniert:**
 
-1. Klicke auf das 🔒 neben "Risk Amount"
-2. Gib deinen gewünschten Betrag ein (z.B. 50 €)
-3. Das Feld "Risk per Trade %" wird automatisch angepasst
+"Risk Amount" per 🔒 sperren und Betrag eingeben (z. B. 50 €); "Risk per Trade %" leitet sich daraus ab.
 
 **Vorteil:** Flexibilität für Trader, die ihr Risiko lieber in absoluten Beträgen planen.
 
@@ -153,10 +151,7 @@ Wenn du eine **feste Positionsgröße** handeln möchtest (z.B. immer 1 ganze Co
 
 **Wie es funktioniert:**
 
-1. Klicke auf das 🔒 neben "Position Size"
-2. Gib deine gewünschte Größe ein
-3. Passe Entry und Stop-Loss an
-4. Der Calculator zeigt dir nun **rückwärts**, wie hoch dein Risiko bei dieser Größe ist
+"Position Size" per 🔒 sperren und Größe eingeben; bei gesetztem Entry und Stop-Loss weist der Rechner das resultierende Risiko aus.
 
 **Vorteil:** Perfekt für Strategien mit festen Handelsgrößen. Du siehst sofort die Risiko-Konsequenzen.
 
@@ -328,8 +323,6 @@ Nachdem du Entry, Stop-Loss und Take-Profits eingegeben hast, zeigt die **Visual
 - **Mehr Grün als Rot:** Gutes Risk/Reward-Verhältnis ✅
 - **Ausgeglichenes Verhältnis:** 1:1 RR (Breakeven bei 50% Win Rate) ⚠️
 - **Mehr Rot als Grün:** Schlechtes RR, Trade überdenken ❌
-
-**Vorteil:** Du siehst sofort, ob dein Trade die Mühe wert ist – ohne Zahlen zu berechnen.
 
 ---
 

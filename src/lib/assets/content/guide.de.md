@@ -64,17 +64,12 @@ $$ \text{Break Even} = \text{Einstiegspreis} \times \frac{1 + \text{Gebührenrat
 
 ### Visuelle Risk/Reward-Anzeige (VisualBar)
 
-Unter den Eingabefeldern erscheint eine interaktive **VisualBar**, die dein Trade-Setup visuell darstellt:
+VisualBar unter den Eingabefeldern — Legende:
 
-**Was siehst du?**
-
-- **Roter Bereich (links):** Zeigt dein Risiko vom Stop-Loss bis zum Entry-Point
-- **Grüner Bereich (rechts):** Zeigt dein Gewinnpotential vom Entry bis zu deinen Take Profits
-- **Weiße Marker:** Zeigen exakt SL, Entry und TP-Positionen
-- **TP-Labels:** Über jedem TP siehst du das Risk/Reward-Verhältnis (z.B. "2.5R")
-
-**Nutzen:**
-Mit einem Blick erkennst du, ob dein Trade ein gutes Risk/Reward-Verhältnis hat. Ein profitabler Trade sollte deutlich mehr grünen (Profit) als roten (Risk) Bereich zeigen.
+- **Roter Bereich (links):** Risiko (Stop-Loss → Entry).
+- **Grüner Bereich (rechts):** Potenzial (Entry → Take Profits).
+- **Weiße Marker:** SL-, Entry- und TP-Levels.
+- **TP-Labels:** Risk/Reward-Verhältnis pro TP (z. B. „2.5R").
 
 ---
 
@@ -117,10 +112,9 @@ Pivot-Punkte dienen als Orientierungshilfe. Trader nutzen sie, um Ziele für Gew
 
 ### Favoriten
 
-Du kannst bis zu **12 Favoriten** für den schnellen Zugriff speichern. Auf der Rechner-Seite werden die ersten 4 als Schnellwahl-Kacheln angezeigt.
-
-- **Hinzufügen:** Klicke auf das Stern-Symbol in der Marktübersicht.
-- **Zugriff:** Klicke auf einen Favoriten in der Sidebar (Desktop) oder der Favoritenleiste (Mobil), um ihn sofort in den Rechner zu laden.
+Bis zu **12 Favoriten** (Stern-Symbol in der Marktübersicht); die ersten 4
+erscheinen als Schnellwahl-Kacheln auf der Rechner-Seite. Auswahl in der
+Sidebar (Desktop) oder Favoritenleiste (mobil) lädt das Symbol in den Rechner.
 
 ### Sidebar (Positionen)
 
@@ -220,8 +214,8 @@ Da Cachy nur lokal läuft, liegt die Verantwortung für deine Daten bei dir.
 ### Side Panel (Seitenleiste)
 
 Das andockbare Seitenpanel hat drei Modi: **AI Assistant**, **Quick Notes** und
-(opt-in) **Global Chat**. Klicke auf den Titel des Panels, um zwischen den Modi
-zu wechseln; ein-/ausblenden kannst du es unter **Einstellungen → Optik & Design**.
+(opt-in) **Global Chat** — der Titel wechselt den Modus; **Einstellungen → Optik & Design**
+blendet das Panel ein/aus.
 
 - **Quick Notes:** Speichere Notizen nur lokal in deinem Browser.
 - **AI Assistant:** Interagiere mit der kontextsensitiven KI für Marktanalysen.
