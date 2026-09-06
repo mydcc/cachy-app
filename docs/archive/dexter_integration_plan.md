@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # Cachy - Dexter Integration & Web Search Plan
 
 ## 1. Vergleich: Cachy vs. Dexter

@@ -55,7 +55,7 @@ eigentliche Fehler steht im JSON-Feld `code`/`msg` der Response.
 | 30020 | Trigger price for TP should be higher than mark price: | 200 |
 | 30021 | Trigger price for TP should be lower than mark price: | 200 |
 | 30022 | Trigger price for SL should be higher than mark price: | 200 |
-| 30023 | Trigger price fo SL should be lower than mark price: | 200 |
+| 30023 | Trigger price fo SL should be lower than mark price [sic — upstream typo for "for"] | 200 |
 | 30024 | Trigger price for SL should be lower than liq price: | 200 |
 | 30025 | Trigger price for SL should be higher than liq price: | 200 |
 | 30026 | TP price must be greater than last price: | 200 |
@@ -66,7 +66,7 @@ eigentliche Fehler steht im JSON-Feld `code`/`msg` der Response.
 | 30031 | SL price must be greater than mark price: | 200 |
 | 30032 | TP price must be less than last price: | 200 |
 | 30033 | TP price must be less than mark price: | 200 |
-| 30034 | TP price must be less than mark price: | 200 |
+| 30034 | TP price must be less than mark price [sic — duplicates 30033 upstream] | 200 |
 | 30035 | SL price must be greater than trigger price: | 200 |
 | 30036 | TP price must be greater than trigger price: | 200 |
 | 30037 | TP price must be greater than trigger price: | 200 |

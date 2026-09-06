@@ -28,7 +28,7 @@ record the version it actually landed in, in this file, next to the target. A
 target that drifted by six minors is information, not a failure — it says the
 milestone was bigger than it looked.
 
-Current version: **1.6.0-beta.100** on `develop` (see `package.json`); the next
+Current version: **1.6.0-beta.242** on `develop` (see `package.json` as single source); the next
 planned cut is the **1.6.0** stable release from `main`.
 
 ---
@@ -42,10 +42,10 @@ planned cut is the **1.6.0** stable release from `main`.
 | **M2** | Broker abstraction | `~1.3` | 🟡 | A third exchange is added without touching UI or calculation code |
 | **M3** | Trade panel | `~1.5` | 🟡 | A trader can run a full session without opening the exchange's own UI |
 
-_Stand August 2026:_ all M0 and M1 backlog items are done, M2/M3 are partially
+_Stand September 2026 (1.6.0-beta.242):_ all M0 and M1 backlog items are done, M2/M3 are partially
 delivered (the 1.5–1.6 trade-panel group). Item-level truth lives in
 [`backlog/INDEX.md`](backlog/INDEX.md); a milestone is only marked ✅ here once
-its exit criterion is proven, not when its items are ticked.
+its exit criterion is proven, not when its items are ticked. Gate status: M0 gate (no open P0, check + suite + lint green) — pending proof; M1 gate (order gate + kill switch + audit trail) — pending proof.
 | **M4** | Alerting | `~1.7` | ⚪ | Price, indicator and combined alerts fire locally and reliably |
 | **M5** | Community & whitelabel edition | `~1.8` | 🔒 M1–M3 | A serverless build is produced by CI and deployable without a database |
 | **M6** | Extensions & Pro modules | `~2.0` | 🔒 M5 | A user-written indicator runs isolated and traceable; a paid module installs and revokes |

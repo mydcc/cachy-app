@@ -67,8 +67,8 @@ Ruft historische TP/SL-Orders ab.
 | Parameter     | Type   | Required | Description |
 |---------------|--------|----------|-------------|
 | symbol        | string | false    | Trading Pair |
-| side          | int32  | false    | Order Side |
-| positionMode  | int32  | false    | Order Position Mode |
+| side          | int32  | false    | Order Side (as documented; unconfirmed) |
+| positionMode  | int32  | false    | Order Position Mode (as documented; unconfirmed) |
 | startTime     | int64  | false    | Start-Timestamp, Unix ms, z.B. 1597026383085 |
 | endTime       | int64  | false    | End-Timestamp, Unix ms, z.B. 1597026683085 |
 | skip          | int64  | false    | Anzahl übersprungener Orders, Default: 0 |
@@ -111,8 +111,14 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/tpsl/get_histo
 
 ### Response Example
 ```json
-{"code":0,"data":[{"positionId":"12345678","symbol":"BTCUSDT","qty":"0.5","entryValue":"30000","side":"LONG","positionMode":"HEDGE","marginMode":"ISOLATION","leverage":100,"fee":"0.1","funding":"-0.2","realizedPNL":"102.9","margin":"300","unrealizedPNL":"1.5","liqPrice":"22209","marginRate":"0.01","ctime":1691382137448,"mtime":1691382137448}],"msg":"Success"}
+{"code":0,"data":{"total":1,"orderList":[{"id":"1836413742817685504","positionId":"1836413742817685504","symbol":"BTCUSDT","tpPrice":"70000","tpStopType":"MARK_PRICE","slPrice":"60000","slStopType":"MARK_PRICE","tpOrderType":"MARKET","slOrderType":"MARKET","tpQty":"0.5","slQty":"0.5","status":"FILLED","ctime":1691382137448,"triggerTime":1691382150000}]},"msg":"Success"}
 ```
+
+> Upstream example previously showed position fields here; corrected to TP/SL shape.
+
+### Cachy normalization
+
+One venue row carries both legs; the app splits it into `${id}-tp` / `${id}-sl` legs (`tpslNormalize.ts`). Cancel/modify must use `sourceOrderId`; scope (position-wide vs partial) is a guess from the presence of qty, not a venue field.
 
 ---
 

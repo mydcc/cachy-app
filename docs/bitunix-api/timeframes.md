@@ -32,6 +32,12 @@ This document summarizes the timeframe intervals supported by Bitunix (REST API 
 | **1w** | `1w` | `market_kline_1week` | No (Native) | ✅ Native WS |
 | **1M** | `1M` | `market_kline_1month` | No (Native) | ✅ Native WS |
 
+> Reconciliation note: `04_market.md` lists `2h/6h/8h/12h/3d` as native REST intervals and `08_websocket.md` lists `2h/4h/6h/8h/12h/3day` (+ `3min`) as subscribable WS channels. Cachy treats them as synthetic (no map entries in `getBitunixChannel`); the table above is the normative Cachy-native list. If the venue truly serves them natively, add map entries + natives in `brokerCapabilities.ts`.
+
+## Bitget natives (for reference)
+
+Bitget natively serves `1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w` (wire `candle1m…candle1W`, no monthly) — see `brokerCapabilities.ts` and `bitgetWs.ts`. No `docs/bitget-api/` crawl exists; the refusal matrix in `unsupportedVerbs.test.ts` is normative for Bitget.
+
 ---
 
 ## How Synthetic Timeframes Work in Cachy

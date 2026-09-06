@@ -61,11 +61,13 @@ browser                                      server (SvelteKit node adapter)
 
 One store per topic, tests beside them. `*.svelte.ts` because they use runes.
 
-`trade`, `results`, `market`, `account`, `journal`, `settings`, `preset`,
-`notes`, `favorites`, `analysis`, `indicator`, `news`, `ai`, `chat`, `modal`,
-`ui`, `effects`, `quiz`, `fireStore`, `floatingWindows`.
+`trade`, `results`, `market` (plus `market/` helpers), `account`, `journal`,
+`settings` (plus `settings/` helpers), `preset`, `notes`, `favorites`,
+`analysis`, `indicator`, `news`, `ai`, `chat`, `modal`, `ui`, `effects`,
+`quiz`, `fireStore`, `alerts`, `confirmationPolicy`, `entitlement`,
+`notifications`, `onboarding`, `paperTrading`, `riskLimits`, `tpsl`.
 
-`settings.svelte.ts` is the sensitive one: it holds `SENSITIVE_KEYS`, the
+`settings/secretsLoader.ts` is the sensitive one: it holds `SENSITIVE_KEYS`, the
 credentials encrypted with the user's master password.
 
 ### `src/services/` — logic and I/O
@@ -92,8 +94,8 @@ The largest directory, ~50 modules with tests alongside. The groups that matter:
 ### `src/components/` — UI
 
 `inputs/` (trade parameters), `results/` (calculation output), `layout/`,
-`settings/` (nine tabs: AI, Cloud, Connections, System, Trading, Visuals, plus
-indicator configuration), `shared/`.
+`alerts/` (alert definitions), `settings/` (seven tabs: AI, Chart, Cloud,
+Connections, System, Trading, Visuals, plus indicator configuration), `shared/`.
 
 ### `src/routes/`
 
@@ -101,10 +103,11 @@ indicator configuration), `shared/`.
   new UI text goes in **both** `src/locales/locales/{de,en}.json`.
   `(seo)/` holds academy, changelog, guide, privacy and whitepaper pages.
 - **`api/`** — server routes. Exchange proxies (`klines`, `tickers`, `orders`,
-  `positions`, `balance`, `account`, `tpsl`, `sync/*`), AI proxies
-  (`ai/{openai,gemini,anthropic}`, `sentiment`), external data
-  (`external/cmc`, `external/news`, `rss-fetch`), plus `health` and
-  `stream-logs`.
+  `positions`, `position-tiers`, `trading-pairs`, `funding-rate`, `balance`,
+  `account`, `account-settings`, `leverage-margin-mode`, `tpsl`, `sync/*`), AI proxies
+  (`ai/{openai,gemini,anthropic,ollama,openrouter}`, `sentiment`), external data
+  (`external/{cmc,news,article-content,check-frame-support}`, `rss-fetch`), auth
+  (`auth/token`), plus `health` and `stream-logs`.
 
   All of them authenticate — [ADR-0002](adr/0002-api-authentication-fails-closed.md)
   makes that fail closed. Exchange responses are read through

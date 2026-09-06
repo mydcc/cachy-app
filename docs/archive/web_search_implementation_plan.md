@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # Masterplan: Cachy Web Search Integration ("Agentic Loop")
 
 Dieses Dokument beschreibt die detaillierte Planung zur Integration einer autonomen Websuche in den Cachy AI Assistenten, inspiriert von der Funktionalität des Dexter-Agenten.

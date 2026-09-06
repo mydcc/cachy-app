@@ -37,7 +37,7 @@ Locally, developers and agents follow these rules:
 - **Non-code changes:** If only documentation, markdown, shell scripts, or root configs are touched, tests and `npm run check` are completely unnecessary and are skipped.
 - **Local resource protection:** Local Vitest worker count defaults to max 2 workers (`vite.config.ts`), and test scripts run through `scripts/run-lowpri.sh` (`taskset` CPU affinity clamping to at most half cores, idle I/O priority via `ionice -c 3`, and `nice -n 19`).
 
-The dev/build process depends on the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without this step, the build will fail — in cloud sandbox environments (e.g., Jules Environment Setup), this script must be part of the setup step.
+The dev/build process uses the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without Rust the script keeps the committed `static/wasm/` artifacts and the build still succeeds — in cloud sandbox environments (e.g., Jules Environment Setup), including this script in the setup step still rebuilds the module when a toolchain is present.
 
 ## Verification Proportionality & Multi-Agent Resource Policy
 

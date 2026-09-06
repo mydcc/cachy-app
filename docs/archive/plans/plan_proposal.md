@@ -1,3 +1,5 @@
+> Archived — historical reference, not maintained. See `docs/README.md` for live docs.
+
 # Action Plan: cachy-app Hardening
 
 ## Group 1: Critical Logic & Type Safety fixes (🔴 CRITICAL)
