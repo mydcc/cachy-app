@@ -31,6 +31,7 @@
 -->
 
 <script lang="ts">
+    let { symbol }: { symbol: string } = $props();
     import { alertState } from "../../../stores/alerts.svelte";
     import { _ } from "../../../locales/i18n";
     import { generateId } from "../../../utils/utils";

@@ -27,6 +27,8 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
+
+    let { symbol }: { symbol: string } = $props();
 </script>
 
 <div class="pending" role="status">

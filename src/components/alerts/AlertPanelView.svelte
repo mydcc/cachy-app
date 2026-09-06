@@ -72,7 +72,7 @@ $effect(() => {
      * directory into one chunk -- the acceptance criterion would then pass by
      * inspection and fail in the build.
      */
-    const TAB_LOADERS: Record<AlertPanelTab, () => Promise<{ default: Component<Record<string, never>> }>> = {
+    const TAB_LOADERS: Record<AlertPanelTab, () => Promise<{ default: Component<{ symbol: string }> }>> = {
         templates: () => import("./tabs/TemplatesTab.svelte"),
         combo: () => import("./tabs/ComboTab.svelte"),
         price: () => import("./tabs/PriceTab.svelte"),
@@ -113,7 +113,7 @@ $effect(() => {
 
     let priceSource = $state<PriceField>("close");
 
-    let TabComponent = $state<Component<Record<string, never>> | null>(null);
+    let TabComponent = $state<Component<{ symbol: string }> | null>(null);
     let tabLoadFailed = $state(false);
 
     /**
