@@ -46,11 +46,19 @@ export class AlertPanelWindow extends WindowBase {
     super({ title: options.title, windowType: "alertpanel" });
     this._onCloseCallback = options.onclose;
     this._symbol = options.symbol;
-    this.dockRight();
+    if (!this.hasPersistedPosition()) {
+      this.dockRight();
+    }
+  }
+
+  private hasPersistedPosition(): boolean {
+    if (typeof window === "undefined") return false;
+    const key = `window-${this.id}`;
+    return !!sessionStorage.getItem(key);
   }
 
   /**
-   * Positions the panel against the right edge.
+   * Positions the panel against the right edge on first open.
    *
    * Guarded on `window` because WindowBase is constructed in unit tests and
    * during SSR, where there is no viewport to dock against; the registry
