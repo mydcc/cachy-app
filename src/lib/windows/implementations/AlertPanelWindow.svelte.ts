@@ -70,7 +70,7 @@ export class AlertPanelWindow extends WindowBase {
   }
 
   get componentProps() {
-    return { symbol: this._symbol, windowId: this.id };
+    return { windowId: this.id };
   }
 
   /** Fires the caller's onclose however the window closed — X, Escape, or

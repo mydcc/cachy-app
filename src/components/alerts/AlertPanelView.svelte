@@ -53,11 +53,10 @@ let rootElement: HTMLElement | null = null;
 let windowId: string = "";
 
 interface Props {
-    symbol?: string;
     windowId?: string;
 }
 
-let { symbol, windowId: windowIdProp }: Props = $props();
+let { windowId: windowIdProp }: Props = $props();
 
 $effect(() => {
     if (windowIdProp) {
