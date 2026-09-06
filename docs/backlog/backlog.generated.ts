@@ -4563,7 +4563,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0343",
     "title": "Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "opencode",
     "branch": "fix/audit-followups",
     "priority": "P2",
