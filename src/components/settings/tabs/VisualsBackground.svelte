@@ -1,0 +1,1194 @@
+<!--
+  Copyright (C) 2026 MYDCT
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+<script lang="ts">
+    import { _ } from "../../../locales/i18n";
+    import type { TranslationKey } from "../../../locales/schema";
+    import { settingsState } from "../../../stores/settings.svelte";
+    import Toggle from "../../shared/Toggle.svelte";
+    import { tradeState } from "../../../stores/trade.svelte";
+    import { toastService } from "../../../services/toastService.svelte";
+
+    // Shared with the Technicals panel — panel options plus any custom interval
+    // the panel currently holds, so a panel-set value never renders unselected.
+    let indicatorTimeframeOptions = $derived([
+        ...new Set(['5m', '15m', '30m', '1h', '4h', '1d', tradeState.analysisTimeframe]),
+    ]);
+
+    // iOS 13+ Safari-specific extension, not in the standard DOM lib types.
+    interface DeviceOrientationEventiOS {
+        requestPermission?: () => Promise<"granted" | "denied">;
+    }
+
+    // Background Animation Options
+    const animPresets = [
+        { value: "none", label: $_("settings.profile.background.typeNone") },
+        { value: "gradient", label: "Gradient Flow" },
+        { value: "particles", label: "Particles" },
+        { value: "breathing", label: "Breathing" },
+        { value: "waves", label: "Waves" },
+        { value: "aurora", label: "Aurora" },
+    ];
+
+    // Static label map, duplicated in VisualsAppearance (which uses the full
+    // set). Svelte script scope does not cross component boundaries, so
+    // sharing would mean prop-drilling a constant.
+    const colorModeLabels: Record<string, string> = {
+        theme: "settings.appearance.modeTheme",
+        interactive: "settings.appearance.modeInteractive",
+        custom: "settings.appearance.modeCustom",
+        classic: "settings.appearance.modeClassic",
+    };
+
+    // Added labels for TradeFlow modes
+    const tfModeLabels: Record<string, string> = {
+        equalizer: "Equalizer",
+        raindrops: "Raindrops",
+        city: "Digital City",
+        sonar: "Sonar",
+        block: "Block",
+        galaxy: "Galaxy"
+    };
+
+    function handleWidthChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.gridWidth = parseInt(e.currentTarget.value);
+    }
+    function handleLengthChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.gridLength = parseInt(e.currentTarget.value);
+    }
+    function handleSpreadChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.spread = parseFloat(e.currentTarget.value);
+    }
+    function handleSizeChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.size = parseFloat(e.currentTarget.value);
+    }
+    function handleCamHeightChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraHeight = parseInt(e.currentTarget.value);
+    }
+    function handleCamPosXChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraPositionX = parseInt(e.currentTarget.value);
+    }
+    function handleCamDistanceChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraDistance = parseInt(e.currentTarget.value);
+    }
+    function handleRotXChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraRotationX = parseInt(e.currentTarget.value);
+    }
+    function handleRotYChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraRotationY = parseInt(e.currentTarget.value);
+    }
+    function handleRotZChange(e: Event & { currentTarget: HTMLInputElement }) {
+        settingsState.tradeFlowSettings.cameraRotationZ = parseInt(e.currentTarget.value);
+    }
+
+    function toggleGyro() {
+        const isEnabled = settingsState.galaxySettings.enableGyroscope;
+
+        if (!isEnabled) {
+            // Check for iOS permission requirement
+            const deviceOrientationEventiOS =
+                DeviceOrientationEvent as unknown as DeviceOrientationEventiOS;
+            if (
+                typeof DeviceOrientationEvent !== "undefined" &&
+                typeof deviceOrientationEventiOS.requestPermission ===
+                    "function"
+            ) {
+                deviceOrientationEventiOS
+                    .requestPermission()
+                    .then((response) => {
+                        if (response === "granted") {
+                            settingsState.galaxySettings.enableGyroscope = true;
+                        } else {
+                            toastService.error(
+                                $_("settings.visuals.gyroPermissionDenied"),
+                            );
+                        }
+                    })
+                    .catch((err: unknown) => {
+                        console.error(err);
+                    });
+            } else {
+                // Non-iOS or older devices (Android)
+                settingsState.galaxySettings.enableGyroscope = true;
+            }
+        } else {
+            settingsState.galaxySettings.enableGyroscope = false;
+        }
+    }
+</script>
+
+<section class="settings-section animate-fade-in">
+    <!-- Type Selector -->
+    <div class="flex gap-2 mb-4 flex-wrap">
+        {#each [{ v: "none" as const, l: $_("settings.profile.background.typeNone") }, { v: "image" as const, l: $_("settings.profile.background.typeMedia") }, { v: "animation" as const, l: $_("settings.profile.background.typeAnimation") }, { v: "threejs" as const, l: $_("settings.visuals.bgGalaxy") }, { v: "tradeflow" as const, l: "Trade Flow" }] as type}
+            <button
+                class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType ===
+                    type.v ||
+                (type.v === 'image' &&
+                    settingsState.backgroundType === 'video')
+                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                onclick={() => {
+                    if (type.v === "image") {
+                        settingsState.backgroundType = "image";
+                    } else {
+                        settingsState.backgroundType = type.v;
+
+                        // Auto-adjust opacity for 3D backgrounds if they are too faint
+                        if ((type.v === "threejs" || type.v === "tradeflow" || type.v === "animation") && settingsState.backgroundOpacity <= 0.3) {
+                            settingsState.backgroundOpacity = 1.0;
+                        }
+                    }
+                }}
+            >
+                {type.l}
+            </button>
+        {/each}
+    </div>
+
+    {#if settingsState.backgroundType === "image" || settingsState.backgroundType === "video"}
+        <div class="field-group mb-4">
+            <label for="bg-url"
+                >{$_("settings.profile.background.url")}</label
+            >
+            <input
+                id="bg-url"
+                type="text"
+                bind:value={settingsState.backgroundUrl}
+                oninput={(e) => {
+                    const val = e.currentTarget.value.trim().toLowerCase();
+                    if (val.endsWith(".mp4") || val.endsWith(".webm") || val.endsWith(".ogg")) {
+                        settingsState.backgroundType = "video";
+                    } else {
+                        settingsState.backgroundType = "image";
+                    }
+                }}
+                class="input-field"
+                placeholder={$_(
+                    "settings.connections.placeholders.url",
+                )}
+            />
+            <p class="text-[10px] text-[var(--text-secondary)]">
+                {$_("settings.profile.background.urlHelper")}
+            </p>
+        </div>
+        {#if settingsState.backgroundType === "video"}
+            <div class="field-group mb-4">
+                <label for="vid-speed"
+                    >{$_("settings.visuals.playbackSpeed")}: {settingsState.videoPlaybackSpeed}x</label
+                >
+                <input
+                    id="vid-speed"
+                    type="range"
+                    bind:value={settingsState.videoPlaybackSpeed}
+                    min="0.1"
+                    max="2"
+                    step="0.1"
+                    class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
+                />
+            </div>
+        {/if}
+    {/if}
+
+    {#if settingsState.backgroundType === "animation"}
+        <div class="field-group mb-4">
+            <label for="anim-preset"
+                >{$_("settings.visuals.effect")}</label
+            >
+            <select
+                id="anim-preset"
+                bind:value={settingsState.backgroundAnimationPreset}
+                class="input-field"
+            >
+                {#each animPresets as p}
+                    <option value={p.value}>{p.label}</option>
+                {/each}
+            </select>
+        </div>
+    {/if}
+
+    {#if settingsState.backgroundType === "threejs"}
+        <div
+            class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4"
+        >
+            <div class="flex justify-between items-center mb-2">
+                <h4
+                    class="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider"
+                >
+                    {$_("settings.visuals.bgGalaxy")}
+                </h4>
+                <button
+                    class="px-3 py-1 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded transition-colors flex items-center gap-2"
+                    onclick={() =>
+                        settingsState.resetGalaxySettings()}
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><path
+                            d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                        ></path><path d="M3 3v5h5"></path></svg
+                    >
+                    {$_("dashboard.resetButton")}
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="field-group">
+                    <label for="galaxy-count"
+                        >{$_("settings.visuals.particles")}: {settingsState
+                            .galaxySettings.particleCount}</label
+                    >
+                    <input
+                        id="galaxy-count"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings
+                                .particleCount
+                        }
+                        min="10"
+                        max="50000"
+                        step="10"
+                        class="range-input"
+                    />
+                </div>
+                <div class="field-group">
+                    <label for="galaxy-size"
+                        >{$_("settings.visuals.size")}: {settingsState.galaxySettings.particleSize.toFixed(
+                            2,
+                        )}</label
+                    >
+                    <input
+                        id="galaxy-size"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings
+                                .particleSize
+                        }
+                        min="0.01"
+                        max="2.0"
+                        step="0.01"
+                        class="range-input"
+                    />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="field-group">
+                    <label for="galaxy-radius"
+                        >{$_("settings.visuals.radius")}: {settingsState.galaxySettings.radius.toFixed(
+                            1,
+                        )}</label
+                    >
+                    <input
+                        id="galaxy-radius"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings.radius
+                        }
+                        min="0.1"
+                        max="20"
+                        step="0.1"
+                        class="range-input"
+                    />
+                </div>
+                <div class="field-group">
+                    <label for="galaxy-branches"
+                        >{$_("settings.visuals.branches")}: {settingsState
+                            .galaxySettings.branches}</label
+                    >
+                    <input
+                        id="galaxy-branches"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings.branches
+                        }
+                        min="2"
+                        max="10"
+                        step="1"
+                        class="range-input"
+                    />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="field-group">
+                    <label for="galaxy-spin"
+                        >{$_("settings.visuals.spinSpeed")}: {settingsState.galaxySettings.spin.toFixed(
+                            2,
+                        )}</label
+                    >
+                    <input
+                        id="galaxy-spin"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings.spin
+                        }
+                        min="0"
+                        max="5"
+                        step="0.01"
+                        class="range-input"
+                    />
+                </div>
+                <div class="field-group">
+                    <label for="galaxy-randomness"
+                        >{$_("settings.visuals.randomness")}: {settingsState.galaxySettings.randomness.toFixed(
+                            2,
+                        )}</label
+                    >
+                    <input
+                        id="galaxy-randomness"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings.randomness
+                        }
+                        min="0"
+                        max="2"
+                        step="0.01"
+                        class="range-input"
+                    />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="field-group">
+                    <label for="galaxy-randomness-power"
+                        >{$_("settings.visuals.spread")}: {settingsState.galaxySettings.randomnessPower.toFixed(
+                            2,
+                        )}</label
+                    >
+                    <input
+                        id="galaxy-randomness-power"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings
+                                .randomnessPower
+                        }
+                        min="1"
+                        max="10"
+                        step="0.01"
+                        class="range-input"
+                    />
+                </div>
+                <div class="field-group">
+                    <label for="galaxy-concentration"
+                        >{$_("settings.visuals.concentration")}: {settingsState.galaxySettings.concentrationPower.toFixed(
+                            1,
+                        )}</label
+                    >
+                    <input
+                        id="galaxy-concentration"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings
+                                .concentrationPower
+                        }
+                        min="0.1"
+                        max="10"
+                        step="0.1"
+                        class="range-input"
+                    />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="field-group">
+                    <label for="galaxy-rotation-speed"
+                        >{$_("settings.visuals.rotationSpeed")}: {settingsState.galaxySettings.rotationSpeed.toFixed(
+                            2,
+                        )}</label
+                    >
+                    <input
+                        id="galaxy-rotation-speed"
+                        type="range"
+                        bind:value={
+                            settingsState.galaxySettings
+                                .rotationSpeed
+                        }
+                        min="0"
+                        max="2"
+                        step="0.01"
+                        class="range-input"
+                    />
+                </div>
+            </div>
+
+            <!-- Auto-Center Control -->
+            <div
+                class="flex justify-between items-center p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] mt-4 mb-2"
+            >
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.visuals.autoCenter")}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_(
+                            "settings.visuals.autoCenterDesc",
+                        )}</span
+                    >
+                </div>
+                <Toggle bind:checked={settingsState.galaxySettings.autoCenter} />
+            </div>
+
+            <!-- Camera & Rotation -->
+            <div
+                class="grid grid-cols-1 gap-4 border-t border-[var(--border-color)] pt-4 mt-2"
+            >
+                <span
+                    class="text-xs font-semibold text-[var(--text-secondary)]"
+                    >{$_("settings.visuals.cameraPos")}</span
+                >
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="field-group">
+                        <label for="cam-x"
+                            >{$_("settings.visuals.coordinates.x")}: {settingsState.galaxySettings.camPos.x.toFixed(
+                                1,
+                            )}</label
+                        >
+                        <input
+                            id="cam-x"
+                            type="range"
+                            min="-15"
+                            max="15"
+                            step="0.1"
+                            bind:value={
+                                settingsState.galaxySettings.camPos
+                                    .x
+                            }
+                            class="range-input"
+                        />
+                    </div>
+                    <div class="field-group">
+                        <label for="cam-y"
+                            >{$_("settings.visuals.coordinates.y")}: {settingsState.galaxySettings.camPos.y.toFixed(
+                                1,
+                            )}</label
+                        >
+                        <input
+                            id="cam-y"
+                            type="range"
+                            min="-15"
+                            max="15"
+                            step="0.1"
+                            bind:value={
+                                settingsState.galaxySettings.camPos
+                                    .y
+                            }
+                            class="range-input"
+                        />
+                    </div>
+                    <div class="field-group">
+                        <label for="cam-z"
+                            >{$_("settings.visuals.coordinates.z")}: {settingsState.galaxySettings.camPos.z.toFixed(
+                                1,
+                            )}</label
+                        >
+                        <input
+                            id="cam-z"
+                            type="range"
+                            min="-15"
+                            max="15"
+                            step="0.1"
+                            bind:value={
+                                settingsState.galaxySettings.camPos
+                                    .z
+                            }
+                            class="range-input"
+                        />
+                    </div>
+                </div>
+
+                <span
+                    class="text-xs font-semibold text-[var(--text-secondary)]"
+                    >{$_("settings.visuals.rotation")}</span
+                >
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="field-group">
+                        <label for="rot-x"
+                            >{$_("settings.visuals.coordinates.x")}: {settingsState.galaxySettings.galaxyRot.x.toFixed(
+                                1,
+                            )}{$_("settings.visuals.coordinates.deg")}</label
+                        >
+                        <input
+                            id="rot-x"
+                            type="range"
+                            min="0"
+                            max="360"
+                            step="0.1"
+                            bind:value={
+                                settingsState.galaxySettings
+                                    .galaxyRot.x
+                            }
+                            class="range-input"
+                        />
+                    </div>
+                    <div class="field-group">
+                        <label for="rot-y"
+                            >{$_("settings.visuals.coordinates.y")}: {settingsState.galaxySettings.galaxyRot.y.toFixed(
+                                1,
+                            )}{$_("settings.visuals.coordinates.deg")}</label
+                        >
+                        <input
+                            id="rot-y"
+                            type="range"
+                            min="0"
+                            max="360"
+                            step="0.1"
+                            bind:value={
+                                settingsState.galaxySettings
+                                    .galaxyRot.y
+                            }
+                            class="range-input"
+                        />
+                    </div>
+                    <div class="field-group">
+                        <label for="rot-z"
+                            >{$_("settings.visuals.coordinates.z")}: {settingsState.galaxySettings.galaxyRot.z.toFixed(
+                                1,
+                            )}{$_("settings.visuals.coordinates.deg")}</label
+                        >
+                        <input
+                            id="rot-z"
+                            type="range"
+                            min="0"
+                            max="360"
+                            step="0.1"
+                            bind:value={
+                                settingsState.galaxySettings
+                                    .galaxyRot.z
+                            }
+                            class="range-input"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gyroscope Control -->
+            <div
+                class="flex justify-between items-center p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] mt-4"
+            >
+                <div class="flex flex-col">
+                    <span class="text-sm font-medium"
+                        >{$_("settings.visuals.gyroscope")}</span
+                    >
+                    <span
+                        class="text-[10px] text-[var(--text-secondary)]"
+                        >{$_(
+                            "settings.visuals.gyroscopeDesc",
+                        )}</span
+                    >
+                </div>
+                <button
+                    class="w-12 h-6 rounded-full relative transition-colors {settingsState
+                        .galaxySettings.enableGyroscope
+                        ? 'bg-[var(--accent-color)]'
+                        : 'bg-[var(--border-color)]'}"
+                    onclick={toggleGyro}
+                    aria-label={$_("settings.visuals.gyroscope")}
+                >
+                    <span
+                        class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform {settingsState
+                            .galaxySettings.enableGyroscope
+                            ? 'translate-x-6'
+                            : 'translate-x-0'}"
+                    ></span>
+                </button>
+            </div>
+        </div>
+    {/if}
+
+    <!-- TradeFlow Settings Block -->
+    {#if settingsState.backgroundType === "tradeflow"}
+        <div class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4">
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+                    {$_("settings.visuals.tradeFlow.config")}
+                </h4>
+                <button
+                    class="px-3 py-1 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded transition-colors flex items-center gap-2"
+                    onclick={() => settingsState.resetTradeFlowSettings()}
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                        <path d="M21 3v5h-5"></path>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                        <path d="M3 21v-5h5"></path>
+                    </svg>
+                    {$_("settings.visuals.tradeFlow.reset")}
+                </button>
+            </div>
+
+            <!-- Visualization Mode -->
+            <div class="field-group mb-4">
+                <label for="tf-mode" title={$_("settings.visuals.tradeFlow.tooltipMode")}>{$_("settings.visuals.tradeFlow.mode")}</label>
+                <div class="flex flex-wrap gap-2">
+                    {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block', 'galaxy'] as const as mode}
+                        <button
+                            class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.flowMode === mode
+                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                : 'bg-[var(--bg-tertiary)] border-[var(--border-color)]'}"
+                            onclick={() => settingsState.tradeFlowSettings.flowMode = mode}
+                        >
+                            {tfModeLabels[mode] || mode.charAt(0).toUpperCase() + mode.slice(1)}
+                        </button>
+                    {/each}
+                </div>
+            </div>
+
+
+
+            <!-- Custom Colors (only visible in custom mode) -->
+            {#if settingsState.tradeFlowSettings.colorMode === "custom"}
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="field-group">
+                        <label for="tf-color-up">{$_("settings.visuals.tradeFlow.buyColor")}</label>
+                        <div class="flex items-center gap-2">
+                            <input
+                                id="tf-color-up"
+                                type="color"
+                                bind:value={settingsState.tradeFlowSettings.customColorUp}
+                                class="w-12 h-8 rounded cursor-pointer"
+                            />
+                            <span class="text-xs font-mono text-[var(--text-secondary)]">
+                                {settingsState.tradeFlowSettings.customColorUp}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label for="tf-color-down">{$_("settings.visuals.tradeFlow.sellColor")}</label>
+                        <div class="flex items-center gap-2">
+                            <input
+                                id="tf-color-down"
+                                type="color"
+                                bind:value={settingsState.tradeFlowSettings.customColorDown}
+                                class="w-12 h-8 rounded cursor-pointer"
+                            />
+                            <span class="text-xs font-mono text-[var(--text-secondary)]">
+                                {settingsState.tradeFlowSettings.customColorDown}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            {/if}
+
+            <!-- Color Mode & Atmosphere -->
+            <div class="field-group mb-4">
+                <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.colorMode")}</span>
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-wrap gap-2">
+                        {#each ["theme", "custom"] as const as mode}
+                            <button
+                                class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.colorMode ===
+                                mode
+                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                onclick={() =>
+                                    (settingsState.tradeFlowSettings.colorMode =
+                                        mode)}
+                            >
+                                {$_(
+                                    colorModeLabels[
+                                        mode
+                                    ] as TranslationKey,
+                                ) || mode}
+                            </button>
+                        {/each}
+                    </div>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipDynamicAtmosphere")}>{$_("settings.visuals.tradeFlow.dynamicAtmosphere")}</span>
+                        <Toggle bind:checked={settingsState.tradeFlowSettings.enableAtmosphere} />
+                    </label>
+                </div>
+            </div>
+
+            <!-- Section: Flow -->
+            <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
+                <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.flow")}</h3>
+
+                <!-- Data source (keeps the effect alive when the feed is quiet) -->
+                <div class="field-group mb-4">
+                    <label for="tf-source" title={$_("settings.visuals.tradeFlow.tooltipSource")}>{$_("settings.visuals.tradeFlow.source")}</label>
+                    <select
+                        id="tf-source"
+                        bind:value={settingsState.tradeFlowSettings.tradeFlowSource}
+                        class="input-field w-full"
+                    >
+                        <option value="live">{$_("settings.visuals.tradeFlow.sourceLive")}</option>
+                        <option value="ambient">{$_("settings.visuals.tradeFlow.sourceAmbient")}</option>
+                        <option value="replay">{$_("settings.visuals.tradeFlow.sourceReplay")}</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <!-- Volume Scale (Eq, City, Sonar, Block) -->
+                    {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block', 'galaxy'].includes(settingsState.tradeFlowSettings.flowMode)}
+                    <div class="field-group">
+                        <label for="tf-volscale" title={$_("settings.visuals.tradeFlow.tooltipVolumeScale")}>{$_("settings.visuals.tradeFlow.volumeScale")}: {settingsState.tradeFlowSettings.volumeScale.toFixed(1)}x</label>
+                        <input
+                            id="tf-volscale"
+                            type="range"
+                            bind:value={settingsState.tradeFlowSettings.volumeScale}
+                            min="0.1"
+                            max="5.0"
+                            step="0.1"
+                            class="range-input"
+                        />
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                            {$_("settings.visuals.tradeFlow.tooltipVolumeScale")}
+                        </p>
+                    </div>
+                    {/if}
+
+                    <!-- Persistence Duration (All Modes) -->
+                    <!-- Only EqualizerEngine and BlockEngine read persistenceDuration;
+                         the other modes fade on their own fixed schedule. -->
+                    {#if ['equalizer', 'block'].includes(settingsState.tradeFlowSettings.flowMode)}
+                    <div class="field-group">
+                        <label for="tf-persistence">{$_("settings.visuals.tradeFlow.timeWindow")}: {
+                            settingsState.tradeFlowSettings.persistenceDuration < 60
+                            ? settingsState.tradeFlowSettings.persistenceDuration + 's'
+                            : Math.floor(settingsState.tradeFlowSettings.persistenceDuration / 60) + 'm ' + (settingsState.tradeFlowSettings.persistenceDuration % 60 > 0 ? (settingsState.tradeFlowSettings.persistenceDuration % 60) + 's' : '')
+                        }</label>
+                        <input
+                            id="tf-persistence"
+                            type="range"
+                            bind:value={settingsState.tradeFlowSettings.persistenceDuration}
+                            min="10"
+                            max="600"
+                            step="10"
+                            class="range-input"
+                        />
+                        <p class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipTimeWindow")}>{$_("settings.visuals.tradeFlow.timeWindowHelp")}</p>
+                    </div>
+                    {/if}
+
+                    <!-- Speed (Sonar) -->
+                    {#if ['sonar'].includes(settingsState.tradeFlowSettings.flowMode)}
+                    <div class="field-group">
+                        <label for="tf-speed" title={$_("settings.visuals.tradeFlow.tooltipSpeed")}>{$_("settings.visuals.tradeFlow.speed")}: {settingsState.tradeFlowSettings.speed.toFixed(1)}</label>
+                        <input id="tf-speed" type="range" min="0.1" max="5.0" step="0.1"
+                            bind:value={settingsState.tradeFlowSettings.speed}
+                            class="range-input" />
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                            {$_("settings.visuals.tradeFlow.tooltipSpeed")}
+                        </p>
+                    </div>
+                    {/if}
+
+                    <!-- Min Volume -->
+                    <div class="field-group">
+                        <label for="tf-minvol" title={$_("settings.visuals.tradeFlow.tooltipMinVolume")}>{$_("settings.visuals.tradeFlow.minVolumeLabel")}: {settingsState.tradeFlowSettings.minVolume.toLocaleString()}</label>
+                        <input id="tf-minvol" type="range" min="0" max="250000" step="100"
+                            bind:value={settingsState.tradeFlowSettings.minVolume}
+                            class="range-input" />
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                            {$_("settings.visuals.tradeFlow.tooltipMinVolume")}
+                        </p>
+                    </div>
+
+                    <!-- Scene Rotation (Block only, decorative) -->
+                    {#if settingsState.tradeFlowSettings.flowMode === 'block'}
+                    <div class="field-group flex items-center justify-between gap-2 md:col-span-2">
+                        <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipRotation")}>{$_("settings.visuals.tradeFlow.sceneRotation")}</span>
+                        <Toggle bind:checked={settingsState.tradeFlowSettings.enableRotation} />
+                    </div>
+                    <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed md:col-span-2">{$_("settings.visuals.tradeFlow.tooltipRotation")}</p>
+                    <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed md:col-span-2">{$_("settings.visuals.tradeFlow.tooltipBlock")}</p>
+                    {/if}
+                </div>
+            </div>
+
+            <!-- Section: Indicators (ATR / RSI) -->
+            <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
+                <h3 class="text-sm font-semibold mb-1 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.indicators")}</h3>
+                <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed mb-3">{$_("settings.visuals.tradeFlow.tooltipIndicators")}</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="field-group">
+                        <label for="tf-volsource" title={$_("settings.visuals.tradeFlow.tooltipVolatilitySource")}>{$_("settings.visuals.tradeFlow.volatilitySource")}</label>
+                        <select id="tf-volsource" bind:value={settingsState.tradeFlowSettings.volatilitySource} class="input-field w-full">
+                            <option value="atr">{$_("settings.visuals.tradeFlow.volatilityAtr")}</option>
+                            <option value="trades">{$_("settings.visuals.tradeFlow.volatilityTrades")}</option>
+                        </select>
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipVolatilitySource")}</p>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="tf-moodsource" title={$_("settings.visuals.tradeFlow.tooltipMoodSource")}>{$_("settings.visuals.tradeFlow.moodSource")}</label>
+                        <select id="tf-moodsource" bind:value={settingsState.tradeFlowSettings.moodSource} class="input-field w-full">
+                            <option value="sentiment">{$_("settings.visuals.tradeFlow.moodSentiment")}</option>
+                            <option value="rsi">{$_("settings.visuals.tradeFlow.moodRsi")}</option>
+                        </select>
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipMoodSource")}</p>
+                    </div>
+
+                    {#if settingsState.tradeFlowSettings.volatilitySource === 'atr' || settingsState.tradeFlowSettings.moodSource === 'rsi'}
+                    <div class="field-group md:col-span-2">
+                        <label for="tf-indicator-tf" title={$_("settings.visuals.tradeFlow.tooltipIndicatorTimeframe")}>{$_("settings.visuals.tradeFlow.indicatorTimeframe")}</label>
+                        <select id="tf-indicator-tf" bind:value={tradeState.analysisTimeframe} class="input-field w-full">
+                            {#each indicatorTimeframeOptions as tf}
+                                <option value={tf}>{tf}</option>
+                            {/each}
+                        </select>
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipIndicatorTimeframe")}</p>
+                    </div>
+                    {/if}
+                </div>
+            </div>
+
+            <!-- Section: Grid Layout (grid-based modes only; the galaxy has no grid) -->
+            {#if settingsState.tradeFlowSettings.flowMode !== 'galaxy'}
+            <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
+                <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.gridLayout")}</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="field-group">
+                        <label for="tf-width" title={$_("settings.visuals.tradeFlow.tooltipGridWidth")}>{$_("settings.visuals.tradeFlow.gridPointsX")}: {settingsState.tradeFlowSettings.gridWidth}</label>
+                        <input id="tf-width" type="range" min="10" max="800" step="10"
+                            value={settingsState.tradeFlowSettings.gridWidth}
+                            oninput={handleWidthChange}
+                            class="range-input" />
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                            {$_("settings.visuals.tradeFlow.tooltipGridWidth")}
+                        </p>
+                    </div>
+                    <div class="field-group">
+                        <label for="tf-length" title={$_("settings.visuals.tradeFlow.tooltipGridLength")}>{$_("settings.visuals.tradeFlow.gridPointsZ")}: {settingsState.tradeFlowSettings.gridLength}</label>
+                        <input id="tf-length" type="range" min="10" max="800" step="10"
+                            value={settingsState.tradeFlowSettings.gridLength}
+                            oninput={handleLengthChange}
+                            class="range-input" />
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                            {$_("settings.visuals.tradeFlow.tooltipGridLength")}
+                        </p>
+                    </div>
+                    <div class="field-group">
+                        <label for="tf-spread">{$_("settings.visuals.tradeFlow.pointSpacing")}: {settingsState.tradeFlowSettings.spread.toFixed(2)}</label>
+                        <input id="tf-spread" type="range" min="0.1" max="5.0" step="0.02"
+                            value={settingsState.tradeFlowSettings.spread}
+                            oninput={handleSpreadChange}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tf-size">{$_("settings.visuals.tradeFlow.size")}: {settingsState.tradeFlowSettings.size.toFixed(2)}</label>
+                        <input id="tf-size" type="range" min="0.01" max="2.0" step="0.01"
+                            value={settingsState.tradeFlowSettings.size}
+                            oninput={handleSizeChange}
+                            class="range-input" />
+                    </div>
+                </div>
+            </div>
+
+            {/if}
+
+            <!-- Section: Galaxy (galaxy mode only) -->
+            {#if settingsState.tradeFlowSettings.flowMode === 'galaxy'}
+            <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
+                <h3 class="text-sm font-semibold mb-1 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.galaxySection")}</h3>
+                <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed mb-3">{$_("settings.visuals.tradeFlow.tooltipGalaxy")}</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="field-group">
+                        <label for="tfg-count">{$_("settings.visuals.particles")}: {settingsState.tradeFlowSettings.galaxyFlow.particleCount}</label>
+                        <input id="tfg-count" type="range" min="1000" max="100000" step="1000"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.particleCount}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-size">{$_("settings.visuals.size")}: {settingsState.tradeFlowSettings.galaxyFlow.particleSize.toFixed(1)}</label>
+                        <input id="tfg-size" type="range" min="0.5" max="20" step="0.1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.particleSize}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-radius">{$_("settings.visuals.radius")}: {settingsState.tradeFlowSettings.galaxyFlow.radius}</label>
+                        <input id="tfg-radius" type="range" min="5" max="200" step="1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.radius}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-branches">{$_("settings.visuals.branches")}: {settingsState.tradeFlowSettings.galaxyFlow.branches}</label>
+                        <input id="tfg-branches" type="range" min="2" max="10" step="1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.branches}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-spin">{$_("settings.visuals.spinSpeed")}: {settingsState.tradeFlowSettings.galaxyFlow.spin.toFixed(2)}</label>
+                        <input id="tfg-spin" type="range" min="-5" max="5" step="0.1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.spin}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-randomness">{$_("settings.visuals.randomness")}: {settingsState.tradeFlowSettings.galaxyFlow.randomness.toFixed(2)}</label>
+                        <input id="tfg-randomness" type="range" min="0" max="3" step="0.05"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.randomness}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-rpower">{$_("settings.visuals.spread")}: {settingsState.tradeFlowSettings.galaxyFlow.randomnessPower.toFixed(1)}</label>
+                        <input id="tfg-rpower" type="range" min="1" max="10" step="0.1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.randomnessPower}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-concentration">{$_("settings.visuals.concentration")}: {settingsState.tradeFlowSettings.galaxyFlow.concentrationPower.toFixed(1)}</label>
+                        <input id="tfg-concentration" type="range" min="0.5" max="5" step="0.1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.concentrationPower}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-rotspeed">{$_("settings.visuals.rotationSpeed")}: {settingsState.tradeFlowSettings.galaxyFlow.rotationSpeed.toFixed(2)}</label>
+                        <input id="tfg-rotspeed" type="range" min="0" max="2" step="0.05"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.rotationSpeed}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group flex items-center justify-between gap-2">
+                        <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.autoCenterDesc")}>{$_("settings.visuals.autoCenter")}</span>
+                        <Toggle bind:checked={settingsState.tradeFlowSettings.galaxyFlow.autoCenter} />
+                    </div>
+                </div>
+
+                <span class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block">{$_("settings.visuals.rotation")}</span>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="field-group">
+                        <label for="tfg-rot-x">{$_("settings.visuals.coordinates.x")}: {settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.x}</label>
+                        <input id="tfg-rot-x" type="range" min="-180" max="180" step="1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.x}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-rot-y">{$_("settings.visuals.coordinates.y")}: {settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.y}</label>
+                        <input id="tfg-rot-y" type="range" min="-180" max="180" step="1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.y}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-rot-z">{$_("settings.visuals.coordinates.z")}: {settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.z}</label>
+                        <input id="tfg-rot-z" type="range" min="-180" max="180" step="1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.z}
+                            class="range-input" />
+                    </div>
+                </div>
+
+                <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)] pt-3 border-t border-[var(--border-color)]">{$_("settings.visuals.tradeFlow.marketCoupling")}</h3>
+
+                <div class="field-group flex items-center justify-between gap-2 mb-3">
+                    <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipPriceAxis")}>{$_("settings.visuals.tradeFlow.priceAxis")}</span>
+                    <Toggle bind:checked={settingsState.tradeFlowSettings.galaxyFlow.priceAxis} />
+                </div>
+                <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed mb-4">{$_("settings.visuals.tradeFlow.tooltipPriceAxis")}</p>
+
+                {#if settingsState.tradeFlowSettings.galaxyFlow.priceAxis}
+                <div class="field-group flex items-center justify-between gap-2 mb-3">
+                    <span class="text-[10px] text-[var(--text-secondary)]" title={$_("settings.visuals.tradeFlow.tooltipAtrBands")}>{$_("settings.visuals.tradeFlow.atrBands")}</span>
+                    <Toggle bind:checked={settingsState.tradeFlowSettings.galaxyFlow.atrBands} />
+                </div>
+                <p class="text-[10px] text-[var(--text-secondary)] leading-relaxed mb-4">{$_("settings.visuals.tradeFlow.tooltipAtrBands")}</p>
+                {/if}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="field-group">
+                        <label for="tfg-reactivity" title={$_("settings.visuals.tradeFlow.tooltipMarketReactivity")}>{$_("settings.visuals.tradeFlow.marketReactivity")}: {settingsState.tradeFlowSettings.galaxyFlow.marketReactivity.toFixed(1)}x</label>
+                        <input id="tfg-reactivity" type="range" min="0" max="3" step="0.1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.marketReactivity}
+                            class="range-input" />
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipMarketReactivity")}</p>
+                    </div>
+                    <div class="field-group">
+                        <label for="tfg-tint" title={$_("settings.visuals.tradeFlow.tooltipSentimentTint")}>{$_("settings.visuals.tradeFlow.sentimentTint")}: {(settingsState.tradeFlowSettings.galaxyFlow.sentimentTint * 100).toFixed(0)}%</label>
+                        <input id="tfg-tint" type="range" min="0" max="1" step="0.05"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.sentimentTint}
+                            class="range-input" />
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipSentimentTint")}</p>
+                    </div>
+                    <div class="field-group md:col-span-2">
+                        <label for="tfg-activity" title={$_("settings.visuals.tradeFlow.tooltipActivityRotation")}>{$_("settings.visuals.tradeFlow.activityRotation")}: {settingsState.tradeFlowSettings.galaxyFlow.activityRotation.toFixed(1)}x</label>
+                        <input id="tfg-activity" type="range" min="0" max="5" step="0.1"
+                            bind:value={settingsState.tradeFlowSettings.galaxyFlow.activityRotation}
+                            class="range-input" />
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">{$_("settings.visuals.tradeFlow.tooltipActivityRotation")}</p>
+                    </div>
+                </div>
+            </div>
+            {/if}
+
+            <!-- Section: Camera Control -->
+            <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
+                <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.cameraControl")}</h3>
+
+                <!-- Position -->
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="field-group">
+                        <label for="tf-cam-posx">{$_("settings.visuals.tradeFlow.positionX")}: {settingsState.tradeFlowSettings.cameraPositionX || 0}</label>
+                        <input id="tf-cam-posx" type="range" min="-500" max="500" step="1"
+                            value={settingsState.tradeFlowSettings.cameraPositionX || 0}
+                            oninput={handleCamPosXChange}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tf-cam-height">{$_("settings.visuals.tradeFlow.height")}: {settingsState.tradeFlowSettings.cameraHeight}</label>
+                        <input id="tf-cam-height" type="range" min="1" max="1000" step="1"
+                            value={settingsState.tradeFlowSettings.cameraHeight}
+                            oninput={handleCamHeightChange}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tf-cam-dist">{$_("settings.visuals.tradeFlow.distance")}: {settingsState.tradeFlowSettings.cameraDistance}</label>
+                        <input id="tf-cam-dist" type="range" min="1" max="1000" step="1"
+                            value={settingsState.tradeFlowSettings.cameraDistance}
+                            oninput={handleCamDistanceChange}
+                            class="range-input" />
+                    </div>
+                </div>
+
+                <!-- Rotation -->
+                <!-- Galaxy mode aims the camera with lookAt() while auto-center is on,
+                     which overrides these three angles entirely. Hidden rather than shown
+                     dead: the galaxy section has its own Rotation control that does work. -->
+                {#if !(settingsState.tradeFlowSettings.flowMode === 'galaxy' && settingsState.tradeFlowSettings.galaxyFlow.autoCenter)}
+                 <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="field-group">
+                        <label for="tf-cam-rx">{$_("settings.visuals.tradeFlow.rotationX")}: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
+                        <input id="tf-cam-rx" type="range" min="-180" max="180" step="1"
+                            value={settingsState.tradeFlowSettings.cameraRotationX}
+                            oninput={handleRotXChange}
+                            class="range-input" />
+                    </div>
+                    <div class="field-group">
+                        <label for="tf-cam-ry">{$_("settings.visuals.tradeFlow.rotationY")}: {settingsState.tradeFlowSettings.cameraRotationY}°</label>
+                        <input id="tf-cam-ry" type="range" min="-180" max="180" step="1"
+                            value={settingsState.tradeFlowSettings.cameraRotationY}
+                            oninput={handleRotYChange}
+                            class="range-input" />
+                    </div>
+                     <div class="field-group">
+                        <label for="tf-cam-rz">{$_("settings.visuals.tradeFlow.rotationZ")}: {settingsState.tradeFlowSettings.cameraRotationZ}°</label>
+                        <input id="tf-cam-rz" type="range" min="-180" max="180" step="1"
+                            value={settingsState.tradeFlowSettings.cameraRotationZ}
+                            oninput={handleRotZChange}
+                            class="range-input" />
+                    </div>
+                </div>
+                {/if}
+            </div>
+        </div>
+    {/if}
+
+    {#if settingsState.backgroundType !== "none"}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="field-group">
+                <label for="bg-opacity"
+                    >{$_("settings.profile.background.opacity")}: {Math.round(
+                        settingsState.backgroundOpacity * 100,
+                    )}%</label
+                >
+                <input
+                    id="bg-opacity"
+                    type="range"
+                    bind:value={settingsState.backgroundOpacity}
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
+                />
+            </div>
+            <div class="field-group">
+                <label for="bg-blur"
+                    >{$_("settings.profile.background.blur")}: {settingsState.backgroundBlur}px</label
+                >
+                <input
+                    id="bg-blur"
+                    type="range"
+                    bind:value={settingsState.backgroundBlur}
+                    min="0"
+                    max="50"
+                    step="1"
+                    class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
+                />
+            </div>
+        </div>
+    {/if}
+</section>
+
+<style>
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .field-group label {
+        font-size: var(--text-xs);
+        font-weight: var(--font-semibold);
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .input-field {
+        background-color: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--text-sm);
+        color: var(--text-primary);
+        outline: none;
+    }
+    .range-input {
+        width: 100%;
+        height: 0.25rem;
+        background: var(--border-color);
+        border-radius: var(--radius-lg);
+        appearance: none;
+        cursor: pointer;
+    }
+    .range-input::-webkit-slider-thumb {
+        appearance: none;
+        width: 1rem;
+        height: 1rem;
+        background: var(--accent-color);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+    .toggle-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xl);
+        cursor: pointer;
+    }
+</style>
