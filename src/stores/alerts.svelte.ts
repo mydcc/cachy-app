@@ -229,6 +229,36 @@ export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
 export type AlertEngineMode = "live" | "shadow";
 
 /**
+ * How often live-mode coverage is recomputed independently of candle closes.
+ *
+ * `onClose` notices a coverage change the moment *some* series closes, which
+ * covers every change that matters for as long as a series is still closing.
+ * The case it cannot reach is the one where the closes themselves stop: a
+ * trader charting only `4h` whose `1m` rule series goes quiet has no `1m`
+ * close left to notice it with, and the next `4h` close can be four hours
+ * away. For that whole window the alert is off the legacy engine and evaluated
+ * by nothing — BUG-0382 with a four-hour fuse.
+ *
+ * A minute is chosen against the window it has to detect, not against a load
+ * budget: `isSeriesObserved` calls a series stale after three trigger periods,
+ * which is three minutes for the `1m` timeframe the migration pins rules to
+ * (FEAT-0388), so checking once a minute lands well inside it. The cost is one
+ * coverage recomputation a minute — a `localStorage` read and a parse — and
+ * `setAlerts` skips the WASM crossing entirely on the usual outcome, that
+ * nothing changed.
+ */
+const COVERAGE_RESYNC_INTERVAL_MS = 60_000;
+
+let coverageResyncTimer: ReturnType<typeof setInterval> | null = null;
+
+/** Stops the coverage re-sync timer, if one is running. */
+function stopCoverageResync(): void {
+    if (coverageResyncTimer === null) return;
+    clearInterval(coverageResyncTimer);
+    coverageResyncTimer = null;
+}
+
+/**
  * Brings the alert engine up at client startup. BUG-0382: without this, every
  * method on `alertEngine` early-returns on a null instance and no alert can
  * ever fire, even though the market hot path calls `evaluate()` on every tick.
@@ -335,21 +365,14 @@ export async function initAlertEngine(
     // sink that never notifies for them, recreating the exact "neither
     // engine" gap the mode split was built to close.
     //
-    // FEAT-0387 round 5 — staleness detection must be timer-driven, not just
-    // event-driven. A rule whose series becomes quiet can sit inert for up to
-    // a full coarse timeframe after silence starts, because `onClose` only
-    // re-syncs when *some* series closes. If the trader charts only 4h and
-    // a 1m rule's series goes quiet, the 1m staleness is not detected until
-    // the next 4h close — up to 4 hours later (BUG-0382, the mirror image of
-    // round 4, which fixed series *starting* to be observed). The fix: on
-    // every close, re-check ALL currently-covered rules to see if their
-    // series have gone stale. `readCoveredAlertIds` already does this by
-    // calling `isSeriesObserved` for each rule, so it correctly catches both
-    // directions (series starting + series stopping).
-    const onClose =
-        mode === "live"
-            ? () => alertState.syncEngine(readCoveredAlertIds(isSeriesObserved))
-            : undefined;
+    // Every re-sync recomputes coverage from scratch — `readCoveredAlertIds`
+    // walks each armed rule and re-checks `isSeriesObserved` for it — so a
+    // close on any series re-validates all of them, not only the one that
+    // closed. What a close cannot do is fire once there are no closes left,
+    // which is why `COVERAGE_RESYNC_INTERVAL_MS` drives this same re-sync on a
+    // timer too.
+    const resyncCoverage = () => alertState.syncEngine(readCoveredAlertIds(isSeriesObserved));
+    const onClose = mode === "live" ? resyncCoverage : undefined;
 
     // FEAT-0387 cutover: last, and only once the legacy engine is up, and only
     // if the evaluator it would drive can actually produce a verdict. Arming
@@ -357,7 +380,20 @@ export async function initAlertEngine(
     // throw inside the gate, caught and logged, evaluating nothing — but it
     // is pure overhead on the market hot path for a loop that has already
     // been excluded from coverage above.
+    // Cleared before the arming decision, not inside it: a second
+    // `initAlertEngine()` whose schema failed to load this time must not leave
+    // the previous run's timer re-syncing coverage on behalf of an evaluator
+    // that is no longer there.
+    stopCoverageResync();
+
     if (ruleSchema.isReady()) {
         startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink, onClose);
+
+        // The half of the re-sync that survives a series going quiet. Started
+        // only alongside the loop, because coverage is empty without a ready
+        // evaluator and a timer would do nothing but log that once a minute.
+        if (mode === "live") {
+            coverageResyncTimer = setInterval(resyncCoverage, COVERAGE_RESYNC_INTERVAL_MS);
+        }
     }
 }

@@ -30,7 +30,7 @@
  * was called and would still pass with the bug present.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // The store's init is client-only (the WASM glue does not exist during SSR).
 // The `unit` project pins `browser` to false, so the startup path has to be
@@ -260,6 +260,13 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     // The fake engine mutates its own alert objects when they fire; hand each
     // test a fresh copy so one test's fired alert cannot arrive still-fired.
     ARMED_BEFORE_RELOAD.active = true;
+  });
+
+  // The timer tests below replace the global `setInterval`/`clearInterval`
+  // with `vi.spyOn`; without this they would stay replaced for every test
+  // that follows.
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("leaves the engine unloaded until something initialises it", async () => {
@@ -536,6 +543,108 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       // armed in the trader's mind, evaluated by neither engine, since the
       // rule path's own series produces no more closes to evaluate it with.
       expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+    });
+
+    /**
+     * Captures the re-sync timer instead of letting one run.
+     *
+     * A real 60-second interval would outlive the test that created it and
+     * then re-sync an orphaned module's `alertState` against the *next*
+     * test's storage — the timer under test becoming a source of flake in
+     * the suite that tests it.
+     */
+    function captureResyncTimer() {
+      const registered: Array<{ tick: () => void; intervalMs: number | undefined }> = [];
+      const cleared: unknown[] = [];
+      let nextHandle = 1;
+
+      vi.spyOn(globalThis, "setInterval").mockImplementation(((tick: () => void, intervalMs?: number) => {
+        registered.push({ tick, intervalMs });
+        return nextHandle++;
+      }) as never);
+      vi.spyOn(globalThis, "clearInterval").mockImplementation(((handle: unknown) => {
+        cleared.push(handle);
+      }) as never);
+
+      // Only the coverage re-sync: anything else on the startup path that
+      // happens to schedule an interval is not this test's subject.
+      const resyncs = () => registered.filter((r) => r.intervalMs === COVERAGE_RESYNC_INTERVAL_MS);
+      return { resyncs, cleared };
+    }
+
+    /** Mirrors `COVERAGE_RESYNC_INTERVAL_MS`, which the store does not export. */
+    const COVERAGE_RESYNC_INTERVAL_MS = 60_000;
+
+    it("re-syncs coverage on a timer, for the series that stops closing", async () => {
+      // Round 5's finding, fixed rather than documented: `onClose` fires only
+      // when *some* series closes. A trader charting only 4h whose 1m rule
+      // series goes quiet has no 1m close left to notice it with, and the next
+      // 4h close can be four hours away — for that whole window the alert is
+      // off the legacy engine and evaluated by nothing. This test never calls
+      // `onClose` at all; the timer alone has to bring the alert back.
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      let observed = true;
+      mockIsSeriesObserved.mockImplementation(() => observed);
+      const { resyncs } = captureResyncTimer();
+
+      const { initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader);
+
+      // Observed at startup: covered, so off the legacy engine.
+      expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+      expect(resyncs()).toHaveLength(1);
+
+      // The subscription drops, and no close arrives from any series.
+      observed = false;
+      resyncs()[0].tick();
+
+      // Fails without the timer: nothing would run until the next close, which
+      // on a quiet 1m series and a 4h chart is up to four hours away.
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+    });
+
+    it("shadow mode starts no re-sync timer", async () => {
+      // Same reason shadow mode gets no `onClose`: a re-sync there would strip
+      // alerts from the legacy engine for a sink that notifies nobody.
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
+      const { resyncs } = captureResyncTimer();
+
+      const { initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader, "shadow");
+
+      expect(resyncs()).toHaveLength(0);
+    });
+
+    it("starts no re-sync timer when the rule core never loaded", async () => {
+      // Coverage is empty without a ready evaluator, so a timer would do
+      // nothing but log a warning once a minute for the life of the tab.
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(false);
+      const { resyncs } = captureResyncTimer();
+
+      const { initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader);
+
+      expect(resyncs()).toHaveLength(0);
+    });
+
+    it("replaces the re-sync timer on a second init rather than stacking one", async () => {
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
+      const { resyncs, cleared } = captureResyncTimer();
+
+      const { initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader);
+      await initAlertEngine(fakeLoader);
+
+      // Two registrations, and the first one cleared — not two live timers
+      // both re-syncing the same coverage every minute.
+      expect(resyncs()).toHaveLength(2);
+      expect(cleared).toContain(1);
     });
 
     it("shadow mode never wires the re-sync hook, even once ready", async () => {
