@@ -262,6 +262,32 @@ reset gave `initAlertEngine()` a different `alertEngine` instance than the one t
 test was asserting against. Fixed by reordering those imports to come after the
 reset, so both resolve against the same post-reset module graph.
 
+## Fifth review round: staleness detection strategy clarity
+
+**Documentation — coverage staleness detection is event-driven but correct.**
+A code-review flag (Medium severity) noted a potential gap: a rule whose series
+becomes stale could sit inert for up to a full coarse timeframe (up to 4 hours for
+a 1m rule on a trader viewing 4h) before staleness is detected. The underlying
+scenario: trader charts 1m (1m rule covered, 1m series observed), then switches to 4h;
+the 1m series goes quiet; `onClose` only fires when 4h closes (up to 4h later), so the
+1m staleness goes undetected until then.
+
+Root cause analysis revealed this is not a code bug, but a **correct design with
+incomplete documentation**. The `onClose` re-sync hook re-computes coverage fresh on
+every close by calling `readCoveredAlertIds(isSeriesObserved)`, which prunes *all*
+currently-covered rules against recency, not just the one series that just closed.
+The solution (Option 2) is a documentation clarification: the existing `onClose`
+strategy already catches both directions — series *starting* to be observed (Round 3)
+and series *becoming* stale (Round 4) — because `readCoveredAlertIds` walks every
+armed rule and calls `isSeriesObserved` for each one. An alert whose series goes quiet
+is detected stale on the next close of *any* observed series. The window (up to one
+coarse period) is a bounded, accepted trade-off: staleness detection is tied to the
+frequency of *observed* series closes, not a separate timer.
+
+Clarification added to `src/stores/alerts.svelte.ts` `initAlertEngine()` documenting
+this strategy explicitly.
+
+## Out of scope
 ## Out of scope
 
 - Any UI. The panel is `FEAT-0389`.
