@@ -14,7 +14,7 @@ Diese Anleitung erklärt dir **jedes einzelne Feature** und **jedes Diagramm** i
    - [Datenmanagement](#datenmanagement)
    - [Filter & Suchfunktionen](#filter-suchfunktionen)
    - [Tags & Notizen System](#tags-notizen)
-   - [Pivot-Modus (Pro)](#pivot-modus)
+   - [Pivot-Modus](#pivot-modus)
 3. [Performance Dashboard](#performance-dashboard)
    - [Performance Tab](#perf-tab)
    - [Quality Tab](#quality-tab)
@@ -23,15 +23,15 @@ Diese Anleitung erklärt dir **jedes einzelne Feature** und **jedes Diagramm** i
    - [Costs Tab](#costs-tab)
 4. [Deep Dive Analysen (Pro)](#deep-dive)
    - [Forecast](#dd-forecast)
-   - [Trends](#dd-trends)
+   - [Performance](#dd-performance)
    - [Leakage](#dd-leakage)
-   - [Timing](#dd-timing)
-   - [Assets](#dd-assets)
+   - [Time](#dd-time)
+   - [Execution](#dd-execution)
    - [Risk](#dd-risk)
    - [Market](#dd-market)
-   - [Psychology](#dd-psychology)
+   - [Behavior](#dd-behavior)
    - [Strategies](#dd-strategies)
-   - [Calendar](#dd-calendar)
+   - [System Quality](#dd-quality)
 5. [Formeln & Berechnungen](#formeln)
 6. [Best Practices & Tipps](#best-practices)
 
@@ -63,13 +63,11 @@ Erfolgreiches Trading basiert auf einem wiederholbaren Prozess. Der **Calculator
 
 ### Journal-Übersicht & Navigation
 
-Das Journal besteht aus zwei Hauptbereichen:
+Das Journal hat drei Hauptansichten:
 
-1. **Dashboard-Bereich (oben):** Hier wählst du zwischen verschiedenen Analyse-Ansichten:
-   - **Performance Dashboard:** Die 5 Haupt-Tabs (Performance, Quality, Direction, Discipline, Costs)
-   - **Deep Dive:** 10 spezialisierte Analyse-Tabs für Pro-User
-
-2. **Tabellen-Bereich (unten):** Zeigt alle deine Trades in einer detaillierten Übersicht mit Filter- und Sortierfunktionen.
+1. **Übersicht:** Charts und Dashboards — das Performance Dashboard mit 5 Tabs (Performance, Quality, Direction, Discipline, Costs).
+2. **Trades-Tabelle:** Zeigt alle deine Trades in einer detaillierten Übersicht mit Filter- und Sortierfunktionen.
+3. **Deep Dive:** 10 spezialisierte Analyse-Tabs für Pro-User (unten beschrieben).
 
 <a id="datenmanagement"></a>
 
@@ -77,15 +75,15 @@ Das Journal besteht aus zwei Hauptbereichen:
 
 **Datenquellen:**
 
-- **Sync (Bitunix):** Holt automatisch deine Trade-Historie vom Broker. PnL, Gebühren und Funding werden exakt übernommen. Nutze den "Sync"-Button, um neue Trades abzurufen.
+- **Sync (Bitunix):** Holt automatisch deine Trade-Historie vom Broker. PnL, Gebühren und Funding werden exakt übernommen. Nutze den "Sync Bitunix"-Button, um neue Trades abzurufen (automatischer Sync nur für Bitunix).
 
 - **CSV Import:** Importiere Trades aus anderen Quellen oder Backup-Dateien. Achte auf das richtige Format.
 
-- **CSV Export:** Deine Daten gehören dir! Nutze den Export für externe Backups oder Excel-Analysen.
+- **CSV Export:** Deine Daten gehören dir! Nutze den Export für Journal-Analysen in Excel. Für ein vollständiges Backup von Einstellungen, Journal und Presets nutze Backup erstellen in den Einstellungen (JSON, optional verschlüsselt).
 
-- **Verschlüsselte Backups:** Beim Export über die Einstellungen kannst du optional ein Passwort setzen, um deine Trading-Historie und API-Schlüssel mit AES-256-bit-Verschlüsselung zu schützen. Dies ist besonders wichtig, wenn du Backups in der Cloud speicherst.
+- **Verschlüsselte Backups:** Beim Export über die Einstellungen kannst du optional ein Passwort setzen, um deine Trading-Historie und API-Schlüssel mit AES-256-Verschlüsselung (AES-GCM) zu schützen. Dies ist besonders wichtig, wenn du Backups in der Cloud speicherst.
 
-- **Screenshots:** Lade Chart-Screenshots für jeden Trade hoch. Ein Bild sagt mehr als 1000 Zahlen – speichere Setup und Ausführung visuell.
+- **Screenshots:** Lade Chart-Screenshots für jeden Trade hoch (erfordert deinen ImgBB-API-Schlüssel unter Einstellungen → Verbindungen). Ein Bild sagt mehr als 1000 Zahlen – speichere Setup und Ausführung visuell.
 
 <a id="filter-suchfunktionen"></a>
 
@@ -118,7 +116,7 @@ Schreibe kurze Notizen zu jedem Trade: Was war der Plan? Wie hast du dich gefüh
 
 <a id="pivot-modus"></a>
 
-### Pivot-Modus (Pro)
+### Pivot-Modus
 
 **Was ist das?**
 Gruppiert alle Trades nach Symbolen und zeigt aggregierte Statistiken.
@@ -139,7 +137,7 @@ Erkenne sofort, mit welchen Assets du harmonierst und welche Coins dein Konto ve
 
 ## Performance Dashboard
 
-Das Performance Dashboard bietet 5 spezialisierte Ansichten. Wähle oben im Dropdown zwischen den Tabs.
+Das Performance Dashboard bietet 5 spezialisierte Ansichten. Wähle oben in der Button-Leiste zwischen den Tabs.
 
 <a id="perf-tab"></a>
 
@@ -257,12 +255,12 @@ Zentrale Kennzahlen deiner Trading-Performance in einer kompakten Übersicht.
 
 1. **Win Rate** (Gewinnrate)
    - Prozentsatz gewonnener Trades
-   - Grün wenn ≥ 50%, Rot wenn < 50%
+   - Grün wenn ≥ 50%, neutral wenn < 50%
    - Formel: `(Gewinn-Trades / Gesamt-Trades) × 100`
 
 2. **Profit Factor** (PF)
    - Verhältnis Bruttogewinn zu Bruttoverlust
-   - Grün wenn ≥ 1.5, Gelb wenn ≥ 1.0, Rot wenn < 1.0
+   - Grün wenn ≥ 1.5, darunter neutral
    - **> 1.0** = Profitabel
    - **> 1.5** = Solides System
    - **> 2.0** = Exzellentes System
@@ -338,6 +336,11 @@ Zeigt zusätzliche Statistiken speziell für Long vs. Short:
 - Anzahl Trades Long/Short
 - Win Rate Long/Short
 - Gesamt PnL Long/Short
+
+#### 🏆 Top / Bottom Symbole
+
+- **Top 5 Symbole:** Die 5 profitabelsten Handelspaare.
+- **Bottom 5 Symbole:** Die 5 Handelspaare mit den größten Verlusten.
 
 ---
 
@@ -493,7 +496,7 @@ Doughnut-Chart mit Aufteilung der Gebührenarten:
 
 ## Deep Dive Analysen (Pro)
 
-Die Deep Dive Analysen sind für fortgeschrittene Trader und erfordern Pro-Zugang. Hier geht es in die Tiefe deiner Performance.
+Die Deep Dive Analysen sind für fortgeschrittene Trader und erfordern Pro-Zugang, freigeschaltet bei aktivem VIP-Theme (Freischaltcode beim Support erfragen). Hier geht es in die Tiefe deiner Performance.
 
 <a id="dd-forecast"></a>
 
@@ -507,15 +510,15 @@ Eine statistische Prognose, wie dein Konto sich in Zukunft entwickeln könnte, b
 **Wie lesen?**
 
 - **X-Achse:** Anzahl zukünftiger Trades
-- **Y-Achse:** Erwartete Kapitalveränderung in %
-- **Mehrere Linien:** Verschiedene Szenarien (Best Case, Average, Worst Case)
+- **Y-Achse:** Erwartete Eigenkapitalveränderung in Kontowährung ($)
+- **Mehrere Linien:** Drei Kegel-Linien — 90. Perzentil (Best), Median, 10. Perzentil (Worst) — plus Sample-Pfade
 
 **Interpretation:**
 
 - **Fächerförmige Linien:** Je weiter in der Zukunft, desto unsicherer
-- **Mittlere Linie (Average):** Wahrscheinlichste Entwicklung
-- **Obere Grenze:** Optimistisches Szenario
-- **Untere Grenze:** Pessimistisches Szenario
+- **Median-Linie:** Wahrscheinlichste Entwicklung
+- **Obere Grenze (90. Perzentil):** Optimistisches Szenario
+- **Untere Grenze (10. Perzentil):** Pessimistisches Szenario
 
 **Handlungsempfehlungen:**
 
@@ -525,9 +528,9 @@ Eine statistische Prognose, wie dein Konto sich in Zukunft entwickeln könnte, b
 
 ---
 
-<a id="dd-trends"></a>
+<a id="dd-performance"></a>
 
-### 2. Trends - Entwicklung der Kennzahlen
+### 2. Performance - Entwicklung der Kennzahlen
 
 Dieser Tab zeigt, wie sich deine wichtigsten Metriken über die Zeit entwickeln (rolling/gleitend).
 
@@ -569,34 +572,7 @@ Dein Profit Factor über eine gleitende Periode.
 - **Linie zwischen 1.0 - 1.5:** Solide
 - **Linie unter 1.0:** System verliert Geld
 
-#### 📊 Rolling SQN (System Quality Number)
-
-**Was zeigt es?**
-Ein statistisches Maß für die Qualität deines Trading-Systems.
-
-**Wie lesen?**
-
-- **Y-Achse:** SQN-Wert
-- **Interpretation der Werte:**
-  - **SQN < 1.6:** Unterdurchschnittlich
-  - **SQN 1.6 - 2.0:** Durchschnitt
-  - **SQN 2.0 - 2.5:** Gut
-  - **SQN 2.5 - 3.0:** Sehr gut
-  - **SQN 3.0 - 5.0:** Exzellent
-  - **SQN > 5.0:** Herausragend (selten)
-
-**Formel:**
-
-```
-SQN = (√Anzahl Trades × Durchschnitt R-Multiple) / Standardabweichung R-Multiple
-```
-
-**Handlungsempfehlungen:**
-
-- SQN < 1.6: System überarbeiten
-- SQN > 2.5: System ist stark, skaliere auf
-
-**Mindestens 20 Trades erforderlich für aussagekräftige Trends.**
+**Rolling-Kennzahlen brauchen mindestens 20 Trades.**
 
 ---
 
@@ -665,9 +641,9 @@ Die Stunden, in denen du am meisten Geld verlierst.
 
 ---
 
-<a id="dd-timing"></a>
+<a id="dd-time"></a>
 
-### 4. Timing - Zeitanalyse
+### 4. Time - Zeitanalyse
 
 Wann bist du am besten? Dieser Tab analysiert Zeit-bezogene Muster.
 
@@ -762,39 +738,34 @@ Trades gruppiert in Zeitfenster (z.B. 0-15 Min, 15-30 Min, 30-60 Min, etc.).
 - Fokussiere dich auf deine profitabelsten Zeitfenster
 - Vermeide Zeitfenster mit Verlusten
 
----
+#### 📅 Calendar Heat Map
 
-<a id="dd-assets"></a>
-
-### 5. Assets - Symbol-Performance
-
-#### 🔵 Asset Bubble Matrix
-
-**Was zeigt es?**
-Eine Bubble-Chart-Matrix, die alle Symbole nach **Win Rate** und **PnL** positioniert.
+Eine Kalenderansicht, in der jeder Tag nach dem PnL dieses Tages eingefärbt ist.
 
 **Wie lesen?**
 
-- **X-Achse:** Win Rate (%)
-- **Y-Achse:** PnL ($)
-- **Bubbles:** Jede Blase = ein Symbol
-- **Größe der Blase:** Anzahl der Trades
-- **Farbe:** Grün (profitabel) oder Rot (verlustreich)
+- **Grüne Tage:** Gewinn-Tage
+- **Rote Tage:** Verlust-Tage
+- **Farbintensität:** Je dunkler, desto größer Gewinn/Verlust
+- **Graue/weiße Tage:** Keine Trades
 
-**Interpretation:**
+---
 
-**Quadranten:**
+<a id="dd-execution"></a>
 
-1. **Oben rechts (High Win Rate + High PnL):** 🌟 DEINE BESTEN COINS! Erhöhe hier die Position Size.
-2. **Oben links (Low Win Rate + High PnL):** Profitabel trotz niedriger Win Rate → Hohes RR funktioniert.
-3. **Unten rechts (High Win Rate + Low PnL):** Viele kleine Gewinne, aber keine großen Gewinner.
-4. **Unten links (Low Win Rate + Low PnL):** ❌ ACCOUNT KILLER! Entferne diese Coins von deiner Watchlist.
+### 5. Execution - Effizienz der Ausführung
 
-**Handlungsempfehlungen:**
+Dieser Tab zeigt, wie sauber du ein- und aussteigst.
 
-- Trade mehr von Quadrant 1 und 2
-- Meide Quadrant 4 komplett
-- Analysiere Quadrant 3: Warum sind die Gewinne klein?
+#### 🎯 Execution Efficiency (MFE vs MAE)
+
+**Was zeigt es?**
+Ein Streudiagramm zum Exit-Timing. X-Achse: MAE (Max Pain — wie weit der Trade gegen dich lief), Y-Achse: MFE (Max Gain — wie weit er für dich lief). Oben links ist ideal (Sniper-Entry: wenig Schmerz, großer Gewinn).
+
+#### 🍩 6-Segment-Verteilung
+
+**Was zeigt es?**
+Detaillierte Aufschlüsselung von Gewinnen, Verlusten und Breakevens, getrennt nach Long und Short.
 
 ---
 
@@ -878,9 +849,9 @@ Performance aufgeschlüsselt nach erkannten Marktbedingungen.
 
 ---
 
-<a id="dd-psychology"></a>
+<a id="dd-behavior"></a>
 
-### 8. Psychology - Psychologie & Disziplin
+### 8. Behavior - Disziplin & Mentales Spiel
 
 #### 🔥 Streak Analysis (Detailliert)
 
@@ -961,31 +932,21 @@ Detaillierter Vergleich mehrerer Strategien mit zusätzlichen Metriken:
 
 ---
 
-<a id="dd-calendar"></a>
+<a id="dd-quality"></a>
 
-### 10. Calendar - Kalenderansicht
+### 10. System Quality - Statistische Systembewertung
 
-#### 📅 Calendar Heat Map
+#### 📊 Rolling-SQN-Kurve
 
 **Was zeigt es?**
-Ein Kalender, bei dem jeder Tag farblich markiert ist basierend auf dem PnL dieses Tages.
+Die System Quality Number über deine Trade-Historie aufgetragen.
 
 **Wie lesen?**
 
-- **Grüne Tage:** Gewinn-Tage
-- **Rote Tage:** Verlust-Tage
-- **Intensität der Farbe:** Je dunkler, desto größer der Gewinn/Verlust
-- **Graue/Weiße Tage:** Keine Trades
+- **Y-Achse:** SQN-Wert (`SQN = (√Anzahl Trades × Durchschnitt R-Multiple) / Standardabweichung R-Multiple`)
+- Schlecht unter 1.6, durchschnittlich ab 1.6, gut ab 2.0, exzellent ab 2.5.
 
-**Interpretation:**
-
-- Auf einen Blick siehst du profitable vs. verlustbringende Tage
-- Erkenne wöchentliche oder monatliche Muster
-
-**Beispiel-Muster:**
-
-- Jeden Freitag rot? → Vermeide Freitags-Trading
-- Immer am Monatsanfang grün? → Gute Zeit zum Traden
+**Hinweis:** Der Tab braucht mindestens 30 Trades; mit weniger Trades bleibt er leer.
 
 ---
 
@@ -1087,12 +1048,12 @@ Wobei:
 
 **Interpretation:**
 
-- **< 1.6:** Unterdurchschnittlich
+- **< 1.6:** Schlecht
 - **1.6 - 2.0:** Durchschnitt
 - **2.0 - 2.5:** Gut
-- **2.5 - 3.0:** Sehr gut
-- **3.0 - 5.0:** Exzellent
-- **> 5.0:** Herausragend
+- **2.5 - 3.0:** Exzellent
+- **3.0 - 5.0:** Holy Grail
+- **> 5.0:** Legendär
 
 ---
 
@@ -1136,9 +1097,9 @@ $$
 
 **Interpretation:**
 
-- **> 80%:** Exzellents Exit-Timing
+- **Über ~80%:** Deutet auf gutes Exit-Timing hin
 - **50-80%:** Solide
-- **< 50%:** Du verlässt Trades zu früh
+- **Unter ~50%:** Deutet auf zu frühe Exits hin
 
 ---
 
@@ -1157,16 +1118,16 @@ $$
 
 **Wöchentliche Analyse:**
 
-1. Deep Dive → **Timing**: Gibt es schlechte Stunden/Tage?
+1. Deep Dive → **Time**: Gibt es schlechte Stunden/Tage?
 2. Deep Dive → **Strategies**: Welche Tags funktionieren?
-3. Deep Dive → **Psychology**: Wie sind meine Streaks?
-4. Exportiere CSV als Backup
+3. Deep Dive → **Behavior**: Wie sind meine Streaks?
+4. Backup in den Einstellungen erstellen (JSON), um deine Arbeit zu sichern
 
 **Monatliche Review:**
 
 1. Performance → **Monthly PnL**: War der Monat profitabel?
 2. **Quality Tab**: Wie hat sich mein PF entwickelt?
-3. Deep Dive → **Trends**: Rolling Metrics analysieren
+3. Deep Dive → **Performance**: Rolling Metrics analysieren
 4. Deep Dive → **Leakage**: Wo verliere ich Geld?
 5. **Strategien anpassen** basierend auf den Daten
 
@@ -1190,7 +1151,7 @@ $$
 → Nach 3 Verlusten oder 5 Gewinnen: Extra vorsichtig sein!
 
 ❌ **Daten nicht exportieren**
-→ Wöchentlicher CSV-Export = Backup deiner Arbeit!
+→ Wöchentliches Backup über Einstellungen = Backup deiner Arbeit! (CSV-Export deckt nur das Journal ab.)
 
 ---
 
