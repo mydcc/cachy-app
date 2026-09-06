@@ -125,3 +125,19 @@
         </label>
     </div>
 </section>
+
+<style>
+    /* Svelte scoped styles do not cross component boundaries: this shape is
+       restated here (same values as the other settings tabs) instead of
+       relying on the former VisualsTab shell. */
+    .toggle-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xl);
+        cursor: pointer;
+    }
+</style>
