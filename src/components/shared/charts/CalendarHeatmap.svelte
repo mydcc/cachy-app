@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher, onDestroy } from "svelte";
+  import { onDestroy } from "svelte";
   import { computePosition, flip, shift, offset, arrow, autoUpdate } from "@floating-ui/dom";
 
   interface Props {
@@ -30,11 +30,14 @@
     bestSymbolPnl?: number;
   }[];
     year?: number;
+    onclick?: (detail: { date: string }) => void;
   }
 
-  let { data = [], year = new Date().getFullYear() }: Props = $props();
-
-  const dispatch = createEventDispatcher();
+  let {
+    data = [],
+    year = new Date().getFullYear(),
+    onclick,
+  }: Props = $props();
 
   // Helpers
   const months = [
@@ -112,7 +115,7 @@
   }
 
   function handleDayClick(dateStr: string) {
-    dispatch("click", { date: dateStr });
+    onclick?.({ date: dateStr });
   }
 
   type DataEntry = NonNullable<Props["data"]>[number];
