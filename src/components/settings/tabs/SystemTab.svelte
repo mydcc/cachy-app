@@ -240,14 +240,17 @@
             id: "dashboard",
             label: $_("settings.system.dashboard") || "Dashboard",
         },
-        { id: "data", label: $_("settings.tabs.data") || "Data & Backup" },
+        {
+            id: "data",
+            label: $_("settings.system.dataMaintenance") || "Data & Backup",
+        },
         {
             id: "maintenance",
             label: $_("settings.tabs.maintenance") || "Maintenance",
         },
         {
             id: "controls",
-            label: $_("settings.tabs.hotkeys") || "Controls",
+            label: $_("settings.profile.hotkeysTitle") || "Hotkeys",
         },
     ];
 </script>

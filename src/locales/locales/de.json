@@ -1502,7 +1502,8 @@
       "fixEdgesDesc": "Chart kann nicht über linken/rechten Rand hinaus gescrollt werden",
       "countdownEnabled": "Countdown zur Kerzenschließung",
       "countdownDesc": "Verbleibende Zeit bis die aktuelle Kerze schließt",
-      "reset": "Zurücksetzen"
+      "reset": "Zurücksetzen",
+      "title": "Chart-Einstellungen"
     },
     "tabs": {
       "general": "Allgemein",
@@ -1727,6 +1728,12 @@
       "selectPeriod": "Zeitraum auswählen",
       "chartUpdateInterval": "Kerzenchart Aktualisierungsrate",
       "chartUpdateIntervalDesc": "Steuert wie oft Kerzen-Echtzeitkurse neu gezeichnet werden.",
+      "renderRealtime": "0 ms (Echtzeit / Maximum)",
+      "renderUltra": "20 ms (Ultra / ~50 FPS)",
+      "renderVeryFast": "50 ms (Sehr schnell / ~20 FPS)",
+      "renderFast": "100 ms (Schnell / ~10 FPS - Standard)",
+      "renderNormal": "200 ms (Normal / ~5 FPS)",
+      "renderEco": "500 ms (Energiesparend / ~2 FPS)",
       "automationTitle": "Automatisierung & Erweitert",
       "autoTrading": "Automatisierter Handel (Beta)",
       "autoTradingDesc": "Aktivieren Sie automatisierte Handelsfunktionen (Demnächst).",

@@ -359,12 +359,12 @@
                             bind:value={settingsState.chartRenderIntervalMs}
                             class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
                         >
-                            <option value={0}>0 ms (Echtzeit / Maximum)</option>
-                            <option value={20}>20 ms (Ultra / ~50 FPS)</option>
-                            <option value={50}>50 ms (Sehr schnell / ~20 FPS)</option>
-                            <option value={100}>100 ms (Schnell / ~10 FPS - Standard)</option>
-                            <option value={200}>200 ms (Normal / ~5 FPS)</option>
-                            <option value={500}>500 ms (Energiesparend / ~2 FPS)</option>
+                            <option value={0}>{$_("settings.trading.renderRealtime")}</option>
+                            <option value={20}>{$_("settings.trading.renderUltra")}</option>
+                            <option value={50}>{$_("settings.trading.renderVeryFast")}</option>
+                            <option value={100}>{$_("settings.trading.renderFast")}</option>
+                            <option value={200}>{$_("settings.trading.renderNormal")}</option>
+                            <option value={500}>{$_("settings.trading.renderEco")}</option>
                         </select>
                         <p class="text-[10px] text-[var(--text-secondary)] mt-1">
                             {$_("settings.trading.chartUpdateIntervalDesc") || "Steuert wie oft Kerzen-Echtzeitkurse neu gezeichnet werden."}

@@ -43,7 +43,7 @@
     <!-- Header with Reset Button -->
     <div class="flex justify-between items-center gap-2">
         <h2 class="text-lg font-semibold text-[var(--text-primary)]">
-            Chart Einstellungen
+            {$_("settings.chart.title") || "Chart Settings"}
         </h2>
         <button
             type="button"
