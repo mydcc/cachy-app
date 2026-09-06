@@ -63,17 +63,33 @@ never has to look at the current, possibly-edited state of `cachy_rules_v1`.
 
 ## Acceptance criteria
 
-- [ ] Every alert stored under `cachy_alerts_v1` exists as a valid `RuleDocument` in
+- [x] Every alert stored under `cachy_alerts_v1` exists as a valid `RuleDocument` in
       `cachy_rules_v1` after one load, with the same symbol and threshold
-- [ ] A fired (`active: false`) alert migrates as history, not as an armed rule
-- [ ] The migration runs once; a second load does not duplicate rules
-- [ ] `cachy_alerts_v1` is left in place, and the release that removes it is named in
+- [x] A fired (`active: false`) alert migrates as history, not as an armed rule
+- [x] The migration runs once; a second load does not duplicate rules
+- [x] `cachy_alerts_v1` is left in place, and the release that removes it is named in
       this item before it happens
-- [ ] A malformed stored entry is skipped with a logged reason and does not abort the
+- [x] A malformed stored entry is skipped with a logged reason and does not abort the
       migration for the remaining entries
-- [ ] No migrated rule carries a `consequence_level` above `notify`
-- [ ] Every successfully migrated legacy id is recorded in `cachy_alerts_migrated_v1`,
+- [x] No migrated rule carries a `consequence_level` above `notify`
+- [x] Every successfully migrated legacy id is recorded in `cachy_alerts_migrated_v1`,
       and that record is unaffected by later edits or deletions in `cachy_rules_v1`
+
+## Ninth review round
+
+The ledger required by the last acceptance criterion above did not exist:
+`migrateAlertsToRuleDocuments` wrote `cachy_rules_v1` and (via FEAT-0401)
+`cachy_rule_origin_v1`, but nothing wrote `cachy_alerts_migrated_v1`. `recordMigratedIds`
+now merges every alert id that ends a run with a matching rule — freshly converted,
+resynced (BUG-0402), or already migrated in an earlier run — into that ledger, appending
+only, keyed by alert id. Covered by seven new tests, including that a rule deleted from
+`cachy_rules_v1` after migration leaves its alert's ledger entry untouched.
+
+This is deliberately separate from FEAT-0401's `cachy_rule_origin_v1`: that ledger is
+keyed by rule id and answers "did this rule come from an alert" (for orphan detection,
+FEAT-0387's cutover); this one is keyed by alert id and answers "was this legacy alert
+ever migrated" (for the `cachy_alerts_v1` removal this item's Out of scope section
+targets at `M5`). Both are legitimate and neither substitutes for the other.
 
 ## Behavior Change Documented for FEAT-0387
 
