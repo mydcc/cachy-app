@@ -2,7 +2,7 @@
 
 Willkommen bei Cachy! Dieses Handbuch ist deine umfassende Anleitung, um die App effektiv für dein Trading zu nutzen. Es deckt alles ab, von der grundlegenden Positionsberechnung bis hin zur fortgeschrittenen Performance-Analyse.
 
-**Datenschutz-Hinweis:** Cachy läuft vollständig lokal (client-seitig). Alle deine Daten (Einstellungen, Journal, API-Schlüssel) werden lokal in deinem Browser (`localStorage`) gespeichert. Es werden keine Daten an externe Server gesendet (außer direkte API-Anfragen an die von dir konfigurierten Börsen).
+**Datenschutz-Hinweis:** Cachy speichert deine Daten (Einstellungen, Journal, API-Schlüssel) lokal in deinem Browser (`localStorage`). Zusätzlich sendet die App anonyme Nutzungsstatistiken (Theme, Anbieter, App-Version – niemals Journal, Einstellungen oder API-Schlüssel) an unsere selbst gehostete Matomo-Instanz unter `s.cachy.app`; jederzeit abwählbar unter Einstellungen → System → Performance („Nutzungsstatistiken"). API-Anfragen an deine konfigurierten Börsen gehen direkt an die Börse.
 
 ---
 
@@ -86,7 +86,7 @@ Cachy bietet Werkzeuge, um den Markt in Echtzeit im Blick zu behalten.
 
 Dieses Panel befindet sich oben (oder mobil über die Sidebar erreichbar) und zeigt Echtzeitdaten für das gewählte Symbol:
 
-- **Live Preis:** Aktualisiert sich in Echtzeit über Websockets (wenn Bitunix ausgewählt ist).
+- **Live Preis:** Aktualisiert sich in Echtzeit über Websockets für den gewählten Anbieter (Bitunix oder Bitget).
 - **24h Statistiken:** Änderung %, Hoch, Tief und Volumen.
 - **Funding Rate:** Aktuelle Finanzierungsrate (grün = positiv, rot = negativ).
 - **Countdown:** Zeit bis zur nächsten Funding-Zahlung.
@@ -131,6 +131,8 @@ Die Sidebar bietet einen umfassenden Überblick über deine aktive Handelsumgebu
 - **Verlauf (History):** Zeigt die jüngste Handelshistorie.
 - **TP/SL:** Eigener Tab zur Verwaltung von Take-Profit- und Stop-Loss-Orders (Bitunix).
 
+Positions- und Order-Synchronisation erfordern den Pro-Modus mit konfigurierten API-Schlüsseln.
+
 ---
 
 ## 3. Trade Journal
@@ -139,8 +141,8 @@ Das Journal ist der Ort, an dem du deine Performance verfolgst. Es unterstützt 
 
 ### Manuell vs. Synchronisiert
 
-- **Manuell:** Du klickst nach der Berechnung eines Trades auf "Zum Journal hinzufügen". Du aktualisierst den Status (Gewonnen/Verloren) und den Ausstiegspreis später manuell.
-- **Synchronisiert (Bitunix):** Wenn du Bitunix nutzt und API-Schlüssel konfiguriert hast, kann Cachy deine Handelshistorie automatisch importieren, inklusive realisiertem PnL und Gebühren.
+- **Manuell:** Du klickst nach der Berechnung eines Trades auf „Trade zum Journal hinzufügen". Du aktualisierst den Status (Gewonnen/Verloren) und den Ausstiegspreis später manuell.
+- **Synchronisiert (Bitunix, Pro):** Wenn du Bitunix nutzt, API-Schlüssel konfiguriert hast und der Pro-Modus aktiv ist, kann Cachy deine Handelshistorie automatisch importieren, inklusive realisiertem PnL und Gebühren.
 
 ### Performance Tracking
 
@@ -154,7 +156,7 @@ Die Journal-Analysen sind für alle Nutzer freigeschaltet:
 
 #### Deep Dive Analysen
 
-Der "Deep Dive"-Bereich bietet zehn spezialisierte Analyse-Tabs:
+Der "Deep Dive"-Bereich (Pro) bietet zehn spezialisierte Analyse-Tabs:
 
 - **Performance:** Trends deiner Ergebnisse im Zeitverlauf.
 - **Exekution:** Qualität deiner Einstiege und Ausstiege.
@@ -163,7 +165,7 @@ Der "Deep Dive"-Bereich bietet zehn spezialisierte Analyse-Tabs:
 - **Verluste:** Wo Gebühren, Slippage und vermeidbare Fehler Gewinn kosten.
 - **Zeit:** Zu welcher Tageszeit oder an welchem Wochentag du am profitabelsten bist.
 - **Strategien:** Tagge deine Trades (z.B. "Breakout", "Reversal") und sieh, welche Strategien die besten Ergebnisse liefern.
-- **Verhalten:** Gewinn- und Verlustserien, um "Tilt" oder "Flow"-Zustände zu erkennen — inklusive Asset-Verteilung.
+- **Verhalten:** Gewinn- und Verlustserien, um "Tilt" oder "Flow"-Zustände zu erkennen.
 - **Prognose:** Monte-Carlo-Simulation auf Basis deiner Historie.
 - **System Qualität:** Wie sauber und vollständig dein Journal geführt ist.
 
@@ -173,7 +175,7 @@ Der "Deep Dive"-Bereich bietet zehn spezialisierte Analyse-Tabs:
 
 Zugriff auf die Einstellungen über das Zahnrad-Symbol.
 
-### Zugangstoken (App Access Token)
+### Zugangstoken (selbst ausgestellt)
 
 Cachy schützt die API-Routen deines eigenen Servers mit **selbstausgestellten
 Zugangstokens**: Beim ersten geschützten API-Aufruf fordert die App automatisch
@@ -185,7 +187,7 @@ deinen Browser gegenüber deinem Server, damit nicht fremde Besucher deine
 API-Routen mitnutzen können. Der Server speichert nur einen Hash des Tokens —
 nie den Token selbst.
 
-- **Ansehen/Zurücksetzen:** Einstellungen → Verbindungen → **Zugangstoken**. Der Button **"Zugangstoken erstellen"** ersetzt den gespeicherten Token durch einen frisch ausgestellten — normalerweise nie nötig, da die App sich selbst versorgt.
+- **Ansehen/Zurücksetzen:** Einstellungen → Verbindungen → **Zugangstoken (selbst ausgestellt)**. Der Button **"Zugangstoken erstellen"** ersetzt den gespeicherten Token durch einen frisch ausgestellten — normalerweise nie nötig, da die App sich selbst versorgt.
 - **Server-Neustart:** Tokens liegen im Speicher des Serverprozesses. Nach einem Neustart stellt die App automatisch einen neuen aus und wiederholt die Anfrage.
 - **Fehlverhalten erkennen:** Lädt der Kontostand nicht und die Konsole zeigt `401 (Unauthorized)`, hilft ein Seiten-Neuladen; Details stehen im Troubleshooting der Installationsanleitung (`docs/INSTALL.md`).
 
@@ -199,13 +201,13 @@ nie den Token selbst.
 Da Cachy nur lokal läuft, liegt die Verantwortung für deine Daten bei dir.
 
 - **Backup erstellen:** Gehe zu Einstellungen → System → **Backup erstellen**.
-  - **Optional:** Aktiviere **"Backup verschlüsseln"** und gib ein sicheres Passwort ein.
+  - **Optional:** Wähle beim Erstellen die Verschlüsselung („Möchtest du dieses Backup mit einem Passwort verschlüsseln?") und vergib ein sicheres Passwort.
   - Dies lädt eine JSON-Datei mit all deinen Einstellungen, Journaleinträgen und Presets herunter.
-  - Bei aktivierter Verschlüsselung werden alle API-Schlüssel und sensiblen Daten mit AES-256-bit-Verschlüsselung geschützt.
+  - Bei aktivierter Verschlüsselung werden alle API-Schlüssel und sensiblen Daten mit AES-256-Verschlüsselung geschützt. Hinweis: Unverschlüsselte Backups enthalten keine API-Schlüssel und Zugangsdaten.
 
-- **Wiederherstellen (Restore):** Nutze **Aus Backup wiederherstellen**, um eine zuvor gespeicherte JSON-Datei zu laden.
+- **Wiederherstellen (Restore):** Nutze **Backup laden**, um eine zuvor gespeicherte JSON-Datei zu laden.
   - Bei verschlüsselten Backups musst du das korrekte Passwort eingeben.
-  - **Achtung:** Ein falsches Passwort führt zur Fehlermeldung "Decryption failed".
+  - **Achtung:** Ein falsches Passwort führt zur Fehlermeldung „Falsches Passwort. Wiederherstellung fehlgeschlagen.".
 
 **Sicherheitshinweis:** Speichere dein Backup-Passwort sicher! Ohne das Passwort können verschlüsselte Backups nicht wiederhergestellt werden.
 
@@ -219,11 +221,17 @@ Da Cachy nur lokal läuft, liegt die Verantwortung für deine Daten bei dir.
 
 Das andockbare Seitenpanel hat drei Modi: **AI Assistant**, **Quick Notes** und
 (opt-in) **Global Chat**. Klicke auf den Titel des Panels, um zwischen den Modi
-zu wechseln; ein-/ausblenden kannst du es unter **Einstellungen → Visuals**.
+zu wechseln; ein-/ausblenden kannst du es unter **Einstellungen → Optik & Design**.
 
 - **Quick Notes:** Speichere Notizen nur lokal in deinem Browser.
 - **AI Assistant:** Interagiere mit der kontextsensitiven KI für Marktanalysen.
 - **Global Chat:** Opt-in-Community-Chat, standardmäßig deaktiviert.
+
+### Über dieses Handbuch hinaus
+
+Paper Trading (Einstellungen → Handel & Markt) simuliert Orders ohne echtes
+Geld. Preis-Alarme melden Kursbedingungen. Die Academy bietet Quizze zu
+Candlestick-Mustern. News unterstützen bis zu 5 eigene RSS-Feeds.
 
 ---
 

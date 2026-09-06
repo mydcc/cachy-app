@@ -59,19 +59,16 @@ The Dashboard consists of three main areas:
 
 ### Navigation
 
-**Sidebar Menu (left):**
-
-- **Home:** Back to homepage
-- **Calculator:** Opens the Position Size Calculator
-- **Journal:** Opens your Trading Journal
-- **Settings:** Theme, language, account settings
+The Dashboard is a single page: open the Journal, Settings and this guide as overlays via their buttons. There is no separate Home / Calculator / Journal / Settings sidebar menu.
 
 **Top Bar:**
 
 - **Account Balance:** Shows your current capital
-- **Theme Toggle:** Switch between Light/Dark/VIP themes
+- **Theme button:** Cycles through all 28 installed themes (e.g. Dark, Light, Midnight, Dracula, Nord, VIP)
 - **Language Switcher:** DE/EN
 - **Help:** Access to this guide
+
+**Settings:** 7-tab modal (Trading, Chart, Visuals, AI, Connections, System, Cloud) — theme, language, accounts, API keys, hotkeys and backup.
 
 ---
 
@@ -226,7 +223,7 @@ Professional traders don't sell their position all at once, but **gradually at m
 
 #### How it works:
 
-**Define up to 3 Take-Profit targets:**
+**Define up to 4 Take-Profit targets:**
 
 **Take-Profit 1:**
 
@@ -334,7 +331,7 @@ The Calculator plans your trade – the **Journal documents and analyzes** it.
 ### Quick Access:
 
 - Click **"Journal"** in the sidebar
-- Or use the **"Save to Journal"** button (if available)
+- Or use the **"Add Trade to Journal"** button after a calculation
 
 ---
 
@@ -464,11 +461,13 @@ Successful trading is a **repeatable process**:
 
 **5. Turn Off Emotions**
 
-- After 2 losses in a row: PAUSE
+- After 3 losses in a row: PAUSE (consistent with the Journal guide)
 - After big win: PAUSE (Overconfidence!)
 - Tired, stressed, emotional? NO TRADING
 
 ---
+
+*Note: this guide does not yet cover keyboard shortcuts (`Alt+L`/`S`/`R`/`J` and more), paper trading, Global Chat (Settings → Cloud, opt-in), or RuleDocument alerts.*
 
 ## Conclusion
 
