@@ -103,26 +103,18 @@ Pivot Points serve as a guide. Traders use them to find targets for profits (Tak
 
 ### Visual Risk/Reward Bar (VisualBar)
 
-Below the input fields, an interactive **VisualBar** visualizes your trade setup:
+VisualBar below the input fields — legend:
 
-**What you see:**
-
-- **Red area (left):** Your risk, from the stop loss up to your entry point.
-- **Green area (right):** Your profit potential, from entry to your take profits.
-- **White markers:** The exact SL, Entry and TP price levels.
-- **TP labels:** The Risk/Reward ratio above each take profit (e.g. "2.5R").
-
-**Why it helps:** At a glance you can tell whether a trade has a healthy
-Risk/Reward profile — a worthwhile setup shows clearly more green (profit) than
-red (risk).
+- **Red area (left):** Risk, from stop loss to entry.
+- **Green area (right):** Profit potential, from entry to take profits.
+- **White markers:** SL, entry and TP price levels.
+- **TP labels:** Risk/Reward ratio per take profit (e.g. "2.5R").
 
 ### Favorites
 
-You can save up to **12 favorite symbols** for quick access. On the calculator
-page, the first 4 appear as quick-select tiles.
-
-- **Add:** Click the Star icon in the Market Overview.
-- **Access:** Click on a favorite in the Sidebar (Desktop) or the Favorites Bar (Mobile) to instantly load it into the calculator.
+Up to **12 favorite symbols** (star icon in the Market Overview); the first 4
+appear as quick-select tiles on the calculator page. Selecting one in the
+Sidebar (Desktop) or Favorites Bar (mobile) loads it into the calculator.
 
 ### Sidebar (Positions)
 
@@ -220,8 +212,8 @@ Since Cachy is local-only, your data is your responsibility.
 ### Side Panel
 
 The dockable side panel has three modes: **AI Assistant**, **Quick Notes** and
-(opt-in) **Global Chat**. Click the panel's title to cycle between modes; show
-or hide it under **Settings → Visuals & Design**.
+(opt-in) **Global Chat** — title cycles modes; **Settings → Visuals & Design**
+shows/hides the panel.
 
 - **Quick Notes:** Store notes locally in your browser only.
 - **AI Assistant:** Interact with the context-aware AI for market analysis.

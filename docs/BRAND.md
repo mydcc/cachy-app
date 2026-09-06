@@ -139,8 +139,7 @@ Source Sans 3, Manrope, Nunito Sans, Red Hat Display, Schibsted Grotesk and
 Space Grotesk; the user's choice is the
 `fontFamily` setting.
 
-**Decided: there is no separate headline typeface.** Headings use the same family
-as body text — the one the user picked. That is what the app has always done, and
+**Decided: headings use the same family as body text** — the one the user picked. That is what the app has always done, and
 it is now the brand rule rather than an accident.
 
 The three old documents each claimed something else, and none matched the app:
