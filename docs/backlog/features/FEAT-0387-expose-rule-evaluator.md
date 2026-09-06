@@ -228,6 +228,40 @@ measured against the already-spent first counterpart. Fixed: both sequences walk
 oldest-first, each legacy firing consumes the oldest not-yet-consumed counterpart for
 its key.
 
+## Test infrastructure: eliminating a CI flake
+
+Round 4 passed review but then failed CI intermittently on `alerts_engineWiring.test.ts`
+— `startRuleEvaluationLoop` reporting zero calls where the test expected one. Not
+reproducible on a single run; reproducible at 1-2 failures per 15-40 repeated local
+runs, in three distinct shapes across different tests (a 0-call spy, `undefined` where
+a captured re-sync hook was expected, a stale `isReady()`/`isSeriesObserved()`
+reading).
+
+Root cause: `initAlertEngine()` reaches `ruleSchema` and `ruleLoopWiring` through a
+dynamic `import()` inside the function body (deliberately — a static import would pull
+the client-only wiring into the SSR path). Tests configured those two modules with
+`vi.doMock()` in their own body, immediately before triggering that dynamic import.
+Under Vitest's `threads` pool, `vi.doMock()` registers its factory over the same
+worker RPC channel dynamic `import()` uses to resolve a specifier — a call still in
+flight on that channel when the import ran resolved against whichever factory was
+already registered, not necessarily the one the current test had just sent. Neither a
+single macrotask tick nor a 10ms delay between `vi.resetModules()` and the next import
+closed this reliably; the race is on message delivery, not evaluation order.
+
+Fixed by removing the per-test `vi.doMock()` for both modules entirely. They are now
+static `vi.mock()` calls at module scope — established once at collection time, long
+before any test's dynamic import runs — wrapping shared `vi.fn()` spies that each test
+configures synchronously (`mockReturnValue`/`mockImplementation`) before calling
+`initAlertEngine()`. No re-registration per test means no RPC round trip to race.
+Verified with 100 repeated runs across every FEAT-0387 unit test file, 100/100 clean.
+
+A first attempt at a narrower fix (only ever resetting modules more aggressively)
+introduced its own regression: four tests captured an `alertEngine` reference via a
+separate `import()` *before* the helper that resets the module registry, so the
+reset gave `initAlertEngine()` a different `alertEngine` instance than the one the
+test was asserting against. Fixed by reordering those imports to come after the
+reset, so both resolve against the same post-reset module graph.
+
 ## Out of scope
 
 - Any UI. The panel is `FEAT-0389`.
