@@ -22,7 +22,7 @@
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
   import { onboardingService } from "../../services/onboardingService";
-  import { createEventDispatcher, onMount } from "svelte";
+  import { onMount } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -41,6 +41,7 @@
     riskAmount: string | number | null;
     isRiskAmountLocked: boolean;
     isPositionSizeLocked: boolean;
+    ontoggleriskamountlock?: () => void;
   }
 
   let {
@@ -49,6 +50,7 @@
     riskAmount = $bindable(),
     isRiskAmountLocked = $bindable(),
     isPositionSizeLocked = $bindable(),
+    ontoggleriskamountlock,
   }: Props = $props();
 
   let isConnected = $derived(marketState.connectionStatus === "connected");
@@ -58,10 +60,8 @@
   let hasApiKeys = $derived(Boolean(activeKeys.key) && Boolean(activeKeys.secret));
   let isFetchingBalance = $state(false);
 
-  const dispatch = createEventDispatcher();
-
   function handleLockClick() {
-    dispatch("toggleRiskAmountLock");
+    ontoggleriskamountlock?.();
   }
 
   const format = (val: string | number | null) =>

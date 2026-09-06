@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { normalizeTimeframeInput } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
   import { fade, scale } from "svelte/transition";
@@ -27,6 +26,7 @@
     options?: string[];
     placeholder?: string;
     maxItems?: number;
+    onchange?: (value: string[]) => void;
   }
 
   let {
@@ -34,9 +34,9 @@
     options = [],
     placeholder = "Add timeframe...",
     maxItems = 4,
+    onchange,
   }: Props = $props();
 
-  const dispatch = createEventDispatcher();
   let inputValue = $state("");
   let inputElement: HTMLInputElement | null = $state(null);
   let showDropdown = $state(false);
@@ -66,12 +66,12 @@
 
     selected = [...selected, normalized];
     inputValue = "";
-    dispatch("change", selected);
+    onchange?.(selected);
   }
 
   function removeTimeframe(index: number) {
     selected = selected.filter((_, i) => i !== index);
-    dispatch("change", selected);
+    onchange?.(selected);
   }
 
   function handleKeydown(e: KeyboardEvent) {
