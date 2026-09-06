@@ -129,14 +129,14 @@
                         what their broker level actually charges. Defaults are
                         prefilled from VENUE_DEFAULT_FEE_RATES.
                     -->
-                    <div class="field-group col-span-2">
+                    <div class="field-group col-span-1 md:col-span-2">
                         <label for="fee-rate-maker"
                             >{$_("settings.feeRates", {
                                 values: { venue: venueName },
                             })}</label
                         >
                         <div class="flex gap-3">
-                            <div class="relative flex-1">
+                            <div class="relative flex-1 min-w-0">
                                 <input
                                     id="fee-rate-maker"
                                     name="fee-rate-maker"
@@ -158,7 +158,7 @@
                                     >{$_("settings.feeRatesMaker")}</span
                                 >
                             </div>
-                            <div class="relative flex-1">
+                            <div class="relative flex-1 min-w-0">
                                 <input
                                     id="fee-rate-taker"
                                     name="fee-rate-taker"
@@ -215,8 +215,8 @@
                     </div>
 
                     <!-- Save paper trades to the journal -->
-                    <label class="toggle-card">
-                        <div class="flex flex-col">
+                    <label class="toggle-card gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
                                 >{$_("settings.trading.journalPaperTrades")}</span
                             >
@@ -233,8 +233,8 @@
                     </label>
 
                     <!-- Auto Update Input -->
-                    <label class="toggle-card self-end">
-                        <div class="flex flex-col">
+                    <label class="toggle-card self-end gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
                                 >{$_("settings.autoUpdatePriceInput")}</span
                             >
@@ -249,8 +249,8 @@
                     </label>
 
                     <!-- Confirm Deletions -->
-                    <label class="toggle-card">
-                        <div class="flex flex-col">
+                    <label class="toggle-card gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
                                 >{$_("settings.trading.confirmDelete")}</span
                             >
@@ -264,8 +264,8 @@
                         />
                     </label>
 
-                    <label class="toggle-card">
-                        <div class="flex flex-col">
+                    <label class="toggle-card gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
                                 >{$_("settings.trading.confirmBulkDelete")}</span
                             >
@@ -285,16 +285,16 @@
                              {$_("settings.trading.automationTitle") || "Automation & Advanced"}
                         </h4>
 
-                        <label class="toggle-card mb-4">
-                            <div class="flex flex-col">
+                        <label class="toggle-card mb-4 gap-3">
+                            <div class="flex flex-col min-w-0 flex-1">
                                 <span class="text-sm font-medium">{$_("settings.trading.autoTrading")}</span>
                                 <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.trading.autoTradingDesc")}</span>
                             </div>
                             <Toggle bind:checked={settingsState.autoTrading} />
                         </label>
 
-                        <label class="toggle-card">
-                            <div class="flex flex-col">
+                        <label class="toggle-card gap-3">
+                            <div class="flex flex-col min-w-0 flex-1">
                                 <span class="text-sm font-medium">{$_("settings.trading.multiAccount")}</span>
                                 <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.trading.multiAccountDesc")}</span>
                             </div>
@@ -372,9 +372,9 @@
                     </div>
                 </div>
 
-                <div class="mt-0">
-                    <label class="toggle-card mb-4">
-                        <div class="flex flex-col">
+                <div class="mt-0 grid grid-cols-1 min-[540px]:grid-cols-2 gap-3">
+                    <label class="toggle-card mb-4 gap-3 col-span-full">
+                        <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
                                 >{$_("settings.trading.marketTiles")}</span
                             >
@@ -391,7 +391,7 @@
                     <!-- Market Tile Links Configuration -->
                     {#if settingsState.showMarketOverview}
                         <div
-                            class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 border border-[var(--border-color)]"
+                            class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 border border-[var(--border-color)] col-span-full"
                         >
                             <h4
                                 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-3"
@@ -510,8 +510,8 @@
                         </div>
                     {/if}
 
-                    <label class="toggle-card mb-4">
-                        <div class="flex flex-col">
+                    <label class="toggle-card mb-4 gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
                                 >{$_("settings.trading.marketSentiment")}</span
                             >
@@ -525,8 +525,8 @@
                         />
                     </label>
 
-                    <label class="toggle-card mb-4">
-                        <div class="flex flex-col">
+                    <label class="toggle-card mb-4 gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
                                 >{$_("dashboard.marketActivity")}</span
                             >
@@ -540,8 +540,8 @@
                         />
                     </label>
 
-                    <label class="toggle-card mb-4">
-                        <div class="flex flex-col">
+                    <label class="toggle-card mb-4 gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
                                 >{$_("settings.showTechnicals")}</span
                             >
@@ -555,7 +555,7 @@
 
                     {#if settingsState.showTechnicals}
                         <div
-                            class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg"
+                            class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg col-span-full"
                         >
                             <!-- Summary -->
                             <label class="flex items-center gap-2 cursor-pointer">
