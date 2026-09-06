@@ -50,34 +50,51 @@ const mockEnvironment = (isBrowser: boolean) =>
 
 /**
  * `vi.resetModules()` clears Vitest's module registry so the next `import()`
- * re-evaluates fresh — but observed flaky in this file's SSR tests: a prior
- * test's `initAlertEngine()` call can leave a promise continuation still
- * pending when the next test's synchronous setup runs, and it settles a beat
- * later against a module instance the next test believed was already fresh.
- * A macrotask tick between the reset and the next dynamic import gives that
- * continuation room to finish first, so the fresh import genuinely starts
- * from a clean slate rather than racing one.
+ * re-evaluates fresh — but observed flaky in this file even so, in two
+ * shapes: (1) a prior test's `initAlertEngine()` call can leave a promise
+ * continuation still pending when the next test's synchronous setup runs,
+ * settling a beat later against a module instance the next test believed was
+ * already fresh; (2) under the `threads` pool, `vi.doMock()` registers its
+ * factory over the same worker RPC channel `import()` uses to resolve a
+ * specifier — a mock call made in a test body can still be in flight on that
+ * channel when the very next `import()` asks for the same module, so it
+ * resolves against whatever factory was already registered instead of this
+ * test's. A single macrotask tick fixed most of this but not all of it
+ * (2 failures in 15 runs); a short real delay gives the RPC round trip room
+ * to land before the import that depends on it.
  */
 const resetModulesAndFlush = async () => {
   vi.resetModules();
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 10));
 };
 
 /**
- * Re-imports `./alerts.svelte` and confirms the `alertState` it hands back is
- * actually a fresh singleton (`engineStatus: "idle"`) before a test relies on
- * that freshness — rather than guessing at a delay that happens to be long
- * enough. A single macrotask tick is usually enough for the leftover
- * continuation described above to settle, but "usually" is not a bound this
- * file's SSR assertions can safely lean on, so this retries the reset+import
- * cycle a few times instead of trusting one fixed wait. Throws with a clear
- * message on the (so far unobserved) case where it never settles, rather
- * than letting a stale singleton silently masquerade as a fresh one.
+ * Re-imports `./alerts.svelte` fresh, for every test that then calls
+ * `initAlertEngine()` — not just the SSR ones.
+ *
+ * Always resets and flushes before importing, rather than only on retry: a
+ * prior test's `initAlertEngine()` call can leave a promise continuation
+ * still pending when the next test's synchronous setup runs, and it settles
+ * a beat later against a module instance the next test believed was already
+ * fresh — a reset is what actually orphans that continuation onto the *old*
+ * module instance instead of corrupting the new one.
+ *
+ * This does mean a reference a test already captured before calling this —
+ * `const { alertEngine } = await import(...)` — is orphaned by the reset:
+ * such tests must do that import *after* this one, so both come from the
+ * same post-reset module graph. Every call site in this file follows that
+ * order.
+ *
+ * Only accepts the result once the freshly imported `alertState` reports
+ * "idle" — the value only a genuinely new singleton starts with. Throws with
+ * a clear message on the (so far unobserved) case where it never settles,
+ * rather than letting a stale module silently masquerade as a fresh one.
  */
 async function importFreshAlertsModule(): Promise<typeof import("./alerts.svelte")> {
+  const modulePath = "./alerts.svelte"; // kept out of the literal `import("./alerts.svelte")` shape on purpose, so a project-wide search-and-replace of that call cannot turn this primitive into infinite recursion on itself
   for (let attempt = 0; attempt < 5; attempt++) {
-    if (attempt > 0) await resetModulesAndFlush();
-    const mod = await import("./alerts.svelte");
+    await resetModulesAndFlush();
+    const mod = await import(modulePath);
     if (mod.alertState.engineStatus === "idle") return mod;
   }
   throw new Error(
@@ -102,6 +119,47 @@ vi.mock("../locales/i18n", () => ({
       return () => {};
     },
   },
+}));
+
+/**
+ * `ruleSchema` and `ruleLoopWiring` as static, module-scope mocks rather than
+ * a `vi.doMock` per test.
+ *
+ * Both are reached by `initAlertEngine()` through a *dynamic* `import()`
+ * inside the function body — not a static top-level import — because that is
+ * how the real module keeps this test's SSR path out of the client-only
+ * import graph. Under the `threads` pool, `vi.doMock()` registers its factory
+ * over the same worker RPC channel `import()` uses to resolve a specifier: a
+ * `doMock` call made in a test body could still be in flight on that channel
+ * when the dynamic `import()` inside `initAlertEngine` asked for the same
+ * module moments later, so it occasionally resolved against whichever
+ * factory was already registered instead of this test's — a real, if rare,
+ * flake (observed CI failures on "arms the rule loop…" and "shadow mode…"
+ * mid-session tests, at rates from 2/15 to 1/20 runs even after tuning the
+ * settle delay between `vi.resetModules()` and the next import).
+ *
+ * A `vi.mock()` factory registered once, here, is not subject to that race:
+ * it is established during collection, long before any test's dynamic
+ * import runs, and survives `vi.resetModules()` untouched — only the
+ * *values* these shared spies return need to vary per test, which is plain
+ * synchronous mock configuration (`mockReturnValue`/`mockImplementation`),
+ * not a fresh module registration. Referenced from inside a `vi.mock`
+ * factory, so every name has to start with `mock` — Vitest's own
+ * hoisting-safety rule for that.
+ */
+const mockRuleSchemaLoad = vi.fn(async () => {});
+const mockRuleSchemaIsReady = vi.fn(() => false);
+vi.mock("../lib/rules/ruleSchema", () => ({
+  ruleSchema: { load: mockRuleSchemaLoad, isReady: mockRuleSchemaIsReady },
+}));
+
+const mockIsSeriesObserved = vi.fn(() => false);
+const mockLedgerSink = vi.fn();
+const mockStartRuleEvaluationLoop = vi.fn();
+vi.mock("../services/alertEngine/ruleLoopWiring", () => ({
+  isSeriesObserved: mockIsSeriesObserved,
+  ledgerSink: mockLedgerSink,
+  startRuleEvaluationLoop: mockStartRuleEvaluationLoop,
 }));
 
 const STORAGE_KEY = "cachy_alerts_v1";
@@ -184,25 +242,18 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     vi.clearAllMocks();
     mockEnvironment(true);
 
-    // Same reasoning as mockEnvironment above, and for the same failure mode:
-    // `vi.doMock` for these two modules is not undone by `vi.resetModules()`,
-    // so a FEAT-0387 test further down that mocks `ruleSchema`/`ruleLoopWiring`
-    // for its own purposes leaves that mock active for every test that runs
-    // after it in this file — including "reports ready on success", which
-    // doesn't care and expects the real (here: not-ready) behaviour. Re-set
-    // to a neutral default every test, exactly the way a real, un-mocked
-    // `ruleSchema` behaves in this environment (wasm never loads under
-    // Node/Vitest, so `isReady()` is `false`) — a test that needs it ready
-    // overrides this with its own `vi.doMock` inside its own body, same as
-    // the SSR tests override `mockEnvironment`.
-    vi.doMock("../lib/rules/ruleSchema", () => ({
-      ruleSchema: { load: vi.fn(async () => {}), isReady: () => false },
-    }));
-    vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-      isSeriesObserved: vi.fn(() => false),
-      ledgerSink: vi.fn(),
-      startRuleEvaluationLoop: vi.fn(),
-    }));
+    // `vi.clearAllMocks()` above only clears call history, not the
+    // implementations these shared mocks were given by whichever test ran
+    // before this one — reassert the neutral default every test, exactly the
+    // way a real, un-mocked `ruleSchema` behaves in this environment (wasm
+    // never loads under Node/Vitest, so `isReady()` is `false`). A test that
+    // needs different behaviour overrides these same mocks in its own body,
+    // same as the SSR tests override `mockEnvironment`.
+    mockRuleSchemaLoad.mockImplementation(async () => {});
+    mockRuleSchemaIsReady.mockReturnValue(false);
+    mockIsSeriesObserved.mockReturnValue(false);
+    mockLedgerSink.mockImplementation(() => {});
+    mockStartRuleEvaluationLoop.mockImplementation(() => {});
 
     localStorage.clear();
     localStorage.setItem(STORAGE_KEY, JSON.stringify([ARMED_BEFORE_RELOAD]));
@@ -220,8 +271,8 @@ describe("BUG-0382 — alert engine startup wiring", () => {
   });
 
   it("loads the engine at startup so evaluation is no longer a silent no-op", async () => {
+    const { initAlertEngine } = await importFreshAlertsModule();
     const { alertEngine } = await import("../services/alertEngine/alertEngine");
-    const { initAlertEngine } = await import("./alerts.svelte");
 
     await initAlertEngine(fakeLoader);
 
@@ -231,7 +282,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
   });
 
   it("re-registers alerts rehydrated from localStorage", async () => {
-    const { initAlertEngine } = await import("./alerts.svelte");
+    const { initAlertEngine } = await importFreshAlertsModule();
 
     await initAlertEngine(fakeLoader);
 
@@ -241,8 +292,8 @@ describe("BUG-0382 — alert engine startup wiring", () => {
   });
 
   it("fires an alert armed before reload, and the event reaches the store", async () => {
+    const { alertState, initAlertEngine } = await importFreshAlertsModule();
     const { alertEngine } = await import("../services/alertEngine/alertEngine");
-    const { alertState, initAlertEngine } = await import("./alerts.svelte");
 
     await initAlertEngine(fakeLoader);
 
@@ -255,8 +306,8 @@ describe("BUG-0382 — alert engine startup wiring", () => {
   });
 
   it("does not fire an alert whose level was never crossed", async () => {
+    const { alertState, initAlertEngine } = await importFreshAlertsModule();
     const { alertEngine } = await import("../services/alertEngine/alertEngine");
-    const { alertState, initAlertEngine } = await import("./alerts.svelte");
 
     await initAlertEngine(fakeLoader);
 
@@ -276,63 +327,36 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     // test that mocks `ruleSchema` instead of exercising its real loader.
 
     it("loads the rule schema core at startup", async () => {
-      const loadSpy = vi.fn(async () => {});
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: { load: loadSpy, isReady: () => true },
-      }));
-
-      const { initAlertEngine } = await import("./alerts.svelte");
+      const { initAlertEngine } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader);
 
-      expect(loadSpy).toHaveBeenCalledTimes(1);
+      expect(mockRuleSchemaLoad).toHaveBeenCalledTimes(1);
     });
 
     it("does not arm the rule loop when the core failed to load", async () => {
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: {
-          load: vi.fn(async () => {
-            throw new Error("wasm fetch failed");
-          }),
-          isReady: () => false,
-        },
-      }));
-      const startSpy = vi.fn();
-      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-        // Present so the mock stays complete even though this test's own
-        // `isReady: () => false` means neither is ever actually reached —
-        // a stale `vi.doMock` registration outlives `vi.resetModules()` and
-        // would otherwise break a later, unrelated test that imports the
-        // real module's shape.
-        isSeriesObserved: vi.fn(() => false),
-        ledgerSink: vi.fn(),
-        startRuleEvaluationLoop: startSpy,
-      }));
+      mockRuleSchemaLoad.mockImplementation(async () => {
+        throw new Error("wasm fetch failed");
+      });
+      mockRuleSchemaIsReady.mockReturnValue(false);
 
-      const { initAlertEngine } = await import("./alerts.svelte");
+      const { initAlertEngine } = await importFreshAlertsModule();
 
       // A failed core must not abort startup — the legacy engine is the one
       // thing guaranteed to still work, and it must come up regardless.
       await expect(initAlertEngine(fakeLoader)).resolves.toBeUndefined();
-      expect(startSpy).not.toHaveBeenCalled();
+      expect(mockStartRuleEvaluationLoop).not.toHaveBeenCalled();
     });
 
     it("arms the rule loop, with the notifying sink, once the core is ready", async () => {
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
-      }));
-      const startSpy = vi.fn();
-      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-        isSeriesObserved: vi.fn(() => true),
-        ledgerSink: vi.fn(),
-        startRuleEvaluationLoop: startSpy,
-      }));
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
 
-      const { initAlertEngine, notifyingRuleSink } = await import("./alerts.svelte");
+      const { initAlertEngine, notifyingRuleSink } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader);
 
       // A second argument (the mid-session re-sync hook) is expected in live
       // mode; its own behaviour is covered separately below.
-      expect(startSpy).toHaveBeenCalledWith(notifyingRuleSink, expect.any(Function));
+      expect(mockStartRuleEvaluationLoop).toHaveBeenCalledWith(notifyingRuleSink, expect.any(Function));
     });
   });
 
@@ -371,16 +395,10 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     it("shadow mode keeps a covered alert on the legacy engine", async () => {
       seedCoveredRule();
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
-      }));
-      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-        isSeriesObserved: vi.fn(() => true),
-        ledgerSink: vi.fn(),
-        startRuleEvaluationLoop: vi.fn(),
-      }));
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
 
-      const { initAlertEngine } = await import("./alerts.svelte");
+      const { initAlertEngine } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader, "shadow");
 
       // Fails on the un-fixed code: coverage was computed the same way
@@ -392,23 +410,15 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     it("shadow mode arms the loop with the recording sink, not the notifying one", async () => {
       seedCoveredRule();
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
-      }));
-      const ledgerSinkStub = vi.fn();
-      const startSpy = vi.fn();
-      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-        isSeriesObserved: vi.fn(() => true),
-        ledgerSink: ledgerSinkStub,
-        startRuleEvaluationLoop: startSpy,
-      }));
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
 
-      const { initAlertEngine } = await import("./alerts.svelte");
+      const { initAlertEngine } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader, "shadow");
 
       // undefined, not a re-sync function: shadow mode must not touch legacy
       // coverage at all, mid-session included.
-      expect(startSpy).toHaveBeenCalledWith(ledgerSinkStub, undefined);
+      expect(mockStartRuleEvaluationLoop).toHaveBeenCalledWith(mockLedgerSink, undefined);
     });
 
     it("live mode (the default) does remove a covered alert from the legacy engine", async () => {
@@ -416,16 +426,10 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       // the two tests above are about the mode switch, not about coverage
       // never applying at all.
       seedCoveredRule();
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
-      }));
-      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-        isSeriesObserved: vi.fn(() => true),
-        ledgerSink: vi.fn(),
-        startRuleEvaluationLoop: vi.fn(),
-      }));
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
 
-      const { initAlertEngine } = await import("./alerts.svelte");
+      const { initAlertEngine } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader);
 
       expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
@@ -472,20 +476,15 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       // Not observed at startup: the alert stays on the legacy engine from
       // the initial sync, same as any uncovered alert.
       seedCoveredRule();
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
-      }));
+      mockRuleSchemaIsReady.mockReturnValue(true);
       let observed = false;
+      mockIsSeriesObserved.mockImplementation(() => observed);
       let capturedOnClose: (() => void) | undefined;
-      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-        isSeriesObserved: vi.fn(() => observed),
-        ledgerSink: vi.fn(),
-        startRuleEvaluationLoop: vi.fn((_sink: unknown, onClose?: () => void) => {
-          capturedOnClose = onClose;
-        }),
-      }));
+      mockStartRuleEvaluationLoop.mockImplementation((_sink: unknown, onClose?: () => void) => {
+        capturedOnClose = onClose;
+      });
 
-      const { initAlertEngine } = await import("./alerts.svelte");
+      const { initAlertEngine } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader);
 
       // Fails without the fix: the alert was never covered, so this asserts
@@ -514,20 +513,15 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       // needs `isSeriesObserved` to report the honest answer and proves
       // `alerts.svelte.ts`'s own re-sync reacts to it correctly either way.
       seedCoveredRule();
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
-      }));
+      mockRuleSchemaIsReady.mockReturnValue(true);
       let observed = true;
+      mockIsSeriesObserved.mockImplementation(() => observed);
       let capturedOnClose: (() => void) | undefined;
-      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-        isSeriesObserved: vi.fn(() => observed),
-        ledgerSink: vi.fn(),
-        startRuleEvaluationLoop: vi.fn((_sink: unknown, onClose?: () => void) => {
-          capturedOnClose = onClose;
-        }),
-      }));
+      mockStartRuleEvaluationLoop.mockImplementation((_sink: unknown, onClose?: () => void) => {
+        capturedOnClose = onClose;
+      });
 
-      const { initAlertEngine } = await import("./alerts.svelte");
+      const { initAlertEngine } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader);
 
       // Observed at startup: covered, so taken off the legacy engine.
@@ -546,23 +540,16 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     it("shadow mode never wires the re-sync hook, even once ready", async () => {
       seedCoveredRule();
-      vi.doMock("../lib/rules/ruleSchema", () => ({
-        ruleSchema: { load: vi.fn(async () => {}), isReady: () => true },
-      }));
-      const startSpy = vi.fn();
-      vi.doMock("../services/alertEngine/ruleLoopWiring", () => ({
-        isSeriesObserved: vi.fn(() => true),
-        ledgerSink: vi.fn(),
-        startRuleEvaluationLoop: startSpy,
-      }));
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
 
-      const { initAlertEngine } = await import("./alerts.svelte");
+      const { initAlertEngine } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader, "shadow");
 
       // A resync hook in shadow mode would start removing alerts from the
       // legacy engine on behalf of a sink that never notifies for them —
       // recreating the exact gap the mode split exists to close.
-      expect(startSpy.mock.calls[0][1]).toBeUndefined();
+      expect(mockStartRuleEvaluationLoop.mock.calls[0][1]).toBeUndefined();
     });
   });
 
@@ -570,8 +557,8 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     mockEnvironment(false);
     await resetModulesAndFlush();
 
-    const { alertEngine } = await import("../services/alertEngine/alertEngine");
     const { initAlertEngine } = await importFreshAlertsModule();
+    const { alertEngine } = await import("../services/alertEngine/alertEngine");
 
     const loader = vi.fn(fakeLoader);
     await initAlertEngine(loader);
@@ -594,7 +581,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
   describe("a failed load is reported to the user, not just to the log", () => {
     it("marks the engine failed and raises an error toast", async () => {
       const { toastService } = await import("../services/toastService.svelte");
-      const { alertState, initAlertEngine } = await import("./alerts.svelte");
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
 
       const failing = vi.fn().mockRejectedValue(new Error("wasm 404"));
       await expect(initAlertEngine(failing as never)).rejects.toThrow("wasm 404");
@@ -608,7 +595,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     });
 
     it("keeps definitions on a failed load, so they survive to the next reload", async () => {
-      const { alertState, initAlertEngine } = await import("./alerts.svelte");
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
 
       const failing = vi.fn().mockRejectedValue(new Error("wasm 404"));
       await expect(initAlertEngine(failing as never)).rejects.toThrow("wasm 404");
@@ -618,7 +605,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     it("reports ready on success, and raises no error toast", async () => {
       const { toastService } = await import("../services/toastService.svelte");
-      const { alertState, initAlertEngine } = await import("./alerts.svelte");
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
 
       await initAlertEngine(fakeLoader);
 
