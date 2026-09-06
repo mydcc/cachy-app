@@ -25,6 +25,7 @@
     import NotificationSettings from "../NotificationSettings.svelte";
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
     import OrderAuditSettings from "../OrderAuditSettings.svelte";
+    import SettingsGrid from "../shared/SettingsGrid.svelte";
     import { uiState } from "../../../stores/ui.svelte";
 
     // "hotkeys" lived here until it moved to System → Controls; unknown
@@ -90,7 +91,7 @@
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">{$_("settings.trading.executionData")}</h3>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SettingsGrid gap="gap-4">
                     <!-- Fee Preference -->
                     <div class="field-group">
                         <label for="fee-pref"
@@ -301,7 +302,7 @@
                             <Toggle bind:checked={settingsState.multiAccount} />
                         </label>
                     </div>
-                </div>
+                </SettingsGrid>
             </section>
         {/if}
 
@@ -323,7 +324,7 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SettingsGrid gap="gap-4">
                     <!-- Chart History Limit -->
                     <div class="field-group">
                         <label for="history-limit">
@@ -370,9 +371,9 @@
                             {$_("settings.trading.chartUpdateIntervalDesc") || "Steuert wie oft Kerzen-Echtzeitkurse neu gezeichnet werden."}
                         </p>
                     </div>
-                </div>
+                </SettingsGrid>
 
-                <div class="mt-0 grid grid-cols-1 min-[540px]:grid-cols-2 gap-3">
+                <SettingsGrid>
                     <label class="toggle-card mb-4 gap-3 col-span-full">
                         <div class="flex flex-col min-w-0 flex-1">
                             <span class="text-sm font-medium"
@@ -420,7 +421,7 @@
                                     />
 
                                     <!-- Individual Link Toggles -->
-                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    <SettingsGrid cols={3} gap="gap-2">
                                         <label
                                             class="flex items-center gap-2 cursor-pointer"
                                         >
@@ -456,7 +457,7 @@
                                             />
                                             <span class="text-xs">{$_("marketOverview.broker")}</span>
                                         </label>
-                                    </div>
+                                    </SettingsGrid>
 
                                     <!-- Heatmap Mode Selection -->
                                     {#if settingsState.showCgHeatLink}
@@ -554,8 +555,9 @@
                     </label>
 
                     {#if settingsState.showTechnicals}
-                        <div
-                            class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg col-span-full"
+                        <SettingsGrid
+                            gap="gap-2"
+                            extraClass="col-span-full mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg"
                         >
                             <!-- Summary -->
                             <label class="flex items-center gap-2 cursor-pointer">
@@ -604,11 +606,11 @@
                                     {$_("settings.technicals.pivots") || "Pivots"}
                                 </span>
                             </label>
-                        </div>
+                        </SettingsGrid>
                     {/if}
 
                     <!-- Granular Settings (moved to the Chart tab; single home for all indicator settings) -->
-                </div>
+                </SettingsGrid>
             </section>
         {/if}
 
