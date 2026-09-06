@@ -79,7 +79,7 @@ The following steps apply to both environments (directory names per environment)
 ### Step 1: Upload Files
 
 1. Create the folder `/www/wwwroot/cachy.app` (for Production) or `/www/wwwroot/dev.cachy.app` (for Staging) under **Files** in aaPanel.
-3. Upload the project files or clone the repo directly in the terminal:
+2. Upload the project files or clone the repo directly in the terminal:
 
     ```bash
     cd /www/wwwroot/cachy.app

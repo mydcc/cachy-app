@@ -632,7 +632,7 @@ Trades grouped into time windows (e.g., 0-15 Min, 15-30 Min, 30-60 Min, etc.), b
 
 #### 📅 Calendar Heat Map
 
-A calendar where each day is color-coded by that day's PnL: green days = profit, red days = loss, color intensity = size, gray/white = no trades. Reveals weekly or monthly patterns.
+A calendar where each day is color-coded by that day's PnL: green days = profit, red days = loss, color intensity = magnitude, gray/white = no trades. Reveals weekly or monthly patterns.
 
 ---
 

@@ -123,8 +123,6 @@ Beispiel: 100 € / 500 € = 0,2 BTC
 
 **✅ Ergebnis:** Du kaufst **0,2 BTC** bei 50.000 €, mit einem Stop-Loss bei 49.500 €. Dein maximales Risiko beträgt exakt 100 € (1% deines Kapitals).
 
-**Der Vorteil:** Kein Raten, kein "ungefähr". Du weißt **auf den Cent genau**, dass du dein Risikolimit einhältst.
-
 ---
 
 <a id="lock-funktionen"></a>
