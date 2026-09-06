@@ -206,7 +206,7 @@ A Jules session starts from a frozen sandbox clone that can be far behind `devel
 
 - **Never `git merge` or `git rebase` `origin/develop` mid-session.** Ignore base drift; change only what the task needs.
 - **Commit only files you actually edited** (`git add <path> <path>`). Never `git add .`, `git add -A`, or whole-worktree commits.
-- **`package.json` / `package-lock.json`** may be touched only for dependency updates; never lower the `version` field.
+- **`package.json` / `package-lock.json`** may be touched only for dependency updates; never lower the `version` field. **`.node-version` and `engines` are raise-only:** never lower either — the pin must stay an exact version (no ranges, no `v` prefix) satisfying `engines` (enforced by the CI `node-version` job).
 - **No sandbox artifacts in branches** (`todo.txt`, `.jules/` notes only when the task itself requires them).
 - **Before pushing:** compare the PR's changed-file list against the task's intended files. If the list is larger, the sandbox is stale — abort the task instead of pushing.
 

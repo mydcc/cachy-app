@@ -105,6 +105,19 @@ jobs:
       - name: Check relative links in Markdown
         run: node scripts/check-doc-links.mjs
 
+  node-version:
+    name: Node.js Version Pin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # The .node-version pin drifted back to Node 20.18.3 twice via sandbox
+      # sessions replaying stale files, while engines requires >=22.19.0.
+      # Fail here instead of debugging mysterious undici/import failures
+      # later. The script is stdlib-only, so no setup-node or install needed.
+      - name: Check .node-version satisfies engines
+        run: node scripts/check-node-version.mjs
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
