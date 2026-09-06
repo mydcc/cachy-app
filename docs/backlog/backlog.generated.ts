@@ -2073,7 +2073,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Expose the rule evaluator to JavaScript and evaluate on candle close",
     "type": "feature",
     "status": "in-progress",
-    "branch": "worktree-expose-rule-evaluator-27b349",
+    "branch": "worktree-alert-rule-evaluator-cutover-52ddf9",
     "assignee": "claude-code",
     "start_date": "2026-09-05",
     "priority": "P1",
@@ -6064,6 +6064,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0389"
     ],
     "file": "features/FEAT-0399-remove-legacy-alerts-v1.md"
+  },
+  {
+    "id": "FEAT-0406",
+    "title": "Give the rule evaluation loop a disarm path, coupled to coverage",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0387"
+    ],
+    "size": "S",
+    "estimate": "2",
+    "file": "features/FEAT-0406-rule-loop-disarm-path.md"
   },
   {
     "id": "IDEA-0036",
