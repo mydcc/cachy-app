@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { debounce, formatDynamicDecimal } from "../../utils/utils";
-  import { createEventDispatcher, untrack } from "svelte";
+  import { untrack } from "svelte";
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
@@ -36,8 +36,6 @@
   import { Decimal } from "decimal.js";
   import Tooltip from "../shared/Tooltip.svelte";
 
-  const dispatch = createEventDispatcher();
-
   interface Props {
     symbol: string;
     entryPrice: string | null;
@@ -53,6 +51,11 @@
     isAtrFetching: boolean;
     symbolSuggestions: string[];
     showSymbolSuggestions: boolean;
+    ontoggleatrinputs?: (value: boolean) => void;
+    onselectsymbolsuggestion?: (symbol: string) => void;
+    onsetatrtimeframe?: (timeframe: string) => void;
+    onsetatrmode?: (mode: "manual" | "auto") => void;
+    onfetchatr?: () => void;
   }
 
   let {
@@ -70,6 +73,11 @@
     isAtrFetching,
     symbolSuggestions = [],
     showSymbolSuggestions,
+    ontoggleatrinputs,
+    onselectsymbolsuggestion,
+    onsetatrtimeframe,
+    onsetatrmode,
+    onfetchatr,
   }: Props = $props();
 
   // Read-only trading-pair metadata (precision, order-size limits, leverage
@@ -245,7 +253,7 @@
 
   function toggleAtrSl() {
     trackCustomEvent("ATR", "Toggle", useAtrSl ? "On" : "Off");
-    dispatch("toggleAtrInputs", useAtrSl);
+    ontoggleatrinputs?.(useAtrSl);
   }
 
   function handleFetchPriceClick() {
@@ -282,7 +290,7 @@
 
   function selectSuggestion(s: string) {
     trackCustomEvent("Symbol", "SelectSuggestion", s);
-    dispatch("selectSymbolSuggestion", s);
+    onselectsymbolsuggestion?.(s);
     // When selecting suggestion, we want immediate update
     localSymbol = s;
     tradeState.update((s) => ({ ...s, symbol: localSymbol }));
@@ -408,7 +416,7 @@
 
   function handleAtrTimeframeChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value;
-    dispatch("setAtrTimeframe", val);
+    onsetatrtimeframe?.(val);
     trackCustomEvent("ATR", "ChangeTimeframe", val);
   }
 
@@ -707,13 +715,13 @@
         <div class="atr-mode-switcher">
           <button
             class="btn-switcher {atrMode === 'manual' ? 'active' : ''}"
-            onclick={() => dispatch("setAtrMode", "manual")}
+            onclick={() => onsetatrmode?.("manual")}
           >
             {$_("dashboard.tradeSetupInputs.atrModeManual")}
           </button>
           <button
             class="btn-switcher {atrMode === 'auto' ? 'active' : ''}"
-            onclick={() => dispatch("setAtrMode", "auto")}
+            onclick={() => onsetatrmode?.("auto")}
           >
             {$_("dashboard.tradeSetupInputs.atrModeAuto")}
           </button>
@@ -873,7 +881,7 @@
                   : ''}"
                 onclick={() => {
                   trackCustomEvent("ATR", "Fetch", symbol);
-                  dispatch("fetchAtr");
+                  onfetchatr?.();
                 }}
                 title={$_("dashboard.tradeSetupInputs.fetchAtrValue")}
               >

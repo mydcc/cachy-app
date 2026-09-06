@@ -326,8 +326,8 @@
             return Array.from(years).sort((a, b) => b - a);
         })(),
     );
-    function handleCalendarClick(event: CustomEvent) {
-        onfilterDateChange?.({ date: event.detail.date });
+    function handleCalendarClick(detail: { date: string }) {
+        onfilterDateChange?.({ date: detail.date });
     }
 
     // 7. STRATEGIES
@@ -737,7 +737,7 @@
                     <CalendarHeatmap
                         data={calendarData}
                         year={selectedYear}
-                        on:click={handleCalendarClick}
+                        onclick={handleCalendarClick}
                     />
                 </div>
             </div>

@@ -89,7 +89,7 @@
         isLocked={target.isLocked}
         canRemove={i > 0}
         tpDetail={calculatedTpDetails.find((d) => d.index === i)}
-        on:remove={() => removeRow(i)}
+        onremove={() => removeRow(i)}
       />
     {/each}
   </div>

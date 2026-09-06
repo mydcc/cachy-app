@@ -16,13 +16,10 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { icons } from "../../lib/constants";
   import Tooltip from "../shared/Tooltip.svelte";
   import { _ } from "../../locales/i18n";
   import { trackCustomEvent } from "../../services/trackingService";
-
-  const dispatch = createEventDispatcher();
 
   interface Props {
     isPositionSizeLocked: boolean;
@@ -34,6 +31,8 @@
     liquidationPrice: string;
     breakEvenPrice: string;
     isMarginExceeded?: boolean;
+    oncopy?: () => void;
+    ontogglelock?: () => void;
   }
 
   let {
@@ -45,13 +44,15 @@
     entryFee,
     liquidationPrice,
     breakEvenPrice,
-    isMarginExceeded = false
+    isMarginExceeded = false,
+    oncopy,
+    ontogglelock
   }: Props = $props();
 
   function handleCopy() {
     trackCustomEvent("Result", "Copy", "PositionSize");
     navigator.clipboard.writeText(positionSize);
-    dispatch("copy");
+    oncopy?.();
   }
 
   function handleToggleLock() {
@@ -60,7 +61,7 @@
       "ToggleLock",
       !isPositionSizeLocked ? "On" : "Off"
     );
-    dispatch("toggleLock");
+    ontogglelock?.();
   }
 </script>
 
