@@ -2,7 +2,9 @@
 id: FEAT-0389
 title: Replace the alert modal with a Super-Alert side panel
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: worktree-super-alert-side-panel-59eaf9
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -88,5 +90,41 @@ unter der Fußzeile ist die Klartext-Regel.*
 
 - [`docs/alert-system.md`](../../alert-system.md) — the tab map and entry points
 - [`ADR-0006`](../../adr/0006-one-window-stacking-authority.md)
-- `src/components/alerts/AlertDefinitionsModal.svelte`, `src/components/shared/LeftControlPanel.svelte`
+- `src/components/alerts/AlertPanelView.svelte` (was `AlertDefinitionsModal.svelte`, removed), `src/components/shared/LeftControlPanel.svelte`
 - Reference behaviour: Bitunix "Super Alert" panel (described, not reproduced)
+
+## State (2026-09-06)
+
+The shell is built. What exists:
+
+- `AlertPanelWindow` (`WindowType: 'alertpanel'`) — a `WindowBase` on the shared
+  stack, docked right, `showBackdrop: false` and `closeOnBlur: false` so the
+  chart stays visible *and* clickable beside it. This answers the open question:
+  there was no panel primitive, and ADR-0006 already required a floating surface
+  to be a `WindowBase`, so no new primitive was invented beside `ModalFrame`.
+- `AlertPanelView.svelte` — header (symbol / price source / anchor timeframe),
+  tab strip with roving-tabindex arrow keys, one dynamic import per tab, the
+  plain-language sentence, the engine-failed banner, field-anchored refusals plus
+  a catch-all for refusals no control claims.
+- `alertPanel.svelte.ts` — the shared draft `RuleDocument` every builder tab will
+  edit, plus `refusalsForField` / `unclaimedRefusals`.
+- `ruleSentence.ts` — the rule as a sentence, composed from `rules.sentence.*`
+  fragments in both locales. 14 unit tests resolve against the real locale files.
+- `armRule.ts` — writes an accepted document into `cachy_rules_v1`, which
+  `ruleLoopWiring.ts` reads and `reconcileOrphanedRules.ts` leaves alone (no
+  origin-ledger entry means never suspended as an orphan). 6 unit tests.
+- `AlertDefinitionsModal.svelte` is deleted; Manage moved to
+  `tabs/ManageTab.svelte` with its two cutover notices unchanged.
+
+What is open:
+
+- The five builder tabs are real code-split modules with placeholder bodies.
+  Each is replaced by its own item without touching the shell's loader.
+- The Manage tab keeps the old quick-add form (symbol + price). It leaves when
+  [`FEAT-0390`](FEAT-0390-price-alert-conditions.md) lands — shipping the panel
+  without any way to arm an alarm would have been a regression.
+- The arm button is disabled until the draft has a condition, which no builder
+  can produce yet. The path behind it (validate → `armRule`) is complete and
+  tested, so FEAT-0390 only has to write into `alertPanelState.draft`.
+- The price-source select in the header is not yet wired into the document; it
+  becomes the default `PriceField` for the Price tab's conditions in FEAT-0390.

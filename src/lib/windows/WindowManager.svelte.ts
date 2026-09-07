@@ -99,9 +99,16 @@ class WindowManager {
             // focus, which nothing arranged. Reuses closeOnBlur rather than
             // adding a separate flag: a window that closes when you click
             // elsewhere is, by the same definition, dismissible by Escape.
+            //
+            // The alert side panel is `closeOnBlur: false` on purpose (a
+            // background click on the chart must not dismiss it, FEAT-0389)
+            // but still needs to be Escape-dismissible -- so it's named here
+            // explicitly rather than folded into closeOnBlur.
             window.addEventListener('keydown', (e) => {
                 if (e.key !== 'Escape') return;
-                const dismissible = this._windows.filter(w => w.closeOnBlur && !w.isMinimized);
+                const dismissible = this._windows.filter(
+                    w => (w.closeOnBlur || w.windowType === 'alertpanel') && !w.isMinimized
+                );
                 if (dismissible.length === 0) return;
                 const topmost = dismissible.reduce((a, b) => a.zIndex > b.zIndex ? a : b);
                 this.close(topmost.id);
