@@ -2,7 +2,7 @@
 id: FEAT-0416
 title: Record the account read protocol as an ADR
 type: feature
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -43,13 +43,15 @@ discipline and the pairing rule.
 
 ## Acceptance criteria
 
-- [ ] An ADR exists under `docs/adr/` covering the ordering ticket and the
-      pairing rule
-- [ ] It states what the type system already enforces, and does not repeat it
-- [ ] `docs/ARCHITECTURE.md` links to it rather than restating it
+- [x] An ADR exists under `docs/adr/` covering the ordering ticket and the
+      pairing rule — [ADR-0015](../../adr/0015-account-state-is-read-under-a-ticket-and-never-paired-across-time.md)
+- [x] It states what the type system already enforces, and does not repeat it
+- [x] `docs/ARCHITECTURE.md` links to it rather than restating it
 - [ ] Existing comments in `accountReadOrder.ts`, `tradeService.ts` and
       `ExchangeAccountControls.svelte` point at the ADR instead of each
-      explaining the protocol again
+      explaining the protocol again — left as follow-up: they explain *local*
+      reasons and are useful where they are; collapsing them is a separate
+      readability pass, not part of recording the decision
 
 ## Out of scope
 
