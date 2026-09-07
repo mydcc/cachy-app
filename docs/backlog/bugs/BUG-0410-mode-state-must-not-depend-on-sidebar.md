@@ -2,9 +2,7 @@
 id: BUG-0410
 title: Mode chip depends on PositionsSidebar being mounted
 type: bug
-status: in-progress
-branch: fix/margin-mode-display
-assignee: opencode
+status: specced
 priority: P0
 milestone: M4
 editions: [community, pro, private]

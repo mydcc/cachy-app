@@ -2,9 +2,7 @@
 id: BUG-0409
 title: Mode chip stays stale or shows never-real combos after a mode change
 type: bug
-status: in-progress
-branch: fix/margin-mode-display
-assignee: opencode
+status: specced
 priority: P0
 milestone: M4
 editions: [community, pro, private]
