@@ -2,7 +2,7 @@
 id: FEAT-0416
 title: Record the account read protocol as an ADR
 type: feature
-status: idea
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -22,7 +22,7 @@ only in comments next to the code that follows them:
 1. Take an ordering ticket before the first `await`, and claim it immediately
    before the write (BUG-0412).
 2. Write mode values through the setter so the freshness stamp travels with
-   the value (BUG-0409, BUG-0415).
+   the value (BUG-0409).
 3. Never pair two halves whose stamps are far apart; show the older half as
    unknown instead (BUG-0409).
 
@@ -36,7 +36,7 @@ One ADR under `docs/adr/`, short, stating where account state may be read,
 where it may be written, and what must never happen. Not a tutorial — a
 constraint, in the form ADRs already use in this repo.
 
-Write it **after** the encapsulation work, not before. Making the fields
+Write it **after** the encapsulation work, not before (open as #2757, the CI guard, and #2759, the setter-only fields). Making the fields
 setter-only removes rule 2 from prose entirely: the compiler states it. What
 remains to write down is only what types cannot express — chiefly the ordering
 discipline and the pairing rule.
@@ -50,6 +50,13 @@ discipline and the pairing rule.
 - [ ] Existing comments in `accountReadOrder.ts`, `tradeService.ts` and
       `ExchangeAccountControls.svelte` point at the ADR instead of each
       explaining the protocol again
+
+## Out of scope
+
+- Implementing the encapsulation itself (setter-only fields, CI guard) —
+  tracked separately; this entry only records the protocol once it exists.
+- Rewriting every existing comment beyond pointing at the ADR.
+- Tutorial-style documentation; the ADR states constraints, not usage.
 
 ## Links
 
