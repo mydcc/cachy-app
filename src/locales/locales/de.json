@@ -645,7 +645,10 @@
       "quickYtd": "YTD",
       "quickAll": "Alle",
       "reset": "Filter zurücksetzen",
-      "filterTags": "Nach Tag filtern..."
+      "filterTags": "Nach Tag filtern...",
+      "modeLive": "Live",
+      "modePaper": "Paper",
+      "modeAll": "Alle"
     },
     "drawer": {
       "title": "Trade-Details",
@@ -662,7 +665,11 @@
       "notes": "Notizen",
       "tags": "Tags",
       "screenshot": "Screenshot",
-      "save": "Änderungen speichern"
+      "save": "Änderungen speichern",
+      "riskAmount": "Risiko-Betrag",
+      "maxPotentialProfit": "Maximaler Profit",
+      "noScreenshot": "Kein Screenshot hinterlegt.",
+      "makerTakerRates": "Maker / Taker Raten"
     },
     "messages": {
       "unlocked": "freigeschaltet",
@@ -1432,7 +1439,7 @@
       "wma": "WMA",
       "vwma": "VWMA",
       "hma": "HMA",
-      "choppiness": "Choppiness Idx",
+      "choppiness": "Choppiness",
       "stochasticTitle": "Stochastik",
       "parabolicSar": "Parabolic SAR",
       "emaTitle": "EMA",
@@ -1465,7 +1472,13 @@
       "maTypeEma": "EMA",
       "maTypeWma": "WMA",
       "anchorSession": "Sitzung",
-      "anchorFixed": "Fixiert"
+      "anchorFixed": "Fixiert",
+      "marketStructureHigh": "Market Structure High",
+      "marketStructureLow": "Market Structure Low",
+      "atrStopSell": "ATR Stop (Verkauf)",
+      "atrStopBuy": "ATR Stop (Kauf)",
+      "vpPoc": "VP (POC)",
+      "vaHighLow": "VA High/Low"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
