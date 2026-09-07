@@ -77,6 +77,29 @@ jobs:
         # known-safe use by appending  // audit: safe — <reason>  to the line.
         run: node scripts/audit-decimal.mjs
 
+  account-state-check:
+    name: Account State Write Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify the guard still guards
+        # The scan is only worth its green tick if the pattern behind it still
+        # matches what it claims to. Without this, breaking the regex would
+        # turn the job into a permanent pass that nobody notices.
+        run: node scripts/audit-account-state.mjs --selftest
+
+      - name: Audit position-mode writes
+        # A value and its freshness stamp only mean something together
+        # (BUG-0409). setPositionMode() writes both; a direct assignment
+        # leaves the stamp behind and the chip then ages dishonestly.
+        run: node scripts/audit-account-state.mjs
+
   docs-check:
     name: Backlog & Documentation Links
     runs-on: ubuntu-latest
