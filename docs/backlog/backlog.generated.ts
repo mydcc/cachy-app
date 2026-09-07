@@ -4830,7 +4830,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0389",
     "title": "Replace the alert modal with a Super-Alert side panel",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-super-alert-side-panel-59eaf9",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
