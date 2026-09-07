@@ -46,6 +46,7 @@ import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder } from "../types/exchange";
 import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
+import { paperAccountFeed } from "./paperAccountFeed";
 import { paperExchange } from "./paperExchange";
 import { capabilitiesOf } from "./exchangeCapabilities";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
@@ -393,9 +394,17 @@ class TradeService {
         const provider = settingsState.apiProvider || "bitunix";
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys?.key || !keys?.secret) return;
-        if (paperState.enabled) return;
 
         const session = accountSession.current();
+
+        // Paper mode answers from the simulated book, exactly like
+        // PositionsSidebar: paperExchange simulates orders only and knows
+        // no venue margin modes, so there is no live read to take here.
+        const paper = paperAccountFeed();
+        if (paper) {
+            accountState.positionMode = paper.accountInfo().positionMode;
+            return;
+        }
 
         try {
             const response = await appFetch("/api/account", {
