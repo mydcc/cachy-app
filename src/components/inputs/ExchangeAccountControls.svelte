@@ -145,7 +145,8 @@ import { Decimal } from "decimal.js";
    * This effect fires on symbol/provider change, skips paper +
    * unsupported venues, and lets the service guards (credentials,
    * session) decide the rest. No remote values read here, so the
-   * write cannot loop. Cleanup flags the in-flight read.
+   * write cannot loop. Cleanup flags this run's error handling; a
+   * successful in-flight fetch still writes, ordered by the read ticket.
    */
   $effect(() => {
     const currentSymbol = symbol;
@@ -172,6 +173,7 @@ import { Decimal } from "decimal.js";
    * are compared via untrack, so the re-read cannot loop — once it lands,
    * nothing disagrees anymore. No polling, no store cycle. A duplicate
    * fetch alongside the mount effect above is harmless (same endpoint).
+   * Cleanup below flags this run's error handling only.
    */
   $effect(() => {
     const vs = venueSymbol;
@@ -241,7 +243,8 @@ import { Decimal } from "decimal.js";
    * unknown, stop once set. No loop:
    * the fetch resolves the condition it fires on; a failed fetch leaves it
    * unknown until a dependency moves, and only the dialog's own read
-   * refreshes an already-known value.
+   * refreshes an already-known value. Cleanup flags this run's error
+   * handling only.
    */
   $effect(() => {
     const allowed = supported;
