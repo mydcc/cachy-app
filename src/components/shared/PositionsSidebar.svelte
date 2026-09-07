@@ -518,7 +518,7 @@
         margin: info.margin,
         frozen: info.frozen,
       });
-      accountState.positionMode = info.positionMode;
+      accountState.setPositionMode(info.positionMode);
       return;
     }
 
@@ -583,7 +583,7 @@
         // FEAT-0068: the trade panel offers this as an editable control, and
         // this snapshot is the only place it arrives. Shared through the
         // store rather than re-fetched there.
-        accountState.positionMode = data.positionMode || undefined;
+        accountState.setPositionMode(data.positionMode);
       }
     } catch {
       // The ticket is usually still unclaimed here — `appFetch` and

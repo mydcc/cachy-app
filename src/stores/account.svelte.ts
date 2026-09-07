@@ -167,17 +167,59 @@ class AccountManager {
    */
   positionMode = $state<string | undefined>(undefined);
 
+  /**
+   * When a read last confirmed `positionMode` (epoch ms), or undefined if
+   * none ever has.
+   *
+   * The mode chip pairs this field with `tradeState.remoteMarginMode`, which
+   * is refreshed by entirely different triggers and carries its own stamp
+   * (`remoteAccountStateAt`). Without a stamp on this side there was no way
+   * to tell that the two halves describe different moments — which is how the
+   * chip came to display `Cross • Hedge`, a combination that had never
+   * existed on any venue (BUG-0409).
+   */
+  positionModeAt = $state<number | undefined>(undefined);
+
+  /**
+   * A confirmed write is being read back and the displayed value is not yet
+   * proven to be what the venue holds (BUG-0409).
+   *
+   * Both flags live here even though the margin mode's *value* lives in
+   * `tradeState`: this store persists nothing, which is exactly what a
+   * transient "checking" marker needs — restored from disk it would claim a
+   * verification that is not running.
+   */
+  positionModeVerifying = $state(false);
+  marginModeVerifying = $state(false);
+
   private syncCallback: (() => void) | null = null;
   // Fired when a WS push closes an open order (FILLED/CANCELED/...) — lets
   // the UI eagerly refresh the (REST-only, non-live) order history instead
   // of only picking up the fill on the next manual tab switch.
   private orderCloseCallback: (() => void) | null = null;
 
+  /**
+   * Record a position mode that a read actually returned.
+   *
+   * The one way to write this field, so the stamp cannot be forgotten at a
+   * call site — an unstamped write would look infinitely old to the chip's
+   * skew check, or worse, infinitely fresh if the stamp defaulted to now.
+   * A read that failed must not call this at all: leaving the previous value
+   * *and* its previous stamp is what lets it age out honestly.
+   */
+  setPositionMode(value: string | undefined) {
+    this.positionMode = value || undefined;
+    this.positionModeAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
+  }
+
   reset() {
     this.positions = [];
     this.openOrders = [];
     this.assets = [];
     this.positionMode = undefined;
+    this.positionModeAt = undefined;
+    this.positionModeVerifying = false;
+    this.marginModeVerifying = false;
     this.notifyListeners();
   }
 
