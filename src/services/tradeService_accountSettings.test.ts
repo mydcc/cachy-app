@@ -262,3 +262,70 @@ describe("FEAT-0068 — refusals happen before anything travels", () => {
         expect(appFetchMock).not.toHaveBeenCalled();
     });
 });
+
+/*
+ * BUG-0410 — the mode chip must not depend on PositionsSidebar being mounted.
+ *
+ * `accountState.requestSync()` fires a callback that only `PositionsSidebar`
+ * registers. Hiding the sidebar is a display preference; it used to also mean
+ * that a confirmed position-mode change never reached the chip, because the
+ * write's only refresh was that no-op. The service now takes its own read, so
+ * these tests deliberately register no sync callback at all.
+ */
+describe("BUG-0410 — the position-mode write refreshes without a sidebar", () => {
+    beforeEach(() => {
+        accountState.registerSyncCallback(null);
+    });
+
+    it("reads the account back with no sync callback registered", async () => {
+        appFetchMock.mockResolvedValue(ok({ positionMode: "HEDGE" }));
+
+        await tradeService.changePositionMode("HEDGE");
+
+        expect(calls().map((c) => c.url)).toEqual([
+            "/api/account-settings",
+            "/api/account",
+        ]);
+        expect(accountState.positionMode).toBe("HEDGE");
+    });
+
+    it("shows what the venue reports, not what was requested", async () => {
+        // The exchange accepted the write but still answers ONE_WAY — an
+        // eventual-consistency window, not a client bug. What must never
+        // happen is the chip echoing the request as if it were confirmed.
+        appFetchMock.mockImplementation(async (url: string) =>
+            String(url) === "/api/account"
+                ? ok({ positionMode: "ONE_WAY" })
+                : ok({}),
+        );
+
+        await tradeService.changePositionMode("HEDGE");
+
+        expect(accountState.positionMode).toBe("ONE_WAY");
+    });
+
+    it("still resyncs the sidebar when one is mounted", async () => {
+        const sync = vi.fn();
+        accountState.registerSyncCallback(sync);
+        appFetchMock.mockResolvedValue(ok({ positionMode: "HEDGE" }));
+
+        await tradeService.changePositionMode("HEDGE");
+
+        expect(sync).toHaveBeenCalledTimes(1);
+        accountState.registerSyncCallback(null);
+    });
+
+    it("leaves the displayed mode alone when the read-back fails", async () => {
+        accountState.positionMode = "ONE_WAY";
+        appFetchMock.mockImplementation(async (url: string) => {
+            if (String(url) === "/api/account") throw new Error("offline");
+            return ok({});
+        });
+
+        // The write itself succeeded, so this must not reject — the silent
+        // read contract applies to the read half only.
+        await tradeService.changePositionMode("HEDGE");
+
+        expect(accountState.positionMode).toBe("ONE_WAY");
+    });
+});

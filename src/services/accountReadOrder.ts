@@ -77,6 +77,11 @@ class AccountReadOrder {
      * Must be called *before* the first `await`, so the ticket records the
      * moment the read was issued rather than the moment it came back — the
      * latter is the arrival order, which is the thing that cannot be trusted.
+     *
+     * A synchronous applying write takes one too: the paper-feed switch
+     * answers from memory with no network read behind it, yet a live read
+     * issued before the switch must still lose to it. What the ticket
+     * orders is application order, not network reads.
      */
     begin(): AccountReadTicket {
         this.issued += 1;

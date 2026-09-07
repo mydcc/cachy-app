@@ -544,12 +544,27 @@ class TradeService {
      * Position mode for the whole futures account (FEAT-0068) — ONE_WAY or
      * HEDGE. Takes no symbol: the endpoint does not.
      *
-     * Re-synced through `accountState.requestSync()` rather than a targeted
-     * read, because the mode is reported on the account and on every
-     * position, and both views have to stop disagreeing.
+     * Read back twice, on purpose.
+     *
+     * `fetchPositionMode()` is the one that must happen: it writes the field
+     * the mode chip reads, and it belongs to this service, so it runs whether
+     * or not anything else is on screen. `requestSync()` used to be the only
+     * refresh here, and it is a *no-op* unless `PositionsSidebar` is mounted
+     * to register the callback — so a trader with the sidebar hidden saw the
+     * toast, the broker applied the change, and the chip kept the old value
+     * until a reload (BUG-0410).
+     *
+     * `requestSync()` stays because the mode is reported on the account *and*
+     * on every position, and both views have to stop disagreeing — but it is
+     * now the extra, not the mechanism.
+     *
+     * Ordering is not load-bearing: overlapping account reads are sequenced
+     * by `accountReadOrder` (BUG-0412), so whichever of the two lands last
+     * cannot be an older answer than the one already applied.
      */
     public async changePositionMode(positionMode: "ONE_WAY" | "HEDGE"): Promise<void> {
         await this.accountSettingRequest({ type: "change-position-mode", positionMode });
+        await this.fetchPositionMode();
         accountState.requestSync();
     }
 
