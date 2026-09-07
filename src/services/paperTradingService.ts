@@ -259,7 +259,7 @@ class PaperTradingService {
             margin: account.margin,
             frozen: account.frozen,
         });
-        accountState.positionMode = account.positionMode;
+        accountState.setPositionMode(account.positionMode);
 
         this.mirrorToOms();
     }

@@ -563,13 +563,13 @@ class TradeService {
 
         accountState.marginModeVerifying = true;
         try {
-            const applied = await this.readBackUntilApplied(
+            const outcome = await this.readBackUntilApplied(
                 () => this.fetchLeverageMarginMode(symbol),
                 () =>
                     normalizeMarginMode(tradeState.remoteMarginMode) ===
                     normalizeMarginMode(marginMode),
             );
-            if (!applied) this.warnUnconfirmed();
+            if (outcome === "unconfirmed") this.warnUnconfirmed();
         } finally {
             accountState.marginModeVerifying = false;
         }
@@ -593,14 +593,18 @@ class TradeService {
      * switched underneath — the answer would describe an account the trader
      * has left.
      *
-     * Returns whether the venue confirmed. It deliberately does not decide
-     * what to do about a `false`: the caller knows which control the trader
-     * is looking at.
+     * Returns how the read-back ended. `confirmed` and `unconfirmed`
+     * both mean the account is still the trader's own — only then may the
+     * caller warn. `switched` means the account moved underneath: warning
+     * about the previous account's value would blame the venue for a read
+     * that no longer belongs to this session. It deliberately does not
+     * decide beyond that: the caller knows which control the trader is
+     * looking at.
      */
     private async readBackUntilApplied(
         read: () => Promise<void>,
         isApplied: () => boolean,
-    ): Promise<boolean> {
+    ): Promise<"confirmed" | "unconfirmed" | "switched"> {
         const session = accountSession.current();
 
         for (let attempt = 0; attempt < READ_BACK_ATTEMPTS; attempt++) {
@@ -608,13 +612,13 @@ class TradeService {
                 await new Promise((resolve) =>
                     setTimeout(resolve, READ_BACK_DELAYS_MS[attempt - 1]),
                 );
-                if (!accountSession.isCurrent(session)) return false;
+                if (!accountSession.isCurrent(session)) return "switched";
             }
             await read();
-            if (!accountSession.isCurrent(session)) return false;
-            if (isApplied()) return true;
+            if (!accountSession.isCurrent(session)) return "switched";
+            if (isApplied()) return "confirmed";
         }
-        return false;
+        return "unconfirmed";
     }
 
     /**
@@ -658,11 +662,11 @@ class TradeService {
 
         accountState.positionModeVerifying = true;
         try {
-            const applied = await this.readBackUntilApplied(
+            const outcome = await this.readBackUntilApplied(
                 () => this.fetchPositionMode(),
                 () => (accountState.positionMode ?? "").toUpperCase() === positionMode,
             );
-            if (!applied) this.warnUnconfirmed();
+            if (outcome === "unconfirmed") this.warnUnconfirmed();
         } finally {
             accountState.positionModeVerifying = false;
         }
