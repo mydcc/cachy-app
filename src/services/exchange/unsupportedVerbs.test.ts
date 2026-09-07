@@ -66,6 +66,7 @@ const tradeServiceMock = vi.hoisted(() => ({
     placeTpSlOrder: vi.fn(async () => ({ ok: true })),
     fetchLeverageMarginMode: vi.fn(async () => undefined),
     fetchTradingPairInfo: vi.fn(async () => undefined),
+    fetchPositionMode: vi.fn(async () => undefined),
     changeLeverage: vi.fn(async () => undefined),
     changeMarginMode: vi.fn(async () => undefined),
     changePositionMode: vi.fn(async () => undefined),
@@ -136,6 +137,8 @@ describe("FEAT-0229 — a read resolves empty instead of throwing", () => {
         await expect(bitget().account.fetchTradingPairInfo("BTCUSDT")).resolves.toBeUndefined();
         expect(tradeServiceMock.fetchLeverageMarginMode).not.toHaveBeenCalled();
         expect(tradeServiceMock.fetchTradingPairInfo).not.toHaveBeenCalled();
+        await expect(bitget().account.fetchPositionMode()).resolves.toBeUndefined();
+        expect(tradeServiceMock.fetchPositionMode).not.toHaveBeenCalled();
     });
 });
 
@@ -153,12 +156,14 @@ describe("FEAT-0229 — the guard is reachable only through a false support flag
         });
         await bitunix().account.fetchLeverageMarginMode("BTCUSDT");
         await bitunix().account.fetchTradingPairInfo("BTCUSDT");
+        await bitunix().account.fetchPositionMode();
 
         expect(tradeServiceMock.fetchTpSlOrders).toHaveBeenCalledTimes(1);
         expect(tradeServiceMock.cancelTpSlOrder).toHaveBeenCalledTimes(1);
         expect(tradeServiceMock.modifyTpSlOrder).toHaveBeenCalledTimes(1);
         expect(tradeServiceMock.fetchLeverageMarginMode).toHaveBeenCalledTimes(1);
         expect(tradeServiceMock.fetchTradingPairInfo).toHaveBeenCalledTimes(1);
+        expect(tradeServiceMock.fetchPositionMode).toHaveBeenCalledTimes(1);
     });
 
     it("keeps the declaration and the behaviour in step", () => {
@@ -313,6 +318,14 @@ const ACCOUNT_VERBS: Record<string, VerbSpec> = {
         kind: "read",
         args: ["BTCUSDT"],
         transport: "fetchTradingPairInfo",
+    },
+    // No gate of its own: this read exists for the account-settings chip,
+    // so it follows that flag on both venues.
+    fetchPositionMode: {
+        gate: "accountSettings",
+        kind: "read",
+        args: [],
+        transport: "fetchPositionMode",
     },
     // FEAT-0068 — the write half of the account port. Writes, so an
     // unsupported venue refuses instead of resolving: a leverage change that

@@ -176,6 +176,11 @@ const account: AccountPort = {
             : undefined,
     fetchTradingPairInfo: async (symbol) =>
         SUPPORTS.tradingPairInfo ? tradeService.fetchTradingPairInfo(symbol) : undefined,
+    // Position mode has no display path on Bitget (the chip renders only
+    // behind `supports.accountSettings`), so this resolves locally like the
+    // sibling reads. Flipping the flag wires the verified /api/account read.
+    fetchPositionMode: async () =>
+        SUPPORTS.accountSettings ? tradeService.fetchPositionMode() : undefined,
 
     // Writes (FEAT-0068), so they refuse rather than resolve. A margin
     // top-up that quietly did nothing would leave a trader believing their

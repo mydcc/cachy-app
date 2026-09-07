@@ -83,6 +83,7 @@ beforeEach(() => {
     appFetchMock.mockResolvedValue(ok({}));
     tradeState.remoteLeverage = undefined;
     tradeState.remoteMarginMode = undefined;
+    accountState.positionMode = undefined;
 });
 
 afterEach(() => {
@@ -192,6 +193,37 @@ describe("FEAT-0068 — displayed state comes from a read, never from the write"
 
         expect(sync).toHaveBeenCalledTimes(1);
         accountState.registerSyncCallback(null);
+    });
+});
+
+describe("BUG-1b — position mode has its own read", () => {
+    it("reads the account snapshot and stores the position mode", async () => {
+        appFetchMock.mockResolvedValue(ok({ positionMode: "HEDGE" }));
+        accountState.positionMode = undefined;
+
+        await tradeService.fetchPositionMode();
+
+        expect(calls().map((c) => c.url)).toEqual(["/api/account"]);
+        expect(calls()[0].body).toEqual({ exchange: "bitunix" });
+        expect(accountState.positionMode).toBe("HEDGE");
+    });
+
+    it("clears a mode the venue no longer reports", async () => {
+        appFetchMock.mockResolvedValue(ok({}));
+        accountState.positionMode = "ONE_WAY";
+
+        await tradeService.fetchPositionMode();
+
+        expect(accountState.positionMode).toBeUndefined();
+    });
+
+    it("leaves the displayed mode alone when the read fails", async () => {
+        appFetchMock.mockRejectedValue(new Error("offline"));
+        accountState.positionMode = "ONE_WAY";
+
+        await tradeService.fetchPositionMode();
+
+        expect(accountState.positionMode).toBe("ONE_WAY");
     });
 });
 

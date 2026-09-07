@@ -56,7 +56,8 @@
 -->
 
 <script lang="ts">
-  import { Decimal } from "decimal.js";
+  import { untrack } from "svelte";
+import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -135,6 +136,118 @@
   let busy = $state<"" | "leverage" | "modes">("");
   let leverageOpen = $state(false);
   let modeOpen = $state(false);
+  let modeDialogEpoch = $state(0);
+
+  /*
+   * BUG-1 initial read: positionMode arrives via PositionsSidebar
+   * /api/account on mount, but remoteMarginMode only refreshed in
+   * PlaceOrderPanel when stale before an order + after a write.
+   * This effect fires on symbol/provider change, skips paper +
+   * unsupported venues, and lets the service guards (credentials,
+   * session) decide the rest. No remote values read here, so the
+   * write cannot loop. Cleanup flags the in-flight read.
+   */
+  $effect(() => {
+    const currentSymbol = symbol;
+    const provider = exchange;
+    const paper = paperState.enabled;
+    const allowed = supported;
+    if (!allowed || !currentSymbol || paper || provider !== "bitunix") return;
+    let cancelled = false;
+    void activeExchange().account.fetchLeverageMarginMode?.(currentSymbol).catch(() => {
+      if (cancelled) return;
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  /*
+   * BUG-2 live push: the WS position/order channels carry marginMode,
+   * positionMode and leverage per object, but none ever reaches the chip's
+   * sources (`tradeState.remote*`, `accountState.positionMode`) — an
+   * external change only appeared after a reload. This effect bridges
+   * them: any push on this symbol disagreeing with the chip re-reads REST
+   * truth. Only the push side reads reactively; the authoritative values
+   * are compared via untrack, so the re-read cannot loop — once it lands,
+   * nothing disagrees anymore. No polling, no store cycle. A duplicate
+   * fetch alongside the mount effect above is harmless (same endpoint).
+   */
+  $effect(() => {
+    const vs = venueSymbol;
+    const sym = symbol;
+    const allowed = supported;
+    const paper = paperState.enabled;
+    const provider = exchange;
+    if (!allowed || !vs || !sym || paper || provider !== "bitunix") return;
+    const pushMargin = normMode(
+      accountState.positions.find((p) => p.symbol === vs)?.marginMode ??
+        accountState.openOrders.find((o) => o.symbol === vs)?.marginMode,
+    );
+    const rawPos = String(
+      accountState.openOrders.find((o) => o.symbol === vs)?.positionMode ?? "",
+    ).toUpperCase();
+    const pushPos = rawPos === "HEDGE" || rawPos === "ONE_WAY" ? rawPos : "";
+    const pushLev = String(
+      accountState.positions.find((p) => p.symbol === vs)?.leverage ??
+        accountState.openOrders.find((o) => o.symbol === vs)?.leverage ??
+        "",
+    );
+    const marginDrift = untrack(
+      () => pushMargin !== "" && normMode(tradeState.remoteMarginMode) !== pushMargin,
+    );
+    const posDrift = untrack(
+      () => pushPos !== "" && (accountState.positionMode ?? "").toUpperCase() !== pushPos,
+    );
+    // Same gap one field over: a leverage changed on the venue only
+    // arrives here inside position/order pushes, never into
+    // `remoteLeverage`. Non-numeric push junk never counts as drift.
+    const levDrift = untrack(() => {
+      const cur = tradeState.remoteLeverage;
+      if (pushLev === "" || cur === undefined) return false;
+      try {
+        return !cur.equals(new Decimal(pushLev));
+      } catch {
+        return false;
+      }
+    });
+
+    if (!marginDrift && !posDrift && !levDrift) return;
+    let cancelled = false;
+    if (marginDrift || levDrift) {
+      void activeExchange().account.fetchLeverageMarginMode?.(sym).catch(() => {
+        if (cancelled) return;
+      });
+    }
+    if (posDrift) accountState.requestSync();
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  /*
+   * BUG-1b, the chip's right half: `accountState.positionMode` only arrived
+   * via PositionsSidebar's snapshot — wherever the sidebar never fetched,
+   * the chip showed "—" next to a working margin mode. Same shape as the margin-mode mount effect: fire while
+   * unknown, stop once set. No loop:
+   * the fetch resolves the condition it fires on; a failed fetch leaves it
+   * unknown until a dependency moves, and only the dialog's own read
+   * refreshes an already-known value.
+   */
+  $effect(() => {
+    const allowed = supported;
+    const paper = paperState.enabled;
+    const provider = exchange;
+    if (!allowed || paper || provider !== "bitunix") return;
+    if (accountState.positionMode !== undefined) return;
+    let cancelled = false;
+    void activeExchange().account.fetchPositionMode?.().catch(() => {
+      if (cancelled) return;
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
 
   /*
    * FEAT-0328 decision 5, applied to a single control: with a broker
@@ -153,6 +266,13 @@
       : String(raw);
   });
 
+  /** Normalise every margin-mode spelling to one of two values (or empty). */
+  function normMode(v: unknown): "" | "isolation" | "cross" {
+    const s = String(v ?? "").toLowerCase();
+    if (!s) return "";
+    return s.startsWith("isolat") ? "isolation" : "cross";
+  }
+
   const marginModeReason = $derived.by(() => {
     if (paperState.enabled) return $_("exchange.accountSettings.paperMode");
     if (symbolBusy)
@@ -160,6 +280,22 @@
         values: { exchange: venueName, symbol: venueSymbol },
       });
     return "";
+  });
+
+  const modeChipTitle = $derived.by(() => {
+    const margin =
+      marginModeValue === undefined
+        ? "\u2014"
+        : isIsolated
+          ? $_("exchange.accountSettings.isolated")
+          : $_("exchange.accountSettings.cross");
+    const pos =
+      positionModeValue === undefined
+        ? "\u2014"
+        : positionModeValue === "HEDGE"
+          ? $_("exchange.accountSettings.hedge")
+          : $_("exchange.accountSettings.oneWay");
+    return `${margin} \u2022 ${pos}`;
   });
 
   const positionModeReason = $derived.by(() => {
@@ -351,6 +487,9 @@
       }
     } finally {
       busy = "";
+      // Re-anchor the dialog's diff baseline (see baseEpoch): a retry after
+      // a half-applied change then resends only what is still open.
+      modeDialogEpoch += 1;
     }
 
     if (!failed) modeOpen = false;
@@ -400,13 +539,21 @@
       disabled={busy !== ""}
       title={$_("exchange.accountSettings.modeTitle")}
       onclick={() => {
-        if (!busy) modeOpen = true;
+        if (busy) return;
+        // BUG-2: the dialog seeds its drafts once from the chip's sources,
+        // so re-read before opening — the next open (and the chip itself)
+        // then shows what the exchange holds right now, not last reload.
+        if (!paperState.enabled && supported && symbol && exchange === "bitunix") {
+          void activeExchange().account.fetchLeverageMarginMode?.(symbol).catch(() => {});
+          accountState.requestSync();
+        }
+        modeOpen = true;
       }}
     >
       {#if busy === "modes"}
         {$_("exchange.accountSettings.pending")}
       {:else}
-        <span class="font-semibold truncate">
+        <span class="font-semibold whitespace-nowrap" title={modeChipTitle}>
           {marginModeValue === undefined
             ? "—"
             : isIsolated
@@ -439,6 +586,7 @@
 
   {#if modeOpen}
     <MarginModeModal
+      baseEpoch={modeDialogEpoch}
       currentMarginMode={marginModeValue}
       currentPositionMode={positionModeValue}
       marginReason={marginModeReason}
