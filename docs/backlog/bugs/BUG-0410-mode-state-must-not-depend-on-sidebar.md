@@ -2,14 +2,15 @@
 id: BUG-0410
 title: Mode chip depends on PositionsSidebar being mounted
 type: bug
-status: specced
+status: in-progress
 priority: P0
 milestone: M4
 editions: [community, pro, private]
 area: trade-panel
 data_class: A
 adr: none
-depends_on: []
+assignee: claude
+depends_on: [BUG-0412]
 ---
 
 # BUG-0410 — Mode chip depends on PositionsSidebar being mounted
@@ -61,6 +62,34 @@ Groundwork uncommitted on `fix/margin-mode-display`:
 table). It was built for BUG-0409's stale right half and satisfies this
 item's read half; the refresh-after-write path still needs the decision
 recorded here.
+
+### Decision, Sep 2026 — the write reads itself back
+
+The read half shipped with the mode-chip PR; what was left was every
+*refresh* path still routing through `accountState.requestSync()`, which
+fires a callback only `PositionsSidebar` registers. Three of them, all
+silent no-ops with the sidebar hidden:
+
+- `TradeService.changePositionMode` — the confirmed write. Now
+  `await this.fetchPositionMode()` first, `requestSync()` after. The
+  targeted read is the mechanism; the resync stays because the mode is
+  reported on the account *and* on every position and the two views have
+  to stop disagreeing.
+- The chip's drift effect — drift it had already *detected* from an
+  order push was then dropped. Reads for itself now.
+- The chip's open-dialog re-read — the right half opened on a baseline
+  from the last reload, so the dialog's own diff could propose a change
+  the trader never made.
+
+Depends on BUG-0412's ordering: this deliberately adds a second
+concurrent reader of `/api/account`, which is only safe because a stale
+response can no longer overwrite a fresher one.
+
+Still out of scope here, and BUG-0409's: the read-back is taken *once*.
+An exchange that has not yet settled answers with the old mode, and the
+chip then shows the old mode — correctly reporting what the venue says,
+but not yet what BUG-0409 asks for (bounded re-read until read matches
+written).
 
 ## Links
 

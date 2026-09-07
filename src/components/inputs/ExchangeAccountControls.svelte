@@ -219,7 +219,16 @@ import { Decimal } from "decimal.js";
         if (cancelled) return;
       });
     }
-    if (posDrift) accountState.requestSync();
+    if (posDrift) {
+      // BUG-0410: `requestSync()` is a no-op unless PositionsSidebar is
+      // mounted to register the callback, so drift the chip had already
+      // *detected* was then silently dropped wherever the sidebar is hidden.
+      // The chip reads for itself; the sync stays for the panel's own data.
+      void activeExchange().account.fetchPositionMode?.().catch(() => {
+        if (cancelled) return;
+      });
+      accountState.requestSync();
+    }
     return () => {
       cancelled = true;
     };
@@ -545,6 +554,12 @@ import { Decimal } from "decimal.js";
         // then shows what the exchange holds right now, not last reload.
         if (!paperState.enabled && supported && symbol && exchange === "bitunix") {
           void activeExchange().account.fetchLeverageMarginMode?.(symbol).catch(() => {});
+          // Both halves re-read from a source the chip owns. `requestSync()`
+          // alone left the right half seeded from the last reload wherever
+          // PositionsSidebar is hidden — the dialog then opened on a stale
+          // baseline and its diff proposed a change the trader never made
+          // (BUG-0410).
+          void activeExchange().account.fetchPositionMode?.().catch(() => {});
           accountState.requestSync();
         }
         modeOpen = true;
