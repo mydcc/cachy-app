@@ -4,7 +4,7 @@
 
 289 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-progress 4 · ✅ done 220
+Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-progress 5 · ✅ done 220
 
 ---
 
@@ -128,7 +128,7 @@ Counts by status: 💡 idea 24 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
 | [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | trade-panel |
-| [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | 📋 specced | alerts |
+| [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | 🟡 in-progress | alerts |
 | [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) | Price alert conditions beyond a single target | P2 | 📋 specced | alerts |
 | [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P2 | 📋 specced | alerts |
 | [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | 📋 specced | alerts |
@@ -577,7 +577,7 @@ Counts by status: 💡 idea 24 · 📋 specced 38 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0026](features/FEAT-0026-multi-account.md) |
-| [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
+| [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) | Price alert conditions beyond a single target | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0030](features/FEAT-0030-combined-alerts.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | 📋 specced | M4 | community, pro, private | A | none | — |
