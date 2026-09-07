@@ -586,8 +586,12 @@
         accountState.positionMode = data.positionMode || undefined;
       }
     } catch {
-      // The ticket is still unclaimed here — the throw came from `appFetch`
-      // or `response.json()`, both before `mayApply` above.
+      // The ticket is usually still unclaimed here — `appFetch` and
+      // `response.json()` both run before `mayApply` above. But anything
+      // thrown after a claim takes the same exit, so this asks whether
+      // this read is still the newest instead of assuming it: silent only
+      // when a newer read already landed. Keep fallible work out of the
+      // window between the claim and this catch.
       if (!accountReadOrder.mayApply(ticket)) return;
       errorAccount = $_("apiErrors.generic");
     }
