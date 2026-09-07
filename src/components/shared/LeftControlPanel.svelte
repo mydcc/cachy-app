@@ -81,7 +81,8 @@
   <button
     class="control-btn"
     onclick={() => uiState.toggleAlertsModal(true)}
-    title={$_("dashboard.alerts.manage") || "Manage Alerts"}
+    title={$_("dashboard.alerts.panel.open")}
+    aria-label={$_("dashboard.alerts.panel.open")}
     use:trackClick={{
       category: "Navigation",
       action: "Click",

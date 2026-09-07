@@ -333,7 +333,34 @@
       "cutoverNoticeBody": "Bestehende Alarme werden ab sofort beim Abschluss jeder 1-Minuten-Kerze geprüft statt bei jeder einzelnen Preisänderung. Zwei Dinge ändern sich dadurch: Ein Alarm kann bis zu eine Minute später kommen, und ein kurzes Durchstechen deiner Marke, das sich noch in derselben Minute zurückbildet, löst keinen Alarm mehr aus.",
       "cutoverNoticeDismiss": "Verstanden",
       "orphanSuspendedHint": "Migrierte Alarme deaktiviert: {count}. Der ursprüngliche Preisalarm existiert für diese nicht mehr, deshalb wurden sie automatisch abgeschaltet.",
-      "orphanWithheldHint": "Migrierte Alarme mit ungeklärter Herkunft: {count}. Wir konnten nicht sicher feststellen, ob der ursprüngliche Preisalarm gelöscht wurde, deshalb bleiben sie vorsichtshalber aktiv und können weiterhin auslösen."
+      "orphanWithheldHint": "Migrierte Alarme mit ungeklärter Herkunft: {count}. Wir konnten nicht sicher feststellen, ob der ursprüngliche Preisalarm gelöscht wurde, deshalb bleiben sie vorsichtshalber aktiv und können weiterhin auslösen.",
+      "panel": {
+        "title": "Super-Alarm",
+        "open": "Super-Alarm-Panel öffnen",
+        "tabs": "Alarm-Baukasten",
+        "tab": {
+          "templates": "Vorlagen",
+          "combo": "Kombi",
+          "price": "Preis",
+          "indicators": "Indikatoren",
+          "candlesticks": "Candlesticks",
+          "manage": "Verwalten"
+        },
+        "symbol": "Symbol",
+        "priceSource": "Preisquelle",
+        "timeframe": "Zeiteinheit",
+        "sentenceLabel": "Diese Regel bedeutet",
+        "arm": "Alarm scharf schalten",
+        "loading": "Tab wird geladen …",
+        "pendingTitle": "Dieser Baukasten kommt noch",
+        "pendingBody": "Der Tab ist Teil von {item} und noch nicht gebaut. Bis dahin legst du Preisalarme unter „Verwalten“ an.",
+        "coreUnavailable": "Die Regel konnte nicht geprüft werden, weil der Regel-Kern nicht geladen ist. Das heißt nicht, dass deine Regel falsch ist — sie wurde gar nicht erst geprüft.",
+        "otherRefusals": "Weitere Beanstandungen",
+        "storeUnreadable": "Der Regelspeicher konnte nicht gelesen werden. Es wurde nichts scharf geschaltet, damit deine bestehenden Alarme nicht überschrieben werden.",
+        "armed": "Alarm scharf geschaltet.",
+        "armDisabled": "Füge zuerst eine Bedingung hinzu.",
+        "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu."
+      }
     },
     "generalInputs": {
       "header": "Allgemein",
@@ -3769,6 +3796,72 @@
       "emptyConditionTree": "Eine Gruppe ohne Bedingungen hat keinen Wahrheitswert.",
       "conditionTreeTooDeep": "Die Bedingungen sind zu tief verschachtelt.",
       "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet."
+    },
+    "sentence": {
+      "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
+      "unless": "— außer wenn {condition}.",
+      "empty": "(noch keine Bedingung)",
+      "negate": "nicht {condition}",
+      "onTimeframe": " (auf {timeframe})",
+      "compare": "{left} {op} {right}{timeframe}",
+      "crossing": "{left} {direction} {right}{timeframe}",
+      "lead": {
+        "notify": "Benachrichtigt",
+        "simulate": "Simuliert eine Order",
+        "send": "Sendet eine {side}-Order über {size} {basis}"
+      },
+      "op": {
+        "lt": "unter",
+        "lte": "höchstens",
+        "gt": "über",
+        "gte": "mindestens",
+        "eq": "gleich",
+        "neq": "ungleich"
+      },
+      "cross": {
+        "above": "kreuzt nach oben über",
+        "below": "kreuzt nach unten unter",
+        "any": "kreuzt"
+      },
+      "join": {
+        "all": "und",
+        "any": "oder",
+        "none": "und"
+      },
+      "price": {
+        "open": "der Eröffnungskurs",
+        "high": "das Hoch",
+        "low": "das Tief",
+        "close": "der Schlusskurs",
+        "hl2": "der Mittelkurs (HL2)",
+        "hlc3": "der Typische Preis (HLC3)"
+      },
+      "side": {
+        "long": "eine Long-Position",
+        "short": "eine Short-Position",
+        "either": "eine Position"
+      },
+      "position": {
+        "open": "{side} offen ist",
+        "flat": "{side} geschlossen ist"
+      },
+      "orderSide": {
+        "buy": "Kauf",
+        "sell": "Verkauf"
+      },
+      "basis": {
+        "base_quantity": "in der Basiswährung",
+        "quote_notional": "in der Kurswährung",
+        "percent_of_equity": "% des Kontokapitals",
+        "percent_risk": "% Risiko"
+      },
+      "account": {
+        "position_size": "die Positionsgröße",
+        "unrealised_pnl": "der unrealisierte Gewinn",
+        "unrealised_pnl_percent": "der unrealisierte Gewinn in %",
+        "exposure": "das Exposure",
+        "available_balance": "das verfügbare Guthaben"
+      }
     }
   }
 }

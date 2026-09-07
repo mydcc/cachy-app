@@ -19,7 +19,7 @@
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
   import type MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
-  import type AlertDefinitionsModal from "../components/alerts/AlertDefinitionsModal.svelte";
+  import type AlertPanel from "../components/alerts/AlertPanel.svelte";
   import type AutoBackupRestoreModal from "../components/shared/AutoBackupRestoreModal.svelte";
   import type OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
 
@@ -66,7 +66,7 @@ import { afterNavigate } from "$app/navigation";
 
   // Lazy-loaded modals
   let MarketDashboardModalComponent: typeof MarketDashboardModal | null = $state(null);
-  let AlertDefinitionsModalComponent: typeof AlertDefinitionsModal | null = $state(null);
+  let AlertPanelComponent: typeof AlertPanel | null = $state(null);
   let AutoBackupRestoreModalComponent: typeof AutoBackupRestoreModal | null = $state(null);
   let OrderDetailsTooltipComponent: typeof OrderDetailsTooltip | null = $state(null);
 
@@ -79,10 +79,12 @@ import { afterNavigate } from "$app/navigation";
   });
 
   $effect(() => {
-    if (uiState.showAlertsModal && !AlertDefinitionsModalComponent) {
-      import("../components/alerts/AlertDefinitionsModal.svelte")
-        .then((m) => (AlertDefinitionsModalComponent = m.default))
-        .catch((err) => console.error("Failed to load AlertDefinitionsModal", err));
+    // FEAT-0389: the alert modal is now a side panel. The flag keeps its
+    // name so the persisted UI state from before this change still opens it.
+    if (uiState.showAlertsModal && !AlertPanelComponent) {
+      import("../components/alerts/AlertPanel.svelte")
+        .then((m) => (AlertPanelComponent = m.default))
+        .catch((err) => console.error("Failed to load AlertPanel", err));
     }
   });
 
@@ -296,7 +298,7 @@ import { afterNavigate } from "$app/navigation";
     if (typeof window !== "undefined") {
       const preloadHeavyModals = () => {
         import("../components/shared/MarketDashboardModal.svelte");
-        import("../components/alerts/AlertDefinitionsModal.svelte");
+        import("../components/alerts/AlertPanel.svelte");
         import("../components/shared/AutoBackupRestoreModal.svelte");
         import("../components/shared/OrderDetailsTooltip.svelte");
       };
@@ -553,8 +555,8 @@ import { afterNavigate } from "$app/navigation";
   {@render children?.()}
 
   <!-- Global Modals -->
-  {#if uiState.showAlertsModal && AlertDefinitionsModalComponent}
-    <AlertDefinitionsModalComponent onClose={() => (uiState.showAlertsModal = false)} />
+  {#if uiState.showAlertsModal && AlertPanelComponent}
+    <AlertPanelComponent onClose={() => (uiState.showAlertsModal = false)} />
   {/if}
   {#if MarketDashboardModalComponent}
     <MarketDashboardModalComponent />

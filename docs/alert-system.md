@@ -27,7 +27,7 @@ That is why alerts and bots are not two systems:
 
 | Surface | Shows rules with | Where | Status |
 |---|---|---|---|
-| **Super-Alert panel** | `notify` | Bell in the left control panel, chart right-click, indicator settings | Planned (FEAT-0389/0395) — today: `AlertDefinitionsModal` (`price_reached`) |
+| **Super-Alert panel** | `notify` | Bell in the left control panel, chart right-click, indicator settings | Planned (FEAT-0389/0395) — today: `Super-Alert Side Panel` (`price_reached`) |
 | **Automation tab** | `simulate` | Settings → Automation (paper bots) | Planned (FEAT-0396, idea) |
 | **Automation tab** | `send` | Settings → Automation, behind the order gate | Planned |
 
@@ -75,7 +75,7 @@ reverts before the candle closes teaches a trader to distrust every alarm.
 
 ### Cutover note for alerts armed before this system
 
-Alerts armed through the legacy price-alert panel (`AlertDefinitionsModal`, stored under
+Alerts armed through the legacy price-alert panel (`Super-Alert Side Panel`, stored under
 `cachy_alerts_v1`) evaluated on **every incoming price tick** — a threshold crossed
 intra-tick fired immediately. Once [`FEAT-0388`](backlog/features/FEAT-0388-migrate-alerts-to-rule-documents.md)
 converts a stored alert into a `RuleDocument`, that alert instead fires **once per
@@ -89,7 +89,7 @@ sub-candle timing for an existing alert should re-arm it with a finer
 `trigger_timeframe` after the migration ships; the migration itself does not alter
 `symbol` or threshold (see `FEAT-0388`'s acceptance criteria).
 
-## Where a trader arms a rule (planned; today: `AlertDefinitionsModal` with a single `price_reached` condition)
+## Where a trader arms a rule (planned; today: `Super-Alert Side Panel` with a single `price_reached` condition)
 
 | Entry point | Gives |
 |---|---|
