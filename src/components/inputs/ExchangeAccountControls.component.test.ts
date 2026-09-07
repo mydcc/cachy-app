@@ -76,6 +76,7 @@ const tradeStateMock = vi.hoisted(() => ({
     leverage: "20" as string | null,
     remoteLeverage: undefined as unknown,
     remoteMarginMode: "ISOLATION" as string | undefined,
+    remoteAccountStateAt: undefined as number | undefined,
 }));
 vi.mock("../../stores/trade.svelte", () => ({ tradeState: tradeStateMock }));
 
@@ -99,6 +100,9 @@ const accountStateMock = vi.hoisted(() => ({
     }>,
     openOrders: [] as Array<{ symbol: string; marginMode?: string; positionMode?: string }>,
     positionMode: "ONE_WAY" as string | undefined,
+    positionModeAt: undefined as number | undefined,
+    positionModeVerifying: false,
+    marginModeVerifying: false,
     requestSync: vi.fn(),
 }));
 vi.mock("../../stores/account.svelte", () => ({ accountState: accountStateMock }));
@@ -176,6 +180,10 @@ beforeEach(() => {
     accountStateMock.positions = [];
     accountStateMock.openOrders = [];
     accountStateMock.positionMode = "ONE_WAY";
+    accountStateMock.positionModeAt = undefined;
+    accountStateMock.positionModeVerifying = false;
+    accountStateMock.marginModeVerifying = false;
+    tradeStateMock.remoteAccountStateAt = undefined;
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -813,8 +821,133 @@ describe("BUG-1b — the chip fills its right half on its own", () => {
         expect(accountPort.fetchPositionMode).toHaveBeenCalledTimes(1);
     });
 
-    it("leaves a known position mode alone", async () => {
+    it("fills the right half even with no symbol selected", async () => {
+        // No symbol means the paired refresh does not run, and the right half
+        // would otherwise sit empty next to a working left half.
+        tradeStateMock.symbol = "";
+        accountStateMock.positionMode = undefined;
         await render();
+        expect(accountPort.fetchPositionMode).toHaveBeenCalledTimes(1);
+        expect(accountPort.fetchLeverageMarginMode).not.toHaveBeenCalled();
+    });
+
+    it("still reads it alongside the margin half on a symbol change", async () => {
+        // BUG-0409 changed this: the chip used to skip the read whenever the
+        // value was already known, which is exactly how one half kept ageing
+        // past the other. Both halves are now read together, so the pair is
+        // stamped from the same moment.
+        await render();
+        expect(accountPort.fetchPositionMode).toHaveBeenCalledTimes(1);
+    });
+});
+
+/*
+ * BUG-0409 — the chip must never pair two values from different moments.
+ *
+ * The halves come from different endpoints on different triggers, each with
+ * its own stamp. Live, that produced `Cross • Hedge` on screen: a combination
+ * that had never existed on any venue, margin truth from one era beside
+ * position truth from another.
+ */
+describe("BUG-0409 — halves from different eras are not paired", () => {
+    /** Text of the chip, halves and separator included. */
+    function chipText(): string {
+        return button("btn-mode-chip")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    }
+
+    it("shows both halves while their stamps are close together", async () => {
+        const now = Date.now();
+        tradeStateMock.remoteAccountStateAt = now;
+        accountStateMock.positionModeAt = now - 1_000;
+
+        await render();
+
+        expect(chipText()).toContain("Isolated");
+        expect(chipText()).toContain("One-way");
+    });
+
+    it("blanks the older half once the two drift far apart", async () => {
+        const now = Date.now();
+        // The margin half was last confirmed five minutes before the other.
+        tradeStateMock.remoteAccountStateAt = now - 300_000;
+        accountStateMock.positionModeAt = now;
+
+        await render();
+
+        expect(chipText()).not.toContain("Isolated");
+        expect(chipText()).toContain("One-way");
+    });
+
+    it("blanks the position half when that is the older one", async () => {
+        const now = Date.now();
+        tradeStateMock.remoteAccountStateAt = now;
+        accountStateMock.positionModeAt = now - 300_000;
+
+        await render();
+
+        expect(chipText()).toContain("Isolated");
+        expect(chipText()).not.toContain("One-way");
+    });
+
+    it("says in the tooltip why a half went blank", async () => {
+        const now = Date.now();
+        tradeStateMock.remoteAccountStateAt = now - 300_000;
+        accountStateMock.positionModeAt = now;
+
+        await render();
+
+        const title = button("btn-mode-chip")?.querySelector("span[title]")
+            ?.getAttribute("title") ?? "";
+        // Both values still named — hiding the pairing is the point, hiding
+        // the reason is not.
+        expect(title).toContain("Isolated");
+        expect(title).toContain("unknown");
+    });
+
+    it("pairs nothing when one half has never been read", async () => {
+        // No stamp at all is "never confirmed", not "infinitely old": the
+        // existing undefined-value handling already covers it.
+        tradeStateMock.remoteAccountStateAt = Date.now();
+        accountStateMock.positionModeAt = undefined;
+
+        await render();
+
+        expect(chipText()).toContain("Isolated");
+        expect(chipText()).toContain("One-way");
+    });
+
+    it("shows a checking marker while a write is being read back", async () => {
+        accountStateMock.positionModeVerifying = true;
+
+        await render();
+
+        expect(chipText()).toContain("checking");
+    });
+});
+
+describe("BUG-0409 — returning to the tab re-reads both halves", () => {
+    it("reads on focus, because no venue pushes a settings change", async () => {
+        await render();
+        accountPort.fetchLeverageMarginMode.mockClear();
+        accountPort.fetchPositionMode.mockClear();
+
+        window.dispatchEvent(new Event("focus"));
+        await settle();
+
+        expect(accountPort.fetchLeverageMarginMode).toHaveBeenCalledWith("BTCUSDT");
+        expect(accountPort.fetchPositionMode).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores a second focus inside the minimum gap", async () => {
+        await render();
+        window.dispatchEvent(new Event("focus"));
+        await settle();
+        accountPort.fetchPositionMode.mockClear();
+
+        // Alt-tabbing is not a request for account data.
+        window.dispatchEvent(new Event("focus"));
+        await settle();
+
         expect(accountPort.fetchPositionMode).not.toHaveBeenCalled();
     });
 });

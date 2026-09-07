@@ -2,14 +2,15 @@
 id: BUG-0409
 title: Mode chip stays stale or shows never-real combos after a mode change
 type: bug
-status: specced
+status: in-progress
 priority: P0
 milestone: M4
 editions: [community, pro, private]
 area: exchange
 data_class: A
 adr: none
-depends_on: [FEAT-0068]
+assignee: claude
+depends_on: [FEAT-0068, BUG-0412, BUG-0410]
 ---
 
 # BUG-0409 — Mode chip stays stale or shows never-real combos after a mode change
@@ -115,6 +116,53 @@ Explicitly not triggers: TP/SL input (independent of modes/leverage)
 and timeframe change (chart-local) — refreshing account state there
 burns requests with zero benefit. Well under the venue limit
 (10 req/s/endpoint) since everything above is event-driven.
+
+## What shipped, Sep 2026
+
+Fixed in order, because the report's own conclusion was that retries on
+top of an unsequenced race only add racers.
+
+1. **BUG-0412 ordering** — a stale account response can no longer
+   overwrite a fresher one. Prerequisite for everything below.
+2. **BUG-0410 self-serve reads** — every refresh path for the right half
+   stopped going through `requestSync()`, which is a no-op without a
+   mounted sidebar.
+3. **Bounded read-back (this item).** `changeMarginMode` and
+   `changePositionMode` read back until the venue reports what was
+   written: 3 attempts, 700 ms and 2000 ms apart, stopping the moment the
+   venue agrees and abandoned if the account is switched underneath. It is
+   a read-back for one write, not a poller.
+4. **Failure is said out loud.** A read-back that never confirms raises a
+   warning naming what happened, replacing the `logger` line nobody sees.
+   The displayed value stays venue truth — never overwritten with what was
+   requested.
+5. **The two waits are told apart.** "pending" while the write travels,
+   "checking" while the read-back runs.
+6. **Halves from different eras are not paired.** `positionMode` now
+   carries a confirmation stamp (`positionModeAt`) alongside the margin
+   half's `remoteAccountStateAt`. The chip's own triggers read both
+   together, and where a gap opens anyway the *older* half is shown as
+   unknown rather than paired with a value from another moment — with the
+   reason in the tooltip. This is what `Cross • Hedge` was.
+7. **Schema hardening** — `BitunixLeverageMarginModeSchema` coerces
+   `leverage` instead of demanding a number. All-or-nothing validation
+   meant one stringified field discarded the whole read, `marginMode`
+   included (ranked fragility #1).
+8. **Triggers added**: symbol change now refreshes *both* halves, chip
+   open refreshes both, and returning to the tab refreshes both at most
+   once every 15 s — the reported trap of changing something in the
+   broker app between two Cachy interactions.
+
+### Still open
+
+- **Order arming** from the trigger map. The pre-order stale gate
+  (FEAT-0011) already re-reads before money moves and stays the last
+  word; arming would only pre-warm it. Not done, not pretended.
+- **Request deduplication** (BUG-0412's second half): the reads are
+  ordered, not coalesced. Traffic, not correctness.
+- The venue-delay hypothesis is now *handled* rather than proven — the
+  read-back covers it either way, and a venue that never settles within
+  the bound now says so instead of freezing the chip.
 
 ## Notes
 

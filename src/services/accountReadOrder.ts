@@ -77,11 +77,6 @@ class AccountReadOrder {
      * Must be called *before* the first `await`, so the ticket records the
      * moment the read was issued rather than the moment it came back — the
      * latter is the arrival order, which is the thing that cannot be trusted.
-     *
-     * A synchronous applying write takes one too: the paper-feed switch
-     * answers from memory with no network read behind it, yet a live read
-     * issued before the switch must still lose to it. What the ticket
-     * orders is application order, not network reads.
      */
     begin(): AccountReadTicket {
         this.issued += 1;
@@ -107,4 +102,21 @@ class AccountReadOrder {
     }
 }
 
+/**
+ * The `/api/account` snapshot lane — `positionMode`, balances.
+ */
 export const accountReadOrder = new AccountReadOrder();
+
+/**
+ * The `/api/leverage-margin-mode` lane — leverage and margin mode.
+ *
+ * A separate counter, deliberately. Ordering answers "is this answer older
+ * than one already applied *to this field*"; the two endpoints describe
+ * different fields, so a snapshot read must not be able to hold back a
+ * leverage read that started after it. Sharing one counter would do exactly
+ * that, and the symptom would look like the bug this fixes.
+ *
+ * Keeping the two halves of the chip *consistent with each other* is a
+ * different question with a different answer (BUG-0409); it is not ordering.
+ */
+export const leverageReadOrder = new AccountReadOrder();
