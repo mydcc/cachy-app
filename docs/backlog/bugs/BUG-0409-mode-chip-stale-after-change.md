@@ -521,7 +521,7 @@ gated, `requires()` returns the stored value).
 ## Links
 
 - [`FEAT-0068`](../features/FEAT-0068-bitunix-account-settings.md) — the write path this drifts from
-- [`FEAT-0020`](../features/FEAT-0020-confirmation-before-consequences.md) — the second confirm in front of the write
+- [`FEAT-0024`](../features/FEAT-0024-confirmation-policy.md) — the second confirm in front of the write
 - [`FEAT-0332`](../features/FEAT-0332-asset-mode.md) — asset mode stays separate
 - [`BUG-0060`](./BUG-0060-positions-account-envelope-mismatch.md) — envelope shape, done
 - [`BUG-0062`](./BUG-0062-hedge-mode-close-position-fails.md) — hedge-mode handling history, done
