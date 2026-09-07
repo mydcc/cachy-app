@@ -26,18 +26,19 @@ const app = express();
 app.use(compression());
 
 // Apply security headers to all requests. Runs before express.static, so
-// static assets already carry them — no need to repeat the call in setHeaders.
+// dynamic requests already carry them.
 app.use((req, res, next) => {
   applySecurityHeaders(res);
   next();
 });
 
-// Let SvelteKit serve static assets with correct caching headers. Security
-// headers are already set by the middleware above; only cache behavior
-// differs per file here. path is a filesystem path (backslashes on Windows).
+// Let SvelteKit serve static assets with correct caching headers. express.static
+// bypasses preceding middleware on some platforms/flavors, so setHeaders explicitly
+// applies both security headers and cache control per file.
 app.use(express.static('build/client', {
   index: false,
   setHeaders: (res, path) => {
+    applySecurityHeaders(res);
     res.setHeader('Cache-Control', cacheControlFor(path));
   }
 }));

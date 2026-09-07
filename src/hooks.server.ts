@@ -112,7 +112,7 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
     response.headers.set("Cache-Control", "no-cache");
   }
 
-  // COOP: same-origin-allow-popups keeps TradingView popup compatibility
+  // Apply full set of security headers from server-headers tuple definitions
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   // DO NOT add Cross-Origin-Embedder-Policy (COEP). COEP breaks embedded channel iframes (e.g. space.cachy.app Unity Metaverse) and external news modals.
   // DO NOT restrict camera, microphone, xr-spatial-tracking, or geolocation to () as it breaks 3D space.cachy.app metaverse and external iframe modals.
@@ -120,9 +120,16 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), xr-spatial-tracking=(self \"https://space.cachy.app\" *), display-capture=(self \"https://space.cachy.app\"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*");
-
-  // Security Headers from Production Monitor
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+
+  // Fallback Content-Security-Policy header if SvelteKit CSP injection didn't set it on non-HTML responses
+  if (!response.headers.has("Content-Security-Policy")) {
+    response.headers.set(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://s.cachy.app; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https://s.cachy.app https: blob: data:; frame-ancestors 'self'; connect-src 'self' https://s.cachy.app https://chat.cachy.app wss://chat.cachy.app https://*.cachy.app wss://*.cachy.app wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://generativelanguage.googleapis.com https://api.openai.com",
+    );
+  }
+
   return response;
 };
 

@@ -294,22 +294,6 @@ import { afterNavigate } from "$app/navigation";
   });
 
   onMount(() => {
-    // Preload heavy modals when idle to ensure fast opening
-    if (typeof window !== "undefined") {
-      const preloadHeavyModals = () => {
-        import("../components/shared/MarketDashboardModal.svelte");
-        import("../components/alerts/AlertPanel.svelte");
-        import("../components/shared/AutoBackupRestoreModal.svelte");
-        import("../components/shared/OrderDetailsTooltip.svelte");
-      };
-
-      if ("requestIdleCallback" in window) {
-        requestIdleCallback(preloadHeavyModals, { timeout: 2000 });
-      } else {
-        setTimeout(preloadHeavyModals, 1000);
-      }
-    }
-
     // Initialize Zoom Plugin (Client-side only)
     initZoomPlugin();
 
