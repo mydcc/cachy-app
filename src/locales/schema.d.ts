@@ -3033,6 +3033,7 @@ export type TranslationKey =
   | "exchange.accountSettings.positionModeChanged"
   | "exchange.accountSettings.notConfirmed"
   | "exchange.accountSettings.verifying"
+  | "exchange.accountSettings.halvesOutOfSync"
   | "exchange.accountSettings.marginAdjusted"
   | "exchange.accountSettings.pending"
   | "exchange.accountSettings.confirmModesTitle"

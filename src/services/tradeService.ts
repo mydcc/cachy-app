@@ -431,7 +431,7 @@ class TradeService {
         const paper = paperAccountFeed();
         if (paper) {
             if (!accountReadOrder.mayApply(ticket)) return;
-            accountState.positionMode = paper.accountInfo().positionMode;
+            accountState.setPositionMode(paper.accountInfo().positionMode);
             return;
         }
 
@@ -456,10 +456,9 @@ class TradeService {
             // the ordering slot.
             if (!accountReadOrder.mayApply(ticket)) return;
 
-            accountState.positionMode =
-                typeof data.positionMode === "string" && data.positionMode
-                    ? data.positionMode
-                    : undefined;
+            accountState.setPositionMode(
+                typeof data.positionMode === "string" ? data.positionMode : undefined,
+            );
         } catch (e) {
             logger.debug("api", "[TradeService] fetchPositionMode failed", e);
         }
