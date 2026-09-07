@@ -270,6 +270,99 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0347-modal-position-snapshot-freeze.md"
   },
   {
+    "id": "BUG-0409",
+    "title": "Mode chip stays stale or shows never-real combos after a mode change",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0068"
+    ],
+    "file": "bugs/BUG-0409-mode-chip-stale-after-change.md"
+  },
+  {
+    "id": "BUG-0410",
+    "title": "Mode chip depends on PositionsSidebar being mounted",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md"
+  },
+  {
+    "id": "BUG-0411",
+    "title": "Modal windows are oversized with large empty areas",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0411-modal-windows-oversized-polish.md"
+  },
+  {
+    "id": "BUG-0412",
+    "title": "Two mounted sidebars fetch the account concurrently and race",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P0",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "assignee": "claude",
+    "depends_on": [],
+    "file": "bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md"
+  },
+  {
+    "id": "BUG-0414",
+    "title": "Disabling Burning Borders flashes a white background briefly",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0414-burning-borders-disable-white-flash.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -6346,6 +6439,60 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "ideas/IDEA-0326-feedback-system.md"
+  },
+  {
+    "id": "IDEA-0407",
+    "title": "Contract unit preference for order size input",
+    "type": "idea",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "ideas/IDEA-0407-contract-unit-preference.md"
+  },
+  {
+    "id": "IDEA-0408",
+    "title": "Multi-trade mode (one position vs position per trade)",
+    "type": "idea",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "ideas/IDEA-0408-multi-trade-mode.md"
+  },
+  {
+    "id": "IDEA-0413",
+    "title": "Market-data polling volume (per-timeframe klines plus funding bulk)",
+    "type": "idea",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "market-data",
+    "data_class": "C",
+    "adr": "none",
+    "depends_on": [],
+    "file": "ideas/IDEA-0413-market-data-polling-volume.md"
   }
 ] as const;
 

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-289 items. How to read and add them: [README.md](README.md).
+297 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-progress 5 · ✅ done 221
+Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 6 · ✅ done 221
 
 ---
 
@@ -117,6 +117,11 @@ Counts by status: 💡 idea 24 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0409](bugs/BUG-0409-mode-chip-stale-after-change.md) | Mode chip stays stale or shows never-real combos after a mode change | P0 | 📋 specced | exchange |
+| [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | 📋 specced | trade-panel |
+| [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | 📋 specced | ui |
+| [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | 🟡 in-progress | trade-panel |
+| [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | 📋 specced | ui |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | ✅ done | alerts |
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
@@ -353,6 +358,9 @@ Counts by status: 💡 idea 24 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-pro
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
 | [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | calculation |
 | [IDEA-0326](ideas/IDEA-0326-feedback-system.md) | User feedback system | P3 | 💡 idea | feedback |
+| [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | trade-panel |
+| [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | trade-panel |
+| [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | market-data |
 
 ---
 
@@ -371,6 +379,11 @@ Counts by status: 💡 idea 24 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0293](bugs/BUG-0293-tpsl-modify-wire-format.md) | modifyTpSlOrder sent a wire body the venue's modify_order does not document | P0 | ✅ done | M3 | community, pro, private | A | none | — |
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0409](bugs/BUG-0409-mode-chip-stale-after-change.md) | Mode chip stays stale or shows never-real combos after a mode change | P0 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) |
+| [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | 📋 specced | M4 | community, pro, private | A | none | — |
+| [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | 📋 specced | M4 | community, pro, private | none | none | — |
+| [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | 🟡 in-progress | M4 | community, pro, private | A | none | — |
+| [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | 📋 specced | M4 | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -649,7 +662,10 @@ Counts by status: 💡 idea 24 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-pro
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | M8 | pro, private | C | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
 | [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | none | community, pro, private | none | none | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) |
 | [IDEA-0326](ideas/IDEA-0326-feedback-system.md) | User feedback system | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | none | community, pro, private | A | none | — |
+| [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | none | community, pro, private | A | none | — |
+| [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | none | community, pro, private | C | none | — |
 
 ---
 
-Next free number: **0407**
+Next free number: **0415**
