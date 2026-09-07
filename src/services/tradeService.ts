@@ -54,6 +54,7 @@ import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
 import { accountSession } from "./accountSession.svelte";
+import { accountReadOrder } from "./accountReadOrder";
 import {
     orderGate,
     assertGatePass,
@@ -395,13 +396,17 @@ class TradeService {
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys?.key || !keys?.secret) return;
 
-        const session = accountSession.current();
+        // BUG-0412: this read competes with PositionsSidebar's two mounted
+        // instances for the same store field, so the ticket has to be taken
+        // here — before the first `await` — rather than at the write.
+        const ticket = accountReadOrder.begin();
 
         // Paper mode answers from the simulated book, exactly like
         // PositionsSidebar: paperExchange simulates orders only and knows
         // no venue margin modes, so there is no live read to take here.
         const paper = paperAccountFeed();
         if (paper) {
+            if (!accountReadOrder.mayApply(ticket)) return;
             accountState.positionMode = paper.accountInfo().positionMode;
             return;
         }
@@ -422,7 +427,10 @@ class TradeService {
             const json = await response.json();
             const { data } = unwrapApiEnvelope<{ positionMode?: unknown }>(json);
             if (!data) return;
-            if (!accountSession.isCurrent(session)) return;
+            // Leaves the "a failed read changes nothing" contract above
+            // intact: only a read that actually produced a snapshot claims
+            // the ordering slot.
+            if (!accountReadOrder.mayApply(ticket)) return;
 
             accountState.positionMode =
                 typeof data.positionMode === "string" && data.positionMode
