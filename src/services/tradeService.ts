@@ -380,6 +380,50 @@ class TradeService {
         }
     }
 
+    /**
+     * Read-only: the account-wide position mode (FEAT-0068), straight from
+     * the exchange. Populates `accountState.positionMode`, which
+     * ExchangeAccountControls reads for its mode chip — previously only
+     * PositionsSidebar's snapshot fed it, so the chip showed "—" wherever
+     * the sidebar never fetched. Same silent-read contract as
+     * `fetchLeverageMarginMode`: no keys, stale session or failed request
+     * leaves the previous value alone.
+     */
+    public async fetchPositionMode(): Promise<void> {
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
+        if (!keys?.key || !keys?.secret) return;
+        if (paperState.enabled) return;
+
+        const session = accountSession.current();
+
+        try {
+            const response = await appFetch("/api/account", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Api-Key": keys.key,
+                    "X-Api-Secret": keys.secret,
+                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+                },
+                body: JSON.stringify({
+                    exchange: provider,
+                }),
+            });
+            const json = await response.json();
+            const { data } = unwrapApiEnvelope<{ positionMode?: unknown }>(json);
+            if (!data) return;
+            if (!accountSession.isCurrent(session)) return;
+
+            accountState.positionMode =
+                typeof data.positionMode === "string" && data.positionMode
+                    ? data.positionMode
+                    : undefined;
+        } catch (e) {
+            logger.debug("api", "[TradeService] fetchPositionMode failed", e);
+        }
+    }
+
     /*
      * FEAT-0068 — the account-settings write transport.
      *

@@ -95,9 +95,11 @@ const accountStateMock = vi.hoisted(() => ({
         entryPrice?: unknown;
         liquidationPrice?: unknown;
         leverage?: unknown;
+        marginMode?: string;
     }>,
-    openOrders: [] as Array<{ symbol: string }>,
+    openOrders: [] as Array<{ symbol: string; marginMode?: string; positionMode?: string }>,
     positionMode: "ONE_WAY" as string | undefined,
+    requestSync: vi.fn(),
 }));
 vi.mock("../../stores/account.svelte", () => ({ accountState: accountStateMock }));
 
@@ -118,6 +120,8 @@ const accountPort = vi.hoisted(() => ({
     changeMarginMode: vi.fn(async () => undefined),
     changePositionMode: vi.fn(async () => undefined),
     adjustPositionMargin: vi.fn(async () => undefined),
+    fetchLeverageMarginMode: vi.fn(async () => undefined),
+    fetchPositionMode: vi.fn(async () => undefined),
 }));
 const supportsMock = vi.hoisted(() => ({ accountSettings: true }));
 vi.mock("../../services/exchange", () => ({
@@ -758,5 +762,59 @@ describe("FEAT-0020 — the mode writes ask before they change the account", () 
         expect(button("btn-margin-mode-cross")?.disabled).toBe(true);
         expect(modalMock.show).not.toHaveBeenCalled();
         expect(accountPort.changeMarginMode).not.toHaveBeenCalled();
+    });
+});
+
+describe("BUG-1 — margin mode has an initial read", () => {
+    it("fetches leverage/margin mode on mount for the current symbol", async () => {
+        await render();
+        expect(accountPort.fetchLeverageMarginMode).toHaveBeenCalledWith("BTCUSDT");
+    });
+
+    it("shows both modes in the chip title once the broker answered", async () => {
+        await render();
+        const chip = button("btn-mode-chip")?.querySelector("span[title]");
+        expect(chip?.getAttribute("title")).toContain("\u2022");
+    });
+});
+
+describe("BUG-2 — a broker push moves the chip without a reload", () => {
+    it("re-reads margin mode when a WS position disagrees with the chip", async () => {
+        accountStateMock.positions = [{ symbol: "BTCUSDT", marginMode: "cross" }];
+        await render();
+        expect(accountPort.fetchLeverageMarginMode).toHaveBeenCalledWith("BTCUSDT");
+    });
+
+    it("re-reads when a WS position carries a different leverage", async () => {
+        accountStateMock.positions = [{ symbol: "BTCUSDT", marginMode: "isolation", leverage: "5" }];
+        await render();
+        // Mount effect plus bridge effect, both for this symbol.
+        expect(accountPort.fetchLeverageMarginMode).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not re-read when the push agrees with the chip", async () => {
+        accountStateMock.positions = [{ symbol: "BTCUSDT", marginMode: "isolation" }];
+        await render();
+        // Mount effect only: the bridge effect finds no disagreement.
+        expect(accountPort.fetchLeverageMarginMode).toHaveBeenCalledTimes(1);
+    });
+
+    it("re-syncs the account when a WS order carries a new position mode", async () => {
+        accountStateMock.openOrders = [{ symbol: "BTCUSDT", positionMode: "HEDGE" }];
+        await render();
+        expect(accountStateMock.requestSync).toHaveBeenCalled();
+    });
+});
+
+describe("BUG-1b — the chip fills its right half on its own", () => {
+    it("fetches position mode on mount when the sidebar never did", async () => {
+        accountStateMock.positionMode = undefined;
+        await render();
+        expect(accountPort.fetchPositionMode).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves a known position mode alone", async () => {
+        await render();
+        expect(accountPort.fetchPositionMode).not.toHaveBeenCalled();
     });
 });
