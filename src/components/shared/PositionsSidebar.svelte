@@ -21,6 +21,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
   import { accountSession } from "../../services/accountSession.svelte";
+  import { accountReadOrder } from "../../services/accountReadOrder";
   import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -504,6 +505,11 @@
   async function fetchAccount() {
     const paper = paperAccountFeed();
     if (paper) {
+      // Synchronous, so it can never be overtaken — but taking the ticket
+      // anyway claims the slot, which is what drops a live REST read that
+      // was already in flight when the trader switched to the paper book
+      // (BUG-0412).
+      if (!accountReadOrder.mayApply(accountReadOrder.begin())) return;
       errorAccount = "";
       const info = paper.accountInfo();
       accountInfo = info;
@@ -524,7 +530,12 @@
     // margin fields only the WS wallet channel supplies. That merge is
     // correct within one account and is cross-account blending across two,
     // so a response that outlived its session must not reach it.
-    const session = accountSession.current();
+    //
+    // BUG-0412 folds the ordering guard into the same ticket: this component
+    // is mounted twice (desktop + mobile) and reads on mount *and* on a
+    // credentials change, so two of its own responses overlap routinely and
+    // the older one used to land last and win.
+    const ticket = accountReadOrder.begin();
 
     try {
       const response = await appFetch("/api/account", {
@@ -548,7 +559,10 @@
       // to accountInfo, so every field silently stuck at its all-zero
       // initial state — indistinguishable from a genuinely empty account,
       // and never surfaced as an error either (BUG-0060).
-      if (!accountSession.isCurrent(session)) return;
+      // Asked once, after the last `await` and before anything is written,
+      // so an error result orders against a success result too: a stale
+      // failure must not clear a fresher snapshot's numbers either.
+      if (!accountReadOrder.mayApply(ticket)) return;
 
       const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
       if (data === null) {
@@ -572,6 +586,13 @@
         accountState.positionMode = data.positionMode || undefined;
       }
     } catch {
+      // The ticket is usually still unclaimed here — `appFetch` and
+      // `response.json()` both run before `mayApply` above. But anything
+      // thrown after a claim takes the same exit, so this asks whether
+      // this read is still the newest instead of assuming it: silent only
+      // when a newer read already landed. Keep fallible work out of the
+      // window between the claim and this catch.
+      if (!accountReadOrder.mayApply(ticket)) return;
       errorAccount = $_("apiErrors.generic");
     }
   }

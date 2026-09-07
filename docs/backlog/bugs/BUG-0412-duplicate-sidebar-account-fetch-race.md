@@ -2,13 +2,14 @@
 id: BUG-0412
 title: Two mounted sidebars fetch the account concurrently and race
 type: bug
-status: specced
+status: in-progress
 priority: P0
 milestone: M4
 editions: [community, pro, private]
 area: trade-panel
 data_class: A
 adr: none
+assignee: claude
 depends_on: []
 ---
 
@@ -60,6 +61,29 @@ of the same account.
   reload roulette.
 - Out of scope: venue push channel (none exists — BUG-0409), atomic
   chip snapshot (BUG-0409), sidebar-independent reads (BUG-0410).
+
+### Split, Sep 2026
+
+The two halves above are shipped separately, deliberately.
+
+**Ordering (done).** `accountReadOrder` hands every account read a
+monotonic ticket taken before its first `await`; a response issued
+before one that already landed is dropped, session check folded in.
+Applied at `PositionsSidebar.fetchAccount`, `tradeService.
+fetchPositionMode` and the paper-feed path. This is the half with the
+money risk — it is what let a trader see a position mode the exchange
+no longer had. Pinned by `PositionsSidebar.race.component.test.ts`
+(reproduces the live symptom: stale `HEDGE` landing after fresh
+`ONE_WAY`) and `accountReadOrder.test.ts`.
+
+**Deduplication (open).** "Exactly one POST per trigger regardless of
+mounted instance count" and "a CSS-hidden instance must not fetch" are
+not yet met — the duplicate requests still go out, they just cannot
+corrupt the store any more. Deliberately not bundled: coalescing makes
+the current reproduction unreachable (two mounts would produce one
+request, so the race the test stages could no longer be staged), so it
+needs its own test shape and its own review rather than a rewrite of
+the test that proves the ordering fix.
 
 ## Related race spots (audited Sep 2026, same last-wins shape)
 
