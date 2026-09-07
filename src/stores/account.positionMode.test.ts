@@ -70,3 +70,40 @@ describe("accountState.setPositionMode", () => {
         expect(accountState.positionMode).toBeUndefined();
     });
 });
+
+/*
+ * The encapsulation itself, not the stamping behaviour above.
+ *
+ * A getter without a setter is what turns "write through setPositionMode"
+ * from a convention into a rule the runtime enforces — including the alias
+ * form (`const s = accountState; s.positionMode = x`) that the CI text scan
+ * in FEAT-0417 cannot see. Without this test, turning the getter back into a
+ * plain field would restore the old hazard silently.
+ */
+describe("the stamped fields cannot be written from outside the store", () => {
+    it("refuses a direct assignment to positionMode", () => {
+        accountState.setPositionMode("HEDGE");
+        expect(() => {
+            (accountState as unknown as { positionMode: string }).positionMode = "ONE_WAY";
+        }).toThrow(TypeError);
+        expect(accountState.positionMode).toBe("HEDGE");
+    });
+
+    it("refuses a direct assignment to positionModeAt", () => {
+        accountState.setPositionMode("HEDGE");
+        const stamped = accountState.positionModeAt;
+        expect(() => {
+            (accountState as unknown as { positionModeAt: number }).positionModeAt = 0;
+        }).toThrow(TypeError);
+        expect(accountState.positionModeAt).toBe(stamped);
+    });
+
+    it("refuses an assignment made through an alias, which no text scan catches", () => {
+        accountState.setPositionMode("HEDGE");
+        const alias = accountState as unknown as { positionMode: string };
+        expect(() => {
+            alias.positionMode = "ONE_WAY";
+        }).toThrow(TypeError);
+        expect(accountState.positionMode).toBe("HEDGE");
+    });
+});

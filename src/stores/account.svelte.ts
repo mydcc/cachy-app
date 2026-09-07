@@ -165,7 +165,18 @@ class AccountManager {
    * the trader change it) reads the value already on hand instead of asking
    * the exchange again.
    */
-  positionMode = $state<string | undefined>(undefined);
+  #positionMode = $state<string | undefined>(undefined);
+
+  /**
+   * Read-only to the outside. The value and its stamp are written together by
+   * `setPositionMode` or not at all — a private field is what makes that a
+   * rule the compiler holds rather than one a reviewer has to notice. The CI
+   * scan in FEAT-0417 catches the direct assignment; this catches the alias
+   * form (`const s = accountState; s.positionMode = x`) that no text scan can.
+   */
+  get positionMode(): string | undefined {
+    return this.#positionMode;
+  }
 
   /**
    * When a read last confirmed `positionMode` (epoch ms), or undefined if
@@ -178,7 +189,12 @@ class AccountManager {
    * chip came to display `Cross • Hedge`, a combination that had never
    * existed on any venue (BUG-0409).
    */
-  positionModeAt = $state<number | undefined>(undefined);
+  #positionModeAt = $state<number | undefined>(undefined);
+
+  /** Read-only to the outside, for the same reason as `positionMode`. */
+  get positionModeAt(): number | undefined {
+    return this.#positionModeAt;
+  }
 
   /**
    * A confirmed write is being read back and the displayed value is not yet
@@ -188,6 +204,13 @@ class AccountManager {
    * `tradeState`: this store persists nothing, which is exactly what a
    * transient "checking" marker needs — restored from disk it would claim a
    * verification that is not running.
+   */
+  /*
+   * Public on purpose, unlike the two fields above. These carry no truth
+   * value and no stamp — only "a check is running right now" — so there is
+   * no pair to break by writing one without the other, and `tradeService`
+   * sets and unsets them around the read-back in a try/finally where an
+   * extra setter would only add ceremony.
    */
   positionModeVerifying = $state(false);
   marginModeVerifying = $state(false);
@@ -208,16 +231,16 @@ class AccountManager {
    * *and* its previous stamp is what lets it age out honestly.
    */
   setPositionMode(value: string | undefined) {
-    this.positionMode = value || undefined;
-    this.positionModeAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
+    this.#positionMode = value || undefined;
+    this.#positionModeAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
   }
 
   reset() {
     this.positions = [];
     this.openOrders = [];
     this.assets = [];
-    this.positionMode = undefined;
-    this.positionModeAt = undefined;
+    this.#positionMode = undefined;
+    this.#positionModeAt = undefined;
     this.positionModeVerifying = false;
     this.marginModeVerifying = false;
     this.notifyListeners();
