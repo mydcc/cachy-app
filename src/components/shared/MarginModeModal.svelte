@@ -52,6 +52,13 @@
     /** What the exchange reports now, or undefined when unknown. */
     currentMarginMode?: MarginMode;
     currentPositionMode?: PositionMode;
+    /**
+     * Bumped by the caller after every confirm attempt. Re-anchors the
+     * baseline to the live values (drafts untouched), so retrying a
+     * half-applied change resends only what is still open — without it a
+     * retry would resend the half that already landed.
+     */
+    baseEpoch?: number;
     /** Non-empty when the venue would refuse that section right now. */
     marginReason: string;
     positionReason: string;
@@ -66,6 +73,7 @@
   let {
     currentMarginMode,
     currentPositionMode,
+    baseEpoch = 0,
     marginReason,
     positionReason,
     busy,
@@ -83,11 +91,28 @@
     untrack(() => currentPositionMode),
   );
 
-  const marginChanged = $derived(
-    draftMargin !== undefined && draftMargin !== currentMarginMode,
-  );
+  // Baseline, frozen at mount like the drafts: the parent re-reads (chip
+  // open, WS bridge) while the dialog is up, and comparing the draft
+  // against the *live* props would un-pick what the user just picked the
+  // moment a refresh lands — Confirm then silently sends nothing (or only
+  // half) although cards are selected.
+  let baseMargin = $state<MarginMode | undefined>(untrack(() => currentMarginMode));
+  let basePosition = $state<PositionMode | undefined>(untrack(() => currentPositionMode));
+  let seenEpoch = untrack(() => baseEpoch);
+  $effect(() => {
+    if (baseEpoch === seenEpoch) return;
+    seenEpoch = baseEpoch;
+    // Sync re-read only: the draft comparison below must not subscribe to
+    // the live props, or the baseline would float again.
+    untrack(() => {
+      baseMargin = currentMarginMode;
+      basePosition = currentPositionMode;
+    });
+  });
+
+  const marginChanged = $derived(draftMargin !== undefined && draftMargin !== baseMargin);
   const positionChanged = $derived(
-    draftPosition !== undefined && draftPosition !== currentPositionMode,
+    draftPosition !== undefined && draftPosition !== basePosition,
   );
   const hasChanges = $derived(marginChanged || positionChanged);
 
