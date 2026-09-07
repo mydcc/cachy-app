@@ -244,7 +244,7 @@
       "id": "BUG-0409",
       "title": "Mode chip stays stale or shows never-real combos after a mode change",
       "type": "bug",
-      "status": "specced",
+      "status": "in-progress",
       "priority": "P0",
       "milestone": "M4",
       "editions": [
@@ -255,8 +255,11 @@
       "area": "exchange",
       "data_class": "A",
       "adr": "none",
+      "assignee": "claude",
       "depends_on": [
-        "FEAT-0068"
+        "FEAT-0068",
+        "BUG-0412",
+        "BUG-0410"
       ],
       "file": "bugs/BUG-0409-mode-chip-stale-after-change.md"
     },
@@ -264,7 +267,7 @@
       "id": "BUG-0410",
       "title": "Mode chip depends on PositionsSidebar being mounted",
       "type": "bug",
-      "status": "specced",
+      "status": "in-progress",
       "priority": "P0",
       "milestone": "M4",
       "editions": [
@@ -275,7 +278,10 @@
       "area": "trade-panel",
       "data_class": "A",
       "adr": "none",
-      "depends_on": [],
+      "assignee": "claude",
+      "depends_on": [
+        "BUG-0412"
+      ],
       "file": "bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md"
     },
     {
