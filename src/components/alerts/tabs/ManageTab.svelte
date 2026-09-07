@@ -247,7 +247,7 @@
         padding: var(--space-3);
         background: var(--bg-secondary);
         border-radius: var(--radius-sm);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
     }
     .alert-form h4 {
         margin: 0 0 var(--space-2) 0;
@@ -262,13 +262,13 @@
         flex: 1;
         min-width: 0;
         background: var(--bg-primary);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         color: var(--text-primary);
         padding: var(--space-2);
         border-radius: var(--radius-sm);
     }
     .add-btn {
-        background: var(--accent);
+        background: var(--accent-color);
         color: var(--bg-primary);
         border: none;
         padding: 0 var(--space-4);
@@ -280,7 +280,7 @@
         display: flex;
         gap: var(--space-2);
         margin-bottom: var(--space-3);
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid var(--border-color);
     }
     .list-tabs button {
         background: none;
@@ -291,7 +291,7 @@
     }
     .list-tabs button.active {
         color: var(--text-primary);
-        border-bottom: 2px solid var(--accent);
+        border-bottom: 2px solid var(--accent-color);
     }
     .alert-list {
         display: flex;
@@ -305,10 +305,10 @@
         padding: var(--space-3);
         background: var(--bg-secondary);
         border-radius: var(--radius-sm);
-        border-left: 3px solid var(--accent);
+        border-left: 3px solid var(--accent-color);
     }
     .history-item {
-        border-left-color: var(--text-muted);
+        border-left-color: var(--text-secondary);
         opacity: 0.8;
     }
     .alert-info {
@@ -319,14 +319,14 @@
     }
     .fired-badge {
         font-size: 0.7rem;
-        color: var(--success);
+        color: var(--success-color);
         text-transform: uppercase;
         font-weight: var(--font-bold);
     }
     .delete-btn {
         background: none;
         border: none;
-        color: var(--danger);
+        color: var(--danger-color);
         font-size: var(--text-2xl);
         cursor: pointer;
     }

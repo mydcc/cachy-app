@@ -24,10 +24,16 @@
   builder tab (FEAT-0028, FEAT-0030, FEAT-0390, FEAT-0391, FEAT-0394) edits
   `alertPanelState.draft` and lands into this shell without changing it.
 
-  Escape, focus containment, dragging, resizing and viewport clamping are not
-  implemented here: this component is the body of an `AlertPanelWindow`, and
-  WindowFrame provides all of it once (ADR-0006). Re-implementing any of it
-  here is what that ADR forbids.
+  Dragging, resizing and viewport clamping are not implemented here:
+  this component is the body of an `AlertPanelWindow`, and WindowFrame
+  provides all of that once (ADR-0006).
+
+  Escape and Tab-focus containment ARE implemented here, because WindowFrame
+  does not provide either centrally yet: Escape-close is wired through
+  WindowManager's own global handler (this panel is named there explicitly
+  since it's `closeOnBlur: false`), and the Tab-trap below has no shared
+  home to live in instead. Both should move out once WindowFrame grows the
+  capability -- see the ADR-0006 gap noted in review on PR #2727.
 -->
 
 <script lang="ts">
@@ -47,22 +53,8 @@
     import type { TranslationKey } from "../../locales/schema";
     import { uiState } from "../../stores/ui.svelte";
     import { logger } from "../../services/logger";
-import { windowManager } from "../../lib/windows/WindowManager.svelte";
 
 let rootElement: HTMLElement | null = null;
-let windowId: string = "";
-
-interface Props {
-    windowId?: string;
-}
-
-let { windowId: windowIdProp }: Props = $props();
-
-$effect(() => {
-    if (windowIdProp) {
-        windowId = windowIdProp;
-    }
-});
 
     /**
      * One dynamic import per tab, so opening the panel pulls in the Manage tab
@@ -175,17 +167,17 @@ $effect(() => {
         document.getElementById(`alert-tab-${ALERT_PANEL_TABS[next]}`)?.focus();
     }
 
+    /**
+     * Tab-cycle focus containment. Escape-close is handled centrally by
+     * WindowManager (which now treats `windowType: "alertpanel"` as
+     * dismissible despite `closeOnBlur: false`) rather than here, so it
+     * fires regardless of where focus currently is -- not just while it's
+     * inside this panel.
+     */
     function handleKeydown(event: KeyboardEvent) {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            if (windowId) {
-                windowManager.close(windowId);
-            }
-        }
-
         if (event.key === "Tab" && rootElement) {
             const focusables = rootElement.querySelectorAll(
-                "button, input, select, textarea, [tabindex]:not([tabindex='-1'])"
+                "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
             ) as NodeListOf<HTMLElement>;
             if (focusables.length > 0) {
                 const first = focusables[0];
@@ -406,20 +398,20 @@ $effect(() => {
         width: 100%;
         min-width: 0;
         background: var(--bg-primary);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-color);
         color: var(--text-primary);
         padding: var(--space-2);
         border-radius: var(--radius-sm);
     }
     .field-input[aria-invalid="true"] {
-        border-color: var(--danger);
+        border-color: var(--danger-color);
     }
     .field-refusals:empty {
         display: none;
     }
     .refusal {
         display: block;
-        color: var(--danger);
+        color: var(--danger-color);
         font-size: 0.75rem;
         line-height: 1.4;
     }
@@ -427,7 +419,7 @@ $effect(() => {
         display: flex;
         flex-wrap: wrap;
         gap: 0.25rem;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid var(--border-color);
     }
     .tab-strip button {
         background: none;
@@ -440,7 +432,7 @@ $effect(() => {
     }
     .tab-strip button.active {
         color: var(--text-primary);
-        border-bottom-color: var(--accent);
+        border-bottom-color: var(--accent-color);
     }
     .tab-body {
         flex: 1 1 auto;
@@ -457,7 +449,7 @@ $effect(() => {
         display: flex;
         flex-direction: column;
         gap: var(--space-2);
-        border-top: 1px solid var(--border);
+        border-top: 1px solid var(--border-color);
         padding-top: var(--space-3);
     }
     .sentence {
@@ -477,7 +469,7 @@ $effect(() => {
         line-height: 1.5;
     }
     .arm-btn {
-        background: var(--accent);
+        background: var(--accent-color);
         color: var(--bg-primary);
         border: none;
         padding: var(--space-3);

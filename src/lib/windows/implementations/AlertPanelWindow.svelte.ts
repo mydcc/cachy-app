@@ -51,10 +51,14 @@ export class AlertPanelWindow extends WindowBase {
     }
   }
 
+  /**
+   * Matches WindowBase's own persistence key (`cachy_win_${id}` in
+   * localStorage, see WindowBase.svelte.ts) -- not a key of this class's
+   * own invention, so it actually detects what restoreState() will find.
+   */
   private hasPersistedPosition(): boolean {
     if (typeof window === "undefined") return false;
-    const key = `window-${this.id}`;
-    return !!sessionStorage.getItem(key);
+    return !!localStorage.getItem(`cachy_win_${this.id}`);
   }
 
   /**
@@ -78,7 +82,7 @@ export class AlertPanelWindow extends WindowBase {
   }
 
   get componentProps() {
-    return { windowId: this.id };
+    return {};
   }
 
   /** Fires the caller's onclose however the window closed — X, Escape, or

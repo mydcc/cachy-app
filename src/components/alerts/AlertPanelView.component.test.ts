@@ -94,7 +94,7 @@ describe("FEAT-0389: AlertPanelView shell", () => {
   });
 
   function render() {
-    component = mount(AlertPanelView, { target, props: { symbol: "BTCUSDT" } });
+    component = mount(AlertPanelView, { target, props: {} });
     flushSync();
     return target;
   }
