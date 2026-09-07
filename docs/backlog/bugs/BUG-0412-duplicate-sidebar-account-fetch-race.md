@@ -61,6 +61,28 @@ of the same account.
 - Out of scope: venue push channel (none exists — BUG-0409), atomic
   chip snapshot (BUG-0409), sidebar-independent reads (BUG-0410).
 
+## Related race spots (audited Sep 2026, same last-wins shape)
+
+- Positions fetch: same two sidebar instances (per-instance
+  `loadingPositions` guard dedupes nothing across instances) plus a
+  mirror fetcher in `CandleChartView.svelte` — same endpoint, same
+  missing order.
+- Push vs snapshot: `hydratePositions` wholesale-replaces the list while
+  `updatePositionFromWs` mutates single entries — no ordering either
+  way, so a stale snapshot buries fresher pushes and vice versa.
+- Start gate amplifier: `secretsReady` (`settings.svelte.ts`) is a
+  one-shot promise — every mount-time `appFetch` queues behind it and
+  releases simultaneously, maximizing overlap on every load (matches
+  the observed five-in-1.25 s burst).
+- Margin/leverage read: five-plus user-action triggers
+  (`fetchAllAnalysisData` callers, order gate, post-write re-reads),
+  same last-wins shape at lower frequency.
+- Harmless doubles: `MarketOverview` (fetch only on symbol click),
+  `TechnicalsPanel`, `NewsSentimentPanel`, `Tooltip` — mounted several
+  times but fetch nothing on mount.
+- Single callback slot: second mounted instance overwrites the first's
+  sync/order-close callbacks (with cleanup on unmount).
+
 ## Notes
 
 Is two sidebars intentional? The placement split (desktop column vs
