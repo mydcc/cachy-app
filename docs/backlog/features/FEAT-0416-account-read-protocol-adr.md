@@ -9,7 +9,7 @@ editions: [community, pro, private]
 area: docs
 data_class: none
 adr: none
-depends_on: [BUG-0415]
+depends_on: []
 ---
 
 # FEAT-0416 — Record the account read protocol as an ADR
@@ -36,8 +36,8 @@ One ADR under `docs/adr/`, short, stating where account state may be read,
 where it may be written, and what must never happen. Not a tutorial — a
 constraint, in the form ADRs already use in this repo.
 
-Write it **after** BUG-0415 lands, not before. Encapsulation removes rule 2
-from prose entirely: once the fields are private, the compiler states it. What
+Write it **after** the encapsulation work, not before. Making the fields
+setter-only removes rule 2 from prose entirely: the compiler states it. What
 remains to write down is only what types cannot express — chiefly the ordering
 discipline and the pairing rule.
 
@@ -45,8 +45,7 @@ discipline and the pairing rule.
 
 - [ ] An ADR exists under `docs/adr/` covering the ordering ticket and the
       pairing rule
-- [ ] It states what the type system already enforces after BUG-0415, and does
-      not repeat it
+- [ ] It states what the type system already enforces, and does not repeat it
 - [ ] `docs/ARCHITECTURE.md` links to it rather than restating it
 - [ ] Existing comments in `accountReadOrder.ts`, `tradeService.ts` and
       `ExchangeAccountControls.svelte` point at the ADR instead of each
@@ -54,4 +53,5 @@ discipline and the pairing rule.
 
 ## Links
 
-- [BUG-0415](../bugs/BUG-0415-paper-sync-bypasses-position-mode-setter.md) — decides how much of this is left to write
+- [BUG-0409](../bugs/BUG-0409-mode-chip-stale-after-change.md) — introduced the freshness stamps
+- [BUG-0412](../bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) — introduced the ordering ticket
