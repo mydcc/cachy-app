@@ -1267,7 +1267,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0404",
     "title": "Chart indicator toggles incomplete and coupled to Technicals switches",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "opencode",
     "branch": "fix/bug-0404-chart-indicator-toggles",
     "priority": "P1",

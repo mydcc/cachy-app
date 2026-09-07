@@ -2,7 +2,7 @@
 id: BUG-0404
 title: Chart indicator toggles incomplete and coupled to Technicals switches
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 branch: fix/bug-0404-chart-indicator-toggles
 priority: P1
@@ -52,15 +52,18 @@ start_date: 2026-09-05
 
 ## Acceptance Criteria
 
-- [ ] All 25 chart-drawing indicators (13 sub-panes + 12 overlays) have a Chart-tab toggle; `atr`, `volumeProfile`, `volumeMa` intentionally have none.
-- [ ] An indicator with `enabled: false` + `showInChart: true` draws in the chart and stays out of the Technicals panel.
-- [ ] An indicator with `showInChart: false` draws nothing in the chart regardless of `enabled`.
-- [ ] Fresh installs show no indicator lines or panes in the chart until enabled in Settings; existing installs keep their sub-pane choices.
-- [ ] Chart tab groups toggles by category (Oscillators, Trend, Volatility, Volume) in two columns.
-- [ ] Layer unit tests prove the decoupled gates; i18n DE/EN complete with no dead keys.
+- [x] All 25 chart-drawing indicators (13 sub-panes + 12 overlays) have a Chart-tab toggle; `atr`, `volumeProfile`, `volumeMa` intentionally have none.
+- [x] An indicator with `enabled: false` + `showInChart: true` draws in the chart and stays out of the Technicals panel.
+- [x] An indicator with `showInChart: false` draws nothing in the chart regardless of `enabled`.
+- [x] Fresh installs show no indicator lines or panes in the chart until enabled in Settings; existing installs keep their sub-pane choices.
+- [x] Chart tab groups toggles by category (Oscillators, Trend, Volatility, Volume) in two columns.
+- [x] Layer unit tests prove the decoupled gates; i18n DE/EN complete with no dead keys.
 
 ## Out of Scope
 
 - Toggles for `atr`, `volumeProfile`, `volumeMa` (not drawn in the chart).
 - Removing the unused `visible` flag from overlay-only indicators.
 - Per-indicator line width or colors (see configurable `lineWidth`).
+
+Shipped in `1.6.0-beta.239` — commit `e5c4139e`, PR #2695.
+
