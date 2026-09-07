@@ -136,10 +136,16 @@ export const BitunixPositionTierResponseSchema = z.object({
 // Our own proxy route already unwraps {code,msg,data} into a flat object
 // (see routes/api/leverage-margin-mode), so this validates that flat shape,
 // not the raw Bitunix envelope.
+// `leverage` is coerced rather than required to arrive as a number: this
+// schema is all-or-nothing, so one stringified field used to discard the
+// whole read — `marginMode` included — and the chip then froze on its last
+// value with only a logger line to show for it (BUG-0409, fragility #1).
+// Coercion still rejects a non-numeric value: Number("abc") is NaN and
+// z.number() refuses NaN.
 export const BitunixLeverageMarginModeSchema = z.object({
   symbol: z.string(),
   marginCoin: z.string(),
-  leverage: z.number(),
+  leverage: z.coerce.number(),
   marginMode: z.string(),
 });
 

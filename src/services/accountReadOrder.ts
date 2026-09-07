@@ -102,4 +102,21 @@ class AccountReadOrder {
     }
 }
 
+/**
+ * The `/api/account` snapshot lane — `positionMode`, balances.
+ */
 export const accountReadOrder = new AccountReadOrder();
+
+/**
+ * The `/api/leverage-margin-mode` lane — leverage and margin mode.
+ *
+ * A separate counter, deliberately. Ordering answers "is this answer older
+ * than one already applied *to this field*"; the two endpoints describe
+ * different fields, so a snapshot read must not be able to hold back a
+ * leverage read that started after it. Sharing one counter would do exactly
+ * that, and the symptom would look like the bug this fixes.
+ *
+ * Keeping the two halves of the chip *consistent with each other* is a
+ * different question with a different answer (BUG-0409); it is not ordering.
+ */
+export const leverageReadOrder = new AccountReadOrder();

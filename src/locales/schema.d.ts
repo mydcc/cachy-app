@@ -3031,6 +3031,8 @@ export type TranslationKey =
   | "exchange.accountSettings.leverageChanged"
   | "exchange.accountSettings.marginModeChanged"
   | "exchange.accountSettings.positionModeChanged"
+  | "exchange.accountSettings.notConfirmed"
+  | "exchange.accountSettings.verifying"
   | "exchange.accountSettings.marginAdjusted"
   | "exchange.accountSettings.pending"
   | "exchange.accountSettings.confirmModesTitle"

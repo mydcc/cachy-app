@@ -70,6 +70,7 @@ import { Decimal } from "decimal.js";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { normalizeSymbol } from "../../utils/symbolUtils";
+  import { normalizeMarginMode } from "../../utils/marginMode";
   import { projectLiquidation } from "../../lib/calculators/liquidation";
   import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
   import type { TranslationKey } from "../../locales/schema";
@@ -97,6 +98,10 @@ import { Decimal } from "decimal.js";
   );
   const marginModeValue = $derived<"ISOLATION" | "CROSS" | undefined>(
     remoteMarginMode === undefined ? undefined : isIsolated ? "ISOLATION" : "CROSS",
+  );
+
+  const verifyingModes = $derived(
+    accountState.marginModeVerifying || accountState.positionModeVerifying,
   );
 
   const positionMode = $derived((accountState.positionMode ?? "").toUpperCase());
@@ -180,7 +185,7 @@ import { Decimal } from "decimal.js";
     const paper = paperState.enabled;
     const provider = exchange;
     if (!allowed || !vs || !sym || paper || provider !== "bitunix") return;
-    const pushMargin = normMode(
+    const pushMargin = normalizeMarginMode(
       accountState.positions.find((p) => p.symbol === vs)?.marginMode ??
         accountState.openOrders.find((o) => o.symbol === vs)?.marginMode,
     );
@@ -194,7 +199,7 @@ import { Decimal } from "decimal.js";
         "",
     );
     const marginDrift = untrack(
-      () => pushMargin !== "" && normMode(tradeState.remoteMarginMode) !== pushMargin,
+      () => pushMargin !== "" && normalizeMarginMode(tradeState.remoteMarginMode) !== pushMargin,
     );
     const posDrift = untrack(
       () => pushPos !== "" && (accountState.positionMode ?? "").toUpperCase() !== pushPos,
@@ -274,13 +279,6 @@ import { Decimal } from "decimal.js";
       ? ""
       : String(raw);
   });
-
-  /** Normalise every margin-mode spelling to one of two values (or empty). */
-  function normMode(v: unknown): "" | "isolation" | "cross" {
-    const s = String(v ?? "").toLowerCase();
-    if (!s) return "";
-    return s.startsWith("isolat") ? "isolation" : "cross";
-  }
 
   const marginModeReason = $derived.by(() => {
     if (paperState.enabled) return $_("exchange.accountSettings.paperMode");
@@ -565,7 +563,16 @@ import { Decimal } from "decimal.js";
         modeOpen = true;
       }}
     >
-      {#if busy === "modes"}
+      {#if verifyingModes}
+        <!--
+          The write already returned 200; what is running now is the read-back
+          that proves the venue actually holds it (BUG-0409). Told apart from
+          the write itself on purpose: "pending" and "checking" fail for
+          different reasons and a trader deciding whether to wait needs to
+          know which one is on screen.
+        -->
+        {$_("exchange.accountSettings.verifying")}
+      {:else if busy === "modes"}
         {$_("exchange.accountSettings.pending")}
       {:else}
         <span class="font-semibold whitespace-nowrap" title={modeChipTitle}>

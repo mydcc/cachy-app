@@ -3695,6 +3695,8 @@
       "leverageChanged": "Leverage set to {value}x",
       "marginModeChanged": "Margin mode changed",
       "positionModeChanged": "Position mode changed",
+      "notConfirmed": "Sent \u2014 the exchange still reports the previous value. The chip shows what the exchange says, not what was requested.",
+      "verifying": "checking\u2026",
       "marginAdjusted": "Position margin updated",
       "pending": "Sending…",
       "confirmModesTitle": "Change account settings",

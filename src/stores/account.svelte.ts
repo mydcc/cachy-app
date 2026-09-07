@@ -167,6 +167,18 @@ class AccountManager {
    */
   positionMode = $state<string | undefined>(undefined);
 
+  /**
+   * A confirmed write is being read back and the displayed value is not yet
+   * proven to be what the venue holds (BUG-0409).
+   *
+   * Both flags live here even though the margin mode's *value* lives in
+   * `tradeState`: this store persists nothing, which is exactly what a
+   * transient "checking" marker needs — restored from disk it would claim a
+   * verification that is not running.
+   */
+  positionModeVerifying = $state(false);
+  marginModeVerifying = $state(false);
+
   private syncCallback: (() => void) | null = null;
   // Fired when a WS push closes an open order (FILLED/CANCELED/...) — lets
   // the UI eagerly refresh the (REST-only, non-live) order history instead
@@ -178,6 +190,8 @@ class AccountManager {
     this.openOrders = [];
     this.assets = [];
     this.positionMode = undefined;
+    this.positionModeVerifying = false;
+    this.marginModeVerifying = false;
     this.notifyListeners();
   }
 
