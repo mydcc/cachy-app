@@ -200,3 +200,82 @@ describe("BUG-0412 — overlapping account reads", () => {
         expect(accountState.positionMode).toBe("ONE_WAY");
     });
 });
+
+/*
+ * BUG-0421 — the same race, one panel over.
+ *
+ * `fetchPositions` guards itself with a `loadingPositions` flag, but that
+ * flag is per component instance and the panel mounts twice. Two instances
+ * hold two flags, neither sees the other's request, and the last response to
+ * land wins — so a stale read can resurrect a position the trader has closed.
+ */
+
+type PendingPositions = { symbols: string[]; resolve: (body: unknown) => void };
+let pendingPositions: PendingPositions[] = [];
+
+const positionsBody = (symbols: string[]) => ({
+    success: true,
+    data: {
+        positions: symbols.map((symbol) => ({
+            symbol,
+            positionId: `id-${symbol}`,
+            side: "LONG",
+            qty: "1",
+            entryValue: "100",
+            avgOpenPrice: "100",
+            unrealizedPNL: "0",
+            margin: "10",
+            leverage: "10",
+            marginMode: "ISOLATION",
+        })),
+    },
+});
+
+function routePositions(first: string[], rest: string[]) {
+    let calls = 0;
+    pendingPositions = [];
+    appFetchMock.mockImplementation(async (url: string) => {
+        if (String(url) === "/api/positions") {
+            const n = calls++;
+            const symbols = n === 0 ? first : rest;
+            const json = await new Promise<unknown>((resolve) => {
+                pendingPositions.push({ symbols, resolve });
+            });
+            return { ok: true, json: async () => json };
+        }
+        if (String(url) === "/api/account") {
+            return {
+                ok: true,
+                json: async () => ({
+                    success: true,
+                    data: { positionMode: "ONE_WAY", available: "0", margin: "0", frozen: "0" },
+                }),
+            };
+        }
+        return { ok: true, json: async () => ({ orders: [] }) };
+    });
+}
+
+async function resolvePositions(match: (p: PendingPositions) => boolean) {
+    const matching = pendingPositions.filter(match);
+    pendingPositions = pendingPositions.filter((p) => !match(p));
+    for (const p of matching) p.resolve(positionsBody(p.symbols));
+    await settle();
+}
+
+describe("BUG-0421 — overlapping position reads", () => {
+    it("a stale response must not resurrect a position that was closed", async () => {
+        // First read still sees the open position; every later read sees it gone.
+        routePositions(["BTCUSDT"], []);
+        await mountSidebar();
+        await mountSidebar();
+
+        // The fresh read lands first: the position is closed.
+        await resolvePositions((p) => p.symbols.length === 0);
+        expect(accountState.positions.map((p) => p.symbol)).toEqual([]);
+
+        // The stale read lands last. A closed position must stay closed.
+        await resolvePositions((p) => p.symbols.length > 0);
+        expect(accountState.positions.map((p) => p.symbol)).toEqual([]);
+    });
+});
