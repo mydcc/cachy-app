@@ -145,7 +145,8 @@ import { Decimal } from "decimal.js";
    * This effect fires on symbol/provider change, skips paper +
    * unsupported venues, and lets the service guards (credentials,
    * session) decide the rest. No remote values read here, so the
-   * write cannot loop. Cleanup flags the in-flight read.
+   * write cannot loop. Cleanup flags this run's error handling; a
+   * successful in-flight fetch still writes, ordered by the read ticket.
    */
   $effect(() => {
     const currentSymbol = symbol;
@@ -172,6 +173,7 @@ import { Decimal } from "decimal.js";
    * are compared via untrack, so the re-read cannot loop — once it lands,
    * nothing disagrees anymore. No polling, no store cycle. A duplicate
    * fetch alongside the mount effect above is harmless (same endpoint).
+   * Cleanup below flags this run's error handling only.
    */
   $effect(() => {
     const vs = venueSymbol;
@@ -219,7 +221,16 @@ import { Decimal } from "decimal.js";
         if (cancelled) return;
       });
     }
-    if (posDrift) accountState.requestSync();
+    if (posDrift) {
+      // BUG-0410: `requestSync()` is a no-op unless PositionsSidebar is
+      // mounted to register the callback, so drift the chip had already
+      // *detected* was then silently dropped wherever the sidebar is hidden.
+      // The chip reads for itself; the sync stays for the panel's own data.
+      void activeExchange().account.fetchPositionMode?.().catch(() => {
+        if (cancelled) return;
+      });
+      accountState.requestSync();
+    }
     return () => {
       cancelled = true;
     };
@@ -232,7 +243,8 @@ import { Decimal } from "decimal.js";
    * unknown, stop once set. No loop:
    * the fetch resolves the condition it fires on; a failed fetch leaves it
    * unknown until a dependency moves, and only the dialog's own read
-   * refreshes an already-known value.
+   * refreshes an already-known value. Cleanup flags this run's error
+   * handling only.
    */
   $effect(() => {
     const allowed = supported;
@@ -545,6 +557,12 @@ import { Decimal } from "decimal.js";
         // then shows what the exchange holds right now, not last reload.
         if (!paperState.enabled && supported && symbol && exchange === "bitunix") {
           void activeExchange().account.fetchLeverageMarginMode?.(symbol).catch(() => {});
+          // Both halves re-read from a source the chip owns. `requestSync()`
+          // alone left the right half seeded from the last reload wherever
+          // PositionsSidebar is hidden — the dialog then opened on a stale
+          // baseline and its diff proposed a change the trader never made
+          // (BUG-0410).
+          void activeExchange().account.fetchPositionMode?.().catch(() => {});
           accountState.requestSync();
         }
         modeOpen = true;
