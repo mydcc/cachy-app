@@ -398,9 +398,16 @@ class WindowManager {
             }
 
             // Handle focus synchronization.
-            // 1. Identify and close transient windows (e.g. Symbol Selector)
-            // if another window takes focus.
-            this._windows.filter(w => w.id !== id && w.closeOnBlur)
+            // Close transient windows if another window takes focus -- but
+            // never a modal dialog (BUG-0422). A modal is a blocking task
+            // with a draft (chip dialogs, Academy, TpSlEdit); closing it
+            // because focus moved destroys unconfirmed work in silence. That
+            // is exactly what killed the policy confirm flow: the confirm
+            // dialog opened above the still-open chip dialog, the sweep
+            // closed the chip dialog mid-gesture, and the confirm died unseen
+            // in the wake while its promise never settled. Click-outside and
+            // Escape dismissal are unaffected -- they never went through here.
+            this._windows.filter(w => w.id !== id && w.closeOnBlur && w.windowType !== "modal")
                 .forEach(w => this.close(w.id));
 
             // 2. Update focus state for remaining windows.
