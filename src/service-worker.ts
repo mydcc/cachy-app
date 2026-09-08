@@ -23,12 +23,6 @@ declare const self: ServiceWorkerGlobalScope;
 
 // Create a unique cache name for this deployment
 const CACHE = `cache-${version}`;
-const RUNTIME_CACHE = `runtime-${version}`;
-// Not read anywhere — see docs/TODO.md item 13: this looks like
-// scaffolding for a runtime-cache eviction policy that was never wired
-// up (nothing currently writes to RUNTIME_CACHE at all).
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const MAX_RUNTIME_CACHE_ENTRIES = 50; // Limit runtime cache size
 
 const ASSETS = [
   ...build, // the app itself
@@ -49,7 +43,7 @@ self.addEventListener("activate", (event) => {
   // Remove previous caches
   async function deleteOldCaches() {
     for (const key of await caches.keys()) {
-      if (key !== CACHE && key !== RUNTIME_CACHE) {
+      if (key !== CACHE) {
         await caches.delete(key);
       }
     }
