@@ -6292,7 +6292,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0416",
     "title": "Record the account read protocol as an ADR",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
