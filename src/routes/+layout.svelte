@@ -413,6 +413,36 @@ import { afterNavigate } from "$app/navigation";
     updateThemeColor();
   });
 
+  // Window Controls Overlay (desktop PWA title bar as web content).
+  // Local visual test only: when the installed PWA runs with
+  // display_override window-controls-overlay, the OS title bar is replaced
+  // by a small window-controls block and this bar paints the theme color.
+  // Falls back to invisible everywhere else (browser tab, Android, Firefox).
+  interface WindowControlsOverlayApi extends EventTarget {
+    visible: boolean;
+  }
+  let wcoVisible = $state(false);
+  const wcoBarColor = $derived(themeBackground(uiState.currentTheme));
+  $effect(() => {
+    if (!browser) return;
+    const wco = (
+      navigator as Navigator & {
+        windowControlsOverlay?: WindowControlsOverlayApi;
+      }
+    ).windowControlsOverlay;
+    if (!wco) return;
+    const sync = () => {
+      wcoVisible = wco.visible;
+      document.documentElement.classList.toggle("wco-enabled", wco.visible);
+    };
+    sync();
+    wco.addEventListener("geometrychange", sync);
+    return () => {
+      wco.removeEventListener("geometrychange", sync);
+      document.documentElement.classList.remove("wco-enabled");
+    };
+  });
+
   // Update Font Family
   $effect(() => {
     if (typeof document !== "undefined") {
@@ -546,6 +576,9 @@ import { afterNavigate } from "$app/navigation";
 </svelte:head>
 
 <div class="app-container">
+  {#if wcoVisible}
+    <div id="wco-titlebar" style="background-color: {wcoBarColor}"></div>
+  {/if}
   <OfflineBanner />
   <BackgroundRenderer />
   <!-- Rendering Layers for Visual Effects -->
@@ -605,5 +638,20 @@ import { afterNavigate } from "$app/navigation";
     :global(.app-container) {
       padding: 0 !important;
     }
+  }
+
+  /* Window Controls Overlay: bar occupies the former OS title bar area.
+     Color comes from the theme map via inline style (no hardcoded color).
+     Only rendered while the overlay is visible, so browser/Android/Firefox
+     layouts are untouched. */
+  :global(#wco-titlebar) {
+    position: fixed;
+    top: env(titlebar-area-y, 0);
+    left: env(titlebar-area-x, 0);
+    width: env(titlebar-area-width, 100%);
+    height: env(titlebar-area-height, 33px);
+    app-region: drag;
+    -webkit-app-region: drag;
+    z-index: 9999;
   }
 </style>
