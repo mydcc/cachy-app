@@ -21,7 +21,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
   import { accountSession } from "../../services/accountSession.svelte";
-  import { accountReadOrder } from "../../services/accountReadOrder";
+  import { accountReadOrder, positionsReadOrder } from "../../services/accountReadOrder";
   import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -262,11 +262,17 @@
   });
 
   async function fetchPositions() {
+    // BUG-0421: taken before the first await, so the ticket records when this
+    // read *started*. `loadingPositions` below only serialises one instance;
+    // the panel mounts twice and each instance keeps its own flag.
+    const ticket = positionsReadOrder.begin();
+
     // FEAT-0327 — the read seam. In paper mode the simulated book answers, in
     // the same shape, and nothing below runs: a request to the venue here is
     // what made a simulated position invisible in this panel.
     const paper = paperAccountFeed();
     if (paper) {
+      if (!positionsReadOrder.mayApply(ticket)) return;
       errorPositions = "";
       accountState.hydratePositions(paper.positions());
       return;
@@ -309,8 +315,12 @@
       // exchange actually returned (BUG-0060).
       const { data, code, message } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
       if (data === null) {
+        if (!positionsReadOrder.mayApply(ticket)) return;
         errorPositions = translateError({ code, error: message });
       } else if (data.positions) {
+        // Claimed here rather than before the parse, so a read that produced
+        // nothing to apply leaves the slot to whoever did.
+        if (!positionsReadOrder.mayApply(ticket)) return;
         // hydratePositions parses through the same safe Decimal path as WS
         // updates and fills in positionId — a raw `accountState.positions =
         // data.positions` assignment used to silently violate the Position
@@ -319,7 +329,10 @@
         accountState.hydratePositions(data.positions);
       }
     } catch {
-      errorPositions = $_("apiErrors.failedToLoadPositions");
+      // A stale failure must not clear a fresher snapshot's state either.
+      if (positionsReadOrder.mayApply(ticket)) {
+        errorPositions = $_("apiErrors.failedToLoadPositions");
+      }
     } finally {
       loadingPositions = false;
     }

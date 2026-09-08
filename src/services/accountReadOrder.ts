@@ -120,3 +120,18 @@ export const accountReadOrder = new AccountReadOrder();
  * different question with a different answer (BUG-0409); it is not ordering.
  */
 export const leverageReadOrder = new AccountReadOrder();
+
+/**
+ * The `/api/positions` lane — the open positions the panel renders.
+ *
+ * Its own counter for the same reason the leverage lane has one: positions
+ * and the account snapshot describe different things, and a slow snapshot
+ * read must not be able to discard a position read that started after it.
+ *
+ * `PositionsSidebar` already guards this fetch with a `loadingPositions`
+ * flag, but that flag is per component instance. The panel mounts twice
+ * (desktop and mobile, the hidden one still mounted), so two instances hold
+ * two flags and neither sees the other's request — the same shape as the
+ * account race in BUG-0412, on the data a position size is checked against.
+ */
+export const positionsReadOrder = new AccountReadOrder();
