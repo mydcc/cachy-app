@@ -2,9 +2,9 @@
 
 # Backlog index
 
-299 items. How to read and add them: [README.md](README.md).
+302 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 9 · ✅ done 220
+Counts by status: 💡 idea 27 · 📋 specced 41 · 🟢 ready 3 · 🟡 in-progress 11 · ✅ done 220
 
 ---
 
@@ -224,6 +224,7 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | chat |
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | calculation |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | exchange |
+| [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | 🟡 in-progress | trade-panel |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -271,6 +272,7 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | exchange |
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | ui |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | exchange |
+| [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | trade-panel |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -309,6 +311,7 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | journal |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | security |
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | 🟡 in-progress | trade-panel |
+| [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | 🟡 in-progress | trade-panel |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -433,6 +436,7 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) |
+| [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -525,6 +529,7 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -604,6 +609,7 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) |
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | 🟡 in-progress | none | community, pro, private | none | none | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -672,4 +678,4 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 
 ---
 
-Next free number: **0418**
+Next free number: **0421**
