@@ -391,18 +391,19 @@ import { afterNavigate } from "$app/navigation";
   });
 
   function updateThemeColor() {
-    // Deterministic: resolve from the shared theme map instead of reading
-    // back computed CSS. The previous setTimeout+getComputedStyle variant
-    // raced the class switch and left the meta tag (Android status bar,
-    // task switcher) stuck on the boot color #0f172a.
+    // Re-create the tag instead of only flipping the attribute: the desktop
+    // PWA title bar samples theme-color at load/navigation in some Chrome
+    // builds and ignores later attribute mutations (mobile status bar
+    // follows those fine). A fresh element forces re-evaluation on both.
     // NOTE: an installed PWA additionally uses theme_color/background_color
     // from static/manifest.json, which cannot change at runtime — the meta
-    // tag governs the browser case.
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    metaThemeColor?.setAttribute(
-      "content",
-      themeBackground(uiState.currentTheme),
-    );
+    // tag governs the browser case and the desktop title bar.
+    const tag = document.createElement("meta");
+    tag.name = "theme-color";
+    tag.content = themeBackground(uiState.currentTheme);
+    const existing = document.querySelector('meta[name="theme-color"]');
+    if (existing) existing.replaceWith(tag);
+    else document.head.prepend(tag);
   }
   // Dynamic theme color for PWA/Android status bar
   $effect(() => {
