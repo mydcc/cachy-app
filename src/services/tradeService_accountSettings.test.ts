@@ -91,7 +91,7 @@ beforeEach(() => {
     toastMock.success.mockClear();
     tradeState.remoteLeverage = undefined;
     tradeState.remoteMarginMode = undefined;
-    accountState.positionMode = undefined;
+    accountState.setPositionMode(undefined);
 });
 
 afterEach(() => {
@@ -207,7 +207,7 @@ describe("FEAT-0068 — displayed state comes from a read, never from the write"
 describe("BUG-1b — position mode has its own read", () => {
     it("reads the account snapshot and stores the position mode", async () => {
         appFetchMock.mockResolvedValue(ok({ positionMode: "HEDGE" }));
-        accountState.positionMode = undefined;
+        accountState.setPositionMode(undefined);
 
         await tradeService.fetchPositionMode();
 
@@ -218,7 +218,7 @@ describe("BUG-1b — position mode has its own read", () => {
 
     it("clears a mode the venue no longer reports", async () => {
         appFetchMock.mockResolvedValue(ok({}));
-        accountState.positionMode = "ONE_WAY";
+        accountState.setPositionMode("ONE_WAY");
 
         await tradeService.fetchPositionMode();
 
@@ -227,7 +227,7 @@ describe("BUG-1b — position mode has its own read", () => {
 
     it("leaves the displayed mode alone when the read fails", async () => {
         appFetchMock.mockRejectedValue(new Error("offline"));
-        accountState.positionMode = "ONE_WAY";
+        accountState.setPositionMode("ONE_WAY");
 
         await tradeService.fetchPositionMode();
 
@@ -324,7 +324,7 @@ describe("BUG-0410 — the position-mode write refreshes without a sidebar", () 
     });
 
     it("leaves the displayed mode alone when the read-back fails", async () => {
-        accountState.positionMode = "ONE_WAY";
+        accountState.setPositionMode("ONE_WAY");
         appFetchMock.mockImplementation(async (url: string) => {
             if (String(url) === "/api/account") throw new Error("offline");
             return ok({});
