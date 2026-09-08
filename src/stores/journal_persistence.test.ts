@@ -48,7 +48,7 @@ const localStorageMock = (() => {
 
 Object.defineProperty(global, "localStorage", { value: localStorageMock });
 
-import { JournalManager } from "./journal.svelte";
+import { JournalManager, journalState } from "./journal.svelte";
 import type { JournalEntry } from "./types";
 import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
@@ -81,6 +81,10 @@ function createTestEntry(id: string, pnl = "100", isPaper = false): JournalEntry
 
 describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
   beforeEach(() => {
+    // The module above also instantiates a singleton at import time, on the
+    // real clock: its 500ms auto-save can otherwise fire mid-test and add a
+    // second write to the debounced one under test (load-dependent CI flake).
+    journalState.destroy();
     vi.useFakeTimers();
     vi.clearAllMocks();
     localStorageMock.clear();
