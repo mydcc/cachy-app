@@ -4622,7 +4622,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0353",
     "title": "Extract hardcoded UI strings to i18n dictionary",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "Palette",
     "priority": "P2",
     "milestone": "none",
     "editions": [

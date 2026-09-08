@@ -372,11 +372,11 @@
             <span class="font-mono font-bold">{formatDuration(trade.entryDate, trade.exitDate, trade.date)}</span>
           </div>
           <div>
-            <span class="text-[var(--text-secondary)] block">Risk Amount</span>
+            <span class="text-[var(--text-secondary)] block">{$_("journal.drawer.riskAmount")}</span>
             <span class="font-mono font-bold">{trade.riskAmount ? `${formatDynamicDecimal(trade.riskAmount, 2)} ${currency}` : "—"}</span>
           </div>
           <div>
-            <span class="text-[var(--text-secondary)] block">Max Profit</span>
+            <span class="text-[var(--text-secondary)] block">{$_("journal.drawer.maxPotentialProfit")}</span>
             <span class="font-mono font-bold">{trade.maxPotentialProfit ? `${formatDynamicDecimal(trade.maxPotentialProfit, 2)} ${currency}` : "—"}</span>
           </div>
         </div>
@@ -386,7 +386,7 @@
       <section class="space-y-2">
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center justify-between">
           <span>{$_("journal.drawer.feeBreakdown")}</span>
-          <span class="text-[10px] font-normal text-[var(--text-secondary)]">Maker / Taker Rates</span>
+          <span class="text-[10px] font-normal text-[var(--text-secondary)]">{$_("journal.drawer.makerTakerRates")}</span>
         </h4>
         <div class="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] space-y-2.5 text-xs">
           <div class="flex items-center justify-between">
@@ -526,7 +526,7 @@
           </div>
         {:else}
           <div class="p-6 rounded-lg border border-dashed border-[var(--border-color)] text-center text-xs text-[var(--text-secondary)] bg-[var(--bg-secondary)]">
-            <span>Kein Screenshot hinterlegt.</span>
+            <span>{$_("journal.drawer.noScreenshot")}</span>
           </div>
         {/if}
       </section>
