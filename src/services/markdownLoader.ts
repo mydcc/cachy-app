@@ -20,6 +20,7 @@ import markedKatex from "marked-katex-extension";
 import { locale } from "../locales/i18n";
 import { get } from "svelte/store";
 import generatedChangelog from "../../CHANGELOG.md?raw";
+import { filterUserFacingReleases } from "./releaseNotesFilter";
 
 /**
  * Placeholder in `changelog.{de,en}.md` where the generated release notes go.
@@ -61,7 +62,10 @@ export function extractReleaseSections(changelog: string): string {
  * Substitutes the generated release notes into a localized changelog document.
  *
  * A document without the marker is returned untouched, so the other content
- * files are unaffected.
+ * files are unaffected. The substituted notes pass through
+ * `filterUserFacingReleases`: a trader reading the in-app changelog sees one
+ * entry per user-visible change — no prerelease duplicates, no repeated
+ * fixup commits, no CI/lint/backlog internals.
  */
 export function mergeGeneratedReleases(
   localized: string,
@@ -71,7 +75,7 @@ export function mergeGeneratedReleases(
 
   return localized.replace(
     GENERATED_RELEASES_MARKER,
-    extractReleaseSections(changelog),
+    filterUserFacingReleases(extractReleaseSections(changelog)),
   );
 }
 

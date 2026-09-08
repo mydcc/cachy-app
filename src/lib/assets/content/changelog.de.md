@@ -10,7 +10,8 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 > Commit-Nachrichten erzeugt. Sie stehen direkt unten und sind ausschließlich
 > englisch, da Commit-Nachrichten auf Englisch verfasst werden. Veröffentlicht
 > werden sie zusätzlich in `CHANGELOG.md` im Repository und unter
-> [GitHub Releases](https://github.com/mydcc/cachy-app/releases). Weiter unten
+> [GitHub Releases](https://github.com/mydcc/cachy-app/releases). Aufgeführt
+> werden nur nutzerrelevante Änderungen; interne Wartungsarbeiten entfallen. Weiter unten
 > folgt die von Hand gepflegte Historie der 0.9x-Versionen.
 
 ## Releases

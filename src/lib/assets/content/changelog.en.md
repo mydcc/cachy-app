@@ -10,7 +10,8 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 > from commit messages. They appear directly below and are English only, since
 > commit messages are written in English. They are also published in
 > `CHANGELOG.md` in the repository and on
-> [GitHub Releases](https://github.com/mydcc/cachy-app/releases). Further down
+> [GitHub Releases](https://github.com/mydcc/cachy-app/releases). Only
+> user-facing changes are listed; internal maintenance work is omitted. Further down
 > follows the hand-maintained history of the 0.9x versions.
 
 ## Releases

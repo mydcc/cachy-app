@@ -31,6 +31,63 @@ const isStableBranch = (process.env.GITHUB_REF_NAME ?? "main") === "main";
 const gitCommitMessage =
   "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}";
 
+/**
+ * Conventional scopes that never describe a user-visible change. A `feat` or
+ * `fix` carrying one of these scopes (e.g. `fix(ci): …`) is hidden from the
+ * release notes, exactly like the in-app filter in
+ * `src/services/releaseNotesFilter.ts` hides them. Keep both lists in sync.
+ */
+const internalScopes = [
+  "ci",
+  "chore",
+  "eslint",
+  "commitlint",
+  "cd",
+  "deps",
+  "dev",
+  "test",
+  "tests",
+  "e2e",
+  "backlog",
+  "release",
+];
+
+/**
+ * Release-notes preset: only `feat` and `fix` with a user-facing scope reach
+ * the notes. The default `angular` preset has no type filter at all, which is
+ * how CI plumbing, lint chores and untyped fixup commits ended up in front of
+ * users. Scoped `hidden` entries must come first — the preset keeps the first
+ * matching type/scope pair.
+ *
+ * This only shapes the notes. Versioning still comes from
+ * `@semantic-release/commit-analyzer`, independently of this table.
+ */
+const releaseNotesGeneratorPlugin = [
+  "@semantic-release/release-notes-generator",
+  {
+    preset: "conventionalcommits",
+    presetConfig: {
+      types: [
+        ...internalScopes.flatMap((scope) => [
+          { type: "feat", scope, effect: "hidden" },
+          { type: "fix", scope, effect: "hidden" },
+        ]),
+        { type: "feat", section: "Features" },
+        { type: "fix", section: "Bug Fixes" },
+        { type: "perf", section: "Performance Improvements", effect: "hidden" },
+        { type: "revert", section: "Reverts", effect: "hidden" },
+        { type: "docs", section: "Documentation", effect: "hidden" },
+        { type: "style", section: "Styles", effect: "hidden" },
+        { type: "chore", section: "Miscellaneous Chores", effect: "hidden" },
+        { type: "refactor", section: "Code Refactoring", effect: "hidden" },
+        { type: "test", section: "Tests", effect: "hidden" },
+        { type: "build", section: "Build System", effect: "hidden" },
+        { type: "ci", section: "Continuous Integration", effect: "hidden" },
+      ],
+    },
+  },
+];
+
 const changelogPlugin = [
   "@semantic-release/changelog",
   {
@@ -50,7 +107,7 @@ export default {
   ],
   plugins: [
     "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
+    releaseNotesGeneratorPlugin,
     ...(isStableBranch ? [changelogPlugin] : []),
     [
       "@semantic-release/npm",
