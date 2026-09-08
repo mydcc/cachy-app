@@ -6,112 +6,11 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 # Changelog
 
-> **Note:** From version 1.0.0 onward, release notes are generated automatically
-> from commit messages. They appear directly below and are English only, since
-> commit messages are written in English. They are also published in
-> `CHANGELOG.md` in the repository and on
-> [GitHub Releases](https://github.com/mydcc/cachy-app/releases). Further down
-> follows the hand-maintained history of the 0.9x versions.
+> **Note:** Release notes are curated by hand from version 1.0.0 onward and
+> list only user-facing changes. They appear directly below and are also
+> published in `CHANGELOG.md` in the repository and on
+> [GitHub Releases](https://github.com/mydcc/cachy-app/releases).
 
 ## Releases
 
 <!-- CHANGELOG_GENERATED -->
-
----
-
-## Version history 0.9x
-
-### Table of Contents
-
-1. [Version 0.94.3](#v0.94.3)
-2. [Version 0.94.2](#v0.94.2)
-3. [Version 0.94.1](#v0.94.1)
-4. [Version 0.94.0](#v0.94.0)
-5. [Version 0.93.0](#v0.93.0)
-6. [Version 0.92.2](#v0.92.2)
-7. [Version 0.92.1](#v0.92.1)
-8. [Version 0.92.0](#v0.92.0)
-
----
-
-## <a name="v0.94.3"></a>Version 0.94.3 (February 2026)
-
-- **Architecture:** **Local-First Only**: Removed "Global Chat" and "Community Cloud" to strictly enforce the local-first privacy model.
-- **New:** **Trading Academy**: Interactive learning modules for candlestick patterns and trading strategies.
-- **Tech:** **Svelte 5 Migration**: Complete refactor to Runes (`$state`, `$derived`) for universal reactivity.
-- **RSS Feed Integration**: Users can now add up to 5 custom RSS feed URLs and select from curated crypto news sources (CoinDesk, Cointelegraph, etc.) to enhance AI context.
-- **Strict Symbol Filtering**: Added a new setting to filter RSS news by the currently active chart symbol (e.g., only show XRP/Ripple news when XRP is selected).
-- **Auto-Cache Invalidation**: Changing RSS settings now automatically clears the news cache for immediate updates.
-- **Accessibility**: Improved interaction and labeling for the Integrations settings tab.
-
----
-
-## <a name="v0.94.2"></a>Version 0.94.2 (January 2026)
-
-- **Context-Aware AI**: The AI Assistant now has access to real-time market context:
-  - **News Integration**: Fetches sentiment from CryptoPanic and NewsAPI via a secure proxy.
-  - **CoinMarketCap**: Accesses fundamental data (Market Cap, Volume) for better analysis.
-  - **Trade History**: Can review your recent trades to provide behavioral coaching.
-- **Localization**: Fixed missing translation keys for backup password prompts and integration settings.
-- **Architecture:** **Global Subscription Management**: Introduced the `MarketWatcher` service to centralize all WebSocket subscriptions.
-- **System:** **Reference Counting**: Intelligent tracking of data requests to prevent connection drops when multiple panels are open simultaneously.
-- **Robustness:** **Symbol Normalization**: Consistent handling of symbol suffixes (`.P`, `:USDT`) for stable data mapping between API and UI.
-- **Fix:** **Technicals Stability**: Resolved freezing issues when rapidly switching between trading pairs in the Technicals Panel.
-- **New:** **"Debug Mode" Setting**: Opt-in detailed system logs in the browser console for improved troubleshooting.
-- **Improvement:** **Real-time Indicators**: Directly connected RSI and technical calculations to the internal market store for faster updates.
-
-## <a name="v0.94.1"></a>Version 0.94.1 (January 2026)
-
-- **New:** **Technicals Panel**: Advanced charting overlay with RSI, MACD, Stochastic, and Auto-Pivots.
-- **Upgrade:** **More Accurate Indicator Calculations**: Migrated to `talib-web` (WebAssembly) for exact alignment with industry-standard reference implementations. All technical indicators (RSI, Stochastic, CCI, ADX, MACD, Momentum, EMA) now use the same algorithms as professional trading platforms.
-- **New:** **Chat / Side Panel**: Collapsible side panel for private notes or global chat (requires API).
-
----
-
-## <a name="v0.94.0"></a>Version 0.94.0 (January 2026)
-
-- **New:** Websocket integration for Bitunix (Real-time prices, depth, ticker).
-- **New:** Performance Tracking (Pro): Advanced charts and Deep Dive analytics in the Journal.
-- **New:** Market Overview & Sidebar: Improved layout with real-time data and Favorites.
-- **New:** Enable "Side Panel" in Settings -> Sidebar. Choose between "Private Notes" (local storage only) or "Global Chat" mode.
-- **Improvements:** General stability updates and UI adjustments.
-
----
-
-## <a name="v0.93.0"></a>Version 0.93.0 (December 21, 2025)
-
-- **New:** "Show Sidebars" setting: Toggle visibility of the sidebar (favorites) and Market Overview to save screen space on desktop and mobile.
-- **Improvement:** Enhanced mobile layout with integrated positions view.
-- **Fix:** Fixed Bitunix "Pending Positions" calculation issues (handling of 'side' parameter).
-- **System:** Improved internal data structure for settings and API keys.
-- **New:** Backup & Restore feature: Create backups of your data (settings, journal, presets) and restore them when needed.
-- **Improvement:** Risk per Trade input now supports up to 2 decimal places.
-- **Improvement:** General stability improvements.
-- **New:** Favorites feature: Save up to 4 symbols by clicking the star icon in the Market Overview. Favorites are displayed in the sidebar (desktop) or below the main card (mobile).
-- **New:** Auto-fetch account balance on startup (enable in settings, requires API keys).
-- **New:** Auto-update price input field (optional).
-- **Fix:** Fixed deployment issues (502 errors) and improved stability.
-
----
-
-## <a name="v0.92.2"></a>Version 0.92.2 (December 11, 2025)
-
-- **New:** "Market Overview" displays 24h data (Price, Volume, Change) for the current symbol.
-- **New:** Expanded settings: Select API provider (Bitunix/Bitget) and market data update interval (1s, 1m, 10m).
-
----
-
-## <a name="v0.92.1"></a>Version 0.92.1 (September 04, 2025)
-
-- **New:** Automatic ATR fetch from Bitget API with selectable timeframe (5m, 15m, 1h, 4h, 1d). The fetched value can be manually adjusted.
-- **New:** Advanced locking functions: The risk amount in currency can now be locked to calculate position size and risk percentage.
-- **New:** Keyboard shortcuts (`Alt+L/S/R/J`) added for faster operation.
-- **New:** Modals can now be closed with the `Escape` key or by clicking the background.
-
----
-
-## <a name="v0.92.0"></a>Version 0.92.0 (August 22, 2025)
-
-- **Improvement:** Symbol input field now accepts letters and numbers.
-- **Fixed:** Tooltip border is now theme-dependent and the double border issue has been fixed.
-- **Improvement:** "Add Trade to Journal" and "Show Instructions" buttons are now theme-dependent.
