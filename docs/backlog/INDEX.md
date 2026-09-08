@@ -2,9 +2,9 @@
 
 # Backlog index
 
-302 items. How to read and add them: [README.md](README.md).
+303 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 11 · ✅ done 221
+Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 12 · ✅ done 221
 
 ---
 
@@ -225,6 +225,7 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | calculation |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | exchange |
 | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | 🟡 in-progress | trade-panel |
+| [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | 🟡 in-progress | trade-panel |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -437,6 +438,7 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) |
 | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | 🟡 in-progress | none | community, pro, private | none | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -678,4 +680,4 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-pro
 
 ---
 
-Next free number: **0421**
+Next free number: **0422**
