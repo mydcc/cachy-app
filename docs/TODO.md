@@ -228,9 +228,20 @@ in place and merely typed here per this repo's defensive-deletion rule:
 code whose purpose isn't fully clear doesn't get deleted without a person
 confirming it's safe to.
 
-## 6. `forceRecalculateAtr()` in JournalContent.svelte has no trigger
+## 6. ✅ `forceRecalculateAtr()` in JournalContent.svelte has no trigger
 
-**Roadmap item 21.** Found while typing/cleaning this file's unused-var
+**Roadmap item 21.** **RESOLVED** (2026-09-08). The decision landed on
+"remove": the function no longer exists in the codebase — the automatic
+silent repair (`journal.svelte.ts`'s `autoCalculateMissingAtr()`, backed by
+`dataRepairService.repairMissingAtr`) is the only ATR repair path, and the
+DataMaintenance view exposes its maintenance actions. The prepared i18n
+strings (`journal.confirmRecalculateAtr`, `journal.messages.atrRecalcStart`,
+`journal.messages.atrRecalcError`) are dead and have been removed from
+`en.json`/`de.json` together with their `schema.d.ts` entries. No manual
+force-recalc-all button was built — the automatic repair covers the use
+case, and a bulk rewrite button is not warranted by demand.
+
+Found while typing/cleaning this file's unused-var
 warnings. Small, low-risk gap — a maintenance action, not a correctness
 bug — left in place rather than guessed at.
 
@@ -251,7 +262,7 @@ UI feedback by design). `forceRecalculateAtr` reads like the manual
 escape hatch for cases the automatic scan misses — useful, but only if a
 person can actually reach it.
 
-**The decision:** add a trigger (a button, likely near the other journal
+**The original decision point:** add a trigger (a button, likely near the other journal
 maintenance/import actions) and decide the copy, or decide the automatic
 repair is sufficient and remove this function. Left in place, not
 removed, since a fully-built feature with prepared translations is not
@@ -596,7 +607,20 @@ call site it was written for. The parameter itself is kept (not
 deleted) with a `docs/TODO.md` pointer, since `uiManager.ts` still
 depends on its position in the call signature.
 
-## 16. Ichimoku's lagging span (Chikou Span) is accepted as a parameter but never computed
+## 16. ✅ Ichimoku's lagging span (Chikou Span) is accepted as a parameter but never computed
+
+**RESOLVED** (2026-09-08). Implemented the lagging span and wired it into
+the chart: `JSIndicators.ichimoku()` now takes `close` as its third
+parameter and returns `lagging[i] = close[i + laggingSpan2]` (NaN beyond
+the lookahead window), and `indicatorLayer.ts` draws it as a fifth
+Ichimoku line on the price pane. The `laggingSpan2` parameter now also
+drives the spanA/spanB forward displacement — it was previously hardcoded
+to `basePeriod`, and `indicatorLayer.ts` was passing `0` instead of the
+user's `ichimoku.displacement` setting; both call sites now pass the
+setting, behavior-identical at the default 9/26/52 (displacement 26
+== basePeriod). Covered by two new tests in `indicators.test.ts` (shift
+direction and displacement effect). WASM Ichimoku remains four-output by
+design; the Chikou is computed JS-side only.
 
 **Roadmap item 21.** Found while typing/cleaning an unused-parameter
 warning on `JSIndicators.ichimoku()`.
