@@ -33,7 +33,7 @@
  * Scope and honesty about it: this is a text scan. It catches the direct form,
  * `accountState.positionMode = x`, which is how every instance so far was
  * written. It does not catch an alias (`const s = accountState; s.positionMode
- * = x`). Closing that needs the type system — tracked in BUG-0415. This check
+ * = x`). Closing that needs the type system — open as #2759 (setter-only fields). This check
  * is the cheap guard that holds until then, not a proof.
  *
  * Opt-out: append   // audit: safe — <reason>   to the line. The reason is not
@@ -112,7 +112,7 @@ const SAFE_MARKER = /\/\/\s*audit:\s*safe/;
 
 /**
  * Tests may construct states the production code cannot reach — that is their
- * job. Excluding them keeps the check about shipped behaviour. Once BUG-0415
+ * job. Excluding them keeps the check about shipped behaviour. Once #2759
  * makes the fields private, the compiler will reach the tests too.
  */
 const EXCLUDE_PATTERN = /\.(test|spec|bench)\.[cm]?[jt]s$/;
