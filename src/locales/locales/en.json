@@ -538,7 +538,6 @@
     "clickToExpand": "Click to expand",
     "delete": "Delete",
     "confirmDelete": "Are you sure you want to delete this trade?",
-    "confirmRecalculateAtr": "Do you want to recalculate all ATR values in the journal? This may take a moment if you have many trades.",
     "performancePerSymbol": "Performance per Symbol",
     "trades": "Trades",
     "profitPercent": "Profit %",
@@ -674,9 +673,7 @@
       "min5Trades": "(Min. 5 Trades)",
       "min20Trades": "(Min. 20 Trades)",
       "noStrategyLosses": "(No Strategy Losses)",
-      "noTimingLosses": "(No Timing Losses)",
-      "atrRecalcStart": "ATR recalculation started...",
-      "atrRecalcError": "Error during ATR calculation: "
+      "noTimingLosses": "(No Timing Losses)"
     },
     "deepDive": {
       "title": "Deep Dive",
