@@ -5153,6 +5153,25 @@
       "file": "features/FEAT-0403-chart-pane-visibility-toggles.md"
     },
     {
+      "id": "FEAT-0417",
+      "title": "Guard position-mode writes in CI so the freshness stamp cannot be dropped",
+      "type": "feature",
+      "status": "in-progress",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "claude",
+      "file": "features/FEAT-0417-account-state-write-guard.md"
+    },
+    {
       "id": "BUG-0007",
       "title": "Several UI strings are hardcoded instead of translated",
       "type": "bug",
@@ -6490,5 +6509,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 298
+  "count": 299
 }
