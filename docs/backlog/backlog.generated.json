@@ -241,105 +241,6 @@
       "file": "bugs/BUG-0347-modal-position-snapshot-freeze.md"
     },
     {
-      "id": "BUG-0409",
-      "title": "Mode chip stays stale or shows never-real combos after a mode change",
-      "type": "bug",
-      "status": "in-progress",
-      "priority": "P0",
-      "milestone": "M4",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "exchange",
-      "data_class": "A",
-      "adr": "none",
-      "assignee": "claude",
-      "depends_on": [
-        "FEAT-0068",
-        "BUG-0412",
-        "BUG-0410"
-      ],
-      "file": "bugs/BUG-0409-mode-chip-stale-after-change.md"
-    },
-    {
-      "id": "BUG-0410",
-      "title": "Mode chip depends on PositionsSidebar being mounted",
-      "type": "bug",
-      "status": "in-progress",
-      "priority": "P0",
-      "milestone": "M4",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "A",
-      "adr": "none",
-      "assignee": "claude",
-      "depends_on": [
-        "BUG-0412"
-      ],
-      "file": "bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md"
-    },
-    {
-      "id": "BUG-0411",
-      "title": "Modal windows are oversized with large empty areas",
-      "type": "bug",
-      "status": "specced",
-      "priority": "P0",
-      "milestone": "M4",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "ui",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "bugs/BUG-0411-modal-windows-oversized-polish.md"
-    },
-    {
-      "id": "BUG-0412",
-      "title": "Two mounted sidebars fetch the account concurrently and race",
-      "type": "bug",
-      "status": "in-progress",
-      "priority": "P0",
-      "milestone": "M4",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "A",
-      "adr": "none",
-      "assignee": "claude",
-      "depends_on": [],
-      "file": "bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md"
-    },
-    {
-      "id": "BUG-0414",
-      "title": "Disabling Burning Borders flashes a white background briefly",
-      "type": "bug",
-      "status": "specced",
-      "priority": "P0",
-      "milestone": "M4",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "ui",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "bugs/BUG-0414-burning-borders-disable-white-flash.md"
-    },
-    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -1358,46 +1259,6 @@
       "target_date": "2026-09-19",
       "start_date": "2026-09-05",
       "file": "bugs/BUG-0404-chart-indicator-toggles-independence.md"
-    },
-    {
-      "id": "BUG-0418",
-      "title": "Switching between paper and live keeps the previous mode's leverage and fees",
-      "type": "bug",
-      "status": "in-progress",
-      "priority": "P1",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "assignee": "claude",
-      "file": "bugs/BUG-0418-mode-switch-keeps-remote-account-state.md"
-    },
-    {
-      "id": "BUG-0421",
-      "title": "A stale positions read can resurrect a position the trader has closed",
-      "type": "bug",
-      "status": "in-progress",
-      "priority": "P1",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [
-        "BUG-0412"
-      ],
-      "assignee": "claude",
-      "file": "bugs/BUG-0421-positions-read-race.md"
     },
     {
       "id": "FEAT-0014",
@@ -3424,26 +3285,6 @@
       "file": "bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md"
     },
     {
-      "id": "BUG-0419",
-      "title": "A read started before a mode switch can still land after it",
-      "type": "bug",
-      "status": "specced",
-      "priority": "P2",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [
-        "BUG-0418"
-      ],
-      "file": "bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md"
-    },
-    {
       "id": "FEAT-0019",
       "title": "Let the assistant research the web when it needs to",
       "type": "feature",
@@ -5212,46 +5053,6 @@
       "file": "features/FEAT-0403-chart-pane-visibility-toggles.md"
     },
     {
-      "id": "FEAT-0417",
-      "title": "Guard position-mode writes in CI so the freshness stamp cannot be dropped",
-      "type": "feature",
-      "status": "in-progress",
-      "priority": "P2",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "assignee": "claude",
-      "file": "features/FEAT-0417-account-state-write-guard.md"
-    },
-    {
-      "id": "FEAT-0420",
-      "title": "Make the stamped account fields writable only through their setter",
-      "type": "feature",
-      "status": "in-progress",
-      "priority": "P2",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [
-        "FEAT-0417"
-      ],
-      "assignee": "claude",
-      "file": "features/FEAT-0420-account-state-setter-only.md"
-    },
-    {
       "id": "BUG-0007",
       "title": "Several UI strings are hardcoded instead of translated",
       "type": "bug",
@@ -6260,24 +6061,6 @@
       "file": "features/FEAT-0406-rule-loop-disarm-path.md"
     },
     {
-      "id": "FEAT-0416",
-      "title": "Record the account read protocol as an ADR",
-      "type": "feature",
-      "status": "done",
-      "priority": "P3",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "docs",
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "features/FEAT-0416-account-read-protocol-adr.md"
-    },
-    {
       "id": "IDEA-0036",
       "title": "A gamified fork built on SpacetimeDB and the 3D layer",
       "type": "idea",
@@ -6533,61 +6316,7 @@
       "adr": "none",
       "depends_on": [],
       "file": "ideas/IDEA-0326-feedback-system.md"
-    },
-    {
-      "id": "IDEA-0407",
-      "title": "Contract unit preference for order size input",
-      "type": "idea",
-      "status": "idea",
-      "priority": "P3",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "A",
-      "adr": "none",
-      "depends_on": [],
-      "file": "ideas/IDEA-0407-contract-unit-preference.md"
-    },
-    {
-      "id": "IDEA-0408",
-      "title": "Multi-trade mode (one position vs position per trade)",
-      "type": "idea",
-      "status": "idea",
-      "priority": "P3",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "trade-panel",
-      "data_class": "A",
-      "adr": "none",
-      "depends_on": [],
-      "file": "ideas/IDEA-0408-multi-trade-mode.md"
-    },
-    {
-      "id": "IDEA-0413",
-      "title": "Market-data polling volume (per-timeframe klines plus funding bulk)",
-      "type": "idea",
-      "status": "idea",
-      "priority": "P3",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "market-data",
-      "data_class": "C",
-      "adr": "none",
-      "depends_on": [],
-      "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 303
+  "count": 289
 }

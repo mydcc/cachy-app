@@ -187,13 +187,6 @@ export interface AccountPort {
     /** Contract precision, size limits and leverage range for a symbol. */
     fetchTradingPairInfo(symbol: string): Promise<void>;
 
-    /**
-     * Account-wide position mode, written into `accountState.positionMode`.
-     * The trade panel's mode chip reads it; previously only the sidebar's
-     * account snapshot fed it.
-     */
-    fetchPositionMode(): Promise<void>;
-
     /*
      * The write half (FEAT-0068). These change exchange state without placing
      * an order, so they do not pass the FEAT-0011 order gate — that gate

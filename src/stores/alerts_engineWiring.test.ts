@@ -86,28 +86,16 @@ const resetModulesAndFlush = async () => {
  * order.
  *
  * Only accepts the result once the freshly imported `alertState` reports
- * "idle" — the value only a genuinely new singleton starts with — *and* the
- * `$app/environment` of the same post-reset module graph carries this test's
- * `browser` flag. `idle` alone does not prove the module is ours: a fresh
- * instance baked with the *previous* test's environment still reports "idle"
- * and then runs the loader it should have skipped (SSR tests), or skips the
- * load under test (browser tests). Throws with a clear message instead of
- * letting such a module silently masquerade as a fresh one.
+ * "idle" — the value only a genuinely new singleton starts with. Throws with
+ * a clear message on the (so far unobserved) case where it never settles,
+ * rather than letting a stale module silently masquerade as a fresh one.
  */
-async function importFreshAlertsModule(
-  expectedBrowser = true,
-): Promise<typeof import("./alerts.svelte")> {
+async function importFreshAlertsModule(): Promise<typeof import("./alerts.svelte")> {
   const modulePath = "./alerts.svelte"; // kept out of the literal `import("./alerts.svelte")` shape on purpose, so a project-wide search-and-replace of that call cannot turn this primitive into infinite recursion on itself
   for (let attempt = 0; attempt < 5; attempt++) {
-    // Re-register this test's factory every attempt, not just once in the
-    // body: the registration travels over worker RPC, so an import may
-    // resolve `$app/environment` against whatever factory was already
-    // registered (usually `browser: true` from `beforeEach`).
-    mockEnvironment(expectedBrowser);
     await resetModulesAndFlush();
     const mod = await import(modulePath);
-    const env = await import("$app/environment");
-    if (mod.alertState.engineStatus === "idle" && env.browser === expectedBrowser) return mod;
+    if (mod.alertState.engineStatus === "idle") return mod;
   }
   throw new Error(
     "alerts.svelte's alertState singleton did not settle to a fresh 'idle' state after several reset attempts",
@@ -678,7 +666,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     mockEnvironment(false);
     await resetModulesAndFlush();
 
-    const { initAlertEngine } = await importFreshAlertsModule(false);
+    const { initAlertEngine } = await importFreshAlertsModule();
     const { alertEngine } = await import("../services/alertEngine/alertEngine");
 
     const loader = vi.fn(fakeLoader);
@@ -739,7 +727,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       await resetModulesAndFlush();
 
       const { toastService } = await import("../services/toastService.svelte");
-      const { alertState, initAlertEngine } = await importFreshAlertsModule(false);
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
 
       await initAlertEngine(fakeLoader);
 

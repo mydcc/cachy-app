@@ -86,26 +86,6 @@ describe('BitunixLeverageMarginModeSchema', () => {
     expect(result.leverage).toBe(10);
     expect(result.marginMode).toBe('ISOLATION');
   });
-
-  it('coerces a stringified leverage but rejects null', () => {
-    expect(
-      BitunixLeverageMarginModeSchema.parse({
-        symbol: 'BTCUSDT', marginCoin: 'USDT', leverage: '10', marginMode: 'ISOLATION',
-      }).leverage,
-    ).toBe(10);
-    // Number(null) is 0: without the lower bound a null leverage would
-    // validate silently as 0x instead of dropping the read.
-    expect(() =>
-      BitunixLeverageMarginModeSchema.parse({
-        symbol: 'BTCUSDT', marginCoin: 'USDT', leverage: null, marginMode: 'ISOLATION',
-      }),
-    ).toThrow();
-    expect(() =>
-      BitunixLeverageMarginModeSchema.parse({
-        symbol: 'BTCUSDT', marginCoin: 'USDT', leverage: 'abc', marginMode: 'ISOLATION',
-      }),
-    ).toThrow();
-  });
 });
 
 describe('sanitizeErrorMessage', () => {

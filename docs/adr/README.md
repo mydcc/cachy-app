@@ -50,6 +50,5 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0012](0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md) | A strategy is checkable data, not code and not a model's opinion | Proposed |
 | [0013](0013-client-side-exchange-signing.md) | Client-side exchange request signing and zero-transit credential boundary | Accepted |
 | [0014](0014-layout-design-tokens.md) | Layout design tokens are the single source for radius, spacing and type scale | Proposed |
-| [0015](0015-account-state-is-read-under-a-ticket-and-never-paired-across-time.md) | Account state is read under a ticket and never paired across time | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._
