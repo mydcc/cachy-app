@@ -6189,6 +6189,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0406-rule-loop-disarm-path.md"
   },
   {
+    "id": "FEAT-0416",
+    "title": "Record the account read protocol as an ADR",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "docs",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0416-account-read-protocol-adr.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",
