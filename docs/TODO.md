@@ -473,9 +473,18 @@ inline because Klasse-A credential decryption needs a verified fix
 with a test reproducing a real legacy blob, not a drive-by guess at
 the missing fallback's exact shape.
 
-## 13. `src/service-worker.ts` declares a runtime cache with a size bound that's never used
+## 13. ✅ `src/service-worker.ts` declares a runtime cache with a size bound that's never used
 
-**Roadmap item 21.** Found while looking for a home for an unused
+**Roadmap item 21.** **RESOLVED** (2026-09-08). The decision landed on
+"remove": build-time-only caching is intentional and sufficient. The app
+is Local-First — everything it needs offline is either a build asset or
+in `static` (both cached at install), and no runtime-fetched asset has an
+offline use case. `RUNTIME_CACHE`, `MAX_RUNTIME_CACHE_ENTRIES` and the
+corresponding eslint-disable comment have been deleted;
+`deleteOldCaches()` now only keeps `CACHE`. Runtime caching can be added
+deliberately if a concrete offline use case appears.
+
+Found while looking for a home for an unused
 `MAX_RUNTIME_CACHE_ENTRIES` constant flagged by a lint pass.
 
 The service worker declares two cache names: `CACHE` (build-time
@@ -506,6 +515,8 @@ implementation.
 `RUNTIME_CACHE` in `respond()` for non-build-asset GET responses,
 trim it to `MAX_RUNTIME_CACHE_ENTRIES` on write), or remove both
 constants if build-time-only caching is intentional and sufficient.
+**The original decision point:** implement or remove — the remove branch
+was chosen (see the RESOLVED note above).
 Left as a lint-pass finding rather than fixed inline: service-worker
 caching behavior affects offline support and cache staleness across
 every user's PWA install, which needs deliberate design and testing
