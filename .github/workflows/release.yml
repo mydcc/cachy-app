@@ -6,6 +6,10 @@ on:
     # This mirrors the split already used by deploy.sh via .deploy.conf
     # (BRANCH_STABLE=main -> cachy.app, BRANCH_BETA=develop -> dev.cachy.app).
     branches: [main, develop]
+  # Manual fallback to ship a stable release when automation was skipped
+  # (e.g. a merge whose message quoted `[skip ci]` lines). Run it from the
+  # Actions tab with main selected.
+  workflow_dispatch:
 
 # Prevent two releases from racing each other and producing duplicate tags.
 concurrency:
@@ -16,8 +20,12 @@ jobs:
   release:
     name: semantic-release
     runs-on: ubuntu-latest
-    # Skip the release commit semantic-release pushes itself.
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    # Skip the release commits semantic-release pushes itself. This must match
+    # the commit title, not the whole message: PR #2117 pasted ~100
+    # `chore(release): … [skip ci]` lines into its merge-commit body and the
+    # old `contains(message, '[skip ci]')` guard silently skipped the stable
+    # 1.6.0 release because of it.
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     permissions:
       contents: write # create tags, releases and the changelog commit
       issues: write # comment on released issues
