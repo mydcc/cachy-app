@@ -22,28 +22,25 @@ import { get } from "svelte/store";
 import generatedChangelog from "../../CHANGELOG.md?raw";
 
 /**
- * Placeholder in `changelog.{de,en}.md` where the generated release notes go.
+ * Placeholder in `changelog.{de,en}.md` where the curated release notes go.
  *
- * Releases from 1.0.0 on are produced by semantic-release from Conventional
- * Commit messages into `CHANGELOG.md`. That file is the single source of truth
- * for them: nobody hand-copies entries into the in-app changelog, so the two can
- * never disagree.
+ * Releases from 1.0.0 on are maintained by hand in `CHANGELOG.md`. That file
+ * is the single source of truth for them: nobody hand-copies entries into the
+ * in-app changelog, so the two can never disagree.
  *
- * The surrounding localized file keeps what a machine cannot write — the German
- * and English framing, and the hand-maintained 0.9x history. The generated part
- * is English only, because commit messages are English by project convention;
- * the note above the marker says so in the reader's language.
+ * The surrounding localized file keeps what the notes themselves cannot
+ * provide — the German and English framing around the marker.
  */
 export const GENERATED_RELEASES_MARKER = "<!-- CHANGELOG_GENERATED -->";
 
 /**
- * Returns the release sections of a semantic-release changelog, without its
+ * Returns the release sections of the curated changelog, without its
  * title block.
  *
- * semantic-release writes the configured `changelogTitle` at the top and inserts
- * each new release below it, as a heading that starts with the version — `#` for
- * a minor, `##` for a patch, the version usually wrapped in a compare link.
- * Everything from the first such heading onwards is the release history.
+ * Each release sits below the title as a heading that starts with the
+ * version — `#` for a minor, `##` for a patch, the version usually wrapped
+ * in a compare link. Everything from the first such heading onwards is the
+ * release history.
  *
  * Returns an empty string before the first release, when the file is only its
  * title block.
@@ -58,7 +55,7 @@ export function extractReleaseSections(changelog: string): string {
 }
 
 /**
- * Substitutes the generated release notes into a localized changelog document.
+ * Substitutes the curated release notes into a localized changelog document.
  *
  * A document without the marker is returned untouched, so the other content
  * files are unaffected.
