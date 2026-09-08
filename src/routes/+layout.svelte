@@ -53,6 +53,7 @@ import { afterNavigate } from "$app/navigation";
 
 
   import { browser } from "$app/environment";
+  import { themeBackground } from "../lib/themeBackgrounds";
 
   interface Props {
     children?: import("svelte").Snippet;
@@ -390,22 +391,25 @@ import { afterNavigate } from "$app/navigation";
   });
 
   function updateThemeColor() {
-    // Small timeout to allow the DOM/CSS variables to update after class change
-    setTimeout(() => {
-      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-      if (metaThemeColor) {
-        // Since the background was moved to the html tag, we read from document.documentElement
-        const style = getComputedStyle(document.documentElement);
-        const bgColor = style.backgroundColor;
-        metaThemeColor.setAttribute("content", bgColor);
-      }
-    }, 100); // 100ms for safety
+    // Deterministic: resolve from the shared theme map instead of reading
+    // back computed CSS. The previous setTimeout+getComputedStyle variant
+    // raced the class switch and left the meta tag (Android status bar,
+    // task switcher) stuck on the boot color #0f172a.
+    // NOTE: an installed PWA additionally uses theme_color/background_color
+    // from static/manifest.json, which cannot change at runtime — the meta
+    // tag governs the browser case.
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    metaThemeColor?.setAttribute(
+      "content",
+      themeBackground(uiState.currentTheme),
+    );
   }
   // Dynamic theme color for PWA/Android status bar
   $effect(() => {
-    if (typeof document !== "undefined" && uiState.currentTheme) {
-      updateThemeColor();
-    }
+    if (!browser) return;
+    // Track the theme so the meta tag follows every switch (incl. mount).
+    void uiState.currentTheme;
+    updateThemeColor();
   });
 
   // Update Font Family
