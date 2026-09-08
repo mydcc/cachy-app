@@ -228,9 +228,20 @@ in place and merely typed here per this repo's defensive-deletion rule:
 code whose purpose isn't fully clear doesn't get deleted without a person
 confirming it's safe to.
 
-## 6. `forceRecalculateAtr()` in JournalContent.svelte has no trigger
+## 6. ✅ `forceRecalculateAtr()` in JournalContent.svelte has no trigger
 
-**Roadmap item 21.** Found while typing/cleaning this file's unused-var
+**Roadmap item 21.** **RESOLVED** (2026-09-08). The decision landed on
+"remove": the function no longer exists in the codebase — the automatic
+silent repair (`journal.svelte.ts`'s `autoCalculateMissingAtr()`, backed by
+`dataRepairService.repairMissingAtr`) is the only ATR repair path, and the
+DataMaintenance view exposes its maintenance actions. The prepared i18n
+strings (`journal.confirmRecalculateAtr`, `journal.messages.atrRecalcStart`,
+`journal.messages.atrRecalcError`) are dead and have been removed from
+`en.json`/`de.json` together with their `schema.d.ts` entries. No manual
+force-recalc-all button was built — the automatic repair covers the use
+case, and a bulk rewrite button is not warranted by demand.
+
+Found while typing/cleaning this file's unused-var
 warnings. Small, low-risk gap — a maintenance action, not a correctness
 bug — left in place rather than guessed at.
 
@@ -251,7 +262,7 @@ UI feedback by design). `forceRecalculateAtr` reads like the manual
 escape hatch for cases the automatic scan misses — useful, but only if a
 person can actually reach it.
 
-**The decision:** add a trigger (a button, likely near the other journal
+**The original decision point:** add a trigger (a button, likely near the other journal
 maintenance/import actions) and decide the copy, or decide the automatic
 repair is sufficient and remove this function. Left in place, not
 removed, since a fully-built feature with prepared translations is not
