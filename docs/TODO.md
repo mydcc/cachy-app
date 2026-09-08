@@ -596,7 +596,20 @@ call site it was written for. The parameter itself is kept (not
 deleted) with a `docs/TODO.md` pointer, since `uiManager.ts` still
 depends on its position in the call signature.
 
-## 16. Ichimoku's lagging span (Chikou Span) is accepted as a parameter but never computed
+## 16. ✅ Ichimoku's lagging span (Chikou Span) is accepted as a parameter but never computed
+
+**RESOLVED** (2026-09-08). Implemented the lagging span and wired it into
+the chart: `JSIndicators.ichimoku()` now takes `close` as its third
+parameter and returns `lagging[i] = close[i + laggingSpan2]` (NaN beyond
+the lookahead window), and `indicatorLayer.ts` draws it as a fifth
+Ichimoku line on the price pane. The `laggingSpan2` parameter now also
+drives the spanA/spanB forward displacement — it was previously hardcoded
+to `basePeriod`, and `indicatorLayer.ts` was passing `0` instead of the
+user's `ichimoku.displacement` setting; both call sites now pass the
+setting, behavior-identical at the default 9/26/52 (displacement 26
+== basePeriod). Covered by two new tests in `indicators.test.ts` (shift
+direction and displacement effect). WASM Ichimoku remains four-output by
+design; the Chikou is computed JS-side only.
 
 **Roadmap item 21.** Found while typing/cleaning an unused-parameter
 warning on `JSIndicators.ichimoku()`.
