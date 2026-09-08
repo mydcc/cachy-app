@@ -2,9 +2,9 @@
 
 # Backlog index
 
-289 items. How to read and add them: [README.md](README.md).
+303 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-progress 5 · ✅ done 220
+Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 3 · 🟡 in-progress 12 · ✅ done 221
 
 ---
 
@@ -117,6 +117,11 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0409](bugs/BUG-0409-mode-chip-stale-after-change.md) | Mode chip stays stale or shows never-real combos after a mode change | P0 | 🟡 in-progress | exchange |
+| [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | 🟡 in-progress | trade-panel |
+| [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | 📋 specced | ui |
+| [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | 🟡 in-progress | trade-panel |
+| [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | 📋 specced | ui |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | ✅ done | alerts |
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
@@ -219,6 +224,8 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0357](bugs/BUG-0357-cloud-service-callback-overwrite.md) | CloudService single callback overwrite disables global chat updates after CloudTab closes | P1 | ✅ done | chat |
 | [BUG-0360](bugs/BUG-0360-trade-calculator-dropped-trailing-calculations.md) | TradeCalculator drops trailing calculations when inputs change rapidly within throttle interval | P1 | ✅ done | calculation |
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | exchange |
+| [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | 🟡 in-progress | trade-panel |
+| [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | 🟡 in-progress | trade-panel |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -266,6 +273,7 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | exchange |
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | ui |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | exchange |
+| [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | trade-panel |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -303,6 +311,8 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | ui |
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | journal |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | security |
+| [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | 🟡 in-progress | trade-panel |
+| [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | 🟡 in-progress | trade-panel |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -348,11 +358,15 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | chat |
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | ai |
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | alerts |
+| [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | docs |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
 | [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | calculation |
 | [IDEA-0326](ideas/IDEA-0326-feedback-system.md) | User feedback system | P3 | 💡 idea | feedback |
+| [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | trade-panel |
+| [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | trade-panel |
+| [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | market-data |
 
 ---
 
@@ -371,6 +385,11 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0293](bugs/BUG-0293-tpsl-modify-wire-format.md) | modifyTpSlOrder sent a wire body the venue's modify_order does not document | P0 | ✅ done | M3 | community, pro, private | A | none | — |
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0409](bugs/BUG-0409-mode-chip-stale-after-change.md) | Mode chip stays stale or shows never-real combos after a mode change | P0 | 🟡 in-progress | M4 | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md), [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md), [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) |
+| [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | 🟡 in-progress | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
+| [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | 📋 specced | M4 | community, pro, private | none | none | — |
+| [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | 🟡 in-progress | M4 | community, pro, private | A | none | — |
+| [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | 📋 specced | M4 | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -418,6 +437,8 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0386](bugs/BUG-0386-tpsl-drag-order-not-found.md) | TP/SL drag sends synthetic per-leg order id — venue rejects with orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) |
+| [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | 🟡 in-progress | none | community, pro, private | none | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -510,6 +531,7 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -588,6 +610,8 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) |
+| [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | 🟡 in-progress | none | community, pro, private | none | none | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -637,6 +661,7 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 💡 idea | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
+| [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -649,7 +674,10 @@ Counts by status: 💡 idea 24 · 📋 specced 37 · 🟢 ready 3 · 🟡 in-pro
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | M8 | pro, private | C | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
 | [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | none | community, pro, private | none | none | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) |
 | [IDEA-0326](ideas/IDEA-0326-feedback-system.md) | User feedback system | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | none | community, pro, private | A | none | — |
+| [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | none | community, pro, private | A | none | — |
+| [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | none | community, pro, private | C | none | — |
 
 ---
 
-Next free number: **0407**
+Next free number: **0422**

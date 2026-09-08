@@ -21,6 +21,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
   import { accountSession } from "../../services/accountSession.svelte";
+  import { accountReadOrder, positionsReadOrder } from "../../services/accountReadOrder";
   import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -261,11 +262,17 @@
   });
 
   async function fetchPositions() {
+    // BUG-0421: taken before the first await, so the ticket records when this
+    // read *started*. `loadingPositions` below only serialises one instance;
+    // the panel mounts twice and each instance keeps its own flag.
+    const ticket = positionsReadOrder.begin();
+
     // FEAT-0327 — the read seam. In paper mode the simulated book answers, in
     // the same shape, and nothing below runs: a request to the venue here is
     // what made a simulated position invisible in this panel.
     const paper = paperAccountFeed();
     if (paper) {
+      if (!positionsReadOrder.mayApply(ticket)) return;
       errorPositions = "";
       accountState.hydratePositions(paper.positions());
       return;
@@ -308,8 +315,12 @@
       // exchange actually returned (BUG-0060).
       const { data, code, message } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
       if (data === null) {
+        if (!positionsReadOrder.mayApply(ticket)) return;
         errorPositions = translateError({ code, error: message });
       } else if (data.positions) {
+        // Claimed here rather than before the parse, so a read that produced
+        // nothing to apply leaves the slot to whoever did.
+        if (!positionsReadOrder.mayApply(ticket)) return;
         // hydratePositions parses through the same safe Decimal path as WS
         // updates and fills in positionId — a raw `accountState.positions =
         // data.positions` assignment used to silently violate the Position
@@ -318,7 +329,10 @@
         accountState.hydratePositions(data.positions);
       }
     } catch {
-      errorPositions = $_("apiErrors.failedToLoadPositions");
+      // A stale failure must not clear a fresher snapshot's state either.
+      if (positionsReadOrder.mayApply(ticket)) {
+        errorPositions = $_("apiErrors.failedToLoadPositions");
+      }
     } finally {
       loadingPositions = false;
     }
@@ -504,6 +518,11 @@
   async function fetchAccount() {
     const paper = paperAccountFeed();
     if (paper) {
+      // Synchronous, so it can never be overtaken — but taking the ticket
+      // anyway claims the slot, which is what drops a live REST read that
+      // was already in flight when the trader switched to the paper book
+      // (BUG-0412).
+      if (!accountReadOrder.mayApply(accountReadOrder.begin())) return;
       errorAccount = "";
       const info = paper.accountInfo();
       accountInfo = info;
@@ -512,7 +531,7 @@
         margin: info.margin,
         frozen: info.frozen,
       });
-      accountState.positionMode = info.positionMode;
+      accountState.setPositionMode(info.positionMode);
       return;
     }
 
@@ -524,7 +543,12 @@
     // margin fields only the WS wallet channel supplies. That merge is
     // correct within one account and is cross-account blending across two,
     // so a response that outlived its session must not reach it.
-    const session = accountSession.current();
+    //
+    // BUG-0412 folds the ordering guard into the same ticket: this component
+    // is mounted twice (desktop + mobile) and reads on mount *and* on a
+    // credentials change, so two of its own responses overlap routinely and
+    // the older one used to land last and win.
+    const ticket = accountReadOrder.begin();
 
     try {
       const response = await appFetch("/api/account", {
@@ -548,7 +572,10 @@
       // to accountInfo, so every field silently stuck at its all-zero
       // initial state — indistinguishable from a genuinely empty account,
       // and never surfaced as an error either (BUG-0060).
-      if (!accountSession.isCurrent(session)) return;
+      // Asked once, after the last `await` and before anything is written,
+      // so an error result orders against a success result too: a stale
+      // failure must not clear a fresher snapshot's numbers either.
+      if (!accountReadOrder.mayApply(ticket)) return;
 
       const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
       if (data === null) {
@@ -569,9 +596,16 @@
         // FEAT-0068: the trade panel offers this as an editable control, and
         // this snapshot is the only place it arrives. Shared through the
         // store rather than re-fetched there.
-        accountState.positionMode = data.positionMode || undefined;
+        accountState.setPositionMode(data.positionMode);
       }
     } catch {
+      // The ticket is usually still unclaimed here — `appFetch` and
+      // `response.json()` both run before `mayApply` above. But anything
+      // thrown after a claim takes the same exit, so this asks whether
+      // this read is still the newest instead of assuming it: silent only
+      // when a newer read already landed. Keep fallible work out of the
+      // window between the claim and this catch.
+      if (!accountReadOrder.mayApply(ticket)) return;
       errorAccount = $_("apiErrors.generic");
     }
   }

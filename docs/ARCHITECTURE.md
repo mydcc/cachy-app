@@ -174,6 +174,8 @@ Each of these is enforced by something, not just written down.
 | New UI text exists in German **and** English | `scripts/lint-i18n.js` in CI |
 | Every env var read is in `.env.example` | `src/tests/env_documentation.test.ts` |
 | Backlog front matter is valid and the index is current | `npm run backlog:check` |
+| The position mode is written only through its stamping setter | `scripts/audit-account-state.mjs` in CI, and private fields in `account.svelte.ts` |
+| Account state is read under an ordering ticket, and two values are never paired across time | [ADR-0015](adr/0015-account-state-is-read-under-a-ticket-and-never-paired-across-time.md) — the ticket is branded, the pairing rule is review |
 
 ---
 

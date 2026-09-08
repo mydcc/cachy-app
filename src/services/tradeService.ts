@@ -46,6 +46,7 @@ import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder } from "../types/exchange";
 import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
+import { paperAccountFeed } from "./paperAccountFeed";
 import { paperExchange } from "./paperExchange";
 import { capabilitiesOf } from "./exchangeCapabilities";
 import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
@@ -53,6 +54,8 @@ import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
 import { accountSession } from "./accountSession.svelte";
+import { accountReadOrder, leverageReadOrder } from "./accountReadOrder";
+import { normalizeMarginMode } from "../utils/marginMode";
 import {
     orderGate,
     assertGatePass,
@@ -207,6 +210,23 @@ type PartialIntent = Omit<OrderIntent, "displayed"> & {
  */
 const EMPTY_KEYS: Readonly<ApiKeys> = Object.freeze({ key: "", secret: "" });
 
+/**
+ * Attempts for a post-write read-back, the immediate one included
+ * (BUG-0409).
+ */
+const READ_BACK_ATTEMPTS = 3;
+
+/**
+ * Gaps before the second and third attempt.
+ *
+ * Two numbers rather than a formula: a venue that has not settled within
+ * ~2.7 s of a confirmed write will not settle at ~3 s either, and a trader
+ * watching a chip must not be left in front of an open-ended backoff. Whoever
+ * widens this owes the request-budget arithmetic — the venue allows 10 req/s
+ * per endpoint and every other account read is event-driven.
+ */
+const READ_BACK_DELAYS_MS = [700, 2000];
+
 class TradeService {
     // Hardening: Promise Coalescing to prevent Thundering Herd
     private fetchPositionsPromise: Promise<void> | null = null;
@@ -342,7 +362,13 @@ class TradeService {
         // asks "is this recent enough", never "is this the account I am
         // signing for". A late response writing them would look freshly
         // confirmed while describing the account the trader just left.
-        const session = accountSession.current();
+        //
+        // BUG-0412's ordering rides on the same ticket, in its own lane: this
+        // read has five-plus triggers (symbol selection, the order-submit
+        // stale gate, post-write read-backs) and the read-back below fires it
+        // repeatedly on purpose, so overlapping answers are the normal case
+        // here rather than the exception.
+        const ticket = leverageReadOrder.begin();
 
         try {
             const response = await appFetch("/api/leverage-margin-mode", {
@@ -367,7 +393,7 @@ class TradeService {
                 logger.error("network", "[TradeService] Invalid leverage/margin-mode response", validation.error.issues);
                 return;
             }
-            if (!accountSession.isCurrent(session)) return;
+            if (!leverageReadOrder.mayApply(ticket)) return;
 
             tradeState.remoteLeverage = new Decimal(validation.data.leverage);
             tradeState.remoteMarginMode = validation.data.marginMode;
@@ -377,6 +403,64 @@ class TradeService {
             tradeState.remoteAccountStateAt = Date.now();
         } catch (e) {
             logger.debug("api", "[TradeService] fetchLeverageMarginMode failed", e);
+        }
+    }
+
+    /**
+     * Read-only: the account-wide position mode (FEAT-0068), straight from
+     * the exchange. Populates `accountState.positionMode`, which
+     * ExchangeAccountControls reads for its mode chip — previously only
+     * PositionsSidebar's snapshot fed it, so the chip showed "—" wherever
+     * the sidebar never fetched. Same silent-read contract as
+     * `fetchLeverageMarginMode`: no keys, stale session or failed request
+     * leaves the previous value alone.
+     */
+    public async fetchPositionMode(): Promise<void> {
+        const provider = settingsState.apiProvider || "bitunix";
+        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
+        if (!keys?.key || !keys?.secret) return;
+
+        // BUG-0412: this read competes with PositionsSidebar's two mounted
+        // instances for the same store field, so the ticket has to be taken
+        // here — before the first `await` — rather than at the write.
+        const ticket = accountReadOrder.begin();
+
+        // Paper mode answers from the simulated book, exactly like
+        // PositionsSidebar: paperExchange simulates orders only and knows
+        // no venue margin modes, so there is no live read to take here.
+        const paper = paperAccountFeed();
+        if (paper) {
+            if (!accountReadOrder.mayApply(ticket)) return;
+            accountState.setPositionMode(paper.accountInfo().positionMode);
+            return;
+        }
+
+        try {
+            const response = await appFetch("/api/account", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Api-Key": keys.key,
+                    "X-Api-Secret": keys.secret,
+                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+                },
+                body: JSON.stringify({
+                    exchange: provider,
+                }),
+            });
+            const json = await response.json();
+            const { data } = unwrapApiEnvelope<{ positionMode?: unknown }>(json);
+            if (!data) return;
+            // Leaves the "a failed read changes nothing" contract above
+            // intact: only a read that actually produced a snapshot claims
+            // the ordering slot.
+            if (!accountReadOrder.mayApply(ticket)) return;
+
+            accountState.setPositionMode(
+                typeof data.positionMode === "string" ? data.positionMode : undefined,
+            );
+        } catch (e) {
+            logger.debug("api", "[TradeService] fetchPositionMode failed", e);
         }
     }
 
@@ -476,19 +560,117 @@ class TradeService {
         marginMode: "ISOLATION" | "CROSS",
     ): Promise<void> {
         await this.accountSettingRequest({ type: "change-margin-mode", symbol, marginMode });
-        await this.fetchLeverageMarginMode(symbol);
+
+        accountState.marginModeVerifying = true;
+        try {
+            const outcome = await this.readBackUntilApplied(
+                () => this.fetchLeverageMarginMode(symbol),
+                () =>
+                    normalizeMarginMode(tradeState.remoteMarginMode) ===
+                    normalizeMarginMode(marginMode),
+            );
+            if (outcome === "unconfirmed") this.warnUnconfirmed();
+        } finally {
+            accountState.marginModeVerifying = false;
+        }
+    }
+
+    /**
+     * Read one account setting back until the venue reports what was written
+     * (BUG-0409).
+     *
+     * The write returning 200 is not the same as the change being readable.
+     * A single immediate re-read can land inside the venue's own propagation
+     * window and answer with the pre-write value — captured live: an
+     * `/api/account` body still saying `HEDGE` seconds after a confirmed
+     * `ONE_WAY` write, with the broker app already showing `ONE_WAY`. The
+     * chip then showed the old mode and nothing ever corrected it, so the
+     * trader's next write diffed against a value that was never current.
+     *
+     * Bounded and finite on purpose: this is a read-back for one write, not a
+     * poller. It stops the moment the venue agrees, gives up after
+     * `READ_BACK_ATTEMPTS`, and abandons immediately if the account is
+     * switched underneath — the answer would describe an account the trader
+     * has left.
+     *
+     * Returns how the read-back ended. `confirmed` and `unconfirmed`
+     * both mean the account is still the trader's own — only then may the
+     * caller warn. `switched` means the account moved underneath: warning
+     * about the previous account's value would blame the venue for a read
+     * that no longer belongs to this session. It deliberately does not
+     * decide beyond that: the caller knows which control the trader is
+     * looking at.
+     */
+    private async readBackUntilApplied(
+        read: () => Promise<void>,
+        isApplied: () => boolean,
+    ): Promise<"confirmed" | "unconfirmed" | "switched"> {
+        const session = accountSession.current();
+
+        for (let attempt = 0; attempt < READ_BACK_ATTEMPTS; attempt++) {
+            if (attempt > 0) {
+                await new Promise((resolve) =>
+                    setTimeout(resolve, READ_BACK_DELAYS_MS[attempt - 1]),
+                );
+                if (!accountSession.isCurrent(session)) return "switched";
+            }
+            await read();
+            if (!accountSession.isCurrent(session)) return "switched";
+            if (isApplied()) return "confirmed";
+        }
+        return "unconfirmed";
+    }
+
+    /**
+     * Say out loud that the venue never confirmed the change.
+     *
+     * The alternative this replaces was a `logger` line: the write succeeded,
+     * the toast said so, and the chip kept the old value with nothing to
+     * distinguish "the exchange is slow" from "Cachy is broken". The displayed
+     * value stays whatever the venue last reported — it is not overwritten
+     * with what was requested, because that would be the optimistic write
+     * FEAT-0068 exists to avoid.
+     */
+    private warnUnconfirmed(): void {
+        toastService.warning(get(_)("exchange.accountSettings.notConfirmed"));
     }
 
     /**
      * Position mode for the whole futures account (FEAT-0068) — ONE_WAY or
      * HEDGE. Takes no symbol: the endpoint does not.
      *
-     * Re-synced through `accountState.requestSync()` rather than a targeted
-     * read, because the mode is reported on the account and on every
-     * position, and both views have to stop disagreeing.
+     * Read back twice, on purpose.
+     *
+     * `fetchPositionMode()` is the one that must happen: it writes the field
+     * the mode chip reads, and it belongs to this service, so it runs whether
+     * or not anything else is on screen. `requestSync()` used to be the only
+     * refresh here, and it is a *no-op* unless `PositionsSidebar` is mounted
+     * to register the callback — so a trader with the sidebar hidden saw the
+     * toast, the broker applied the change, and the chip kept the old value
+     * until a reload (BUG-0410).
+     *
+     * `requestSync()` stays because the mode is reported on the account *and*
+     * on every position, and both views have to stop disagreeing — but it is
+     * now the extra, not the mechanism.
+     *
+     * Ordering is not load-bearing: overlapping account reads are sequenced
+     * by `accountReadOrder` (BUG-0412), so whichever of the two lands last
+     * cannot be an older answer than the one already applied.
      */
     public async changePositionMode(positionMode: "ONE_WAY" | "HEDGE"): Promise<void> {
         await this.accountSettingRequest({ type: "change-position-mode", positionMode });
+
+        accountState.positionModeVerifying = true;
+        try {
+            const outcome = await this.readBackUntilApplied(
+                () => this.fetchPositionMode(),
+                () => (accountState.positionMode ?? "").toUpperCase() === positionMode,
+            );
+            if (outcome === "unconfirmed") this.warnUnconfirmed();
+        } finally {
+            accountState.positionModeVerifying = false;
+        }
+
         accountState.requestSync();
     }
 

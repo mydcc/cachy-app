@@ -46,9 +46,13 @@ vi.mock("../stores/settings.svelte", () => ({
     },
 }));
 
-vi.mock("./toastService.svelte", () => ({
-    toastService: { error: vi.fn(), success: vi.fn(), add: vi.fn() },
+const toastMock = vi.hoisted(() => ({
+    error: vi.fn(),
+    success: vi.fn(),
+    warning: vi.fn(),
+    add: vi.fn(),
 }));
+vi.mock("./toastService.svelte", () => ({ toastService: toastMock }));
 
 const appFetchMock = vi.hoisted(() => vi.fn());
 vi.mock("../lib/appAuth", () => ({
@@ -59,6 +63,7 @@ vi.mock("../lib/appAuth", () => ({
 import { tradeService } from "./tradeService";
 import { tradeState } from "../stores/trade.svelte";
 import { accountState } from "../stores/account.svelte";
+import { accountSession } from "./accountSession.svelte";
 import { paperState } from "../stores/paperTrading.svelte";
 
 /** Every request the service made, as (url, parsed body) pairs. */
@@ -81,8 +86,12 @@ function ok(payload: unknown) {
 beforeEach(() => {
     appFetchMock.mockReset();
     appFetchMock.mockResolvedValue(ok({}));
+    toastMock.warning.mockClear();
+    toastMock.error.mockClear();
+    toastMock.success.mockClear();
     tradeState.remoteLeverage = undefined;
     tradeState.remoteMarginMode = undefined;
+    accountState.setPositionMode(undefined);
 });
 
 afterEach(() => {
@@ -195,6 +204,37 @@ describe("FEAT-0068 — displayed state comes from a read, never from the write"
     });
 });
 
+describe("BUG-1b — position mode has its own read", () => {
+    it("reads the account snapshot and stores the position mode", async () => {
+        appFetchMock.mockResolvedValue(ok({ positionMode: "HEDGE" }));
+        accountState.setPositionMode(undefined);
+
+        await tradeService.fetchPositionMode();
+
+        expect(calls().map((c) => c.url)).toEqual(["/api/account"]);
+        expect(calls()[0].body).toEqual({ exchange: "bitunix" });
+        expect(accountState.positionMode).toBe("HEDGE");
+    });
+
+    it("clears a mode the venue no longer reports", async () => {
+        appFetchMock.mockResolvedValue(ok({}));
+        accountState.setPositionMode("ONE_WAY");
+
+        await tradeService.fetchPositionMode();
+
+        expect(accountState.positionMode).toBeUndefined();
+    });
+
+    it("leaves the displayed mode alone when the read fails", async () => {
+        appFetchMock.mockRejectedValue(new Error("offline"));
+        accountState.setPositionMode("ONE_WAY");
+
+        await tradeService.fetchPositionMode();
+
+        expect(accountState.positionMode).toBe("ONE_WAY");
+    });
+});
+
 describe("FEAT-0068 — refusals happen before anything travels", () => {
     it("sends nothing in paper mode", async () => {
         paperState.setEnabled(true);
@@ -228,5 +268,233 @@ describe("FEAT-0068 — refusals happen before anything travels", () => {
             tradeService.adjustPositionMargin({ symbol: "BTCUSDT", amount: new Decimal(10) }),
         ).rejects.toThrow();
         expect(appFetchMock).not.toHaveBeenCalled();
+    });
+});
+
+/*
+ * BUG-0410 — the mode chip must not depend on PositionsSidebar being mounted.
+ *
+ * `accountState.requestSync()` fires a callback that only `PositionsSidebar`
+ * registers. Hiding the sidebar is a display preference; it used to also mean
+ * that a confirmed position-mode change never reached the chip, because the
+ * write's only refresh was that no-op. The service now takes its own read, so
+ * these tests deliberately register no sync callback at all.
+ */
+describe("BUG-0410 — the position-mode write refreshes without a sidebar", () => {
+    beforeEach(() => {
+        accountState.registerSyncCallback(null);
+    });
+
+    it("reads the account back with no sync callback registered", async () => {
+        appFetchMock.mockResolvedValue(ok({ positionMode: "HEDGE" }));
+
+        await tradeService.changePositionMode("HEDGE");
+
+        expect(calls().map((c) => c.url)).toEqual([
+            "/api/account-settings",
+            "/api/account",
+        ]);
+        expect(accountState.positionMode).toBe("HEDGE");
+    });
+
+    it("shows what the venue reports, not what was requested", async () => {
+        // The exchange accepted the write but still answers ONE_WAY — an
+        // eventual-consistency window, not a client bug. What must never
+        // happen is the chip echoing the request as if it were confirmed.
+        appFetchMock.mockImplementation(async (url: string) =>
+            String(url) === "/api/account"
+                ? ok({ positionMode: "ONE_WAY" })
+                : ok({}),
+        );
+
+        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
+
+        expect(accountState.positionMode).toBe("ONE_WAY");
+    });
+
+    it("still resyncs the sidebar when one is mounted", async () => {
+        const sync = vi.fn();
+        accountState.registerSyncCallback(sync);
+        appFetchMock.mockResolvedValue(ok({ positionMode: "HEDGE" }));
+
+        await tradeService.changePositionMode("HEDGE");
+
+        expect(sync).toHaveBeenCalledTimes(1);
+        accountState.registerSyncCallback(null);
+    });
+
+    it("leaves the displayed mode alone when the read-back fails", async () => {
+        accountState.setPositionMode("ONE_WAY");
+        appFetchMock.mockImplementation(async (url: string) => {
+            if (String(url) === "/api/account") throw new Error("offline");
+            return ok({});
+        });
+
+        // The write itself succeeded, so this must not reject — the silent
+        // read contract applies to the read half only.
+        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
+
+        expect(accountState.positionMode).toBe("ONE_WAY");
+    });
+});
+
+/**
+ * Drive a call whose post-write read-back sleeps between attempts.
+ *
+ * The delays are deliberately long enough for a trader to notice
+ * (`READ_BACK_DELAYS_MS`), so real timers would make these tests take
+ * seconds. Fake timers advance past every attempt and flush the awaits in
+ * between; the returned promise is settled by the time this resolves.
+ */
+async function runWithReadBack<T>(pending: Promise<T>): Promise<T> {
+    vi.useFakeTimers();
+    try {
+        const settled = pending.then(
+            (value) => ({ ok: true as const, value }),
+            (error) => ({ ok: false as const, error }),
+        );
+        await vi.advanceTimersByTimeAsync(10_000);
+        const result = await settled;
+        if (!result.ok) throw result.error;
+        return result.value;
+    } finally {
+        vi.useRealTimers();
+    }
+}
+
+/*
+ * BUG-0409 — a confirmed write must reach the chip without a reload.
+ *
+ * The write returning 200 is not the same as the change being readable: a
+ * live capture showed `/api/account` still answering HEDGE seconds after a
+ * confirmed ONE_WAY write, with the broker app already showing ONE_WAY. A
+ * single immediate re-read lands inside that window and the chip then froze
+ * on the old value with nothing to distinguish a slow exchange from a broken
+ * client.
+ */
+describe("BUG-0409 — the read-back is bounded and honest", () => {
+    beforeEach(() => {
+        accountState.registerSyncCallback(null);
+    });
+
+    it("retries until the venue reports the written position mode", async () => {
+        let reads = 0;
+        appFetchMock.mockImplementation(async (url: string) => {
+            if (String(url) !== "/api/account") return ok({});
+            reads += 1;
+            // First answer is inside the venue's propagation window.
+            return ok({ positionMode: reads === 1 ? "ONE_WAY" : "HEDGE" });
+        });
+
+        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
+
+        expect(reads).toBe(2);
+        expect(accountState.positionMode).toBe("HEDGE");
+        expect(toastMock.warning).not.toHaveBeenCalled();
+    });
+
+    it("stops after a bounded number of attempts", async () => {
+        let reads = 0;
+        appFetchMock.mockImplementation(async (url: string) => {
+            if (String(url) !== "/api/account") return ok({});
+            reads += 1;
+            return ok({ positionMode: "ONE_WAY" });
+        });
+
+        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
+
+        // Bounded, not a poller: it gives up rather than hammering the venue.
+        expect(reads).toBe(3);
+    });
+
+    it("says so when the venue never confirms", async () => {
+        appFetchMock.mockImplementation(async (url: string) =>
+            String(url) === "/api/account" ? ok({ positionMode: "ONE_WAY" }) : ok({}),
+        );
+
+        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
+
+        // The alternative this replaces was a logger line nobody sees.
+        expect(toastMock.warning).toHaveBeenCalledTimes(1);
+    });
+
+    it("clears the verifying marker whether or not the venue confirms", async () => {
+        appFetchMock.mockImplementation(async (url: string) =>
+            String(url) === "/api/account" ? ok({ positionMode: "ONE_WAY" }) : ok({}),
+        );
+
+        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
+        expect(accountState.positionModeVerifying).toBe(false);
+
+        appFetchMock.mockResolvedValue(ok({ positionMode: "HEDGE" }));
+        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
+        expect(accountState.positionModeVerifying).toBe(false);
+    });
+
+    it("raises the marker while the read-back is still running", async () => {
+        appFetchMock.mockImplementation(async (url: string) =>
+            String(url) === "/api/account" ? ok({ positionMode: "ONE_WAY" }) : ok({}),
+        );
+
+        vi.useFakeTimers();
+        try {
+            const pending = tradeService.changePositionMode("HEDGE").catch(() => {});
+            // Past the write and the first read, inside the first gap.
+            await vi.advanceTimersByTimeAsync(100);
+            expect(accountState.positionModeVerifying).toBe(true);
+            await vi.advanceTimersByTimeAsync(10_000);
+            await pending;
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("accepts any spelling the venue uses for the margin mode", async () => {
+        // Bitunix answers ISOLATION, the mappers lowercase, Bitget would say
+        // "isolated". A confirmed write must not look unconfirmed because of
+        // spelling.
+        appFetchMock.mockImplementation(async (url: string) =>
+            String(url) === "/api/leverage-margin-mode"
+                ? ok({ symbol: "BTCUSDT", marginCoin: "USDT", leverage: "20", marginMode: "isolated" })
+                : ok({}),
+        );
+
+        await runWithReadBack(tradeService.changeMarginMode("BTCUSDT", "ISOLATION"));
+
+        expect(toastMock.warning).not.toHaveBeenCalled();
+        expect(accountState.marginModeVerifying).toBe(false);
+    });
+
+    it("warns when the margin mode never comes back changed", async () => {
+        appFetchMock.mockImplementation(async (url: string) =>
+            String(url) === "/api/leverage-margin-mode"
+                ? ok({ symbol: "BTCUSDT", marginCoin: "USDT", leverage: 20, marginMode: "CROSS" })
+                : ok({}),
+        );
+
+        await runWithReadBack(tradeService.changeMarginMode("BTCUSDT", "ISOLATION"));
+
+        expect(toastMock.warning).toHaveBeenCalledTimes(1);
+    });
+
+    it("stays silent when the account is switched mid-read-back", async () => {
+        let rotated = false;
+        appFetchMock.mockImplementation(async (url: string) => {
+            if (String(url) === "/api/leverage-margin-mode" && !rotated) {
+                rotated = true;
+                // The switch lands between the ticket and the answer: the
+                // body is fresh but belongs to no session the read-back
+                // tracks, so it is dropped instead of warned about.
+                accountSession.rotate("account-switch");
+            }
+            return String(url) === "/api/leverage-margin-mode"
+                ? ok({ symbol: "BTCUSDT", marginCoin: "USDT", leverage: 20, marginMode: "CROSS" })
+                : ok({});
+        });
+
+        await runWithReadBack(tradeService.changeMarginMode("BTCUSDT", "ISOLATION"));
+
+        expect(toastMock.warning).not.toHaveBeenCalled();
+        expect(tradeState.remoteMarginMode).toBeUndefined();
     });
 });
