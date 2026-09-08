@@ -206,13 +206,6 @@ class PaperTradingService {
 
         omsService.reset();
         accountState.reset();
-        // The other half of the account state, and the safety-critical one:
-        // leverage, margin mode and the maker/taker fees a position size is
-        // priced with. `accountSession.reset()` clears both halves on a real
-        // account switch; a mode switch is an account switch in every way
-        // that matters, so leaving these behind let live fees price a
-        // simulated order — and simulated ones a real order.
-        tradeState.clearRemoteAccountState();
         this.mirrored.clear();
         paperState.setEnabled(on);
 
@@ -266,7 +259,7 @@ class PaperTradingService {
             margin: account.margin,
             frozen: account.frozen,
         });
-        accountState.setPositionMode(account.positionMode);
+        accountState.positionMode = account.positionMode;
 
         this.mirrorToOms();
     }

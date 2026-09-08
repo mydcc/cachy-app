@@ -192,7 +192,7 @@
                     onclick={() => (tradeMode = 'live')}
                 >
                     <span class="w-2 h-2 rounded-full bg-[var(--success-color)] inline-block"></span>
-                    <span>{$_("journal.filters.modeLive")}</span>
+                    <span>Live</span>
                     <span class="text-[10px] text-[var(--text-secondary)] font-normal font-mono">({liveCount})</span>
                 </button>
                 <button
@@ -204,7 +204,7 @@
                     onclick={() => (tradeMode = 'paper')}
                 >
                     <span class="w-2 h-2 rounded-full bg-[var(--accent-color)] inline-block"></span>
-                    <span>{$_("journal.filters.modePaper")}</span>
+                    <span>Paper</span>
                     <span class="text-[10px] text-[var(--text-secondary)] font-normal font-mono">({paperCount})</span>
                 </button>
                 <button
@@ -216,7 +216,7 @@
                     onclick={() => (tradeMode = 'all')}
                 >
                     <span>🔀</span>
-                    <span>{$_("journal.filters.modeAll")}</span>
+                    <span>Alle</span>
                 </button>
             </div>
 

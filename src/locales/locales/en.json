@@ -645,10 +645,7 @@
       "quickYtd": "YTD",
       "quickAll": "All",
       "reset": "Reset Filters",
-      "filterTags": "Filter by tag...",
-      "modeLive": "Live",
-      "modePaper": "Paper",
-      "modeAll": "All"
+      "filterTags": "Filter by tag..."
     },
     "drawer": {
       "title": "Trade Details",
@@ -665,11 +662,7 @@
       "notes": "Notes",
       "tags": "Tags",
       "screenshot": "Screenshot",
-      "save": "Save Changes",
-      "riskAmount": "Risk Amount",
-      "maxPotentialProfit": "Max Profit",
-      "noScreenshot": "No screenshot available.",
-      "makerTakerRates": "Maker / Taker Rates"
+      "save": "Save Changes"
     },
     "messages": {
       "unlocked": "unlocked",
@@ -1411,7 +1404,7 @@
       "wma": "WMA",
       "vwma": "VWMA",
       "hma": "HMA",
-      "choppiness": "Choppiness",
+      "choppiness": "Choppiness Idx",
       "stochasticTitle": "Stochastic",
       "parabolicSar": "Parabolic SAR",
       "emaTitle": "EMA",
@@ -1444,13 +1437,7 @@
       "maTypeEma": "EMA",
       "maTypeWma": "WMA",
       "anchorSession": "Session",
-      "anchorFixed": "Fixed",
-      "marketStructureHigh": "Market Structure High",
-      "marketStructureLow": "Market Structure Low",
-      "atrStopSell": "ATR Stop (Sell)",
-      "atrStopBuy": "ATR Stop (Buy)",
-      "vpPoc": "VP (POC)",
-      "vaHighLow": "VA High/Low"
+      "anchorFixed": "Fixed"
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"
@@ -3708,9 +3695,6 @@
       "leverageChanged": "Leverage set to {value}x",
       "marginModeChanged": "Margin mode changed",
       "positionModeChanged": "Position mode changed",
-      "notConfirmed": "Sent \u2014 the exchange still reports the previous value. The chip shows what the exchange says, not what was requested.",
-      "verifying": "checking\u2026",
-      "halvesOutOfSync": "One half was last confirmed much earlier than the other, so it is shown as unknown rather than paired with a value from a different moment. Open the chip to re-read both.",
       "marginAdjusted": "Position margin updated",
       "pending": "Sending…",
       "confirmModesTitle": "Change account settings",

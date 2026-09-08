@@ -112,7 +112,6 @@ const account: AccountPort = {
 
     fetchLeverageMarginMode: (symbol) => tradeService.fetchLeverageMarginMode(symbol),
     fetchTradingPairInfo: (symbol) => tradeService.fetchTradingPairInfo(symbol),
-    fetchPositionMode: () => tradeService.fetchPositionMode(),
 
     changeLeverage: (symbol, leverage) => tradeService.changeLeverage(symbol, leverage),
     changeMarginMode: (symbol, marginMode) => tradeService.changeMarginMode(symbol, marginMode),

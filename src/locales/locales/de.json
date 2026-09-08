@@ -645,10 +645,7 @@
       "quickYtd": "YTD",
       "quickAll": "Alle",
       "reset": "Filter zurücksetzen",
-      "filterTags": "Nach Tag filtern...",
-      "modeLive": "Live",
-      "modePaper": "Paper",
-      "modeAll": "Alle"
+      "filterTags": "Nach Tag filtern..."
     },
     "drawer": {
       "title": "Trade-Details",
@@ -665,11 +662,7 @@
       "notes": "Notizen",
       "tags": "Tags",
       "screenshot": "Screenshot",
-      "save": "Änderungen speichern",
-      "riskAmount": "Risiko-Betrag",
-      "maxPotentialProfit": "Maximaler Profit",
-      "noScreenshot": "Kein Screenshot hinterlegt.",
-      "makerTakerRates": "Maker / Taker Raten"
+      "save": "Änderungen speichern"
     },
     "messages": {
       "unlocked": "freigeschaltet",
@@ -1439,7 +1432,7 @@
       "wma": "WMA",
       "vwma": "VWMA",
       "hma": "HMA",
-      "choppiness": "Choppiness",
+      "choppiness": "Choppiness Idx",
       "stochasticTitle": "Stochastik",
       "parabolicSar": "Parabolic SAR",
       "emaTitle": "EMA",
@@ -1472,13 +1465,7 @@
       "maTypeEma": "EMA",
       "maTypeWma": "WMA",
       "anchorSession": "Sitzung",
-      "anchorFixed": "Fixiert",
-      "marketStructureHigh": "Market Structure High",
-      "marketStructureLow": "Market Structure Low",
-      "atrStopSell": "ATR Stop (Verkauf)",
-      "atrStopBuy": "ATR Stop (Kauf)",
-      "vpPoc": "VP (POC)",
-      "vaHighLow": "VA High/Low"
+      "anchorFixed": "Fixiert"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
@@ -3708,9 +3695,6 @@
       "leverageChanged": "Hebel auf {value}x gesetzt",
       "marginModeChanged": "Margin-Modus geändert",
       "positionModeChanged": "Positionsmodus geändert",
-      "notConfirmed": "Gesendet \u2014 die Börse meldet weiterhin den alten Wert. Der Chip zeigt, was die Börse sagt, nicht das Gewünschte.",
-      "verifying": "wird geprüft\u2026",
-      "halvesOutOfSync": "Eine Hälfte wurde deutlich früher bestätigt als die andere und wird deshalb als unbekannt angezeigt, statt sie mit einem Wert aus einem anderen Moment zu paaren. Chip öffnen liest beide neu.",
       "marginAdjusted": "Positions-Margin aktualisiert",
       "pending": "Wird gesendet…",
       "confirmModesTitle": "Konto-Einstellungen ändern",
