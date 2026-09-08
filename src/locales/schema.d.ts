@@ -776,6 +776,8 @@ export type TranslationKey =
   | "journal.chartFullAlt"
   | "journal.accountColumn"
   | "journal.accountUnknown"
+  | "journal.saveFailed"
+  | "journal.saveError"
   | "marketOverview.24hHigh"
   | "marketOverview.24hLow"
   | "marketOverview.vol"
@@ -3145,4 +3147,5 @@ export type TranslationKey =
   | "rules.sentence.account.unrealised_pnl"
   | "rules.sentence.account.unrealised_pnl_percent"
   | "rules.sentence.account.exposure"
-  | "rules.sentence.account.available_balance";
+  | "rules.sentence.account.available_balance"
+  | "storage.quotaExceeded";
