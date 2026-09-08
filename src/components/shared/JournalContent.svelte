@@ -530,8 +530,6 @@
         avgR: filteredPerformance.avgRMultiple?.toNumber() || 0,
     });
 
-    let columnVisibilityKeys = $derived(Object.keys(columnVisibility));
-
     async function handleScreenshotUpload(id: number | string, file: File) {
         try {
             uiState.isLoading = true;
@@ -732,7 +730,7 @@
 
                         <!-- Checkboxes -->
                         <div class="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
-                            {#each columnVisibilityKeys as col}
+                            {#each Object.keys(columnVisibility) as col}
                                 <label class="flex items-center gap-2 cursor-pointer text-xs p-1 rounded hover:bg-[var(--bg-secondary)]">
                                     <input
                                         type="checkbox"
