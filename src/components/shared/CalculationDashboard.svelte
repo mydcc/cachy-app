@@ -61,8 +61,7 @@
     }
 
     function getHealthStatus(): "good" | "warning" | "critical" {
-        const analyzed = Object.keys(analysisState.results).length;
-        const cacheUsage = analyzed / settingsState.marketCacheSize;
+        const cacheUsage = analysisResultsCount / settingsState.marketCacheSize;
 
         if (cacheUsage > 0.9) return "critical";
         if (cacheUsage > 0.7) return "warning";
@@ -71,9 +70,14 @@
 
     function getMemoryEstimate(): number {
         // Rough estimate: ~50KB per analyzed symbol + base overhead
-        const analyzed = Object.keys(analysisState.results).length;
-        return (analyzed * 50 + 100) / 1024; // in MB
+        return (analysisResultsCount * 50 + 100) / 1024; // in MB
     }
+
+    let analysisResultsCount = $derived(Object.keys(analysisState.results).length);
+    let trackedSymbols = $derived(Object.entries(analysisState.results)
+        .slice(0, 8)
+        .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0)));
+
 </script>
 
 <div class="calculation-dashboard">
@@ -125,15 +129,12 @@
                     </span>
                 </div>
                 <div class="card-value">
-                    {Object.keys(analysisState.results).length} / {settingsState.marketCacheSize}
+                    {analysisResultsCount} / {settingsState.marketCacheSize}
                 </div>
                 <div class="progress-bar">
                     <div
                         class="progress-fill {getHealthStatus()}"
-                        style="width: {(Object.keys(analysisState.results)
-                            .length /
-                            settingsState.marketCacheSize) *
-                            100}%"
+                        style="width: {(analysisResultsCount / settingsState.marketCacheSize) * 100}%"
                     ></div>
                 </div>
                 <p class="card-desc">{$_("calculationDashboard.symbolsInMemory")}</p>
@@ -189,15 +190,13 @@
     <section class="tracked-symbols">
         <h3>{$_("calculationDashboard.currentlyAnalyzing")}</h3>
 
-        {#if Object.keys(analysisState.results).length === 0}
+        {#if analysisResultsCount === 0}
             <p class="empty-state">
                 {$_("calculationDashboard.noSymbols")}
             </p>
         {:else}
             <div class="symbols-list">
-                {#each Object.entries(analysisState.results)
-                    .slice(0, 8)
-                    .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0)) as [symbol, data] (symbol)}
+                {#each trackedSymbols as [symbol, data] (symbol)}
                     <div class="symbol-item">
                         <div class="symbol-name">{symbol}</div>
                         <div class="symbol-info">
@@ -234,11 +233,11 @@
                 {/each}
             </div>
 
-            {#if Object.keys(analysisState.results).length > 8}
+            {#if analysisResultsCount > 8}
                 <p class="more-text">
                     {$_("calculationDashboard.moreSymbols", {
                         values: {
-                            count: Object.keys(analysisState.results).length - 8,
+                            count: analysisResultsCount - 8,
                         },
                     })}
                 </p>
@@ -270,7 +269,7 @@
                 </div>
             {/if}
 
-            {#if Object.keys(analysisState.results).length / settingsState.marketCacheSize > 0.85}
+            {#if analysisResultsCount / settingsState.marketCacheSize > 0.85}
                 <div class="hint critical">
                     {@html DOMPurify.sanitize($_("calculationDashboard.hintCache"))}
                 </div>
