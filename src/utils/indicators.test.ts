@@ -200,13 +200,49 @@ describe("JSIndicators", () => {
       const len = 20;
       const high = Array.from({ length: len }, (_, i) => 10 + i);
       const low = Array.from({ length: len }, (_, i) => i);
+      const close = Array.from({ length: len }, (_, i) => 5 + i);
       // Conv (Period 3): Max(i, i-1, i-2) = 10+i. Min = i-2.
       // Avg = (10+i + i-2)/2 = (8 + 2i)/2 = 4 + i.
       // At i=2: Avg = 4+2 = 6.
 
-      const res = JSIndicators.ichimoku(high, low, 3, 5, 10, 5);
+      const res = JSIndicators.ichimoku(high, low, close, 3, 5, 10, 5);
       expect(res.conversion[2]).toBe(6);
       expect(res.conversion[3]).toBe(7);
+    });
+
+    it("computes lagging span as close shifted back by laggingSpan2", () => {
+      const len = 30;
+      const high = Array.from({ length: len }, (_, i) => 20 + i);
+      const low = Array.from({ length: len }, (_, i) => 10 + i);
+      const close = Array.from({ length: len }, (_, i) => 100 + i);
+      const lag = 5;
+
+      const res = JSIndicators.ichimoku(high, low, close, 3, 5, 10, lag);
+
+      // Chikou: the close of t+lag plotted at t.
+      for (let i = 0; i < len - lag; i++) {
+        expect(res.lagging[i]).toBe(100 + i + lag);
+      }
+      // Beyond the lookahead window there is no future close to plot.
+      for (let i = len - lag; i < len; i++) {
+        expect(Number.isNaN(res.lagging[i])).toBe(true);
+      }
+    });
+
+    it("uses laggingSpan2 as the displacement for spanA/spanB", () => {
+      const len = 60;
+      const high = Array.from({ length: len }, (_, i) => 20 + i);
+      const low = Array.from({ length: len }, (_, i) => 10 + i);
+      const close = Array.from({ length: len }, (_, i) => 15 + i);
+
+      // Default-style settings: displacement (5) equals basePeriod (5),
+      // so results must match the historical hardcoded behavior.
+      const withMatch = JSIndicators.ichimoku(high, low, close, 3, 5, 10, 5);
+      // A different displacement must actually move the spans.
+      const withWider = JSIndicators.ichimoku(high, low, close, 3, 5, 10, 10);
+
+      expect(withWider.spanA[10]).toBe(withMatch.spanA[5]);
+      expect(withWider.spanB[10]).toBe(withMatch.spanB[5]);
     });
   });
 
