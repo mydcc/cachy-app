@@ -16,9 +16,11 @@ set -uo pipefail
 # still looks disposable while somebody is working in it.
 #
 # Safeguards (all modes):
-#   - never passes --force, so git refuses any worktree with uncommitted work
+#   - never passes --force to worktree removal, so git refuses any worktree
+#     with uncommitted work
 #   - never touches the main checkout or the worktree it runs from
-#   - refuses a branch that is not merged into origin/develop
+#   - refuses a branch that is neither merged into origin/develop nor
+#     squash-merged via a GitHub PR (see is_pr_merged)
 #   - skips worktrees with a live agent session where it can detect one
 #   - --all reports only, until --apply is added
 #
@@ -75,6 +77,18 @@ branch_of() {
     git -C "$1" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
 
+# True when GitHub reports a MERGED pull request for this head branch.
+# Squash-merges land as brand-new commits, so merge-base ancestry can never
+# prove them merged — without this check every squash-merged worktree would
+# be refused forever. gh-only (no heuristics); absent/broken gh means "no".
+is_pr_merged() {
+    local count=""
+    command -v gh >/dev/null 2>&1 || return 1
+    count="$(gh pr list --head "$1" --state merged --json number 2>/dev/null |
+        grep -c '"number"')" || return 1
+    [ "$count" -gt 0 ] 2>/dev/null
+}
+
 # Returns 0 when the worktree may be retired; otherwise prints why.
 check() {
     local path="$1" branch="$2"
@@ -85,7 +99,7 @@ check() {
     fi
     if has_active_session "$path"; then echo "agent session active"; return 1; fi
     if ! git merge-base --is-ancestor "$branch" "$BASE" 2>/dev/null; then
-        echo "not merged into $BASE"; return 1
+        is_pr_merged "$branch" || { echo "not merged into $BASE"; return 1; }
     fi
     return 0
 }
@@ -96,7 +110,13 @@ retire() {
         command -v gortex >/dev/null 2>&1 &&
             { gortex untrack "$path" >/dev/null 2>&1 ||
               echo "  note: gortex untrack failed (daemon down?) — rerun later"; }
-        git branch -d "$branch" >/dev/null 2>&1
+        git branch -d "$branch" >/dev/null 2>&1 || {
+            # Squash-merged branches are never ancestors, so -d cannot
+            # succeed for them. -D is confined to this branch: check()
+            # already proved the merge via is_pr_merged above.
+            is_pr_merged "$branch" &&
+            git branch -D "$branch" >/dev/null 2>&1
+        }
         echo "retired  $branch"
         return 0
     fi
