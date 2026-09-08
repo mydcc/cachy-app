@@ -853,7 +853,9 @@
     "chartPreviewAlt": "{symbol} Chart Vorschau",
     "chartFullAlt": "{symbol} Vollständiger Chart",
     "accountColumn": "Konto",
-    "accountUnknown": "Entferntes Konto"
+    "accountUnknown": "Entferntes Konto",
+    "saveFailed": "Journal konnte nicht gespeichert werden. Speicher voll?",
+    "saveError": "Fehler beim Speichern des Journals."
   },
   "marketOverview": {
     "24hHigh": "24h Hoch",
@@ -3695,8 +3697,8 @@
       "leverageChanged": "Hebel auf {value}x gesetzt",
       "marginModeChanged": "Margin-Modus geändert",
       "positionModeChanged": "Positionsmodus geändert",
-      "notConfirmed": "Gesendet \u2014 die Börse meldet weiterhin den alten Wert. Der Chip zeigt, was die Börse sagt, nicht das Gewünschte.",
-      "verifying": "wird geprüft\u2026",
+      "notConfirmed": "Gesendet — die Börse meldet weiterhin den alten Wert. Der Chip zeigt, was die Börse sagt, nicht das Gewünschte.",
+      "verifying": "wird geprüft…",
       "halvesOutOfSync": "Eine Hälfte wurde deutlich früher bestätigt als die andere und wird deshalb als unbekannt angezeigt, statt sie mit einem Wert aus einem anderen Moment zu paaren. Chip öffnen liest beide neu.",
       "marginAdjusted": "Positions-Margin aktualisiert",
       "pending": "Wird gesendet…",
@@ -3866,5 +3868,8 @@
         "available_balance": "das verfügbare Guthaben"
       }
     }
+  },
+  "storage": {
+    "quotaExceeded": "Speicherkontingent erschöpft. Bitte geben Sie Speicherplatz frei."
   }
 }
