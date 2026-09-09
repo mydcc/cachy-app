@@ -945,9 +945,23 @@ item: `www.cachy.app` still serves the wrong TLS certificate (a real,
 separate infra bug); `cachy.app` hasn't had the `http2 on;` fix applied yet
 (only `dev.cachy.app` was).
 
-## 25. `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
+## 25. ✅ `IframeWindow`/`WindowManager.openIframe()` appear to be unreachable
 
-**FEAT-0050.** Found while writing the "every `WindowType` union member has a
+**FEAT-0050.** **RESOLVED** (2026-09-09) — obsolete: the premise no longer
+holds. `openIframe()` has a live production caller:
+`NewsSentimentPanel.svelte`'s `handleArticleClick()` opens news articles
+in an `IframeWindow` whenever the user's `newsOpenBehavior` setting is not
+"new_tab" (that path uses `window.open` instead). The panel itself is
+mounted twice in `+page.svelte` (sidebar variant) and also hosts inside
+`NewsFrameWindow`, so the caller is on a rendered page. A session can
+therefore legitimately contain an `IframeWindow` (persisted news-article
+window, `storageKey: "news_article"`), which makes `createFromData()`'s
+`'iframe'` rehydration branch reachable too. The grep that originally
+flagged this item predates the news article open-behavior setting that
+introduced the caller. No code removed; `IframeWindow`, `IframeView`,
+`openIframe()` and the registry entry all stay.
+
+Found while writing the "every `WindowType` union member has a
 registry config" test — `iframe` had none (`getConfig()` silently fell back
 to `window`'s defaults), the same shape of gap `chatpanel` was before
 FEAT-0045 removed it. Fixed the immediate gap by adding a registry entry
@@ -963,7 +977,7 @@ instances instead, not `IframeWindow`. Since nothing ever constructs an
 `IframeWindow`, no session could ever contain one to rehydrate either, so
 `createFromData()`'s `'iframe'` branch is unreachable too.
 
-**The decision:** same shape as items 5/8/9/11/17 — either wire a real
+**The original decision:** same shape as items 5/8/9/11/17 — either wire a real
 caller to `openIframe()` (if generic externally-hosted iframe embedding,
 distinct from `ChannelWindow`'s more specific use, is still wanted), or
 remove `IframeWindow.svelte.ts`, `IframeView.svelte`, `openIframe()`, and the
