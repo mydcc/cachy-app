@@ -273,9 +273,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0409",
     "title": "Mode chip stays stale or shows never-real combos after a mode change",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P0",
     "milestone": "M4",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -284,7 +285,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "area": "exchange",
     "data_class": "A",
     "adr": "none",
-    "assignee": "claude",
     "depends_on": [
       "FEAT-0068",
       "BUG-0412",
@@ -296,9 +296,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0410",
     "title": "Mode chip depends on PositionsSidebar being mounted",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P0",
     "milestone": "M4",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -307,7 +308,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "area": "trade-panel",
     "data_class": "A",
     "adr": "none",
-    "assignee": "claude",
     "depends_on": [
       "BUG-0412"
     ],
@@ -335,9 +335,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0412",
     "title": "Two mounted sidebars fetch the account concurrently and race",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P0",
     "milestone": "M4",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -346,7 +347,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "area": "trade-panel",
     "data_class": "A",
     "adr": "none",
-    "assignee": "claude",
     "depends_on": [],
     "file": "bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md"
   },
@@ -1392,9 +1392,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0418",
     "title": "Switching between paper and live keeps the previous mode's leverage and fees",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -1404,16 +1405,16 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "claude",
     "file": "bugs/BUG-0418-mode-switch-keeps-remote-account-state.md"
   },
   {
     "id": "BUG-0421",
     "title": "A stale positions read can resurrect a position the trader has closed",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -1425,8 +1426,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0412"
     ],
-    "assignee": "claude",
     "file": "bugs/BUG-0421-positions-read-race.md"
+  },
+  {
+    "id": "BUG-0422",
+    "title": "Policy confirm dialog never appears over a chip dialog, the toggle stalls silently",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "shipped": "1.6.0-beta.261",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0422-confirm-dialog-dies-over-chip-dialog.md"
   },
   {
     "id": "FEAT-0014",
@@ -2211,9 +2230,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0387",
     "title": "Expose the rule evaluator to JavaScript and evaluate on candle close",
     "type": "feature",
-    "status": "in-progress",
+    "status": "ready",
     "branch": "worktree-alert-rule-evaluator-cutover-52ddf9",
-    "assignee": "claude-code",
     "start_date": "2026-09-05",
     "priority": "P1",
     "milestone": "M4",
@@ -2236,11 +2254,11 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0388",
     "title": "Migrate stored price alerts to rule documents",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
+    "status": "done",
     "branch": "worktree-feat-0388-weitermachen-10ee20",
     "priority": "P1",
     "milestone": "M4",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -2261,11 +2279,11 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0401",
     "title": "Record a migration origin ledger for rules converted from legacy alerts",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
+    "status": "done",
     "branch": "worktree-migrate-alerts-to-rules-47d8cf",
     "priority": "P1",
     "milestone": "M4",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -3390,7 +3408,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "claude",
     "file": "bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md"
   },
   {
@@ -3409,7 +3426,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "claude",
     "file": "bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md"
   },
   {
@@ -4989,8 +5005,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0389",
     "title": "Replace the alert modal with a Super-Alert side panel",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
+    "status": "ready",
     "branch": "worktree-super-alert-side-panel-59eaf9",
     "priority": "P2",
     "milestone": "M4",
@@ -5244,9 +5259,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0417",
     "title": "Guard position-mode writes in CI so the freshness stamp cannot be dropped",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -5256,16 +5272,16 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "claude",
     "file": "features/FEAT-0417-account-state-write-guard.md"
   },
   {
     "id": "FEAT-0420",
     "title": "Make the stamped account fields writable only through their setter",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
+    "shipped": "1.6.0-beta.261",
     "editions": [
       "community",
       "pro",
@@ -5277,7 +5293,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0417"
     ],
-    "assignee": "claude",
     "file": "features/FEAT-0420-account-state-setter-only.md"
   },
   {
@@ -5718,7 +5733,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "claude",
     "file": "bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md"
   },
   {
@@ -5739,6 +5753,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "none",
     "file": "bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md"
+  },
+  {
+    "id": "BUG-0423",
+    "title": "Coalesce duplicate account fetches from two mounted sidebars",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P3",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0412"
+    ],
+    "file": "bugs/BUG-0423-coalesce-duplicate-account-fetches.md"
   },
   {
     "id": "FEAT-0022",
@@ -6225,8 +6259,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0398",
     "title": "Engine Debug Panel with real telemetry",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
+    "status": "ready",
     "branch": "worktree-feat-0388-weitermachen-10ee20",
     "priority": "P3",
     "milestone": "M3",
