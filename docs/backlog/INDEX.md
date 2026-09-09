@@ -4,7 +4,7 @@
 
 309 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · ✅ done 231
+Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 6 · ✅ done 232
 
 ---
 
@@ -126,7 +126,7 @@ Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · ✅ done 23
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | ✅ done | alerts |
-| [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟢 ready | alerts |
+| [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | ✅ done | alerts |
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | ✅ done | alerts |
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | alerts |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
@@ -482,7 +482,7 @@ Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · ✅ done 23
 | [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | 🟢 ready | M4 | community, pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
+| [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | — |

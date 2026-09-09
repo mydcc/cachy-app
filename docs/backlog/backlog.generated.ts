@@ -2284,7 +2284,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0387",
     "title": "Expose the rule evaluator to JavaScript and evaluate on candle close",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "branch": "worktree-alert-rule-evaluator-cutover-52ddf9",
     "start_date": "2026-09-05",
     "priority": "P1",
