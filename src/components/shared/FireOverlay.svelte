@@ -324,12 +324,25 @@
             stopLoop();
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("resize", handleResize);
-            if (renderer) {
-                renderer.dispose();
-                renderer.forceContextLoss();
+            // BUG-0414: drei synchrone GL-Context-Kills im Unmount-Flush kosten
+            // Chromium zeitweise einen Compositor-Frame (weißer Blitz). Der
+            // Canvas ist hier bereits display:none/entfernt — GPU-Teardown
+            // läuft daher einen Frame später, außerhalb der kritischen Section.
+            const gl = renderer;
+            const geo = geometry;
+            const mat = material;
+            renderer = null;
+            if (gl) {
+                requestAnimationFrame(() => {
+                    geo.dispose();
+                    mat.dispose();
+                    gl.dispose();
+                    gl.forceContextLoss();
+                });
+            } else {
+                geo.dispose();
+                mat.dispose();
             }
-            geometry.dispose();
-            material.dispose();
         };
     });
 </script>
