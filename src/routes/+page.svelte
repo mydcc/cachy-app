@@ -204,6 +204,23 @@
 
   let isTechnicalsVisible = $state(true);
 
+  // BUG-0423: PositionsSidebar mounts twice (desktop + mobile, CSS-hidden
+  // still mounted). Only the visible instance may fetch — the breakpoint
+  // mirrors the hidden/xl:flex split in the markup below. Desktop-first
+  // default matches the previous behavior until the first measurement.
+  let isDesktopXl = $state(true);
+
+  onMount(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const apply = () => {
+      isDesktopXl = mq.matches;
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  });
+
   // Load Technicals visibility state from localStorage
   onMount(() => {
     if (typeof localStorage !== "undefined") {
@@ -294,7 +311,7 @@
           <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
         {/if}
         {#if settingsState.effectiveShowSidebarActivity}
-          <PositionsSidebar />
+          <PositionsSidebar fetchEnabled={isDesktopXl} />
         {/if}
       </div>
     </div>
@@ -699,7 +716,7 @@
 
         {#if settingsState.effectiveShowSidebarActivity}
           <!-- Add PositionsSidebar for Mobile -->
-          <PositionsSidebar />
+          <PositionsSidebar fetchEnabled={!isDesktopXl} />
         {/if}
 
         {#if settingsState.showMarketOverview}
