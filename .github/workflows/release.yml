@@ -6,6 +6,12 @@ on:
     # This mirrors the split already used by deploy.sh via .deploy.conf
     # (BRANCH_STABLE=main -> cachy.app, BRANCH_BETA=develop -> dev.cachy.app).
     branches: [main, develop]
+    # Docs-only pushes can never produce a release (semantic-release acts on
+    # feat/fix/perf commits), so skip the full checkout + install for them.
+    # Pushes mixing docs and code still run normally.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   # Manual fallback to ship a stable release when automation was skipped
   # (e.g. a merge whose message quoted `[skip ci]` lines). Run it from the
   # Actions tab with main selected.
