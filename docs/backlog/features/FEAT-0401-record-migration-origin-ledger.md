@@ -2,11 +2,11 @@
 id: FEAT-0401
 title: Record a migration origin ledger for rules converted from legacy alerts
 type: feature
-status: in-progress
-assignee: claude
+status: done
 branch: worktree-migrate-alerts-to-rules-47d8cf
 priority: P1
 milestone: M4
+shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: alerts
 data_class: A

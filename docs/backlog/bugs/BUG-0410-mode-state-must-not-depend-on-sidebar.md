@@ -2,14 +2,14 @@
 id: BUG-0410
 title: Mode chip depends on PositionsSidebar being mounted
 type: bug
-status: in-progress
+status: done
 priority: P0
 milestone: M4
+shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: trade-panel
 data_class: A
 adr: none
-assignee: claude
 depends_on: [BUG-0412]
 ---
 

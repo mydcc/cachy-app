@@ -10,7 +10,6 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
-assignee: claude
 ---
 
 # BUG-0375 — placeOrder qty is not range-clamped before the exchange gate
