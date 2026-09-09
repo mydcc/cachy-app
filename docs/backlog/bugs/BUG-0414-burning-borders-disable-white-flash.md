@@ -87,4 +87,6 @@ Documented only — no investigation done yet by design.
   instead of deferring it (`dispose()` stays). Reporter also observes the
   same pattern in the Sentiment Topline region; `AmbientTopline.svelte`
   still calls `forceContextLoss()` — separate scope decision, untouched
-  here.
+  here (tracked as BUG-0428, PR #2809).
+- Verified 2026-09-09: reporter-tested the removal — Burning Borders
+  toggle no longer flickers. Ready to mark `done` on merge of #2808.
