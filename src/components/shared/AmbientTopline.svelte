@@ -385,7 +385,6 @@
             // aufblitzen. dispose() genügt; Kontext geht mit dem Canvas.
             if (renderer) {
                 renderer.dispose();
-                renderer.forceContextLoss();
             }
             geometry.dispose();
             material.dispose();

@@ -90,5 +90,5 @@ Documented only — no investigation done yet by design.
 - Verified 2026-09-09: reporter-tested the removal — Burning Borders
   toggle no longer flickers. Ready to mark `done` on merge of #2808.
 - Done 2026-09-09: merged via #2808. Latest release (1.6.0-beta.261)
-   predates the merge — first release containing the fix TBD by the next
-   `chore(release)`.
+  predates the merge — first release containing the fix TBD by the next
+  `chore(release)`.

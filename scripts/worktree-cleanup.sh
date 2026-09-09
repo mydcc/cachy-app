@@ -28,6 +28,9 @@ set -uo pipefail
 #   bash scripts/worktree-cleanup.sh <branch|path>   # retire one (normal case)
 #   bash scripts/worktree-cleanup.sh --all           # report retirable ones
 #   bash scripts/worktree-cleanup.sh --all --apply   # retire them
+#
+# After successful retirements the script re-fetches origin/develop, so the
+# next task branch starts current without a manual fetch.
 
 BASE="origin/develop"
 
@@ -124,6 +127,14 @@ retire() {
     return 1
 }
 
+# Best-effort: leave origin/develop current so the next task branch starts
+# fresh without a manual fetch. Runs only after successful retirements and
+# never fails the cleanup itself.
+refresh_base() {
+    git fetch origin develop --quiet 2>/dev/null || \
+        echo "warning: post-cleanup fetch of $BASE failed — fetch manually before branching"
+}
+
 if [ "${1:-}" != "--all" ]; then
     target="${1:-}"
     [ -n "$target" ] || {
@@ -137,6 +148,7 @@ if [ "${1:-}" != "--all" ]; then
     branch="$(branch_of "$path")"
     if reason="$(check "$path" "$branch")"; then
         retire "$path" "$branch" || exit 1
+        refresh_base
     else
         echo "refused  $branch — $reason" >&2
         exit 1
@@ -169,5 +181,6 @@ done < <(git worktree list --porcelain)
 
 git worktree prune 2>/dev/null
 echo
+[ "$APPLY" -eq 1 ] && [ "$n" -gt 0 ] && refresh_base
 [ "$APPLY" -eq 1 ] && echo "$n retired, $kept kept" ||
     echo "$n retirable, $kept kept — rerun with --apply"
