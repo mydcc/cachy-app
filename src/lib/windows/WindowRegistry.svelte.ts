@@ -300,7 +300,10 @@ class WindowRegistry {
                 type: t,
                 flags: {
                     ...baseFlags,
-                    isResizable: true,
+                    // Reader class (BUG-0411): documents open large and stay
+                    // put -- no resize handle. isResponsive maximizes them
+                    // automatically below 768px, like the market dashboard.
+                    isResizable: false,
                     allowMaximize: true,
                     showMaximizeButton: false,
                     showMinimizeButton: false,
@@ -308,7 +311,9 @@ class WindowRegistry {
                     allowFontSize: true,
                     centerByDefault: true,
                     showHeaderIndicators: false,
-                    allowFeedDuck: true
+                    allowFeedDuck: true,
+                    isResponsive: true,
+                    edgeToEdgeBreakpoint: 768
                 },
                 layout: {
                     ...baseLayout,
@@ -347,11 +352,11 @@ class WindowRegistry {
          * -- the whole point is that it can be minimised to the dock while
          * checking a chart and come back with the same tab/size/position,
          * none of which a `modal`-type window supports (not minimisable,
-         * not persisted). Default layout approximates the old
-         * `modal-size-instructions` CSS preset (80vw capped at 1320px,
-         * 3:2) at a common desktop resolution; unlike that preset it's a
-         * starting point, not a constraint -- no `aspectRatio` lock, since
-         * this is content browsing, not chart rendering.
+         * not persisted). Default layout approximates a large reading
+         * surface (80vw capped at 1320px, 3:2) at a common desktop
+         * resolution; unlike a CSS preset it's a starting point, not a
+         * constraint -- no `aspectRatio` lock, since this is content
+         * browsing, not chart rendering.
          */
         this.configs.set('academy', {
             type: 'academy',

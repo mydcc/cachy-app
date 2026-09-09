@@ -30,9 +30,11 @@
 -->
 
 <script lang="ts">
+    import { untrack } from "svelte";
     import { _ } from "../../../locales/i18n";
 
     import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
+    import { computeFittedHeight } from "../../../lib/windows/fitContentHeight";
     import { effectsState } from "../../../stores/effects.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
@@ -53,6 +55,17 @@
     let isDragging = $state(false);
     let showSettings = $state(false);
     let isResizing = $state(false);
+
+    // One-shot content fit (BUG-0411). Bound below; read once when the fit
+    // effect runs. fitApplied suppresses the frame's size transition until
+    // the single fit lands, so opening never animates. fittedWin keeps the
+    // fit to one attempt per window instance (plain let: assigning it must
+    // not re-trigger the effect).
+    let headerEl: HTMLElement | null = $state(null);
+    let contentInnerEl: HTMLElement | null = $state(null);
+    let contentEl: HTMLElement | null = $state(null);
+    let fitApplied = $state(false);
+    let fittedWin: object | null = null;
 
     /**
      * Context Menu Observer
@@ -307,6 +320,74 @@
         return () => clearTimeout(timer);
     });
 
+    /**
+     * BUG-0411 — one-shot content fit for fitContentOnce windows (compact
+     * ModalFrame dialogs). Measures the inner content box synchronously at
+     * mount and sizes the window before first paint, so opening never
+     * animates. Exactly one async correction follows: webfonts landing
+     * after mount change line wraps (up to ~30px observed), so after
+     * document.fonts.ready the fit runs a second and last time — skipped
+     * when nothing moved. No observer, no tracking, no animation; the
+     * transition stays off until both fits are done. Cleanup only guards
+     * the late fit against a window closed in between.
+     */
+    $effect(() => {
+        if (!win.fitContentOnce) return;
+        if (fittedWin === win) return;
+        const header = headerEl;
+        const inner = contentInnerEl;
+        const scroller = contentEl;
+        if (!header || !inner || !scroller) return;
+        fittedWin = win;
+
+        // Decoupled measurement (see comment at the call site below).
+        const measure = () =>
+            untrack(() => {
+                if (win.isMinimized || win.isMaximized) return null;
+                scroller.style.height = "auto";
+                scroller.style.flex = "none";
+                inner.style.height = "auto";
+                const fitted = computeFittedHeight({
+                    contentHeight: inner.scrollHeight,
+                    headerHeight: header.offsetHeight,
+                    viewportHeight: window.innerHeight,
+                    minHeight: win.minHeight,
+                });
+                scroller.style.height = "";
+                scroller.style.flex = "";
+                inner.style.height = "";
+                return fitted;
+            });
+
+        const apply = (guarded: boolean) => {
+            const fitted = measure();
+            if (fitted === null) return;
+            // Untracked: this write must not re-trigger the effect.
+            untrack(() => {
+                if (guarded && Math.abs(fitted - win.height) <= 1) return;
+                win.updateSize(win.width, fitted);
+            });
+        };
+
+        apply(false);
+
+        // The transition stays off until the late fit is done, so even a
+        // real correction never animates — it lands as one instant set.
+        let cancelled = false;
+        if (typeof document !== "undefined" && document.fonts) {
+            document.fonts.ready.then(() => {
+                if (cancelled) return;
+                apply(true);
+                fitApplied = true;
+            });
+        } else {
+            fitApplied = true;
+        }
+        return () => {
+            cancelled = true;
+        };
+    });
+
     // --- INTERACTION UTILITIES ---
     let pointerDownPos = { x: 0, y: 0 };
     let pointerDownTime = 0;
@@ -412,6 +493,7 @@
             : `${win.height}px`}
     style:z-index={win.isMaximized ? win.maximizedZIndex : win.zIndex}
     style:opacity={win.opacity}
+    style:transition={win.fitContentOnce && !fitApplied ? "none" : undefined}
     onpointerdown={handlePointerDown}
     oncontextmenu={handleContextMenu}
     use:burn={isBurningActive
@@ -435,6 +517,7 @@
 >
     <div
         class="window-header"
+        bind:this={headerEl}
         onpointerdown={(e) => {
             if (win.isMinimized) {
                 e.stopPropagation();
@@ -762,9 +845,10 @@
         {/if}
     </div>
 
-    <div class="window-content" style:font-size="{win.fontSize}px">
+    <div class="window-content" style:font-size="{win.fontSize}px" bind:this={contentEl}>
         <div
             class="content-wrapper"
+            bind:this={contentInnerEl}
             style:transform="scale({win.zoomLevel})"
             style:transform-origin="top left"
             style:width="{100 / win.zoomLevel}%"

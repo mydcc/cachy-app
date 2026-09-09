@@ -160,6 +160,9 @@
     : $_("modals.editSL.title")}
   {onclose}
   isOpen={true}
+  width={440}
+  height={335}
+  compact
 >
   <div class="flex flex-col gap-4 p-4 min-w-[300px]">
     <div class="text-sm text-[var(--text-secondary)] mb-2">
