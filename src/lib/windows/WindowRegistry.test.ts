@@ -67,4 +67,13 @@ describe("WindowRegistry (FEAT-0050)", () => {
         expect(config.type).toBe(windowConfig.type);
         expect(config.layout).toEqual(windowConfig.layout);
     });
+
+    it("keeps reader windows large, unresizable and mobile-fullscreen (BUG-0411 reader class)", () => {
+        for (const type of ["guide", "changelog", "privacy", "whitepaper"] as WindowType[]) {
+            const config = windowRegistry.getConfig(type);
+            expect(config.flags.isResizable, `${type} must not show a resize handle`).toBe(false);
+            expect(config.flags.isResponsive, `${type} must go fullscreen on mobile`).toBe(true);
+            expect(config.flags.edgeToEdgeBreakpoint).toBe(768);
+        }
+    });
 });
