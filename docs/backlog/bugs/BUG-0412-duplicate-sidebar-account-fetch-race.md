@@ -2,14 +2,14 @@
 id: BUG-0412
 title: Two mounted sidebars fetch the account concurrently and race
 type: bug
-status: in-progress
+status: done
 priority: P0
 milestone: M4
+shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: trade-panel
 data_class: A
 adr: none
-assignee: claude
 depends_on: []
 ---
 
@@ -84,6 +84,8 @@ the current reproduction unreachable (two mounts would produce one
 request, so the race the test stages could no longer be staged), so it
 needs its own test shape and its own review rather than a rewrite of
 the test that proves the ordering fix.
+
+Split 2026-09-08: the ordering half above is proven and this item closes; the dedup half continues as BUG-0423.
 
 ## Related race spots (audited Sep 2026, same last-wins shape)
 

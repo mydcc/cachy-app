@@ -2,15 +2,15 @@
 id: BUG-0418
 title: Switching between paper and live keeps the previous mode's leverage and fees
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
+shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: trade-panel
 data_class: none
 adr: none
 depends_on: []
-assignee: claude
 ---
 
 # BUG-0418 — Switching between paper and live keeps the previous mode's leverage and fees
