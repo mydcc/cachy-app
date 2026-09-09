@@ -9,7 +9,7 @@
 //   - #N must be a backlog mirror issue (backlog-id: label) and closed
 //   - the item file must exist and be in specced/ready/in-progress
 //     (done/dropped are never touched)
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -18,7 +18,10 @@ const PR_NUMBER = process.env.PR_NUMBER ?? "";
 const BOT_BRANCH = "bot/backlog-auto-done";
 
 function gh(args) {
-  return execSync(`gh ${args}`, { encoding: "utf8" });
+  return execFileSync("gh", args, { encoding: "utf8" });
+}
+function git(args) {
+  execFileSync("git", args, { stdio: "pipe" });
 }
 function log(msg) {
   console.log(`[auto-done] ${msg}`);
@@ -28,7 +31,7 @@ function prBody() {
   if (process.env.PR_BODY) return process.env.PR_BODY;
   if (!PR_NUMBER) return "";
   try {
-    return gh(`api repos/${REPO}/pulls/${PR_NUMBER} --jq .body`);
+    return gh(["api", `repos/${REPO}/pulls/${PR_NUMBER}`, "--jq", ".body"]);
   } catch {
     return "";
   }
@@ -62,7 +65,12 @@ function main() {
   let issue;
   try {
     issue = JSON.parse(
-      gh(`api repos/${REPO}/issues/${issueNo} --jq '{state, labels: [.labels[].name]}'`),
+      gh([
+        "api",
+        `repos/${REPO}/issues/${issueNo}`,
+        "--jq",
+        "{state, labels: [.labels[].name]}",
+      ]),
     );
   } catch {
     log(`cannot read issue #${issueNo}; skipping`);
@@ -100,28 +108,50 @@ function main() {
     );
   writeFileSync(file, next);
 
-  execSync(`git checkout -B ${BOT_BRANCH}`);
-  execSync(`git add ${file}`);
-  execSync(
-    "git -c user.name=github-actions[bot] " +
-      "-c user.email=github-actions[bot]@users.noreply.github.com " +
-      `commit -m "chore(backlog): mark ${itemId} done after merge (#${PR_NUMBER})"`,
-  );
-  execSync(`git push --force-with-lease origin ${BOT_BRANCH}`);
+  git(["checkout", "-B", BOT_BRANCH]);
+  git(["add", file]);
+  git([
+    "-c",
+    "user.name=github-actions[bot]",
+    "-c",
+    "user.email=github-actions[bot]@users.noreply.github.com",
+    "commit",
+    "-m",
+    `chore(backlog): mark ${itemId} done after merge (#${PR_NUMBER})`,
+  ]);
+  git(["push", "--force-with-lease", "origin", BOT_BRANCH]);
   let open = "0";
   try {
-    open = gh(
-      `pr list --head ${BOT_BRANCH} --base develop --state open --json number --jq length`,
-    ).trim();
+    open = gh([
+      "pr",
+      "list",
+      "--head",
+      BOT_BRANCH,
+      "--base",
+      "develop",
+      "--state",
+      "open",
+      "--json",
+      "number",
+      "--jq",
+      "length",
+    ]).trim();
   } catch {
     open = "0";
   }
   if (open === "0") {
-    execSync(
-      `gh pr create --base develop --head ${BOT_BRANCH} ` +
-        `--title "chore(backlog): auto-done flips" ` +
-        `--body "Automated done-flips for backlog items whose linked PRs merged (see job logs)."`,
-    );
+    gh([
+      "pr",
+      "create",
+      "--base",
+      "develop",
+      "--head",
+      BOT_BRANCH,
+      "--title",
+      "chore(backlog): auto-done flips",
+      "--body",
+      "Automated done-flips for backlog items whose linked PRs merged (see job logs).",
+    ]);
   } else {
     log("updated the existing auto-done PR");
   }
