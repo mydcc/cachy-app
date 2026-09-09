@@ -18,7 +18,6 @@
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { CONSTANTS } from "../lib/constants";
-import { isLightTheme, themeBackground } from "../lib/themeBackgrounds";
 import { toastService } from "../services/toastService.svelte";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
 import { ModalWindow } from "../lib/windows/implementations/ModalWindow.svelte";
@@ -268,10 +267,46 @@ class UiManager {
       }
     }
 
-    const bgColor = themeBackground(themeName);
+    const bgColors: Record<string, string> = {
+      dark: "#0f172a",
+      "ayu-dark": "#0f1419",
+      "ayu-mirage": "#1f2430",
+      catppuccin: "#1e1e2e",
+      cobalt2: "#193549",
+      dracula: "#282a36",
+      "dracula-soft": "#282a36",
+      "everforest-dark": "#2d353b",
+      "github-dark": "#0d1117",
+      "gruvbox-dark": "#282828",
+      matrix: "#000000",
+      midnight: "#0d1117",
+      monokai: "#1e1f1c",
+      "night-owl": "#011627",
+      nord: "#2e3440",
+      obsidian: "#1e1e1e",
+      "one-dark-pro": "#282c34",
+      "solarized-dark": "#002b36",
+      "tokyo-night": "#1a1b26",
+      VIP: "#121212",
+      "ayu-light": "#f8f9fa",
+      "github-light": "#ffffff",
+      "solarized-light": "#fdf6e3",
+      steel: "#08103f",
+      meteorite: "#0c082f",
+      insight: "#0f0505",
+      ever: "#010f08",
+      light: "#f1f5f9",
+    };
+    const bgColor = bgColors[themeName] || bgColors["dark"];
     html.style.backgroundColor = bgColor;
 
-    html.style.colorScheme = isLightTheme(themeName) ? "light" : "dark";
+    const isLightTheme = [
+      "light",
+      "solarized-light",
+      "github-light",
+      "ayu-light",
+    ].includes(themeName);
+    html.style.colorScheme = isLightTheme ? "light" : "dark";
     html.style.backgroundImage = "none";
 
     try {

@@ -2,7 +2,8 @@
 id: FEAT-0389
 title: Replace the alert modal with a Super-Alert side panel
 type: feature
-status: ready
+status: in-progress
+assignee: claude
 branch: worktree-super-alert-side-panel-59eaf9
 priority: P2
 milestone: M4
@@ -59,11 +60,11 @@ Tabs load lazily, the way `+layout.svelte:82` already loads the modal.
 ## Acceptance criteria
 
 - [ ] The panel opens from the bell and the chart stays visible and interactive beside it
-- [x] Every armed rule renders as a readable sentence in both locales, and the sentence
+- [ ] Every armed rule renders as a readable sentence in both locales, and the sentence
       changes when the rule changes
-- [x] A rule refused by `validate()` shows the refusal against the offending field, not
+- [ ] A rule refused by `validate()` shows the refusal against the offending field, not
       as a single generic message
-- [x] The engine-failed banner is shown whenever `engineStatus === "failed"`
+- [ ] The engine-failed banner is shown whenever `engineStatus === "failed"`
 - [ ] Manage lists armed rules and history with the same behaviour as the current modal
 - [ ] Tabs are code-split; opening the panel does not load every builder
 - [ ] Keyboard reachable and focus-trapped; Escape closes without arming
@@ -127,7 +128,3 @@ What is open:
   tested, so FEAT-0390 only has to write into `alertPanelState.draft`.
 - The price-source select in the header is not yet wired into the document; it
   becomes the default `PriceField` for the Price tab's conditions in FEAT-0390.
-
-## Grooming note (2026-09-08)
-
-Shell merged (#2727). Proven by tests: sentence rendering both locales (`AlertPanelView.component.test.ts`, `ruleSentence.test.ts`), field-anchored refusals, engine-failed banner. Open: bell entry + chart interactivity, Manage parity, tab code-splitting proof, keyboard Escape/focus-trap, panel-chrome strings.

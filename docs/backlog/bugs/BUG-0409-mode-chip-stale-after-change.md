@@ -2,14 +2,14 @@
 id: BUG-0409
 title: Mode chip stays stale or shows never-real combos after a mode change
 type: bug
-status: done
+status: in-progress
 priority: P0
 milestone: M4
-shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: exchange
 data_class: A
 adr: none
+assignee: claude
 depends_on: [FEAT-0068, BUG-0412, BUG-0410]
 ---
 

@@ -2,11 +2,11 @@
 id: FEAT-0388
 title: Migrate stored price alerts to rule documents
 type: feature
-status: done
+status: in-progress
+assignee: claude
 branch: worktree-feat-0388-weitermachen-10ee20
 priority: P1
 milestone: M4
-shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: alerts
 data_class: A

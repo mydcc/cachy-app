@@ -50,12 +50,13 @@ afterEach(() => {
 });
 
 describe("WindowManager Escape-to-close (FEAT-0044)", () => {
-    // Only one closeOnBlur window is ever set up per test here: closing
-    // one via Escape must not take a bystander with it, so the other window
-    // stays deliberately non-dismissible. (bringToFront() used to sweep
-    // every other closeOnBlur window as well; BUG-0422 removed that -- it
-    // killed real dialogs, e.g. a policy confirm opening above a chip
-    // dialog -- while click-outside and Escape dismissal are unchanged.)
+    // Only one closeOnBlur window is ever set up per test here: opening a
+    // *second* one through openTestWindow()/open() would immediately close
+    // the first via bringToFront()'s own "close other closeOnBlur windows"
+    // cleanup (pre-existing behavior, originally for transient windows like
+    // the Symbol Selector) -- so two closeOnBlur windows never actually
+    // coexist in practice, and a test pretending otherwise would be testing
+    // an unreachable state.
     it("closes a closeOnBlur window on Escape, leaving a non-dismissible window open", () => {
         const w1 = openTestWindow();
         const w2 = openTestWindow();
@@ -338,41 +339,5 @@ describe("WindowManager resize handling (BUG-0043)", () => {
         expect(after).toBe(before);
 
         addEventListenerSpy.mockRestore();
-    });
-});
-
-describe("WindowManager.bringToFront keeps modal dialogs open (BUG-0422)", () => {
-    it("lets a closeOnBlur modal and a dialog coexist when focus moves between them", () => {
-        // windowType 'modal' through the real registry: closeOnBlur on,
-        // like the chip dialogs a policy confirm opens above.
-        const modal = new TestWindow({ id: "manager-modal-probe", windowType: "modal" });
-        modal.allowMultipleInstances = true;
-        windowManager.open(modal);
-        openedIds.push(modal.id);
-        const dialog = openTestWindow();
-
-        windowManager.bringToFront(dialog.id);
-
-        // Fails before the fix: bringToFront() swept every other closeOnBlur
-        // window, so opening a policy confirm killed the chip dialog beneath
-        // it and the confirm died unseen in the wake.
-        expect(windowManager.isOpen(modal.id)).toBe(true);
-        expect(windowManager.isOpen(dialog.id)).toBe(true);
-    });
-
-    it("still closes a closeOnBlur settings window when focus moves away", () => {
-        const settings = new TestWindow({ id: "manager-settings-probe", windowType: "settings" });
-        settings.allowMultipleInstances = true;
-        windowManager.open(settings);
-        openedIds.push(settings.id);
-        const other = openTestWindow();
-
-        windowManager.bringToFront(other.id);
-
-        // The settings pane documents auto-close on blur; only modal
-        // dialogs are exempt from the sweep.
-        expect(windowManager.isOpen(settings.id)).toBe(false);
-        expect(windowManager.isOpen(other.id)).toBe(true);
-        openedIds.splice(openedIds.indexOf(settings.id), 1);
     });
 });

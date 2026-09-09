@@ -22,11 +22,6 @@
   import { keysForActiveAccount } from "../../stores/settings/accounts";
   import { accountSession } from "../../services/accountSession.svelte";
   import { accountReadOrder, positionsReadOrder } from "../../services/accountReadOrder";
-  import {
-    accountFetchKey,
-    runAccountFetchOnce,
-    type AccountFetchTrigger,
-  } from "../../services/accountFetchSingleflight";
   import ActiveAccountChip from "./ActiveAccountChip.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -59,8 +54,6 @@
   import AdjustMarginModal from "./AdjustMarginModal.svelte";
   import AddToPositionModal from "./AddToPositionModal.svelte";
   import TpSlCreateModal from "./TpSlCreateModal.svelte";
-
-  let { fetchEnabled = true }: { fetchEnabled?: boolean } = $props();
 
   let isOpen = $state(true);
 
@@ -522,11 +515,7 @@
     });
   }
 
-  async function fetchAccount(trigger: AccountFetchTrigger) {
-    // BUG-0423: the CSS-hidden instance (desktop on mobile widths and vice
-    // versa — +page.svelte passes fetchEnabled from the xl breakpoint) never
-    // fetches of its own.
-    if (!fetchEnabled) return;
+  async function fetchAccount() {
     const paper = paperAccountFeed();
     if (paper) {
       // Synchronous, so it can never be overtaken — but taking the ticket
@@ -550,82 +539,75 @@
     const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
     if (!keys?.key || !keys?.secret) return;
 
-    const key = accountFetchKey(trigger, provider, settingsState.activeAccountId ?? "");
-    // BUG-0423: the same trigger firing on both mounted instances shares one
-    // network round trip. Only the owner takes the ordering ticket (inside
-    // the callback); joiners await the shared flight and write nothing, so
-    // BUG-0412 sequencing between *different* triggers is untouched.
-    await runAccountFetchOnce(key, async () => {
-      // FEAT-0026. `hydrateBalance` below deliberately *merges*, preserving the
-      // margin fields only the WS wallet channel supplies. That merge is
-      // correct within one account and is cross-account blending across two,
-      // so a response that outlived its session must not reach it.
-      //
-      // BUG-0412 folds the ordering guard into the same ticket: this component
-      // is mounted twice (desktop + mobile) and reads on mount *and* on a
-      // credentials change, so two of its own responses overlap routinely and
-      // the older one used to land last and win.
-      const ticket = accountReadOrder.begin();
+    // FEAT-0026. `hydrateBalance` below deliberately *merges*, preserving the
+    // margin fields only the WS wallet channel supplies. That merge is
+    // correct within one account and is cross-account blending across two,
+    // so a response that outlived its session must not reach it.
+    //
+    // BUG-0412 folds the ordering guard into the same ticket: this component
+    // is mounted twice (desktop + mobile) and reads on mount *and* on a
+    // credentials change, so two of its own responses overlap routinely and
+    // the older one used to land last and win.
+    const ticket = accountReadOrder.begin();
 
-      try {
-        const response = await appFetch("/api/account", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Api-Key": keys.key,
-            "X-Api-Secret": keys.secret,
-            ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-          },
-          body: JSON.stringify({
-            exchange: provider,
-          }),
+    try {
+      const response = await appFetch("/api/account", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": keys.key,
+          "X-Api-Secret": keys.secret,
+          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+        },
+        body: JSON.stringify({
+          exchange: provider,
+        }),
+      });
+      const json = await response.json();
+      // /api/account responds via jsonSuccess/jsonError
+      // (src/utils/apiResponse.ts): { success: true, data: {...account
+      // fields} } or { success: false, error: { code, message } } — not the
+      // flat shape read here before this fix. `data.error` was always
+      // undefined and `data` itself (rather than `data.data`) was assigned
+      // to accountInfo, so every field silently stuck at its all-zero
+      // initial state — indistinguishable from a genuinely empty account,
+      // and never surfaced as an error either (BUG-0060).
+      // Asked once, after the last `await` and before anything is written,
+      // so an error result orders against a success result too: a stale
+      // failure must not clear a fresher snapshot's numbers either.
+      if (!accountReadOrder.mayApply(ticket)) return;
+
+      const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
+      if (data === null) {
+        errorAccount = translateError({ code, error: message });
+      } else {
+        errorAccount = "";
+        accountInfo = data;
+        // available/margin/frozen also flow into accountState so
+        // AccountSummary can prefer the WS-live balance channel over this
+        // snapshot once it starts pushing (see liveAsset below); the
+        // remaining fields here (bonus/transfer/positionMode/per-mode PnL)
+        // have no WS equivalent and stay REST-only.
+        accountState.hydrateBalance({
+          available: String(data.available),
+          margin: String(data.margin),
+          frozen: String(data.frozen),
         });
-        const json = await response.json();
-        // /api/account responds via jsonSuccess/jsonError
-        // (src/utils/apiResponse.ts): { success: true, data: {...account
-        // fields} } or { success: false, error: { code, message } } — not the
-        // flat shape read here before this fix. `data.error` was always
-        // undefined and `data` itself (rather than `data.data`) was assigned
-        // to accountInfo, so every field silently stuck at its all-zero
-        // initial state — indistinguishable from a genuinely empty account,
-        // and never surfaced as an error either (BUG-0060).
-        // Asked once, after the last `await` and before anything is written,
-        // so an error result orders against a success result too: a stale
-        // failure must not clear a fresher snapshot's numbers either.
-        if (!accountReadOrder.mayApply(ticket)) return;
-
-        const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
-        if (data === null) {
-          errorAccount = translateError({ code, error: message });
-        } else {
-          errorAccount = "";
-          accountInfo = data;
-          // available/margin/frozen also flow into accountState so
-          // AccountSummary can prefer the WS-live balance channel over this
-          // snapshot once it starts pushing (see liveAsset below); the
-          // remaining fields here (bonus/transfer/positionMode/per-mode PnL)
-          // have no WS equivalent and stay REST-only.
-          accountState.hydrateBalance({
-            available: String(data.available),
-            margin: String(data.margin),
-            frozen: String(data.frozen),
-          });
-          // FEAT-0068: the trade panel offers this as an editable control, and
-          // this snapshot is the only place it arrives. Shared through the
-          // store rather than re-fetched there.
-          accountState.setPositionMode(data.positionMode);
-        }
-      } catch {
-        // The ticket is usually still unclaimed here — `appFetch` and
-        // `response.json()` both run before `mayApply` above. But anything
-        // thrown after a claim takes the same exit, so this asks whether
-        // this read is still the newest instead of assuming it: silent only
-        // when a newer read already landed. Keep fallible work out of the
-        // window between the claim and this catch.
-        if (!accountReadOrder.mayApply(ticket)) return;
-        errorAccount = $_("apiErrors.generic");
+        // FEAT-0068: the trade panel offers this as an editable control, and
+        // this snapshot is the only place it arrives. Shared through the
+        // store rather than re-fetched there.
+        accountState.setPositionMode(data.positionMode);
       }
-    });
+    } catch {
+      // The ticket is usually still unclaimed here — `appFetch` and
+      // `response.json()` both run before `mayApply` above. But anything
+      // thrown after a claim takes the same exit, so this asks whether
+      // this read is still the newest instead of assuming it: silent only
+      // when a newer read already landed. Keep fallible work out of the
+      // window between the claim and this catch.
+      if (!accountReadOrder.mayApply(ticket)) return;
+      errorAccount = $_("apiErrors.generic");
+    }
   }
 
   onMount(() => {
@@ -635,7 +617,7 @@
     const provider = settingsState.apiProvider || "bitunix";
     const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
     if (paperAccountFeed() || (keys?.key && keys?.secret)) {
-      fetchAccount("mount");
+      fetchAccount();
       fetchPositions();
       fetchPendingOrders();
     }
@@ -657,10 +639,6 @@
   // when a WS order-close event lands while the user is looking at the tab,
   // instead of only picking up the fill on the next manual tab switch.
   $effect(() => {
-    // BUG-0423: only the visible instance owns the single sync-callback slot.
-    // A hidden instance registering here would overwrite the visible one's
-    // callback with one that early-returns, silently dropping sync triggers.
-    if (!fetchEnabled) return;
     accountState.registerOrderCloseCallback(() => {
       if (activeTab === "history") fetchHistoryOrders();
     });
@@ -673,10 +651,8 @@
   // marginRate hard-defaulted to 0 — the WS channel never carries them. This
   // is accountState's signal to go get the real values from REST.
   $effect(() => {
-    // BUG-0423: same single-owner reasoning as the order-close callback above.
-    if (!fetchEnabled) return;
     accountState.registerSyncCallback(() => {
-      fetchAccount("sync");
+      fetchAccount();
       fetchPositions();
       if (activeTab === "orders") fetchPendingOrders();
     });
@@ -725,34 +701,10 @@
     // screen under the new account's name.
     if (keys?.key && keys?.secret) {
       untrack(() => {
-        fetchAccount("keys");
+        fetchAccount();
         fetchPositions();
         if (activeTab === "orders") fetchPendingOrders();
         if (activeTab === "history") fetchHistoryOrders();
-      });
-    }
-  });
-
-  /*
-   * BUG-0423: the instance that becomes visible after a breakpoint flip
-   * (hidden → shown) would otherwise stay empty — the keys-change effect
-   * above does not refire on a prop change. Hydrate exactly once on the
-   * false → true transition; the initial run is a no-op, so mounting never
-   * double-fetches.
-   */
-  // Plain let, not $state: only `fetchEnabled` drives this effect; the
-  // previous value needs no reactivity. Initialized to true so the initial
-  // run is a no-op whether mounted visible or hidden (a hidden mount
-  // corrects it to false without fetching).
-  let wasFetchEnabled = true;
-  $effect(() => {
-    const now = fetchEnabled;
-    const was = wasFetchEnabled;
-    wasFetchEnabled = now;
-    if (now && !was) {
-      untrack(() => {
-        fetchAccount("sync");
-        fetchPositions();
       });
     }
   });

@@ -53,7 +53,6 @@ import { afterNavigate } from "$app/navigation";
 
 
   import { browser } from "$app/environment";
-  import { themeBackground } from "../lib/themeBackgrounds";
 
   interface Props {
     children?: import("svelte").Snippet;
@@ -391,56 +390,22 @@ import { afterNavigate } from "$app/navigation";
   });
 
   function updateThemeColor() {
-    // Re-create the tag instead of only flipping the attribute: the desktop
-    // PWA title bar samples theme-color at load/navigation in some Chrome
-    // builds and ignores later attribute mutations (mobile status bar
-    // follows those fine). A fresh element forces re-evaluation on both.
-    // NOTE: an installed PWA additionally uses theme_color/background_color
-    // from static/manifest.json, which cannot change at runtime — the meta
-    // tag governs the browser case and the desktop title bar.
-    const tag = document.createElement("meta");
-    tag.name = "theme-color";
-    tag.content = themeBackground(uiState.currentTheme);
-    const existing = document.querySelector('meta[name="theme-color"]');
-    if (existing) existing.replaceWith(tag);
-    else document.head.prepend(tag);
+    // Small timeout to allow the DOM/CSS variables to update after class change
+    setTimeout(() => {
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        // Since the background was moved to the html tag, we read from document.documentElement
+        const style = getComputedStyle(document.documentElement);
+        const bgColor = style.backgroundColor;
+        metaThemeColor.setAttribute("content", bgColor);
+      }
+    }, 100); // 100ms for safety
   }
   // Dynamic theme color for PWA/Android status bar
   $effect(() => {
-    if (!browser) return;
-    // Track the theme so the meta tag follows every switch (incl. mount).
-    void uiState.currentTheme;
-    updateThemeColor();
-  });
-
-  // Window Controls Overlay (desktop PWA title bar as web content).
-  // Local visual test only: when the installed PWA runs with
-  // display_override window-controls-overlay, the OS title bar is replaced
-  // by a small window-controls block and this bar paints the theme color.
-  // Falls back to invisible everywhere else (browser tab, Android, Firefox).
-  interface WindowControlsOverlayApi extends EventTarget {
-    visible: boolean;
-  }
-  let wcoVisible = $state(false);
-  const wcoBarColor = $derived(themeBackground(uiState.currentTheme));
-  $effect(() => {
-    if (!browser) return;
-    const wco = (
-      navigator as Navigator & {
-        windowControlsOverlay?: WindowControlsOverlayApi;
-      }
-    ).windowControlsOverlay;
-    if (!wco) return;
-    const sync = () => {
-      wcoVisible = wco.visible;
-      document.documentElement.classList.toggle("wco-enabled", wco.visible);
-    };
-    sync();
-    wco.addEventListener("geometrychange", sync);
-    return () => {
-      wco.removeEventListener("geometrychange", sync);
-      document.documentElement.classList.remove("wco-enabled");
-    };
+    if (typeof document !== "undefined" && uiState.currentTheme) {
+      updateThemeColor();
+    }
   });
 
   // Update Font Family
@@ -576,9 +541,6 @@ import { afterNavigate } from "$app/navigation";
 </svelte:head>
 
 <div class="app-container">
-  {#if wcoVisible}
-    <div id="wco-titlebar" style="background-color: {wcoBarColor}"></div>
-  {/if}
   <OfflineBanner />
   <BackgroundRenderer />
   <!-- Rendering Layers for Visual Effects -->
@@ -638,20 +600,5 @@ import { afterNavigate } from "$app/navigation";
     :global(.app-container) {
       padding: 0 !important;
     }
-  }
-
-  /* Window Controls Overlay: bar occupies the former OS title bar area.
-     Color comes from the theme map via inline style (no hardcoded color).
-     Only rendered while the overlay is visible, so browser/Android/Firefox
-     layouts are untouched. */
-  :global(#wco-titlebar) {
-    position: fixed;
-    top: env(titlebar-area-y, 0);
-    left: env(titlebar-area-x, 0);
-    width: env(titlebar-area-width, 100%);
-    height: env(titlebar-area-height, 33px);
-    app-region: drag;
-    -webkit-app-region: drag;
-    z-index: 9999;
   }
 </style>

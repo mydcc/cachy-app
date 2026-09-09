@@ -538,6 +538,7 @@
     "clickToExpand": "Click to expand",
     "delete": "Delete",
     "confirmDelete": "Are you sure you want to delete this trade?",
+    "confirmRecalculateAtr": "Do you want to recalculate all ATR values in the journal? This may take a moment if you have many trades.",
     "performancePerSymbol": "Performance per Symbol",
     "trades": "Trades",
     "profitPercent": "Profit %",
@@ -673,7 +674,9 @@
       "min5Trades": "(Min. 5 Trades)",
       "min20Trades": "(Min. 20 Trades)",
       "noStrategyLosses": "(No Strategy Losses)",
-      "noTimingLosses": "(No Timing Losses)"
+      "noTimingLosses": "(No Timing Losses)",
+      "atrRecalcStart": "ATR recalculation started...",
+      "atrRecalcError": "Error during ATR calculation: "
     },
     "deepDive": {
       "title": "Deep Dive",
@@ -850,9 +853,7 @@
     "chartPreviewAlt": "{symbol} Chart Preview",
     "chartFullAlt": "{symbol} Full Chart",
     "accountColumn": "Account",
-    "accountUnknown": "Removed account",
-    "saveFailed": "Failed to save journal. Storage might be full.",
-    "saveError": "Error occurred while saving journal."
+    "accountUnknown": "Removed account"
   },
   "marketOverview": {
     "24hHigh": "24h High",
@@ -3694,8 +3695,8 @@
       "leverageChanged": "Leverage set to {value}x",
       "marginModeChanged": "Margin mode changed",
       "positionModeChanged": "Position mode changed",
-      "notConfirmed": "Sent — the exchange still reports the previous value. The chip shows what the exchange says, not what was requested.",
-      "verifying": "checking…",
+      "notConfirmed": "Sent \u2014 the exchange still reports the previous value. The chip shows what the exchange says, not what was requested.",
+      "verifying": "checking\u2026",
       "halvesOutOfSync": "One half was last confirmed much earlier than the other, so it is shown as unknown rather than paired with a value from a different moment. Open the chip to re-read both.",
       "marginAdjusted": "Position margin updated",
       "pending": "Sending…",
@@ -3865,8 +3866,5 @@
         "available_balance": "the available balance"
       }
     }
-  },
-  "storage": {
-    "quotaExceeded": "Storage quota exceeded. Please clear some space."
   }
 }

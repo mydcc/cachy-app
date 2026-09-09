@@ -652,17 +652,15 @@ export class IndicatorLayer {
             const ich = JSIndicators.ichimoku(
                 a.highs,
                 a.lows,
-                a.closes,
                 s.ichimoku.conversionPeriod,
                 s.ichimoku.basePeriod,
                 s.ichimoku.spanBPeriod,
-                s.ichimoku.displacement || 26,
+                0,
             );
             this.addLine(rows, ich.conversion, P0, "--accent-color", "#2962ff");
             this.addLine(rows, ich.base, P0, "--danger-color", "#ef5350");
             this.addLine(rows, ich.spanA, P0, "--success-color", "#26a69a");
             this.addLine(rows, ich.spanB, P0, "--warning-color", "#ffb300");
-            this.addLine(rows, ich.lagging, P0, "--info-color", "#42a5f5");
         }
 
         // SuperTrend

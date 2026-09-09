@@ -10,6 +10,7 @@ area: calculator
 data_class: none
 adr: none
 depends_on: []
+assignee: claude
 ---
 
 # BUG-0374 — Calculator fee fallback uses hardcoded default instead of per-account remote fee

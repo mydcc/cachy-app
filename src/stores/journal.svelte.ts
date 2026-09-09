@@ -33,7 +33,22 @@ export class JournalManager {
       this.load();
       this.effectActive = true;
 
-      // Note: We're replacing $effect with explicit scheduleSave calls in mutations.
+      // Auto-save effect with 500ms debounce
+      this.effectCleanup = $effect.root(() => {
+        $effect(() => {
+          if (!this.effectActive) return;
+          // Track entries reactivity
+          void this.entries.length;
+          for (const e of this.entries) void e;
+
+          untrack(() => {
+            if (this.saveTimer) clearTimeout(this.saveTimer);
+            this.saveTimer = setTimeout(() => {
+              void this.save();
+            }, 500);
+          });
+        });
+      });
 
       // Synchronously commit any pending state on page unload/reload (AC#4)
       if (typeof window !== "undefined") {
@@ -64,16 +79,6 @@ export class JournalManager {
       window.removeEventListener("beforeunload", this.unloadHandler);
       this.unloadHandler = null;
     }
-  }
-
-  /** Immediately flush any pending debounced save */
-  scheduleSave() {
-    if (!this.effectActive) return;
-    if (this.saveTimer) clearTimeout(this.saveTimer);
-    this.saveTimer = setTimeout(() => {
-      this.saveTimer = null;
-      void this.save();
-    }, 500);
   }
 
   /** Immediately flush any pending debounced save */
@@ -215,7 +220,6 @@ export class JournalManager {
       return false;
     }
     this.entries.push(entry);
-    this.scheduleSave();
     if (this.entries.length > 1000) {
       this.entries.shift();
     }
@@ -226,29 +230,24 @@ export class JournalManager {
     const index = this.entries.findIndex((e) => String(e.id) === String(updatedEntry.id));
     if (index !== -1) {
       this.entries[index] = updatedEntry;
-      this.scheduleSave();
     }
   }
 
   deleteEntry(id: string | number) {
     this.entries = this.entries.filter((e) => String(e.id) !== String(id));
-    this.scheduleSave();
   }
 
   importEntries(newEntries: JournalEntry[]) {
     this.entries = [...this.entries, ...newEntries];
-    this.scheduleSave();
   }
 
   set(entries: JournalEntry[]) {
     this.entries = entries;
-    this.scheduleSave();
   }
 
   // Legacy support
   update(fn: (entries: JournalEntry[]) => JournalEntry[]) {
     this.entries = fn(this.entries);
-    this.scheduleSave();
   }
 
   // -- Derived Metrics ($derived) --

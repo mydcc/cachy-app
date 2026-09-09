@@ -392,7 +392,7 @@ export function calculateIndicatorsFromArrays(
           const spanB = settings?.ichimoku?.spanBPeriod || 52;
           const disp = settings?.ichimoku?.displacement || 26;
 
-          const res = JSIndicators.ichimoku(highsNum, lowsNum, closesNum, conv, base, spanB, disp);
+          const res = JSIndicators.ichimoku(highsNum, lowsNum, conv, base, spanB, disp);
           const idx = res.conversion.length - 1;
 
           const cVal = res.conversion[idx];

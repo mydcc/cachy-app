@@ -43,14 +43,6 @@ class ModalManager {
           const win = new SymbolPickerWindow(resolve);
           windowManager.open(win);
       } else {
-          // BUG-0422: never stack a second dialog. WindowManager dedupes by
-          // id/type and drops the newcomer, so without this check the new
-          // promise would hang forever with no window to answer it. A
-          // duplicate confirm reads as a cancel.
-          if (windowManager.windows.some((w) => w.windowType === "dialog")) {
-              resolve(false);
-              return;
-          }
           const win = new DialogWindow(
               title,
               message,

@@ -10,6 +10,7 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
+assignee: claude
 ---
 
 # BUG-0376 — Account break-even price uses hardcoded DEFAULT_FEES, not venue fee

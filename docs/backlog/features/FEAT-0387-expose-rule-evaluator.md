@@ -2,8 +2,9 @@
 id: FEAT-0387
 title: Expose the rule evaluator to JavaScript and evaluate on candle close
 type: feature
-status: ready
+status: in-progress
 branch: worktree-alert-rule-evaluator-cutover-52ddf9
+assignee: claude-code
 start_date: 2026-09-05
 priority: P1
 milestone: M4
@@ -373,7 +374,3 @@ path that would make it safe is [FEAT-0406](FEAT-0406-rule-loop-disarm-path.md).
 - [`docs/alert-system.md`](../../alert-system.md)
 - `technicals-wasm/src/rule/evaluate.rs`, `technicals-wasm/src/rule/exports.rs`
 - `src/lib/rules/ruleSchema.ts`
-
-## Grooming note (2026-09-08)
-
-6 of 7 acceptance criteria proven and merged (#2673, #2703). Remaining: the evaluation-cost bound is unmeasured (see FEAT-0368). No active claim; ready for the measurement follow-up.

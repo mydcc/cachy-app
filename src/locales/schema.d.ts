@@ -497,6 +497,7 @@ export type TranslationKey =
   | "journal.clickToExpand"
   | "journal.delete"
   | "journal.confirmDelete"
+  | "journal.confirmRecalculateAtr"
   | "journal.performancePerSymbol"
   | "journal.trades"
   | "journal.profitPercent"
@@ -616,6 +617,8 @@ export type TranslationKey =
   | "journal.messages.min20Trades"
   | "journal.messages.noStrategyLosses"
   | "journal.messages.noTimingLosses"
+  | "journal.messages.atrRecalcStart"
+  | "journal.messages.atrRecalcError"
   | "journal.deepDive.title"
   | "journal.deepDive.performance"
   | "journal.deepDive.execution"
@@ -776,8 +779,6 @@ export type TranslationKey =
   | "journal.chartFullAlt"
   | "journal.accountColumn"
   | "journal.accountUnknown"
-  | "journal.saveFailed"
-  | "journal.saveError"
   | "marketOverview.24hHigh"
   | "marketOverview.24hLow"
   | "marketOverview.vol"
@@ -3147,5 +3148,4 @@ export type TranslationKey =
   | "rules.sentence.account.unrealised_pnl"
   | "rules.sentence.account.unrealised_pnl_percent"
   | "rules.sentence.account.exposure"
-  | "rules.sentence.account.available_balance"
-  | "storage.quotaExceeded";
+  | "rules.sentence.account.available_balance";

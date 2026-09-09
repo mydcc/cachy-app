@@ -879,10 +879,12 @@ export const JSIndicators = {
   ichimoku(
     high: NumberArray,
     low: NumberArray,
-    close: NumberArray,
     conversionPeriod: number,
     basePeriod: number,
     spanBPeriod: number,
+    // Accepted but not implemented — see docs/TODO.md item 16 (Chikou Span
+    // is never computed; `lagging` below is always empty).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     laggingSpan2: number,
   ) {
     const len = high.length;
@@ -923,7 +925,7 @@ export const JSIndicators = {
       }
     }
 
-    const displacement = laggingSpan2;
+    const displacement = basePeriod;
 
     const currentSpanA = new Float64Array(len).fill(NaN);
     const currentSpanB = new Float64Array(len).fill(NaN);
@@ -933,18 +935,12 @@ export const JSIndicators = {
       currentSpanB[i] = spanB[i - displacement];
     }
 
-    // Chikou (lagging) span: the close of t+displacement plotted at t.
-    const lagging = new Float64Array(len).fill(NaN);
-    for (let i = 0; i < len - displacement; i++) {
-      lagging[i] = close[i + displacement];
-    }
-
     return {
       conversion,
       base,
       spanA: currentSpanA,
       spanB: currentSpanB,
-      lagging,
+      lagging: new Float64Array(0),
     };
   },
 
@@ -1788,7 +1784,6 @@ export const indicators = {
   calculateIchimoku(
     high: (number | string | Decimal)[],
     low: (number | string | Decimal)[],
-    close: (number | string | Decimal)[],
     conversionPeriod: number = 9,
     basePeriod: number = 26,
     spanBPeriod: number = 52,
@@ -1797,11 +1792,9 @@ export const indicators = {
     if (high.length < spanBPeriod) return null;
     const h = high.map(toNumFast);
     const l = low.map(toNumFast);
-    const c = close.map(toNumFast);
     const res = JSIndicators.ichimoku(
       h,
       l,
-      c,
       conversionPeriod,
       basePeriod,
       spanBPeriod,
@@ -1813,7 +1806,6 @@ export const indicators = {
       base: new Decimal(res.base[idx]),
       spanA: new Decimal(res.spanA[idx]),
       spanB: new Decimal(res.spanB[idx]),
-      lagging: new Decimal(res.lagging[idx]),
     };
   },
 

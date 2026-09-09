@@ -199,30 +199,4 @@ describe("ModalManager", () => {
 
         localStorage.clear();
     });
-
-    it("BUG-0422: resolves false without opening when a dialog is already open", async () => {
-        // A dialog the registry already holds, the way the chip-dialog flow
-        // leaves one behind. Faked at the getter so no real window is
-        // registered and no other test can observe it.
-        const winsSpy = vi
-            .spyOn(windowManager, "windows", "get")
-            .mockReturnValue([{ windowType: "dialog" }] as never);
-        const openSpy = vi.mocked(windowManager.open);
-        try {
-            openSpy.mockClear();
-            const pending = modalState.show("Title", "Message", "confirm");
-            if (openSpy.mock.calls.length > 0) {
-                // Pre-fix path: a duplicate window was opened and its promise
-                // can never settle through the manager; settle it like a
-                // cancel so the test itself never hangs.
-                const last = openSpy.mock.calls[openSpy.mock.calls.length - 1][0];
-                (last as DialogWindow).closeWith(false);
-            }
-            await expect(pending).resolves.toBe(false);
-            // Post-fix the duplicate is refused before open() runs.
-            expect(openSpy).not.toHaveBeenCalled();
-        } finally {
-            winsSpy.mockRestore();
-        }
-    });
 });

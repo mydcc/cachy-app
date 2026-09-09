@@ -2,15 +2,15 @@
 id: BUG-0421
 title: A stale positions read can resurrect a position the trader has closed
 type: bug
-status: done
+status: in-progress
 priority: P1
 milestone: none
-shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: trade-panel
 data_class: none
 adr: none
 depends_on: [BUG-0412]
+assignee: claude
 ---
 
 # BUG-0421 — A stale positions read can resurrect a position the trader has closed

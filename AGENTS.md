@@ -117,8 +117,6 @@ Agent-specific config files (`CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`) contain to
 
 - **Language:** Commits, Pull Request descriptions, and PR comments MUST ALWAYS be written in English. German is strictly forbidden in PR comments and commits.
 - [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `refactor`, `BREAKING CHANGE:` in footer).
-- **Commit message discipline (Linux-kernel style):** `subsystem: imperative summary, max ~72 chars, what + why` (e.g. `fix(positions): recompute PnL from live mark price`). One logical change per commit, one entry per PR — land PRs via squash-merge so the history stays readable without later filtering.
-- **Release notes are curated by hand.** `CHANGELOG.md` is maintained per stable release (Added / Changed / Fixed, user language, minor fixes omitted). A release PR adds its highlights there, verified against the diff — no plugin writes to that file.
 - **No tool-attribution footers.** Do not append `Co-Authored-By: Claude ...`, `Claude-Session: ...`, or similar agent-attribution lines to commit messages — they aren't part of Cachy's commit standard. Keep the message to the Conventional Commits format above.
 - **Never push directly to `develop` or `main`.** Every change goes through a feature branch and a Pull Request; target branch is always `develop`.
 - **Pull Request Linking:** Every Pull Request MUST include `Fixes #<github_issue_number>` (e.g. `Fixes #1770`) at the start of its description so GitHub automatically links the PR with the issue and advances the Kanban card.
