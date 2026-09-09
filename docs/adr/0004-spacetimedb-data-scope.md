@@ -1,6 +1,6 @@
 # ADR-0004: What SpacetimeDB is allowed to hold, and who operates it
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-08-25, on merge of the PR that introduced it)
 - **Date:** 2026-08-01
 - **Deciders:** @mydcc
 
