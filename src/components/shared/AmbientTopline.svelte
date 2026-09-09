@@ -160,10 +160,13 @@
     });
 
     // Dynamically update canvas height on intensity change
+    // (updateStyle=false erhält canvas CSS width/height 100% — sonst
+    // überschreibt setSize die responsiven Styles mit fixen px-Werten)
     $effect(() => {
         if (!renderer || !isEnabled) return;
         const h = intensityConfig.height;
-        renderer.setSize(window.innerWidth, h);
+        const w = container?.clientWidth || window.innerWidth;
+        renderer.setSize(w, h, false);
     });
 
     onMount(() => {
@@ -182,7 +185,7 @@
                 powerPreference: "low-power",
             });
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.setSize(window.innerWidth, intensityConfig.height);
+            renderer.setSize(container.clientWidth || window.innerWidth, intensityConfig.height, false);
             renderer.setClearColor(0x000000, 0);
 
             const canvas = renderer.domElement;
@@ -355,11 +358,20 @@
         };
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
-        const handleResize = () => {
+        const syncWidth = () => {
             if (!renderer) return;
-            renderer.setSize(window.innerWidth, intensityConfig.height);
+            renderer.setSize(container.clientWidth || window.innerWidth, intensityConfig.height, false);
+        };
+        const handleResize = () => {
+            syncWidth();
         };
         window.addEventListener("resize", handleResize);
+
+        // Container beobachten: fängt Fenster-Resize, Sidebar-Toggles, Zoom etc.
+        // ab — die Zeichenfläche folgt dynamisch der tatsächlichen Breite.
+        const resizeObserver =
+            typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncWidth) : null;
+        resizeObserver?.observe(container);
 
         return () => {
             requestStartLoop = null;
@@ -367,6 +379,7 @@
             stopLoop();
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("resize", handleResize);
+            resizeObserver?.disconnect();
             // BUG-0428: wie BUG-0414 (Präzedenz 0f2ff27) — forceContextLoss()
             // lässt die Overlay-Region in Chromium beim Teardown weiß
             // aufblitzen. dispose() genügt; Kontext geht mit dem Canvas.
@@ -392,7 +405,8 @@
         position: absolute;
         top: 0;
         left: 0;
-        width: 100vw;
+        right: 0;
+        width: 100%;
         height: 24px;
         z-index: 0;
         pointer-events: none;
