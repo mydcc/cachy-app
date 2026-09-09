@@ -317,7 +317,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0411",
     "title": "Modal windows are oversized with large empty areas",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
     "priority": "P0",
     "milestone": "M4",
     "editions": [
