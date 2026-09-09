@@ -68,6 +68,7 @@ const originalError = console.error;
 // Import after mocks are set up (vi.mock calls are hoisted automatically)
 import { headersHandler, handle } from './hooks.server';
 import { CONSTANTS } from '$lib/constants';
+import { SECURITY_HEADERS } from '../server-headers.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -105,6 +106,26 @@ describe('headersHandler (Server Hook)', () => {
     expect(result.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(result.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     expect(result.headers.get('Permissions-Policy')).toBe('camera=(self "https://space.cachy.app"), microphone=(self "https://space.cachy.app"), xr-spatial-tracking=(self "https://space.cachy.app" *), display-capture=(self "https://space.cachy.app"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*');
+    // Fallback CSP comes from the shared server-headers.js single source of truth
+    const expectedCsp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
+    expect(result.headers.get('Content-Security-Policy')).toBe(expectedCsp);
+  });
+
+  it('should not override an existing SvelteKit nonce CSP', async () => {
+    // Arrange: SvelteKit (kit.csp.mode "auto") already set a nonce CSP
+    const nonceCsp = "default-src 'self'; script-src 'self' 'nonce-abc123'";
+    const mockEvent = {} as RequestEvent;
+    const mockResponse = new Response('test body', {
+      status: 200,
+      headers: { 'Content-Security-Policy': nonceCsp }
+    });
+    const mockResolve = vi.fn().mockResolvedValue(mockResponse);
+
+    // Act
+    const result = await headersHandler({ event: mockEvent, resolve: mockResolve });
+
+    // Assert: the nonce CSP survives untouched (overwriting it would break app.html scripts)
+    expect(result.headers.get('Content-Security-Policy')).toBe(nonceCsp);
   });
 });
 
