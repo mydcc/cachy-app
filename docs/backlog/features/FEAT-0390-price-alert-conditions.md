@@ -58,11 +58,51 @@ are `Decimal` throughout — no floats, per the non-negotiable rule in `AGENTS.m
 
 - The slider preset UI. Nice, not load-bearing; add it after the conditions are right.
 
-## Open questions
+## Decisions (2026-09-09)
 
-- **What is the reference point for a percentage move?** The price at arming, the
-  previous close, or the session open. All three are defensible and they are different
-  alarms — pick one, name it on the rule, and say so in the sentence.
+**The reference point for a percentage move is a closed candle `lookback` closes
+back.** The three candidates were the price at arming, the previous close, and the
+session open. The price at arming needs no Rust at all — it bakes an absolute
+threshold into a `Constant` — but it is tied to one symbol at one instant, so it
+cannot be carried into a template ([`FEAT-0391`](FEAT-0391-alert-template-library.md))
+or proposed by a model ([`FEAT-0304`](FEAT-0304-model-proposes-rules.md)), and the
+content hash would then record "threshold 105000" rather than "5% move rule". Session
+open needs a session and timezone model the evaluator does not have. A closed candle
+is the only reference a backtest and a live run can agree on, which is the claim
+ADR-0012 exists to make true. `lookback` generalises "previous close" to "over *n*
+closes", which is what the volatility case actually wants.
+
+**Last vs. mark price is implemented, not deferred.** This contradicted the item's own
+"no new Rust": `Operand::Price` had no way to say which series it read, and the
+evaluator receives one candle series per timeframe. Both were extended.
+
+**Neither addition needs a migration.** `source` defaults to `last` and is skipped on
+serialisation; `percent_change` is a new variant. Every stored document keeps its exact
+canonical form and therefore its content hash, so there is no schema version bump.
+
+## State (2026-09-09)
+
+Shipped in PR #2927. What exists:
+
+- `PriceSource` and `Operand::PercentChange` in `technicals-wasm/src/rule/condition.rs`,
+  resolved per series in `evaluate.rs` — each operand indexes its *own* series, because
+  the mark and last series are fetched separately and need not be the same length.
+- A mark request is refused where the venue cannot serve one: Bitunix takes
+  `type=MARK_PRICE`, Bitget's mix candles endpoint is last-price only and says so
+  through `supportsMarkKlines`.
+- `markCandleCache.ts` — the alert engine's own mark-candle cache, not `marketState`
+  (ADR-0009). Fetched per series the first time an armed rule reads it; a 501 is
+  recorded rather than re-asked.
+- `PriceTab.svelte` with the four conditions, and the Manage tab's quick-add form
+  removed as [`FEAT-0389`](FEAT-0389-super-alert-panel.md) said it would be.
+
+What is open:
+
+- Bitget mark candles. `/api/v2/mix/market/history-mark-candles` exists; wiring it is
+  its own change. Until then a mark rule on Bitget stays indeterminate and says so.
+- The slider preset UI, which was out of scope here and still is.
+- Not exercised against a live venue: the mark-kline request path is covered by tests,
+  not by a real round-trip.
 
 ## Links
 
