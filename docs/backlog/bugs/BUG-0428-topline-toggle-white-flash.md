@@ -2,7 +2,7 @@
 id: BUG-0428
 title: Toggling Sentiment Topline flashes its region white briefly
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: M4
 editions: [community, pro, private]
@@ -31,8 +31,12 @@ Remove the call; `dispose()` stays.
 
 ## Acceptance criteria
 
-- [ ] No white flash on ~20 topline on/off toggles (Brave/Dark/Default)
-- [ ] No GL errors in console; overlay still renders when re-enabled
+- [x] No white flash on ~20 topline on/off toggles (Brave/Dark/Default)
+- [x] No GL errors in console; overlay still renders when re-enabled
+
+Verified + merged 2026-09-09 via #2809. Latest release (1.6.0-beta.261)
+predates the merge — first release containing the fix TBD by the next
+`chore(release)`.
 
 ## Out of scope
 

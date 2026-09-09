@@ -2,7 +2,7 @@
 id: BUG-0414
 title: Disabling Burning Borders flashes a white background briefly
 type: bug
-status: in-progress
+status: done
 priority: P0
 milestone: M4
 editions: [community, pro, private]
@@ -10,7 +10,6 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
 branch: fix/bug-0414-white-flash
 ---
 
@@ -90,3 +89,6 @@ Documented only — no investigation done yet by design.
   here (tracked as BUG-0428, PR #2809).
 - Verified 2026-09-09: reporter-tested the removal — Burning Borders
   toggle no longer flickers. Ready to mark `done` on merge of #2808.
+- Done 2026-09-09: merged via #2808. Latest release (1.6.0-beta.261)
+  predates the merge — first release containing the fix TBD by the next
+  `chore(release)`.
