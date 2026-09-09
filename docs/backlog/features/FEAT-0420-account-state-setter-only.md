@@ -2,15 +2,15 @@
 id: FEAT-0420
 title: Make the stamped account fields writable only through their setter
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
+shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: trade-panel
 data_class: none
 adr: none
 depends_on: [FEAT-0417]
-assignee: claude
 ---
 
 # FEAT-0420 — Make the stamped account fields writable only through their setter

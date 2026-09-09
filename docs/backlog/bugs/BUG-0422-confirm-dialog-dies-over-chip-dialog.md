@@ -2,15 +2,15 @@
 id: BUG-0422
 title: Policy confirm dialog never appears over a chip dialog, the toggle stalls silently
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
+shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: trade-panel
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
 ---
 
 # BUG-0422 — Policy confirm dialog never appears over a chip dialog, the toggle stalls silently
@@ -49,12 +49,16 @@ only ever kills real dialogs.
 
 ## Acceptance criteria
 
-- [ ] Margin-mode change with the policy on shows the policy confirm and the
+- [x] Margin-mode change with the policy on shows the policy confirm and the
       change completes on approval.
-- [ ] A `closeOnBlur` modal stays open when a dialog is brought to front.
-- [ ] A second `show()` while a dialog is open resolves `false`; nothing
+- [x] A `closeOnBlur` modal stays open when a dialog is brought to front.
+- [x] A second `show()` while a dialog is open resolves `false`; nothing
       hangs.
-- [ ] Click-outside and Escape still dismiss `closeOnBlur` windows.
+- [x] Click-outside and Escape still dismiss `closeOnBlur` windows.
+
+## Verification (2026-09-08 grooming)
+
+Mechanism proven by the `WindowManager` coexistence + duplicate-guard regression tests and the `modalState.show` duplicate test (PR #2782, merged). Margin-mode confirm flow E2E-verified in dev per the PR body (confirm renders above the intact chip dialog).
 
 ## Out of scope
 
