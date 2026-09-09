@@ -37,9 +37,9 @@ app.use((req, res, next) => {
 // path is a filesystem path (backslashes on Windows).
 app.use(express.static('build/client', {
   index: false,
-  setHeaders: (res, path) => {
+  setHeaders: (res, filePath) => {
     applySecurityHeaders(res);
-    res.setHeader('Cache-Control', cacheControlFor(path));
+    res.setHeader('Cache-Control', cacheControlFor(filePath));
   }
 }));
 app.use(handler);
