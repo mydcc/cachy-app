@@ -43,9 +43,9 @@ export function applySecurityHeaders(res) {
 }
 
 /**
- * Fingerprinted SvelteKit assets live under /_app/immutable/ and are safe to
- * cache forever (immutable, content-hashed filenames). Everything else —
- * index.html, favicon.ico, non-hashed files — must revalidate.
+ * Fingerprinted SvelteKit assets live under /_app/immutable/ and static fonts
+ * under /fonts/ are safe to cache forever (immutable content/versioned assets).
+ * Everything else — index.html, favicon.ico, non-hashed files — must revalidate.
  * Normalize path separators first: the callback receives a filesystem path,
  * which uses backslashes on Windows.
  * @param {string} filePath
@@ -53,7 +53,13 @@ export function applySecurityHeaders(res) {
  */
 export function isImmutableAsset(filePath) {
   const normalized = filePath.split(path.sep).join("/");
-  return normalized.includes("/_app/immutable/");
+  if (normalized.includes("/_app/immutable/")) {
+    return true;
+  }
+  if (normalized.includes("/fonts/") && /\.(ttf|woff2?|eot|otf)$/i.test(normalized)) {
+    return true;
+  }
+  return false;
 }
 
 /**
