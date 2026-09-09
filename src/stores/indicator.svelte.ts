@@ -476,7 +476,7 @@ class IndicatorManager {
 
   toJSON(): IndicatorSettings {
     // Return a fresh clone of the cached snapshot
-    return { ...structuredClone(this._snapshot), _cachedJson: this._cachedJson };
+    return { ...JSON.parse(this._cachedJson), _cachedJson: this._cachedJson };
   }
 
   subscribe(fn: (value: IndicatorSettings) => void): () => void {
