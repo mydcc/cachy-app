@@ -79,3 +79,12 @@ Documented only — no investigation done yet by design.
   theme, Default background, Brave — page background flickers white
   briefly, intermittently. Unblocked; fix in progress on
   `fix/bug-0414-white-flash`.
+- Negative result 2026-09-09: deferring the GL teardown by one frame
+  (rAF) did not stop the flicker — reporter-tested, still flashes.
+- Precedent found: `0f2ff27` (Feb 2026) removed `forceContextLoss()` from
+  `ThreeBackground` and `TradeFlowBackground` as "risky". Same overlay
+  class, same risk. New direction: remove the call in `FireOverlay`
+  instead of deferring it (`dispose()` stays). Reporter also observes the
+  same pattern in the Sentiment Topline region; `AmbientTopline.svelte`
+  still calls `forceContextLoss()` — separate scope decision, untouched
+  here.

@@ -324,25 +324,16 @@
             stopLoop();
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("resize", handleResize);
-            // BUG-0414: drei synchrone GL-Context-Kills im Unmount-Flush kosten
-            // Chromium zeitweise einen Compositor-Frame (weißer Blitz). Der
-            // Canvas ist hier bereits display:none/entfernt — GPU-Teardown
-            // läuft daher einen Frame später, außerhalb der kritischen Section.
-            const gl = renderer;
-            const geo = geometry;
-            const mat = material;
-            renderer = null;
-            if (gl) {
-                requestAnimationFrame(() => {
-                    geo.dispose();
-                    mat.dispose();
-                    gl.dispose();
-                    gl.forceContextLoss();
-                });
-            } else {
-                geo.dispose();
-                mat.dispose();
+            // BUG-0414: forceContextLoss() lässt die Overlay-Region in Chromium
+            // weiß aufblitzen (Präzedenz: 0f2ff27 entfernte es aus ThreeBackground
+            // und TradeFlowBackground als "risky"). dispose() gibt die GL-
+            // Ressourcen frei; der Kontext geht mit dem Canvas.
+            if (renderer) {
+                renderer.dispose();
             }
+            renderer = null;
+            geometry.dispose();
+            material.dispose();
         };
     });
 </script>
