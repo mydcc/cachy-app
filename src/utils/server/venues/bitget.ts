@@ -635,6 +635,12 @@ export const bitgetVenue: VenueModule = {
     return fetchBitgetBalance(creds.apiKey, creds.apiSecret, creds.passphrase ?? "");
   },
 
+  // `/api/mix/v1/market/candles` serves the last-price series only. Bitget
+  // does have a separate mark-candles endpoint, but wiring it is its own
+  // change; until then a mark request is refused rather than answered with
+  // last-price candles wearing a mark label.
+  supportsMarkKlines: false,
+
   fetchKlines(query: KlineQuery): Promise<VenueKline[]> {
     return fetchBitgetKlines(
       query.symbol,
