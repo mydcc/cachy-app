@@ -2,15 +2,15 @@
 id: FEAT-0417
 title: Guard position-mode writes in CI so the freshness stamp cannot be dropped
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
+shipped: 1.6.0-beta.261
 editions: [community, pro, private]
 area: trade-panel
 data_class: none
 adr: none
 depends_on: []
-assignee: claude
 ---
 
 # FEAT-0417 — Guard position-mode writes in CI so the freshness stamp cannot be dropped
