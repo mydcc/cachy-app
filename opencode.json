@@ -18,6 +18,23 @@
         "GORTEX_INDEX_WORKERS": "8"
       },
       "type": "local"
+    },
+    "jcodemunch": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "jcodemunch-mcp"
+      ],
+      "enabled": true
+    },
+    "svelte": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@sveltejs/mcp"
+      ],
+      "enabled": true
     }
   }
 }
