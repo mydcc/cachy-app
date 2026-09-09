@@ -68,7 +68,7 @@ const originalError = console.error;
 // Import after mocks are set up (vi.mock calls are hoisted automatically)
 import { headersHandler, handle } from './hooks.server';
 import { CONSTANTS } from '$lib/constants';
-import { SECURITY_HEADERS } from '../../server-headers.js';
+import { SECURITY_HEADERS } from '../server-headers.js';
 
 beforeEach(() => {
   vi.clearAllMocks();

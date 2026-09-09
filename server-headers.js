@@ -20,6 +20,7 @@ import path from "node:path";
 // production Express server applies. Kept as plain (name, value) tuples so
 // both the request middleware and the express.static setHeaders hook set
 // identical values without drifting.
+/** @type {[string, string][]} */
 export const SECURITY_HEADERS = [
   ["Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload"],
   ["Content-Security-Policy", "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://s.cachy.app; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https://s.cachy.app https: blob: data:; frame-ancestors 'self'; connect-src 'self' https://s.cachy.app https://chat.cachy.app wss://chat.cachy.app https://*.cachy.app wss://*.cachy.app wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://generativelanguage.googleapis.com https://api.openai.com"],
@@ -32,6 +33,9 @@ export const SECURITY_HEADERS = [
   ["Permissions-Policy", "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), xr-spatial-tracking=(self \"https://space.cachy.app\" *), display-capture=(self \"https://space.cachy.app\"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*"],
 ];
 
+/**
+ * @param {{ setHeader: (name: string, value: string) => unknown }} res
+ */
 export function applySecurityHeaders(res) {
   for (const [name, value] of SECURITY_HEADERS) {
     res.setHeader(name, value);
@@ -44,12 +48,18 @@ export function applySecurityHeaders(res) {
  * index.html, favicon.ico, non-hashed files — must revalidate.
  * Normalize path separators first: the callback receives a filesystem path,
  * which uses backslashes on Windows.
+ * @param {string} filePath
+ * @returns {boolean}
  */
 export function isImmutableAsset(filePath) {
   const normalized = filePath.split(path.sep).join("/");
   return normalized.includes("/_app/immutable/");
 }
 
+/**
+ * @param {string} filePath
+ * @returns {string}
+ */
 export function cacheControlFor(filePath) {
   return isImmutableAsset(filePath)
     ? "public, max-age=31536000, immutable"
