@@ -712,7 +712,7 @@ Template:
 What has to happen, and what the options are.
 -->
 
-## 18. Broader SpacetimeDB use beyond chat needs its own ADR
+## 18. ~~Broader SpacetimeDB use beyond chat needs its own ADR~~ — RESOLVED
 
 **Roadmap item 25** (`## Later`). Not a bug or a gap — a standing
 guardrail for the next time someone proposes a server-side feature.
@@ -743,6 +743,15 @@ not folded into this item.
 > attached) and distinguishes a Cachy-operated instance from a
 > user-operated one. This item stays open as the standing guardrail: a
 > feature ADR-0004 does not cover still needs its own.
+
+> **✅ RESOLVED, September 2026.** The guardrail lives in the ADRs now, not
+> in this list: ADR-0004 (accepted 2026-08-25, status drift from
+> `Proposed` fixed here) holds the standing rule — a feature it does not
+> cover needs its own ADR — and `docs/adr/README.md` already requires an
+> ADR whenever a change "alters where user data lives or what leaves the
+> device" or "introduces or removes a server component". No open decision
+> remains, so a TODO entry adds nothing the ADR set doesn't enforce.
+> The item was closed as documentation-only: no code change.
 
 ## 19. ~~Publish `/docs` to Confluence as a read-only mirror~~ — dropped
 
