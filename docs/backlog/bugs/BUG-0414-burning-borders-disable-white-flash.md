@@ -49,3 +49,27 @@ whether teardown should hide before detach.
 
 Filed as minor per reporter; priority P0 per project rule for new bugs.
 Documented only — no investigation done yet by design.
+
+## Triage (2026-09-09, opencode — examine-only, no code changed)
+
+- Scope correction from reporter: the flash covers only the background
+  layer, not the whole page.
+- The mechanism sketched in the issue body (`--page-bg-base`, warm-up
+  transition) does not exist in the tree: zero hits repo-wide, and
+  `git log --all -S "page-bg-base"` is empty — the variable never
+  existed. Pointer line numbers in the issue are stale (e.g.
+  `OnboardingSpotlight.svelte:15` is the license header).
+- Verified toggle path: plain `bind:checked`
+  (`VisualsAppearance.svelte:219`) → `fireStore` cleanup
+  (`src/actions/burn.ts:182`) → unmount of three transparent
+  `FireOverlay` canvases (`src/routes/+layout.svelte:588`). No
+  background component (`BackgroundRenderer`, `BackgroundAnimations`,
+  `ThreeBackground`, `TradeFlowBackground`, `AmbientTopline`) reads
+  `enableBurningBorders` or `borderEffect`. `body` is transparent,
+  `html` carries the theme base color; `applyThemeToDom` runs on theme
+  switch only. No reload on toggle.
+- Blocked on repro facts: theme, `backgroundType`, toggle location /
+  browser (or a video of the flash). A 1–2 frame transient cannot be
+  found by reading code, so no honest fix plan is possible yet.
+- Skipped per reporter instruction 2026-09-09; stays `specced` until
+  the repro facts land.
