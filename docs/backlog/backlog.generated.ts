@@ -5829,24 +5829,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0423-coalesce-duplicate-account-fetches.md"
   },
   {
-    "id": "BUG-0427",
-    "title": "worktree-cleanup.sh refuses squash-merged branches as unmerged",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "tooling",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md"
-  },
-  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
