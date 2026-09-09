@@ -88,10 +88,16 @@ describe('isImmutableAsset', () => {
     expect(isImmutableAsset('build/client/_app/immutable/')).toBe(true);
   });
 
+  it('identifies font assets under /fonts/', () => {
+    expect(isImmutableAsset('build/client/fonts/Inter/Inter-VariableFont_opsz,wght.ttf')).toBe(true);
+    expect(isImmutableAsset('build/client/fonts/Manrope/Manrope.woff2')).toBe(true);
+  });
+
   it('rejects non-immutable paths', () => {
     expect(isImmutableAsset('build/client/index.html')).toBe(false);
     expect(isImmutableAsset('build/client/favicon.ico')).toBe(false);
     expect(isImmutableAsset('build/client/_app/entry/start.js')).toBe(false);
+    expect(isImmutableAsset('build/client/fonts/README.txt')).toBe(false);
   });
 
   it('does not confuse the immutable-2 dir with the immutable dir', () => {
