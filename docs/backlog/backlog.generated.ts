@@ -354,26 +354,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0414",
     "title": "Disabling Burning Borders flashes a white background briefly",
     "type": "bug",
-    "status": "in-progress",
-    "priority": "P0",
-    "milestone": "M4",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "ui",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "assignee": "opencode",
-    "branch": "fix/bug-0414-white-flash",
-    "file": "bugs/BUG-0414-burning-borders-disable-white-flash.md"
-  },
-  {
-    "id": "BUG-0428",
-    "title": "Toggling Sentiment Topline flashes its region white briefly",
-    "type": "bug",
     "status": "specced",
     "priority": "P0",
     "milestone": "M4",
@@ -386,7 +366,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "file": "bugs/BUG-0428-topline-toggle-white-flash.md"
+    "file": "bugs/BUG-0414-burning-borders-disable-white-flash.md"
   },
   {
     "id": "FEAT-0011",
@@ -5847,24 +5827,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0412"
     ],
     "file": "bugs/BUG-0423-coalesce-duplicate-account-fetches.md"
-  },
-  {
-    "id": "BUG-0427",
-    "title": "worktree-cleanup.sh refuses squash-merged branches as unmerged",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "tooling",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md"
   },
   {
     "id": "FEAT-0022",

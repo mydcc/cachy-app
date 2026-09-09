@@ -2,9 +2,9 @@
 
 # Backlog index
 
-310 items. How to read and add them: [README.md](README.md).
+308 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · 🟡 in-progress 1 · ✅ done 231
+Counts by status: 💡 idea 27 · 📋 specced 43 · 🟢 ready 7 · ✅ done 231
 
 ---
 
@@ -121,8 +121,7 @@ Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | ✅ done | trade-panel |
 | [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | 📋 specced | ui |
 | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | ✅ done | trade-panel |
-| [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | 🟡 in-progress | ui |
-| [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | 📋 specced | ui |
+| [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | 📋 specced | ui |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | ✅ done | alerts |
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
@@ -342,7 +341,6 @@ Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | chat |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | exchange |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | exchange |
-| [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | 📋 specced | tooling |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -396,8 +394,7 @@ Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | 📋 specced | M4 | community, pro, private | none | none | — |
 | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | ✅ done | M4 | community, pro, private | A | none | — |
-| [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | 🟡 in-progress | M4 | community, pro, private | none | none | — |
-| [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | 📋 specced | M4 | community, pro, private | none | none | — |
+| [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | 📋 specced | M4 | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -648,7 +645,6 @@ Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · 🟡 in-pro
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | 🟢 ready | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
-| [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -694,4 +690,4 @@ Counts by status: 💡 idea 27 · 📋 specced 44 · 🟢 ready 7 · 🟡 in-pro
 
 ---
 
-Next free number: **0429**
+Next free number: **0427**

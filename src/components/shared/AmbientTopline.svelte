@@ -367,11 +367,9 @@
             stopLoop();
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("resize", handleResize);
-            // BUG-0428: wie BUG-0414 (Präzedenz 0f2ff27) — forceContextLoss()
-            // lässt die Overlay-Region in Chromium beim Teardown weiß
-            // aufblitzen. dispose() genügt; Kontext geht mit dem Canvas.
             if (renderer) {
                 renderer.dispose();
+                renderer.forceContextLoss();
             }
             geometry.dispose();
             material.dispose();
