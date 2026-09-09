@@ -41,6 +41,9 @@ import {
   ruleSchema,
 } from "../lib/rules/ruleSchema";
 import type {
+  Condition,
+  PriceField,
+  PriceSource,
   RuleDocument,
   RuleRefusal,
   TimeframeString,
@@ -95,6 +98,23 @@ class AlertPanelStore {
   draft = $state<RuleDocument>(blankDraft("BTCUSDT"));
 
   /**
+   * Which OHLC value of a candle new conditions read, chosen in the panel
+   * header. Panel state rather than document state: it is a default the
+   * builders apply, and each condition carries its own copy once written.
+   */
+  priceField = $state<PriceField>("close");
+
+  /**
+   * Which price series new conditions read (FEAT-0390).
+   *
+   * Kept beside `priceField` and not inside the draft for the same reason —
+   * and separate *from* it because the two answer different questions: `close`
+   * versus `high` is which number in the candle, `last` versus `mark` is which
+   * candle series it came from.
+   */
+  priceSeries = $state<PriceSource>("last");
+
+  /**
    * What the core refused, from the last `validate()`. Empty means either
    * "accepted" or "not validated yet" — `hasValidated` separates those, so
    * the panel does not open showing an accusatory green tick.
@@ -113,9 +133,29 @@ class AlertPanelStore {
   /** Starts a fresh draft, e.g. when the panel opens on a new symbol. */
   reset(symbol: string) {
     this.draft = blankDraft(symbol);
+    this.priceField = "close";
+    this.priceSeries = "last";
     this.refusals = [];
     this.hasValidated = false;
     this.coreUnavailable = false;
+  }
+
+  /**
+   * Replace the draft's condition with the single one a builder produced.
+   *
+   * Wrapped in an `all` group rather than assigned to `conditions` directly:
+   * the shape stays the one the Combo tab (FEAT-0030) extends, so moving from
+   * one condition to several is adding a member rather than rewriting the
+   * tree. A builder that produced nothing usable passes `null`, which empties
+   * the group and disables the arm button — never leaves a stale condition
+   * behind that the trader has since edited away.
+   */
+  setSingleCondition(condition: Condition | null) {
+    this.draft.conditions = {
+      kind: "group",
+      op: "all",
+      of: condition ? [condition] : [],
+    };
   }
 
   setSymbol(symbol: string) {

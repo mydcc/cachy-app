@@ -2,7 +2,9 @@
 id: FEAT-0390
 title: Price alert conditions beyond a single target
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: claude/super-alert-next-task-mpte57
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -10,8 +12,8 @@ area: alerts
 data_class: A
 adr: ADR-0012
 depends_on: [FEAT-0389]
-size: S
-estimate: 3
+size: L
+estimate: 8
 ---
 
 # FEAT-0390 — Price alert conditions beyond a single target
