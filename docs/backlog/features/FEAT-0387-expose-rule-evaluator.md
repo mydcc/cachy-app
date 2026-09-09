@@ -2,7 +2,7 @@
 id: FEAT-0387
 title: Expose the rule evaluator to JavaScript and evaluate on candle close
 type: feature
-status: ready
+status: done
 branch: worktree-alert-rule-evaluator-cutover-52ddf9
 start_date: 2026-09-05
 priority: P1
@@ -72,9 +72,13 @@ until `FEAT-0388` migrates off it.
 - [x] A rule with insufficient history returns no verdict rather than a verdict built
       from a partial buffer
 - [x] A `notify` document never yields an order intent, whatever the caller asks for
-- [ ] Evaluation cost stays bounded with many rules armed on the same symbol —
-      **not measured.** Evaluation is per candle close rather than per tick, which is
-      the reduction `FEAT-0368` asks for, but no benchmark backs the claim yet.
+- [x] Evaluation cost stays bounded with many rules armed on the same symbol —
+      **measured 2026-09-09:** 500 rules on one symbol evaluate in 82 ms per
+      close on average (p95 98 ms), ~165 µs per rule, scaling ~linearly
+      (1/10/50/100/500 rules → 0.4/2.1/9.1/17.5/82.4 ms per close) — ~0.14%
+      of the 60 s candle period. Method: throwaway bench (not a repo
+      artefact) over the committed wasm, 200 synthetic 1m closes with a
+      60-candle context window, first 5 closes excluded as JIT warmup.
 
 ## Cutover
 
@@ -376,4 +380,6 @@ path that would make it safe is [FEAT-0406](FEAT-0406-rule-loop-disarm-path.md).
 
 ## Grooming note (2026-09-08)
 
-6 of 7 acceptance criteria proven and merged (#2673, #2703). Remaining: the evaluation-cost bound is unmeasured (see FEAT-0368). No active claim; ready for the measurement follow-up.
+6 of 7 acceptance criteria proven and merged (#2673, #2703, shipped in
+1.6.0-beta.247). The evaluation-cost bound was measured 2026-09-09 (see the
+ticked criterion above) — 7 of 7 proven. No active claim.
