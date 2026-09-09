@@ -162,21 +162,21 @@ An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-gr
 
 ## Git Cleanliness and Parallel Agent Workspaces
 
-Since multiple agents (e.g., Claude, Antigravity, Cursor, OpenCode) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own Git worktree (or Antigravity subagent with `Workspace: "share"`) — never directly in the shared checkout — before starting any task, not only when agents happen to run in parallel:
+Since multiple agents (e.g., Claude, Antigravity, Cursor, OpenCode) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own session Git worktree (or Antigravity subagent with `Workspace: "share"`) — never directly in the shared checkout. One worktree per agent session is enough; a worktree per task is not required and actively harmful (worktree pile-up slows every graph query — each tracked worktree is a full repo in the graph, ~31k nodes — and testing in the wrong worktree causes false results):
 
-**Required sequence before any coding task:**
+**Required sequence once per session:**
 ```bash
 git fetch origin develop                              # get latest
-git worktree add .worktrees/<branch> -b <branch> origin/develop
-# then work exclusively in .worktrees/<branch>/
+git worktree add .worktrees/<session> -b <first-branch> origin/develop
+# then work exclusively in .worktrees/<session>/
 ```
 
-1. Create a dedicated worktree for the task (`git worktree add ...`, or the tool's built-in equivalent, e.g. Claude Code's `WorktreeCreate`).
-2. Ensure that worktree's working directory is clean (`git status`).
-3. Branch from `develop` inside the worktree.
-4. (Optional) Fetch latest changes (`git pull`).
+**Per task inside the session worktree:**
+1. Ensure the tree is clean (`git status` — commit or stash pending work first).
+2. Create a dedicated branch from fresh `develop` (`git fetch origin develop && git checkout -b <branch> origin/develop`) — one branch per task, one PR per branch, so unrelated changes stay separately reviewable and revertable.
+3. Never carry uncommitted changes from one task into the next.
 
-This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. Gortex/jCodeMunch reindex-on-edit hooks) reacting to files it didn't touch. Remove the worktree (`git worktree remove .worktrees/<branch>`) once its branch is merged or abandoned.
+This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. Gortex/jCodeMunch reindex-on-edit hooks) reacting to files it didn't touch. Remove the session worktree (`git worktree remove .worktrees/<session>`) once the session ends; delete each task branch once merged or abandoned.
 
 ## Agent Lifecycle: Check, Claim, Clean Up
 
@@ -191,7 +191,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 - In the item's front matter set `status: in-progress`, `assignee: <agent-name>` (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …), and note the branch name in the item. `npm run backlog:check` fails while an `in-progress` item has no `assignee` — that is intentional, so stale claims surface immediately.
 
 **3. After finishing (mandatory cleanup — also when abandoning):**
-- Retire your worktree — **both halves**: `bash scripts/worktree-cleanup.sh <branch>` from the main checkout removes the directory, untracks it from Gortex and deletes the merged branch in one step. `git worktree remove` alone untracks nothing, and a leftover tracked worktree is a full repo in the graph (~31k nodes), so a handful of them slows every graph query until `explore` hits its deadline. The script refuses anything dirty, unmerged or in use — never pass `--force` to work around that (`--force` only after saving uncommitted work as a patch outside the repo).
+- Retire your session worktree at session end — **both halves**: `bash scripts/worktree-cleanup.sh <branch>` from the main checkout removes the directory, untracks it from Gortex and deletes the merged branch in one step. `git worktree remove` alone untracks nothing, and a leftover tracked worktree is a full repo in the graph (~31k nodes), so a handful of them slows every graph query until `explore` hits its deadline. The script refuses anything dirty, unmerged or in use — never pass `--force` to work around that (`--force` only after saving uncommitted work as a patch outside the repo).
 - Delete the branch once merged or abandoned; push first if its commits should be preserved.
 - Update the item: `status: done` (+ shipped version) when merged; otherwise leave a short state note ("what exists, what is open") so the next agent can continue instead of doing archaeology.
 - Never leave uncommitted changes behind: commit them to the branch or save a patch.
