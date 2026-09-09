@@ -324,10 +324,14 @@
             stopLoop();
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("resize", handleResize);
+            // BUG-0414: forceContextLoss() lässt die Overlay-Region in Chromium
+            // weiß aufblitzen (Präzedenz: 0f2ff27 entfernte es aus ThreeBackground
+            // und TradeFlowBackground als "risky"). dispose() gibt die GL-
+            // Ressourcen frei; der Kontext geht mit dem Canvas.
             if (renderer) {
                 renderer.dispose();
-                renderer.forceContextLoss();
             }
+            renderer = null;
             geometry.dispose();
             material.dispose();
         };

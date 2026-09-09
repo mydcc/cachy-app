@@ -2,7 +2,7 @@
 id: BUG-0414
 title: Disabling Burning Borders flashes a white background briefly
 type: bug
-status: specced
+status: in-progress
 priority: P0
 milestone: M4
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0414-white-flash
 ---
 
 # BUG-0414 — Disabling Burning Borders flashes a white background briefly
@@ -73,3 +75,18 @@ Documented only — no investigation done yet by design.
   found by reading code, so no honest fix plan is possible yet.
 - Skipped per reporter instruction 2026-09-09; stays `specced` until
   the repro facts land.
+- Repro confirmed 2026-09-09 by reporter test: Settings toggle off, Dark
+  theme, Default background, Brave — page background flickers white
+  briefly, intermittently. Unblocked; fix in progress on
+  `fix/bug-0414-white-flash`.
+- Negative result 2026-09-09: deferring the GL teardown by one frame
+  (rAF) did not stop the flicker — reporter-tested, still flashes.
+- Precedent found: `0f2ff27` (Feb 2026) removed `forceContextLoss()` from
+  `ThreeBackground` and `TradeFlowBackground` as "risky". Same overlay
+  class, same risk. New direction: remove the call in `FireOverlay`
+  instead of deferring it (`dispose()` stays). Reporter also observes the
+  same pattern in the Sentiment Topline region; `AmbientTopline.svelte`
+  still calls `forceContextLoss()` — separate scope decision, untouched
+  here (tracked as BUG-0428, PR #2809).
+- Verified 2026-09-09: reporter-tested the removal — Burning Borders
+  toggle no longer flickers. Ready to mark `done` on merge of #2808.
