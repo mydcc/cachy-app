@@ -78,7 +78,8 @@
   title={$_("settings.confirmations.dialog.heading", { values: { action: actionLabel } })}
   onclose={oncancel}
   width={420}
-  height={360}
+  height={380}
+  compact
 >
   <div class="flex h-full flex-col gap-4 p-1">
     <dl class="space-y-2">

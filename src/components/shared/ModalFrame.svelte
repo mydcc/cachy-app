@@ -49,6 +49,10 @@
          *  value is read once at window creation, like alignment/extraClasses. */
         width?: number;
         height?: number;
+        /** Content-sized dialog (BUG-0411): stays floating and centered
+         *  instead of going mobile-fullscreen, clamped to the viewport.
+         *  Read once at window creation, like width/height. */
+        compact?: boolean;
         onclose?: () => void;
         children?: Snippet;
         headerExtra?: Snippet;
@@ -63,6 +67,7 @@
         showBackdrop = true,
         width = undefined,
         height = undefined,
+        compact = false,
         onclose,
         children,
         headerExtra,
@@ -95,6 +100,7 @@
                 showBackdrop,
                 width,
                 height,
+                compact,
                 extraClasses,
                 bodyClass,
                 children,

@@ -153,7 +153,14 @@
   }
 </script>
 
-<ModalFrame title={$_("exchange.accountSettings.leverageEdit")} {onclose} isOpen={true}>
+<ModalFrame
+  title={$_("exchange.accountSettings.leverageEdit")}
+  {onclose}
+  isOpen={true}
+  width={440}
+  height={400}
+  compact
+>
   <div class="flex flex-col gap-3 p-4 min-w-[300px]">
     <!-- A verified fact, not reassurance — see the header comment. -->
     <p class="note-info" data-track-id="note-leverage-anytime">

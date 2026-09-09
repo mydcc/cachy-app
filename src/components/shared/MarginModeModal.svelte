@@ -126,7 +126,14 @@
   }
 </script>
 
-<ModalFrame title={$_("exchange.accountSettings.modeTitle")} {onclose} isOpen={true}>
+<ModalFrame
+  title={$_("exchange.accountSettings.modeTitle")}
+  {onclose}
+  isOpen={true}
+  width={440}
+  height={540}
+  compact
+>
   <div class="flex flex-col gap-4 p-4 min-w-[320px] max-w-[26rem]">
     <!-- Margin mode: per symbol. -->
     <section class="flex flex-col gap-2">

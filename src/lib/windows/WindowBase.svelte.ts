@@ -117,6 +117,13 @@ export abstract class WindowBase {
     isResponsive = $state(false);
     /** Width threshold in pixels for automatic mobile maximization. */
     edgeToEdgeBreakpoint = 768;
+    /**
+     * BUG-0411 — one-shot content fit. When true, WindowFrame measures the
+     * rendered content once synchronously at mount (before first paint)
+     * and sizes the window to fit it, then never touches the size again.
+     * Opt-in per window; ModalFrameWindow enables it for compact dialogs.
+     */
+    fitContentOnce = $state(false);
 
     // --- HARMONIZATION & INTERACTION ---
     showIcon = $state(true);

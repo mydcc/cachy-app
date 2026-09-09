@@ -48,6 +48,15 @@ export interface ModalFrameWindowOptions {
      *  table layout does not open in its narrow fallback form. */
     width?: number;
     height?: number;
+    /**
+     * Content-sized dialog (BUG-0411). Skips the `modal` type's automatic
+     * mobile fullscreen (`isResponsive` edge-to-edge below 768px) so a
+     * small dialog stays a small centered dialog on phones too, and clamps
+     * the explicit size to the viewport so a compact window can never
+     * strand itself wider/taller than the screen. Non-compact callers
+     * (e.g. the Market Dashboard) keep the registry behavior unchanged.
+     */
+    compact?: boolean;
     children?: Snippet;
     headerExtra?: Snippet;
 }
@@ -56,6 +65,7 @@ export class ModalFrameWindow extends WindowBase {
     private _children?: Snippet;
     private _bodyClass: string;
     private _onCloseCallback?: () => void;
+    private _compact: boolean;
 
     constructor(options: ModalFrameWindowOptions) {
         super({
@@ -70,6 +80,27 @@ export class ModalFrameWindow extends WindowBase {
         this._children = options.children;
         this._bodyClass = options.bodyClass ?? "";
         this._onCloseCallback = options.onclose;
+        this._compact = options.compact ?? false;
+        if (this._compact && typeof window !== "undefined") {
+            // A compact dialog is sized by its content, not by the
+            // viewport: never take the responsive fullscreen path the
+            // `modal` registry type applies below 768px.
+            this.isResponsive = false;
+            // BUG-0411: the explicit height below is only the fallback
+            // until WindowFrame measures the rendered content once at
+            // mount (before first paint) and fits the window to it.
+            this.fitContentOnce = true;
+            if (this.isMaximized) {
+                // The base constructor already applied the responsive
+                // maximize before this subclass could opt out; restore()
+                // hands back the explicit size snapshotted beforehand.
+                this.restore();
+            }
+            this.fitCompactToViewport();
+            this.x = (window.innerWidth - this.width) / 2;
+            this.y = (window.innerHeight - this.height) / 2;
+            this.updatePosition(this.x, this.y);
+        }
         this.extraClasses = options.extraClasses ?? "";
         // Overrides the registry default for the "modal" type (showBackdrop:
         // true). Set before first paint -- WindowContainer derives the dimming
@@ -99,5 +130,29 @@ export class ModalFrameWindow extends WindowBase {
     destroy() {
         super.destroy();
         this._onCloseCallback?.();
+    }
+
+    /**
+     * Clamps a compact dialog to the viewport with a small margin.
+     * Shrink-only: a compact window never grows back beyond the explicit
+     * size its caller passed, it just refuses to stick out of the screen
+     * (rotation to a smaller viewport, split-screen). No-op on desktop,
+     * where the explicit size already fits.
+     */
+    private fitCompactToViewport() {
+        if (typeof window === "undefined" || this.isMaximized) return;
+        this.updateSize(
+            Math.min(this.width, window.innerWidth - 16),
+            Math.min(this.height, window.innerHeight - 16),
+        );
+    }
+
+    /** Re-clamps a compact dialog's size on viewport change, then applies
+     * the shared position clamp. Non-compact windows delegate unchanged. */
+    handleViewportResize() {
+        if (this._compact) {
+            this.fitCompactToViewport();
+        }
+        super.handleViewportResize();
     }
 }
