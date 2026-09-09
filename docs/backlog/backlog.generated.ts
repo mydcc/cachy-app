@@ -1448,6 +1448,60 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0422-confirm-dialog-dies-over-chip-dialog.md"
   },
   {
+    "id": "BUG-0424",
+    "title": "Financial values in Bitunix validation schemas allow f64 numbers",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "backend",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0424-bitunix-validation-f64.md"
+  },
+  {
+    "id": "BUG-0425",
+    "title": "Financial values in API schemas allow f64 numbers",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "backend",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0425-api-schemas-f64.md"
+  },
+  {
+    "id": "BUG-0426",
+    "title": "Stateful technicals calculator uses toNumber on tick close",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "technicals",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0426-stateful-technicals-f64.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",

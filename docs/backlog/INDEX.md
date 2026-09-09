@@ -2,9 +2,9 @@
 
 # Backlog index
 
-305 items. How to read and add them: [README.md](README.md).
+308 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 7 · ✅ done 231
+Counts by status: 💡 idea 27 · 📋 specced 43 · 🟢 ready 7 · ✅ done 231
 
 ---
 
@@ -228,6 +228,9 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 7 · ✅ done 23
 | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | ✅ done | trade-panel |
 | [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | ✅ done | trade-panel |
 | [BUG-0422](bugs/BUG-0422-confirm-dialog-dies-over-chip-dialog.md) | Policy confirm dialog never appears over a chip dialog, the toggle stalls silently | P1 | ✅ done | trade-panel |
+| [BUG-0424](bugs/BUG-0424-bitunix-validation-f64.md) | Financial values in Bitunix validation schemas allow f64 numbers | P1 | 📋 specced | backend |
+| [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | 📋 specced | backend |
+| [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | 📋 specced | technicals |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -442,6 +445,9 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 7 · ✅ done 23
 | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0422](bugs/BUG-0422-confirm-dialog-dies-over-chip-dialog.md) | Policy confirm dialog never appears over a chip dialog, the toggle stalls silently | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0424](bugs/BUG-0424-bitunix-validation-f64.md) | Financial values in Bitunix validation schemas allow f64 numbers | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -684,4 +690,4 @@ Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 7 · ✅ done 23
 
 ---
 
-Next free number: **0424**
+Next free number: **0427**
