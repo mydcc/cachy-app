@@ -20,6 +20,7 @@ import type { Handle } from "@sveltejs/kit";
 import { building } from "$app/environment";
 import { logger } from "$lib/server/logger";
 import { i18nReady } from "./locales/i18n";
+import { SECURITY_HEADERS } from "../server-headers.js";
 
 // --- Global Console Interceptor for CachyLog ---
 // Redirects all server-side console logs to the centralized logger and SSE stream
@@ -121,8 +122,14 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), xr-spatial-tracking=(self \"https://space.cachy.app\" *), display-capture=(self \"https://space.cachy.app\"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*");
 
-  // Security Headers from Production Monitor
-  response.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://s.cachy.app; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https://s.cachy.app https: blob: data:; frame-ancestors 'self'; connect-src 'self' https://s.cachy.app https://chat.cachy.app wss://chat.cachy.app https://*.cachy.app wss://*.cachy.app wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://generativelanguage.googleapis.com https://api.openai.com");
+  // CSP fallback for responses SvelteKit did not already protect (e.g. API
+  // routes): SvelteKit's nonce CSP (kit.csp.mode "auto") must win wherever
+  // present — overwriting it would strip nonces and break app.html scripts.
+  // Single source of truth stays server-headers.js (shared with Express).
+  const fallbackCsp = SECURITY_HEADERS.find(([name]) => name === "Content-Security-Policy")?.[1];
+  if (fallbackCsp && !response.headers.has("Content-Security-Policy")) {
+    response.headers.set("Content-Security-Policy", fallbackCsp);
+  }
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   return response;
 };
