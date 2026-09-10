@@ -22,6 +22,7 @@ import { sanitizeAssignees } from './lib/issue-sync-payload';
 import { classifyClosedIssueSync, DEFAULT_MERGE_GRACE_MS } from './lib/closed-issue-guard';
 import { nextPageUrl } from './lib/github-pagination';
 import { fetchWithRetry } from './lib/fetch-retry';
+import { parseMirrorLabelId } from './lib/mirror-label';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PROJECT_SYNC_TOKEN = process.env.PROJECT_SYNC_TOKEN || GITHUB_TOKEN;
@@ -256,6 +257,11 @@ async function fetchAllIssues(): Promise<GitHubIssue[]> {
 // transport failure: a failed lookup aborts the run instead of creating
 // blind — loud, not duplicated.
 async function fetchFirstIssueByLabel(label: string): Promise<GitHubIssue | null> {
+    // Allowlist first: the label travels into the query string, so only an
+    // exactly-shaped mirror label may pass — never interpolated free text.
+    if (parseMirrorLabelId(label) === null) {
+        throw new Error(`Refusing point lookup with misshaped label: ${label}`);
+    }
     const url = `${BASE_URL}?state=all&per_page=100&labels=${encodeURIComponent(label)}`;
     const res = await fetch(url, {
         headers: {
