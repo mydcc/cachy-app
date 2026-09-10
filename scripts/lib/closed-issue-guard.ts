@@ -43,8 +43,9 @@ export type ClosedIssueVerdict = "sync" | "skip-merge-window";
  *   including a flip converging to Done).
  * - Issue closed but the file says anything else: only `sync` once the
  *   close is older than the grace window (genuine rework back to
- *   `in-progress` still converges, including the reopen). Inside the
- *   window the flip is assumed to land shortly, so `skip-merge-window`.
+ *   `in-progress` still converges labels/body/title — but the sync never
+ *   reopens the issue itself). Inside the window the flip is assumed to
+ *   land shortly, so `skip-merge-window`.
  * - Unparseable or missing `closedAt`: `sync`. Without a timestamp there
  *   is no evidence of a merge window, and converging self-heals instead
  *   of stranding the item.
