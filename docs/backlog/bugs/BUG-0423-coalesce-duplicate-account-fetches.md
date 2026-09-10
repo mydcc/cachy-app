@@ -2,7 +2,7 @@
 id: BUG-0423
 title: Coalesce duplicate account fetches from two mounted sidebars
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: M4
 editions: [community, pro, private]
