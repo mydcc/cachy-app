@@ -841,7 +841,9 @@
       flashClosingPositionId = pos.positionId ?? null;
       return;
     }
-    void runFlashClose(pos);
+    // No dialog, so no later re-read: resolve the position once more at
+    // execution time and fall back to the row that was clicked.
+    void runFlashClose(livePosition(pos.positionId ?? null) ?? pos);
   }
 
   /**
@@ -946,7 +948,12 @@
    * from here or the venue).
    */
   function livePosition(id: string | null): OMSPosition | null {
-    return id ? (mappedPositions.find((p) => p.positionId === id) ?? null) : null;
+    // A WS push that omits `positionId` makes the store write the literal
+    // string "undefined" (see `updatePositionFromWs`). That is not an
+    // identity — matching on it would let a dialog latch onto the wrong
+    // position — so it is rejected here rather than trusted.
+    if (!id || id === "undefined" || id === "null") return null;
+    return mappedPositions.find((p) => p.positionId === id) ?? null;
   }
 
   /** The position whose close dialog is open, or null (FEAT-0256). */
@@ -995,7 +1002,15 @@
       // previous account's rows.
       hasFetchedOrdersOnce = false;
       hasFetchedHistoryOnce = false;
+      // Close every dialog. The deriveds already hide them while no position
+      // matches, but a stale id would re-open its dialog on returning to the
+      // same account, so all five are cleared, not just the one that happens
+      // to be handled here.
+      closingPositionId = null;
       flashClosingPositionId = null;
+      tpSlCreatePositionId = null;
+      adjustMarginPositionId = null;
+      addingPositionId = null;
     });
   });
 
