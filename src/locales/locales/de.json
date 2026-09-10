@@ -1657,7 +1657,10 @@
         "disabled": "Deaktiviert",
         "usageShare": "Nutzungsanteil",
         "recentHistory": "Verlauf",
-        "refresh": "Aktualisieren"
+        "refresh": "Aktualisieren",
+        "cache": "Ergebnis-Cache",
+        "cacheSummary": "Treffer {hits} · Fehlzugriffe {misses} · {hitRate} % Trefferquote",
+        "noUncachedYet": "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten."
       }
     },
     "performance": {
