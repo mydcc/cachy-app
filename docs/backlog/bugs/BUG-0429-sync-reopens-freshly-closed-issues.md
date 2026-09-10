@@ -2,7 +2,7 @@
 id: BUG-0429
 title: Backlog sync reopens freshly closed issues before the auto-done flip lands
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 priority: P1
 milestone: none
@@ -75,3 +75,5 @@ stranding the item).
 
 - Incident: issue #2753 timeline, PR #2924 (merge), PR #2925 (auto-done repair)
 - Precedent incidents in the same pipeline: BUG-0220 (autolink), BUG-0307 (assignee 422)
+
+- Done 2026-09-10: merged via #2926; first release containing it TBD by the next chore(release).
