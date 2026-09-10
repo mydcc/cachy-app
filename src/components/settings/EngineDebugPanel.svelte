@@ -264,8 +264,8 @@
     }
     .cap-on {
         opacity: 1;
-        background: rgba(52, 211, 153, 0.15);
-        color: rgb(52, 211, 153);
+        background: color-mix(in srgb, var(--success-color), transparent 85%);
+        color: var(--success-color);
     }
     .ctx {
         padding: 1px 6px;
@@ -275,8 +275,8 @@
         color: var(--text-secondary);
     }
     .ctx-warn {
-        background: rgba(251, 191, 36, 0.15);
-        color: rgb(251, 191, 36);
+        background: color-mix(in srgb, var(--warning-color), transparent 85%);
+        color: var(--warning-color);
     }
     .stats-table {
         width: 100%;
@@ -292,11 +292,11 @@
         opacity: 0.8;
     }
     .status-ok {
-        color: rgb(52, 211, 153);
+        color: var(--success-color);
         font-weight: var(--font-medium);
     }
     .status-err {
-        color: rgb(239, 68, 68);
+        color: var(--danger-color);
         font-weight: var(--font-medium);
     }
     .status-neutral {
