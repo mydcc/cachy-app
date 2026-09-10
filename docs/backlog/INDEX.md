@@ -4,7 +4,7 @@
 
 311 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 41 · 🟢 ready 6 · ✅ done 237
+Counts by status: 💡 idea 27 · 📋 specced 40 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 237
 
 ---
 
@@ -140,7 +140,7 @@ Counts by status: 💡 idea 27 · 📋 specced 41 · 🟢 ready 6 · ✅ done 23
 | [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | 📋 specced | alerts |
 | [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P2 | 📋 specced | alerts |
 | [FEAT-0394](features/FEAT-0394-candlestick-pattern-conditions.md) | Candlestick pattern conditions | P2 | 📋 specced | alerts |
-| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 📋 specced | alerts |
+| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 🟡 in-progress | alerts |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | alerts |
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | 🟢 ready | trade-panel |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
@@ -619,7 +619,7 @@ Counts by status: 💡 idea 27 · 📋 specced 41 · 🟢 ready 6 · ✅ done 23
 | [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | 📋 specced | M4 | community, pro, private | A | none | — |
 | [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0394](features/FEAT-0394-candlestick-pattern-conditions.md) | Candlestick pattern conditions | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
-| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md), [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) |
+| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 🟡 in-progress | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md), [FEAT-0390](features/FEAT-0390-price-alert-conditions.md), [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | 💡 idea | M9 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | M3 | community, pro, private | none | none | — |

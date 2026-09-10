@@ -5236,7 +5236,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0395",
     "title": "Create an alert from the chart and from indicator settings",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-feat-0395-dependencies-resolved-edf8ae",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5249,7 +5251,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [
       "FEAT-0389",
-      "FEAT-0390"
+      "FEAT-0390",
+      "FEAT-0028"
     ],
     "size": "S",
     "estimate": "3",
