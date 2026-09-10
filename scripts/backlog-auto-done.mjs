@@ -140,18 +140,37 @@ function main() {
     open = "0";
   }
   if (open === "0") {
-    gh([
-      "pr",
-      "create",
-      "--base",
-      "develop",
-      "--head",
-      BOT_BRANCH,
-      "--title",
-      "chore(backlog): auto-done flips",
-      "--body",
-      "Automated done-flips for backlog items whose linked PRs merged (see job logs).",
-    ]);
+    let created = "";
+    try {
+      created = gh([
+        "pr",
+        "create",
+        "--base",
+        "develop",
+        "--head",
+        BOT_BRANCH,
+        "--title",
+        "chore(backlog): auto-done flips",
+        "--body",
+        "Automated done-flips for backlog items whose linked PRs merged (see job logs).",
+        "--json",
+        "number",
+        "--jq",
+        ".number",
+      ]).trim();
+    } catch {
+      log("auto-done PR creation failed; the flip stays on the branch for the next run");
+      return;
+    }
+    // Enable auto-merge so the flip lands as soon as checks pass instead of
+    // waiting for a human — same pattern as the backlog-index PR. This
+    // shrinks the merge window in which the sync grace guard has to cover.
+    // Never fatal: without auto-merge the PR just waits for manual merge.
+    try {
+      gh(["pr", "merge", created, "--auto", "--squash"]);
+    } catch {
+      log(`auto-merge unavailable for auto-done PR #${created}; please merge it manually`);
+    }
   } else {
     log("updated the existing auto-done PR");
   }
