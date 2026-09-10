@@ -80,8 +80,8 @@ export function collectIndicators(rule: RuleDocument): IndicatorRequest[] {
   const takeOperand = (operand: unknown, timeframe: string, depth = 0): void => {
     if (operand === null || typeof operand !== "object") return;
     // A window nests one level by schema (the core refuses a window of a
-    // window), so this bound only exists because the document comes from
-    // `localStorage` and this collector promises to read defensively.
+    // window), so a bound of two is purely defensive: the document comes
+    // from `localStorage` and this collector promises to read defensively.
     if (depth > 2) return;
     const node = operand as {
       kind?: unknown;
