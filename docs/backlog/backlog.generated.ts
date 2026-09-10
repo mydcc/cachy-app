@@ -3623,6 +3623,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md"
   },
   {
+    "id": "BUG-0434",
+    "title": "The exhaustive WindowType record cannot fail the build because tsconfig excludes test files",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0434-test-type-safety-net-is-not-armed.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -5260,7 +5278,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0394",
     "title": "Candlestick pattern conditions",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5275,8 +5293,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0387",
       "FEAT-0389"
     ],
-    "size": "M",
-    "estimate": "5",
+    "size": "L",
+    "estimate": "8",
+    "assignee": "claude-code",
     "file": "features/FEAT-0394-candlestick-pattern-conditions.md"
   },
   {

@@ -5,6 +5,7 @@ pub mod evaluate;
 pub mod exports;
 pub mod indicator;
 pub mod legacy;
+pub mod pattern;
 pub mod refusal;
 pub mod sha256;
 pub mod timeframe;
