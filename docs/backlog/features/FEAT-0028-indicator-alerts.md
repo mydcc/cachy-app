@@ -112,7 +112,7 @@ outputs to within `f64` noise, asserted by
 `src/services/alertEngine/crossPathParity.test.ts` at three different history
 lengths against the real committed WASM artefact.
 
-Getting there meant fixing [`BUG-0429`](../bugs/BUG-0429-macd-seeding-mismatch.md):
+Getting there meant fixing [`BUG-0430`](../bugs/BUG-0430-macd-seeding-mismatch.md):
 WASM seeded MACD's EMAs with the first close while the rest of the project seeds
 with an SMA, which at short history made the two paths disagree about the *sign*
 of the histogram. Worst histogram difference fell from 1.7 to 9.4e-12.

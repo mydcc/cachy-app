@@ -1,5 +1,5 @@
 ---
-id: BUG-0429
+id: BUG-0430
 title: MACD seeded differently in WASM than everywhere else
 type: bug
 status: done
