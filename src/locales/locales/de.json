@@ -3793,7 +3793,9 @@
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
     "countdownLabel": "Countdown bis zur Kerzenschließung",
     "alert": {
-      "menuLabel": "Warnung"
+      "menuLabel": "Warnung",
+      "regionLabel": "Warn-Region",
+      "here": "Warnung hier platziert"
     }
   },
   "chart": {

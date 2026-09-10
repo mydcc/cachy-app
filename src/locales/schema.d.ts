@@ -3102,6 +3102,8 @@ export type TranslationKey =
   | "chartView.fetchingMarketData"
   | "chartView.countdownLabel"
   | "chartView.alert.menuLabel"
+  | "chartView.alert.regionLabel"
+  | "chartView.alert.here"
   | "chart.pane.collapse"
   | "chart.pane.expand"
   | "rules.coreUnavailable"

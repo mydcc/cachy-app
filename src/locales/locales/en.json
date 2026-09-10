@@ -3793,7 +3793,9 @@
     "fetchingMarketData": "FETCHING MARKET DATA ...",
     "countdownLabel": "Countdown to candle close",
     "alert": {
-      "menuLabel": "Alert"
+      "menuLabel": "Alert",
+      "regionLabel": "Alert Region",
+      "here": "Alert placed here"
     }
   },
   "chart": {
