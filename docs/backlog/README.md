@@ -226,6 +226,9 @@ The direction only ever goes file → issue, never back:
   manually added label survives.
 - `backlog-id:<ID>` (as a label, and as an HTML comment in the body) is the
   reconciliation key back to the actual file.
+- The sync never reopens a closed issue and never creates one blind: a
+  truncated issue listing aborts the run instead of duplicating mirrors,
+  and a missing mirror is verified by direct lookup before any create.
 
 **An Issue is a read-only mirror of its backlog file, not an editable
 copy.** Pointing an agent at an Issue to read/orient is fine — the title,

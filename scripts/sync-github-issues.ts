@@ -20,6 +20,9 @@ import path from 'path';
 import { decideLink, matchPRsForItem } from './lib/pr-issue-match';
 import { sanitizeAssignees } from './lib/issue-sync-payload';
 import { classifyClosedIssueSync, DEFAULT_MERGE_GRACE_MS } from './lib/closed-issue-guard';
+import { nextPageUrl } from './lib/github-pagination';
+import { fetchWithRetry } from './lib/fetch-retry';
+import { parseMirrorLabelId } from './lib/mirror-label';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PROJECT_SYNC_TOKEN = process.env.PROJECT_SYNC_TOKEN || GITHUB_TOKEN;
@@ -111,20 +114,19 @@ interface GitHubMilestone {
 }
 
 async function fetchRepoMilestones(): Promise<GitHubMilestone[]> {
-    try {
-        const url = `https://api.github.com/repos/${GITHUB_REPOSITORY}/milestones?state=all&per_page=100`;
-        const res = await fetch(url, {
-            headers: {
-                "Authorization": `Bearer ${GITHUB_TOKEN}`,
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28"
-            }
-        });
-        if (!res.ok) return [];
-        return await res.json();
-    } catch {
-        return [];
-    }
+    // Fail closed, never empty: an empty list makes ensureMilestone below
+    // create duplicates of milestones that exist but could not be listed
+    // (same truncated-response class that once duplicated issues).
+    const url = `https://api.github.com/repos/${GITHUB_REPOSITORY}/milestones?state=all&per_page=100`;
+    const res = await fetch(url, {
+        headers: {
+            "Authorization": `Bearer ${GITHUB_TOKEN}`,
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+    });
+    if (!res.ok) throw new Error(`Failed to fetch milestones: ${await res.text()}`);
+    return await res.json();
 }
 
 /**
@@ -222,29 +224,56 @@ function sameLabelSet(a: string[], b: string[]): boolean {
 
 // Fetch all issues (handles pagination)
 async function fetchAllIssues(): Promise<GitHubIssue[]> {
-    let page = 1;
-    let allIssues: GitHubIssue[] = [];
-    const perPage = 100;
-
-    while (true) {
-        const res = await fetch(`${BASE_URL}?state=all&per_page=${perPage}&page=${page}`, {
-            headers: {
-                "Authorization": `Bearer ${GITHUB_TOKEN}`,
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28"
-            }
-        });
+    const allIssues: GitHubIssue[] = [];
+    // Follow the Link header, never a page-length heuristic: a short page
+    // with HTTP 200 during API degradation is not a last page, and trusting
+    // it truncated the listing — every invisible item then looked mirrorless
+    // and got a duplicate. No rel="next" means genuinely done, whatever a
+    // page holds. Any non-OK answer still throws and aborts before any write.
+    let url: string | null = `${BASE_URL}?state=all&per_page=100`;
+    const headers = {
+        "Authorization": `Bearer ${GITHUB_TOKEN}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+    };
+    while (url !== null) {
+        const res = await fetch(url, { headers });
         if (!res.ok) throw new Error(`Failed to fetch issues: ${await res.text()}`);
         const data: GitHubIssue[] = await res.json();
 
         // We only care about real issues, not pull requests
-        const issuesOnly = data.filter((item) => !item.pull_request);
-        allIssues = allIssues.concat(issuesOnly);
+        allIssues.push(...data.filter((item) => !item.pull_request));
 
-        if (data.length < perPage) break;
-        page++;
+        url = nextPageUrl(res.headers.get("link"));
     }
     return allIssues;
+}
+
+// Direct lookup by mirror label, independent of the bulk listing above.
+// When a listing arrives truncated, this is what stops the run from
+// creating a duplicate for an item it simply could not see. Only used on
+// the create path, so the extra call is rare by construction. Throws on
+// transport failure: a failed lookup aborts the run instead of creating
+// blind — loud, not duplicated.
+async function fetchFirstIssueByLabel(label: string): Promise<GitHubIssue | null> {
+    // Allowlist first: the label travels into the query string, so only an
+    // exactly-shaped mirror label may pass — never interpolated free text.
+    if (parseMirrorLabelId(label) === null) {
+        throw new Error(`Refusing point lookup with misshaped label: ${label}`);
+    }
+    const url = `${BASE_URL}?state=all&per_page=100&labels=${encodeURIComponent(label)}`;
+    const res = await fetch(url, {
+        headers: {
+            "Authorization": `Bearer ${GITHUB_TOKEN}`,
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+    });
+    if (!res.ok) throw new Error(`Failed point lookup for label ${label}: ${await res.text()}`);
+    const data: GitHubIssue[] = await res.json();
+    const issuesOnly = data.filter((item) => !item.pull_request);
+    issuesOnly.sort((a, b) => a.number - b.number);
+    return issuesOnly[0] ?? null;
 }
 
 interface GitHubPullRequest {
@@ -559,7 +588,18 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             return { number: existingIssue.number, nodeId: existingIssue.node_id };
         }
 
-        // Update existing issue
+        // Never reopen: a closed issue whose file is not done/dropped stays
+        // closed, untouched. Reopening reanimates leftovers the duplicate
+        // cleanup already closed and turns a forgotten flip into a Kanban
+        // rollback. When the file later flips to done, the update path below
+        // converges labels/body/title onto the still-closed issue normally.
+        if (existingIssue.state === 'closed' && !isClosed) {
+            console.log(`[Sync] Skipped ${item.id} (#${existingIssue.number}) — closed issue with a non-done file; never reopening`);
+            return { number: existingIssue.number, nodeId: existingIssue.node_id };
+        }
+
+        // Update existing issue (open stays open, open flips to closed —
+        // the closed-to-open direction is cut off by the guard above).
         const payload: Record<string, unknown> = {
             title,
             body,
@@ -570,7 +610,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             payload.milestone = milestoneNumber;
         }
 
-        const res = await fetch(existingIssue.url, {
+        const res = await fetchWithRetry(fetch, existingIssue.url, {
             method: 'PATCH',
             headers: {
                 "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -588,7 +628,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             // validated list is rejected, the convergence above has already
             // landed and only a warning is lost, not the close.
             if (assignees.valid.length > 0) {
-                const assigneeRes = await fetch(existingIssue.url, {
+                const assigneeRes = await fetchWithRetry(fetch, existingIssue.url, {
                     method: 'PATCH',
                     headers: {
                         "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -609,6 +649,16 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             recordSyncFailure(`update issue ${item.id} (#${existingIssue.number})`, await res.text());
         }
     } else {
+        // The bulk listing may have missed this item (a truncated listing
+        // under API degradation created dozens of duplicates that way).
+        // Never create blind: one direct lookup first, and converge onto a
+        // hit instead. A failed lookup throws and aborts the run — loud,
+        // not duplicated.
+        const pointHit = await fetchFirstIssueByLabel(`${BACKLOG_ID_LABEL_PREFIX}${item.id}`);
+        if (pointHit) {
+            console.log(`[Sync] ${item.id}: bulk listing missed #${pointHit.number}; converging onto it instead of creating.`);
+            return createOrUpdateIssue(item, pointHit, milestones, hasOpenPR, assignableLogins);
+        }
         // Create new issue
         const payload: Record<string, unknown> = {
             title,
@@ -622,7 +672,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             payload.assignees = assignees.valid;
         }
 
-        const res = await fetch(BASE_URL, {
+        const res = await fetchWithRetry(fetch, BASE_URL, {
             method: 'POST',
             headers: {
                 "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -643,7 +693,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
 
         if (isClosed) {
             // If the markdown file is already 'done', close the newly created issue immediately
-            const closeRes = await fetch(data.url, {
+            const closeRes = await fetchWithRetry(fetch, data.url, {
                 method: 'PATCH',
                 headers: {
                     "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -684,7 +734,7 @@ async function cleanupDuplicateIssue(dupIssue: GitHubIssue, canonicalNumber: num
             state: "closed",
             state_reason: "not_planned"
         };
-        const res = await fetch(dupIssue.url, {
+        const res = await fetchWithRetry(fetch, dupIssue.url, {
             method: "PATCH",
             headers: {
                 "Authorization": `Bearer ${GITHUB_TOKEN}`,
