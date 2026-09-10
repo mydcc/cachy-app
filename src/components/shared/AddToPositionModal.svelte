@@ -122,13 +122,20 @@
    * floors at one step means the default cannot drift away from the slider it
    * sits under.
    *
-   * Keyed on `ctx`, so it re-seeds when the dialog opens for a different
-   * position or when a late `basePrecision` finally makes rounding possible.
-   * `position` is a stable snapshot rather than the live object, so this does
-   * not fire on price ticks and cannot wipe a quantity mid-edit.
+   * Keyed on the *string* of the seeded quantity rather than on `ctx`: this
+   * re-seeds when the dialog opens for a different position, when the size
+   * changes, or when a late `basePrecision` finally makes rounding possible.
+   * BUG-0347 made `position` live, so `ctx` now changes on every price tick
+   * (it embeds the mark price); an effect keyed on it would reset the quantity
+   * to the default on each tick and wipe an in-progress add. The string only
+   * changes when the seed actually changes, and Svelte skips the effect for an
+   * equal string.
    */
+  const defaultQuantity = $derived(
+    ctx ? addQuantityFromPercent(ctx, DEFAULT_ADD_PERCENT).toString() : null,
+  );
   $effect(() => {
-    quantity = ctx ? addQuantityFromPercent(ctx, DEFAULT_ADD_PERCENT) : null;
+    quantity = defaultQuantity ? new Decimal(defaultQuantity) : null;
   });
 
   async function handleAdd() {

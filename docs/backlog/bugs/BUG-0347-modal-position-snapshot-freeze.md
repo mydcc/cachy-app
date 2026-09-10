@@ -2,7 +2,7 @@
 id: BUG-0347
 title: "Modals show frozen price and PnL due to static snapshot props"
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]

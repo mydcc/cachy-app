@@ -53,13 +53,15 @@
 
   /*
    * Defaults to the whole position, so the shortest path through this dialog
-   * is the full close the old `confirm()` offered. Keyed on the position, so
-   * opening it for a different one starts from that one's size rather than
-   * inheriting the previous quantity.
+   * is the full close the old `confirm()` offered. Keyed on the *string* of
+   * the amount rather than on the live `position` object: BUG-0347 made
+   * `position` a fresh object on every price tick, so an effect reading it
+   * directly would reset the quantity to the full size on each tick and wipe
+   * an in-progress partial close. The string only changes when the size does.
    */
+  const seedAmount = $derived(position ? position.amount.toString() : null);
   $effect(() => {
-    const amount = position?.amount;
-    quantity = amount ? new Decimal(amount) : null;
+    quantity = seedAmount ? new Decimal(seedAmount) : null;
   });
 
   /** Quantity step from the instrument's base precision; 0 disables rounding. */

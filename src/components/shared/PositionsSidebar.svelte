@@ -210,6 +210,11 @@
           ? calculateLiveUnrealizedPnl(p.side, p.entryPrice, markPrice, p.size)
           : undefined;
       return {
+        // BUG-0347/BUG-0062: the modals identify the position they were opened
+        // for by this id (and Bitunix's close/TP-SL calls require it), so it
+        // must survive the mapping — dropping it left `position.positionId`
+        // undefined in every modal fed from this list.
+        positionId: p.positionId,
         symbol: p.symbol,
         side: p.side,
         amount: p.size, // Map size to amount
@@ -819,7 +824,7 @@
    * fired from here would have replaced with a generic message.
    */
   function handleClosePosition(pos: OMSPosition) {
-    closingPosition = pos;
+    closingPositionId = pos.positionId ?? null;
   }
 
   /*
@@ -833,7 +838,7 @@
    */
   function handleFlashClose(pos: OMSPosition) {
     if (confirmationPolicyStore.requires("flash-close-position")) {
-      flashClosingPosition = pos;
+      flashClosingPositionId = pos.positionId ?? null;
       return;
     }
     void runFlashClose(pos);
@@ -868,7 +873,7 @@
   });
 
   async function runFlashClose(pos: OMSPosition, confirmedAt?: number) {
-    flashClosingPosition = null;
+    flashClosingPositionId = null;
 
     const side = pos.side.toLowerCase() === "short" ? "short" : "long";
     /*
@@ -895,7 +900,7 @@
   }
 
   function handleCloseSuccess() {
-    closingPosition = null;
+    closingPositionId = null;
     uiState.showToast($_("dashboard.alerts.closePositionSuccess"), "success");
     // The exchange cancels a closed position's plans; leaving them cached
     // would show a stop on a position that no longer exists. Still correct
@@ -922,18 +927,34 @@
 
   /** FEAT-0070: opens the create-or-edit TP/SL dialog for a position. */
   function handleTpSl(pos: OMSPosition) {
-    tpSlCreatePosition = pos;
+    tpSlCreatePositionId = pos.positionId ?? null;
   }
 
   function handleTpSlCreateSuccess() {
-    tpSlCreatePosition = null;
+    tpSlCreatePositionId = null;
     uiState.showToast($_("dashboard.alerts.tpslCreated"), "success");
   }
 
+  /*
+   * BUG-0347: the dialogs below must never hold a stale `OMSPosition`. A
+   * snapshot captured at click time froze its mark price and PnL at that
+   * instant — exactly the numbers a trader reads to decide whether to close,
+   * so a position that moved while the dialog was open showed the wrong
+   * picture. Only the identity is stored; the object is re-read from
+   * `mappedPositions` on every price tick, so the modal re-renders with the
+   * live values and closes itself if the position disappears (a full close
+   * from here or the venue).
+   */
+  function livePosition(id: string | null): OMSPosition | null {
+    return id ? (mappedPositions.find((p) => p.positionId === id) ?? null) : null;
+  }
+
   /** The position whose close dialog is open, or null (FEAT-0256). */
-  let closingPosition = $state<OMSPosition | null>(null);
+  let closingPositionId = $state<string | null>(null);
+  let closingPosition = $derived(livePosition(closingPositionId));
   /** FEAT-0330 — set while the flash-close confirmation is open. */
-  let flashClosingPosition = $state<OMSPosition | null>(null);
+  let flashClosingPositionId = $state<string | null>(null);
+  let flashClosingPosition = $derived(livePosition(flashClosingPositionId));
 
   /*
    * FEAT-0026: clear what this component caches for itself.
@@ -974,23 +995,26 @@
       // previous account's rows.
       hasFetchedOrdersOnce = false;
       hasFetchedHistoryOnce = false;
-      flashClosingPosition = null;
+      flashClosingPositionId = null;
     });
   });
 
   /** The position whose TP/SL create dialog is open, or null (FEAT-0070). */
-  let tpSlCreatePosition = $state<OMSPosition | null>(null);
+  let tpSlCreatePositionId = $state<string | null>(null);
+  let tpSlCreatePosition = $derived(livePosition(tpSlCreatePositionId));
 
   /** The position whose margin dialog is open, or null (FEAT-0068). */
-  let adjustMarginPosition = $state<OMSPosition | null>(null);
+  let adjustMarginPositionId = $state<string | null>(null);
+  let adjustMarginPosition = $derived(livePosition(adjustMarginPositionId));
 
   /** FEAT-0068: opens the add/withdraw-margin dialog for a position. */
   function handleAdjustMargin(pos: OMSPosition) {
-    adjustMarginPosition = pos;
+    adjustMarginPositionId = pos.positionId ?? null;
   }
 
   /** The position whose scale-in dialog is open, or null (FEAT-0334). */
-  let addingPosition = $state<OMSPosition | null>(null);
+  let addingPositionId = $state<string | null>(null);
+  let addingPosition = $derived(livePosition(addingPositionId));
 
   /**
    * Whether the active venue accepts scaling into an open position
@@ -1002,7 +1026,7 @@
 
   /** FEAT-0334: opens the scale-in dialog for a position. */
   function handleAdd(pos: OMSPosition) {
-    addingPosition = pos;
+    addingPositionId = pos.positionId ?? null;
   }
 
   /*
@@ -1013,7 +1037,7 @@
    * competing with the venue's — the failure FEAT-0334 names explicitly.
    */
   function handleAddSuccess() {
-    addingPosition = null;
+    addingPositionId = null;
     uiState.showToast($_("positionsList.addSubmitted"), "success");
   }
 
@@ -1024,7 +1048,7 @@
    * source for the same field.
    */
   function handleAdjustMarginSuccess() {
-    adjustMarginPosition = null;
+    adjustMarginPositionId = null;
     uiState.showToast($_("exchange.accountSettings.marginAdjusted"), "success");
   }
 </script>
@@ -1217,14 +1241,14 @@
       const pos = flashClosingPosition;
       if (pos) void runFlashClose(pos, confirmedAt);
     }}
-    oncancel={() => (flashClosingPosition = null)}
+    oncancel={() => (flashClosingPositionId = null)}
   />
 {/if}
 
 {#if closingPosition}
   <ClosePositionModal
     position={closingPosition}
-    onclose={() => (closingPosition = null)}
+    onclose={() => (closingPositionId = null)}
     onsuccess={handleCloseSuccess}
   />
 {/if}
@@ -1232,7 +1256,7 @@
 {#if tpSlCreatePosition}
   <TpSlCreateModal
     position={tpSlCreatePosition}
-    onclose={() => (tpSlCreatePosition = null)}
+    onclose={() => (tpSlCreatePositionId = null)}
     onsuccess={handleTpSlCreateSuccess}
   />
 {/if}
@@ -1240,7 +1264,7 @@
 {#if addingPosition}
   <AddToPositionModal
     position={addingPosition}
-    onclose={() => (addingPosition = null)}
+    onclose={() => (addingPositionId = null)}
     onsuccess={handleAddSuccess}
   />
 {/if}
@@ -1248,7 +1272,7 @@
 {#if adjustMarginPosition}
   <AdjustMarginModal
     position={adjustMarginPosition}
-    onclose={() => (adjustMarginPosition = null)}
+    onclose={() => (adjustMarginPositionId = null)}
     onsuccess={handleAdjustMarginSuccess}
   />
 {/if}
