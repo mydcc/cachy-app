@@ -109,12 +109,31 @@ pub enum RefusalCode {
     /// wrong, so it is refused at authoring time instead of at evaluation.
     InvalidLookback,
     /// A comparison whose two sides are denominated in different things —
-    /// traded volume against a price. Both numbers exist and both are
+    /// traded volume against something that is not volume. Both numbers exist and both are
     /// well-formed, so nothing downstream would complain; the condition would
     /// simply compare size to currency and fire on the crossover of two
     /// unrelated scales. Refused at authoring time because there is no later
     /// point at which it looks wrong.
     OperandDimensionMismatch,
+    /// A window over a window. A minimum of a maximum is not a sentence anyone
+    /// writes on purpose, and allowing it would let `warmup_candles` compound
+    /// without a bound the type expresses. Refused rather than budgeted with a
+    /// depth counter, because one legitimate use has never been named.
+    NestedWindow,
+    /// A window whose span is shorter than two closes. A window of one candle
+    /// is that candle, so `min` and `max` both return the operand itself — a
+    /// condition comparing a value against itself, which is a rule that cannot
+    /// discriminate rather than one that is wrong.
+    InvalidWindowLookback,
+    /// A document needing more closed candles than the app will ever hold.
+    ///
+    /// This is the refusal that keeps an over-deep rule from being *silent*
+    /// instead of rejected: `ruleEvaluationGate` withholds a verdict while the
+    /// series is shorter than `warmupCandles` and has no separate signal for
+    /// "and it always will be", so without this code an alert whose history
+    /// requirement can never be met looks exactly like one still warming up.
+    /// ADR-0009 is the cost side — Bitunix pages 200 rows at a time.
+    RuleWarmupTooDeep,
 }
 
 impl RefusalCode {
@@ -153,6 +172,9 @@ impl RefusalCode {
             Self::DuplicateConditionId => "duplicateConditionId",
             Self::InvalidLookback => "invalidLookback",
             Self::OperandDimensionMismatch => "operandDimensionMismatch",
+            Self::NestedWindow => "nestedWindow",
+            Self::InvalidWindowLookback => "invalidWindowLookback",
+            Self::RuleWarmupTooDeep => "ruleWarmupTooDeep",
         }
     }
 }
@@ -285,6 +307,9 @@ mod tests {
         RefusalCode::DuplicateConditionId,
         RefusalCode::InvalidLookback,
         RefusalCode::OperandDimensionMismatch,
+        RefusalCode::NestedWindow,
+        RefusalCode::InvalidWindowLookback,
+        RefusalCode::RuleWarmupTooDeep,
     ];
 
     /// Every locale file a refusal can be rendered through.

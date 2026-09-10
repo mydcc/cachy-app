@@ -88,16 +88,17 @@ Rules a reviewer can check a pull request against:
 5. **`lookback` is bounded, and total warmup is bounded.**
    `MAX_RULE_WARMUP_CANDLES = 500`, decided 2026-09-10. A document whose total
    warmup exceeds it is refused at validation with a reason naming both the
-   figure and the offending operand — the point of fact 3 above. `lookback`
+   figure and which tree — `conditions` or `veto` — carries it, the point of
+   fact 3 above. `lookback`
    itself is `2..=500`, which is the same number for a different job: it is a
    per-operand sanity filter, while the 500 that decides an alert's fate is the
    *total*. The two are not redundant and they are not in conflict —
    `window(min, 500, ema(50))` passes the first and is refused by the second at
-   549, which is the intended reading.
+   550, which is the intended reading.
 
    500 is a chosen figure, not a measured one, and it is chosen on the safe
-   side: it admits `window(min, 200, bandwidth(20, 2))` at 219 and Bollinger's
-   own 120-candle Squeeze at 139, while refusing the depths where ADR-0009's
+   side: it admits `window(min, 200, bandwidth(20, 2))` at 220 and Bollinger's
+   own 120-candle Squeeze at 140, while refusing the depths where ADR-0009's
    paging turns an alert into a download. If real use shows it too tight, the
    fix is a new figure in one constant with a note here — not a per-rule
    override.
@@ -140,7 +141,7 @@ detector that sees future candles in a backtest and cannot in a live run
 produces a rule that means two different things. Ruling that out costs the
 textbook shape.
 
-**History gets expensive.** `window(min, 200, bandwidth(20, 2))` needs 219
+**History gets expensive.** `window(min, 200, bandwidth(20, 2))` needs 220
 closed candles before it says anything. On `1d` that is most of a year, paid for
 in paged requests per ADR-0009. Rule 5 exists so the refusal happens at
 authoring time; without it the alert is simply quiet, and quiet is the failure

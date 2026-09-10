@@ -153,12 +153,43 @@ function formatOperand(
           lookback: operand.lookback,
         },
       );
+    case "window":
+      return t(
+        operand.agg === "min"
+          ? "rules.sentence.windowMin"
+          : "rules.sentence.windowMax",
+        {
+          // The percent context carries into the window: a window over a
+          // percentage is still a percentage, so a constant on the other side
+          // has to keep its `%`.
+          of: formatOperand(operand.of, t, inPercentContext),
+          lookback: operand.lookback,
+        },
+      );
+    default: {
+      // Exhaustiveness without throwing: `renderRuleSentence` promises never
+      // to throw (half-built docs render on every keystroke), so an unknown
+      // future operand degrades to the empty fragment while failing loudly
+      // at compile time via `never`.
+      const _exhaustive: never = operand;
+      return t("rules.sentence.empty");
+    }
   }
 }
 
 /** Whether either side of a condition is a percentage, so constants get a `%`. */
 function isPercentComparison(left: Operand, right: Operand): boolean {
-  return left.kind === "percent_change" || right.kind === "percent_change";
+  return isPercentOperand(left) || isPercentOperand(right);
+}
+
+/**
+ * A window over a percentage is a percentage, so the `%` on the other side's
+ * constant has to survive being wrapped. Without this, "the lowest change in
+ * price over the last 20 closes below 5" reads as a price threshold.
+ */
+function isPercentOperand(operand: Operand): boolean {
+  if (operand.kind === "window") return isPercentOperand(operand.of);
+  return operand.kind === "percent_change";
 }
 
 /**

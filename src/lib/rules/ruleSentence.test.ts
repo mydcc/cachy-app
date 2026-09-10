@@ -287,4 +287,39 @@ describe("renderRuleSentence", () => {
         expect(sentence).toContain("over the last 2 closes");
         expect(sentence).toContain("-5%");
     });
+
+    it("renders a window over a value in both locales", () => {
+        const windowOverPrice: Condition = {
+            kind: "compare",
+            left: { kind: "window", of: { kind: "price", field: "close" }, agg: "max", lookback: 20 },
+            op: "gte",
+            right: { kind: "constant", value: "60000" },
+            timeframe: "4h",
+        };
+        expect(renderRuleSentence(ruleWith(windowOverPrice), et)).toContain(
+            "the highest the close over the last 20 closes",
+        );
+        expect(renderRuleSentence(ruleWith(windowOverPrice), dt)).toContain(
+            "der höchste Wert",
+        );
+    });
+
+    it("keeps the percent context through a window over a percentage", () => {
+        const windowOverPercent: Condition = {
+            kind: "compare",
+            left: {
+                kind: "window",
+                of: { kind: "percent_change", field: "close", lookback: 3 },
+                agg: "min",
+                lookback: 20,
+            },
+            op: "gte",
+            right: { kind: "constant", value: "5" },
+            timeframe: "4h",
+        };
+        const sentence = renderRuleSentence(ruleWith(windowOverPercent), et);
+        expect(sentence).toContain("the lowest");
+        expect(sentence).toContain("over the last 20 closes");
+        expect(sentence).toContain("5%");
+    });
 });

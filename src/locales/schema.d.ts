@@ -3127,6 +3127,9 @@ export type TranslationKey =
   | "rules.refusal.duplicateConditionId"
   | "rules.refusal.invalidLookback"
   | "rules.refusal.operandDimensionMismatch"
+  | "rules.refusal.nestedWindow"
+  | "rules.refusal.invalidWindowLookback"
+  | "rules.refusal.ruleWarmupTooDeep"
   | "rules.sentence.frame"
   | "rules.sentence.unless"
   | "rules.sentence.empty"
@@ -3176,4 +3179,6 @@ export type TranslationKey =
   | "rules.sentence.markSuffix"
   | "rules.sentence.percentValue"
   | "rules.sentence.volume"
+  | "rules.sentence.windowMin"
+  | "rules.sentence.windowMax"
   | "storage.quotaExceeded";

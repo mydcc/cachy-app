@@ -112,6 +112,12 @@ const indicator = (id: string, params: Record<string, number>, output?: string):
 const constant = (value: string): Operand => ({ kind: "constant", value });
 const price = (field: "close") => ({ kind: "price", field }) as Operand;
 const volume = (): Operand => ({ kind: "volume" });
+const window = (agg: "min" | "max", lookback: number, of: Operand): Operand => ({
+  kind: "window",
+  of,
+  agg,
+  lookback,
+});
 
 /** The context the live loop would build at candle `index`. */
 function contextAt(rule: RuleDocument, index: number): EvaluationContext {
@@ -137,6 +143,27 @@ function seriesFor(operand: Operand): (number | null)[] {
   if (operand.kind === "constant") return CANDLE_SERIES.map(() => Number(operand.value));
   if (operand.kind === "price") return CANDLE_SERIES.map((c) => Number(c[operand.field]));
   if (operand.kind === "volume") return CANDLE_SERIES.map((c) => Number(c.volume));
+
+  if (operand.kind === "window") {
+    // Rolled here in plain JS rather than asked of the core, which makes this
+    // a genuinely independent second path — unlike `bandwidth`, where the
+    // oracle shares the implementation under test and a scale error would move
+    // both sides together. A span that reaches before the series, or over a
+    // missing value, has no aggregate at all: the minimum of part of a window
+    // is not the minimum of the window.
+    const base = seriesFor(operand.of);
+    const { agg, lookback } = operand;
+    return base.map((_, i) => {
+      if (i + 1 < lookback) return null;
+      const span = base.slice(i - lookback + 1, i + 1);
+      if (span.some((v) => v === null)) return null;
+      const numbers = span as number[];
+      return agg === "min" ? Math.min(...numbers) : Math.max(...numbers);
+    });
+  }
+
+  if (operand.kind !== "indicator")
+    throw new Error(`seriesFor: no series for ${operand.kind}`);
 
   const result = computeIndicatorSeries(
     { indicator: operand.indicator, timeframe: SERIES_TIMEFRAME },
@@ -226,6 +253,7 @@ const BB = { period: 20, std_dev: 2 };
 const gt = (a: number, b: number) => a > b;
 const gte = (a: number, b: number) => a >= b;
 const lt = (a: number, b: number) => a < b;
+const lte = (a: number, b: number) => a <= b;
 
 describe("indicator conditions against the real evaluator", () => {
   describe("RSI", () => {
@@ -381,6 +409,92 @@ describe("indicator conditions against the real evaluator", () => {
       () => crossAboveOracle(bandwidth, constant("1")),
       8,
     );
+
+    /**
+     * Bollinger's own definition of a Squeeze, which the absolute threshold
+     * above only approximates: the *lowest* bandwidth of a long lookback, not a
+     * fixed number. `0.5` is market-specific and silently wrong carried to
+     * another symbol; a rolling minimum means the same thing everywhere.
+     *
+     * The oracle rolls the window in JS while the evaluator rolls it in Rust,
+     * so agreement here is two implementations agreeing rather than one
+     * checking itself.
+     */
+    itAgrees(
+      "fires when bandwidth is at its own 60-candle low",
+      {
+        kind: "compare",
+        left: bandwidth,
+        op: "lte",
+        right: window("min", 60, bandwidth),
+        timeframe: SERIES_TIMEFRAME,
+      },
+      () => compareOracle(bandwidth, lte, window("min", 60, bandwidth)),
+      5,
+    );
+
+    /**
+     * The property the absolute threshold cannot have: a rolling minimum is
+     * true only where the value actually is the lowest of its window, so the
+     * condition is selective by construction rather than by a tuned constant.
+     *
+     * Without a bound here the test would also pass if the window returned the
+     * current value itself — `x <= x` on every candle — which is exactly what a
+     * window that ignored its span would do.
+     */
+    it("is selective by construction rather than by a tuned constant", () => {
+      const conditions: Condition = {
+        kind: "compare",
+        left: bandwidth,
+        op: "lte",
+        right: window("min", 60, bandwidth),
+        timeframe: SERIES_TIMEFRAME,
+      };
+      const { fired, compared } = walkSeries(
+        ruleWith(conditions),
+        compareOracle(bandwidth, lte, window("min", 60, bandwidth)),
+      );
+
+      expect(fired).toBeGreaterThan(0);
+      expect(fired).toBeLessThan(compared / 4);
+    });
+
+    /**
+     * A rule whose only indicator sits *inside* a window — "the close is below
+     * the lowest lower band of the last 60 closes".
+     *
+     * This is the shape that fails silently. `collectIndicators` has to look
+     * through the wrapper; if it does not, no series is computed, the evaluator
+     * finds no value, and every candle comes back indeterminate. Nothing on
+     * that path raises anything — the alert just never fires.
+     *
+     * The indicator has to be *only* inside the window for this to bite. With a
+     * bare indicator on the other side the series is requested anyway and the
+     * window reads it for free, which is how the first version of this test
+     * passed while the wrapper was not opened at all.
+     */
+    it("requests the series of an indicator that appears only inside a window", () => {
+      const lowest = window("min", 60, indicator("bollinger", BB, "lower"));
+      const rule = ruleWith({
+        kind: "compare",
+        left: price("close"),
+        op: "lte",
+        right: lowest,
+        timeframe: SERIES_TIMEFRAME,
+      });
+
+      const requests = collectIndicators(rule);
+      expect(requests).toHaveLength(1);
+      expect(requests[0].indicator.output).toBe("lower");
+
+      // And it actually evaluates, rather than staying indeterminate for ever.
+      const { disagreements, compared } = walkSeries(
+        rule,
+        compareOracle(price("close"), lte, lowest),
+      );
+      expect(disagreements).toEqual([]);
+      expect(compared).toBeGreaterThan(100);
+    });
   });
 
   describe("moving-average crosses", () => {
