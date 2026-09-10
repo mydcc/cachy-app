@@ -3892,7 +3892,10 @@
         "unrealised_pnl_percent": "der unrealisierte Gewinn in %",
         "exposure": "das Exposure",
         "available_balance": "das verfügbare Guthaben"
-      }
+      },
+      "percentChange": "Prozentuale Änderung",
+      "percentChangeOne": "eine Prozent Änderung",
+      "markSuffix": "(Mark-Preis)"
     }
   },
   "storage": {

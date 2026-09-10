@@ -3892,7 +3892,10 @@
         "unrealised_pnl_percent": "the unrealised profit in %",
         "exposure": "the exposure",
         "available_balance": "the available balance"
-      }
+      },
+      "percentChange": "percent change",
+      "percentChangeOne": "one percent change",
+      "markSuffix": "(mark price)"
     }
   },
   "storage": {

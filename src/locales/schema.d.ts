@@ -3171,4 +3171,7 @@ export type TranslationKey =
   | "rules.sentence.account.unrealised_pnl_percent"
   | "rules.sentence.account.exposure"
   | "rules.sentence.account.available_balance"
+  | "rules.sentence.percentChange"
+  | "rules.sentence.percentChangeOne"
+  | "rules.sentence.markSuffix"
   | "storage.quotaExceeded";
