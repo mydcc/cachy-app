@@ -288,6 +288,19 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             ("lower", Dimension::Price),
             // A ratio of the band width, not a price and not a percent.
             ("percent_b", Dimension::Unitless),
+            // `(upper - lower) / middle * 100` — the squeeze measure.
+            //
+            // Percent, and scaled by 100, because that is the number the app
+            // already shows: `TechnicalsPanel.svelte` renders
+            // `TechnicalsPresenter.calculateBollingerBandWidth` with a `%`
+            // suffix. TradingView's BBW is the bare ratio instead, and picking
+            // that convention here would have been the more standard choice and
+            // the wrong one: a trader reading `2.41%` off their own panel would
+            // write `bandwidth < 2.41`, which against a bare ratio is true on
+            // every candle. A squeeze alert that always fires is worse than no
+            // squeeze alert, so the schema matches the surface the value is
+            // read from. `indicatorSeries.ts` computes it on the same scale.
+            ("bandwidth", Dimension::Percent),
         ],
     },
     IndicatorSpec {
@@ -678,6 +691,48 @@ mod tests {
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].code, RefusalCode::UnknownIndicatorOutput);
         assert_eq!(out[0].field, "conditions[0].left.indicator.output");
+    }
+
+    /// FEAT-0028's second schema gap: squeeze had nothing to compare, because
+    /// the registry declared only the three band prices and `percent_b`.
+    #[test]
+    fn bollinger_declares_a_bandwidth_line_for_squeeze_conditions() {
+        for line in ["upper", "middle", "lower", "percent_b", "bandwidth"] {
+            let r = indicator(
+                "bollinger",
+                &[
+                    ("period", ParamValue::Count(20)),
+                    ("std_dev", ParamValue::Count(2)),
+                ],
+                line,
+            );
+            assert!(
+                refusals(&r).is_empty(),
+                "`{line}` should be a declared bollinger output"
+            );
+        }
+    }
+
+    /// The dimension is what stops `bandwidth` being read as a price. It is a
+    /// percentage of the middle band, on the same 0..100-ish scale the panel
+    /// shows — not the bare ratio, and not a quote-currency amount.
+    #[test]
+    fn bandwidth_is_a_percentage_and_the_bands_around_it_are_prices() {
+        let bandwidth = indicator(
+            "bollinger",
+            &[
+                ("period", ParamValue::Count(20)),
+                ("std_dev", ParamValue::Count(2)),
+            ],
+            "bandwidth",
+        );
+        assert_eq!(bandwidth.output_dimension(), Some(Dimension::Percent));
+
+        let upper = IndicatorRef {
+            output: "upper".to_string(),
+            ..bandwidth.clone()
+        };
+        assert_eq!(upper.output_dimension(), Some(Dimension::Price));
     }
 
     #[test]
