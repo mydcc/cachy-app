@@ -82,8 +82,13 @@ conditions actually evaluate rather than resolve to "no value":
   scale the panel already prints" below. The registry now declares
   `upper|middle|lower|percent_b|bandwidth`.
 - **Divergence needs a new condition shape.** `compare` and `cross` read one
-  candle and two respectively; a divergence is a claim about two swings. It is
-  the only condition in this item that the existing four shapes cannot express.
+  candle and two respectively; a divergence is a claim about two swings.
+  **Proposed 2026-09-10** in [`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md),
+  which argues it is not a condition shape at all: a claim about a window is an
+  *operand*, and divergence then composes out of `group` + `compare` + a window
+  aggregate. Closing gap 2 turned up a second condition with the same
+  shortfall — Bollinger's real Squeeze is a rolling minimum — so the ADR covers
+  both rather than one.
 
 ## Progress (2026-09-10)
 
@@ -200,7 +205,9 @@ reverted.
   than inventing a second one.
 
 Still open: the WebGPU leg of criterion 4, criterion 1's recorded market series,
-and the last of the three schema gaps — divergence.
+and the last of the three schema gaps — divergence, whose shape is now proposed
+in [`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md) and
+awaiting a decision before any code is written.
 
 ## Bandwidth is a percentage, on the scale the panel already prints (2026-09-10)
 
