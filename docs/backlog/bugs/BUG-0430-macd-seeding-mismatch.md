@@ -17,7 +17,7 @@ estimate: 1
 ---
 
 
-# BUG-0429 — MACD seeded differently in WASM than everywhere else
+# BUG-0430 — MACD seeded differently in WASM than everywhere else
 
 ## Symptom
 
