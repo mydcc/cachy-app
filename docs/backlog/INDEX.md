@@ -4,7 +4,7 @@
 
 315 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-progress 2 · ✅ done 247
+Counts by status: 💡 idea 27 · 📋 specced 35 · 🟢 ready 3 · 🟡 in-progress 2 · ✅ done 248
 
 ---
 
@@ -201,7 +201,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-pro
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | calculation |
-| [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | 📋 specced | trade-panel |
+| [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | ✅ done | trade-panel |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -396,7 +396,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
 | [BUG-0293](bugs/BUG-0293-tpsl-modify-wire-format.md) | modifyTpSlOrder sent a wire body the venue's modify_order does not document | P0 | ✅ done | M3 | community, pro, private | A | none | — |
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0409](bugs/BUG-0409-mode-chip-stale-after-change.md) | Mode chip stays stale or shows never-real combos after a mode change | P0 | ✅ done | M4 | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md), [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md), [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) |
 | [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | ✅ done | M4 | community, pro, private | none | none | — |
