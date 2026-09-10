@@ -4,7 +4,7 @@
 
 311 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 38 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 239
+Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 240
 
 ---
 
@@ -230,7 +230,7 @@ Counts by status: 💡 idea 27 · 📋 specced 38 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | ✅ done | trade-panel |
 | [BUG-0422](bugs/BUG-0422-confirm-dialog-dies-over-chip-dialog.md) | Policy confirm dialog never appears over a chip dialog, the toggle stalls silently | P1 | ✅ done | trade-panel |
 | [BUG-0424](bugs/BUG-0424-bitunix-validation-f64.md) | Financial values in Bitunix validation schemas allow f64 numbers | P1 | 📋 specced | backend |
-| [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | 📋 specced | backend |
+| [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | ✅ done | backend |
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | technicals |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | repo |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -450,7 +450,7 @@ Counts by status: 💡 idea 27 · 📋 specced 38 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0422](bugs/BUG-0422-confirm-dialog-dies-over-chip-dialog.md) | Policy confirm dialog never appears over a chip dialog, the toggle stalls silently | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0424](bugs/BUG-0424-bitunix-validation-f64.md) | Financial values in Bitunix validation schemas allow f64 numbers | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
