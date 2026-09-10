@@ -73,6 +73,17 @@ export type AmbientToplineMode =
 export type AmbientToplineIntensity = "subtle" | "standard" | "vibrant";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
+
+/**
+ * What happens when an alert turns out to be inert — it reads an indicator the
+ * alert path cannot compute, so it can never fire.
+ *
+ * `notify` is the default because the failure is silent by nature: the alert
+ * still sits in the panel looking armed. `log` exists for a trader who would
+ * rather not be interrupted; the failure is recorded either way, so choosing
+ * `log` hides the interruption, not the information.
+ */
+export type BrokenAlertReport = "notify" | "log";
 export type TechnicalsUpdateMode =
   | "realtime"
   | "fast"
@@ -469,6 +480,9 @@ export interface Settings {
   analyzeAllFavorites: boolean; // if false, only top 4
   marketCacheSize: number; // LRU cache size for market data (default: 20)
 
+  // Alerts
+  brokenAlertReport: BrokenAlertReport;
+
   // Technicals Performance Settings
   technicalsUpdateMode: TechnicalsUpdateMode;
   technicalsUpdateInterval?: number; // Custom interval in ms (optional override)
@@ -734,6 +748,9 @@ const defaultSettings: Settings = {
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
   marketCacheSize: 20, // Default LRU cache size
+
+  // Alert Defaults
+  brokenAlertReport: "notify",
 
   // Technicals Performance Defaults
   technicalsUpdateMode: "balanced",
@@ -1252,6 +1269,11 @@ export class SettingsManager {
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
   analyzeAllFavorites = $state<boolean>(defaultSettings.analyzeAllFavorites);
   marketCacheSize = $state<number>(defaultSettings.marketCacheSize);
+
+  // Alerts State
+  brokenAlertReport = $state<BrokenAlertReport>(
+    defaultSettings.brokenAlertReport,
+  );
 
   // Technicals Performance State
   technicalsUpdateMode = $state<TechnicalsUpdateMode>(
@@ -1885,6 +1907,9 @@ export class SettingsManager {
     this.marketCacheSize =
       merged.marketCacheSize ?? defaultSettings.marketCacheSize;
 
+    this.brokenAlertReport =
+      merged.brokenAlertReport ?? defaultSettings.brokenAlertReport;
+
     this.technicalsUpdateMode =
       merged.technicalsUpdateMode ?? defaultSettings.technicalsUpdateMode;
     this.technicalsUpdateInterval = merged.technicalsUpdateInterval;
@@ -2298,6 +2323,7 @@ export class SettingsManager {
       marketMode: this.marketMode,
       analyzeAllFavorites: this.analyzeAllFavorites,
       marketCacheSize: this.marketCacheSize,
+      brokenAlertReport: this.brokenAlertReport,
       technicalsUpdateMode: this.technicalsUpdateMode,
       technicalsUpdateInterval: this.technicalsUpdateInterval,
       technicalsCacheSize: this.technicalsCacheSize,

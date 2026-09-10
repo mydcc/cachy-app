@@ -1489,7 +1489,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0425",
     "title": "Financial values in API schemas allow f64 numbers",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1507,7 +1507,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0426",
     "title": "Stateful technicals calculator uses toNumber on tick close",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1520,6 +1520,47 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0426-stateful-technicals-f64.md"
+  },
+  {
+    "id": "BUG-0429",
+    "title": "Backlog sync reopens freshly closed issues before the auto-done flip lands",
+    "type": "bug",
+    "status": "done",
+    "assignee": "opencode",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "repo",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0429-sync-reopens-freshly-closed-issues.md"
+  },
+  {
+    "id": "BUG-0430",
+    "title": "MACD seeded differently in WASM than everywhere else",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "start_date": "2026-09-10",
+    "target_date": "2026-09-10",
+    "size": "S",
+    "estimate": "1",
+    "file": "bugs/BUG-0430-macd-seeding-mismatch.md"
   },
   {
     "id": "FEAT-0014",
@@ -3613,7 +3654,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0028",
     "title": "Alerts on indicator conditions",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -3631,6 +3672,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "estimate": "5",
     "size": "L",
+    "assignee": "claude-code",
     "target_date": "2027-01-29",
     "start_date": "2026-08-01",
     "file": "features/FEAT-0028-indicator-alerts.md"
@@ -5103,7 +5145,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0390",
     "title": "Price alert conditions beyond a single target",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "claude",
+    "branch": "claude/super-alert-next-task-mpte57",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5117,8 +5161,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0389"
     ],
-    "size": "S",
-    "estimate": "3",
+    "size": "L",
+    "estimate": "8",
     "file": "features/FEAT-0390-price-alert-conditions.md"
   },
   {
@@ -5215,7 +5259,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0395",
     "title": "Create an alert from the chart and from indicator settings",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-feat-0395-dependencies-resolved-edf8ae",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5228,7 +5274,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [
       "FEAT-0389",
-      "FEAT-0390"
+      "FEAT-0390",
+      "FEAT-0028"
     ],
     "size": "S",
     "estimate": "3",
@@ -5832,7 +5879,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0423",
     "title": "Coalesce duplicate account fetches from two mounted sidebars",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "M4",
     "editions": [
@@ -5852,7 +5899,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0427",
     "title": "worktree-cleanup.sh refuses squash-merged branches as unmerged",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [

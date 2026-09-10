@@ -10,6 +10,13 @@
 import { z } from "zod";
 
 /**
+ * Money boundary (BUG-0425): same contract as MoneyLike in apiSchemas —
+ * financial values leave the schema as strings so downstream `new Decimal()`
+ * stays exact. Timestamps never go through here.
+ */
+const MoneyString = z.union([z.string(), z.number()]).transform((v) => String(v));
+
+/**
  * Schema for Bitget WebSocket Argument
  */
 export const BitgetWSArgSchema = z.object({
@@ -49,7 +56,7 @@ export const BitgetWSTickerSchema = z.object({
   usdtVolume: z.string().optional(), // alias
   open24h: z.string().optional(),
   ts: z.union([z.string(), z.number()]).optional(),
-  fundingRate: z.union([z.string(), z.number()]).optional(),
+  fundingRate: MoneyString.optional(),
   nextFundingTime: z.union([z.string(), z.number()]).optional(),
 });
 
@@ -60,7 +67,9 @@ export const BitgetWSTickerSchema = z.object({
  * For 'candle1m' channel, data is usually:
  * [ [ "167...", "23000", "23100", ... ], ... ]
  */
-export const BitgetWSKlineSchema = z.array(z.union([z.string(), z.number()]));
+export const BitgetWSKlineSchema = z
+  .array(z.union([z.string(), z.number()]))
+  .transform((row) => row.map((v, i) => (i === 0 ? v : String(v))));
 
 /**
  * Allowed Channels whitelist

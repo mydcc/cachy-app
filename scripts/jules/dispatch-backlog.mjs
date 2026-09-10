@@ -333,7 +333,7 @@ Folge exakt dem Ablauf aus "Working an item as an agent" in docs/backlog/README.
 6. Baue es gemäß AGENTS.md (Svelte 5 Runes only, decimal.js, keine hardcodierten Farben, Tests neben dem Code).
 7. Verifiziere mit npm run check und den betroffenen Tests.
 8. Setze status: done im Front-Matter erst wenn Acceptance Criteria bewiesen sind — sonst status: in-progress lassen und im PR sagen, was fehlt.
-9. npm run backlog:check ausführen (Achtung: nicht npm run backlog:index committen — INDEX.md wird von CI nach dem Merge auf develop automatisch generiert).
+9. npm run backlog:check ausführen. Kein Bot erledigt das nach dem Merge: Derselbe PR muss auch den Flip (status: done) und den frischen Index enthalten — node scripts/backlog-index.mjs laufen lassen (keine Dependencies nötig) und INDEX.md plus backlog.generated.* mitcommitten.
 
 Halte dich an den Scope-Hinweis in AGENTS.md. Öffne einen PR gegen develop, merge nicht selbst.`;
 

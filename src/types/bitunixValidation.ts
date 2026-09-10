@@ -12,20 +12,21 @@ import { z } from "zod";
 // Zod-Schemas für WebSocket-Messages
 
 /**
+ * Money boundary (BUG-0425): same contract as MoneyLike in apiSchemas —
+ * financial values leave the schema as strings so downstream `new Decimal()`
+ * stays exact. Timestamps never go through here.
+ */
+const SafeString = z.union([z.string(), z.number()]).transform((val) => String(val));
+
+/**
  * Schema for Bitunix Price Data
  */
 export const BitunixPriceDataSchema = z.object({
-  mp: z.union([z.string(), z.number()]).optional(), // Mark Price
-  ip: z.union([z.string(), z.number()]).optional(), // Index Price
-  fr: z.union([z.string(), z.number()]).optional(), // Funding Rate
-  nft: z.union([z.string(), z.number()]).optional(), // Next Funding Time
+  mp: SafeString.optional(), // Mark Price
+  ip: SafeString.optional(), // Index Price
+  fr: SafeString.optional(), // Funding Rate
+  nft: z.union([z.string(), z.number()]).optional(), // Next Funding Time (timestamp, not money)
 });
-
-/**
- * Strict Schema for Bitunix Price Data (Hardening Phase)
- * Enforces string conversion for all numeric fields
- */
-const SafeString = z.union([z.string(), z.number()]).transform((val) => String(val));
 
 export const StrictPriceDataSchema = z.object({
   mp: SafeString.optional(), // Mark Price

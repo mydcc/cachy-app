@@ -202,4 +202,78 @@ describe('GET /api/klines', () => {
     expect(global.fetch).toHaveBeenCalledTimes(3);
     vi.useRealTimers();
   });
+
+  // ---- FEAT-0390: mark-price klines --------------------------------------
+
+  const okKlines = () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          code: 0,
+          msg: 'success',
+          data: [{ id: 1600000000, open: '1', high: '1', low: '1', close: '1', vol: '1' }],
+        }),
+    } as unknown as Response);
+  };
+
+  const requestedUrl = () => String(vi.mocked(global.fetch).mock.calls[0][0]);
+
+  /**
+   * The chart and every indicator go through this route. A `type` parameter
+   * appearing on an ordinary request would change what the whole app charts,
+   * so the default path must stay exactly as it was.
+   */
+  it('sends no kline type at all when no price source is asked for', async () => {
+    okKlines();
+    const url = new URL('http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix');
+    await GET({ url } as unknown as Parameters<typeof GET>[0]);
+    expect(requestedUrl()).not.toContain('type=');
+  });
+
+  it('asks Bitunix for the mark series when the caller does', async () => {
+    okKlines();
+    const url = new URL(
+      'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&priceSource=mark',
+    );
+    await GET({ url } as unknown as Parameters<typeof GET>[0]);
+    expect(requestedUrl()).toContain('type=MARK_PRICE');
+  });
+
+  it('treats an explicit last price source as the default', async () => {
+    okKlines();
+    const url = new URL(
+      'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&priceSource=last',
+    );
+    await GET({ url } as unknown as Parameters<typeof GET>[0]);
+    expect(requestedUrl()).not.toContain('type=');
+  });
+
+  /**
+   * Bitget's mix candles endpoint is last-price only. Answering a mark request
+   * from it would hand back last-price candles under a mark label — a wrong
+   * alarm that looks like a right one.
+   */
+  it('refuses a mark request on a venue that cannot serve one', async () => {
+    okKlines();
+    const url = new URL(
+      'http://localhost/api/klines?symbol=BTCUSDT&provider=bitget&priceSource=mark',
+    );
+    const response = await GET({ url } as unknown as Parameters<typeof GET>[0]);
+
+    expect(response.status).toBe(501);
+    expect((await response.json()).error).toContain('mark-price');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown price source rather than falling back to last', async () => {
+    okKlines();
+    const url = new URL(
+      'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&priceSource=index',
+    );
+    const response = await GET({ url } as unknown as Parameters<typeof GET>[0]);
+
+    expect(response.status).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
 });

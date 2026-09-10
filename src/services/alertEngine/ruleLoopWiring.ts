@@ -32,8 +32,19 @@ import type { EvaluationCandle, RuleDocument } from "../../lib/rules/types";
 import { marketState } from "../../stores/market.svelte";
 import { safeTfToMs } from "../../utils/timeUtils";
 import { logger } from "../logger";
+import { markCandleCache } from "./markCandleCache";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
-import { ruleEvaluationLoop, type FiringSink, type SeriesCloseHook } from "./ruleEvaluationLoop";
+import { get } from "svelte/store";
+import { _ } from "../../locales/i18n";
+import { settingsState } from "../../stores/settings.svelte";
+import { toastService } from "../toastService.svelte";
+import {
+  logUnevaluable,
+  ruleEvaluationLoop,
+  type FiringSink,
+  type SeriesCloseHook,
+  type UnevaluableSink,
+} from "./ruleEvaluationLoop";
 import { recordFiring } from "./shadowLedger";
 
 /**
@@ -165,6 +176,23 @@ export const ledgerSink: FiringSink = ({ rule, verdict, anchorMs }) => {
 };
 
 /**
+ * The closed mark-price candles of one series, and a refresh if it is stale.
+ *
+ * The read is synchronous and the refresh is not awaited: this runs on the
+ * market hot path, once per rule per candle close. A series that has not
+ * arrived yet answers empty, which the core reads as "I cannot tell" and turns
+ * into an indeterminate verdict — never into a last-price answer.
+ *
+ * Asking here rather than at startup is what keeps the request set honest: a
+ * series is fetched the first time an armed rule actually reads it, and a
+ * symbol nobody wrote a mark-price rule for is never requested at all.
+ */
+export function readMarkCandles(symbol: string, timeframe: string): EvaluationCandle[] {
+  markCandleCache.ensure(symbol, timeframe);
+  return markCandleCache.read(symbol, timeframe);
+}
+
+/**
  * Points the loop at the live market store and at the sink the caller chose.
  *
  * The sink is a parameter rather than a constant because it is the cutover:
@@ -178,14 +206,37 @@ export const ledgerSink: FiringSink = ({ rule, verdict, anchorMs }) => {
  * coverage the moment a rule's series starts being observed mid-session,
  * rather than only at the startup snapshot `initAlertEngine()` took.
  */
+/**
+ * What a trader sees when one of their alerts turns out to be inert.
+ *
+ * The log line is unconditional: the record of *why* an alert can never fire is
+ * not a preference. `settingsState.brokenAlertReport` decides only whether the
+ * trader is interrupted about it — and it defaults to `notify`, because this
+ * failure is invisible by nature. The alert keeps sitting in the panel looking
+ * armed, and an alert that silently never fires is the worst outcome an alert
+ * system has.
+ */
+export const settingsAwareUnevaluableSink: UnevaluableSink = (rule) => {
+  logUnevaluable(rule);
+  if (settingsState.brokenAlertReport !== "notify") return;
+
+  toastService.error(
+    get(_)("dashboard.alerts.brokenRule.toast", {
+      values: { name: rule.name || rule.ruleId, symbol: rule.symbol },
+    }),
+  );
+};
+
 export function startRuleEvaluationLoop(onFiring: FiringSink = ledgerSink, onClose?: SeriesCloseHook): void {
   if (!browser) return;
 
   ruleEvaluationLoop.configure({
     readCandles: readClosedCandles,
+    readMarkCandles: readMarkCandles,
     readRules: readStoredRules,
     onFiring,
     onClose,
+    onUnevaluable: settingsAwareUnevaluableSink,
   });
   logger.log(
     "alerts",

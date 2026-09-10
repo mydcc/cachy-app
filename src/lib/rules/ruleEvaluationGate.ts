@@ -51,7 +51,8 @@ export class RuleEvaluationGate {
    * gone through `ruleSchema.validate()`); a mismatched spelling reads as no
    * candles at all and withholds every verdict, not an error.
    *
-   * Returns `undefined` in both skip cases: a duplicate anchor is not a new
+   * Returns `undefined` in both skip cases: an anchor at or before the last one
+   * decided is not a new
    * decision to report, and an unwarmed rule must produce no verdict at all
    * rather than one built from a partial buffer. The anchor is recorded only
    * after `ruleSchema.evaluate()` returns successfully, so a transient
@@ -62,7 +63,19 @@ export class RuleEvaluationGate {
     const closedCandles = ctx.candles[document.trigger_timeframe]?.length ?? 0;
     if (closedCandles < ruleSchema.warmupCandles(document)) return undefined;
 
-    if (this.lastEvaluatedAnchorMs.get(document.id) === anchorMs) return undefined;
+    // At or *before* the last anchor, not merely equal to it. Equality alone
+    // dedupes the ticks within one candle and nothing else: any anchor that is
+    // not exactly the previous one passes, so a replayed or corrected candle
+    // fires a second time for an event the trader was already told about.
+    //
+    // That is not hypothetical. A reconnect clears the loop's high-water mark
+    // (`forgetSeries`), the store refills the series, and evaluation resumes
+    // from an anchor that has already been decided. Monotonic makes the whole
+    // class impossible rather than making one path careful, and costs nothing:
+    // a rule that legitimately needs to decide an anchor again is edited or
+    // disarmed, and both call `forget`.
+    const lastAnchorMs = this.lastEvaluatedAnchorMs.get(document.id);
+    if (lastAnchorMs !== undefined && anchorMs <= lastAnchorMs) return undefined;
 
     const verdict = ruleSchema.evaluate(document, ctx);
     this.lastEvaluatedAnchorMs.set(document.id, anchorMs);

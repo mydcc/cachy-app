@@ -103,8 +103,12 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
     const { symbol, data } = parsed;
     const ip = data.ip !== undefined ? context.safeString(data.ip, symbol, "indexPrice") : undefined;
     const mp = data.mp !== undefined ? context.safeString(data.mp, symbol, "markPrice") : undefined;
-    if (typeof data.lastPrice === "number" || typeof data.lp === "number") {
-      context.safeString(data.lastPrice ?? data.lp, symbol, "lastPrice");
+    // StrictPriceDataSchema normalizes to strings (SafeString), so the
+    // presence check mirrors ip/mp above — a typeof number check would
+    // never match and silently drop fast-path lastPrice updates.
+    const lp = data.lastPrice ?? data.lp;
+    if (lp !== undefined) {
+      context.safeString(lp, symbol, "lastPrice");
     }
     context.commitThrottle(`${symbol}:price`);
     marketState.updateSymbol(symbol, {

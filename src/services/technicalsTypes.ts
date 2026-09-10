@@ -21,15 +21,19 @@ import type { IndicatorSettings } from "../types/indicators";
 
 export type { IndicatorSettings };
 
-// Raw Kline Schema for validation before Decimal conversion
-// Allows string or number inputs, but verifies presence of required fields
+// Raw Kline Schema for validation before Decimal conversion (BUG-0425).
+// OHLCV leave the schema as strings so `new Decimal()` downstream stays
+// exact; `time` is a millisecond timestamp and never computed on, so it
+// stays a raw number.
+const MoneyString = z.union([z.string(), z.number()]).transform((v) => String(v));
+
 export const KlineRawSchema = z.object({
   time: z.number(),
-  open: z.union([z.string(), z.number()]),
-  high: z.union([z.string(), z.number()]),
-  low: z.union([z.string(), z.number()]),
-  close: z.union([z.string(), z.number()]),
-  volume: z.union([z.string(), z.number()]),
+  open: MoneyString,
+  high: MoneyString,
+  low: MoneyString,
+  close: MoneyString,
+  volume: MoneyString,
 }).passthrough();
 
 export type KlineRaw = z.infer<typeof KlineRawSchema>;

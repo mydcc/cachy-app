@@ -72,12 +72,23 @@ export interface TickersQuery {
   symbols: string | null;
 }
 
+/**
+ * Which price series a candle request wants.
+ *
+ * On a perpetual the last traded price and the mark price differ, and a rule
+ * that keys off one must not be answered from the other. Absent means `last`,
+ * which is what every caller before FEAT-0390 asked for.
+ */
+export type KlinePriceSource = "last" | "mark";
+
 export interface KlineQuery {
   symbol: string;
   interval: string;
   limit: number;
   start?: number;
   end?: number;
+  /** Defaults to `last`. Only meaningful where `supportsMarkKlines` is true. */
+  priceSource?: KlinePriceSource;
 }
 
 export interface VenueModule {
@@ -101,6 +112,17 @@ export interface VenueModule {
   fetchAccount(creds: VenueCredentials): Promise<ExchangeAccountData>;
 
   fetchBalance(creds: VenueCredentials): Promise<string>;
+
+  /**
+   * Whether this venue can serve mark-price candles.
+   *
+   * Asked rather than assumed, the same way `requiresPassphrase` is: Bitunix
+   * takes a `type` parameter on its kline endpoint, Bitget's mix candles
+   * endpoint is last-price only and would answer a mark request with last-price
+   * data. Returning those silently is the failure FEAT-0390 exists to remove, so
+   * the caller checks this and refuses instead.
+   */
+  readonly supportsMarkKlines: boolean;
 
   fetchKlines(query: KlineQuery): Promise<VenueKline[]>;
 
