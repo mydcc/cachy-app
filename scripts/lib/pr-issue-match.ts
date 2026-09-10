@@ -15,6 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { stripFencedCodeBlocks } from "./markdown-text";
+import { TERMINAL_STATUSES } from "./backlog-flip";
+
 /**
  * Deciding which open pull requests belong to a backlog item.
  *
@@ -75,9 +78,10 @@ export function mentionsBacklogId(text: string | null | undefined, id: string): 
  */
 export function closingReferences(body: string | null | undefined): number[] {
     if (!body) return [];
+    const scanned = stripFencedCodeBlocks(body);
     const pattern = new RegExp(`(?:${CLOSING_KEYWORD})\\s+#(\\d+)`, "gi");
     const found: number[] = [];
-    for (const match of body.matchAll(pattern)) {
+    for (const match of scanned.matchAll(pattern)) {
         const parsed = Number.parseInt(match[1], 10);
         if (!Number.isNaN(parsed) && !found.includes(parsed)) found.push(parsed);
     }
@@ -213,12 +217,28 @@ export function decideLink(body: string | null | undefined, issueNumber: number)
     return { action: "prepend", issueNumber };
 }
 
+/** What the auto-fix can learn about the issue it is about to link. */
+export interface BacklogIssueVerification {
+    /** The candidate issue carries a `backlog-id:` label. */
+    isBacklogMirror: boolean;
+    /** The backlog item id from that label, when present. */
+    itemId: string | null;
+    /** Front-matter status of the item on the base branch (null = unreadable/missing). */
+    baseStatus: string | null;
+}
+
 /** Context for automated PR body repair. */
 export interface AutoFixPRBodyContext {
     body: string;
     title?: string;
     branch?: string;
     findIssueForBacklogId?: (backlogId: string) => Promise<number | null>;
+    /**
+     * Resolve labels and base status for a candidate issue. Returning `null`
+     * means the lookup itself failed (API flake): the auto-fix then behaves as
+     * before and fails open, mirroring `checkBacklogFlip`.
+     */
+    verifyBacklogItem?: (issueNumber: number) => Promise<BacklogIssueVerification | null>;
 }
 
 /** Result of automated PR body repair. */
@@ -226,6 +246,12 @@ export interface AutoFixPRBodyResult {
     changed: boolean;
     body: string;
     actionTaken?: string;
+    /**
+     * Set when the auto-fix deliberately declined to insert a trailer: the
+     * candidate is a backlog mirror whose item is not terminal, so `Fixes #N`
+     * would promise a flip this PR does not make (BUG-0431).
+     */
+    declined?: { issueNumber: number; itemId: string; baseStatus: string | null };
 }
 
 /**
@@ -243,6 +269,7 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
     let body = ctx.body;
     let changed = false;
     let actionTaken: string | undefined;
+    let declined: AutoFixPRBodyResult["declined"];
 
     // 1. Check if closing reference is missing
     const presence = checkBodyHasClosingRef(body);
@@ -259,9 +286,25 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
                 issueNumber = await ctx.findIssueForBacklogId(backlogId);
             }
             if (issueNumber) {
-                body = `Fixes #${issueNumber}\n\n${body.trimStart()}`;
-                changed = true;
-                actionTaken = `Prepend Fixes #${issueNumber} for ${backlogId}`;
+                const verification = ctx.verifyBacklogItem
+                    ? await ctx.verifyBacklogItem(issueNumber)
+                    : null;
+                if (
+                    verification?.isBacklogMirror === true &&
+                    verification.itemId !== null &&
+                    (verification.baseStatus === null ||
+                        !TERMINAL_STATUSES.has(verification.baseStatus))
+                ) {
+                    declined = {
+                        issueNumber,
+                        itemId: verification.itemId,
+                        baseStatus: verification.baseStatus,
+                    };
+                } else {
+                    body = `Fixes #${issueNumber}\n\n${body.trimStart()}`;
+                    changed = true;
+                    actionTaken = `Prepend Fixes #${issueNumber} for ${backlogId}`;
+                }
             } else {
                 body = `${body.trimEnd()}\n\n${NO_ISSUE_MARKER}\n`;
                 changed = true;
@@ -288,5 +331,40 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
         }
     }
 
-    return { changed, body, actionTaken };
+    return { changed, body, actionTaken, declined };
+}
+
+/**
+ * The guidance printed when a PR description carries no closing reference.
+ *
+ * `declined` is set when `autoFixPRBody` refused to invent one for a
+ * non-terminal backlog mirror — the author must choose between finishing the
+ * item in this PR or opting out (BUG-0431).
+ */
+export function missingClosingRefMessage(
+    declined?: AutoFixPRBodyResult["declined"],
+): string {
+    if (declined) {
+        return (
+            `PR description carries no closing reference.\n\n` +
+            `#${declined.issueNumber} links to backlog item ${declined.itemId}, which is ` +
+            `${declined.baseStatus ?? "not marked done"} on the base branch — this PR does ` +
+            `not complete it, so an inferred \`Fixes #${declined.issueNumber}\` would be a ` +
+            `false claim (a later CI step would then demand the item be flipped).\n\n` +
+            `Choose one:\n` +
+            `  • This PR DOES finish ${declined.itemId}: set \`status: done\` in its file, run ` +
+            `\`node scripts/backlog-index.mjs\`, commit both, and put ` +
+            `\`Fixes #${declined.issueNumber}\` at the top of this description.\n` +
+            `  • It does NOT: put \`${NO_ISSUE_MARKER}\` on its own line to opt out explicitly.`
+        );
+    }
+    return (
+        `PR description carries no closing reference.\n\n` +
+        `AGENTS.md requires \`Fixes #<issue>\` at the start of every PR description so ` +
+        `GitHub links the PR to its backlog issue and closes it on merge — a merge ` +
+        `without one closes nothing, and the issue silently stays open.\n\n` +
+        `Add the missing line (the number of the issue this PR fixes), or, only if this ` +
+        `PR genuinely links to no issue at all, put \`${NO_ISSUE_MARKER}\` on its own line ` +
+        `to opt out explicitly. Silence is not an opt-out.`
+    );
 }

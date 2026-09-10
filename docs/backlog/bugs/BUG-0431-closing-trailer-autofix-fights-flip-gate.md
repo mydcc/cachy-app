@@ -2,7 +2,7 @@
 id: BUG-0431
 title: The closing-reference auto-fix inserts a trailer the flip gate then rejects
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: ci
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0431 — The closing-reference auto-fix inserts a trailer the flip gate then rejects
@@ -132,18 +133,18 @@ items after the merge, where nobody reviewed the claim.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect and fails without the fix: a body with
+- [x] A test reproduces the defect and fails without the fix: a body with
       `Fixes #N` and `[no issue]` currently fails `checkBacklogFlip` and must
       pass
-- [ ] A test pins that the auto-fix declines to insert a trailer for a
+- [x] A test pins that the auto-fix declines to insert a trailer for a
       non-terminal backlog mirror issue, and that the presence check then fails
       with a message naming both options
-- [ ] `NO_ISSUE_RE` is read by `checkBacklogFlip`, not merely exported
-- [ ] A PR advancing a non-terminal backlog item reaches green without editing
+- [x] `NO_ISSUE_RE` is read by `checkBacklogFlip`, not merely exported
+- [x] A PR advancing a non-terminal backlog item reaches green without editing
       a backlog status it does not complete
-- [ ] A trailer inside a fenced code block is not read as a trailer, so a PR
+- [x] A trailer inside a fenced code block is not read as a trailer, so a PR
       can quote a description it is reporting on
-- [ ] No instruction file still describes the post-merge index bot
+- [x] No instruction file still describes the post-merge index bot
 
 ## Links
 

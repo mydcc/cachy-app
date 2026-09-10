@@ -36,12 +36,32 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { autoFixPRBody, checkBodyForStrayClosingRefs, checkBodyHasClosingRef } from "./lib/pr-issue-match";
+import {
+    autoFixPRBody,
+    checkBodyForStrayClosingRefs,
+    checkBodyHasClosingRef,
+    missingClosingRefMessage,
+    type AutoFixPRBodyResult,
+    type BacklogIssueVerification,
+} from "./lib/pr-issue-match";
+import { findItemFile, readStatus } from "./lib/backlog-flip";
 
 let body = process.env.PR_BODY ?? "";
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 const prNumber = process.env.PR_NUMBER;
 const prNum = prNumber ? Number.parseInt(prNumber, 10) : NaN;
+const baseRef = process.env.BASE_REF || "develop";
+const base = `origin/${baseRef}`;
+
+function git(args: string[]): string | null {
+    try {
+        return execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    } catch {
+        return null;
+    }
+}
+
+let autoFixResult: AutoFixPRBodyResult | null = null;
 
 // When running in CI on a PR, attempt silent auto-fix before reporting failures
 if (token && Number.isInteger(prNum) && prNum > 0) {
@@ -68,7 +88,33 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
                 return null;
             }
         },
+        verifyBacklogItem: async (issueNumber: number): Promise<BacklogIssueVerification | null> => {
+            let labels: string[];
+            try {
+                const stdout = execFileSync("gh", [
+                    "issue", "view", String(issueNumber),
+                    "--json", "labels", "--jq", ".labels[].name",
+                ], {
+                    encoding: "utf8",
+                    stdio: ["ignore", "pipe", "ignore"],
+                    env: { ...process.env, GH_TOKEN: token },
+                });
+                labels = stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+            } catch {
+                return null; // API flake → fail open
+            }
+            const idLabel = labels.find((name) => name.startsWith("backlog-id:"));
+            if (!idLabel) return { isBacklogMirror: false, itemId: null, baseStatus: null };
+            const itemId = idLabel.slice("backlog-id:".length);
+            const tree = git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]) ?? "";
+            const itemFile = findItemFile(tree.split("\n"), itemId);
+            const baseStatus = itemFile
+                ? readStatus(git(["show", `${base}:${itemFile}`]) ?? "")
+                : null;
+            return { isBacklogMirror: true, itemId, baseStatus };
+        },
     });
+    autoFixResult = fixResult;
 
     if (fixResult.changed) {
         try {
@@ -91,17 +137,7 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
 
 const presence = checkBodyHasClosingRef(body);
 if (!presence.ok) {
-    console.error(
-        `❌ PR description carries no closing reference.\n`,
-    );
-    console.error(`
-AGENTS.md requires \`Fixes #<issue>\` at the start of every PR description so
-GitHub links the PR to its backlog issue and closes it on merge — a merge
-without one closes nothing, and the issue silently stays open.
-
-Add the missing line (the number of the issue this PR fixes), or, only if this
-PR genuinely links to no issue at all, put \`${"[no issue]"}\` on its own line
-to opt out explicitly. Silence is not an opt-out.
+    console.error(`❌ ${missingClosingRefMessage(autoFixResult?.declined)}
 `);
     process.exit(1);
 }

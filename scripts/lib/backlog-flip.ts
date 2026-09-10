@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { stripFencedCodeBlocks } from "./markdown-text";
+
 /**
  * Flip-in-fix-PR verdicts (no bots).
  *
@@ -38,7 +40,7 @@ export type FlipVerdict =
 
 /** Extract the declared issue number from a line-start `Fixes #N` trailer. */
 export function findFixesTrailer(body: string): number | null {
-    const match = body.match(FIXES_TRAILER_RE);
+    const match = stripFencedCodeBlocks(body).match(FIXES_TRAILER_RE);
     if (!match) return null;
     const num = Number.parseInt(match[1], 10);
     return Number.isInteger(num) && num > 0 ? num : null;
@@ -74,8 +76,9 @@ export interface FlipInputs {
  *
  * Pass-open by design, fail-closed on findings — mirroring the old bot
  * guards, but as a pre-merge gate instead of a post-merge repair:
- * - no trailer, or an explicit `[no issue]` opt-out: pass (the presence
- *   check in `lint-pr-body-refs.ts` owns the missing-trailer case).
+ * - no trailer, or an explicit `[no issue]` opt-out: pass (the opt-out is
+ *   honoured here, before the trailer lookup; the presence check in
+ *   `lint-pr-body-refs.ts` owns the missing-trailer case).
  * - issue labels unreadable (API flake): pass with a warning detail — a
  *   retry on the next push re-evaluates; blocking merges on flakes strands
  *   every backlog PR at once.
@@ -84,6 +87,9 @@ export interface FlipInputs {
  * - otherwise the diff must contain the `+status: done` line.
  */
 export function checkBacklogFlip(inputs: FlipInputs): FlipVerdict {
+    if (NO_ISSUE_RE.test(inputs.body)) {
+        return { outcome: "pass", detail: "explicit [no issue] opt-out; flip not required" };
+    }
     const declared = findFixesTrailer(inputs.body);
     if (declared === null) {
         return { outcome: "pass", detail: "no Fixes trailer; presence is enforced elsewhere" };

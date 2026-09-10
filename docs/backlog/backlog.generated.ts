@@ -3608,7 +3608,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0431",
     "title": "The closing-reference auto-fix inserts a trailer the flip gate then rejects",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3620,6 +3620,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md"
   },
   {

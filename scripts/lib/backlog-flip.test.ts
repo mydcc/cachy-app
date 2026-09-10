@@ -28,6 +28,15 @@ describe("findFixesTrailer", () => {
     it("ignores prose mentions (BUG-0220)", () => {
         expect(findFixesTrailer("This is fixed, see #2793 for context")).toBe(null);
     });
+
+    it("ignores a trailer inside a fenced code block (BUG-0431)", () => {
+        const body = "Reporting the bug:\n\n```\nFixes #1792\n```\n\nRefs #1792.";
+        expect(findFixesTrailer(body)).toBe(null);
+    });
+
+    it("still takes a real trailer outside a fence", () => {
+        expect(findFixesTrailer("```\nFixes #111\n```\nFixes #222\n\nBody")).toBe(222);
+    });
 });
 
 describe("findItemFile", () => {
@@ -110,6 +119,17 @@ describe("checkBacklogFlip", () => {
         expect(
             checkBacklogFlip({
                 body: "No trailer here [no issue]",
+                issueLabels: labels,
+                baseStatus: "ready",
+                fileDiff: "",
+            }).outcome,
+        ).toBe("pass");
+    });
+
+    it("passes a body carrying both a trailer and the [no issue] opt-out (BUG-0431)", () => {
+        expect(
+            checkBacklogFlip({
+                body: "Fixes #2793\n\n[no issue]",
                 issueLabels: labels,
                 baseStatus: "ready",
                 fileDiff: "",
