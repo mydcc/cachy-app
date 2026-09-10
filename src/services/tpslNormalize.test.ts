@@ -28,7 +28,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { normalizeTpSlRow, normalizeTpSlRows } from "./tpslNormalize";
+import { normalizeTpSlRow, normalizeTpSlRows, stripLegSuffix } from "./tpslNormalize";
 
 /** Verbatim from `06_tp_sl.md` §Get Pending TP/SL Order → Response Example. */
 const DOCUMENTED_ROW = {
@@ -236,5 +236,28 @@ describe("normalizeTpSlRows", () => {
         const plans = normalizeTpSlRows([DOCUMENTED_ROW]);
         const ids = new Set(plans.map((p) => p.orderId));
         expect(ids.size).toBe(plans.length);
+    });
+});
+
+describe("stripLegSuffix", () => {
+    it("recovers the base id from the leg id the scheme builds", () => {
+        expect(stripLegSuffix("123-tp", "tp")).toBe("123");
+        expect(stripLegSuffix("123-sl", "sl")).toBe("123");
+    });
+
+    it("leaves a plain venue id untouched", () => {
+        // The generic non-Bitunix provider never split its rows, so its ids
+        // carry no suffix and must pass straight through.
+        expect(stripLegSuffix("123", "tp")).toBe("123");
+        expect(stripLegSuffix("123", "sl")).toBe("123");
+    });
+
+    it("only strips the leg it was asked about", () => {
+        expect(stripLegSuffix("123-tp", "sl")).toBe("123-tp");
+        expect(stripLegSuffix("123-sl", "tp")).toBe("123-sl");
+    });
+
+    it("does not turn a suffix-only id into an empty one", () => {
+        expect(stripLegSuffix("-tp", "tp")).toBe("-tp");
     });
 });

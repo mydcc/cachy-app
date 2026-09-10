@@ -5884,7 +5884,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0384",
     "title": "Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5896,7 +5896,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "none",
+    "assignee": "opencode",
+    "branch": "fix/bug-0384-tpsl-no-plan-leg-id",
     "file": "bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md"
   },
   {

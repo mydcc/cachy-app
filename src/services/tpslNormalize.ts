@@ -49,6 +49,27 @@
 
 import type { TpSlOrder } from "./tradeService";
 
+/**
+ * Inverse of the leg-id scheme described above (BUG-0384): recovers the venue
+ * row id from a leg id by stripping the `${baseId}-tp` / `${baseId}-sl`
+ * suffix this app added.
+ *
+ * Needed when `tpSlState.plansFor()` holds no plan to read `sourceOrderId`
+ * from — the row was pruned, is not hydrated yet, vanished mid-drag, or came
+ * over the WebSocket (which does not carry `sourceOrderId`) — so a chart drag
+ * must not hand the venue an id it has never seen.
+ *
+ * The suffix is only stripped when it matches `leg`; an id without it (the
+ * generic non-Bitunix path) or with the other leg's suffix is returned
+ * unchanged, and an id that is nothing but the suffix is left alone too.
+ */
+export function stripLegSuffix(orderId: string, leg: "tp" | "sl"): string {
+    const suffix = `-${leg}`;
+    return orderId.length > suffix.length && orderId.endsWith(suffix)
+        ? orderId.slice(0, -suffix.length)
+        : orderId;
+}
+
 /** One leg's worth of fields, as they are named on the wire. */
 interface LegFields {
     price?: string;
