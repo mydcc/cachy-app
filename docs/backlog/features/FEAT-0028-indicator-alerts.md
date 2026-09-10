@@ -105,8 +105,26 @@ that only misbehaves on a shape real markets produce and the generator does not:
 a halt, a gap, a wick to zero, a depeg. Recording a real series and re-running
 the same oracles against it is the remaining work for that criterion.
 
-Still open: cross-path parity (criterion 4), no-double-fire on a corrected
-candle (criterion 3), and the three schema gaps above.
+### Cross-path parity (criterion 4)
+
+WASM and JS now agree on SMA, EMA, RSI, Bollinger, volume MA and all three MACD
+outputs to within `f64` noise, asserted by
+`src/services/alertEngine/crossPathParity.test.ts` at three different history
+lengths against the real committed WASM artefact.
+
+Getting there meant fixing [`BUG-0429`](../bugs/BUG-0429-macd-seeding-mismatch.md):
+WASM seeded MACD's EMAs with the first close while the rest of the project seeds
+with an SMA, which at short history made the two paths disagree about the *sign*
+of the histogram. Worst histogram difference fell from 1.7 to 9.4e-12.
+
+**The WebGPU path is not covered.** It needs a real `navigator.gpu`, which no
+Node test environment provides — the same wall BUG-0005 hit, where a structural
+check stood in for a numeric one. Covering it needs a browser and belongs in
+Playwright. Until then criterion 4 is met for two of the three paths, and this
+is the documented discrepancy the criterion allows rather than a silent gap.
+
+Still open: the WebGPU leg of criterion 4, no-double-fire on a corrected candle
+(criterion 3), and the three schema gaps above.
 
 ## Links
 
