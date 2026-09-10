@@ -52,16 +52,6 @@ jobs:
             branch=$(echo "$item" | cut -d: -f2)
             owner=$(echo "$item" | cut -d: -f3)
 
-            # Skip bot-managed branches: the backlog-index and auto-done jobs
-            # own these via force-push, so updating them here only races
-            # their next force-push (redundant runs, rejected pushes).
-            case "$branch" in
-              chore/backlog-index-*|bot/*)
-                echo "Skipping bot-managed branch $branch."
-                continue
-                ;;
-            esac
-
             echo "=== Processing PR #$pr (branch: $branch, owner: $owner) ==="
 
             # First, try native GitHub API update-branch
