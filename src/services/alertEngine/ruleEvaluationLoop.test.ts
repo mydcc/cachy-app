@@ -328,4 +328,94 @@ describe("RuleEvaluationLoop", () => {
       expect(() => loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }])).not.toThrow();
     });
   });
+
+  // ---- FEAT-0390: the mark-price series ----------------------------------
+
+  describe("mark-price candles", () => {
+    const markCross = (timeframe = "1m") => ({
+      kind: "cross",
+      left: { kind: "price", field: "close", source: "mark" },
+      direction: "above",
+      right: { kind: "constant", value: "60000" },
+      timeframe,
+    });
+
+    function loopReadingMark(rules: RuleDocument[], readMarkCandles = vi.fn(() => [])) {
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readMarkCandles,
+        readRules: () => rules,
+        onFiring: vi.fn(),
+      });
+      return { loop, readMarkCandles };
+    }
+
+    /** The context the gate receives on the one evaluated close. */
+    function contextAfterOneClose(rules: RuleDocument[], readMarkCandles?: ReturnType<typeof vi.fn>) {
+      const { loop, readMarkCandles: reader } = loopReadingMark(
+        rules,
+        readMarkCandles ?? vi.fn(() => []),
+      );
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+      return { ctx: gateEvaluate.mock.calls[0][1] as Record<string, unknown>, reader };
+    }
+
+    /**
+     * Every rule written before FEAT-0390 reads the last price. Those must send
+     * the core exactly the context they sent before — no `mark_candles` key and
+     * no request for a series nobody asked for.
+     */
+    it("sends no mark candles at all for a rule that reads the last price", () => {
+      const { ctx, reader } = contextAfterOneClose([rule()]);
+
+      expect(ctx).not.toHaveProperty("mark_candles");
+      expect(reader).not.toHaveBeenCalled();
+    });
+
+    it("supplies the mark series for a rule that names it", () => {
+      const marks = [{ open_time_ms: 1_000, open: "1", high: "1", low: "1", close: "1" }];
+      const reader = vi.fn(() => marks);
+      const { ctx } = contextAfterOneClose(
+        [rule({ conditions: markCross() as never })],
+        reader as never,
+      );
+
+      expect(reader).toHaveBeenCalledWith("BTCUSDT", "1m");
+      expect(ctx.mark_candles).toEqual({ "1m": marks });
+    });
+
+    /**
+     * A rule can name a coarser timeframe than its trigger. The mark series it
+     * needs is that condition's timeframe, not the anchor's.
+     */
+    it("asks for the timeframe the condition names, not the trigger's", () => {
+      const reader = vi.fn(() => []);
+      contextAfterOneClose(
+        [rule({ conditions: markCross("4h") as never })],
+        reader as never,
+      );
+
+      expect(reader).toHaveBeenCalledWith("BTCUSDT", "4h");
+      expect(reader).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * An unconfigured mark reader answers empty, which the core turns into an
+     * indeterminate verdict. What it must never do is leave the key off and let
+     * the core read the last-price series instead.
+     */
+    it("still declares the series when no mark reader is configured", () => {
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ conditions: markCross() as never })],
+        onFiring: vi.fn(),
+      });
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      const ctx = gateEvaluate.mock.calls[0][1] as Record<string, unknown>;
+      expect(ctx.mark_candles).toEqual({ "1m": [] });
+    });
+  });
 });
