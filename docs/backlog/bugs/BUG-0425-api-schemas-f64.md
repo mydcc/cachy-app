@@ -2,7 +2,7 @@
 id: BUG-0425
 title: Financial values in API schemas allow f64 numbers
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]

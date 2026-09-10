@@ -18,6 +18,17 @@ const StrictPositiveDecimal = StrictDecimal.refine((val) => val.gt(0), {
     message: "Value must be positive"
 });
 
+/**
+ * Money boundary (BUG-0425): financial values crossing a schema stay strings.
+ * Venues send both JSON numbers and numeric strings; a raw number carries at
+ * most 0.5ulp of parse error (unavoidable), but passing it through as `number`
+ * widens the gap at every later conversion. Normalizing to the shortest
+ * round-trip string keeps downstream `new Decimal()` exact and makes any
+ * future f64 arithmetic on outputs a type error. Timestamps and codes stay
+ * plain unions — only money and precision-critical IDs go here.
+ */
+const MoneyLike = z.union([z.string(), z.number()]).transform((v) => String(v));
+
 // Bitunix Ticker Schema
 // Note: optional fields are also .nullable() because StrictDecimal rejects null/undefined.
 // This lets Zod handle explicit null at the schema level before StrictDecimal runs,
@@ -155,12 +166,12 @@ export const BitunixLeverageMarginModeSchema = z.object({
 // Format: [timestamp, open, high, low, close, volume, ...]
 // Can be string or number
 export const BitgetKlineSchema = z.tuple([
-  z.union([z.string(), z.number()]), // timestamp
-  z.union([z.string(), z.number()]), // open
-  z.union([z.string(), z.number()]), // high
-  z.union([z.string(), z.number()]), // low
-  z.union([z.string(), z.number()]), // close
-  z.union([z.string(), z.number()]), // volume
+  z.union([z.string(), z.number()]), // timestamp (never computed on, stays raw)
+  MoneyLike, // open
+  MoneyLike, // high
+  MoneyLike, // low
+  MoneyLike, // close
+  MoneyLike, // volume
 ]).rest(z.unknown()); // Allow extra fields
 
 export const BitgetKlineResponseSchema = z.array(BitgetKlineSchema);
@@ -183,28 +194,28 @@ export const PositionRawSchema = z.object({
     holdSide: z.string().optional(),
 
     // Amount fields
-    qty: z.union([z.string(), z.number()]).optional(),
-    size: z.union([z.string(), z.number()]).optional(),
-    amount: z.union([z.string(), z.number()]).optional(),
+    qty: MoneyLike.optional(),
+    size: MoneyLike.optional(),
+    amount: MoneyLike.optional(),
 
     // Price fields
-    avgOpenPrice: z.union([z.string(), z.number()]).optional(),
-    entryPrice: z.union([z.string(), z.number()]).optional(),
+    avgOpenPrice: MoneyLike.optional(),
+    entryPrice: MoneyLike.optional(),
 
     // PnL
-    unrealizedPNL: z.union([z.string(), z.number()]).optional(),
-    unrealizedPnl: z.union([z.string(), z.number()]).optional(),
+    unrealizedPNL: MoneyLike.optional(),
+    unrealizedPnl: MoneyLike.optional(),
 
-    leverage: z.union([z.string(), z.number()]).optional(),
+    leverage: MoneyLike.optional(),
     marginMode: z.string().optional(),
-    liquidationPrice: z.union([z.string(), z.number()]).optional(),
-    liqPrice: z.union([z.string(), z.number()]).optional(),
+    liquidationPrice: MoneyLike.optional(),
+    liqPrice: MoneyLike.optional(),
     // Bitunix sends both on Get Pending Positions (docs/bitunix-api/05_position.md)
     // and the position WS channel. Without positionId/positionMode surviving
     // this schema, closePosition()/flashClosePosition() can't tell a
     // HEDGE-mode account from a ONE_WAY one, or which position to target —
     // see BUG-0062.
-    positionId: z.union([z.string(), z.number()]).optional(),
+    positionId: MoneyLike.optional(),
     positionMode: z.string().optional()
 }).refine(data => {
     // Hardening: A position must have at least one quantity field to be valid.
@@ -241,13 +252,13 @@ const BaseTpSlParams = z.object({
 
 // Specific params for Cancel
 const CancelTpSlParams = z.object({
-    orderId: z.union([z.string(), z.number()]),
+    orderId: MoneyLike,
     symbol: z.string(),
     planType: z.enum(["PROFIT", "LOSS"]).optional(),
 });
 
 const StopType = z.enum(["LAST_PRICE", "MARK_PRICE"]);
-const PriceLike = z.union([z.string(), z.number()]);
+const PriceLike = MoneyLike;
 
 /*
 /**
@@ -263,7 +274,7 @@ const PriceLike = z.union([z.string(), z.number()]);
  * gate) and to verify the wire format before sending to the venue.
  */
 const ModifyTpSlParams = z.object({
-    orderId: z.union([z.string(), z.number()]),
+    orderId: MoneyLike,
     tpPrice: PriceLike.optional(),
     tpStopType: StopType.optional(),
     tpOrderType: z.enum(["LIMIT", "MARKET"]).optional(),
