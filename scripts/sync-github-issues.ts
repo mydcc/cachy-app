@@ -118,6 +118,7 @@ async function fetchRepoMilestones(): Promise<GitHubMilestone[]> {
     // create duplicates of milestones that exist but could not be listed
     // (same truncated-response class that once duplicated issues).
     const url = `https://api.github.com/repos/${GITHUB_REPOSITORY}/milestones?state=all&per_page=100`;
+    // codeql[js/request-forgery]: fixed api.github.com host; repo path constrained by the startup REPO_NAME_PATTERN check (aborts otherwise).
     const res = await fetch(url, {
         headers: {
             "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -237,6 +238,7 @@ async function fetchAllIssues(): Promise<GitHubIssue[]> {
         "X-GitHub-Api-Version": "2022-11-28"
     };
     while (url !== null) {
+        // codeql[js/request-forgery]: URLs derive from the fixed api.github.com host plus Link-header next URLs issued by that same host.
         const res = await fetch(url, { headers });
         if (!res.ok) throw new Error(`Failed to fetch issues: ${await res.text()}`);
         const data: GitHubIssue[] = await res.json();
@@ -262,6 +264,7 @@ async function fetchFirstIssueByLabel(label: string): Promise<GitHubIssue | null
         throw new Error(`Refusing point lookup with misshaped label: ${label}`);
     }
     const url = `${BASE_URL}?state=all&per_page=100&labels=${encodeURIComponent(label)}`;
+    // codeql[js/request-forgery]: label passed the parseMirrorLabelId allowlist above; repo path constrained by the startup REPO_NAME_PATTERN check.
     const res = await fetch(url, {
         headers: {
             "Authorization": `Bearer ${GITHUB_TOKEN}`,
