@@ -38,7 +38,10 @@
         shouldShowCutoverNotice,
     } from "../../../services/alertEngine/cutoverNotice";
 
-    let { symbol = "BTCUSDT" }: { symbol?: string } = $props();
+    // Declared to satisfy the shell's tab contract, unused since the quick-add
+    // form left: this tab lists armed rules, which it reads from the store
+    // rather than from the header's symbol.
+    let { symbol: _symbol }: { symbol?: string } = $props();
 
     let listTab = $state<"active" | "history">("active");
 

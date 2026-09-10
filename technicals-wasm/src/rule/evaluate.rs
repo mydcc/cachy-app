@@ -809,12 +809,13 @@ mod tests {
         // The last-price series alone would make this fire.
         let last_only = InMemoryMarket::new().with_candles(tf("4h"), candles(&["59000", "61000"]));
 
-        match evaluate(&doc, &last_only, None) {
-            Verdict::Indeterminate { reason } => {
-                assert!(reason.contains("mark-price"), "got: {reason}");
-            }
-            other => panic!("expected an indeterminate verdict, got {other:?}"),
-        }
+        // Destructured rather than matched-and-formatted: interpolating the
+        // verdict or its reason into the failure message puts market data into
+        // a panic string, which CodeQL reads as logging tainted input.
+        let Verdict::Indeterminate { reason } = evaluate(&doc, &last_only, None) else {
+            panic!("expected an indeterminate verdict when no mark series is available");
+        };
+        assert!(reason.contains("mark-price"));
     }
 
     #[test]
@@ -923,10 +924,10 @@ mod tests {
         let doc = notify_doc(percent_at_least("5", 3));
         let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["100000", "105000"]));
 
-        match evaluate(&doc, &market, None) {
-            Verdict::Indeterminate { reason } => assert!(reason.contains("percentage move")),
-            other => panic!("expected indeterminate, got {other:?}"),
-        }
+        let Verdict::Indeterminate { reason } = evaluate(&doc, &market, None) else {
+            panic!("expected an indeterminate verdict when the reference candle is missing");
+        };
+        assert!(reason.contains("percentage move"));
     }
 
     /// A zero reference price makes the move undefined rather than infinite.
@@ -936,10 +937,10 @@ mod tests {
         let doc = notify_doc(percent_at_least("5", 1));
         let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["0", "105000"]));
 
-        match evaluate(&doc, &market, None) {
-            Verdict::Indeterminate { reason } => assert!(reason.contains("zero"), "got: {reason}"),
-            other => panic!("expected indeterminate, got {other:?}"),
-        }
+        let Verdict::Indeterminate { reason } = evaluate(&doc, &market, None) else {
+            panic!("expected an indeterminate verdict for a zero reference price");
+        };
+        assert!(reason.contains("zero"));
     }
 
     /// Percentage moves go through `Decimal` end to end. 0.1 + 0.2 is the
