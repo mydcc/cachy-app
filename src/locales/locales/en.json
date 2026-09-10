@@ -363,6 +363,21 @@
       },
       "brokenRule": {
         "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate."
+      },
+      "price": {
+        "conditionType": "Condition Type",
+        "lookbackHint": "Lookback period in candles",
+        "lookbackLabel": "Lookback",
+        "percentLabel": "Percent",
+        "priceLabel": "Price",
+        "seriesHint": "Which price series to monitor",
+        "seriesLabel": "Price Series",
+        "risesAbove": "Rises Above",
+        "fallsBelow": "Falls Below",
+        "riseReaches": "Rise Reaches",
+        "fallReaches": "Fall Reaches",
+        "seriesLast": "Last Price",
+        "seriesMark": "Mark Price"
       }
     },
     "generalInputs": {
@@ -3776,7 +3791,10 @@
   "chartView": {
     "loadingHistory": "LOADING HISTORY ...",
     "fetchingMarketData": "FETCHING MARKET DATA ...",
-    "countdownLabel": "Countdown to candle close"
+    "countdownLabel": "Countdown to candle close",
+    "alert": {
+      "menuLabel": "Alert"
+    }
   },
   "chart": {
     "pane": {

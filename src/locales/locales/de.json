@@ -363,6 +363,21 @@
       },
       "brokenRule": {
         "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann."
+      },
+      "price": {
+        "conditionType": "Bedingungstyp",
+        "lookbackHint": "Lookback-Periode in Kerzen",
+        "lookbackLabel": "Lookback",
+        "percentLabel": "Prozent",
+        "priceLabel": "Preis",
+        "seriesHint": "Welche Preisserie überwachen",
+        "seriesLabel": "Preisserie",
+        "risesAbove": "Steigt über",
+        "fallsBelow": "Fällt unter",
+        "riseReaches": "Stieg erreicht",
+        "fallReaches": "Fall erreicht",
+        "seriesLast": "Letzter Preis",
+        "seriesMark": "Mark-Preis"
       }
     },
     "generalInputs": {
@@ -3776,7 +3791,10 @@
   "chartView": {
     "loadingHistory": "LADE HISTORIE ...",
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
-    "countdownLabel": "Countdown bis zur Kerzenschließung"
+    "countdownLabel": "Countdown bis zur Kerzenschließung",
+    "alert": {
+      "menuLabel": "Warnung"
+    }
   },
   "chart": {
     "pane": {
