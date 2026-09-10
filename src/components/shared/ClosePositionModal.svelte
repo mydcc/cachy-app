@@ -112,8 +112,19 @@
     ctx && quantity ? isFullClose(ctx, quantity) : true,
   );
 
+  /*
+   * The input clamps a typed quantity to the position, but the live size can
+   * shrink between the last edit and the click — a partial close of the old,
+   * larger position. The gate would refuse the over-size order; refusing it
+   * here too means the dialog never asks the gate to say no.
+   */
+  const oversize = $derived(
+    !!(position && quantity && quantity.gt(position.amount)),
+  );
+
   async function handleClose() {
     if (!position || !quantity || quantity.lte(0)) return;
+    if (quantity.gt(position.amount)) return;
 
     loading = true;
     error = "";
@@ -175,7 +186,7 @@
       <button
         type="button"
         onclick={handleClose}
-        disabled={loading || !ctx || !quantity || quantity.lte(0)}
+        disabled={loading || !ctx || !quantity || quantity.lte(0) || oversize}
         class="px-3 py-1.5 text-xs rounded font-bold bg-danger-paired
                disabled:opacity-50 disabled:cursor-not-allowed"
       >

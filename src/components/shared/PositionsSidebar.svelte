@@ -842,11 +842,15 @@
       return;
     }
     // No dialog, so no later re-read: resolve the live row at execution time.
-    // The clicked row is a safe fallback because flash close reads only the
-    // symbol and side, both immutable for an open position — so a row that
-    // vanished between render and click cannot make the close use a stale
-    // price or size.
-    void runFlashClose(livePosition(pos.positionId ?? null) ?? pos);
+    // An id-less row is matched by symbol and side — both immutable for an
+    // open position, and the fields flash close actually reads. The clicked
+    // snapshot is never used: a row that is gone from the store has nothing
+    // to close, so it is skipped rather than closed on a stale object.
+    const live =
+      livePosition(pos.positionId ?? null) ??
+      mappedPositions.find((p) => p.symbol === pos.symbol && p.side === pos.side) ??
+      null;
+    if (live) void runFlashClose(live);
   }
 
   /**

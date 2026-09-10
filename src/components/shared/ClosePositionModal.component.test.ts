@@ -45,8 +45,12 @@ vi.mock("../../locales/i18n", async () => {
     };
 });
 
+const { closeSpy } = vi.hoisted(() => ({
+    closeSpy: vi.fn(async () => ({ success: true })),
+}));
+
 vi.mock("../../services/exchange", () => ({
-    activeExchange: () => ({ trading: { closePosition: vi.fn(async () => ({ success: true })) } }),
+    activeExchange: () => ({ trading: { closePosition: closeSpy } }),
 }));
 
 vi.mock("../../stores/market.svelte", () => ({
@@ -166,5 +170,38 @@ describe("BUG-0347 — ClosePositionModal keeps an edited quantity on price tick
         settle();
 
         expect(host.querySelector("#partial-close-qty")).toBeNull();
+    });
+
+    it("clamps a typed quantity above the size to a full close", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: { ...POSITION, amount: new Decimal(10) } },
+        }) as never;
+        settle();
+
+        typeQuantity("999");
+
+        expect(quantityInput().value).toBe("10");
+    });
+
+    it("refuses a submit when the live size shrank below the typed quantity", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: { ...POSITION, amount: new Decimal(10) } },
+        }) as never;
+        settle();
+
+        typeQuantity("8");
+        expect(quantityInput().value).toBe("8");
+
+        // The live size shrinks after the edit. Click before the seed effect
+        // re-seeds, so the dialog briefly holds the old, now-too-large
+        // quantity — it must refuse rather than send the gate a reduce it
+        // will reject.
+        component?.refresh({ ...POSITION, amount: new Decimal(5) });
+        const submit = host.querySelector<HTMLButtonElement>('button:not([type="button"])');
+        submit?.click();
+
+        expect(closeSpy).not.toHaveBeenCalled();
     });
 });
