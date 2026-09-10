@@ -3604,6 +3604,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md"
   },
   {
+    "id": "BUG-0431",
+    "title": "The closing-reference auto-fix inserts a trailer the flip gate then rejects",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ci",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
