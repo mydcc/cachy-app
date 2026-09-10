@@ -2205,7 +2205,8 @@
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "restore": "Wiederherstellen",
-    "feedDuck": "Ente füttern (Profit)"
+    "feedDuck": "Ente füttern (Profit)",
+    "tradingJournal": "Trade Journal"
   },
   "analyst": {
     "trend": {

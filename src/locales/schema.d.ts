@@ -1947,6 +1947,7 @@ export type TranslationKey =
   | "common.maximize"
   | "common.restore"
   | "common.feedDuck"
+  | "common.tradingJournal"
   | "analyst.trend.bullish"
   | "analyst.trend.bearish"
   | "analyst.trend.neutral"

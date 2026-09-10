@@ -2207,7 +2207,8 @@
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",
-    "feedDuck": "Feed Duck (Profit)"
+    "feedDuck": "Feed Duck (Profit)",
+    "tradingJournal": "Trading Journal"
   },
   "analyst": {
     "trend": {

@@ -38,3 +38,6 @@
 ## 2026-09-05 - Fix backup rejection message untranslated (BUG-0354)
 **Learning:** When using svelte-i18n's `$_` with dynamic interpolation variables, passing the variables object directly as the second argument causes the raw keys to be rendered instead of the values.
 **Action:** Always wrap the interpolation object in `{ values: ... }` like `$_(key, { values: dynamicObject })`.
+## 2026-09-09 - Hardcoded English string extraction in LeftControlPanel
+**Learning:** Some older Svelte components use hardcoded English strings instead of translations from the `i18n` store. Extracting these into both `en.json` and `de.json` is a valid Palette win.
+**Action:** Replaced hardcoded `"Trading Journal"` title attribute in `LeftControlPanel.svelte` with `$_("common.tradingJournal")`.
