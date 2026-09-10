@@ -2,7 +2,7 @@
 id: FEAT-0028
 title: Alerts on indicator conditions
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -12,6 +12,7 @@ adr: ADR-0012
 depends_on: [FEAT-0027, FEAT-0387, FEAT-0389]
 estimate: 5
 size: L
+assignee: claude-code
 target_date: 2027-01-29
 start_date: 2026-08-01
 ---
@@ -64,6 +65,23 @@ What remains genuinely this item's work: which conditions exist per indicator (M
 golden/death cross, DEA zero crossing, bullish/bearish divergence, RSI thresholds,
 Bollinger touch and squeeze, volume anomalies, MA crosses), their correctness against
 recorded history, and cross-path parity between WASM, GPU and JS.
+
+## Found while wiring the evaluator (2026-09-10)
+
+Three gaps that this item has to close, discovered by making indicator
+conditions actually evaluate rather than resolve to "no value":
+
+- **Volume has no operand.** `PriceField` is `open|high|low|close|hl2|hlc3`
+  (`technicals-wasm/src/rule/condition.rs`), so "volume above its 20-period
+  average" cannot be written: the average is reachable via `volume_ma`, the raw
+  volume is not. `volume_ma` with `period: 1` is the accidental workaround and
+  should not become the documented one. Adding `volume` to `PriceField` is the
+  fix, and it is a core schema change.
+- **Bollinger has no `bandwidth` output**, so squeeze has nothing to compare.
+  The registry declares `upper|middle|lower|percent_b`.
+- **Divergence needs a new condition shape.** `compare` and `cross` read one
+  candle and two respectively; a divergence is a claim about two swings. It is
+  the only condition in this item that the existing four shapes cannot express.
 
 ## Links
 
