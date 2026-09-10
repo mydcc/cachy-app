@@ -2,7 +2,10 @@
 id: FEAT-0364
 title: Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution
 type: feature
-status: ready
+status: done
+assignee: opencode
+branch: feat/FEAT-0364-pivots-derived-cache
+shipped: 1.6.0-beta.261
 priority: P2
 milestone: none
 editions: [community, pro, private]
