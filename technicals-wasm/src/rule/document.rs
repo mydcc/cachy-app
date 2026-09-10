@@ -295,8 +295,8 @@ pub const MAX_DEPTH: usize = MAX_CONDITION_DEPTH;
 mod tests {
     use super::*;
     use crate::rule::condition::{
-        AccountField, CompareOp, CrossDirection, LogicOp, Operand, PositionSide, PriceField,
-        PriceSource,
+        AccountField, CompareOp, CrossDirection, Dimension, LogicOp, Operand, PositionSide,
+        PriceField, PriceSource,
     };
     use crate::rule::consequence::{OrderIntent, OrderSide, SizeBasis};
     use crate::rule::indicator::{IndicatorRef, ParamValue};
@@ -902,5 +902,212 @@ mod tests {
         assert!(err.has(RefusalCode::UnknownField));
         assert!(err.has(RefusalCode::ExternalFeedTrigger));
         assert!(err.has(RefusalCode::FieldNotHonouredAtLevel));
+    }
+
+    // ---- FEAT-0028: volume is an operand, and it has a unit ----------------
+
+    fn ind(id: &str, period: u32) -> IndicatorRef {
+        let mut params = BTreeMap::new();
+        params.insert("period".to_string(), ParamValue::Count(period));
+        IndicatorRef {
+            id: id.to_string(),
+            params,
+            output: "value".to_string(),
+        }
+    }
+
+    fn compare(left: Operand, right: Operand) -> Condition {
+        Condition::Compare {
+            left,
+            op: CompareOp::Gt,
+            right,
+            timeframe: tf("4h"),
+        }
+    }
+
+    fn with(conditions: Condition) -> RuleDocument {
+        let mut doc = rsi_dip();
+        doc.conditions = conditions;
+        doc
+    }
+
+    /// The reason `Volume` is its own operand and not a seventh `PriceField`.
+    ///
+    /// Both numbers are well-formed and nothing downstream would object: the
+    /// rule would compare traded size against quote currency and fire on the
+    /// crossover of two unrelated scales. Validation is the last place this is
+    /// still visible.
+    #[test]
+    fn volume_against_a_price_is_refused_rather_than_compared() {
+        let doc = with(compare(
+            Operand::Volume {},
+            Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            },
+        ));
+        let err = doc.validate().unwrap_err();
+        assert!(err.has(RefusalCode::OperandDimensionMismatch));
+        let refusal = err
+            .refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::OperandDimensionMismatch)
+            .unwrap();
+        assert_eq!(refusal.field, "conditions");
+        assert!(
+            refusal.detail.contains("volume") && refusal.detail.contains("price"),
+            "the refusal has to name both dimensions: {}",
+            refusal.detail
+        );
+    }
+
+    /// The same refusal through the indicator registry rather than through
+    /// `PriceField`: an EMA is a price, so volume cannot be compared to it.
+    #[test]
+    fn volume_against_a_price_moving_average_is_refused_too() {
+        let doc = with(compare(
+            Operand::Volume {},
+            Operand::Indicator {
+                indicator: ind("ema", 20),
+            },
+        ));
+        assert!(doc
+            .validate()
+            .unwrap_err()
+            .has(RefusalCode::OperandDimensionMismatch));
+    }
+
+    /// A `Cross` is the other shape that reads two operands, so it carries the
+    /// same check. Without it the refusal would be one shape's habit rather
+    /// than the schema's rule.
+    #[test]
+    fn a_volume_crossing_a_price_is_refused_on_the_same_grounds() {
+        let doc = with(Condition::Cross {
+            left: Operand::Volume {},
+            direction: CrossDirection::Above,
+            right: Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            },
+            timeframe: tf("4h"),
+        });
+        assert!(doc
+            .validate()
+            .unwrap_err()
+            .has(RefusalCode::OperandDimensionMismatch));
+    }
+
+    /// The condition FEAT-0028 actually asks for: volume against its own
+    /// average. This is what the whole change exists to make expressible, so a
+    /// dimension check that refused it would have missed the point entirely.
+    #[test]
+    fn volume_against_a_volume_average_is_accepted() {
+        let doc = with(compare(
+            Operand::Volume {},
+            Operand::Indicator {
+                indicator: ind("volume_ma", 20),
+            },
+        ));
+        assert!(doc.validate().is_ok());
+    }
+
+    /// `Constant` is deliberately dimensionless — it is compared against a
+    /// price, a percentage and an RSI in turn. A volume threshold has to keep
+    /// working for the same reason all three do.
+    #[test]
+    fn volume_against_a_plain_threshold_is_accepted() {
+        let doc = with(compare(
+            Operand::Volume {},
+            Operand::Constant {
+                value: d("1000000"),
+            },
+        ));
+        assert!(doc.validate().is_ok());
+    }
+
+    /// `bollinger` is why the dimension sits on the output and not on the
+    /// indicator: three of its lines are prices and `percent_b` is a bare
+    /// ratio. One dimension per indicator would have had to special-case this.
+    #[test]
+    fn bollinger_bands_are_prices_but_percent_b_is_not() {
+        let mut params = BTreeMap::new();
+        params.insert("period".to_string(), ParamValue::Count(20));
+        let band = IndicatorRef {
+            id: "bollinger".to_string(),
+            params: params.clone(),
+            output: "upper".to_string(),
+        };
+        let ratio = IndicatorRef {
+            id: "bollinger".to_string(),
+            params,
+            output: "percent_b".to_string(),
+        };
+        assert_eq!(band.output_dimension(), Some(Dimension::Price));
+        assert_eq!(ratio.output_dimension(), Some(Dimension::Unitless));
+    }
+
+    /// An unknown output already has a precise refusal from
+    /// `IndicatorRef::validate`, which names what the registry does offer.
+    /// Answering "unknown" for its dimension keeps one bad document to one
+    /// refusal instead of adding a vaguer second one.
+    #[test]
+    fn an_unknown_output_has_no_dimension_and_so_adds_no_second_refusal() {
+        let bogus = IndicatorRef {
+            id: "rsi".to_string(),
+            params: BTreeMap::new(),
+            output: "histogram".to_string(),
+        };
+        assert_eq!(bogus.output_dimension(), None);
+        let doc = with(compare(
+            Operand::Volume {},
+            Operand::Indicator { indicator: bogus },
+        ));
+        let err = doc.validate().unwrap_err();
+        assert!(err.has(RefusalCode::UnknownIndicatorOutput));
+        assert!(!err.has(RefusalCode::OperandDimensionMismatch));
+    }
+
+    /// The scope this change deliberately does not take.
+    ///
+    /// `Dimension` knows a price and a percentage are no more comparable than a
+    /// price and a volume, and `check_dimensions` could refuse the pair with no
+    /// extra code. It does not, because rules already sitting in a trader's
+    /// `localStorage` validated yesterday: a saved alert that stops loading is
+    /// a worse failure than the one being prevented. When this test is changed,
+    /// it should be changed by a commit that also carries the migration.
+    #[test]
+    fn a_price_against_a_percentage_stays_accepted_until_its_own_change() {
+        let doc = with(compare(
+            Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            },
+            Operand::PercentChange {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+                lookback: 3,
+            },
+        ));
+        assert!(doc.validate().is_ok());
+    }
+
+    /// The additive-schema claim, for the operand this change adds: a volume
+    /// operand names itself in the canonical form and survives a round trip,
+    /// and no document that predates it changes shape.
+    #[test]
+    fn a_volume_operand_round_trips_through_its_canonical_form() {
+        let doc = with(compare(
+            Operand::Volume {},
+            Operand::Constant {
+                value: d("1000000"),
+            },
+        ));
+        let json = serde_json::to_string(&doc).unwrap();
+        assert!(
+            json.contains(r#"{"kind":"volume"}"#),
+            "volume has to serialise as a bare kind: {json}"
+        );
+        let back: RuleDocument = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.conditions, doc.conditions);
     }
 }

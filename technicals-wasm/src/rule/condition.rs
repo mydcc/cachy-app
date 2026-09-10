@@ -66,6 +66,54 @@ pub enum PriceField {
     Hlc3,
 }
 
+/// What a number *means*, so that two of them can be refused rather than
+/// silently compared.
+///
+/// Derived metadata, never part of a document: it carries no `Serialize`, so
+/// adding it changes no canonical form and breaks no content hash.
+///
+/// It exists because the operand list stopped being homogeneous. While every
+/// operand was a price or a percentage of one, "compare the two sides" needed
+/// no qualification. `Volume` is the first operand denominated in something
+/// else entirely — traded size, not quote currency — and a schema in which
+/// `volume > 65000` can mean "volume above the BTC price" is a schema that
+/// fires alerts on arithmetic nobody wrote. Validation is the last point where
+/// that mistake is still free.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Dimension {
+    /// Quote currency: a price, a band, a moving average of one.
+    Price,
+    /// Percent. `PercentChange`, and the oscillators bounded to 0..100.
+    Percent,
+    /// Traded size, in contracts or base units.
+    Volume,
+    /// A ratio or an index whose scale is its own — `percent_b`, a histogram
+    /// of price differences.
+    Unitless,
+}
+
+impl Dimension {
+    /// Whether two known dimensions may sit on opposite sides of a comparison.
+    ///
+    /// Deliberately identity and nothing cleverer. There is no partial order
+    /// here worth encoding: a price is not "almost" a volume, and any pair that
+    /// wants an exception wants a written-down conversion instead.
+    pub fn compatible_with(self, other: Self) -> bool {
+        self == other
+    }
+}
+
+impl fmt::Display for Dimension {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Price => "price",
+            Self::Percent => "percent",
+            Self::Volume => "volume",
+            Self::Unitless => "unitless",
+        })
+    }
+}
+
 /// Which price series a candle is read from.
 ///
 /// On a perpetual the last traded price and the mark price differ, and the gap
@@ -171,6 +219,20 @@ pub enum Operand {
         #[serde(default, skip_serializing_if = "PriceSource::is_last")]
         source: PriceSource,
     },
+    /// Traded volume of the closed candle.
+    ///
+    /// Deliberately *not* a `PriceField`. That enum names which OHLC value to
+    /// read, and all of its values are denominated in quote currency — which is
+    /// exactly what makes them comparable against a price threshold. Volume is
+    /// denominated in size. Folding it in would have cost one enum variant and
+    /// would have made `volume > 65000` a legal document; as its own operand
+    /// with its own `Dimension`, that pair is refused by `Condition::validate`.
+    ///
+    /// No `source`: `PriceSource` separates the last-traded series from the mark
+    /// series, and a mark price is a derived quote with no volume of its own.
+    /// Volume is read from the last-traded series, which is also the series
+    /// every indicator in this crate is computed over.
+    Volume {},
     Indicator {
         indicator: IndicatorRef,
     },
@@ -312,6 +374,7 @@ impl Condition {
                 Self::check_timeframe(*timeframe, trigger, field, out);
                 left.validate(&format!("{field}.left"), out);
                 right.validate(&format!("{field}.right"), out);
+                Self::check_dimensions(left, right, field, out);
             }
             Self::Cross {
                 left,
@@ -322,6 +385,7 @@ impl Condition {
                 Self::check_timeframe(*timeframe, trigger, field, out);
                 left.validate(&format!("{field}.left"), out);
                 right.validate(&format!("{field}.right"), out);
+                Self::check_dimensions(left, right, field, out);
             }
             Self::Position { .. } | Self::Account { .. } => {
                 if !may_read_account {
@@ -376,6 +440,37 @@ impl Condition {
                 }
             }
         }
+    }
+
+    /// Refuse a comparison whose two sides are denominated in different things.
+    ///
+    /// Scoped to pairs involving `Volume`, the dimension this schema just
+    /// gained. The check generalises — `Dimension` knows a price and a
+    /// percentage are no more comparable than a price and a volume — but
+    /// switching it on for pairs that were legal yesterday would refuse rules
+    /// traders already have in `localStorage`, and a saved alert that stops
+    /// validating is a worse failure than the one being prevented. Widening it
+    /// is its own change, with its own migration story.
+    fn check_dimensions(left: &Operand, right: &Operand, field: &str, out: &mut Vec<RuleRefusal>) {
+        let (Some(l), Some(r)) = (left.dimension(), right.dimension()) else {
+            return;
+        };
+        if l.compatible_with(r) {
+            return;
+        }
+        if l != Dimension::Volume && r != Dimension::Volume {
+            return;
+        }
+        out.push(RuleRefusal::new(
+            RefusalCode::OperandDimensionMismatch,
+            field,
+            format!(
+                "the two sides are denominated differently: {l} against {r}. Traded \
+                 volume and a price are not the same kind of number, so this condition \
+                 would fire on arithmetic rather than on a market event. Compare volume \
+                 against a volume average (`volume_ma`) or against a plain threshold."
+            ),
+        ));
     }
 
     fn check_timeframe(tf: Timeframe, trigger: Timeframe, field: &str, out: &mut Vec<RuleRefusal>) {
@@ -458,7 +553,28 @@ impl Operand {
                     ));
                 }
             }
-            Self::Price { .. } | Self::Constant { .. } => {}
+            Self::Price { .. } | Self::Constant { .. } | Self::Volume {} => {}
+        }
+    }
+
+    /// What this operand's value means, when that is knowable.
+    ///
+    /// `None` is not ignorance waiting to be fixed — it is the correct answer
+    /// for an operand that is legitimately comparable against anything:
+    ///
+    /// - `Constant` carries no unit by design. `price > 65000`,
+    ///   `percent_change <= -5` and `rsi > 70` are each a constant against a
+    ///   different dimension, so giving it one would break all three.
+    /// - An indicator whose id or output the registry does not know has already
+    ///   been refused by `IndicatorRef::validate`. Guessing here would add a
+    ///   second, vaguer refusal for a document that already has a precise one.
+    pub fn dimension(&self) -> Option<Dimension> {
+        match self {
+            Self::Price { .. } => Some(Dimension::Price),
+            Self::Volume {} => Some(Dimension::Volume),
+            Self::PercentChange { .. } => Some(Dimension::Percent),
+            Self::Constant { .. } => None,
+            Self::Indicator { indicator } => indicator.output_dimension(),
         }
     }
 
@@ -466,7 +582,7 @@ impl Operand {
         match self {
             Self::Indicator { indicator } => indicator.warmup_candles(),
             // A crossing still needs the previous closed candle.
-            Self::Price { .. } => 2,
+            Self::Price { .. } | Self::Volume {} => 2,
             // The reference candle plus the one being measured. `saturating_add`
             // because a document arrives from outside and `lookback` is only
             // bounded by its type until `validate` has run.
@@ -483,7 +599,7 @@ impl Operand {
     pub fn price_source(&self) -> Option<PriceSource> {
         match self {
             Self::Price { source, .. } | Self::PercentChange { source, .. } => Some(*source),
-            Self::Indicator { .. } | Self::Constant { .. } => None,
+            Self::Indicator { .. } | Self::Constant { .. } | Self::Volume {} => None,
         }
     }
 }

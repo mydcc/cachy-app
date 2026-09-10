@@ -3822,7 +3822,9 @@
       "migrationNotPossible": "The rule cannot be carried to the current schema version with its meaning intact, so it is refused rather than reinterpreted.",
       "emptyConditionTree": "A group with no conditions has no truth value.",
       "conditionTreeTooDeep": "The conditions are nested too deeply.",
-      "duplicateConditionId": "The same condition identifier is used twice."
+      "duplicateConditionId": "The same condition identifier is used twice.",
+      "invalidLookback": "A percentage move needs an earlier candle to measure from. A lookback of 0 compares a candle with itself, which is always zero percent.",
+      "operandDimensionMismatch": "The two sides of this condition are denominated differently — traded volume against a price. Compare volume against a volume average or against a plain threshold."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
@@ -3892,7 +3894,8 @@
       "percentChange": "the change in {price} over the last {lookback} closes",
       "percentChangeOne": "the change in {price} since the previous close",
       "markSuffix": " (mark price)",
-      "percentValue": "{value}%"
+      "percentValue": "{value}%",
+      "volume": "the volume"
     }
   },
   "storage": {

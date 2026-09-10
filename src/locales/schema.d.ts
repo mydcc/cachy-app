@@ -3125,6 +3125,8 @@ export type TranslationKey =
   | "rules.refusal.emptyConditionTree"
   | "rules.refusal.conditionTreeTooDeep"
   | "rules.refusal.duplicateConditionId"
+  | "rules.refusal.invalidLookback"
+  | "rules.refusal.operandDimensionMismatch"
   | "rules.sentence.frame"
   | "rules.sentence.unless"
   | "rules.sentence.empty"
@@ -3173,4 +3175,5 @@ export type TranslationKey =
   | "rules.sentence.percentChangeOne"
   | "rules.sentence.markSuffix"
   | "rules.sentence.percentValue"
+  | "rules.sentence.volume"
   | "storage.quotaExceeded";

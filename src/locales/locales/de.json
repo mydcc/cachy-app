@@ -3822,7 +3822,9 @@
       "migrationNotPossible": "Die Regel lässt sich nicht bedeutungserhaltend auf die aktuelle Schema-Version übertragen und wird abgelehnt, statt umgedeutet zu werden.",
       "emptyConditionTree": "Eine Gruppe ohne Bedingungen hat keinen Wahrheitswert.",
       "conditionTreeTooDeep": "Die Bedingungen sind zu tief verschachtelt.",
-      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet."
+      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet.",
+      "invalidLookback": "Eine prozentuale Bewegung braucht eine frühere Kerze als Bezug. Ein Lookback von 0 vergleicht eine Kerze mit sich selbst und ergibt immer null Prozent.",
+      "operandDimensionMismatch": "Die beiden Seiten dieser Bedingung haben unterschiedliche Einheiten — gehandeltes Volumen gegen einen Preis. Vergleiche Volumen mit einem Volumendurchschnitt oder mit einem festen Schwellwert."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
@@ -3892,7 +3894,8 @@
       "percentChange": "die Veränderung von {price} über die letzten {lookback} Schlusskurse",
       "percentChangeOne": "seit dem vorherigen Schlusskurs",
       "markSuffix": " (Mark-Preis)",
-      "percentValue": "{value} %"
+      "percentValue": "{value} %",
+      "volume": "das Volumen"
     }
   },
   "storage": {
