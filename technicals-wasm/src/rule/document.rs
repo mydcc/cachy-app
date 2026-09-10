@@ -215,6 +215,20 @@ impl RuleDocument {
         out
     }
 
+    /// Every timeframe the document reads from the mark-price series.
+    ///
+    /// Empty for the overwhelming majority of rules, which is the point: a
+    /// caller fetches a second, mark-price candle series only when some
+    /// condition actually names one.
+    pub fn mark_timeframes(&self) -> Vec<Timeframe> {
+        let mut out = Vec::new();
+        self.conditions.mark_timeframes(&mut out);
+        if let Some(veto) = &self.veto {
+            veto.mark_timeframes(&mut out);
+        }
+        out
+    }
+
     /// How many candles of history the trigger timeframe needs before this rule
     /// can produce a verdict at all.
     pub fn warmup_candles(&self) -> u32 {
@@ -282,6 +296,7 @@ mod tests {
     use super::*;
     use crate::rule::condition::{
         AccountField, CompareOp, CrossDirection, LogicOp, Operand, PositionSide, PriceField,
+        PriceSource,
     };
     use crate::rule::consequence::{OrderIntent, OrderSide, SizeBasis};
     use crate::rule::indicator::{IndicatorRef, ParamValue};
@@ -468,6 +483,154 @@ mod tests {
         ] {
             assert!(map.contains_key(included), "{included} must be hashed");
         }
+    }
+
+    // ---- FEAT-0390: price source and percentage moves ----------------------
+
+    fn price_cross(source: PriceSource) -> Condition {
+        Condition::Cross {
+            left: Operand::Price {
+                field: PriceField::Close,
+                source,
+            },
+            direction: CrossDirection::Above,
+            right: Operand::Constant { value: d("60000") },
+            timeframe: tf("4h"),
+        }
+    }
+
+    /// The claim the whole additive design rests on: a rule that reads the last
+    /// price serialises exactly as it did before `source` existed, so every
+    /// document already in `cachy_rules_v1` keeps its content hash and needs no
+    /// migration. If this fails, the feature silently re-identifies every stored
+    /// rule in the journal.
+    #[test]
+    fn a_last_price_source_is_absent_from_the_canonical_form() {
+        let mut doc = rsi_dip();
+        doc.conditions = price_cross(PriceSource::Last);
+        let canonical = doc.canonical_json().unwrap();
+        // `"source"` on its own would also match `provenance.source`, which is a
+        // different field entirely; the operand's spelling is what matters here.
+        assert!(
+            !canonical.contains(r#""source":"last""#),
+            "a default price source must not be serialised: {canonical}"
+        );
+    }
+
+    /// The same document written before this field existed — i.e. with no
+    /// `source` key at all — must parse, mean last price, and hash the same.
+    #[test]
+    fn a_document_without_a_price_source_parses_as_last_and_keeps_its_hash() {
+        let mut doc = rsi_dip();
+        doc.conditions = price_cross(PriceSource::Last);
+        let json = serialise_document(&doc).unwrap();
+        assert!(!json.contains(r#""source":"last""#));
+
+        let parsed = parse_document(&json).unwrap();
+        assert_eq!(parsed.conditions, price_cross(PriceSource::Last));
+        assert_eq!(parsed.content_hash().unwrap(), doc.content_hash().unwrap());
+    }
+
+    /// Reading the mark series instead of the last series is a different alarm,
+    /// so it must be a different strategy in the log.
+    #[test]
+    fn switching_to_the_mark_price_changes_the_content_hash() {
+        let mut last = rsi_dip();
+        last.conditions = price_cross(PriceSource::Last);
+        let mut mark = rsi_dip();
+        mark.conditions = price_cross(PriceSource::Mark);
+
+        assert_ne!(
+            last.content_hash().unwrap(),
+            mark.content_hash().unwrap(),
+            "the price series a rule reads is part of what it means"
+        );
+        assert!(serialise_document(&mark).unwrap().contains(r#""source":"mark""#));
+    }
+
+    #[test]
+    fn a_mark_price_document_round_trips() {
+        let mut doc = rsi_dip();
+        doc.conditions = price_cross(PriceSource::Mark);
+        let parsed = parse_document(&serialise_document(&doc).unwrap()).unwrap();
+        assert_eq!(parsed, doc);
+    }
+
+    fn percent_move(lookback: u32) -> Condition {
+        Condition::Compare {
+            left: Operand::PercentChange {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+                lookback,
+            },
+            op: CompareOp::Gte,
+            right: Operand::Constant { value: d("5") },
+            timeframe: tf("4h"),
+        }
+    }
+
+    /// A lookback of zero measures a candle against itself: always exactly zero
+    /// percent, so the rule can never fire. Refused at authoring rather than
+    /// stored as an alarm that stays silent — that is the BUG-0382 shape.
+    #[test]
+    fn a_percentage_move_with_no_lookback_is_refused_and_names_the_field() {
+        let mut doc = rsi_dip();
+        doc.conditions = percent_move(0);
+        let err = doc.validate().unwrap_err();
+        assert!(err.has(RefusalCode::InvalidLookback));
+        let refusal = err
+            .refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::InvalidLookback)
+            .unwrap();
+        assert_eq!(refusal.field, "conditions.left.lookback");
+    }
+
+    #[test]
+    fn a_percentage_move_with_a_real_lookback_is_accepted_and_round_trips() {
+        let mut doc = rsi_dip();
+        doc.conditions = percent_move(3);
+        assert!(doc.validate().is_ok(), "{:?}", doc.validate());
+        assert_eq!(parse_document(&serialise_document(&doc).unwrap()).unwrap(), doc);
+    }
+
+    /// A percentage move cannot answer before its reference candle exists.
+    #[test]
+    fn a_percentage_move_needs_its_reference_candle_in_the_warmup() {
+        let mut doc = rsi_dip();
+        doc.conditions = percent_move(3);
+        assert_eq!(doc.warmup_candles(), 4);
+    }
+
+    /// The mark series is fetched separately and not every venue serves one, so
+    /// a caller has to be able to ask which timeframes actually need it —
+    /// without walking the tree itself.
+    #[test]
+    fn only_conditions_that_read_the_mark_series_report_a_mark_timeframe() {
+        let mut last_only = rsi_dip();
+        last_only.conditions = price_cross(PriceSource::Last);
+        assert!(last_only.mark_timeframes().is_empty());
+
+        let mut mark = rsi_dip();
+        mark.conditions = price_cross(PriceSource::Mark);
+        assert_eq!(mark.mark_timeframes(), vec![tf("4h")]);
+    }
+
+    #[test]
+    fn a_mark_condition_nested_in_a_group_still_reports_its_timeframe() {
+        let mut doc = rsi_dip();
+        doc.trigger_timeframe = tf("1h");
+        doc.conditions = Condition::Group {
+            op: LogicOp::All,
+            of: vec![
+                rsi_dip().conditions,
+                Condition::Group {
+                    op: LogicOp::Any,
+                    of: vec![price_cross(PriceSource::Mark)],
+                },
+            ],
+        };
+        assert_eq!(doc.mark_timeframes(), vec![tf("4h")]);
     }
 
     // ---- rejection of unknown things ---------------------------------------
@@ -687,6 +850,7 @@ mod tests {
                 Condition::Cross {
                     left: Operand::Price {
                         field: PriceField::Close,
+                        source: PriceSource::Last,
                     },
                     direction: CrossDirection::Above,
                     right: Operand::Constant { value: d("60000") },

@@ -78,10 +78,10 @@ cd cachy-app
 npm ci
 cp .env.example .env   # optional: PORT, ORIGIN and reverse-proxy settings live here
 npm run build
-node --env-file=.env build/index.js   # or plain `node build/index.js` without a .env
+node --env-file=.env server.js   # or plain `node server.js` without a .env
 ```
 
-Then open `http://localhost:3000`. There is no account and no setup secret to
+Then open `http://localhost:3001`. There is no account and no setup secret to
 configure — on first use the app mints its own access token automatically.
 
 > 🔐 **How API authentication works.** Guarded API routes only accept

@@ -2,7 +2,8 @@
 id: BUG-0411
 title: Modal windows are oversized with large empty areas
 type: bug
-status: specced
+status: done
+assignee: opencode
 priority: P0
 milestone: M4
 editions: [community, pro, private]
@@ -83,3 +84,4 @@ should be reconsidered, not just resized.
 
 - [`BUG-0409`](./BUG-0409-mode-chip-stale-after-change.md) — same control, data half
 - [`BUG-0410`](./BUG-0410-mode-state-must-not-depend-on-sidebar.md) — same control, source half
+- Done 2026-09-09: merged via #2924; first release containing it TBD by the next chore(release).

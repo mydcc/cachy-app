@@ -17,12 +17,8 @@
 
 import { CONSTANTS } from "../lib/constants";
 import { parseDecimal } from "../utils/utils";
-import { modalState } from "../stores/modal.svelte";
 import { Decimal } from "decimal.js";
-import { _ } from "../locales/i18n";
-import { get } from "svelte/store";
 import type { IndividualTpResult } from "../stores/types";
-import type { TranslationKey } from "../locales/schema";
 
 interface VisualBarContentItem {
   type: string;
@@ -41,31 +37,6 @@ export interface VisualBarData {
   visualBarContent: VisualBarContentItem[];
   markers: VisualBarMarker[];
 }
-
-export const uiManager = {
-  showReadme: async (type: "dashboard" | "journal" | "changelog") => {
-    const { loadInstruction } = await import("./markdownLoader");
-    const instruction = await loadInstruction(type);
-    let titleKey: TranslationKey;
-    if (type === "dashboard") {
-      titleKey = "dashboard.instructionsTitle";
-    } else if (type === "journal") {
-      titleKey = "journal.showJournalInstructionsTitle";
-    } else {
-      // type === 'changelog'
-      titleKey = "app.changelogTitle";
-    }
-    const translatedTitle = get(_)(titleKey);
-    // Pass the 'modal-size-instructions' class here to ensure it uses the updated 80vw width
-    modalState.show(
-      translatedTitle,
-      instruction.html,
-      "alert",
-      "",
-      "modal-size-instructions",
-    );
-  },
-};
 
 export function updateVisualBar(
   values: {

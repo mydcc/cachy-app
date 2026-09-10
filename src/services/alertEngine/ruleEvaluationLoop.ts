@@ -120,6 +120,15 @@ export type UnevaluableSink = (rule: UnevaluableRule) => void;
 export interface RuleEvaluationLoopOptions {
   readCandles: CandleReader;
   readRules: RuleReader;
+  /**
+   * Closed candles from the **mark-price** series.
+   *
+   * Optional, and absent by default. A rule that names the mark price without
+   * one evaluates to `indeterminate`, which is the honest answer — the core
+   * never falls back to the last-price series, because a mark-price alarm
+   * answered from last-price candles is a wrong alarm that looks right.
+   */
+  readMarkCandles?: CandleReader;
   /** Defaults to the shadow sink, which reports and notifies nobody. */
   onFiring?: FiringSink;
   /** No-op by default — most callers have nothing that depends on this. */
@@ -180,6 +189,7 @@ export class RuleEvaluationLoop {
    */
   private readonly unevaluable = new Map<string, UnevaluableRule>();
   private readCandles: CandleReader = NO_CANDLES;
+  private readMarkCandles: CandleReader = NO_CANDLES;
   private readRules: RuleReader = NO_RULES;
   private onFiring: FiringSink = shadowSink;
   private onClose: SeriesCloseHook = () => {};
@@ -200,6 +210,7 @@ export class RuleEvaluationLoop {
    */
   configure(options: RuleEvaluationLoopOptions): void {
     this.readCandles = options.readCandles;
+    this.readMarkCandles = options.readMarkCandles ?? NO_CANDLES;
     this.readRules = options.readRules;
     this.onFiring = options.onFiring ?? shadowSink;
     this.onClose = options.onClose ?? (() => {});
@@ -315,6 +326,11 @@ export class RuleEvaluationLoop {
       // already said so out loud.
       if (ctx === undefined) continue;
 
+      const markCandles = this.markCandlesFor(rule, symbol);
+      if (markCandles) {
+        ctx.mark_candles = markCandles;
+      }
+
       const verdict = ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
       if (verdict === undefined) continue;
       if (verdict.verdict !== "fires") continue;
@@ -414,6 +430,27 @@ export class RuleEvaluationLoop {
     }
   }
 
+  /**
+   * The mark-price series the rule reads, or `undefined` when it reads none.
+   *
+   * `undefined` rather than an empty object so the common case — every rule
+   * that predates FEAT-0390 — sends the core an evaluation context with no
+   * `mark_candles` key at all.
+   */
+  private markCandlesFor(
+    rule: RuleDocument,
+    symbol: string,
+  ): Record<string, EvaluationCandle[]> | undefined {
+    const timeframes = collectMarkTimeframes(rule);
+    if (timeframes.size === 0) return undefined;
+
+    const candles: Record<string, EvaluationCandle[]> = {};
+    for (const timeframe of timeframes) {
+      candles[timeframe] = this.readMarkCandles(symbol, timeframe);
+    }
+    return candles;
+  }
+
   /** Forget one series. */
   forgetSeries(symbol: string, timeframe: string): void {
     this.highestOpenMs.delete(`${symbol}:${timeframe}`);
@@ -467,6 +504,51 @@ function collectTimeframes(rule: RuleDocument): Set<string> {
     const node = condition as { timeframe?: unknown; of?: unknown };
 
     if (typeof node.timeframe === "string") found.add(node.timeframe);
+    if (Array.isArray(node.of)) node.of.forEach(walk);
+  };
+
+  walk(rule.conditions);
+  walk(rule.veto);
+  return found;
+}
+
+/**
+ * Every timeframe a document reads from the **mark-price** series.
+ *
+ * The local mirror of `RuleDocument::mark_timeframes` in the core, for the same
+ * reason `collectTimeframes` above is local: this runs once per rule per candle
+ * close on the market hot path, and crossing into wasm there is not worth it.
+ * The two must agree, and they fail safe in the same direction — a timeframe
+ * missed here reads as no mark candles, which withholds the verdict rather than
+ * answering it from the wrong series.
+ *
+ * Empty for every rule that names no mark price, which is the overwhelming
+ * majority: a mark series is a second request per symbol and timeframe, and not
+ * every venue serves one at all.
+ */
+function collectMarkTimeframes(rule: RuleDocument): Set<string> {
+  const found = new Set<string>();
+
+  const readsMark = (operand: unknown): boolean =>
+    operand !== null &&
+    typeof operand === "object" &&
+    (operand as { source?: unknown }).source === "mark";
+
+  const walk = (condition: unknown): void => {
+    if (condition === null || typeof condition !== "object") return;
+    const node = condition as {
+      timeframe?: unknown;
+      of?: unknown;
+      left?: unknown;
+      right?: unknown;
+    };
+
+    if (
+      typeof node.timeframe === "string" &&
+      (readsMark(node.left) || readsMark(node.right))
+    ) {
+      found.add(node.timeframe);
+    }
     if (Array.isArray(node.of)) node.of.forEach(walk);
   };
 

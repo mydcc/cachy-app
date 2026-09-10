@@ -20,20 +20,12 @@ import DialogView from "./DialogView.svelte";
 import type { WindowOptions } from "../types";
 
 /**
- * `extraClasses` presets that need an actual size override, not just a CSS
- * class (BUG-0010). WindowFrame.svelte binds width/height as inline styles
- * (`style:width`/`style:height`), which always beat a class-based rule
- * regardless of specificity — and this.width/this.height also drive
- * WindowBase's own centering math, so a CSS-only override would leave the
- * dialog visually resized but positioned as if it were still the small
- * 'dialog' registry default. Mirrors how WindowRegistry's 'academy' entry
- * already approximates this same "80vw capped 1320px, 3:2" preset with
- * fixed pixels instead of relying on the (inert, for this reason) CSS class.
+ * Promise dialogs (alert/confirm/prompt via modalState.show) follow the
+ * same content-sized principle as ModalFrameWindow's compact dialogs
+ * (BUG-0411): 450 wide per the 'dialog' registry default, height measured
+ * once at mount by WindowFrame, never mobile-fullscreen, clamped to the
+ * viewport. No per-dialog sizing — every caller gets this behavior.
  */
-const EXTRA_CLASS_SIZE_OVERRIDES: Record<string, { width: number; height: number }> = {
-    "modal-size-instructions": { width: 1200, height: 800 },
-};
-
 export class DialogWindow extends WindowBase {
     message = $state("");
     type: 'alert' | 'confirm' | 'prompt' = $state('alert');
@@ -49,35 +41,55 @@ export class DialogWindow extends WindowBase {
         extraClasses: string = "",
         options: WindowOptions = {}
     ) {
-        const sizeOverride = Object.entries(EXTRA_CLASS_SIZE_OVERRIDES)
-            .find(([className]) => extraClasses.includes(className))?.[1];
-
-        // 'dialog' is not in allowMultipleInstances, so every plain alert/
-        // confirm/prompt shares one stable id ("dialog") -- and WindowBase
-        // persists width/height to localStorage under that id by default
-        // (no registry entry sets persistent: false for 'dialog'). Without
-        // a distinct id here, the FIRST time this preset opens and resizes
-        // to 1200x800, that size gets saved under the shared key and every
-        // later plain alert/confirm/prompt restores it too, silently
-        // breaking "unaffected" (verified live: reproduced exactly this
-        // when the id wasn't separated, before landing on this fix).
-        const sizeOverrideId = sizeOverride ? `dialog-${extraClasses}` : undefined;
-
-        super({ title, windowType: 'dialog', id: sizeOverrideId, ...options });
+        super({ title, windowType: 'dialog', ...options });
         this.message = message;
         this.type = type;
         this.defaultValue = defaultValue;
         this.resolve = resolve;
         this.extraClasses = extraClasses;
 
-        if (sizeOverride && !options.width && !options.height) {
-            this.width = sizeOverride.width;
-            this.height = sizeOverride.height;
+        // A promise dialog is sized by its content, not by the viewport:
+        // never take the responsive fullscreen path the `dialog` registry
+        // type applies below 768px. The registry 450x250 stays the
+        // fallback until WindowFrame's one-shot fit lands before paint.
+        this.isResponsive = false;
+        this.fitContentOnce = true;
+        if (typeof window !== "undefined") {
+            if (this.isMaximized) {
+                // The base constructor already applied the responsive
+                // maximize before this subclass could opt out; restore()
+                // hands back the size snapshotted beforehand.
+                this.restore();
+            }
+            this.fitDialogToViewport();
+            this.x = (window.innerWidth - this.width) / 2;
+            this.y = (window.innerHeight - this.height) / 2;
+            this.updatePosition(this.x, this.y);
         }
     }
 
     get component() {
         return DialogView;
+    }
+
+    /**
+     * Clamps a dialog to the viewport with a small margin. Shrink-only:
+     * never grows back beyond the registry size, just refuses to stick
+     * out of the screen (rotation to a smaller viewport, split-screen).
+     */
+    private fitDialogToViewport() {
+        if (typeof window === "undefined" || this.isMaximized) return;
+        this.updateSize(
+            Math.min(this.width, window.innerWidth - 16),
+            Math.min(this.height, window.innerHeight - 16),
+        );
+    }
+
+    /** Re-clamps the dialog's size on viewport change, then applies the
+     * shared position clamp. */
+    handleViewportResize() {
+        this.fitDialogToViewport();
+        super.handleViewportResize();
     }
 
     closeWith(value: boolean | string) {

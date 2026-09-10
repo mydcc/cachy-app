@@ -19,6 +19,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { decideLink, matchPRsForItem } from './lib/pr-issue-match';
 import { sanitizeAssignees } from './lib/issue-sync-payload';
+import { classifyClosedIssueSync, DEFAULT_MERGE_GRACE_MS } from './lib/closed-issue-guard';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PROJECT_SYNC_TOKEN = process.env.PROJECT_SYNC_TOKEN || GITHUB_TOKEN;
@@ -53,6 +54,17 @@ const CLOSED_STATUSES = new Set(['done', 'dropped']);
 // as a safety net against drift this run-to-run skip can't see (e.g. a
 // board column edited by hand). See BUG-0226.
 const FORCE_FULL_SYNC = process.env.FORCE_FULL_SYNC === 'true';
+
+// How long after an issue close the sync leaves that closed issue alone.
+// Covers the merge window: GitHub closes the linked issue the second its PR
+// merges, while the file still says `in-progress` until the auto-done PR
+// lands. Without this grace the sync "repairs" the fresh close back to
+// open/In Progress (the BUG-0411 aftermath on #2753). Genuine rework days
+// later is far outside the window and still converges normally.
+const MERGE_GRACE_MS = (() => {
+    const parsed = Number(process.env.BACKLOG_MERGE_GRACE_MS);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MERGE_GRACE_MS;
+})();
 
 // Convergence failures this run could not fix. The script keeps going so one
 // bad item cannot starve the rest, but the workflow must not report success
@@ -193,6 +205,7 @@ interface GitHubIssue {
     labels: (string | { name: string })[];
     pull_request?: unknown;
     state?: string;
+    closed_at?: string | null;
     milestone?: { number: number } | null;
 }
 
@@ -450,6 +463,23 @@ async function findBacklogFiles() {
 // Create or update a single issue
 async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue | undefined, milestones: GitHubMilestone[], hasOpenPR: boolean = false, assignableLogins: ReadonlySet<string> = new Set()): Promise<{ number: number; nodeId: string } | undefined> {
     const isClosed = CLOSED_STATUSES.has(item.status);
+
+    // Merge-window guard: a freshly closed issue with a not-yet-done file is
+    // the auto-done flip in flight, not drift. Touching it here reopens the
+    // issue and rolls the Kanban card back (seen on #2753). Skip the PATCH
+    // and the Kanban round trip entirely; the post-auto-done sync converges.
+    if (
+        existingIssue &&
+        classifyClosedIssueSync({
+            fileStatus: item.status,
+            issueState: existingIssue.state,
+            closedAt: existingIssue.closed_at,
+            graceMs: MERGE_GRACE_MS,
+        }) === "skip-merge-window"
+    ) {
+        console.log(`[Sync] Skipped ${item.id} (#${existingIssue.number}) — closed ${existingIssue.closed_at}, inside merge grace window; auto-done flip assumed in flight`);
+        return { number: existingIssue.number, nodeId: existingIssue.node_id };
+    }
 
     // Front-matter assignees are provenance, not a GitHub fact. Filter them
     // against real collaborators BEFORE building any payload: one unknown

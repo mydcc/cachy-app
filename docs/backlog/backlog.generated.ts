@@ -317,7 +317,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0411",
     "title": "Modal windows are oversized with large empty areas",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
     "priority": "P0",
     "milestone": "M4",
     "editions": [
@@ -1519,6 +1520,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0426-stateful-technicals-f64.md"
+  },
+  {
+    "id": "BUG-0429",
+    "title": "Backlog sync reopens freshly closed issues before the auto-done flip lands",
+    "type": "bug",
+    "status": "done",
+    "assignee": "opencode",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "repo",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0429-sync-reopens-freshly-closed-issues.md"
   },
   {
     "id": "FEAT-0014",
@@ -5102,7 +5122,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0390",
     "title": "Price alert conditions beyond a single target",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "claude",
+    "branch": "claude/super-alert-next-task-mpte57",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5116,8 +5138,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0389"
     ],
-    "size": "S",
-    "estimate": "3",
+    "size": "L",
+    "estimate": "8",
     "file": "features/FEAT-0390-price-alert-conditions.md"
   },
   {
@@ -5214,7 +5236,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0395",
     "title": "Create an alert from the chart and from indicator settings",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-feat-0395-dependencies-resolved-edf8ae",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5227,7 +5251,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [
       "FEAT-0389",
-      "FEAT-0390"
+      "FEAT-0390",
+      "FEAT-0028"
     ],
     "size": "S",
     "estimate": "3",
@@ -5851,7 +5876,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0427",
     "title": "worktree-cleanup.sh refuses squash-merged branches as unmerged",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [

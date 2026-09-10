@@ -212,7 +212,14 @@ import { Decimal } from "decimal.js";
   }
 </script>
 
-<ModalFrame title={$_("modals.createTpSl.title")} {onclose} isOpen={true}>
+<ModalFrame
+  title={$_("modals.createTpSl.title")}
+  {onclose}
+  isOpen={true}
+  width={440}
+  height={760}
+  compact
+>
   <div class="flex flex-col gap-4 p-4 min-w-[320px] max-w-[380px]">
     <div class="text-sm text-[var(--text-secondary)]">
       {$_("journal.symbol")}: <span class="text-[var(--text-primary)] font-bold">{position.symbol}</span>

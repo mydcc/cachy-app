@@ -117,6 +117,20 @@ pub fn timeframes_json(document_json: &str) -> Result<Vec<String>, Refused> {
         .collect())
 }
 
+/// Every timeframe the document reads from the mark-price series, canonical
+/// spellings. Usually empty.
+///
+/// Separate from [`timeframes_json`] so the evaluation loop can fetch a second,
+/// mark-price series only where a rule actually names one — mark candles are an
+/// extra request per symbol and timeframe, and not every venue serves them.
+pub fn mark_timeframes_json(document_json: &str) -> Result<Vec<String>, Refused> {
+    Ok(parse_document(document_json)?
+        .mark_timeframes()
+        .iter()
+        .map(|t| t.canonical())
+        .collect())
+}
+
 /// Convert a shipped FEAT-0027 alert definition into an equivalent rule document.
 ///
 /// Exposed so the migration of stored alerts happens through the same conversion
@@ -157,6 +171,13 @@ pub fn from_alert_json(
 #[serde(deny_unknown_fields)]
 struct CtxPayload {
     candles: BTreeMap<String, Vec<Candle>>,
+    /// The mark-price series, keyed the same way. Optional and usually absent:
+    /// a caller supplies it only for the timeframes
+    /// [`RuleDocument::mark_timeframes`](super::document::RuleDocument::mark_timeframes)
+    /// reports, and a rule that names the mark price without one gets an
+    /// indeterminate verdict rather than a last-price answer.
+    #[serde(default)]
+    mark_candles: BTreeMap<String, Vec<Candle>>,
     #[serde(default)]
     indicators: Vec<IndicatorSeries>,
     #[serde(default)]
@@ -197,6 +218,13 @@ pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refu
             Timeframe::parse_at(&raw_timeframe, &format!("ctx.candles.{raw_timeframe}"))
                 .map_err(|e| Refused { refusals: vec![e] })?;
         market = market.with_candles(timeframe, candles);
+    }
+
+    for (raw_timeframe, candles) in payload.mark_candles {
+        let timeframe =
+            Timeframe::parse_at(&raw_timeframe, &format!("ctx.mark_candles.{raw_timeframe}"))
+                .map_err(|e| Refused { refusals: vec![e] })?;
+        market = market.with_mark_candles(timeframe, candles);
     }
 
     for (i, series) in payload.indicators.into_iter().enumerate() {
@@ -271,6 +299,13 @@ pub fn rule_timeframes(document_json: &str) -> Result<JsValue, JsValue> {
     let names = timeframes_json(document_json).map_err(refused_to_js)?;
     serde_wasm_bindgen::to_value(&names)
         .map_err(|e| JsValue::from_str(&format!("could not serialise timeframes: {e}")))
+}
+
+#[wasm_bindgen]
+pub fn rule_mark_timeframes(document_json: &str) -> Result<JsValue, JsValue> {
+    let names = mark_timeframes_json(document_json).map_err(refused_to_js)?;
+    serde_wasm_bindgen::to_value(&names)
+        .map_err(|e| JsValue::from_str(&format!("could not serialise mark timeframes: {e}")))
 }
 
 #[wasm_bindgen]
