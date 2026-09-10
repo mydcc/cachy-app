@@ -36,6 +36,10 @@ vi.mock('./capabilityDetection', () => ({
 }));
 
 import { CalculationStrategy } from './calculationStrategy';
+import { toastService } from './toastService.svelte';
+import type { IndicatorSettings } from '../types/indicators';
+
+const autoSettings = { preferredEngine: 'auto' } as IndicatorSettings;
 
 const baseCaps = {
   wasm: true,
@@ -104,16 +108,121 @@ describe('CalculationStrategy.exportTelemetry', () => {
     });
   });
 
-  it('derives circuit breaker health from lastMedian > 500ms', () => {
+  it('derives circuit breaker health from the degradation state, not one spike', () => {
     const strategy = new CalculationStrategy();
+    strategy.selectEngine(autoSettings); // pins wasm
+    strategy.recordMetrics('wasm', 600, false, 500);
+    strategy.recordMetrics('wasm', 600, false, 500);
+
+    expect(strategy.exportTelemetry().circuitBreaker.wasm.healthy).toBe(true);
+
     strategy.recordMetrics('wasm', 600, false, 500);
 
     const t = strategy.exportTelemetry();
     expect(t.circuitBreaker.wasm.healthy).toBe(false);
-    expect(t.stats.wasm.errors).toBe(1);
+    expect(t.stats.wasm.errors).toBe(3);
   });
 });
 
+describe('CalculationStrategy session pinning and degradation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('pins one engine per session in auto mode instead of routing by size', () => {
+    const strategy = new CalculationStrategy();
+    // Capabilities are unresolved here, so auto pins WASM optimistically.
+    expect(strategy.selectEngine(autoSettings)).toBe('wasm');
+    expect(strategy.selectEngine(autoSettings)).toBe('wasm');
+  });
+
+  it('pins TS when capabilities already rule out WASM', async () => {
+    capabilitiesMock.current = Promise.resolve({ ...baseCaps, wasm: false }) as never;
+    const strategy = new CalculationStrategy();
+    await strategy.capabilitiesReady();
+
+    expect(strategy.selectEngine(autoSettings)).toBe('ts');
+  });
+
+  it('lets an explicit preferredEngine bypass pinning and degradation', () => {
+    const strategy = new CalculationStrategy();
+    strategy.selectEngine(autoSettings);
+    strategy.recordMetrics('wasm', 600, true, 500);
+    strategy.recordMetrics('wasm', 600, true, 500);
+    strategy.recordMetrics('wasm', 600, true, 500);
+
+    expect(strategy.selectEngine(autoSettings)).toBe('ts'); // degraded
+    expect(strategy.selectEngine({ preferredEngine: 'wasm' } as IndicatorSettings)).toBe('wasm');
+    expect(strategy.selectEngine({ preferredEngine: 'ts' } as IndicatorSettings)).toBe('ts');
+  });
+
+  it('degrades only after 3 consecutive slow runs, with a switch notice', () => {
+    const strategy = new CalculationStrategy();
+    strategy.selectEngine(autoSettings);
+
+    strategy.recordMetrics('wasm', 600, true, 500);
+    strategy.recordMetrics('wasm', 600, true, 500);
+    expect(strategy.selectEngine(autoSettings)).toBe('wasm');
+    expect(strategy.exportTelemetry().circuitBreaker.wasm.healthy).toBe(true);
+
+    strategy.recordMetrics('wasm', 600, true, 500);
+    expect(strategy.selectEngine(autoSettings)).toBe('ts');
+    expect(strategy.exportTelemetry().circuitBreaker.wasm).toMatchObject({ healthy: false, failures: 3 });
+    // The file-level i18n mock returns the key itself, so the switch notice
+    // is asserted by key (interpolation happens only with real svelte-i18n).
+    expect(vi.mocked(toastService.error)).toHaveBeenCalledWith('calculationStrategy.engineDegraded');
+  });
+
+  it('resets the slow streak on a fast success', () => {
+    const strategy = new CalculationStrategy();
+    strategy.selectEngine(autoSettings);
+
+    strategy.recordMetrics('wasm', 600, true, 500);
+    strategy.recordMetrics('wasm', 600, true, 500);
+    strategy.recordMetrics('wasm', 40, true, 500);
+    strategy.recordMetrics('wasm', 600, true, 500);
+    strategy.recordMetrics('wasm', 600, true, 500);
+
+    expect(strategy.selectEngine(autoSettings)).toBe('wasm');
+    expect(strategy.exportTelemetry().circuitBreaker.wasm.healthy).toBe(true);
+  });
+
+  it('never degrades from benchmark context, only from live runs', () => {
+    const strategy = new CalculationStrategy();
+    strategy.selectEngine(autoSettings);
+
+    strategy.recordMetrics('wasm', 1200, true, 10000, 'bench');
+    strategy.recordMetrics('wasm', 1200, true, 10000, 'bench');
+    strategy.recordMetrics('wasm', 1200, true, 10000, 'bench');
+
+    expect(strategy.selectEngine(autoSettings)).toBe('wasm');
+    expect(strategy.exportTelemetry().circuitBreaker.wasm.healthy).toBe(true);
+  });
+
+  it('re-probes the pinned engine after the degradation window', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+      const strategy = new CalculationStrategy();
+      strategy.selectEngine(autoSettings);
+      strategy.recordMetrics('wasm', 600, true, 500);
+      strategy.recordMetrics('wasm', 600, true, 500);
+      strategy.recordMetrics('wasm', 600, true, 500);
+      expect(strategy.selectEngine(autoSettings)).toBe('ts');
+
+      vi.setSystemTime(new Date('2026-01-01T00:06:00Z'));
+      expect(strategy.selectEngine(autoSettings)).toBe('wasm');
+
+      // Slow again → degrades again instead of flapping per tick.
+      strategy.recordMetrics('wasm', 600, true, 500);
+      strategy.recordMetrics('wasm', 600, true, 500);
+      strategy.recordMetrics('wasm', 600, true, 500);
+      expect(strategy.selectEngine(autoSettings)).toBe('ts');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 describe('CalculationStrategy.recordMetrics', () => {
   it('keeps success and failure accounting per engine', () => {
     const strategy = new CalculationStrategy();

@@ -28,7 +28,7 @@ import { getCapabilities, type BrowserCapabilities } from './capabilityDetection
 import { _ } from '../locales/i18n';
 import { get } from 'svelte/store';
 
-export type CalculationEngine = 'ts' | 'wasm' | 'gpu' | 'auto';
+export type CalculationEngine = 'ts' | 'wasm' | 'gpu' | 'auto' | 'ts-fallback';
 
 // Shape EngineDebugPanel.svelte reads per engine — populated by
 // exportTelemetry() below from the degradation rule in selectEngine().
@@ -41,6 +41,7 @@ export interface EngineCircuitBreakerHealth {
 interface EngineMetrics {
     calls: number;
     totalTime: number;
+    totalCandles: number;
     errors: number;
     lastMedian: number;
 }
@@ -48,43 +49,64 @@ interface EngineMetrics {
 export class CalculationStrategy {
   private lastLagToastAt = 0;
 
+  // Session pinning + degradation state. Auto mode serves one engine for the
+  // whole session so identical market data always yields identical signals.
+  private pinnedEngine: 'ts' | 'wasm' | null = null;
+  private slowRuns = 0;
+  private degraded = false;
+  private degradedAt = 0;
+
+  private static readonly SLOW_MS = 500;
+  private static readonly SLOW_RUNS_TO_DEGRADE = 3;
+  private static readonly REPROBE_MS = 5 * 60 * 1000;
+
   constructor() {
     this.warmCapabilities();
   }
 
   private metrics: Record<CalculationEngine, EngineMetrics> = {
-    ts: { calls: 0, totalTime: 0, errors: 0, lastMedian: 0 },
-    wasm: { calls: 0, totalTime: 0, errors: 0, lastMedian: 0 },
-    gpu: { calls: 0, totalTime: 0, errors: 0, lastMedian: 0 },
-    auto: { calls: 0, totalTime: 0, errors: 0, lastMedian: 0 }
+    ts: { calls: 0, totalTime: 0, totalCandles: 0, errors: 0, lastMedian: 0 },
+    wasm: { calls: 0, totalTime: 0, totalCandles: 0, errors: 0, lastMedian: 0 },
+    gpu: { calls: 0, totalTime: 0, totalCandles: 0, errors: 0, lastMedian: 0 },
+    auto: { calls: 0, totalTime: 0, totalCandles: 0, errors: 0, lastMedian: 0 },
+    'ts-fallback': { calls: 0, totalTime: 0, totalCandles: 0, errors: 0, lastMedian: 0 }
   };
 
   /**
-   * Selects the best engine based on load and capabilities.
-   * Roadmap Step 5: Automatic degradation if performance is poor.
+   * Selects the engine for the next calculation.
+   *
+   * Auto mode pins one engine per session (same data → same signals, every
+   * tick): WASM when available, TS otherwise. Routing by candle count is
+   * gone on purpose — it silently flipped every threshold-edge signal
+   * whenever the history crossed the threshold. An explicit preferredEngine
+   * always wins and bypasses pinning and degradation.
    */
-  selectEngine(klineCount: number, settings: IndicatorSettings): CalculationEngine {
+  selectEngine(settings: IndicatorSettings): 'ts' | 'wasm' | 'gpu' {
     if (settings.preferredEngine && settings.preferredEngine !== 'auto') {
       return settings.preferredEngine;
     }
 
-    // Performance Alerting & Degradation (Step 5)
-    // A single WASM run above 500ms (lastMedian holds the latest sample, not
-    // a true median) degrades selectEngine to 'ts' for the rest of the
-    // session: the degraded engine is never re-selected, so no new WASM
-    // sample can clear the flag. No automatic recovery (re-probing); only a
-    // page reload or the preferredEngine override resets this.
-    if (this.metrics.wasm.lastMedian > 500) {
-        console.warn("[ACE] WASM too slow, degrading to TS Worker");
+    if (this.degraded) {
+      // Recovery probe: after the degradation window the pinned engine gets
+      // one more chance. Fast → back to normal; slow → slowRuns rebuilds and
+      // it degrades again. Never stuck, never flapping per tick.
+      if (Date.now() - this.degradedAt > CalculationStrategy.REPROBE_MS) {
+        this.degraded = false;
+        this.slowRuns = 0;
+        console.info('[ACE] Re-probing pinned engine after degradation window');
+      } else {
         return 'ts';
+      }
     }
 
-    // Auto Selection
-    if (klineCount > 5000) return 'gpu';
-    // WASM is already faster than TS at 500 candles (IDEA-0318 F-7 benchmark),
-    // so route it down to the realistic historyLimit range (~300-750 candles).
-    if (klineCount > 300) return 'wasm';
-    return 'ts';
+    if (!this.pinnedEngine) {
+      // Capabilities resolve async after mount; before the snapshot lands we
+      // pin WASM optimistically — the live path falls back to TS per call
+      // (counted as ts-fallback) until the snapshot confirms otherwise.
+      const caps = this.capabilitiesSnapshot;
+      this.pinnedEngine = caps && !caps.wasm ? 'ts' : 'wasm';
+    }
+    return this.pinnedEngine;
   }
 
   private performanceHistory: {
@@ -95,12 +117,36 @@ export class CalculationStrategy {
       timestamp: number;
   }[] = [];
 
-  recordMetrics(engine: CalculationEngine, duration: number, success: boolean, candleCount: number = 0) {
+  recordMetrics(engine: CalculationEngine, duration: number, success: boolean, candleCount: number = 0, context: 'live' | 'bench' = 'live') {
     const m = this.metrics[engine];
     m.calls++;
     m.totalTime += duration;
-    m.lastMedian = duration; // latest single duration standing in for a median — one spike degrades wasm until another wasm run (no auto recovery)
+    m.totalCandles += candleCount;
+    m.lastMedian = duration; // latest single duration, kept for telemetry compat — degradation uses slowRuns below, not this
     if (!success) m.errors++;
+
+    // Degradation hysteresis (live path only — benchmark medians must never
+    // flip the live engine). Only the pinned engine counts: an explicit
+    // preferredEngine choice and ts-fallback runs never degrade auto mode.
+    // A fast failure changes nothing: it is neither speed evidence nor
+    // slowness evidence.
+    if (context === 'live' && engine === this.pinnedEngine) {
+      if (duration > CalculationStrategy.SLOW_MS) {
+        this.slowRuns++;
+        if (this.slowRuns >= CalculationStrategy.SLOW_RUNS_TO_DEGRADE && !this.degraded) {
+          this.degraded = true;
+          this.degradedAt = Date.now();
+          // Claim the throttle slot: the switch notice below already tells
+          // the user what happened, so the generic critical-lag toast stays
+          // silent on this exact run instead of double-toasting.
+          this.lastLagToastAt = Date.now();
+          console.error(`[ACE] Engine ${engine} slow ${this.slowRuns}x in a row — auto degraded to TS`);
+          toastService.error(get(_)('calculationStrategy.engineDegraded', { values: { engine: engine.toUpperCase() } }));
+        }
+      } else if (success) {
+        this.slowRuns = 0;
+      }
+    }
     
     // Add to history
     this.performanceHistory.push({
@@ -190,10 +236,10 @@ export class CalculationStrategy {
             lowMemory: (caps?.deviceMemory ?? 8) < 4,
             isMobile: caps?.isMobile ?? false
         },
-        // Derived from the actual degradation rule in selectEngine() (median > 500ms)
+        // Derived from the actual degradation state (3 slow runs → degraded).
         circuitBreaker: {
-            wasm: this.metrics.wasm.lastMedian > 500
-                ? { healthy: false, lastError: 'median > 500ms — degraded to ts', failures: 1 }
+            wasm: this.degraded
+                ? { healthy: false, lastError: 'degraded after 3 slow runs — auto serving ts', failures: this.slowRuns }
                 : { healthy: true, lastError: '', failures: 0 }
         } as Record<string, EngineCircuitBreakerHealth>,
         usagePercent: Object.fromEntries(

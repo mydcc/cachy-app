@@ -218,12 +218,12 @@ export const technicalsService = {
       return cached.data;
     }
 
-    const engine = calculationStrategy.selectEngine(klines.length, finalSettings);
+    const engine = calculationStrategy.selectEngine(finalSettings);
     const startTime = performance.now();
 
     try {
       let finalResult: TechnicalsData | undefined;
-      let usedEngine = engine === 'gpu' ? 'gpu' : engine;
+      let usedEngine: CalculationEngine = engine;
 
       if (engine === 'wasm') {
         const { wasmCalculator } = await import("./wasmCalculator");
@@ -238,7 +238,10 @@ export const technicalsService = {
       }
 
       if (!finalResult) {
-          usedEngine = 'ts';
+          // The selected engine could not serve this call (unavailable or
+          // unsupported): the TS fallback is counted apart as ts-fallback so
+          // the per-engine medians keep reflecting real compute cost.
+          usedEngine = engine === 'ts' ? 'ts' : 'ts-fallback';
           if (workerManager.isHealthy()) {
             finalResult = await this.calculateWithWorker(klines, finalSettings);
           } else {
@@ -246,7 +249,7 @@ export const technicalsService = {
           }
       }
 
-      calculationStrategy.recordMetrics(usedEngine as CalculationEngine, performance.now() - startTime, true, klines.length);
+      calculationStrategy.recordMetrics(usedEngine, performance.now() - startTime, true, klines.length);
       calculationStrategy.recordCacheMiss();
 
       // Cache storage
@@ -268,7 +271,7 @@ export const technicalsService = {
       // doesn't over-state the failed engine's failure count.
       const t0 = performance.now();
       const result = this.calculateTechnicalsInline(klines, finalSettings);
-      calculationStrategy.recordMetrics('ts', performance.now() - t0, true, klines.length);
+      calculationStrategy.recordMetrics('ts-fallback', performance.now() - t0, true, klines.length);
       return result;
     }
   },
