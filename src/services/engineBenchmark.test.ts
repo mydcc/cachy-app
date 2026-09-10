@@ -184,10 +184,10 @@ describe('engineBenchmark', () => {
       expect(results.results.map(r => r.engine)).toEqual(expect.arrayContaining(['ts', 'gpu']));
       expect(results.results.map(r => r.engine)).not.toContain('wasm');
 
-      // Strategy should have been called for successful engines
-      expect(calculationStrategy.recordMetrics).toHaveBeenCalledWith('ts', expect.any(Number), true, 100);
-      expect(calculationStrategy.recordMetrics).toHaveBeenCalledWith('gpu', expect.any(Number), true, 100);
-      expect(calculationStrategy.recordMetrics).not.toHaveBeenCalledWith('wasm', expect.any(Number), true, 100);
+      // Strategy should have been called for successful engines (as bench context)
+      expect(calculationStrategy.recordMetrics).toHaveBeenCalledWith('ts', expect.any(Number), true, 100, 'bench');
+      expect(calculationStrategy.recordMetrics).toHaveBeenCalledWith('gpu', expect.any(Number), true, 100, 'bench');
+      expect(calculationStrategy.recordMetrics).not.toHaveBeenCalledWith('wasm', expect.any(Number), true, 100, 'bench');
 
       // Restore default implementations to prevent persistent mocks from leaking.
       // clearAllMocks() only clears call history, not mockRejectedValue/mockResolvedValue.

@@ -1320,20 +1320,12 @@
       "title": "Technische Analyse",
       "optimization": {
         "title": "Performance Optimierung",
-        "autoOptimize": "Auto-Optimize Engine",
-        "autoOptimizeDesc": "Wählt automatisch TypeScript oder WebAssembly basierend auf Datengröße",
         "preferredEngine": "Bevorzugte Engine",
-        "performanceMode": "Performance Modus",
         "engines": {
           "auto": "Auto (Empfohlen)",
           "ts": "TypeScript",
           "wasm": "WebAssembly",
           "gpu": "GPU (Experimentell)"
-        },
-        "modes": {
-          "speed": "Geschwindigkeit",
-          "balanced": "Ausgewogen",
-          "quality": "Qualität"
         }
       },
       "summaryAction": "Zusammenfassung",
@@ -1642,7 +1634,7 @@
         "columns": {
           "engine": "Engine",
           "health": "Gesundheit",
-          "avg": "Ø",
+          "median": "Median",
           "samples": "Proben",
           "candles": "Kerzen",
           "time": "Zeit",
@@ -3617,7 +3609,8 @@
   },
   "calculationStrategy": {
     "criticalLag": "Kritische Verzögerung: {engine} dauerte {duration}ms",
-    "slowCalc": "Langsame Berechnung: {engine} ({duration}ms)"
+    "slowCalc": "Langsame Berechnung: {engine} ({duration}ms)",
+    "engineDegraded": "Engine degradiert: {engine} zu langsam, auf TS gewechselt"
   },
   "duck": {
     "full": "Quack! Die Ente ist pappsatt und braucht eine Pause.",
