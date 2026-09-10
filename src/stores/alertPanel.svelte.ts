@@ -66,8 +66,31 @@ export const ALERT_PANEL_TABS = [
 
 export type AlertPanelTab = (typeof ALERT_PANEL_TABS)[number];
 
-/** The evaluation anchor a fresh draft starts on. */
-const DEFAULT_TIMEFRAME: TimeframeString = "1h";
+/**
+ * A draft handed to the panel from outside it — a right-click on the chart,
+ * an action on an indicator card (FEAT-0395).
+ *
+ * `condition` may be `null`: an entry point that knows the symbol and the tab
+ * but not yet a usable condition still opens the panel on the right builder
+ * rather than making the trader find it.
+ */
+export interface AlertPanelSeed {
+  symbol: string;
+  tab: AlertPanelTab;
+  condition: Condition | null;
+  /** The anchor the condition was built on. Defaults to a fresh draft's. */
+  timeframe?: TimeframeString;
+}
+
+/**
+ * The evaluation anchor a fresh draft starts on.
+ *
+ * Exported because an entry point outside the panel (FEAT-0395) has to name
+ * the same anchor in the condition it seeds — two spellings of "the default"
+ * is how a condition ends up on a different timeframe than the rule that
+ * carries it.
+ */
+export const DEFAULT_RULE_TIMEFRAME: TimeframeString = "1h";
 
 /**
  * A blank draft: notify-only, no order attached.
@@ -82,7 +105,7 @@ function blankDraft(symbol: string): RuleDocument {
     id: generateId(),
     name: "",
     symbol,
-    trigger_timeframe: DEFAULT_TIMEFRAME,
+    trigger_timeframe: DEFAULT_RULE_TIMEFRAME,
     conditions: { kind: "group", op: "all", of: [] },
     action: { consequence_level: "notify" },
     enabled: true,
@@ -129,6 +152,48 @@ class AlertPanelStore {
    * them hunting a bug in a strategy that is fine.
    */
   coreUnavailable = $state(false);
+
+  /**
+   * True while a seed from outside the panel is waiting to be honoured.
+   *
+   * The shell resets the draft on mount, and an entry point necessarily seeds
+   * *before* the panel exists — so without this flag the mount would blank
+   * exactly the draft the trader just asked for. A boolean rather than an
+   * ordering assumption: the panel says "I am opening" and the store answers
+   * "then keep what you were given".
+   */
+  private seedPending = false;
+
+  /**
+   * Opens the panel with a draft an entry point outside it already filled in
+   * (FEAT-0395).
+   *
+   * The seed writes the *document*, not a tab's form state. That is the whole
+   * contract of this store: what the footer sentence reads back and what the
+   * core is handed are the same object, whether a trader typed it or clicked
+   * it on the chart. A builder tab therefore needs no seeding channel of its
+   * own — it hydrates from the document it was handed.
+   */
+  seed({ symbol, tab, condition, timeframe }: AlertPanelSeed) {
+    this.reset(symbol);
+    if (timeframe) this.setTimeframe(timeframe);
+    this.setSingleCondition(condition);
+    this.activeTab = tab;
+    this.seedPending = true;
+  }
+
+  /**
+   * What the shell calls when it mounts: a fresh draft on `symbol`, unless a
+   * seed is waiting — in which case the seed stands and is consumed, so the
+   * next open without one starts blank again.
+   */
+  openFor(symbol: string) {
+    if (this.seedPending) {
+      this.seedPending = false;
+      return;
+    }
+    this.reset(symbol);
+  }
 
   /** Starts a fresh draft, e.g. when the panel opens on a new symbol. */
   reset(symbol: string) {

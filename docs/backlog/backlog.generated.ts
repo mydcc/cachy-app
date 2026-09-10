@@ -5122,7 +5122,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0390",
     "title": "Price alert conditions beyond a single target",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "claude",
     "branch": "claude/super-alert-next-task-mpte57",
     "priority": "P2",
