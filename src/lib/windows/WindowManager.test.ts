@@ -376,3 +376,60 @@ describe("WindowManager.bringToFront keeps modal dialogs open (BUG-0422)", () =>
         openedIds.splice(openedIds.indexOf(settings.id), 1);
     });
 });
+
+/**
+ * FEAT-0389 -- the Super-Alert panel is the one window that is dismissible by
+ * Escape without being dismissible by a click elsewhere.
+ *
+ * Those two properties usually travel together (WindowManager reuses
+ * `closeOnBlur` as its definition of "dismissible"), and this panel
+ * deliberately breaks them apart: a click on the chart beside it must not
+ * close it, because reading the chart is the whole reason it is not a modal.
+ * The exception is a named window type in the handler, so a test that only
+ * covered `closeOnBlur` would not notice it disappearing.
+ */
+describe("WindowManager Escape and the alert side panel (FEAT-0389)", () => {
+    function openAlertPanelWindow() {
+        const win = new TestWindow({
+            id: `alert-panel-${nextTestId++}`,
+            windowType: "alertpanel",
+        });
+        windowManager.open(win);
+        openedIds.push(win.id);
+        return win;
+    }
+
+    it("closes on Escape even though a click elsewhere must not close it", () => {
+        const panel = openAlertPanelWindow();
+
+        // The premise. If this ever flips to true the panel has become an
+        // ordinary dismissible window and the chart-click guarantee is gone,
+        // which is a different bug than the one below.
+        expect(panel.closeOnBlur).toBe(false);
+
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+        expect(windowManager.isOpen(panel.id)).toBe(false);
+        openedIds.splice(openedIds.indexOf(panel.id), 1);
+    });
+
+    it("leaves a minimized panel alone, the same as any other window", () => {
+        const panel = openAlertPanelWindow();
+        panel.isMinimized = true;
+
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+        expect(windowManager.isOpen(panel.id)).toBe(true);
+    });
+
+    it("does not take a plain window with it", () => {
+        const bystander = openTestWindow();
+        const panel = openAlertPanelWindow();
+
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+        expect(windowManager.isOpen(panel.id)).toBe(false);
+        expect(windowManager.isOpen(bystander.id)).toBe(true);
+        openedIds.splice(openedIds.indexOf(panel.id), 1);
+    });
+});

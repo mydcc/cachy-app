@@ -214,7 +214,21 @@ let rootElement: HTMLElement | null = null;
     }
 </script>
 
-<div class="alert-panel" bind:this={rootElement} onkeydown={handleKeydown}>
+<!--
+  role/aria-label are not decoration: the Tab-trap below hangs off this
+  element's keydown, and a container that handles keys without a role is a
+  thing a screen reader cannot announce or reach (a11y_no_static_element_
+  interactions). `region` rather than `dialog` -- WindowFrame owns the
+  window's own role, and this panel is deliberately not modal.
+-->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
+    class="alert-panel"
+    role="region"
+    aria-label={$_("dashboard.alerts.panel.title")}
+    bind:this={rootElement}
+    onkeydown={handleKeydown}
+>
     <!--
       BUG-0382: while the engine failed to load, rules are stored but nothing
       evaluates them. In the shell rather than in a tab, so it stays on screen

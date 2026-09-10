@@ -37,6 +37,18 @@ vi.mock("../../services/logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
+// Stubbed so "Escape closes without arming" can assert against the one call
+// that would write a rule, rather than against a side effect of it. Nothing
+// else in this suite reaches armRule -- the arm button is disabled until a
+// builder produces a condition.
+const armRuleSpy = vi.fn();
+vi.mock("../../services/alertEngine/armRule", () => ({
+  armRule: (...args: unknown[]) => armRuleSpy(...args),
+  RuleStoreUnreadableError: class RuleStoreUnreadableError extends Error {
+    translationKey = "dashboard.alerts.panel.storeUnreadable";
+  },
+}));
+
 const dictionary = en as Record<string, unknown>;
 
 function getNestedTranslation(
@@ -210,5 +222,123 @@ describe("FEAT-0389: AlertPanelView shell", () => {
 
     expect(el.querySelector("#alert-tab-combo")?.getAttribute("aria-selected")).toBe("true");
     expect(first.getAttribute("aria-selected")).toBe("false");
+  });
+});
+
+/**
+ * FEAT-0389 -- the two acceptance criteria the shell can only prove through
+ * the keyboard: focus stays inside the panel while Tab cycles it, and Escape
+ * is a way out that arms nothing.
+ *
+ * Escape itself is WindowManager's (see WindowManager.test.ts); what belongs
+ * here is the other half of that sentence -- that the panel does not treat a
+ * dismissal as a confirmation. The trap is the panel's own, because
+ * WindowFrame has no shared one yet.
+ */
+describe("FEAT-0389: AlertPanelView keyboard containment", () => {
+  let target: HTMLElement;
+  let component: ReturnType<typeof mount> | null = null;
+
+  beforeEach(() => {
+    target = document.createElement("div");
+    document.body.appendChild(target);
+    alertPanelState.reset("BTCUSDT");
+    alertState.engineStatus = "idle";
+    armRuleSpy.mockClear();
+  });
+
+  afterEach(() => {
+    if (component) unmount(component);
+    component = null;
+    target.remove();
+  });
+
+  async function render() {
+    component = mount(AlertPanelView, { target, props: {} });
+    flushSync();
+    // Let the active tab's dynamic import resolve, so the trap sees the
+    // controls inside the tab body and not just the shell's own.
+    await Promise.resolve();
+    await Promise.resolve();
+    flushSync();
+    return target;
+  }
+
+  /**
+   * The same set the panel's own handler walks. Duplicated deliberately: a
+   * test that asked the component which elements it considers focusable
+   * would agree with it by construction.
+   */
+  function focusables(el: HTMLElement): HTMLElement[] {
+    return Array.from(
+      el.querySelectorAll<HTMLElement>(
+        "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])",
+      ),
+    );
+  }
+
+  function pressTab(on: HTMLElement, shiftKey = false) {
+    on.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey, bubbles: true }));
+    flushSync();
+  }
+
+  it("has more than one stop to cycle between", async () => {
+    const el = await render();
+    expect(focusables(el).length).toBeGreaterThan(1);
+  });
+
+  it("wraps from the last control back to the first instead of leaving the panel", async () => {
+    const el = await render();
+    const stops = focusables(el);
+    const last = stops[stops.length - 1];
+
+    last.focus();
+    pressTab(last);
+
+    expect(document.activeElement).toBe(stops[0]);
+  });
+
+  it("wraps backwards from the first control to the last", async () => {
+    const el = await render();
+    const stops = focusables(el);
+
+    stops[0].focus();
+    pressTab(stops[0], true);
+
+    expect(document.activeElement).toBe(stops[stops.length - 1]);
+  });
+
+  it("leaves focus alone in the middle of the cycle, so Tab still moves", async () => {
+    const el = await render();
+    const stops = focusables(el);
+    const middle = stops[1];
+
+    middle.focus();
+    pressTab(middle);
+
+    // The handler must not preventDefault here -- the browser's own Tab has
+    // to do the moving, or the panel becomes a one-element trap.
+    expect(document.activeElement).toBe(middle);
+  });
+
+  it("announces itself as a labelled region, so the trap has something to trap in", async () => {
+    const el = await render();
+    const panel = el.querySelector(".alert-panel");
+
+    // The keydown handler below hangs off this element. A container that
+    // handles keys without a role is unreachable for assistive tech and the
+    // Svelte compiler says so; `region` rather than `dialog` because
+    // WindowFrame owns the window role and this panel is not modal.
+    expect(panel?.getAttribute("role")).toBe("region");
+    expect(panel?.getAttribute("aria-label")).toBe(en.dashboard.alerts.panel.title);
+  });
+
+  it("arms nothing when Escape is pressed", async () => {
+    const el = await render();
+
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flushSync();
+
+    expect(armRuleSpy).not.toHaveBeenCalled();
   });
 });
