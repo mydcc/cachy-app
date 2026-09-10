@@ -35,6 +35,8 @@
 //! variant exists, validates inside a `veto`, and is refused inside `conditions`
 //! with a reason that cites the decision.
 
+use std::fmt;
+
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -62,6 +64,46 @@ pub enum PriceField {
     Hl2,
     /// (high + low + close) / 3
     Hlc3,
+}
+
+/// Which price series a candle is read from.
+///
+/// On a perpetual the last traded price and the mark price differ, and the gap
+/// is widest exactly when it matters — a wick that liquidates on one and not on
+/// the other. A stop that should key off the mark price but keys off the last is
+/// a wrong alarm at the worst moment, so the series is part of the rule rather
+/// than a display preference.
+///
+/// `Last` is the default and is never serialised (see `is_last`), so every
+/// document written before this variant existed keeps its exact canonical form
+/// — and therefore its content hash. That is what makes this addition free of a
+/// schema version bump and of a migration.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum PriceSource {
+    /// The last traded price. What a spot chart shows.
+    #[default]
+    Last,
+    /// The venue's mark price, which drives liquidation and unrealised PnL.
+    Mark,
+}
+
+impl PriceSource {
+    /// Whether this is the default, for `skip_serializing_if`.
+    ///
+    /// Takes a reference because that is the shape serde's attribute calls.
+    pub fn is_last(&self) -> bool {
+        matches!(self, Self::Last)
+    }
+}
+
+impl fmt::Display for PriceSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Last => "last-price",
+            Self::Mark => "mark-price",
+        })
+    }
 }
 
 /// The comparisons a condition may make.
@@ -126,6 +168,8 @@ pub enum LogicOp {
 pub enum Operand {
     Price {
         field: PriceField,
+        #[serde(default, skip_serializing_if = "PriceSource::is_last")]
+        source: PriceSource,
     },
     Indicator {
         indicator: IndicatorRef,
@@ -134,6 +178,26 @@ pub enum Operand {
     /// price, so `f64` is forbidden here as everywhere else in this app.
     Constant {
         value: Decimal,
+    },
+    /// How far the price has moved, in percent, from a candle `lookback` closes
+    /// earlier: `(now - then) / then * 100`.
+    ///
+    /// The reference is a *closed candle*, not the price at the moment the rule
+    /// was armed. That is the difference between a rule and a bookmark: a
+    /// threshold baked in at arming time is tied to one symbol at one instant
+    /// and cannot be carried into a template or proposed by a model, whereas
+    /// "5% over three 4h closes" means the same thing on every market. It is
+    /// also the only form a backtest and a live run can agree on, which is what
+    /// ADR-0012 exists to guarantee.
+    ///
+    /// Positive for a rise, negative for a fall, so "fell 5%" is
+    /// `PercentChange <= -5` and needs no second variant.
+    PercentChange {
+        field: PriceField,
+        #[serde(default, skip_serializing_if = "PriceSource::is_last")]
+        source: PriceSource,
+        /// How many closes back the reference candle sits. At least 1.
+        lookback: u32,
     },
 }
 
@@ -333,6 +397,39 @@ impl Condition {
         }
     }
 
+    /// Every timeframe this subtree reads from the **mark-price** series.
+    ///
+    /// Separate from [`timeframes`](Self::timeframes) so a caller can fetch a
+    /// mark series only where a rule actually asks for one. Mark candles are a
+    /// second request per symbol and timeframe, and not every venue serves
+    /// them at all, so subscribing to one no condition reads would be a cost
+    /// paid for nothing.
+    pub fn mark_timeframes(&self, into: &mut Vec<Timeframe>) {
+        match self {
+            Self::Compare {
+                left,
+                right,
+                timeframe,
+                ..
+            }
+            | Self::Cross {
+                left,
+                right,
+                timeframe,
+                ..
+            } => {
+                let reads_mark = [left, right]
+                    .iter()
+                    .any(|o| o.price_source() == Some(PriceSource::Mark));
+                if reads_mark && !into.contains(timeframe) {
+                    into.push(*timeframe);
+                }
+            }
+            Self::Group { of, .. } => of.iter().for_each(|c| c.mark_timeframes(into)),
+            Self::Position { .. } | Self::Account { .. } | Self::ExternalFeed { .. } => {}
+        }
+    }
+
     /// The most candles any indicator in this subtree needs before it has a
     /// value, per timeframe-agnostic count.
     pub fn warmup_candles(&self) -> u32 {
@@ -350,6 +447,17 @@ impl Operand {
     pub fn validate(&self, field: &str, out: &mut Vec<RuleRefusal>) {
         match self {
             Self::Indicator { indicator } => indicator.validate(&format!("{field}.indicator"), out),
+            Self::PercentChange { lookback, .. } => {
+                if *lookback == 0 {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::InvalidLookback,
+                        format!("{field}.lookback"),
+                        "a percentage move needs an earlier candle to measure from; \
+                         a lookback of 0 compares a candle with itself and is always \
+                         zero percent",
+                    ));
+                }
+            }
             Self::Price { .. } | Self::Constant { .. } => {}
         }
     }
@@ -359,7 +467,23 @@ impl Operand {
             Self::Indicator { indicator } => indicator.warmup_candles(),
             // A crossing still needs the previous closed candle.
             Self::Price { .. } => 2,
+            // The reference candle plus the one being measured. `saturating_add`
+            // because a document arrives from outside and `lookback` is only
+            // bounded by its type until `validate` has run.
+            Self::PercentChange { lookback, .. } => lookback.saturating_add(1),
             Self::Constant { .. } => 0,
+        }
+    }
+
+    /// Which price series this operand reads, if it reads one at all.
+    ///
+    /// The evaluator uses this to decide whether a rule needs a mark-price
+    /// series before it can produce a verdict, and the loop uses it to avoid
+    /// subscribing to one no armed rule asks for.
+    pub fn price_source(&self) -> Option<PriceSource> {
+        match self {
+            Self::Price { source, .. } | Self::PercentChange { source, .. } => Some(*source),
+            Self::Indicator { .. } | Self::Constant { .. } => None,
         }
     }
 }

@@ -39,7 +39,7 @@
 //!   arming is `enabled`, and re-arming stays the caller's business exactly as it
 //!   is today.
 
-use super::condition::{Condition, CrossDirection, Operand, PriceField};
+use super::condition::{Condition, CrossDirection, Operand, PriceField, PriceSource};
 use super::consequence::{ConsequenceLevel, RuleAction};
 use super::document::{AuthoringSource, Provenance, RuleDocument};
 use super::refusal::Refused;
@@ -73,8 +73,14 @@ pub fn rule_from_alert(
         symbol: alert.symbol.clone(),
         trigger_timeframe: timeframe,
         conditions: Condition::Cross {
+            // Last price, always. A legacy alert was checked against the price
+            // ticks the market feed delivered, so converting one to the mark
+            // series would change which prices fire it — FEAT-0388's acceptance
+            // criterion is that a migrated alert keeps its threshold and its
+            // market, and the series it reads is part of that.
             left: Operand::Price {
                 field: PriceField::Close,
+                source: PriceSource::Last,
             },
             direction,
             right: Operand::Constant { value: threshold },

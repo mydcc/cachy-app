@@ -44,7 +44,10 @@
     $effect(() => {
         const symbol = untrack(() => tradeState.symbol);
         const win = untrack(() => {
-            alertPanelState.reset(symbol);
+            // openFor(), not reset(): an entry point that seeded a draft
+            // (FEAT-0395) did so before this component existed, and a blanket
+            // reset here would blank exactly what the trader asked for.
+            alertPanelState.openFor(symbol);
             const w = new AlertPanelWindow({
                 title: $_("dashboard.alerts.panel.title"),
                 onclose: onClose,

@@ -360,6 +360,21 @@
         "armed": "Alert armed.",
         "armDisabled": "Add a condition first.",
         "tabLoadFailed": "This tab could not be loaded. Reload the page."
+      },
+      "price": {
+        "conditionType": "Condition",
+        "risesAbove": "Rises above",
+        "fallsBelow": "Falls below",
+        "riseReaches": "Rise reaches",
+        "fallReaches": "Fall reaches",
+        "priceLabel": "Price",
+        "percentLabel": "Percentage",
+        "lookbackLabel": "Measured over",
+        "lookbackHint": "How many closed candles back the move is measured from.",
+        "seriesLabel": "Price series",
+        "seriesLast": "Last price",
+        "seriesMark": "Mark price",
+        "seriesHint": "The mark price drives liquidation and unrealised PnL, and can differ from the last traded price."
       }
     },
     "generalInputs": {
@@ -3768,7 +3783,12 @@
   "chartView": {
     "loadingHistory": "LOADING HISTORY ...",
     "fetchingMarketData": "FETCHING MARKET DATA ...",
-    "countdownLabel": "Countdown to candle close"
+    "countdownLabel": "Countdown to candle close",
+    "alert": {
+      "regionLabel": "Price chart for {symbol}. Press the context-menu key to create an alert.",
+      "menuLabel": "Chart alert",
+      "here": "Alert here — {price}"
+    }
   },
   "chart": {
     "pane": {
@@ -3798,7 +3818,8 @@
       "migrationNotPossible": "The rule cannot be carried to the current schema version with its meaning intact, so it is refused rather than reinterpreted.",
       "emptyConditionTree": "A group with no conditions has no truth value.",
       "conditionTreeTooDeep": "The conditions are nested too deeply.",
-      "duplicateConditionId": "The same condition identifier is used twice."
+      "duplicateConditionId": "The same condition identifier is used twice.",
+      "invalidLookback": "A percentage move needs an earlier candle to measure from."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
@@ -3806,6 +3827,10 @@
       "empty": "(no condition yet)",
       "negate": "not {condition}",
       "onTimeframe": " (on {timeframe})",
+      "markSuffix": " (mark price)",
+      "percentValue": "{value}%",
+      "percentChange": "the change in {price} over the last {lookback} closes",
+      "percentChangeOne": "the change in {price} since the previous close",
       "compare": "{left} is {op} {right}{timeframe}",
       "crossing": "{left} {direction} {right}{timeframe}",
       "lead": {
