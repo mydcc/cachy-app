@@ -130,7 +130,11 @@ describe("EngineDebugPanel", () => {
     it("shows the empty hint before the first uncached calculation", async () => {
         await renderFresh();
 
-        expect(text()).toContain("No uncached calculations yet");
+        // Full-string match on purpose: a prefix substring would stay green
+        // while the visible text diverges.
+        expect(text()).toContain(
+            "No uncached calculations yet — interact with the chart or run the benchmark."
+        );
     });
 
     it("shows live Calls/Avg per engine after metrics are recorded", async () => {
@@ -161,6 +165,10 @@ describe("EngineDebugPanel", () => {
         locale.current = "de";
         await renderFresh();
 
-        expect(text()).toContain("Noch keine Berechnung außerhalb des Caches");
+        // Full-string match on purpose: a prefix substring would stay green
+        // while the visible text diverges.
+        expect(text()).toContain(
+            "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten."
+        );
     });
 });
