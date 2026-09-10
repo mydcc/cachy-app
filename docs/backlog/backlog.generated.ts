@@ -5055,7 +5055,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0370",
     "title": "Parallelize REST API requests in Bitunix positions synchronization",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "feat/FEAT-0370-parallel-bitunix-sync",
     "priority": "P2",
     "milestone": "none",
     "editions": [
