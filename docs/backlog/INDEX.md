@@ -4,7 +4,7 @@
 
 310 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 42 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 234
+Counts by status: 💡 idea 27 · 📋 specced 42 · 🟢 ready 6 · ✅ done 235
 
 ---
 
@@ -119,7 +119,7 @@ Counts by status: 💡 idea 27 · 📋 specced 42 · 🟢 ready 6 · 🟡 in-pro
 | --- | --- | --- | --- | --- |
 | [BUG-0409](bugs/BUG-0409-mode-chip-stale-after-change.md) | Mode chip stays stale or shows never-real combos after a mode change | P0 | ✅ done | exchange |
 | [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | ✅ done | trade-panel |
-| [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | 🟡 in-progress | ui |
+| [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | ✅ done | ui |
 | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | ✅ done | trade-panel |
 | [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | ✅ done | ui |
 | [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | ✅ done | ui |
@@ -394,7 +394,7 @@ Counts by status: 💡 idea 27 · 📋 specced 42 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0409](bugs/BUG-0409-mode-chip-stale-after-change.md) | Mode chip stays stale or shows never-real combos after a mode change | P0 | ✅ done | M4 | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md), [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md), [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) |
 | [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
-| [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | 🟡 in-progress | M4 | community, pro, private | none | none | — |
+| [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | ✅ done | M4 | community, pro, private | A | none | — |
 | [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
