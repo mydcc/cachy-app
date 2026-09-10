@@ -5876,7 +5876,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0427",
     "title": "worktree-cleanup.sh refuses squash-merged branches as unmerged",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
