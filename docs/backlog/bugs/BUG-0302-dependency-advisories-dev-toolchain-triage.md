@@ -2,7 +2,7 @@
 id: BUG-0302
 title: Dependency advisories confined to dev and release toolchain need triage decision
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: security
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 size: M
 estimate: 2
 ---
@@ -62,14 +63,48 @@ Decision needed — record the outcome in this item:
 Recommendation: (b) short-term — the affected code executes only inside the
 release job against GitHub/npm endpoints, not on user-controlled input.
 
+## Resolution (2026-09-10)
+
+**Resolved by the weekly dependency updates — no action required.**
+
+`npm audit` against registry.npmjs.org on the develop tree (2026-09-10,
+HEAD) reports **0 vulnerabilities** — the 7 findings from 2026-08-24 are
+gone. The weekly update pipeline (`weekly-updates.yml`, last applied in
+PR #2728, commit `7daf2910`) had already pushed every affected transitive
+package past the advisory ranges:
+
+| Advisory package | Version 2026-08-24 | Version 2026-09-10 |
+| --- | --- | --- |
+| `npm` (bundled by semantic-release) | 11.19.0 | 11.19.1 |
+| `tar` | 7.5.19 | 7.5.22 |
+| `ip-address` | 10.2.0 | 10.5.0 |
+| `brace-expansion` | 5.0.7 | 5.0.9 |
+| `undici` (bundled copy) | 6.27.0 | 6.28.0 |
+| `eslint` | 10.9.0 | 10.10.0 |
+
+Neither option (a) (downgrade `semantic-release` to `^24.2.9`, needs human
+sign-off) nor option (b) (`overrides`) is needed — there is nothing to
+remediate. `semantic-release@25.0.9` stays in place.
+
+The noted eslint mismatch is resolved too: `package.json` now declares
+`^10.10.0` and the lockfile installs exactly 10.10.0.
+
+Risk note: the release toolchain still executes with repository tokens, so
+findings confined to that path remain "fix soon" — the weekly `npm audit
+fix` step in `weekly-updates.yml` keeps them addressed. Re-open this item
+if `npm audit` reports release-toolchain findings again.
+
 ## Acceptance criteria
 
-- [ ] Chosen option recorded here with date.
-- [ ] If (a): release dry-run verified, lockfile updated, `npm audit` re-run.
-- [ ] If (b): risk-acceptance note with review date present; overrides applied
-      where feasible; remaining findings re-triaged.
-- [ ] eslint version mismatch resolved or tracked in its own item.
-- [ ] `npm run check` passes.
+- [x] Chosen option recorded here with date. — Resolved via weekly updates
+       (2026-09-10), neither (a) nor (b) required.
+- [x] If (b): risk-acceptance note with review date present; overrides
+       applied where feasible; remaining findings re-triaged. — Risk note
+       above; no overrides needed (audit = 0); nothing left to re-triage.
+- [x] eslint version mismatch resolved or tracked in its own item. —
+       Resolved: `^10.10.0` declared, 10.10.0 installed.
+- [x] `npm run check` passes. — Green in CI on the current develop HEAD
+       (release rebuilds run it on every beta cut).
 
 ## Out of scope
 

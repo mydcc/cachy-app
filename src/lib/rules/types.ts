@@ -78,8 +78,24 @@ export interface IndicatorRef {
   output?: string;
 }
 
+/** Which end of a window an `Operand` of kind `window` reads. */
+export type WindowAgg = "min" | "max";
+
 export type Operand =
   | { kind: "price"; field: PriceField; source?: PriceSource }
+  /**
+   * Traded volume of the closed candle.
+   *
+   * Deliberately not a seventh `PriceField`. Every `PriceField` value is
+   * denominated in quote currency, which is what makes it comparable against a
+   * price threshold; volume is denominated in size. As its own operand it
+   * carries its own dimension, and the core refuses `volume` against a price
+   * rather than comparing two unrelated scales.
+   *
+   * No `source`: a mark price is a derived quote with no volume of its own, so
+   * volume is always read from the last-traded series.
+   */
+  | { kind: "volume" }
   | { kind: "indicator"; indicator: IndicatorRef }
   | { kind: "constant"; value: DecimalString }
   /**
@@ -97,7 +113,22 @@ export type Operand =
       field: PriceField;
       source?: PriceSource;
       lookback: number;
-    };
+    }
+  /**
+   * The lowest or highest value another operand took over the last `lookback`
+   * closes, the current one included.
+   *
+   * What makes "at a 20-candle high" and Bollinger's actual Squeeze — the
+   * lowest bandwidth over a long window, not a fixed threshold — expressible.
+   * An operand rather than a condition shape, so it inherits the dimensional
+   * guard: a window over a volume is still a volume. See ADR-0016.
+   *
+   * `of` must not itself be a window, and `lookback` is 2..=500; the core
+   * refuses both. A *strict* comparison against a window can never be true,
+   * because the window includes the value being compared — "breaks above its
+   * 20-candle high" is `gte`, not `gt`.
+   */
+  | { kind: "window"; of: Operand; agg: WindowAgg; lookback: number };
 
 export type Condition =
   | { kind: "compare"; left: Operand; op: CompareOp; right: Operand; timeframe: TimeframeString }

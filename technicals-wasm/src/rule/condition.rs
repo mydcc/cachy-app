@@ -52,6 +52,30 @@ use super::timeframe::Timeframe;
 /// past any rule a human writes and far short of any stack this runs on.
 pub const MAX_CONDITION_DEPTH: usize = 8;
 
+/// The longest span an [`Operand::Window`] may aggregate over.
+///
+/// A per-operand sanity filter, not the bound that decides whether a rule can
+/// ever fire — that is [`MAX_RULE_WARMUP_CANDLES`], which counts the *total*
+/// including the inner operand's own warmup. The two share a number and do
+/// different jobs: `window(min, 500, ema(50))` passes this one and is refused
+/// by the other at 550.
+pub const MAX_WINDOW_LOOKBACK: u32 = 500;
+
+/// The most closed candles a document may need before it can produce a verdict.
+///
+/// ADR-0016 decided the figure. It exists because the alternative to refusing
+/// an over-deep rule is not a slower rule, it is a *silent* one:
+/// `ruleEvaluationGate` withholds a verdict while the series is shorter than
+/// `warmup_candles()` and has no separate state for "and it always will be", so
+/// an unmeetable requirement is indistinguishable from a rule still warming up.
+///
+/// 500 admits Bollinger's 120-candle Squeeze over a 20-period band at 140 and a
+/// 200-candle window at 220, and refuses the depths where ADR-0009's paging —
+/// Bitunix serves 200 rows per response — turns arming an alert into a
+/// download. It is a chosen figure, not a measured one; raising it is a change
+/// to this constant and a note in ADR-0016, never a per-rule override.
+pub const MAX_RULE_WARMUP_CANDLES: u32 = 500;
+
 /// Which OHLC value of the closed candle to read.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -64,6 +88,54 @@ pub enum PriceField {
     Hl2,
     /// (high + low + close) / 3
     Hlc3,
+}
+
+/// What a number *means*, so that two of them can be refused rather than
+/// silently compared.
+///
+/// Derived metadata, never part of a document: it carries no `Serialize`, so
+/// adding it changes no canonical form and breaks no content hash.
+///
+/// It exists because the operand list stopped being homogeneous. While every
+/// operand was a price or a percentage of one, "compare the two sides" needed
+/// no qualification. `Volume` is the first operand denominated in something
+/// else entirely — traded size, not quote currency — and a schema in which
+/// `volume > 65000` can mean "volume above the BTC price" is a schema that
+/// fires alerts on arithmetic nobody wrote. Validation is the last point where
+/// that mistake is still free.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Dimension {
+    /// Quote currency: a price, a band, a moving average of one.
+    Price,
+    /// Percent. `PercentChange`, and the oscillators bounded to 0..100.
+    Percent,
+    /// Traded size, in contracts or base units.
+    Volume,
+    /// A ratio or an index whose scale is its own — `percent_b`, a histogram
+    /// of price differences.
+    Unitless,
+}
+
+impl Dimension {
+    /// Whether two known dimensions may sit on opposite sides of a comparison.
+    ///
+    /// Deliberately identity and nothing cleverer. There is no partial order
+    /// here worth encoding: a price is not "almost" a volume, and any pair that
+    /// wants an exception wants a written-down conversion instead.
+    pub fn compatible_with(self, other: Self) -> bool {
+        self == other
+    }
+}
+
+impl fmt::Display for Dimension {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Price => "price",
+            Self::Percent => "percent",
+            Self::Volume => "volume",
+            Self::Unitless => "unitless",
+        })
+    }
 }
 
 /// Which price series a candle is read from.
@@ -171,6 +243,20 @@ pub enum Operand {
         #[serde(default, skip_serializing_if = "PriceSource::is_last")]
         source: PriceSource,
     },
+    /// Traded volume of the closed candle.
+    ///
+    /// Deliberately *not* a `PriceField`. That enum names which OHLC value to
+    /// read, and all of its values are denominated in quote currency — which is
+    /// exactly what makes them comparable against a price threshold. Volume is
+    /// denominated in size. Folding it in would have cost one enum variant and
+    /// would have made `volume > 65000` a legal document; as its own operand
+    /// with its own `Dimension`, that pair is refused by `Condition::validate`.
+    ///
+    /// No `source`: `PriceSource` separates the last-traded series from the mark
+    /// series, and a mark price is a derived quote with no volume of its own.
+    /// Volume is read from the last-traded series, which is also the series
+    /// every indicator in this crate is computed over.
+    Volume {},
     Indicator {
         indicator: IndicatorRef,
     },
@@ -199,6 +285,45 @@ pub enum Operand {
         /// How many closes back the reference candle sits. At least 1.
         lookback: u32,
     },
+    /// The lowest or highest value another operand took over the last
+    /// `lookback` closes, the current one included.
+    ///
+    /// This is what makes "at a 20-candle high" and John Bollinger's actual
+    /// Squeeze — the *lowest* bandwidth over a long window, not a fixed
+    /// threshold — expressible. It is an operand and not a fifth `Condition`
+    /// shape on purpose: the claim being made is about a *value*, so it belongs
+    /// where values live, and it then inherits `dimension()`, `timeframes()`
+    /// and the whole dimensional guard instead of needing its own copy of each.
+    /// ADR-0016 is the decision and carries the reasoning.
+    ///
+    /// A minimum over a window is not a swing pivot, and a rule built from two
+    /// of these is not textbook divergence. Identifying a pivot needs a
+    /// pivot-strength parameter whose honest value depends on how much *future*
+    /// the detector may see, which is exactly the class ADR-0012 decision 3
+    /// excluded VWAP for: a value a backtest and a live run disagree about is
+    /// not a rule input. The window shape costs the textbook picture and keeps
+    /// the agreement.
+    Window {
+        /// The operand aggregated over the window. Must not itself be a
+        /// `Window` — see `RefusalCode::NestedWindow`.
+        of: Box<Operand>,
+        agg: WindowAgg,
+        /// How many closes the window spans, the current one included, so
+        /// `lookback: 1` would be the operand itself and is refused.
+        lookback: u32,
+    },
+}
+
+/// Which end of a window a `Operand::Window` reads.
+///
+/// `Min` and `Max` only. No `Mean`: `sma`, `ema` and `volume_ma` already
+/// average over a period, and a second way to write the same number is a second
+/// thing to keep consistent with the first.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowAgg {
+    Min,
+    Max,
 }
 
 /// Account state a rule may read at `simulate` and above.
@@ -312,6 +437,7 @@ impl Condition {
                 Self::check_timeframe(*timeframe, trigger, field, out);
                 left.validate(&format!("{field}.left"), out);
                 right.validate(&format!("{field}.right"), out);
+                Self::check_dimensions(left, right, field, out);
             }
             Self::Cross {
                 left,
@@ -322,6 +448,7 @@ impl Condition {
                 Self::check_timeframe(*timeframe, trigger, field, out);
                 left.validate(&format!("{field}.left"), out);
                 right.validate(&format!("{field}.right"), out);
+                Self::check_dimensions(left, right, field, out);
             }
             Self::Position { .. } | Self::Account { .. } => {
                 if !may_read_account {
@@ -376,6 +503,37 @@ impl Condition {
                 }
             }
         }
+    }
+
+    /// Refuse a comparison whose two sides are denominated in different things.
+    ///
+    /// Scoped to pairs involving `Volume`, the dimension this schema just
+    /// gained. The check generalises — `Dimension` knows a price and a
+    /// percentage are no more comparable than a price and a volume — but
+    /// switching it on for pairs that were legal yesterday would refuse rules
+    /// traders already have in `localStorage`, and a saved alert that stops
+    /// validating is a worse failure than the one being prevented. Widening it
+    /// is its own change, with its own migration story.
+    fn check_dimensions(left: &Operand, right: &Operand, field: &str, out: &mut Vec<RuleRefusal>) {
+        let (Some(l), Some(r)) = (left.dimension(), right.dimension()) else {
+            return;
+        };
+        if l.compatible_with(r) {
+            return;
+        }
+        if l != Dimension::Volume && r != Dimension::Volume {
+            return;
+        }
+        out.push(RuleRefusal::new(
+            RefusalCode::OperandDimensionMismatch,
+            field,
+            format!(
+                "the two sides are denominated differently: {l} against {r}. Traded \
+                 volume is not the same kind of number as another dimension, so this condition \
+                 would fire on arithmetic rather than on a market event. Compare volume \
+                 against a volume average (`volume_ma`) or against a plain threshold."
+            ),
+        ));
     }
 
     fn check_timeframe(tf: Timeframe, trigger: Timeframe, field: &str, out: &mut Vec<RuleRefusal>) {
@@ -458,7 +616,66 @@ impl Operand {
                     ));
                 }
             }
-            Self::Price { .. } | Self::Constant { .. } => {}
+            Self::Window { of, lookback, .. } => {
+                if matches!(**of, Self::Window { .. }) {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::NestedWindow,
+                        format!("{field}.of"),
+                        "a window over a window is not a claim anyone makes on purpose, \
+                         and it would let the history requirement compound out of sight. \
+                         Aggregate over a plain operand instead.",
+                    ));
+                }
+                if *lookback < 2 {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::InvalidWindowLookback,
+                        format!("{field}.lookback"),
+                        "a window of fewer than two closes is the operand itself, so \
+                         both `min` and `max` return the value being compared against; \
+                         the condition could never discriminate",
+                    ));
+                }
+                if *lookback > MAX_WINDOW_LOOKBACK {
+                    out.push(RuleRefusal::new(
+                        RefusalCode::InvalidWindowLookback,
+                        format!("{field}.lookback"),
+                        format!(
+                            "a window may span at most {MAX_WINDOW_LOOKBACK} closes; \
+                             deeper history is paged in 200-row requests and an alert \
+                             that cannot warm up stays quiet rather than failing"
+                        ),
+                    ));
+                }
+                of.validate(&format!("{field}.of"), out);
+            }
+            Self::Price { .. } | Self::Constant { .. } | Self::Volume {} => {}
+        }
+    }
+
+    /// What this operand's value means, when that is knowable.
+    ///
+    /// `None` is not ignorance waiting to be fixed — it is the correct answer
+    /// for an operand that is legitimately comparable against anything:
+    ///
+    /// - `Constant` carries no unit by design. `price > 65000`,
+    ///   `percent_change <= -5` and `rsi > 70` are each a constant against a
+    ///   different dimension, so giving it one would break all three.
+    /// - An indicator whose id or output the registry does not know has already
+    ///   been refused by `IndicatorRef::validate`. Guessing here would add a
+    ///   second, vaguer refusal for a document that already has a precise one.
+    pub fn dimension(&self) -> Option<Dimension> {
+        match self {
+            Self::Price { .. } => Some(Dimension::Price),
+            Self::Volume {} => Some(Dimension::Volume),
+            Self::PercentChange { .. } => Some(Dimension::Percent),
+            Self::Constant { .. } => None,
+            Self::Indicator { indicator } => indicator.output_dimension(),
+            // A minimum of a percentage is a percentage. Aggregating over a
+            // window picks one of the values the inner operand already
+            // produced, so it cannot change what the number is denominated in
+            // — which is why this is an operand and not a condition shape:
+            // the dimensional guard is inherited rather than re-implemented.
+            Self::Window { of, .. } => of.dimension(),
         }
     }
 
@@ -466,12 +683,22 @@ impl Operand {
         match self {
             Self::Indicator { indicator } => indicator.warmup_candles(),
             // A crossing still needs the previous closed candle.
-            Self::Price { .. } => 2,
+            Self::Price { .. } | Self::Volume {} => 2,
             // The reference candle plus the one being measured. `saturating_add`
             // because a document arrives from outside and `lookback` is only
             // bounded by its type until `validate` has run.
             Self::PercentChange { lookback, .. } => lookback.saturating_add(1),
             Self::Constant { .. } => 0,
+            // The inner operand's own warmup plus the window, minus the candle
+            // the two share: the window includes the current close, which is
+            // the same close the inner operand's warmup already counts.
+            // Saturating in both directions because a document arrives from
+            // outside and `lookback` is only bounded by its type until
+            // `validate` has run.
+            Self::Window { of, lookback, .. } => of
+                .warmup_candles()
+                .saturating_add(*lookback)
+                .saturating_sub(1),
         }
     }
 
@@ -483,7 +710,12 @@ impl Operand {
     pub fn price_source(&self) -> Option<PriceSource> {
         match self {
             Self::Price { source, .. } | Self::PercentChange { source, .. } => Some(*source),
-            Self::Indicator { .. } | Self::Constant { .. } => None,
+            // A window over a mark price still reads the mark series, so this
+            // has to delegate: `Condition::mark_timeframes` asks the operands
+            // whether a mark subscription is needed, and answering `None` here
+            // would leave the rule waiting for a series nobody fetched.
+            Self::Window { of, .. } => of.price_source(),
+            Self::Indicator { .. } | Self::Constant { .. } | Self::Volume {} => None,
         }
     }
 }

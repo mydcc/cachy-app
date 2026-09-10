@@ -111,6 +111,13 @@ const indicator = (id: string, params: Record<string, number>, output?: string):
 });
 const constant = (value: string): Operand => ({ kind: "constant", value });
 const price = (field: "close") => ({ kind: "price", field }) as Operand;
+const volume = (): Operand => ({ kind: "volume" });
+const window = (agg: "min" | "max", lookback: number, of: Operand): Operand => ({
+  kind: "window",
+  of,
+  agg,
+  lookback,
+});
 
 /** The context the live loop would build at candle `index`. */
 function contextAt(rule: RuleDocument, index: number): EvaluationContext {
@@ -135,6 +142,28 @@ function contextAt(rule: RuleDocument, index: number): EvaluationContext {
 function seriesFor(operand: Operand): (number | null)[] {
   if (operand.kind === "constant") return CANDLE_SERIES.map(() => Number(operand.value));
   if (operand.kind === "price") return CANDLE_SERIES.map((c) => Number(c[operand.field]));
+  if (operand.kind === "volume") return CANDLE_SERIES.map((c) => Number(c.volume));
+
+  if (operand.kind === "window") {
+    // Rolled here in plain JS rather than asked of the core, which makes this
+    // a genuinely independent second path — unlike `bandwidth`, where the
+    // oracle shares the implementation under test and a scale error would move
+    // both sides together. A span that reaches before the series, or over a
+    // missing value, has no aggregate at all: the minimum of part of a window
+    // is not the minimum of the window.
+    const base = seriesFor(operand.of);
+    const { agg, lookback } = operand;
+    return base.map((_, i) => {
+      if (i + 1 < lookback) return null;
+      const span = base.slice(i - lookback + 1, i + 1);
+      if (span.some((v) => v === null)) return null;
+      const numbers = span as number[];
+      return agg === "min" ? Math.min(...numbers) : Math.max(...numbers);
+    });
+  }
+
+  if (operand.kind !== "indicator")
+    throw new Error(`seriesFor: no series for ${operand.kind}`);
 
   const result = computeIndicatorSeries(
     { indicator: operand.indicator, timeframe: SERIES_TIMEFRAME },
@@ -224,6 +253,7 @@ const BB = { period: 20, std_dev: 2 };
 const gt = (a: number, b: number) => a > b;
 const gte = (a: number, b: number) => a >= b;
 const lt = (a: number, b: number) => a < b;
+const lte = (a: number, b: number) => a <= b;
 
 describe("indicator conditions against the real evaluator", () => {
   describe("RSI", () => {
@@ -284,6 +314,7 @@ describe("indicator conditions against the real evaluator", () => {
   describe("Bollinger Bands", () => {
     const upper = indicator("bollinger", BB, "upper");
     const percentB = indicator("bollinger", BB, "percent_b");
+    const bandwidth = indicator("bollinger", BB, "bandwidth");
 
     itAgrees(
       "fires when the close touches the upper band",
@@ -310,6 +341,160 @@ describe("indicator conditions against the real evaluator", () => {
       () => compareOracle(percentB, gte, constant("1")),
       15,
     );
+
+    /*
+     * Squeeze, the second condition FEAT-0028 names and could not express.
+     *
+     * `0.5` is not an arbitrary constant: bandwidth over this series runs from
+     * 0.36 to 2.87 with a median of 0.93, so the threshold sits in the bottom
+     * decile — a genuine contraction rather than a number that happens to be
+     * true most of the time. The oracle recomputes it from the band lines, so
+     * a scale change in either path shows up here as a disagreement.
+     */
+    itAgrees(
+      "fires while the bands are contracted",
+      {
+        kind: "compare",
+        left: bandwidth,
+        op: "lt",
+        right: constant("0.5"),
+        timeframe: SERIES_TIMEFRAME,
+      },
+      () => compareOracle(bandwidth, lt, constant("0.5")),
+      10,
+    );
+
+    /*
+     * The squeeze threshold has to discriminate, and `itAgrees` cannot check
+     * that: its oracle shares this path's implementation, so both sides move
+     * together under a scale error and the comparison stays silent. Reverting
+     * the `* 100` demonstrates it — bandwidth becomes 0.004..0.029, every
+     * candle is below `0.5`, the oracle agrees on all of them and the test
+     * passes while meaning nothing.
+     *
+     * A condition true on every candle is not an alert. Pinning that the
+     * threshold splits the series closes the class rather than trusting the
+     * constant to stay sensible.
+     */
+    it("does not treat every candle as a squeeze", () => {
+      const rule = ruleWith({
+        kind: "compare",
+        left: bandwidth,
+        op: "lt",
+        right: constant("0.5"),
+        timeframe: SERIES_TIMEFRAME,
+      });
+      const { fired, compared } = walkSeries(
+        rule,
+        compareOracle(bandwidth, lt, constant("0.5")),
+      );
+
+      expect(fired).toBeGreaterThan(0);
+      expect(fired).toBeLessThan(compared / 2);
+    });
+
+    /**
+     * The tradeable half of a squeeze is its release, which is a crossing and
+     * not a state — the reason `cross` exists alongside `compare`.
+     */
+    itAgrees(
+      "fires when the bands expand back out of the squeeze",
+      {
+        kind: "cross",
+        left: bandwidth,
+        direction: "above",
+        right: constant("1"),
+        timeframe: SERIES_TIMEFRAME,
+      },
+      () => crossAboveOracle(bandwidth, constant("1")),
+      8,
+    );
+
+    /**
+     * Bollinger's own definition of a Squeeze, which the absolute threshold
+     * above only approximates: the *lowest* bandwidth of a long lookback, not a
+     * fixed number. `0.5` is market-specific and silently wrong carried to
+     * another symbol; a rolling minimum means the same thing everywhere.
+     *
+     * The oracle rolls the window in JS while the evaluator rolls it in Rust,
+     * so agreement here is two implementations agreeing rather than one
+     * checking itself.
+     */
+    itAgrees(
+      "fires when bandwidth is at its own 60-candle low",
+      {
+        kind: "compare",
+        left: bandwidth,
+        op: "lte",
+        right: window("min", 60, bandwidth),
+        timeframe: SERIES_TIMEFRAME,
+      },
+      () => compareOracle(bandwidth, lte, window("min", 60, bandwidth)),
+      5,
+    );
+
+    /**
+     * The property the absolute threshold cannot have: a rolling minimum is
+     * true only where the value actually is the lowest of its window, so the
+     * condition is selective by construction rather than by a tuned constant.
+     *
+     * Without a bound here the test would also pass if the window returned the
+     * current value itself — `x <= x` on every candle — which is exactly what a
+     * window that ignored its span would do.
+     */
+    it("is selective by construction rather than by a tuned constant", () => {
+      const conditions: Condition = {
+        kind: "compare",
+        left: bandwidth,
+        op: "lte",
+        right: window("min", 60, bandwidth),
+        timeframe: SERIES_TIMEFRAME,
+      };
+      const { fired, compared } = walkSeries(
+        ruleWith(conditions),
+        compareOracle(bandwidth, lte, window("min", 60, bandwidth)),
+      );
+
+      expect(fired).toBeGreaterThan(0);
+      expect(fired).toBeLessThan(compared / 4);
+    });
+
+    /**
+     * A rule whose only indicator sits *inside* a window — "the close is below
+     * the lowest lower band of the last 60 closes".
+     *
+     * This is the shape that fails silently. `collectIndicators` has to look
+     * through the wrapper; if it does not, no series is computed, the evaluator
+     * finds no value, and every candle comes back indeterminate. Nothing on
+     * that path raises anything — the alert just never fires.
+     *
+     * The indicator has to be *only* inside the window for this to bite. With a
+     * bare indicator on the other side the series is requested anyway and the
+     * window reads it for free, which is how the first version of this test
+     * passed while the wrapper was not opened at all.
+     */
+    it("requests the series of an indicator that appears only inside a window", () => {
+      const lowest = window("min", 60, indicator("bollinger", BB, "lower"));
+      const rule = ruleWith({
+        kind: "compare",
+        left: price("close"),
+        op: "lte",
+        right: lowest,
+        timeframe: SERIES_TIMEFRAME,
+      });
+
+      const requests = collectIndicators(rule);
+      expect(requests).toHaveLength(1);
+      expect(requests[0].indicator.output).toBe("lower");
+
+      // And it actually evaluates, rather than staying indeterminate for ever.
+      const { disagreements, compared } = walkSeries(
+        rule,
+        compareOracle(price("close"), lte, lowest),
+      );
+      expect(disagreements).toEqual([]);
+      expect(compared).toBeGreaterThan(100);
+    });
   });
 
   describe("moving-average crosses", () => {
@@ -325,30 +510,87 @@ describe("indicator conditions against the real evaluator", () => {
   });
 
   /**
-   * Volume anomalies, which FEAT-0028 names as a condition, cannot be written
-   * at all — and not for the reason first recorded in the backlog.
+   * Volume anomalies, the condition FEAT-0028 names and could not express.
    *
-   * `PriceField` has no `volume`, so the only way to reach raw volume would be
-   * `volume_ma` with period 1. The core refuses that: `period` is constrained
-   * to 2..=5000. So there is no workaround, accidental or otherwise, and the
-   * condition is simply unavailable until `volume` becomes an operand.
-   *
-   * This test pins that, rather than leaving the gap as a sentence in a
-   * document nobody re-reads. When `volume` is added, this fails, and whoever
-   * added it writes the real condition test in its place.
+   * `volume` is now its own operand rather than a seventh `PriceField`, which
+   * is what lets the core refuse it against a price instead of comparing
+   * traded size to quote currency. The two directions are both worth pinning:
+   * the condition works, and the nonsense next to it does not.
    */
-  describe("volume anomalies (not yet expressible)", () => {
-    it("has no way to name raw volume, because period 1 is refused", () => {
+  describe("volume anomalies", () => {
+    it("fires when volume runs above its own average", () => {
+      const average = indicator("volume_ma", { period: 20 });
       const rule = ruleWith({
         kind: "compare",
-        left: indicator("volume_ma", { period: 1 }),
+        left: volume(),
         op: "gt",
-        right: indicator("volume_ma", { period: 20 }),
+        right: average,
+        timeframe: SERIES_TIMEFRAME,
+      });
+
+      const { disagreements, fired, compared } = walkSeries(
+        rule,
+        compareOracle(volume(), gt, average),
+      );
+
+      expect(disagreements).toEqual([]);
+      expect(compared).toBeGreaterThan(100);
+      // A random walk spends a good share of its candles above its own
+      // 20-period volume average; if this were near zero the operand would be
+      // reading a constant rather than the series.
+      expect(fired).toBeGreaterThan(50);
+    });
+
+    it("fires on a bare volume threshold, because a constant carries no unit", () => {
+      const threshold = constant("300");
+      const rule = ruleWith({
+        kind: "compare",
+        left: volume(),
+        op: "gt",
+        right: threshold,
+        timeframe: SERIES_TIMEFRAME,
+      });
+
+      const { disagreements, compared } = walkSeries(
+        rule,
+        compareOracle(volume(), gt, threshold),
+      );
+
+      expect(disagreements).toEqual([]);
+      expect(compared).toBeGreaterThan(100);
+    });
+
+    /**
+     * The reason the operand exists in its own right. Both numbers are
+     * well-formed, so nothing downstream would object — the rule would compare
+     * traded size against a price and fire on the crossover of two unrelated
+     * scales. The core refuses it instead.
+     */
+    it("refuses volume against a price rather than comparing them", () => {
+      const rule = ruleWith({
+        kind: "compare",
+        left: volume(),
+        op: "gt",
+        right: price("close"),
         timeframe: SERIES_TIMEFRAME,
       });
 
       expect(() => ruleSchema.evaluate(rule, contextAt(rule, 50))).toThrow(
-        /invalid_indicator_parameter/,
+        /operand_dimension_mismatch/,
+      );
+    });
+
+    it("refuses volume against a price moving average for the same reason", () => {
+      const rule = ruleWith({
+        kind: "compare",
+        left: volume(),
+        op: "gt",
+        right: indicator("ema", { period: 20 }),
+        timeframe: SERIES_TIMEFRAME,
+      });
+
+      expect(() => ruleSchema.evaluate(rule, contextAt(rule, 50))).toThrow(
+        /operand_dimension_mismatch/,
       );
     });
 

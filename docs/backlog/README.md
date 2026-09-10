@@ -52,7 +52,7 @@ backlog/
   ideas/IDEA-NNNN-short-slug.md
   templates/
   assets/FEAT-NNNN/ # optional: our own wireframes and diagrams for one item
-  INDEX.md          # generated; maintained by CI on the bot branch after merge, never in a PR
+  INDEX.md          # generated; regenerate and commit it in the PR that touches a backlog file
 ```
 
 Numbers are shared across all three types — there is no `FEAT-0001` and

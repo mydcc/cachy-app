@@ -19,6 +19,7 @@ import { describe, expect, it } from "vitest";
 
 import { collectIndicators, indicatorKey } from "./indicatorRequests";
 import { computeIndicatorSeries } from "./indicatorSeries";
+import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
 import type {
   Condition,
   EvaluationCandle,
@@ -233,6 +234,94 @@ describe("computeIndicatorSeries", () => {
     expect(result.supported).toBe(false);
     if (result.supported) return;
     expect(result.reason).toContain("ichimoku");
+  });
+
+  const BB = { id: "bollinger", params: { period: 20, std_dev: 2 } };
+
+  /** Every bollinger line over the same candles, as numbers. */
+  function bands(candlesIn: EvaluationCandle[]) {
+    const line = (output: string) => {
+      const r = computeIndicatorSeries(
+        { indicator: { ...BB, output }, timeframe: "1h" },
+        candlesIn,
+      );
+      if (!r.supported) throw new Error(r.reason);
+      return r.values.map((v) => (v === null ? null : Number(v)));
+    };
+    return {
+      upper: line("upper"),
+      middle: line("middle"),
+      lower: line("lower"),
+      bandwidth: line("bandwidth"),
+    };
+  }
+
+  /**
+   * FEAT-0028's squeeze gap. Checked against the three band lines the same
+   * function returns rather than against a reimplementation of the Bollinger
+   * maths, so this pins the *relationship* — which is the part a squeeze
+   * condition depends on.
+   */
+  it("reports bandwidth as a percentage of the middle band", () => {
+    const wobble = candles(
+      Array.from({ length: 60 }, (_, i) => 100 + Math.sin(i / 3) * 8),
+    );
+    const b = bands(wobble);
+
+    expect(b.bandwidth).toHaveLength(wobble.length);
+    let checked = 0;
+    for (let i = 0; i < wobble.length; i++) {
+      if (b.bandwidth[i] === null) {
+        expect(b.middle[i]).toBeNull();
+        continue;
+      }
+      const expected =
+        (((b.upper[i] as number) - (b.lower[i] as number)) /
+          (b.middle[i] as number)) *
+        100;
+      expect(b.bandwidth[i] as number).toBeCloseTo(expected, 8);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(30);
+  });
+
+  /**
+   * The scale is a cross-surface contract, not an internal detail. The panel
+   * prints `calculateBollingerBandWidth` with a `%` beside it; a trader reads
+   * that number and writes it into a rule. If the two ever disagree, a squeeze
+   * threshold copied off the screen silently means something else — so the
+   * claim is asserted against the panel's own function.
+   */
+  it("agrees with the bandwidth the technicals panel displays", () => {
+    const wobble = candles(
+      Array.from({ length: 60 }, (_, i) => 100 + Math.cos(i / 4) * 5),
+    );
+    const b = bands(wobble);
+    const last = b.bandwidth.length - 1;
+
+    expect(b.bandwidth[last]).not.toBeNull();
+    expect(b.bandwidth[last] as number).toBeCloseTo(
+      TechnicalsPresenter.calculateBollingerBandWidth(
+        b.upper[last] as number,
+        b.lower[last] as number,
+        b.middle[last] as number,
+      ),
+      8,
+    );
+  });
+
+  /**
+   * A zero middle band has no bandwidth, and must not report zero. Zero is the
+   * tightest squeeze expressible, so `bandwidth < threshold` would fire on
+   * every candle of a series that carries no usable band at all.
+   */
+  it("has no bandwidth where the middle band is zero", () => {
+    const flatZero = candles(Array.from({ length: 40 }, () => 0));
+    const b = bands(flatZero);
+
+    expect(b.middle.at(-1)).toBe(0);
+    expect(b.bandwidth.at(-1)).toBeNull();
+    expect(b.bandwidth.every((v) => v === null)).toBe(true);
   });
 
   it("refuses an output line the indicator does not produce", () => {

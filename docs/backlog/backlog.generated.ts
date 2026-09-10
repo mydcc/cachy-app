@@ -255,7 +255,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0347",
     "title": "Modals show frozen price and PnL due to static snapshot props",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -1471,7 +1471,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0424",
     "title": "Financial values in Bitunix validation schemas allow f64 numbers",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3272,7 +3272,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0302",
     "title": "Dependency advisories confined to dev and release toolchain need triage decision",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3284,6 +3284,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "size": "M",
     "estimate": "2",
     "file": "bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md"
@@ -3602,6 +3603,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0418"
     ],
     "file": "bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md"
+  },
+  {
+    "id": "BUG-0431",
+    "title": "The closing-reference auto-fix inserts a trailer the flip gate then rejects",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ci",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md"
   },
   {
     "id": "FEAT-0019",
@@ -5919,6 +5938,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md"
   },
   {
+    "id": "BUG-0433",
+    "title": "Raw leverage fields in Zod schemas accept native numbers",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "backend",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0433-leverage-f64-schemas.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
@@ -6481,6 +6518,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "features/FEAT-0416-account-read-protocol-adr.md"
+  },
+  {
+    "id": "FEAT-0432",
+    "title": "Generate the refusal-code list from the enum instead of maintaining it twice",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "ADR-0012",
+    "depends_on": [],
+    "file": "features/FEAT-0432-refusal-codes-from-one-declaration.md"
   },
   {
     "id": "IDEA-0036",

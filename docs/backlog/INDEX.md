@@ -2,9 +2,9 @@
 
 # Backlog index
 
-312 items. How to read and add them: [README.md](README.md).
+315 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-progress 2 · ✅ done 246
+Counts by status: 💡 idea 27 · 📋 specced 35 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 249
 
 ---
 
@@ -201,7 +201,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | calculation |
-| [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | 📋 specced | trade-panel |
+| [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | ✅ done | trade-panel |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -230,7 +230,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | ✅ done | trade-panel |
 | [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | ✅ done | trade-panel |
 | [BUG-0422](bugs/BUG-0422-confirm-dialog-dies-over-chip-dialog.md) | Policy confirm dialog never appears over a chip dialog, the toggle stalls silently | P1 | ✅ done | trade-panel |
-| [BUG-0424](bugs/BUG-0424-bitunix-validation-f64.md) | Financial values in Bitunix validation schemas allow f64 numbers | P1 | 📋 specced | backend |
+| [BUG-0424](bugs/BUG-0424-bitunix-validation-f64.md) | Financial values in Bitunix validation schemas allow f64 numbers | P1 | ✅ done | backend |
 | [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | ✅ done | backend |
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | technicals |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | repo |
@@ -265,7 +265,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | core |
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | exchange |
 | [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | ✅ done | security |
-| [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | security |
+| [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | ✅ done | security |
 | [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | repo |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | docs |
 | [BUG-0309](bugs/BUG-0309-docs-adr-conflicts.md) | ADR violations in code vs docs | P2 | ✅ done | docs |
@@ -282,6 +282,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | ui |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | exchange |
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | trade-panel |
+| [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | 📋 specced | ci |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -345,6 +346,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | exchange |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | exchange |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | tooling |
+| [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | 📋 specced | backend |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -368,6 +370,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | ai |
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | alerts |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | docs |
+| [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | 🟢 ready | alerts |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -393,7 +396,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
 | [BUG-0293](bugs/BUG-0293-tpsl-modify-wire-format.md) | modifyTpSlOrder sent a wire body the venue's modify_order does not document | P0 | ✅ done | M3 | community, pro, private | A | none | — |
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0409](bugs/BUG-0409-mode-chip-stale-after-change.md) | Mode chip stays stale or shows never-real combos after a mode change | P0 | ✅ done | M4 | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md), [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md), [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) |
 | [BUG-0410](bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md) | Mode chip depends on PositionsSidebar being mounted | P0 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0411](bugs/BUG-0411-modal-windows-oversized-polish.md) | Modal windows are oversized with large empty areas | P0 | ✅ done | M4 | community, pro, private | none | none | — |
@@ -450,7 +453,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) | Switching between paper and live keeps the previous mode's leverage and fees | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0421](bugs/BUG-0421-positions-read-race.md) | A stale positions read can resurrect a position the trader has closed | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0422](bugs/BUG-0422-confirm-dialog-dies-over-chip-dialog.md) | Policy confirm dialog never appears over a chip dialog, the toggle stalls silently | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0424](bugs/BUG-0424-bitunix-validation-f64.md) | Financial values in Bitunix validation schemas allow f64 numbers | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0424](bugs/BUG-0424-bitunix-validation-f64.md) | Financial values in Bitunix validation schemas allow f64 numbers | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | none | community, pro, private | none | none | — |
@@ -531,7 +534,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0309](bugs/BUG-0309-docs-adr-conflicts.md) | ADR violations in code vs docs | P2 | ✅ done | none | community | none | none | — |
@@ -548,6 +551,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
+| [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -653,6 +657,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -680,6 +685,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 💡 idea | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | 🟢 ready | none | community, pro, private | none | ADR-0012 | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -698,4 +704,4 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0431**
+Next free number: **0434**

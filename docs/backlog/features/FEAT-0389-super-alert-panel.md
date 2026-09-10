@@ -82,6 +82,34 @@ Tabs load lazily, the way `+layout.svelte:82` already loads the modal.
   primitive beside `ModalFrame.svelte`. Its non-modal behaviour is three registry
   flags, not markup — see the closing state below.
 
+
+## Two constraints the window operand hands this item (2026-09-10)
+
+[`FEAT-0028`](FEAT-0028-indicator-alerts.md) added `Operand::Window` per
+[`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md), which makes
+a squeeze and a divergence writable. Both carry a UI obligation that no core
+refusal can discharge, so it is recorded here rather than only in the ADR:
+
+- **Offer `gte`, not `gt`, against a window.** The window includes the candle
+  being evaluated, so a *strict* comparison compares a value with a set it
+  belongs to and can never be true. "Breaks above its 20-candle high" written
+  literally with `>` is a rule that silently never fires. The core cannot refuse
+  it — the document is well-formed and the comparison is legal — so the operator
+  the form offers is the guard. Pinned in the core by
+  `a_strict_comparison_against_an_inclusive_window_never_fires`.
+- **Do not call it divergence without saying what it is.** `price.high >=
+  window(max, N, price.high)` while `rsi < window(max, N, rsi)` reads "price is
+  at an N-candle high and RSI is not", which overlaps textbook divergence
+  without being it: no pivot is identified and two swings are never paired. A
+  trader who knows the textbook picture will expect the textbook thing. Pivot
+  detection is refused deliberately — its strength parameter depends on how much
+  future the detector may see, the class ADR-0012 decision 3 excluded VWAP for —
+  so the honest fix is copy, not a better detector.
+
+The refusal strings for the three window codes (`nestedWindow`,
+`invalidWindowLookback`, `ruleWarmupTooDeep`) already exist in both locale files
+and render through `RefusalCode::i18n_key` like every other refusal.
+
 ## Links
 
 ![Panel-Layout](../assets/FEAT-0389/panel-layout.svg)

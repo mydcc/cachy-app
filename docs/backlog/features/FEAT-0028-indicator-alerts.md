@@ -71,19 +71,27 @@ recorded history, and cross-path parity between WASM, GPU and JS.
 Three gaps that this item has to close, discovered by making indicator
 conditions actually evaluate rather than resolve to "no value":
 
-- **Volume anomalies cannot be written at all.** `PriceField` is
-  `open|high|low|close|hl2|hlc3` (`technicals-wasm/src/rule/condition.rs`), so
-  raw volume has no operand. `volume_ma` with `period: 1` looked like a
-  workaround and is not one: the core constrains `period` to `2..=5000` and
-  refuses it. So the condition is unavailable rather than awkward. Adding
-  `volume` to `PriceField` is the fix, and it is a core schema change. Pinned by
-  a test in `indicatorConditions.integration.test.ts`, which fails once the
-  operand exists.
-- **Bollinger has no `bandwidth` output**, so squeeze has nothing to compare.
-  The registry declares `upper|middle|lower|percent_b`.
-- **Divergence needs a new condition shape.** `compare` and `cross` read one
-  candle and two respectively; a divergence is a claim about two swings. It is
-  the only condition in this item that the existing four shapes cannot express.
+- ~~**Volume anomalies cannot be written at all.**~~ **Closed 2026-09-10** —
+  see "Volume is an operand, and it has a unit" below. Note that the fix this
+  entry proposed, adding `volume` to `PriceField`, was *not* the one taken:
+  every `PriceField` value is denominated in quote currency, which is what makes
+  it comparable against a price threshold, so folding volume in would have made
+  `volume > 65000` a legal document.
+- ~~**Bollinger has no `bandwidth` output**, so squeeze has nothing to
+  compare.~~ **Closed 2026-09-10** — see "Bandwidth is a percentage, on the
+  scale the panel already prints" below. The registry now declares
+  `upper|middle|lower|percent_b|bandwidth`.
+- ~~**Divergence needs a new condition shape.**~~ **Closed 2026-09-10** — and
+  the premise was wrong: it needed a new *operand*. `compare` and `cross` read
+  one candle and two respectively; a divergence is a claim about two swings.
+  Decided in [`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md),
+  which decides it is not a condition shape at all: a claim about a window is an
+  *operand*, and divergence then composes out of `group` + `compare` + a window
+  aggregate. Closing gap 2 turned up a second condition with the same
+  shortfall — Bollinger's real Squeeze is a rolling minimum — so the ADR covers
+  both rather than one. `MAX_RULE_WARMUP_CANDLES = 500` is the accompanying
+  decision, and it is the part with teeth: without a ceiling an over-deep rule
+  is silent rather than refused.
 
 ## Progress (2026-09-10)
 
@@ -147,7 +155,162 @@ also pins the other half: suppressing the duplicate must not suppress the
 *effect*, so the candles after a correction are still decided on the corrected
 series. Three of those tests fail if the guard is reverted.
 
-Still open: the WebGPU leg of criterion 4, and the three schema gaps above.
+## Volume is an operand, and it has a unit (2026-09-10)
+
+`Operand::Volume` rather than a seventh `PriceField`, which was the choice this
+gap actually turned on. `PriceField` names which OHLC value to read and all of
+its values are quote currency; volume is size. One extra enum variant there
+would have cost nothing and would have made `volume > 65000` — volume against a
+price — a document the core accepts and an alert that fires on the crossover of
+two unrelated scales.
+
+So operands now carry a `Dimension` (`price`, `percent`, `volume`, `unitless`)
+and `Condition::validate` refuses a comparison whose sides disagree. Three
+constraints shaped it:
+
+- **`Constant` stays dimensionless.** It is compared against a price, a
+  percentage and an RSI in turn; giving it a unit would break all three. So
+  `volume > 1000000` remains legal, which is the plain threshold form of the
+  anomaly condition.
+- **The dimension sits on the *output*, not the indicator.** `bollinger` is both
+  at once: `upper`/`middle`/`lower` are prices and `percent_b` is a bare ratio.
+  One dimension per indicator would have made that entry a special case.
+  So `volume > volume_ma(20)` is legal and `volume > ema(20)` is refused.
+- **Nothing is serialised.** `Dimension` has no `Serialize`, so no canonical
+  form changed and no stored rule's content hash moved.
+
+Refusals carry `operand_dimension_mismatch` and name both dimensions. Covered by
+9 tests in `document.rs`, 3 in `evaluate.rs` and 5 against the real WASM artefact
+in `indicatorConditions.integration.test.ts`; 3 of them fail if the check is
+reverted.
+
+### Three findings that are not this change's to fix
+
+- **`invalidLookback` had no translation in either locale file.** It shipped
+  with FEAT-0390. `RefusalCode`'s own doc comment claims a variant without a
+  translation is caught at review time, but the test asserting that walked a
+  *hand-maintained* list which had lost the variant too. Both keys are added and
+  the list is now shared by both tests, one of which checks every language.
+  The list is still hand-maintained — enumerating a plain Rust enum needs a
+  macro or a `strum` dependency, and adding one to the crate that computes money
+  is a decision worth taking deliberately.
+- **`price` against `percent_change` is still accepted.** `Dimension` knows the
+  pair is nonsense and the check would refuse it for free, but rules already in
+  a trader's `localStorage` validated yesterday, and a saved alert that stops
+  loading is worse than the one being prevented. Pinned by
+  `a_price_against_a_percentage_stays_accepted_until_its_own_change`; whoever
+  changes that test carries the migration.
+- **A `cross` with no previous closed candle answers `DoesNotFire`.** Verified
+  pre-existing: `Operand::Price` behaves identically. "It did not cross" claims
+  knowledge the evaluator does not have, which is the distinction
+  `Indeterminate` exists to keep — but it is a question about every operand, not
+  about this addition, so the volume operand inherits the existing answer rather
+  than inventing a second one.
+
+Still open: the WebGPU leg of criterion 4 and criterion 1's recorded market
+series. All three schema gaps are closed — see "A window is an operand" below
+for the last of them.
+
+## Bandwidth is a percentage, on the scale the panel already prints (2026-09-10)
+
+`bollinger.bandwidth` is `(upper - lower) / middle * 100`, `Dimension::Percent`.
+The scale was the whole decision. TradingView's BBW is the bare ratio, which
+would have been the more standard choice and the wrong one here:
+`TechnicalsPanel.svelte` already shows this quantity via
+`TechnicalsPresenter.calculateBollingerBandWidth` with a `%` beside it, so a
+trader reading `2.41%` off their own screen would write `bandwidth < 2.41` — a
+condition true on every candle, and a squeeze alert that fires forever. The
+schema matches the surface the number is read from.
+
+That makes the scale a contract between two surfaces rather than an internal
+detail, so it is asserted as one: `indicatorSeries.test.ts` compares the series
+against the panel's own function. Whoever changes either side fails that test by
+name.
+
+A zero middle band yields no value rather than zero. Zero is the tightest
+squeeze expressible, so `0` on absent data would fire every squeeze alert —
+`NaN` becomes `null` becomes indeterminate, as `percent_b` already does.
+
+Covered by 3 unit tests in `indicatorSeries.test.ts`, 2 registry tests in
+`indicator.rs`, and 3 against the real WASM artefact in
+`indicatorConditions.integration.test.ts` (contracted state, expansion crossing,
+and one that the threshold discriminates at all). Four of them fail if the
+`* 100` is removed.
+
+### What this does not close
+
+**A `compare` against a constant is not John Bollinger's Squeeze.** His is the
+*lowest* bandwidth over a long lookback — a rolling minimum, which is a claim
+about a window rather than about a candle, and which the four condition shapes
+cannot express any more than divergence can. An absolute threshold is a usable
+proxy and is what this ships; the rolling-minimum form belongs with the
+divergence discussion, because it needs the same new shape.
+
+**The oracle cannot police the scale.** `itAgrees` recomputes each condition
+through `computeIndicatorSeries`, the very path under test, so a scale error
+moves both sides together and the comparison stays silent — reverting the
+`* 100` leaves the contracted-state comparison passing while every candle
+qualifies. That is why the panel comparison and the discriminating-threshold
+test exist: the shared-implementation oracle proves indexing, not units.
+
+## A window is an operand, so divergence and Squeeze are compositions (2026-09-10)
+
+`Operand::Window { of, agg: min|max, lookback }` closes the third gap, and it
+closed a second condition nobody had listed as a gap: Bollinger's actual
+Squeeze is the *lowest* bandwidth of a long lookback, not `bandwidth < 0.5`. The
+absolute threshold works and is market-specific — carried to another symbol the
+constant means something else, which is the difference between a rule and a
+bookmark. Both are now expressible:
+
+- **Squeeze** — `bandwidth <= window(min, 60, bandwidth)`
+- **Bearish divergence** — `group all [ price.high >= window(max, N, price.high),
+  rsi < window(max, N, rsi) ]`
+
+[`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md) carries the
+reasoning and the seven rules a review can check this against. Three things are
+worth repeating here because they are what a trader meets:
+
+- **It is not swing-pivot divergence.** "Price is at an N-candle high and RSI is
+  not" overlaps the textbook picture without being it: no pivot is identified
+  and two swings are never paired. Pivot strength depends on how much future
+  the detector may see, which is what ADR-0012 decision 3 excluded VWAP for.
+  The UI copy has to say this, not just the ADR.
+- **A strict comparison against a window can never fire.** The window includes
+  the candle being evaluated, so `close > max(close, 20)` compares a value with
+  a set it belongs to. "Breaks above its 20-candle high" is `gte`. Pinned by a
+  test rather than left as a footnote, because it is the sentence a trader
+  reaches for first.
+- **Depth is refused, not tolerated.** `MAX_RULE_WARMUP_CANDLES = 500`. Without
+  it an over-deep rule is *silent*: `ruleEvaluationGate` withholds a verdict
+  while the series is too short and has no separate state for a requirement that
+  can never be met, so "never fires" and "still warming up" look identical.
+
+### What the tests actually prove
+
+Two reverts, because a green test is not evidence on its own:
+
+- Pinning the window to the anchor instead of the evaluation offset breaks
+  `a_window_inside_a_cross_moves_with_the_offset` — without it a windowed
+  `cross` would never fire at all.
+- Skipping missing candles instead of aborting the aggregate breaks
+  `a_window_without_its_full_span_yields_no_verdict_rather_than_a_partial_aggregate`.
+  That revert is the plausible-looking one, and it is the dangerous one: the
+  minimum of 3 of 120 closes is below almost any threshold, so a squeeze alert
+  would fire on a gap in the data.
+
+The squeeze itself is checked end to end against an oracle that rolls the window
+in JavaScript while the evaluator rolls it in Rust — two implementations
+agreeing, not one checking itself, which is the weakness the `bandwidth` work
+had to work around.
+
+One test in this batch was **stumped and had to be rewritten**: it asserted that
+`collectIndicators` looks through a window, with the same indicator bare on the
+other side of the comparison. The bare operand requested the series anyway, so
+the window rode along on someone else's success and the test passed with the
+wrapper never opened. It now uses a rule whose only indicator is inside the
+window, and fails without the fix. That failure mode is the one this schema
+addition is most exposed to: nothing raises, the series is simply absent and
+every candle comes back indeterminate.
 
 ## Links
 

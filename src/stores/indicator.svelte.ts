@@ -15,9 +15,7 @@ const defaultSettings: IndicatorSettings = {
   historyLimit: 750,
   precision: 4,
   lineWidth: 1,
-  autoOptimize: true,
   preferredEngine: 'auto',
-  performanceMode: 'balanced',
 
     panelSections: {
       summary: true,
@@ -230,9 +228,7 @@ class IndicatorManager {
   historyLimit = $state(defaultSettings.historyLimit);
   precision = $state(defaultSettings.precision);
   lineWidth = $state(defaultSettings.lineWidth);
-  autoOptimize = $state(defaultSettings.autoOptimize);
   preferredEngine = $state(defaultSettings.preferredEngine);
-  performanceMode = $state(defaultSettings.performanceMode);
 
   panelSections = $state(defaultSettings.panelSections);
 
@@ -282,9 +278,7 @@ class IndicatorManager {
     historyLimit: this.historyLimit,
     precision: this.precision,
     lineWidth: this.lineWidth,
-    autoOptimize: this.autoOptimize,
     preferredEngine: this.preferredEngine,
-    performanceMode: this.performanceMode,
     panelSections: $state.snapshot(this.panelSections),
     rsi: $state.snapshot(this.rsi),
     stochRsi: $state.snapshot(this.stochRsi),
@@ -388,9 +382,7 @@ class IndicatorManager {
       this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
       this.precision = parsed.precision ?? defaultSettings.precision;
       this.lineWidth = parsed.lineWidth ?? defaultSettings.lineWidth;
-      this.autoOptimize = parsed.autoOptimize ?? defaultSettings.autoOptimize;
       this.preferredEngine = parsed.preferredEngine || defaultSettings.preferredEngine;
-      this.performanceMode = parsed.performanceMode || defaultSettings.performanceMode;
 
       this.panelSections = { ...defaultSettings.panelSections, ...parsed.panelSections };
 
@@ -494,9 +486,7 @@ class IndicatorManager {
     this.historyLimit = next.historyLimit;
     this.precision = next.precision;
     this.lineWidth = next.lineWidth;
-    this.autoOptimize = next.autoOptimize;
     this.preferredEngine = next.preferredEngine;
-    this.performanceMode = next.performanceMode;
     this.panelSections = next.panelSections;
     this.rsi = next.rsi;
     this.stochRsi = next.stochRsi;
@@ -533,9 +523,7 @@ class IndicatorManager {
     this.historyLimit = d.historyLimit;
     this.precision = d.precision;
     this.lineWidth = d.lineWidth;
-    this.autoOptimize = d.autoOptimize;
     this.preferredEngine = d.preferredEngine;
-    this.performanceMode = d.performanceMode;
     this.panelSections = d.panelSections;
     this.rsi = d.rsi;
     this.stochRsi = d.stochRsi;

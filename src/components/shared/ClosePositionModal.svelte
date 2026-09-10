@@ -53,13 +53,21 @@
 
   /*
    * Defaults to the whole position, so the shortest path through this dialog
-   * is the full close the old `confirm()` offered. Keyed on the position, so
-   * opening it for a different one starts from that one's size rather than
-   * inheriting the previous quantity.
+   * is the full close the old `confirm()` offered. Keyed on the *string* of
+   * the amount rather than on the live `position` object: BUG-0347 made
+   * `position` a fresh object on every price tick, so an effect reading it
+   * directly would reset the quantity to the full size on each tick and wipe
+   * an in-progress partial close. The string only changes when the size does.
+   *
+   * A zero size is not a seed: it means the position is being fully closed and
+   * the sidebar is about to unmount this dialog. Seeding it would arm a no-op
+   * "close 0" submit, so the field clears instead.
    */
+  const seedAmount = $derived(
+    position && !position.amount.isZero() ? position.amount.toString() : null,
+  );
   $effect(() => {
-    const amount = position?.amount;
-    quantity = amount ? new Decimal(amount) : null;
+    quantity = seedAmount ? new Decimal(seedAmount) : null;
   });
 
   /** Quantity step from the instrument's base precision; 0 disables rounding. */
@@ -104,8 +112,19 @@
     ctx && quantity ? isFullClose(ctx, quantity) : true,
   );
 
+  /*
+   * The input clamps a typed quantity to the position, but the live size can
+   * shrink between the last edit and the click — a partial close of the old,
+   * larger position. The gate would refuse the over-size order; refusing it
+   * here too means the dialog never asks the gate to say no.
+   */
+  const oversize = $derived(
+    !!(position && quantity && quantity.gt(position.amount)),
+  );
+
   async function handleClose() {
     if (!position || !quantity || quantity.lte(0)) return;
+    if (quantity.gt(position.amount)) return;
 
     loading = true;
     error = "";
@@ -167,7 +186,7 @@
       <button
         type="button"
         onclick={handleClose}
-        disabled={loading || !ctx || !quantity || quantity.lte(0)}
+        disabled={loading || !ctx || !quantity || quantity.lte(0) || oversize}
         class="px-3 py-1.5 text-xs rounded font-bold bg-danger-paired
                disabled:opacity-50 disabled:cursor-not-allowed"
       >

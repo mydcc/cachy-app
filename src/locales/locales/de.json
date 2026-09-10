@@ -1320,20 +1320,12 @@
       "title": "Technische Analyse",
       "optimization": {
         "title": "Performance Optimierung",
-        "autoOptimize": "Auto-Optimize Engine",
-        "autoOptimizeDesc": "Wählt automatisch TypeScript oder WebAssembly basierend auf Datengröße",
         "preferredEngine": "Bevorzugte Engine",
-        "performanceMode": "Performance Modus",
         "engines": {
           "auto": "Auto (Empfohlen)",
           "ts": "TypeScript",
           "wasm": "WebAssembly",
           "gpu": "GPU (Experimentell)"
-        },
-        "modes": {
-          "speed": "Geschwindigkeit",
-          "balanced": "Ausgewogen",
-          "quality": "Qualität"
         }
       },
       "summaryAction": "Zusammenfassung",
@@ -1642,7 +1634,7 @@
         "columns": {
           "engine": "Engine",
           "health": "Gesundheit",
-          "avg": "Ø",
+          "median": "Median",
           "samples": "Proben",
           "candles": "Kerzen",
           "time": "Zeit",
@@ -3617,7 +3609,8 @@
   },
   "calculationStrategy": {
     "criticalLag": "Kritische Verzögerung: {engine} dauerte {duration}ms",
-    "slowCalc": "Langsame Berechnung: {engine} ({duration}ms)"
+    "slowCalc": "Langsame Berechnung: {engine} ({duration}ms)",
+    "engineDegraded": "Engine degradiert: {engine} zu langsam, auf TS gewechselt"
   },
   "duck": {
     "full": "Quack! Die Ente ist pappsatt und braucht eine Pause.",
@@ -3829,7 +3822,12 @@
       "migrationNotPossible": "Die Regel lässt sich nicht bedeutungserhaltend auf die aktuelle Schema-Version übertragen und wird abgelehnt, statt umgedeutet zu werden.",
       "emptyConditionTree": "Eine Gruppe ohne Bedingungen hat keinen Wahrheitswert.",
       "conditionTreeTooDeep": "Die Bedingungen sind zu tief verschachtelt.",
-      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet."
+      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet.",
+      "invalidLookback": "Eine prozentuale Bewegung braucht eine frühere Kerze als Bezug. Ein Lookback von 0 vergleicht eine Kerze mit sich selbst und ergibt immer null Prozent.",
+      "operandDimensionMismatch": "Die beiden Seiten dieser Bedingung haben unterschiedliche Einheiten — gehandeltes Volumen gegen etwas, das kein Volumen ist. Vergleiche Volumen mit einem Volumendurchschnitt oder mit einem festen Schwellwert.",
+      "nestedWindow": "Ein Fenster über einem Fenster wird nicht unterstützt. Aggregiere über einen einfachen Wert — ein tiefstes Hoch oder ein höchstes Tief, nicht ein tiefstes Höchstes.",
+      "invalidWindowLookback": "Ein Fenster braucht mindestens 2 und höchstens 500 Kerzenschlüsse. Ein Schluss ist der Wert selbst, und tiefere Historie lässt sich nicht zuverlässig laden.",
+      "ruleWarmupTooDeep": "Diese Regel braucht mehr geschlossene Kerzen, als die App laden kann. Verkürze das Fenster oder die Indikator-Periode — sonst bliebe der Alarm stumm, statt auszulösen."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
@@ -3899,7 +3897,10 @@
       "percentChange": "die Veränderung von {price} über die letzten {lookback} Schlusskurse",
       "percentChangeOne": "seit dem vorherigen Schlusskurs",
       "markSuffix": " (Mark-Preis)",
-      "percentValue": "{value} %"
+      "percentValue": "{value} %",
+      "volume": "das Volumen",
+      "windowMin": "der tiefste Wert von {of} über die letzten {lookback} Schlusskurse",
+      "windowMax": "der höchste Wert von {of} über die letzten {lookback} Schlusskurse"
     }
   },
   "storage": {

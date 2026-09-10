@@ -108,6 +108,32 @@ pub enum RefusalCode {
     /// zero percent — a rule that can never fire rather than one that is merely
     /// wrong, so it is refused at authoring time instead of at evaluation.
     InvalidLookback,
+    /// A comparison whose two sides are denominated in different things —
+    /// traded volume against something that is not volume. Both numbers exist and both are
+    /// well-formed, so nothing downstream would complain; the condition would
+    /// simply compare size to currency and fire on the crossover of two
+    /// unrelated scales. Refused at authoring time because there is no later
+    /// point at which it looks wrong.
+    OperandDimensionMismatch,
+    /// A window over a window. A minimum of a maximum is not a sentence anyone
+    /// writes on purpose, and allowing it would let `warmup_candles` compound
+    /// without a bound the type expresses. Refused rather than budgeted with a
+    /// depth counter, because one legitimate use has never been named.
+    NestedWindow,
+    /// A window whose span is shorter than two closes. A window of one candle
+    /// is that candle, so `min` and `max` both return the operand itself — a
+    /// condition comparing a value against itself, which is a rule that cannot
+    /// discriminate rather than one that is wrong.
+    InvalidWindowLookback,
+    /// A document needing more closed candles than the app will ever hold.
+    ///
+    /// This is the refusal that keeps an over-deep rule from being *silent*
+    /// instead of rejected: `ruleEvaluationGate` withholds a verdict while the
+    /// series is shorter than `warmupCandles` and has no separate signal for
+    /// "and it always will be", so without this code an alert whose history
+    /// requirement can never be met looks exactly like one still warming up.
+    /// ADR-0009 is the cost side — Bitunix pages 200 rows at a time.
+    RuleWarmupTooDeep,
 }
 
 impl RefusalCode {
@@ -145,6 +171,10 @@ impl RefusalCode {
             Self::ConditionTreeTooDeep => "conditionTreeTooDeep",
             Self::DuplicateConditionId => "duplicateConditionId",
             Self::InvalidLookback => "invalidLookback",
+            Self::OperandDimensionMismatch => "operandDimensionMismatch",
+            Self::NestedWindow => "nestedWindow",
+            Self::InvalidWindowLookback => "invalidWindowLookback",
+            Self::RuleWarmupTooDeep => "ruleWarmupTooDeep",
         }
     }
 }
@@ -246,33 +276,101 @@ mod tests {
         assert_eq!(r.field, "action.consequence_level");
     }
 
+    /// Every refusal code, in one place, so the two tests below cannot drift
+    /// apart — which is how `InvalidLookback` came to be absent from both.
+    ///
+    /// Still hand-maintained: Rust has no built-in way to enumerate a plain
+    /// enum, and a `strum` dependency in the crate that computes money is a
+    /// decision worth making deliberately rather than in passing. What this
+    /// does buy is that a variant added here is checked for a distinct key
+    /// *and* for a translation in every language, instead of only the first.
+    const ALL_CODES: &[RefusalCode] = &[
+        RefusalCode::UnknownField,
+        RefusalCode::UnknownIndicator,
+        RefusalCode::UnknownIndicatorOutput,
+        RefusalCode::InvalidIndicatorParameter,
+        RefusalCode::UnknownOperator,
+        RefusalCode::InvalidDecimal,
+        RefusalCode::InvalidSymbol,
+        RefusalCode::MalformedTimeframe,
+        RefusalCode::CalendarTimeframeUnsupported,
+        RefusalCode::ConditionTimeframeFinerThanTrigger,
+        RefusalCode::TimeframeNotMultipleOfTrigger,
+        RefusalCode::ConsequenceLevelTooLow,
+        RefusalCode::FieldNotHonouredAtLevel,
+        RefusalCode::ExternalFeedTrigger,
+        RefusalCode::ExecutableTextRejected,
+        RefusalCode::UnsupportedSchemaVersion,
+        RefusalCode::MigrationNotPossible,
+        RefusalCode::EmptyConditionTree,
+        RefusalCode::ConditionTreeTooDeep,
+        RefusalCode::DuplicateConditionId,
+        RefusalCode::InvalidLookback,
+        RefusalCode::OperandDimensionMismatch,
+        RefusalCode::NestedWindow,
+        RefusalCode::InvalidWindowLookback,
+        RefusalCode::RuleWarmupTooDeep,
+    ];
+
+    /// Every locale file a refusal can be rendered through.
+    ///
+    /// `include_str!` rather than a runtime read: a test that silently passes
+    /// because it could not find the file is worse than no test.
+    const LOCALES: &[(&str, &str)] = &[
+        ("en", include_str!("../../../src/locales/locales/en.json")),
+        ("de", include_str!("../../../src/locales/locales/de.json")),
+    ];
+
+    /// The claim the enum's own doc comment makes — that a variant without a
+    /// translation is caught at review time rather than rendered to a trader as
+    /// a raw code — and which nothing actually enforced.
+    ///
+    /// `invalidLookback` shipped with FEAT-0390 and had no key in either locale
+    /// file. It was missing from `ALL_CODES` too, so the totality test above
+    /// could not see it either: a hand-maintained list cannot prove itself
+    /// total. Extending that list stays a manual step, but from here a variant
+    /// that reaches it without a translation fails in both languages at once.
+    #[test]
+    fn every_code_has_a_string_in_every_locale() {
+        let all = ALL_CODES;
+        for (lang, raw) in LOCALES {
+            let doc: serde_json::Value = serde_json::from_str(raw)
+                .unwrap_or_else(|e| panic!("{lang}.json is not valid JSON: {e}"));
+            let refusal = doc
+                .get("rules")
+                .and_then(|r| r.get("refusal"))
+                .unwrap_or_else(|| panic!("{lang}.json has no rules.refusal block"));
+            let missing: Vec<&str> = all
+                .iter()
+                .map(|c| c.i18n_suffix())
+                .filter(|suffix| refusal.get(suffix).is_none())
+                .collect();
+            assert!(
+                missing.is_empty(),
+                "{lang}.json is missing rules.refusal keys: {missing:?}"
+            );
+            let blank: Vec<&str> = all
+                .iter()
+                .map(|c| c.i18n_suffix())
+                .filter(|suffix| {
+                    refusal
+                        .get(suffix)
+                        .and_then(|v| v.as_str())
+                        .is_none_or(str::is_empty)
+                })
+                .collect();
+            assert!(
+                blank.is_empty(),
+                "{lang}.json has empty rules.refusal strings: {blank:?}"
+            );
+        }
+    }
+
     /// The whole point of `field`: a refusal a caller can act on points at the
     /// thing that has to change.
     #[test]
     fn every_code_produces_a_distinct_non_empty_key() {
-        use RefusalCode::*;
-        let all = [
-            UnknownField,
-            UnknownIndicator,
-            UnknownIndicatorOutput,
-            InvalidIndicatorParameter,
-            UnknownOperator,
-            InvalidDecimal,
-            InvalidSymbol,
-            MalformedTimeframe,
-            CalendarTimeframeUnsupported,
-            ConditionTimeframeFinerThanTrigger,
-            TimeframeNotMultipleOfTrigger,
-            ConsequenceLevelTooLow,
-            FieldNotHonouredAtLevel,
-            ExternalFeedTrigger,
-            ExecutableTextRejected,
-            UnsupportedSchemaVersion,
-            MigrationNotPossible,
-            EmptyConditionTree,
-            ConditionTreeTooDeep,
-            DuplicateConditionId,
-        ];
+        let all = ALL_CODES;
         let mut keys: Vec<String> = all.iter().map(|c| c.i18n_key()).collect();
         assert!(keys
             .iter()

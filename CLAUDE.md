@@ -41,7 +41,7 @@ See `AGENTS.md` → Setup (commands, component-test note, "Fast & Targeted" veri
 | What needs human decision? | `docs/TODO.md` |
 
 - **Link, never duplicate.** One fact lives in exactly one file. Two copies of a rationale is why docs stop matching code (see `docs/REPO-AUDIT.md`).
-- New task → Create backlog entry from `docs/backlog/templates/`. `npm run backlog:check` validates front matter and id/number collisions. When backlog files change, run `node scripts/backlog-index.mjs` and commit the generated files (`INDEX.md`, `backlog.generated.ts`, `backlog.generated.json`) — CI validates they are current before merge (see `docs/backlog/README.md`).
+- New task → Create backlog entry from `docs/backlog/templates/`. `npm run backlog:check` validates front matter and id/number collisions. When a PR touches any `docs/backlog/` file, run `node scripts/backlog-index.mjs` and commit the regenerated `INDEX.md` + `backlog.generated.*` **in that PR** — no bot does it after the merge, and CI fails the PR if the index is stale (see `docs/backlog/README.md` and `AGENTS.md` → Commits & Branches).
 - New decision that constrains future work → ADR (`docs/adr/template.md`), not a paragraph somewhere.
 
 ## Non-Negotiable Rules

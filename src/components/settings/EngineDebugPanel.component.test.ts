@@ -19,12 +19,12 @@
 /*
  * FEAT-0398's first acceptance criterion, proved at the surface the user
  * actually touches: opening the panel during chart operation shows live
- * Calls/Avg per engine, the result cache apart from engine stats, and an
+ * Calls/Median per engine, the result cache apart from engine stats, and an
  * honest empty hint before the first uncached calculation.
  *
  * Service-level tests (`calculationStrategy.test.ts`) prove the numbers.
  * What only a mounted component can show is the wiring — that recorded
- * metrics reach the stats table and cache hits never leak into engine Avg.
+ * metrics reach the stats table and cache hits never leak into engine stats.
  * Each test re-imports the strategy module so the singleton starts at zero;
  * without that, one test's metrics would bleed into the next. The `svelte`
  * runtime is re-imported alongside it: mixing the pre-reset `mount` with a
@@ -130,7 +130,11 @@ describe("EngineDebugPanel", () => {
     it("shows the empty hint before the first uncached calculation", async () => {
         await renderFresh();
 
-        expect(text()).toContain("No uncached calculations yet");
+        // Full-string match on purpose: a prefix substring would stay green
+        // while the visible text diverges.
+        expect(text()).toContain(
+            "No uncached calculations yet — interact with the chart or run the benchmark."
+        );
     });
 
     it("shows live Calls/Avg per engine after metrics are recorded", async () => {
@@ -161,6 +165,10 @@ describe("EngineDebugPanel", () => {
         locale.current = "de";
         await renderFresh();
 
-        expect(text()).toContain("Noch keine Berechnung außerhalb des Caches");
+        // Full-string match on purpose: a prefix substring would stay green
+        // while the visible text diverges.
+        expect(text()).toContain(
+            "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten."
+        );
     });
 });

@@ -12,6 +12,7 @@ export const rule_authorise: (a: number, b: number, c: number, d: number, e: num
 export const rule_content_hash: (a: number, b: number, c: number) => void;
 export const rule_evaluate: (a: number, b: number, c: number, d: number, e: number) => void;
 export const rule_from_alert_json: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+export const rule_mark_timeframes: (a: number, b: number, c: number) => void;
 export const rule_schema_version: () => number;
 export const rule_timeframes: (a: number, b: number, c: number) => void;
 export const rule_validate: (a: number, b: number, c: number) => void;
