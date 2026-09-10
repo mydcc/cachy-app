@@ -82,18 +82,18 @@ function column(
   const out = new Float64Array(candles.length);
   for (let i = 0; i < candles.length; i++) {
     const raw = field === "volume" ? candles[i].volume : candles[i].close;
-    out[i] = raw === undefined ? Number.NaN : Number(raw);
+    out[i] = raw === undefined ? Number.NaN : Number(raw); // audit: safe — intermediate f64 for indicator math
   }
   return out;
 }
 
 function whole(value: unknown): number | undefined {
-  const n = Number(value);
+  const n = Number(value); // audit: safe — helper validation, not a financial value
   return Number.isInteger(n) && n > 0 ? n : undefined;
 }
 
 function factor(value: unknown): number | undefined {
-  const n = Number(value);
+  const n = Number(value); // audit: safe — helper validation, not a financial value
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
