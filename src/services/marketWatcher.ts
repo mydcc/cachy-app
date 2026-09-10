@@ -156,7 +156,18 @@ export class MarketWatcher {
               // history load failed (e.g. rate-limit) is retried on the next polling cycle.
               const tf = channel.replace("kline_", "");
               const klineLastUpdated = data?.klinesLastUpdated?.[tf] || 0;
-              const isKlineStale = (now - klineLastUpdated) > 10000; // 10s
+
+              // [PERFORMANCE - BOLT] Increase kline polling staleness threshold based on timeframe
+              // Polling volume optimization: wait longer for longer timeframes.
+              // We do not need to poll a 1h or 4h chart every 10 seconds.
+              let threshold = 10000; // default 10s
+              if (tf.endsWith("m")) {
+                  const mins = parseInt(tf, 10);
+                  if (mins >= 15) threshold = 30000; // 30s for 15m+
+              } else if (tf.endsWith("h") || tf.endsWith("d") || tf.endsWith("w") || tf.endsWith("M")) {
+                  threshold = 60000; // 1m for 1h+
+              }
+              const isKlineStale = (now - klineLastUpdated) > threshold;
               if (isWsConnected && !isKlineStale) return;
             } else {
               // Non-kline channels (ticker, depth, etc): use the global staleness guard.

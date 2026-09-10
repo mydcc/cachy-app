@@ -14,3 +14,9 @@ Checking `pending[pending.length - 1].time === k.time` and replacing the last el
 ## Vitest Environment Overhead
 
 Configuring `environment: "happy-dom"` globally causes happy-dom window/DOM context instantiation overhead for all tests, including pure logic/math unit tests. Annotating pure-logic test files with `// @vitest-environment node` and using lazy polyfills for IndexedDB in `vitest.setup.ts` reduced Vitest environment setup duration from 102.65s to 89.80s across the test suite.
+
+## Market Data Polling Volume
+Reduced polling volume over Bitunix for slow-changing charts (1h, 4h, 1d) by adjusting staleness thresholds in `marketWatcher.ts`. A static `10s` check is wasteful for candles that change slowly. We wait longer (up to `60s`) depending on the `tf` multiplier.
+
+## Svelte 5 UI Reactivity
+Hoisted `Object.keys()` and `Object.entries()` out of Svelte `{#each}` loops into `$derived` in `CalculationDashboard.svelte` and `JournalContent.svelte` to prevent unnecessary re-allocations on every render frame.

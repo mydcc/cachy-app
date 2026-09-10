@@ -526,6 +526,8 @@
         profitFactor: filteredPerformance.profitFactor?.toNumber() || 0,
         maxDrawdown: filteredPerformance.maxDrawdown?.toNumber() || 0,
     });
+    let visibleColumnsList = $derived(Object.keys(columnVisibility));
+
     let qualityData = $derived({
         avgR: filteredPerformance.avgRMultiple?.toNumber() || 0,
     });
@@ -730,7 +732,7 @@
 
                         <!-- Checkboxes -->
                         <div class="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
-                            {#each Object.keys(columnVisibility) as col}
+                            {#each visibleColumnsList as col}
                                 <label class="flex items-center gap-2 cursor-pointer text-xs p-1 rounded hover:bg-[var(--bg-secondary)]">
                                     <input
                                         type="checkbox"
