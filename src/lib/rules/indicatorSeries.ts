@@ -267,6 +267,29 @@ export function computeIndicatorSeries(
         }
         return { supported: true, values: wire(percentB) };
       }
+      if (output === "bandwidth") {
+        // The squeeze measure, as a percentage of the middle band.
+        //
+        // Times 100, matching `TechnicalsPresenter.calculateBollingerBandWidth`
+        // and the `%` the panel prints beside it. The bare ratio is the more
+        // common convention elsewhere and is deliberately not used: a trader who
+        // reads `2.41%` on the panel and writes `bandwidth < 2.41` would get a
+        // condition true on every candle. See the registry entry in
+        // `technicals-wasm/src/rule/indicator.rs`.
+        //
+        // A middle band of zero is undefined, not zero. `0` would read as the
+        // tightest band possible and fire every squeeze alert on data that
+        // simply is not there — `NaN` becomes `null` becomes indeterminate.
+        const bandwidth = new Float64Array(close.length);
+        for (let i = 0; i < close.length; i++) {
+          const middle = bands.middle[i];
+          bandwidth[i] =
+            middle === 0
+              ? Number.NaN
+              : ((bands.upper[i] - bands.lower[i]) / middle) * 100;
+        }
+        return { supported: true, values: wire(bandwidth) };
+      }
       return {
         supported: false,
         reason: `bollinger has no output '${output}'`,

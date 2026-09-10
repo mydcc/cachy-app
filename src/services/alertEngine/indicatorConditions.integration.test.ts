@@ -286,6 +286,7 @@ describe("indicator conditions against the real evaluator", () => {
   describe("Bollinger Bands", () => {
     const upper = indicator("bollinger", BB, "upper");
     const percentB = indicator("bollinger", BB, "percent_b");
+    const bandwidth = indicator("bollinger", BB, "bandwidth");
 
     itAgrees(
       "fires when the close touches the upper band",
@@ -311,6 +312,74 @@ describe("indicator conditions against the real evaluator", () => {
       },
       () => compareOracle(percentB, gte, constant("1")),
       15,
+    );
+
+    /*
+     * Squeeze, the second condition FEAT-0028 names and could not express.
+     *
+     * `0.5` is not an arbitrary constant: bandwidth over this series runs from
+     * 0.36 to 2.87 with a median of 0.93, so the threshold sits in the bottom
+     * decile — a genuine contraction rather than a number that happens to be
+     * true most of the time. The oracle recomputes it from the band lines, so
+     * a scale change in either path shows up here as a disagreement.
+     */
+    itAgrees(
+      "fires while the bands are contracted",
+      {
+        kind: "compare",
+        left: bandwidth,
+        op: "lt",
+        right: constant("0.5"),
+        timeframe: SERIES_TIMEFRAME,
+      },
+      () => compareOracle(bandwidth, lt, constant("0.5")),
+      10,
+    );
+
+    /*
+     * The squeeze threshold has to discriminate, and `itAgrees` cannot check
+     * that: its oracle shares this path's implementation, so both sides move
+     * together under a scale error and the comparison stays silent. Reverting
+     * the `* 100` demonstrates it — bandwidth becomes 0.004..0.029, every
+     * candle is below `0.5`, the oracle agrees on all of them and the test
+     * passes while meaning nothing.
+     *
+     * A condition true on every candle is not an alert. Pinning that the
+     * threshold splits the series closes the class rather than trusting the
+     * constant to stay sensible.
+     */
+    it("does not treat every candle as a squeeze", () => {
+      const rule = ruleWith({
+        kind: "compare",
+        left: bandwidth,
+        op: "lt",
+        right: constant("0.5"),
+        timeframe: SERIES_TIMEFRAME,
+      });
+      const { fired, compared } = walkSeries(
+        rule,
+        compareOracle(bandwidth, lt, constant("0.5")),
+      );
+
+      expect(fired).toBeGreaterThan(0);
+      expect(fired).toBeLessThan(compared / 2);
+    });
+
+    /**
+     * The tradeable half of a squeeze is its release, which is a crossing and
+     * not a state — the reason `cross` exists alongside `compare`.
+     */
+    itAgrees(
+      "fires when the bands expand back out of the squeeze",
+      {
+        kind: "cross",
+        left: bandwidth,
+        direction: "above",
+        right: constant("1"),
+        timeframe: SERIES_TIMEFRAME,
+      },
+      () => crossAboveOracle(bandwidth, constant("1")),
+      8,
     );
   });
 

@@ -77,8 +77,10 @@ conditions actually evaluate rather than resolve to "no value":
   every `PriceField` value is denominated in quote currency, which is what makes
   it comparable against a price threshold, so folding volume in would have made
   `volume > 65000` a legal document.
-- **Bollinger has no `bandwidth` output**, so squeeze has nothing to compare.
-  The registry declares `upper|middle|lower|percent_b`.
+- ~~**Bollinger has no `bandwidth` output**, so squeeze has nothing to
+  compare.~~ **Closed 2026-09-10** — see "Bandwidth is a percentage, on the
+  scale the panel already prints" below. The registry now declares
+  `upper|middle|lower|percent_b|bandwidth`.
 - **Divergence needs a new condition shape.** `compare` and `cross` read one
   candle and two respectively; a divergence is a claim about two swings. It is
   the only condition in this item that the existing four shapes cannot express.
@@ -198,7 +200,49 @@ reverted.
   than inventing a second one.
 
 Still open: the WebGPU leg of criterion 4, criterion 1's recorded market series,
-and two of the three schema gaps — Bollinger `bandwidth` and divergence.
+and the last of the three schema gaps — divergence.
+
+## Bandwidth is a percentage, on the scale the panel already prints (2026-09-10)
+
+`bollinger.bandwidth` is `(upper - lower) / middle * 100`, `Dimension::Percent`.
+The scale was the whole decision. TradingView's BBW is the bare ratio, which
+would have been the more standard choice and the wrong one here:
+`TechnicalsPanel.svelte` already shows this quantity via
+`TechnicalsPresenter.calculateBollingerBandWidth` with a `%` beside it, so a
+trader reading `2.41%` off their own screen would write `bandwidth < 2.41` — a
+condition true on every candle, and a squeeze alert that fires forever. The
+schema matches the surface the number is read from.
+
+That makes the scale a contract between two surfaces rather than an internal
+detail, so it is asserted as one: `indicatorSeries.test.ts` compares the series
+against the panel's own function. Whoever changes either side fails that test by
+name.
+
+A zero middle band yields no value rather than zero. Zero is the tightest
+squeeze expressible, so `0` on absent data would fire every squeeze alert —
+`NaN` becomes `null` becomes indeterminate, as `percent_b` already does.
+
+Covered by 3 unit tests in `indicatorSeries.test.ts`, 2 registry tests in
+`indicator.rs`, and 3 against the real WASM artefact in
+`indicatorConditions.integration.test.ts` (contracted state, expansion crossing,
+and one that the threshold discriminates at all). Four of them fail if the
+`* 100` is removed.
+
+### What this does not close
+
+**A `compare` against a constant is not John Bollinger's Squeeze.** His is the
+*lowest* bandwidth over a long lookback — a rolling minimum, which is a claim
+about a window rather than about a candle, and which the four condition shapes
+cannot express any more than divergence can. An absolute threshold is a usable
+proxy and is what this ships; the rolling-minimum form belongs with the
+divergence discussion, because it needs the same new shape.
+
+**The oracle cannot police the scale.** `itAgrees` recomputes each condition
+through `computeIndicatorSeries`, the very path under test, so a scale error
+moves both sides together and the comparison stays silent — reverting the
+`* 100` leaves the contracted-state comparison passing while every candle
+qualifies. That is why the panel comparison and the discriminating-threshold
+test exist: the shared-implementation oracle proves indexing, not units.
 
 ## Links
 
