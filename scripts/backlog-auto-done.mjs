@@ -3,6 +3,12 @@
 // done-PR is needed anymore. Runs in backlog-auto-done.yml (on merge) or
 // via workflow_dispatch for safe manual testing.
 //
+// The flip rides on `bot/backlog-auto-done` together with a freshly
+// regenerated index (`INDEX.md` + `backlog.generated.*`) in the same commit,
+// so one merge produces exactly one bot PR — the sync workflow folds into
+// this branch instead of opening a second `chore/backlog-index-*` PR
+// (see `scripts/lib/bot-pr-fold.ts`).
+//
 // Guards (anything ambiguous only logs and exits 0):
 //   - only the enforced `Fixes #N` trailer at a line start counts
 //     (never prose — lesson from BUG-0220)
@@ -11,11 +17,18 @@
 //     (done/dropped are never touched)
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const REPO = process.env.GITHUB_REPOSITORY ?? "mydcc/cachy-app";
 const PR_NUMBER = process.env.PR_NUMBER ?? "";
 const BOT_BRANCH = "bot/backlog-auto-done";
+const INDEX_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), "backlog-index.mjs");
+const GENERATED_ARTIFACTS = [
+  "docs/backlog/INDEX.md",
+  "docs/backlog/backlog.generated.ts",
+  "docs/backlog/backlog.generated.json",
+];
 
 function gh(args) {
   return execFileSync("gh", args, { encoding: "utf8" });
@@ -108,8 +121,19 @@ function main() {
     );
   writeFileSync(file, next);
 
+  // Single-bot-PR: regenerate the derived artifacts in the same commit so
+  // this flip needs no second `chore/backlog-index-*` PR. A failed
+  // regeneration only logs — the sync workflow covers the index separately.
+  let indexFresh = false;
+  try {
+    execFileSync(process.execPath, [INDEX_SCRIPT], { stdio: "pipe" });
+    indexFresh = true;
+  } catch {
+    log("index regeneration failed; committing the flip alone, sync will cover the index");
+  }
+
   git(["checkout", "-B", BOT_BRANCH]);
-  git(["add", file]);
+  git(["add", file, ...(indexFresh ? GENERATED_ARTIFACTS : [])]);
   git([
     "-c",
     "user.name=github-actions[bot]",
@@ -152,7 +176,7 @@ function main() {
         "--title",
         "chore(backlog): auto-done flips",
         "--body",
-        "Automated done-flips for backlog items whose linked PRs merged (see job logs).",
+        "Automated done-flips for backlog items whose linked PRs merged, including the regenerated INDEX.md and backlog artifacts (see job logs).",
         "--json",
         "number",
         "--jq",
