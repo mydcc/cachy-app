@@ -41,12 +41,12 @@ const venueOrderId =
     stripLegSuffix(orderId, kind === "takeProfit" ? "tp" : "sl");
 ```
 
-The new `stripLegSuffix()` helper in `tpslNormalize.ts` strips only the
-matching `-tp`/`-sl` suffix and leaves an id without it (or with the other
-leg's suffix) unchanged, so the generic non-Bitunix path is unaffected. This
-covers both a missing plan row (pruned, not yet hydrated, removed mid-drag)
-and a WebSocket-sourced plan that carries no `sourceOrderId`, and keeps the
-drag interaction instead of refusing it.
+The new `stripLegSuffix()` helper in `tpslNormalize.ts` strips only a
+`-tp`/`-sl` suffix whose base is numeric (Bitunix order ids are numeric, the
+suffix is not), so a real venue id can never be truncated and the generic
+non-Bitunix path is unaffected. This covers both a missing plan row (pruned,
+not yet hydrated, removed mid-drag) and a WebSocket-sourced plan that carries
+no `sourceOrderId`, and keeps the drag interaction instead of refusing it.
 
 ## Acceptance criteria
 - [x] Decision made between option 1 and 2; fix implemented.

@@ -59,15 +59,16 @@ import type { TpSlOrder } from "./tradeService";
  * over the WebSocket (which does not carry `sourceOrderId`) — so a chart drag
  * must not hand the venue an id it has never seen.
  *
- * The suffix is only stripped when it matches `leg`; an id without it (the
- * generic non-Bitunix path) or with the other leg's suffix is returned
- * unchanged, and an id that is nothing but the suffix is left alone too.
+ * Only a **numeric** base is stripped. Bitunix order ids are numeric
+ * (`docs/bitunix-api/06_tp_sl.md`) while the `-tp` / `-sl` suffix is not, so
+ * this can never truncate a real venue id that merely looks leg-shaped: a
+ * non-numeric base, a missing suffix, or the other leg's suffix all return
+ * the id unchanged. That also leaves the generic non-Bitunix path, which
+ * never split its rows, untouched.
  */
 export function stripLegSuffix(orderId: string, leg: "tp" | "sl"): string {
-    const suffix = `-${leg}`;
-    return orderId.length > suffix.length && orderId.endsWith(suffix)
-        ? orderId.slice(0, -suffix.length)
-        : orderId;
+    const match = /^(\d+)-(tp|sl)$/.exec(orderId);
+    return match && match[2] === leg ? match[1] : orderId;
 }
 
 /** One leg's worth of fields, as they are named on the wire. */

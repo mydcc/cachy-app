@@ -260,4 +260,12 @@ describe("stripLegSuffix", () => {
     it("does not turn a suffix-only id into an empty one", () => {
         expect(stripLegSuffix("-tp", "tp")).toBe("-tp");
     });
+
+    it("leaves a leg-shaped id with a non-numeric base alone", () => {
+        // Bitunix order ids are numeric, so anything else ending in a leg
+        // suffix is not one this app built and must be sent as-is rather than
+        // truncated into a different, wrong id.
+        expect(stripLegSuffix("abc-tp", "tp")).toBe("abc-tp");
+        expect(stripLegSuffix("ORDER123-tp", "tp")).toBe("ORDER123-tp");
+    });
 });
