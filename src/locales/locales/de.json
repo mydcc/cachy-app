@@ -361,20 +361,23 @@
         "armDisabled": "Füge zuerst eine Bedingung hinzu.",
         "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu."
       },
+      "brokenRule": {
+        "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann."
+      },
       "price": {
-        "conditionType": "Bedingung",
+        "conditionType": "Bedingungstyp",
+        "lookbackHint": "Lookback-Periode in Kerzen",
+        "lookbackLabel": "Lookback",
+        "percentLabel": "Prozent",
+        "priceLabel": "Preis",
+        "seriesHint": "Welche Preisserie überwachen",
+        "seriesLabel": "Preisserie",
         "risesAbove": "Steigt über",
         "fallsBelow": "Fällt unter",
-        "riseReaches": "Anstieg erreicht",
-        "fallReaches": "Rückgang erreicht",
-        "priceLabel": "Preis",
-        "percentLabel": "Prozent",
-        "lookbackLabel": "Gemessen über",
-        "lookbackHint": "Wie viele geschlossene Candles zurück der Bezugspunkt liegt.",
-        "seriesLabel": "Preisserie",
-        "seriesLast": "Last-Preis",
-        "seriesMark": "Mark-Preis",
-        "seriesHint": "Der Mark-Preis bestimmt Liquidation und unrealisierten PnL und kann vom zuletzt gehandelten Preis abweichen."
+        "riseReaches": "Stieg erreicht",
+        "fallReaches": "Fall erreicht",
+        "seriesLast": "Letzter Preis",
+        "seriesMark": "Mark-Preis"
       }
     },
     "generalInputs": {
@@ -2128,7 +2131,13 @@
         "orderRejected": "{symbol}-Order abgelehnt",
         "orderCancelled": "{symbol}-Order storniert"
       }
-    }
+    },
+    "brokenAlertReport": "Alarme, die nie auslösen können",
+    "brokenAlertReportDesc": "Ein Alarm kann einen Indikator verwenden, den die Alarm-Engine nicht berechnen kann. Er bleibt scharf im Panel stehen und löst nie aus.",
+    "brokenAlertReportNotify": "Benachrichtigen",
+    "brokenAlertReportNotifyDesc": "Beim ersten Übergehen eines solchen Alarms eine Meldung zeigen.",
+    "brokenAlertReportLog": "Nur protokollieren",
+    "brokenAlertReportLogDesc": "Keine Meldung. Das Alarm-Panel zeigt weiterhin, welche Alarme betroffen sind."
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -3784,9 +3793,9 @@
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
     "countdownLabel": "Countdown bis zur Kerzenschließung",
     "alert": {
-      "regionLabel": "Kurschart für {symbol}. Kontextmenü-Taste drücken, um einen Alarm anzulegen.",
-      "menuLabel": "Chart-Alarm",
-      "here": "Alarm hier — {price}"
+      "menuLabel": "Warnung",
+      "regionLabel": "Warn-Region",
+      "here": "Warnung bei {price}"
     }
   },
   "chart": {
@@ -3817,8 +3826,7 @@
       "migrationNotPossible": "Die Regel lässt sich nicht bedeutungserhaltend auf die aktuelle Schema-Version übertragen und wird abgelehnt, statt umgedeutet zu werden.",
       "emptyConditionTree": "Eine Gruppe ohne Bedingungen hat keinen Wahrheitswert.",
       "conditionTreeTooDeep": "Die Bedingungen sind zu tief verschachtelt.",
-      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet.",
-      "invalidLookback": "Eine prozentuale Bewegung braucht einen früheren Candle als Bezugspunkt."
+      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
@@ -3826,10 +3834,6 @@
       "empty": "(noch keine Bedingung)",
       "negate": "nicht {condition}",
       "onTimeframe": " (auf {timeframe})",
-      "markSuffix": " (Mark-Preis)",
-      "percentValue": "{value} %",
-      "percentChange": "die Veränderung von {price} über die letzten {lookback} Schlusskurse",
-      "percentChangeOne": "die Veränderung von {price} seit dem vorherigen Schlusskurs",
       "compare": "{left} {op} {right}{timeframe}",
       "crossing": "{left} {direction} {right}{timeframe}",
       "lead": {
@@ -3888,7 +3892,11 @@
         "unrealised_pnl_percent": "der unrealisierte Gewinn in %",
         "exposure": "das Exposure",
         "available_balance": "das verfügbare Guthaben"
-      }
+      },
+      "percentChange": "die Veränderung von {price} über die letzten {lookback} Schlusskurse",
+      "percentChangeOne": "seit dem vorherigen Schlusskurs",
+      "markSuffix": " (Mark-Preis)",
+      "percentValue": "{value} %"
     }
   },
   "storage": {

@@ -114,6 +114,88 @@ describe("RuleEvaluationGate", () => {
     expect(evaluateSpy).not.toHaveBeenCalled();
   });
 
+  describe("an anchor that has already been decided", () => {
+    /**
+     * FEAT-0028 acceptance criterion 3.
+     *
+     * An exchange revises a candle after the fact — a late trade lands, the
+     * close or the volume changes — and the series is rebuilt around it. The
+     * trader has already been told what that candle meant. Telling them a
+     * second time is worse than saying nothing, because they cannot tell the
+     * two apart and may act twice.
+     */
+    it("does not evaluate a corrected candle the rule already decided", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+      const ctx = ctxWithCandles(20);
+
+      gate.evaluate(DOCUMENT, ctx, lastAnchor(ctx));
+      expect(evaluateSpy).toHaveBeenCalledTimes(1);
+
+      // Same open time, revised numbers: a correction, not a new candle.
+      const corrected = ctxWithCandles(20);
+      corrected.candles["4h"][19] = { ...corrected.candles["4h"][19], close: "97", volume: "12" };
+
+      expect(gate.evaluate(DOCUMENT, corrected, lastAnchor(corrected))).toBeUndefined();
+      expect(evaluateSpy).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * The path that made equality alone insufficient: a reconnect clears the
+     * loop's high-water mark, the store refills the series, and evaluation
+     * resumes from a candle that was decided before the connection dropped.
+     */
+    it("does not re-decide an older anchor after a replay", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+
+      gate.evaluate(DOCUMENT, ctxWithCandles(20), 19 * STEP_MS);
+      gate.evaluate(DOCUMENT, ctxWithCandles(21), 20 * STEP_MS);
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+
+      // The replay walks back over ground already covered.
+      expect(gate.evaluate(DOCUMENT, ctxWithCandles(20), 19 * STEP_MS)).toBeUndefined();
+      expect(gate.evaluate(DOCUMENT, ctxWithCandles(21), 20 * STEP_MS)).toBeUndefined();
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("still moves on when a genuinely newer candle arrives after a replay", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+
+      gate.evaluate(DOCUMENT, ctxWithCandles(21), 20 * STEP_MS);
+      gate.evaluate(DOCUMENT, ctxWithCandles(20), 19 * STEP_MS);
+
+      expect(gate.evaluate(DOCUMENT, ctxWithCandles(22), 21 * STEP_MS)).toEqual({ verdict: "fires" });
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("retries the same anchor after a failed evaluation, which records nothing", () => {
+      const evaluateSpy = vi
+        .spyOn(ruleSchema, "evaluate")
+        .mockImplementationOnce(() => {
+          throw new Error("wasm blip");
+        })
+        .mockReturnValue({ verdict: "fires" });
+      const ctx = ctxWithCandles(20);
+
+      expect(() => gate.evaluate(DOCUMENT, ctx, lastAnchor(ctx))).toThrow("wasm blip");
+
+      // The failure must not count as "already decided" — otherwise one blip
+      // silences the rule until the next close.
+      expect(gate.evaluate(DOCUMENT, ctx, lastAnchor(ctx))).toEqual({ verdict: "fires" });
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("lets an edited rule decide an anchor again, because forget() resets the floor", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+      const ctx = ctxWithCandles(20);
+
+      gate.evaluate(DOCUMENT, ctx, lastAnchor(ctx));
+      gate.forget(DOCUMENT.id);
+
+      expect(gate.evaluate(DOCUMENT, ctx, lastAnchor(ctx))).toEqual({ verdict: "fires" });
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it("forget() clears the remembered anchor so the next call evaluates again", () => {
     const evaluateSpy = vi
       .spyOn(ruleSchema, "evaluate")
