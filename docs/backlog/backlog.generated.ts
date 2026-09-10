@@ -3272,7 +3272,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0302",
     "title": "Dependency advisories confined to dev and release toolchain need triage decision",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3284,6 +3284,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "size": "M",
     "estimate": "2",
     "file": "bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md"

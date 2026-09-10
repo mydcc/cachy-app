@@ -265,7 +265,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | core |
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | exchange |
 | [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | ✅ done | security |
-| [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | security |
+| [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | ✅ done | security |
 | [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | repo |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | docs |
 | [BUG-0309](bugs/BUG-0309-docs-adr-conflicts.md) | ADR violations in code vs docs | P2 | ✅ done | docs |
@@ -534,7 +534,7 @@ Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 3 · 🟡 in-pro
 | [BUG-0286](bugs/BUG-0286-matomo-telemetry-consent-gate.md) | Matomo telemetry loads without a consent gate | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0296](bugs/BUG-0296-chart-history-dead-after-transient-kline-error.md) | One transient kline error permanently disables chart history loading for all timeframes | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0298](bugs/BUG-0298-safe-fetch-fail-open-fallback.md) | safeFetch fails open when the SSRF dispatcher cannot initialize | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0302](bugs/BUG-0302-dependency-advisories-dev-toolchain-triage.md) | Dependency advisories confined to dev and release toolchain need triage decision | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0307](bugs/BUG-0307-backlog-sync-cannot-close-issues.md) | Backlog sync cannot converge issues when front-matter assignee is not an assignable collaborator | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0308](bugs/BUG-0308-docs-calculation-engine.md) | calculation-engine docs list non-existent features | P2 | ✅ done | none | community | none | none | — |
 | [BUG-0309](bugs/BUG-0309-docs-adr-conflicts.md) | ADR violations in code vs docs | P2 | ✅ done | none | community | none | none | — |
