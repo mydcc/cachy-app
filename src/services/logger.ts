@@ -100,7 +100,10 @@ class LoggerService {
         // Console output logic
         if (!silent && this.isEnabled(category, force)) {
             const prefix = `[${category.toUpperCase()}]`;
-            console.error(`${prefix} ${message}`, error || "");
+            // Static first arg: message stays a data arg, so %-sequences
+            // in user-controlled text can't swallow `error` (CodeQL
+            // js/tainted-format-string, alert #95).
+            console.error(prefix, message, error || "");
         }
 
         // Toast logic
