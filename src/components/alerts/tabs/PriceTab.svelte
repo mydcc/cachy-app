@@ -48,15 +48,13 @@
         refusalsForField,
     } from "../../../stores/alertPanel.svelte";
     import type { Condition, PriceSource } from "../../../lib/rules/types";
+    import {
+        readPriceForm,
+        type PriceConditionKind,
+    } from "../../../lib/alerts/priceConditionForm";
     import type { TranslationKey } from "../../../locales/schema";
 
     let { symbol: _symbol }: { symbol: string } = $props();
-
-    type PriceConditionKind =
-        | "rises_above"
-        | "falls_below"
-        | "rise_reaches"
-        | "fall_reaches";
 
     const KIND_KEYS: Record<PriceConditionKind, TranslationKey> = {
         rises_above: "dashboard.alerts.price.risesAbove",
@@ -78,11 +76,23 @@
     ];
     const SERIES: PriceSource[] = ["last", "mark"];
 
-    let kind = $state<PriceConditionKind>("rises_above");
+    /*
+     * The form starts from the draft rather than from blank (FEAT-0395).
+     *
+     * The document is the source of truth, so the tab renders it instead of
+     * remembering its own copy: a draft seeded by a right-click on the chart
+     * shows the price that was clicked, and switching tabs and back no longer
+     * discards a half-built condition. Read once at init on purpose -- from
+     * here on the form owns the document, and re-reading it on every write
+     * would fight the write-through effect below.
+     */
+    const initial = readPriceForm(alertPanelState.draft.conditions);
+
+    let kind = $state<PriceConditionKind>(initial.kind);
     /** The threshold, as typed. A string so a half-typed "60." is not mangled. */
-    let threshold = $state("");
+    let threshold = $state(initial.threshold);
     /** How many closes back the percentage is measured from. */
-    let lookback = $state(1);
+    let lookback = $state(initial.lookback);
 
     let isPercent = $derived(kind === "rise_reaches" || kind === "fall_reaches");
 

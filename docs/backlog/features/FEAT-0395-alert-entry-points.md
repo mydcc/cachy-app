@@ -2,7 +2,9 @@
 id: FEAT-0395
 title: Create an alert from the chart and from indicator settings
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: worktree-feat-0395-dependencies-resolved-edf8ae
 priority: P2
 milestone: M4
 editions: [community, pro, private]

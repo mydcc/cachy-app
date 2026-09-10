@@ -191,6 +191,8 @@ import { toastService } from "../../../services/toastService.svelte";
 import { accountState } from "../../../stores/account.svelte";
 import { tpSlState } from "../../../stores/tpsl.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
+import { alertPanelState } from "../../../stores/alertPanel.svelte";
+import { uiState } from "../../../stores/ui.svelte";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -907,5 +909,147 @@ describe("Chart settings — scale mode & time scale propagation", () => {
         expect(locCalls.length).toBeGreaterThan(0);
         expect(typeof locCalls.at(-1)?.timeFormatter).toBe("function");
         settingsState.chartSecondsVisible = false;
+    });
+});
+
+/**
+ * FEAT-0395 — "Alert here".
+ *
+ * The chart is the entry point; the panel is where a rule is armed. These
+ * assert the handover and, just as importantly, that the handover is all it is:
+ * a menu that armed something by itself would put an alarm on a trader's
+ * account from a single right-click.
+ */
+describe("FEAT-0395 — creating an alert from the chart", () => {
+    function chartContainer(): HTMLElement {
+        const el = host.querySelector<HTMLElement>(".chart-container");
+        if (!el) throw new Error("no chart container rendered");
+        return el;
+    }
+
+    function menuItem(): HTMLButtonElement | null {
+        return host.querySelector<HTMLButtonElement>('[role="menuitem"]');
+    }
+
+    async function mountChart() {
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+        seedHistory();
+        await settle();
+    }
+
+    beforeEach(() => {
+        alertPanelState.reset("BTCUSDT");
+        uiState.toggleAlertsModal(false);
+    });
+
+    // coordinateToPrice is 1:1 in the fake series, so a clientY of 60500 is a
+    // click at price 60500 — above the seeded last close of 60050.
+    async function rightClickAt(price: number) {
+        chartContainer().dispatchEvent(
+            new MouseEvent("contextmenu", { bubbles: true, clientX: 40, clientY: price }),
+        );
+        await settle();
+    }
+
+    it("offers an alert at the price under the cursor", async () => {
+        await mountChart();
+        await rightClickAt(60500);
+
+        expect(menuItem()?.textContent).toContain("60500");
+    });
+
+    it("hands the clicked level to the panel as a crossing", async () => {
+        await mountChart();
+        await rightClickAt(60500);
+        menuItem()?.click();
+        await settle();
+
+        expect(uiState.showAlertsModal).toBe(true);
+        expect(alertPanelState.activeTab).toBe("price");
+        expect(alertPanelState.draft.symbol).toBe("BTCUSDT");
+        expect(alertPanelState.draft.conditions).toMatchObject({
+            of: [
+                {
+                    kind: "cross",
+                    direction: "above",
+                    right: { kind: "constant", value: "60500" },
+                    timeframe: "1m",
+                },
+            ],
+        });
+    });
+
+    it("reads the direction off which side of the price was clicked", async () => {
+        await mountChart();
+        await rightClickAt(59000);
+        menuItem()?.click();
+        await settle();
+
+        expect(alertPanelState.draft.conditions).toMatchObject({
+            of: [{ direction: "below" }],
+        });
+    });
+
+    it("arms nothing — the panel still has to be confirmed", async () => {
+        await mountChart();
+        await rightClickAt(60500);
+        menuItem()?.click();
+        await settle();
+
+        // notify-only and never validated: the trader has not pressed arm, so
+        // nothing has been handed to the core, let alone stored.
+        expect(alertPanelState.draft.action.consequence_level).toBe("notify");
+        expect(alertPanelState.hasValidated).toBe(false);
+    });
+
+    it("is reachable from the keyboard, on the last price", async () => {
+        await mountChart();
+        chartContainer().dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ContextMenu", bubbles: true }),
+        );
+        await settle();
+
+        expect(menuItem()?.textContent).toContain("60050");
+    });
+
+    it("also opens on Shift+F10, the other context-menu shortcut", async () => {
+        await mountChart();
+        chartContainer().dispatchEvent(
+            new KeyboardEvent("keydown", { key: "F10", shiftKey: true, bubbles: true }),
+        );
+        await settle();
+
+        expect(menuItem()).not.toBeNull();
+    });
+
+    it("closes on Escape without opening the panel", async () => {
+        await mountChart();
+        await rightClickAt(60500);
+        chartContainer().dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+        await settle();
+
+        expect(menuItem()).toBeNull();
+        expect(uiState.showAlertsModal).toBe(false);
+    });
+
+    it("offers nothing before the first candle, rather than an alarm on NaN", async () => {
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        chartContainer().dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ContextMenu", bubbles: true }),
+        );
+        await settle();
+
+        expect(menuItem()).toBeNull();
     });
 });
