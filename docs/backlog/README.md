@@ -8,20 +8,16 @@ commit message, a branch name, a test comment or another item can point at it
 permanently.
 
 - **Index of everything:** [`INDEX.md`](INDEX.md) — generated, never edited by
-  hand, and never committed by a PR either. After merge, CI puts the fresh
-  index on the bot branch: a merge with a `Fixes #N` trailer flips the item
-  to `done` and regenerates the index in the same `bot/backlog-auto-done`
-  PR, so there is exactly one bot PR per merge
-  (`.github/workflows/backlog-auto-done.yml`,
-  `scripts/backlog-auto-done.mjs`). Only merges without a linked backlog
-  item still get a standalone `chore/backlog-index-*` PR from
-  `.github/workflows/sync-backlog.yml` — and if the auto-done PR is already
-  open, the sync folds its index into that branch instead
-  (`scripts/lib/bot-pr-fold.ts`). Do not run `npm run backlog:index`
-  and commit the result yourself — two of its lines (item counts, next free
-  number) change on every regeneration regardless of which item you touched,
-  which is a guaranteed merge conflict the moment a second backlog PR is in
-  flight. See BUG-0225.
+  hand. The fix PR carries it: whoever flips an item to `done` also runs
+  `node scripts/backlog-index.mjs` (~1 s, no dependencies) and commits the
+  regenerated `INDEX.md` + `backlog.generated.*` in the same PR — there is
+  no bot that does it after the merge. CI enforces both halves: the
+  flip check fails a PR whose `Fixes #N` points at a backlog issue without
+  flipping it, and the freshness check fails a PR whose backlog files leave
+  a stale index behind. On an index conflict between two backlog PRs, merge
+  `develop` and re-run the script (its output is deterministic);
+  `auto-update-prs.yml` auto-resolves generated-only conflicts on open PRs.
+  See BUG-0225 for why the index used to be bot-owned.
 - **Typed Backlog Registry (Code & AST Tools):** [`backlog.generated.ts`](backlog.generated.ts) and [`backlog.generated.json`](backlog.generated.json) — generated alongside `INDEX.md` for fast symbol indexing by tools like jCodeMunch or type-safe programmatic access.
 - **When things get built:** [`../ROADMAP.md`](../ROADMAP.md).
 - **Why in that order:** [`../MILESTONES.md`](../MILESTONES.md).
@@ -202,9 +198,11 @@ reproducing test first.
    reset the item to its previous status with a state note instead of leaving a
    stale claim. See "Agent Lifecycle" in `AGENTS.md`.
 
-Do not run `npm run backlog:index` and commit `INDEX.md` yourself — CI
-folds the fresh index into the auto-done PR after your PR merges (see
-"Index of everything" above). Your PR only ever touches your own item file(s).
+Your PR carries the flip and the fresh index: set `status: done` in your
+item file(s), run `node scripts/backlog-index.mjs`, and commit both.
+CI fails the PR if either half is missing (see "Index of everything"
+above). Your PR only ever touches your own item file(s) plus the
+regenerated artifacts.
 
 **Do not silently change scope.** If the item is wrong, say so in the item and
 ask — an item that turned out to be a bad idea is a useful finding. If it is
@@ -228,6 +226,9 @@ The direction only ever goes file → issue, never back:
   manually added label survives.
 - `backlog-id:<ID>` (as a label, and as an HTML comment in the body) is the
   reconciliation key back to the actual file.
+- The sync never reopens a closed issue and never creates one blind: a
+  truncated issue listing aborts the run instead of duplicating mirrors,
+  and a missing mirror is verified by direct lookup before any create.
 
 **An Issue is a read-only mirror of its backlog file, not an editable
 copy.** Pointing an agent at an Issue to read/orient is fine — the title,

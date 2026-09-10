@@ -2,9 +2,9 @@
 
 # Backlog index
 
-311 items. How to read and add them: [README.md](README.md).
+312 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 240
+Counts by status: 💡 idea 27 · 📋 specced 36 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 245
 
 ---
 
@@ -108,7 +108,7 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | trade-panel |
 | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | chart |
 | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | chart |
-| [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | 🟢 ready | engine |
+| [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | ✅ done | engine |
 | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) | Derive the trade-panel UI gap list from the reference screenshots | P3 | ✅ done | trade-panel |
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | trade-panel |
 | [IDEA-0255](ideas/IDEA-0255-order-quantity-percent-slider.md) | Add a 0/25/50/75/100% quantity slider to the order-entry form | P3 | 💡 idea | trade-panel |
@@ -125,12 +125,13 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | ✅ done | ui |
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | ✅ done | alerts |
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | alerts |
+| [BUG-0430](bugs/BUG-0430-macd-seeding-mismatch.md) | MACD seeded differently in WASM than everywhere else | P1 | ✅ done | indicators |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | ✅ done | alerts |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | ✅ done | alerts |
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | ✅ done | alerts |
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | alerts |
-| [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | alerts |
+| [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
 | [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | trade-panel |
@@ -142,7 +143,7 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0394](features/FEAT-0394-candlestick-pattern-conditions.md) | Candlestick pattern conditions | P2 | 📋 specced | alerts |
 | [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 🟡 in-progress | alerts |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | 📋 specced | alerts |
-| [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | 🟢 ready | trade-panel |
+| [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | trade-panel |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
 
 ### M5
@@ -311,12 +312,12 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | 📋 specced | calculation |
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | ui |
 | [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | ✅ done | ui |
-| [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | 🟢 ready | indicators |
+| [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | ✅ done | indicators |
 | [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | ✅ done | ui |
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | indicators |
 | [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | alerts |
 | [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | ui |
-| [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | journal |
+| [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | ✅ done | journal |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | security |
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | ✅ done | trade-panel |
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | trade-panel |
@@ -453,6 +454,7 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0430](bugs/BUG-0430-macd-seeding-mismatch.md) | MACD seeded differently in WASM than everywhere else | P1 | ✅ done | M4 | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -548,7 +550,7 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
-| [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 📋 specced | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | M4 | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0031](features/FEAT-0031-whitelabel-theming.md) | Rebrand a build without editing source | P2 | 💡 idea | M5 | community | none | none | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
@@ -605,12 +607,12 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | none | community, pro, private | A | none | — |
+| [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0026](features/FEAT-0026-multi-account.md) |
 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | 🟢 ready | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
@@ -649,7 +651,7 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | 🟢 ready | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
+| [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
@@ -674,7 +676,7 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 | [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | ✅ done | none | community, pro, private | B | none | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) |
 | [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | none | community, pro, private | A | none | — |
-| [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | 🟢 ready | M3 | community, pro, private | none | none | — |
+| [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 💡 idea | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -696,4 +698,4 @@ Counts by status: 💡 idea 27 · 📋 specced 37 · 🟢 ready 6 · 🟡 in-pro
 
 ---
 
-Next free number: **0430**
+Next free number: **0431**

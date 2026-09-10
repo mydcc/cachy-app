@@ -1541,6 +1541,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0429-sync-reopens-freshly-closed-issues.md"
   },
   {
+    "id": "BUG-0430",
+    "title": "MACD seeded differently in WASM than everywhere else",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "start_date": "2026-09-10",
+    "target_date": "2026-09-10",
+    "size": "S",
+    "estimate": "1",
+    "file": "bugs/BUG-0430-macd-seeding-mismatch.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -3632,7 +3654,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0028",
     "title": "Alerts on indicator conditions",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -3650,6 +3672,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "estimate": "5",
     "size": "L",
+    "assignee": "claude-code",
     "target_date": "2027-01-29",
     "start_date": "2026-08-01",
     "file": "features/FEAT-0028-indicator-alerts.md"
@@ -4931,7 +4954,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0364",
     "title": "Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "feat/FEAT-0364-pivots-derived-cache",
+    "shipped": "1.6.0-beta.261",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5032,7 +5058,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0370",
     "title": "Parallelize REST API requests in Bitunix positions synchronization",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "feat/FEAT-0370-parallel-bitunix-sync",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5856,7 +5884,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0423",
     "title": "Coalesce duplicate account fetches from two mounted sidebars",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "M4",
     "editions": [
@@ -6375,8 +6403,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0398",
     "title": "Engine Debug Panel with real telemetry",
     "type": "feature",
-    "status": "ready",
-    "branch": "worktree-feat-0388-weitermachen-10ee20",
+    "status": "done",
     "priority": "P3",
     "milestone": "M3",
     "editions": [

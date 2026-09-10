@@ -21,7 +21,7 @@ import { classifyClosedIssueSync, DEFAULT_MERGE_GRACE_MS } from "./closed-issue-
 
 // The BUG-0411 aftermath: issue #2753 closed at merge time while its file
 // still said `in-progress`, and the sync "repaired" it back to open/In
-// Progress before the auto-done flip landed.
+// Progress before the flip landed.
 const CLOSED_AT = "2026-09-09T22:17:26Z";
 const CLOSED_MS = Date.parse(CLOSED_AT);
 const MIN = 60 * 1000;
@@ -34,7 +34,7 @@ describe("classifyClosedIssueSync", () => {
     });
 
     it("syncs closed issues whose file already converged to done", () => {
-        // The auto-done flip must still converge to Done on the next run.
+        // The flip must still converge to Done on the next run.
         expect(
             classifyClosedIssueSync({ fileStatus: "done", issueState: "closed", closedAt: CLOSED_AT }),
         ).toBe("sync");
