@@ -71,17 +71,42 @@ recorded history, and cross-path parity between WASM, GPU and JS.
 Three gaps that this item has to close, discovered by making indicator
 conditions actually evaluate rather than resolve to "no value":
 
-- **Volume has no operand.** `PriceField` is `open|high|low|close|hl2|hlc3`
-  (`technicals-wasm/src/rule/condition.rs`), so "volume above its 20-period
-  average" cannot be written: the average is reachable via `volume_ma`, the raw
-  volume is not. `volume_ma` with `period: 1` is the accidental workaround and
-  should not become the documented one. Adding `volume` to `PriceField` is the
-  fix, and it is a core schema change.
+- **Volume anomalies cannot be written at all.** `PriceField` is
+  `open|high|low|close|hl2|hlc3` (`technicals-wasm/src/rule/condition.rs`), so
+  raw volume has no operand. `volume_ma` with `period: 1` looked like a
+  workaround and is not one: the core constrains `period` to `2..=5000` and
+  refuses it. So the condition is unavailable rather than awkward. Adding
+  `volume` to `PriceField` is the fix, and it is a core schema change. Pinned by
+  a test in `indicatorConditions.integration.test.ts`, which fails once the
+  operand exists.
 - **Bollinger has no `bandwidth` output**, so squeeze has nothing to compare.
   The registry declares `upper|middle|lower|percent_b`.
 - **Divergence needs a new condition shape.** `compare` and `cross` read one
   candle and two respectively; a divergence is a claim about two swings. It is
   the only condition in this item that the existing four shapes cannot express.
+
+## Progress (2026-09-10)
+
+Indicator conditions evaluate for the first time — the loop computes and sends
+the series the evaluator reads, which it previously did not, so every indicator
+condition resolved to indeterminate.
+
+Tested per indicator over a 400-candle series, each condition answered twice by
+paths sharing no code: RSI thresholds and cross, MACD line/signal cross and
+histogram sign change, Bollinger touch and `percent_b`, EMA golden cross, volume
+average comparison. Indicator maths separately checked against independent
+textbook implementations.
+
+**Acceptance criterion 1 is not yet ticked**, for one reason worth stating: the
+series is a committed, seeded pseudo-random walk, not recorded market data. It
+is deterministic and not cherry-picked, and it catches what actually breaks in
+condition code — indexing, warmup, cross direction. It cannot catch a condition
+that only misbehaves on a shape real markets produce and the generator does not:
+a halt, a gap, a wick to zero, a depeg. Recording a real series and re-running
+the same oracles against it is the remaining work for that criterion.
+
+Still open: cross-path parity (criterion 4), no-double-fire on a corrected
+candle (criterion 3), and the three schema gaps above.
 
 ## Links
 
