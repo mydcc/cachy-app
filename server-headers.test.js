@@ -16,6 +16,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   SECURITY_HEADERS,
   applySecurityHeaders,
@@ -115,5 +117,15 @@ describe('cacheControlFor', () => {
   it('forces revalidation for everything else', () => {
     expect(cacheControlFor('build/client/index.html')).toBe('no-cache');
     expect(cacheControlFor('build/client/favicon.ico')).toBe('no-cache');
+  });
+});
+
+describe('postbuild server entry patch', () => {
+  it('ensures build/index.js delegates to server.js when build output exists', () => {
+    const buildIndex = path.resolve('build/index.js');
+    if (fs.existsSync(buildIndex)) {
+      const content = fs.readFileSync(buildIndex, 'utf-8');
+      expect(content).toContain("import './../server.js';");
+    }
   });
 });
