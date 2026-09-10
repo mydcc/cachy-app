@@ -36,7 +36,11 @@
     // Auto-refresh every 5s
     $effect(() => {
         const interval = setInterval(refresh, 5000);
-        return () => clearInterval(interval);
+        let alive = true;
+        // Capabilities resolve async after mount: refresh once they land so
+        // the badges show the real device without waiting for the next tick.
+        calculationStrategy.capabilitiesReady().then(() => { if (alive) refresh(); });
+        return () => { alive = false; clearInterval(interval); };
     });
     
     function formatMs(ms: number | undefined): string {
@@ -54,6 +58,12 @@
     
     const recentHistory = $derived(
         telemetry.performanceHistory.slice(-10).reverse()
+    );
+
+    const totalEngineCalls = $derived(
+        (telemetry.stats?.ts.calls ?? 0)
+        + (telemetry.stats?.wasm.calls ?? 0)
+        + (telemetry.stats?.gpu.calls ?? 0)
     );
 </script>
 
@@ -91,9 +101,18 @@
         </div>
     </div>
 
+    <!-- Result cache (separate from engine Avg: cache hits cost ~0ms) -->
+    <div class="section">
+        <div class="section-label">{$_("settings.system.debug.cache")}</div>
+        <div class="cache-line">{$_("settings.system.debug.cacheSummary", { values: { hits: telemetry.cache.hits, misses: telemetry.cache.misses, hitRate: telemetry.cache.hitRate } })}</div>
+    </div>
+
     <!-- Engine Stats Table -->
     <div class="section">
         <div class="section-label">{$_("settings.system.debug.engineStats")}</div>
+        {#if totalEngineCalls === 0}
+            <div class="no-data">{$_("settings.system.debug.noUncachedYet")}</div>
+        {/if}
         <table class="stats-table">
             <thead>
                 <tr>
@@ -229,6 +248,10 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.35rem;
+    }
+    .cache-line {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
     }
     .cap {
         padding: 1px 6px;

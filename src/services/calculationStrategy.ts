@@ -30,9 +30,8 @@ import { get } from 'svelte/store';
 
 export type CalculationEngine = 'ts' | 'wasm' | 'gpu' | 'auto';
 
-// Shape EngineDebugPanel.svelte reads per engine — not yet populated (see
-// exportTelemetry() below), but typed against the real consumer so the
-// eventual circuit-breaker implementation has a contract to fill in.
+// Shape EngineDebugPanel.svelte reads per engine — populated by
+// exportTelemetry() below from the degradation rule in selectEngine().
 export interface EngineCircuitBreakerHealth {
   healthy: boolean;
   lastError: string;
@@ -70,7 +69,11 @@ export class CalculationStrategy {
     }
 
     // Performance Alerting & Degradation (Step 5)
-    // If WASM is consistently slow (> 500ms), fallback to TS Worker
+    // A single WASM run above 500ms (lastMedian holds the latest sample, not
+    // a true median) degrades selectEngine to 'ts' for the rest of the
+    // session: the degraded engine is never re-selected, so no new WASM
+    // sample can clear the flag. No automatic recovery (re-probing); only a
+    // page reload or the preferredEngine override resets this.
     if (this.metrics.wasm.lastMedian > 500) {
         console.warn("[ACE] WASM too slow, degrading to TS Worker");
         return 'ts';
@@ -132,20 +135,49 @@ export class CalculationStrategy {
 
   private capabilitiesSnapshot: BrowserCapabilities | null = null;
   private capabilitiesRequested = false;
+  private capabilitiesPromise: Promise<void> | null = null;
 
   /** Fire-and-forget capability prefetch so exportTelemetry() stays sync. */
-  warmCapabilities() {
-    if (this.capabilitiesRequested) return;
+  warmCapabilities(): Promise<void> {
+    if (this.capabilitiesRequested) return this.capabilitiesPromise ?? Promise.resolve();
     this.capabilitiesRequested = true;
-    getCapabilities().then((caps) => { this.capabilitiesSnapshot = caps; }).catch(() => {});
+    this.capabilitiesPromise = getCapabilities().then((caps) => { this.capabilitiesSnapshot = caps; }).catch(() => {});
+    return this.capabilitiesPromise;
+  }
+
+  /** Resolves when the prefetched capability snapshot landed (panel refresh hook). */
+  capabilitiesReady(): Promise<void> {
+    return this.warmCapabilities();
+  }
+
+  /**
+   * Result-cache accounting for the technicalsService inline cache.
+   * Kept separate from engine metrics on purpose: a cache hit costs ~0ms,
+   * so counting it as an engine call would drag every per-engine Avg toward
+   * zero and hide real compute cost. The debug panel shows these apart.
+   */
+  private cacheStats = { hits: 0, misses: 0 };
+
+  recordCacheHit() {
+    this.cacheStats.hits++;
+  }
+
+  recordCacheMiss() {
+    this.cacheStats.misses++;
   }
 
   exportTelemetry() {
     const caps = this.capabilitiesSnapshot;
     const totalCalls = Object.values(this.metrics).reduce((sum, m) => sum + m.calls, 0);
+    const cacheTotal = this.cacheStats.hits + this.cacheStats.misses;
     return {
         stats: this.metrics,
         performanceHistory: this.performanceHistory,
+        cache: {
+            hits: this.cacheStats.hits,
+            misses: this.cacheStats.misses,
+            hitRate: cacheTotal > 0 ? Math.round((this.cacheStats.hits / cacheTotal) * 100) : 0
+        },
         capabilities: {
             ts: true,
             wasm: caps?.wasm ?? (typeof WebAssembly !== 'undefined'),
