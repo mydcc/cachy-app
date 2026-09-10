@@ -3174,4 +3174,5 @@ export type TranslationKey =
   | "rules.sentence.percentChange"
   | "rules.sentence.percentChangeOne"
   | "rules.sentence.markSuffix"
+  | "rules.sentence.percentValue"
   | "storage.quotaExceeded";

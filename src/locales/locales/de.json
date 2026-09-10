@@ -3895,7 +3895,8 @@
       },
       "percentChange": "Prozentuale Änderung",
       "percentChangeOne": "eine Prozent Änderung",
-      "markSuffix": "(Mark-Preis)"
+      "markSuffix": "(Mark-Preis)",
+      "percentValue": "Prozent"
     }
   },
   "storage": {
