@@ -360,6 +360,9 @@
         "armed": "Alert armed.",
         "armDisabled": "Add a condition first.",
         "tabLoadFailed": "This tab could not be loaded. Reload the page."
+      },
+      "brokenRule": {
+        "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate."
       }
     },
     "generalInputs": {
@@ -2113,7 +2116,13 @@
         "orderRejected": "{symbol} order rejected",
         "orderCancelled": "{symbol} order cancelled"
       }
-    }
+    },
+    "brokenAlertReport": "Alerts that can never fire",
+    "brokenAlertReportDesc": "An alert can reference an indicator the alert engine cannot calculate. It keeps sitting in the panel looking armed and will never trigger.",
+    "brokenAlertReportNotify": "Notify me",
+    "brokenAlertReportNotifyDesc": "Show a message the first time such an alert is skipped.",
+    "brokenAlertReportLog": "Log only",
+    "brokenAlertReportLogDesc": "No message. The alert panel still shows which alerts are affected."
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",

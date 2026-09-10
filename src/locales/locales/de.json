@@ -360,6 +360,9 @@
         "armed": "Alarm scharf geschaltet.",
         "armDisabled": "Füge zuerst eine Bedingung hinzu.",
         "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu."
+      },
+      "brokenRule": {
+        "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann."
       }
     },
     "generalInputs": {
@@ -2113,7 +2116,13 @@
         "orderRejected": "{symbol}-Order abgelehnt",
         "orderCancelled": "{symbol}-Order storniert"
       }
-    }
+    },
+    "brokenAlertReport": "Alarme, die nie auslösen können",
+    "brokenAlertReportDesc": "Ein Alarm kann einen Indikator verwenden, den die Alarm-Engine nicht berechnen kann. Er bleibt scharf im Panel stehen und löst nie aus.",
+    "brokenAlertReportNotify": "Benachrichtigen",
+    "brokenAlertReportNotifyDesc": "Beim ersten Übergehen eines solchen Alarms eine Meldung zeigen.",
+    "brokenAlertReportLog": "Nur protokollieren",
+    "brokenAlertReportLogDesc": "Keine Meldung. Das Alarm-Panel zeigt weiterhin, welche Alarme betroffen sind."
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",

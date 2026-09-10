@@ -43,8 +43,16 @@
  * the market store, it does not reach into it.
  */
 
+import { collectIndicators } from "../../lib/rules/indicatorRequests";
+import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
-import type { EvaluationCandle, RuleDocument, Verdict } from "../../lib/rules/types";
+import type {
+  EvaluationCandle,
+  EvaluationContext,
+  EvaluationIndicatorSeries,
+  RuleDocument,
+  Verdict,
+} from "../../lib/rules/types";
 import { logger } from "../logger";
 
 /** Closed candles for one series, oldest first. Never includes the open one. */
@@ -79,6 +87,36 @@ export type FiringSink = (firing: RuleFiring) => void;
  */
 export type SeriesCloseHook = (symbol: string, timeframe: string, anchorMs: number) => void;
 
+/**
+ * A rule that cannot produce a verdict at all, and why.
+ *
+ * Carries the rule's identity and symbol, never its conditions: a rule is Class A
+ * strategy (ADR-0001) and does not belong in a log line or a toast.
+ */
+export interface UnevaluableRule {
+  ruleId: string;
+  /**
+   * The trader's own name for the rule, for a message they have to act on.
+   *
+   * Class A means it never leaves the device — not that the trader may not be
+   * shown their own alert's name on their own screen. The log below uses the id
+   * instead, because a log line is the thing that gets copied into an issue.
+   */
+  name: string;
+  symbol: string;
+  /** Developer-facing English. A UI renders its own wording. */
+  reason: string;
+}
+
+/**
+ * Told once per rule, the first time that rule turns out to be inert.
+ *
+ * Injected rather than imported so the loop keeps its promise of touching no
+ * store: whether a trader is interrupted by this is a settings question, and
+ * settings live on the other side of `ruleLoopWiring`.
+ */
+export type UnevaluableSink = (rule: UnevaluableRule) => void;
+
 export interface RuleEvaluationLoopOptions {
   readCandles: CandleReader;
   readRules: RuleReader;
@@ -86,6 +124,8 @@ export interface RuleEvaluationLoopOptions {
   onFiring?: FiringSink;
   /** No-op by default — most callers have nothing that depends on this. */
   onClose?: SeriesCloseHook;
+  /** Defaults to `logUnevaluable`. */
+  onUnevaluable?: UnevaluableSink;
 }
 
 /**
@@ -114,12 +154,36 @@ export const shadowSink: FiringSink = ({ rule, verdict, anchorMs }) => {
   );
 };
 
+/**
+ * The default report: say it in the log and nowhere else.
+ *
+ * `error` rather than `warn` — `warn` is what shadow mode uses for the verdicts
+ * it exists to collect, and a rule that is silently inert is a different and
+ * worse thing than a rule that would have fired.
+ */
+export const logUnevaluable: UnevaluableSink = ({ ruleId, symbol, reason }) => {
+  logger.error(
+    "alerts",
+    `Rule ${ruleId} on ${symbol} cannot be evaluated and will never fire: ${reason}`,
+  );
+};
+
 export class RuleEvaluationLoop {
   private readonly highestOpenMs = new Map<string, number>();
+  /**
+   * Every rule found to be inert, keyed by rule id.
+   *
+   * A map rather than a set of ids already reported, because this is the durable
+   * half of the mechanism: a log line is a hope that somebody reads the console,
+   * whereas this can be rendered by the alert panel, asserted in a test, and
+   * counted. Reporting once falls out of it.
+   */
+  private readonly unevaluable = new Map<string, UnevaluableRule>();
   private readCandles: CandleReader = NO_CANDLES;
   private readRules: RuleReader = NO_RULES;
   private onFiring: FiringSink = shadowSink;
   private onClose: SeriesCloseHook = () => {};
+  private onUnevaluable: UnevaluableSink = logUnevaluable;
 
   constructor(options?: RuleEvaluationLoopOptions) {
     if (options) this.configure(options);
@@ -139,6 +203,18 @@ export class RuleEvaluationLoop {
     this.readRules = options.readRules;
     this.onFiring = options.onFiring ?? shadowSink;
     this.onClose = options.onClose ?? (() => {});
+    this.onUnevaluable = options.onUnevaluable ?? logUnevaluable;
+  }
+
+  /**
+   * The rules this session found inert, for a panel that wants to show them.
+   *
+   * A snapshot rather than the live map: a caller iterating this while the loop
+   * is evaluating must not see it grow underneath, and nothing outside the loop
+   * has any business editing it.
+   */
+  unevaluableRules(): UnevaluableRule[] {
+    return [...this.unevaluable.values()];
   }
 
   /**
@@ -233,7 +309,11 @@ export class RuleEvaluationLoop {
       // Read per rule, not once per series: two rules on the same trigger
       // timeframe can still read different timeframes, and the reader is the
       // only thing that knows which series each one needs.
-      const ctx = { candles: this.candlesFor(rule, symbol, timeframe) };
+      const ctx = this.contextFor(rule, symbol, timeframe);
+      // Undefined means the rule cannot be honestly evaluated at all — not that
+      // it did not fire. Skipping is the safe direction; `contextFor` has
+      // already said so out loud.
+      if (ctx === undefined) continue;
 
       const verdict = ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
       if (verdict === undefined) continue;
@@ -270,6 +350,70 @@ export class RuleEvaluationLoop {
     return candles;
   }
 
+  /**
+   * The full snapshot one rule is evaluated against.
+   *
+   * Returns `undefined` when the rule reads an indicator this path cannot
+   * compute. That case used to be invisible: the core's wire format defaults
+   * `indicators` to empty, `MarketView::indicator_at` reads a missing series as
+   * "no value", and the verdict comes back `indeterminate` — indistinguishable
+   * from an indicator that has simply not warmed up yet. An alert that can never
+   * fire looked exactly like one waiting for its fifteenth candle.
+   *
+   * So the distinction is drawn here, where the reason is still known, rather
+   * than left to a caller reading a verdict that cannot carry it.
+   */
+  private contextFor(
+    rule: RuleDocument,
+    symbol: string,
+    triggerTimeframe: string,
+  ): EvaluationContext | undefined {
+    const candles = this.candlesFor(rule, symbol, triggerTimeframe);
+    const indicators: EvaluationIndicatorSeries[] = [];
+
+    for (const request of collectIndicators(rule)) {
+      const series = computeIndicatorSeries(request, candles[request.timeframe] ?? []);
+      if (!series.supported) {
+        this.reportUnevaluable(rule, series.reason);
+        return undefined;
+      }
+      indicators.push({
+        indicator: request.indicator,
+        timeframe: request.timeframe,
+        values: series.values,
+      });
+    }
+
+    // Omitted rather than sent empty: a price-only rule should produce the same
+    // wire payload it did before this existed.
+    return indicators.length > 0 ? { candles, indicators } : { candles };
+  }
+
+  /**
+   * Record a rule as inert, and tell the sink once.
+   *
+   * The record is the part that matters and is stored first, so a sink that
+   * throws — a toast, a notification channel — cannot take the evaluation of
+   * every other rule down with it.
+   */
+  private reportUnevaluable(rule: RuleDocument, reason: string): void {
+    if (this.unevaluable.has(rule.id)) return;
+
+    const record: UnevaluableRule = {
+      ruleId: rule.id,
+      name: rule.name,
+      symbol: rule.symbol,
+      reason,
+    };
+    this.unevaluable.set(rule.id, record);
+
+    try {
+      this.onUnevaluable(record);
+    } catch (e) {
+      logger.error("alerts", "Reporting an unevaluable rule failed", e);
+    }
+  }
+
   /** Forget one series. */
   forgetSeries(symbol: string, timeframe: string): void {
     this.highestOpenMs.delete(`${symbol}:${timeframe}`);
@@ -293,6 +437,7 @@ export class RuleEvaluationLoop {
   /** Drop all series state. Used by HMR teardown and by tests. */
   reset(): void {
     this.highestOpenMs.clear();
+    this.unevaluable.clear();
   }
 }
 
