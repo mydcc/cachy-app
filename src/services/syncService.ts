@@ -176,7 +176,7 @@ export const syncService = {
     if (!settings.entitlement.isPro) return;
     const bitunixKeys = keysForActiveAccount(settings.accounts, settings.activeAccountId, "bitunix");
     // FEAT-0026. Captured before the first await and re-checked before every
-    // journal write: this routine makes three sequential REST calls with a
+    // journal write: this routine makes three concurrent REST calls with a
     // deliberate pause between kline batches, so a switch lands inside it
     // routinely rather than exceptionally.
     const session = accountSession.current();
@@ -212,62 +212,80 @@ export const syncService = {
     uiState.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
 
     try {
-      // 1. Fetch History Positions
-      const historyResponse = await appFetch("/api/sync/positions-history", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": bitunixKeys.key,
-          "X-Api-Secret": bitunixKeys.secret,
-        },
-        body: JSON.stringify({
-          limit: 500,
-        }),
-      });
+      const syncHeaders = {
+        "Content-Type": "application/json",
+        "X-Api-Key": bitunixKeys.key,
+        "X-Api-Secret": bitunixKeys.secret,
+      };
+      const fetchSync = (path: string, body: unknown) =>
+        appFetch(path, {
+          method: "POST",
+          headers: syncHeaders,
+          body: JSON.stringify(body),
+        });
+
+      // FEAT-0370 — the three endpoints are independent, so dispatch them
+      // concurrently and settle them as one batch: total sync time drops
+      // from the sum of three turnarounds to roughly the slowest single one.
+      const [historySettled, pendingSettled, ordersSettled] =
+        await Promise.allSettled([
+          // 1. History Positions
+          fetchSync("/api/sync/positions-history", { limit: 500 }),
+          // 2. Pending Positions
+          fetchSync("/api/sync/positions-pending", {}),
+          // 3. Orders
+          fetchSync("/api/sync/orders", { limit: 500 }),
+        ]);
+
+      // History is the critical endpoint: without it there is nothing to import.
+      if (historySettled.status === "rejected")
+        throw new Error("apiErrors.fetchFailed");
+      const historyResponse = historySettled.value;
       if (!historyResponse.ok) throw new Error("apiErrors.fetchFailed");
       const historyResult = await historyResponse.json();
       if (historyResult.error) throw new Error("apiErrors.fetchFailed");
       const historyPositions = historyResult.data;
 
-      // 2. Fetch Pending Positions
-      const pendingResponse = await appFetch("/api/sync/positions-pending", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": bitunixKeys.key,
-          "X-Api-Secret": bitunixKeys.secret,
-        },
-        body: JSON.stringify({}),
-      });
-      if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
-      const pendingResult = await pendingResponse.json();
-      const pendingPositions = Array.isArray(pendingResult.data)
-        ? pendingResult.data
-        : [];
-
-      // 3. Fetch Orders
-      const orderResponse = await appFetch("/api/sync/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": bitunixKeys.key,
-          "X-Api-Secret": bitunixKeys.secret,
-        },
-        body: JSON.stringify({
-          limit: 500,
-        }),
-      });
-
-      let orders: RawSyncOrder[] = [];
       let isPartialSync = false;
-      try {
-        if (!orderResponse.ok) throw new Error("apiErrors.fetchFailed");
-        const orderResult = await orderResponse.json();
-        orders = orderResult.data || [];
-      } catch (e) {
-        console.warn("Order sync failed (non-critical):", e);
-        isPartialSync = true;
-      }
+      // A non-critical endpoint degrades to an empty result instead of
+      // aborting the whole sync, so valid history trades are still imported.
+      const unwrapOptional = async (
+        settled: PromiseSettledResult<Response>,
+        label: string,
+      ): Promise<{ data?: unknown } | null> => {
+        if (settled.status === "rejected") {
+          console.warn(`${label} sync failed (non-critical):`, settled.reason);
+          isPartialSync = true;
+          return null;
+        }
+        if (!settled.value.ok) {
+          console.warn(`${label} sync failed (non-critical):`, "non-OK response");
+          isPartialSync = true;
+          return null;
+        }
+        try {
+          return (await settled.value.json()) as { data?: unknown };
+        } catch (e) {
+          console.warn(`${label} sync failed (non-critical):`, e);
+          isPartialSync = true;
+          return null;
+        }
+      };
+
+      // 2. Pending Positions (non-critical)
+      const pendingResult = await unwrapOptional(
+        pendingSettled,
+        "Pending positions",
+      );
+      const pendingPositions: RawSyncPosition[] =
+        pendingResult && Array.isArray(pendingResult.data)
+          ? (pendingResult.data as RawSyncPosition[])
+          : [];
+
+      // 3. Orders (non-critical)
+      const orderResult = await unwrapOptional(ordersSettled, "Order");
+      const orders: RawSyncOrder[] = (orderResult?.data ||
+        []) as RawSyncOrder[];
 
       // FEAT-0253 — learn this account's real maker/taker rates from the fills
       // the broker actually charged it. Awaited so the calculator has the

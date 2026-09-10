@@ -4,7 +4,7 @@
 
 311 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 42 · 🟢 ready 5 · 🟡 in-progress 1 · ✅ done 236
+Counts by status: 💡 idea 27 · 📋 specced 42 · 🟢 ready 4 · 🟡 in-progress 1 · ✅ done 237
 
 ---
 
@@ -316,7 +316,7 @@ Counts by status: 💡 idea 27 · 📋 specced 42 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | indicators |
 | [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | alerts |
 | [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | ui |
-| [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | journal |
+| [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | ✅ done | journal |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | security |
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | ✅ done | trade-panel |
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | trade-panel |
@@ -610,7 +610,7 @@ Counts by status: 💡 idea 27 · 📋 specced 42 · 🟢 ready 5 · 🟡 in-pro
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | 🟢 ready | none | community, pro, private | A | none | — |
+| [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0026](features/FEAT-0026-multi-account.md) |
 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | 🟢 ready | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
