@@ -19,7 +19,6 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import type { UpstreamApiError } from "../../../utils/server/fetchWithTimeout";
 import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/venues";
-import type { KlinePriceSource } from "../../../utils/server/venues/types";
 
 type ApiError = UpstreamApiError;
 
@@ -32,7 +31,6 @@ export const GET: RequestHandler = async ({ url }) => {
   const endParam =
     url.searchParams.get("endTime") || url.searchParams.get("end");
   const provider = url.searchParams.get("provider") || "bitunix";
-  const priceSourceParam = url.searchParams.get("priceSource");
   const limit = limitParam ? parseInt(limitParam) : 50;
   const start = startParam ? parseInt(startParam) : undefined;
   const end = endParam ? parseInt(endParam) : undefined;
@@ -41,39 +39,12 @@ export const GET: RequestHandler = async ({ url }) => {
     return json({ error: "Symbol is required" }, { status: 400 });
   }
 
-  // Only `mark` opts out of the default. An unrecognised spelling is rejected
-  // rather than treated as `last`: a caller that misspells the series it wants
-  // must not be handed the other one.
-  if (priceSourceParam !== null && priceSourceParam !== "last" && priceSourceParam !== "mark") {
-    return json(
-      { error: `Unknown priceSource "${priceSourceParam}"; expected "last" or "mark"` },
-      { status: 400 },
-    );
-  }
-  const priceSource: KlinePriceSource = priceSourceParam === "mark" ? "mark" : "last";
-
   // An unrecognised provider has always been served Bitunix data rather than
   // rejected — keeping that fallback is what makes this a refactor.
   const venue = resolveVenue(provider) ?? VENUES[DEFAULT_VENUE_ID];
 
-  // Refused, not silently downgraded. A mark-price alarm answered with
-  // last-price candles is a wrong alarm that looks like a right one.
-  if (priceSource === "mark" && !venue.supportsMarkKlines) {
-    return json(
-      { error: `${venue.id} does not serve mark-price klines` },
-      { status: 501 },
-    );
-  }
-
   try {
-    const klines = await venue.fetchKlines({
-      symbol,
-      interval,
-      limit,
-      start,
-      end,
-      priceSource,
-    });
+    const klines = await venue.fetchKlines({ symbol, interval, limit, start, end });
     return json(klines);
   } catch (e: unknown) {
     console.error(`Error fetching klines from ${provider}:`, e);

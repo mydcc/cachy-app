@@ -43,16 +43,6 @@ export type CompareOp = "lt" | "lte" | "gt" | "gte" | "eq" | "neq";
 export type CrossDirection = "above" | "below" | "any";
 export type LogicOp = "all" | "any" | "none";
 export type PriceField = "open" | "high" | "low" | "close" | "hl2" | "hlc3";
-
-/**
- * Which price series a candle is read from.
- *
- * On a perpetual the last traded price and the mark price differ, and the gap is
- * widest exactly when it matters. `last` is the default and is omitted from a
- * serialised operand, so every document written before this field existed keeps
- * its content hash — which is why FEAT-0390 needed no schema migration.
- */
-export type PriceSource = "last" | "mark";
 export type PositionSide = "long" | "short" | "either";
 export type AccountFieldName =
   | "position_size"
@@ -79,25 +69,9 @@ export interface IndicatorRef {
 }
 
 export type Operand =
-  | { kind: "price"; field: PriceField; source?: PriceSource }
+  | { kind: "price"; field: PriceField }
   | { kind: "indicator"; indicator: IndicatorRef }
-  | { kind: "constant"; value: DecimalString }
-  /**
-   * How far the price has moved, in percent, from a candle `lookback` closes
-   * earlier: `(now - then) / then * 100`.
-   *
-   * The reference is a closed candle rather than the price at arming time, so
-   * "5% over three 4h closes" means the same thing on every market and can be
-   * carried into a template. Positive for a rise and negative for a fall, so a
-   * fall is this operand against a negative threshold rather than a second
-   * variant. `lookback` must be at least 1; the core refuses 0.
-   */
-  | {
-      kind: "percent_change";
-      field: PriceField;
-      source?: PriceSource;
-      lookback: number;
-    };
+  | { kind: "constant"; value: DecimalString };
 
 export type Condition =
   | { kind: "compare"; left: Operand; op: CompareOp; right: Operand; timeframe: TimeframeString }
@@ -213,14 +187,6 @@ export interface AccountSnapshot {
 
 export interface EvaluationContext {
   candles: Record<TimeframeString, EvaluationCandle[]>;
-  /**
-   * The mark-price series, keyed the same way. Supplied only for the timeframes
-   * a rule actually reads from the mark series. A rule that names the mark price
-   * without one evaluates to `indeterminate` — the core never answers it from
-   * `candles` instead, because a mark-price alarm answered with the last price
-   * is a wrong alarm that looks like a right one.
-   */
-  mark_candles?: Record<TimeframeString, EvaluationCandle[]>;
   indicators?: EvaluationIndicatorSeries[];
   feeds?: Record<string, DecimalString>;
   account?: AccountSnapshot;

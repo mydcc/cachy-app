@@ -39,8 +39,6 @@ import type {
   IndicatorRef,
   LogicOp,
   Operand,
-  PriceField,
-  PriceSource,
   RuleDocument,
   TimeframeString,
 } from "./types";
@@ -103,60 +101,15 @@ export function formatIndicator(ref: IndicatorRef): string {
   return ref.output && ref.output !== "value" ? `${head}.${ref.output}` : head;
 }
 
-/**
- * The price a condition reads, with its series named only when it is not the
- * default. A suffix rather than a separate set of fragments, the way
- * `onTimeframe` already works: a trader reading "the close" is reading the last
- * price, and spelling that out on every leaf would add noise to the common case
- * while burying the uncommon one.
- */
-function priceName(
-  field: PriceField,
-  source: PriceSource | undefined,
-  t: SentenceTranslator,
-): string {
-  const name = t(`rules.sentence.price.${field}`);
-  return source === "mark" ? `${name}${t("rules.sentence.markSuffix")}` : name;
-}
-
-/**
- * `inPercentContext` makes a bare constant render as `5%` rather than `5`.
- *
- * Without it "the change in the close over the last 3 closes is at least 5"
- * reads as a price, which is the one misreading a percentage rule cannot
- * afford. The flag is set by the condition, which is the only level that can
- * see both operands at once.
- */
-function formatOperand(
-  operand: Operand,
-  t: SentenceTranslator,
-  inPercentContext = false,
-): string {
+function formatOperand(operand: Operand, t: SentenceTranslator): string {
   switch (operand.kind) {
     case "price":
-      return priceName(operand.field, operand.source, t);
+      return t(`rules.sentence.price.${operand.field}`);
     case "indicator":
       return formatIndicator(operand.indicator);
     case "constant":
-      return inPercentContext
-        ? t("rules.sentence.percentValue", { value: operand.value })
-        : operand.value;
-    case "percent_change":
-      return t(
-        operand.lookback === 1
-          ? "rules.sentence.percentChangeOne"
-          : "rules.sentence.percentChange",
-        {
-          price: priceName(operand.field, operand.source, t),
-          lookback: operand.lookback,
-        },
-      );
+      return operand.value;
   }
-}
-
-/** Whether either side of a condition is a percentage, so constants get a `%`. */
-function isPercentComparison(left: Operand, right: Operand): boolean {
-  return left.kind === "percent_change" || right.kind === "percent_change";
 }
 
 /**
@@ -181,24 +134,20 @@ function formatCondition(
   t: SentenceTranslator,
 ): string {
   switch (condition.kind) {
-    case "compare": {
-      const percent = isPercentComparison(condition.left, condition.right);
+    case "compare":
       return t("rules.sentence.compare", {
-        left: formatOperand(condition.left, t, percent),
+        left: formatOperand(condition.left, t),
         op: t(COMPARE_KEYS[condition.op]),
-        right: formatOperand(condition.right, t, percent),
+        right: formatOperand(condition.right, t),
         timeframe: timeframeSuffix(condition.timeframe, anchor, t),
       });
-    }
-    case "cross": {
-      const percent = isPercentComparison(condition.left, condition.right);
+    case "cross":
       return t("rules.sentence.crossing", {
-        left: formatOperand(condition.left, t, percent),
+        left: formatOperand(condition.left, t),
         direction: t(CROSS_KEYS[condition.direction]),
-        right: formatOperand(condition.right, t, percent),
+        right: formatOperand(condition.right, t),
         timeframe: timeframeSuffix(condition.timeframe, anchor, t),
       });
-    }
     case "position":
       return t(
         condition.open

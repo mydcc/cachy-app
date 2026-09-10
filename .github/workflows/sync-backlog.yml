@@ -51,13 +51,6 @@ jobs:
       # and merged via PR so the branch protection checks run normally.
       # Force-pushing to the same branch name updates any already-open PR in
       # place — at most one backlog-index PR is open per target branch at a time.
-      #
-      # Single-bot-PR: a merge with a `Fixes #N` trailer already gets a
-      # `bot/backlog-auto-done` PR carrying the flip *and* a fresh index. When
-      # that PR is open, fold the regenerated index into its branch instead of
-      # opening a second PR (routing via `scripts/lib/bot-pr-fold.ts`). The
-      # auto-done run is usually faster (no full issue sync), so poll briefly
-      # before falling back to a standalone index PR.
       - name: Regenerate and commit index via PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -65,80 +58,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          node scripts/backlog-index.mjs
+
+          if git diff --quiet -- docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json; then
+            echo "Backlog generated artifacts unchanged, nothing to commit."
+            exit 0
+          fi
+
           TARGET="${{ github.ref_name }}"
-          INDEX_BRANCH="chore/backlog-index-${TARGET}"
-          AUTO_DONE_BRANCH="bot/backlog-auto-done"
-          ARTIFACTS="docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json"
+          BRANCH="chore/backlog-index-${TARGET}"
 
-          node scripts/backlog-index.mjs
-
-          # shellcheck disable=SC2086
-          if git diff --quiet -- $ARTIFACTS; then
-            echo "Backlog generated artifacts unchanged, nothing to commit."
-            exit 0
-          fi
-
-          DECISION="create-index-pr"
-          for wait in 0 20 20; do
-            sleep "$wait"
-            AUTO_DONE_OPEN="$(gh pr list --head "$AUTO_DONE_BRANCH" --base "$TARGET" --state open --json number --jq 'length' 2>/dev/null || echo 0)"
-            INDEX_OPEN="$(gh pr list --head "$INDEX_BRANCH" --base "$TARGET" --state open --json number --jq 'length' 2>/dev/null || echo 0)"
-            DECISION="$(npx tsx scripts/lib/bot-pr-fold.ts "$AUTO_DONE_OPEN" "$INDEX_OPEN")"
-            echo "Index PR routing: $DECISION (auto-done open: $AUTO_DONE_OPEN, index open: $INDEX_OPEN)"
-            [ "$DECISION" = "fold-into-auto-done" ] && break
-          done
-
-          if [ "$DECISION" = "fold-into-auto-done" ]; then
-            echo "Auto-done PR is open — folding the fresh index into $AUTO_DONE_BRANCH instead of a second PR."
-            for attempt in 1 2 3; do
-              git fetch origin "$TARGET" "$AUTO_DONE_BRANCH" || { echo "Fetch failed, retrying..."; sleep 5; continue; }
-              git checkout -B "$AUTO_DONE_BRANCH" "origin/$AUTO_DONE_BRANCH" || { echo "Checkout failed, retrying..."; sleep 5; continue; }
-              # Fold onto the current tip so a push that landed mid-run does
-              # not produce a stale index. On conflict, abort the merge and
-              # fall back to a standalone index PR rather than guessing.
-              if ! git merge "origin/$TARGET" -m "chore(backlog): merge $TARGET into $AUTO_DONE_BRANCH for fresh index"; then
-                git merge --abort || true
-                echo "Bot branch diverged, falling back to standalone index PR."
-                DECISION="create-index-pr"
-                break
-              fi
-              node scripts/backlog-index.mjs
-              # shellcheck disable=SC2086
-              if git diff --quiet -- $ARTIFACTS; then
-                echo "Index already fresh on the auto-done branch, nothing to fold."
-                exit 0
-              fi
-              # shellcheck disable=SC2086
-              if git add $ARTIFACTS \
-                && git commit -m "chore(backlog): regenerate INDEX.md and backlog artifacts" \
-                && git push origin "$AUTO_DONE_BRANCH" --force-with-lease; then
-                exit 0
-              fi
-              echo "Fold-in attempt $attempt failed, retrying..."
-              sleep 5
-            done
-            # Reaching here means the fold did not land (push races or a
-            # diverged branch) — fall through to a standalone index PR below.
-            # The checkout there resets to a clean base, so no half-folded
-            # state leaks into the new branch.
-          fi
-
-          BRANCH="$INDEX_BRANCH"
-
-          git checkout -B "$BRANCH" "origin/$TARGET"
-          node scripts/backlog-index.mjs
-          # shellcheck disable=SC2086
-          if git diff --quiet -- $ARTIFACTS; then
-            echo "Backlog generated artifacts unchanged, nothing to commit."
-            exit 0
-          fi
-          # shellcheck disable=SC2086
-          git add $ARTIFACTS
+          git checkout -b "$BRANCH"
+          git add docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json
           git commit -m "chore(backlog): regenerate INDEX.md and backlog artifacts"
           git push origin "$BRANCH" --force
 
-          # Open the PR directly (not draft) only if none exists yet —
-          # force-push keeps existing PRs up to date.
+          # Open a PR only if none exists yet — force-push keeps existing PRs up to date.
           if ! gh pr view "$BRANCH" --json number -q .number 2>/dev/null; then
             gh pr create \
               --title "chore(backlog): regenerate INDEX.md" \

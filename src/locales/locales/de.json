@@ -360,21 +360,6 @@
         "armed": "Alarm scharf geschaltet.",
         "armDisabled": "Füge zuerst eine Bedingung hinzu.",
         "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu."
-      },
-      "price": {
-        "conditionType": "Bedingung",
-        "risesAbove": "Steigt über",
-        "fallsBelow": "Fällt unter",
-        "riseReaches": "Anstieg erreicht",
-        "fallReaches": "Rückgang erreicht",
-        "priceLabel": "Preis",
-        "percentLabel": "Prozent",
-        "lookbackLabel": "Gemessen über",
-        "lookbackHint": "Wie viele geschlossene Candles zurück der Bezugspunkt liegt.",
-        "seriesLabel": "Preisserie",
-        "seriesLast": "Last-Preis",
-        "seriesMark": "Mark-Preis",
-        "seriesHint": "Der Mark-Preis bestimmt Liquidation und unrealisierten PnL und kann vom zuletzt gehandelten Preis abweichen."
       }
     },
     "generalInputs": {
@@ -3783,12 +3768,7 @@
   "chartView": {
     "loadingHistory": "LADE HISTORIE ...",
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
-    "countdownLabel": "Countdown bis zur Kerzenschließung",
-    "alert": {
-      "regionLabel": "Kurschart für {symbol}. Kontextmenü-Taste drücken, um einen Alarm anzulegen.",
-      "menuLabel": "Chart-Alarm",
-      "here": "Alarm hier — {price}"
-    }
+    "countdownLabel": "Countdown bis zur Kerzenschließung"
   },
   "chart": {
     "pane": {
@@ -3818,8 +3798,7 @@
       "migrationNotPossible": "Die Regel lässt sich nicht bedeutungserhaltend auf die aktuelle Schema-Version übertragen und wird abgelehnt, statt umgedeutet zu werden.",
       "emptyConditionTree": "Eine Gruppe ohne Bedingungen hat keinen Wahrheitswert.",
       "conditionTreeTooDeep": "Die Bedingungen sind zu tief verschachtelt.",
-      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet.",
-      "invalidLookback": "Eine prozentuale Bewegung braucht einen früheren Candle als Bezugspunkt."
+      "duplicateConditionId": "Dieselbe Bedingungs-Kennung wird zweimal verwendet."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
@@ -3827,10 +3806,6 @@
       "empty": "(noch keine Bedingung)",
       "negate": "nicht {condition}",
       "onTimeframe": " (auf {timeframe})",
-      "markSuffix": " (Mark-Preis)",
-      "percentValue": "{value} %",
-      "percentChange": "die Veränderung von {price} über die letzten {lookback} Schlusskurse",
-      "percentChangeOne": "die Veränderung von {price} seit dem vorherigen Schlusskurs",
       "compare": "{left} {op} {right}{timeframe}",
       "crossing": "{left} {direction} {right}{timeframe}",
       "lead": {

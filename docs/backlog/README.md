@@ -8,16 +8,9 @@ commit message, a branch name, a test comment or another item can point at it
 permanently.
 
 - **Index of everything:** [`INDEX.md`](INDEX.md) — generated, never edited by
-  hand, and never committed by a PR either. After merge, CI puts the fresh
-  index on the bot branch: a merge with a `Fixes #N` trailer flips the item
-  to `done` and regenerates the index in the same `bot/backlog-auto-done`
-  PR, so there is exactly one bot PR per merge
-  (`.github/workflows/backlog-auto-done.yml`,
-  `scripts/backlog-auto-done.mjs`). Only merges without a linked backlog
-  item still get a standalone `chore/backlog-index-*` PR from
-  `.github/workflows/sync-backlog.yml` — and if the auto-done PR is already
-  open, the sync folds its index into that branch instead
-  (`scripts/lib/bot-pr-fold.ts`). Do not run `npm run backlog:index`
+  hand, and never committed by a PR either. CI regenerates and commits it
+  directly to `develop`/`main` after merge
+  (`.github/workflows/sync-backlog.yml`); do not run `npm run backlog:index`
   and commit the result yourself — two of its lines (item counts, next free
   number) change on every regeneration regardless of which item you touched,
   which is a guaranteed merge conflict the moment a second backlog PR is in
@@ -56,7 +49,7 @@ backlog/
   ideas/IDEA-NNNN-short-slug.md
   templates/
   assets/FEAT-NNNN/ # optional: our own wireframes and diagrams for one item
-  INDEX.md          # generated; maintained by CI on the bot branch after merge, never in a PR
+  INDEX.md          # generated; committed only by CI after merge, never in a PR
 ```
 
 Numbers are shared across all three types — there is no `FEAT-0001` and
@@ -203,8 +196,8 @@ reproducing test first.
    stale claim. See "Agent Lifecycle" in `AGENTS.md`.
 
 Do not run `npm run backlog:index` and commit `INDEX.md` yourself — CI
-folds the fresh index into the auto-done PR after your PR merges (see
-"Index of everything" above). Your PR only ever touches your own item file(s).
+regenerates and commits it after your PR merges (see "Index of everything"
+above). Your PR only ever touches your own item file(s).
 
 **Do not silently change scope.** If the item is wrong, say so in the item and
 ask — an item that turned out to be a bad idea is a useful finding. If it is

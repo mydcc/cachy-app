@@ -100,14 +100,10 @@ let rootElement: HTMLElement | null = null;
     const TIMEFRAMES: TimeframeString[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
 
     /** Fields the shell renders a control for, and can therefore anchor a
-     *  refusal against. Anything else falls to `unclaimedRefusals` below.
-     *
-     *  `conditions` is deliberately NOT here, even though FEAT-0390's Price tab
-     *  now anchors those refusals inline. A builder tab only renders while it is
-     *  the open one -- a trader sitting on Manage with a refused condition would
-     *  otherwise see nothing at all, which is the BUG-0382 shape this catch-all
-     *  exists to prevent. Showing it in both places is the cheaper mistake. */
+     *  refusal against. Anything else falls to `unclaimedRefusals` below. */
     const SHELL_FIELDS = ["symbol", "trigger_timeframe"] as const;
+
+    let priceSource = $state<PriceField>("close");
 
     let TabComponent = $state<Component<{ symbol: string }> | null>(null);
     let tabLoadFailed = $state(false);
@@ -246,7 +242,7 @@ let rootElement: HTMLElement | null = null;
 
         <label class="field">
             <span class="field-label">{$_("dashboard.alerts.panel.priceSource")}</span>
-            <select class="field-input" bind:value={alertPanelState.priceField}>
+            <select class="field-input" bind:value={priceSource}>
                 {#each PRICE_FIELDS as field (field)}
                     <option value={field}>{$_(PRICE_FIELD_KEYS[field])}</option>
                 {/each}

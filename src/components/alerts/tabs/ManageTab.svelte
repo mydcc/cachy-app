@@ -20,10 +20,10 @@
   and the two cutover notices, moved across from AlertDefinitionsModal with
   their behaviour unchanged.
 
-  The quick-add form has left: FEAT-0390's Price tab now builds price
-  conditions, so the stop-gap that kept the panel usable while it was still a
-  placeholder has nothing left to do. This tab lists and manages; it does not
-  author.
+  The quick-add form comes along deliberately. The builder tabs are separate
+  items (FEAT-0390 owns price conditions), and shipping the panel without any
+  way to arm an alarm would be a regression dressed as a redesign. It leaves
+  when the Price tab lands, not before.
 
   The engine-failed banner is NOT here: it belongs to the shell, so it stays on
   screen whichever tab is open. A banner that disappears when the trader
@@ -33,15 +33,15 @@
 <script lang="ts">
     import { alertState } from "../../../stores/alerts.svelte";
     import { _ } from "../../../locales/i18n";
+    import { generateId } from "../../../utils/utils";
     import {
         acknowledgeCutoverNotice,
         shouldShowCutoverNotice,
     } from "../../../services/alertEngine/cutoverNotice";
+    import { uiState } from "../../../stores/ui.svelte";
+    import { untrack } from "svelte";
 
-    // Declared to satisfy the shell's tab contract, unused since the quick-add
-    // form left: this tab lists armed rules, which it reads from the store
-    // rather than from the header's symbol.
-    let { symbol: _symbol }: { symbol?: string } = $props();
+    let { symbol = "BTCUSDT" }: { symbol?: string } = $props();
 
     let listTab = $state<"active" | "history">("active");
 
@@ -58,6 +58,11 @@
         showCutoverNotice = false;
     }
 
+    // Seeded from the panel header once, then the trader's to edit. untrack()
+    // states that on purpose: re-seeding on every header keystroke would
+    // overwrite a symbol they had already typed here.
+    let newAlertSymbol = $state(untrack(() => symbol));
+    let newAlertPrice = $state("");
 
     let activeAlerts = $derived(alertState.definitions.filter((a) => a.active));
     let historyAlerts = $derived(alertState.definitions.filter((a) => !a.active));
@@ -72,6 +77,17 @@
         return JSON.stringify(condition);
     }
 
+    function createAlert() {
+        if (!newAlertPrice || isNaN(Number(newAlertPrice))) return;
+        alertState.addAlert({
+            id: generateId(),
+            symbol: newAlertSymbol,
+            condition: { price_reached: newAlertPrice.toString() },
+            active: true,
+        });
+        newAlertPrice = "";
+        uiState.showToast($_("dashboard.alerts.createSuccess"), "success");
+    }
 </script>
 
 <!--
@@ -116,6 +132,29 @@
         {/if}
     </div>
 {/if}
+
+<div class="alert-form">
+    <h4>{$_("dashboard.alerts.addAlert")}</h4>
+    <div class="input-group">
+        <input
+            type="text"
+            bind:value={newAlertSymbol}
+            placeholder={$_("dashboard.alerts.symbol")}
+            aria-label={$_("dashboard.alerts.symbol")}
+            class="form-input"
+        />
+        <input
+            type="number"
+            bind:value={newAlertPrice}
+            placeholder={$_("dashboard.alerts.priceLimit")}
+            aria-label={$_("dashboard.alerts.priceLimit")}
+            class="form-input"
+        />
+        <button class="add-btn" aria-label={$_("dashboard.alerts.addAlert")} onclick={createAlert}>
+            +
+        </button>
+    </div>
+</div>
 
 <div class="list-tabs" role="tablist">
     <button
@@ -202,6 +241,40 @@
     }
     .cutover-dismiss:hover {
         background: var(--bg-tertiary, var(--bg-secondary));
+    }
+    .alert-form {
+        margin-bottom: var(--space-4);
+        padding: var(--space-3);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-color);
+    }
+    .alert-form h4 {
+        margin: 0 0 var(--space-2) 0;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+    .input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .form-input {
+        flex: 1;
+        min-width: 0;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: var(--space-2);
+        border-radius: var(--radius-sm);
+    }
+    .add-btn {
+        background: var(--accent-color);
+        color: var(--bg-primary);
+        border: none;
+        padding: 0 var(--space-4);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-weight: var(--font-bold);
     }
     .list-tabs {
         display: flex;

@@ -103,11 +103,6 @@ pub enum RefusalCode {
     /// The same condition identifier used twice, which makes an evaluation trace
     /// ambiguous about which condition fired.
     DuplicateConditionId,
-    /// A percentage-move operand whose reference is not a real earlier candle.
-    /// A lookback of zero measures a candle against itself, which is always
-    /// zero percent — a rule that can never fire rather than one that is merely
-    /// wrong, so it is refused at authoring time instead of at evaluation.
-    InvalidLookback,
 }
 
 impl RefusalCode {
@@ -144,7 +139,6 @@ impl RefusalCode {
             Self::EmptyConditionTree => "emptyConditionTree",
             Self::ConditionTreeTooDeep => "conditionTreeTooDeep",
             Self::DuplicateConditionId => "duplicateConditionId",
-            Self::InvalidLookback => "invalidLookback",
         }
     }
 }

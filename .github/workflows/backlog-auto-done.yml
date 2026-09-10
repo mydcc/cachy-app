@@ -4,11 +4,6 @@ name: Backlog Auto-Done on Merge
 # done-PR is needed anymore. Counterpart to sync-backlog.yml (which only
 # syncs file -> issue, never back).
 #
-# Single-bot-PR: the flip commit also carries a freshly regenerated index,
-# so one merge produces exactly one bot PR. The sync workflow folds into
-# this branch instead of opening a second `chore/backlog-index-*` PR
-# (routing via `scripts/lib/bot-pr-fold.ts`).
-#
 # Safety, by construction:
 #   - only runs for PRs merged into develop (condition below)
 #   - only honors the enforced `Fixes #N` trailer at a line start

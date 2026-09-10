@@ -1522,25 +1522,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0426-stateful-technicals-f64.md"
   },
   {
-    "id": "BUG-0429",
-    "title": "Backlog sync reopens freshly closed issues before the auto-done flip lands",
-    "type": "bug",
-    "status": "done",
-    "assignee": "opencode",
-    "priority": "P1",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "repo",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0429-sync-reopens-freshly-closed-issues.md"
-  },
-  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -5122,9 +5103,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0390",
     "title": "Price alert conditions beyond a single target",
     "type": "feature",
-    "status": "done",
-    "assignee": "claude",
-    "branch": "claude/super-alert-next-task-mpte57",
+    "status": "specced",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5138,8 +5117,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0389"
     ],
-    "size": "L",
-    "estimate": "8",
+    "size": "S",
+    "estimate": "3",
     "file": "features/FEAT-0390-price-alert-conditions.md"
   },
   {

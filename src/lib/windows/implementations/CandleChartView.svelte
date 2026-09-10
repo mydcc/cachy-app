@@ -60,13 +60,6 @@
         type TpSlKind,
     } from "../../../services/chart/priceLineManager";
     import type { WindowBase } from "../WindowBase.svelte";
-    // FEAT-0395 -- creating an alert from the chart.
-    import { conditionFromChartClick, ruleTimeframeFor } from "../../alerts/chartAlertSeed";
-    import { openAlertPanelWith } from "../../alerts/openAlertPanel";
-    import {
-        alertPanelState,
-        DEFAULT_RULE_TIMEFRAME,
-    } from "../../../stores/alertPanel.svelte";
 
     interface Props {
         symbol: string;
@@ -113,139 +106,6 @@
     let chartContainer: HTMLElement | null = $state(null);
     let chart: IChartApi | null = $state(null);
     let candleSeries: ISeriesApi<"Candlestick"> | null = $state(null);
-
-    /*
-     * FEAT-0395 -- "Alert here".
-     *
-     * The information an alarm needs is already under the cursor: the symbol is
-     * the chart's, and the level is the price the trader just pointed at. The
-     * menu only carries it into the panel -- it arms nothing, which is why
-     * there is no confirm step here and a full one there.
-     *
-     * Coordinates are container-local, so the menu follows the chart when the
-     * window moves rather than being pinned to the viewport.
-     */
-    let alertMenu = $state<{ x: number; y: number; price: number } | null>(null);
-    let alertMenuItem: HTMLButtonElement | null = $state(null);
-
-    /** Decimals the price axis is currently showing. */
-    function priceDecimals(): number {
-        return resolveChartPriceDecimals(
-            settingsState.chartDecimalsMode,
-            settingsState.chartFixedDecimals,
-            marketState?.symbolMeta?.[normalizeSymbol(symbol, "bitunix")]?.quotePrecision,
-        );
-    }
-
-    /** The last close the chart has, or null before any candle arrived. */
-    function lastChartPrice(): number | null {
-        const klines =
-            marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines?.[timeframe];
-        const last = klines?.[klines.length - 1];
-        if (!last) return null;
-        const close = Number(last.close);
-        return Number.isFinite(close) ? close : null;
-    }
-
-    function closeAlertMenu(refocus = false) {
-        alertMenu = null;
-        if (refocus) chartContainer?.focus();
-    }
-
-    /**
-     * Opens the menu for a price, at a point inside the chart.
-     *
-     * Refuses rather than opening on a price the series could not resolve --
-     * before the first candle, or on a click outside the plot area. A menu
-     * offering an alarm on `NaN` is worse than no menu.
-     */
-    function openAlertMenu(localX: number, localY: number, price: number | null) {
-        if (price === null || !Number.isFinite(price) || price <= 0) return;
-        alertMenu = { x: localX, y: localY, price };
-    }
-
-    /** Right-click anywhere on the chart, price scale included. */
-    function handleChartContextMenu(event: MouseEvent) {
-        if (!candleSeries || !chartContainer) return;
-        event.preventDefault();
-        const rect = chartContainer.getBoundingClientRect();
-        const localY = event.clientY - rect.top;
-        // coordinateToPrice() returns null outside the price scale's range;
-        // on the price scale itself it still answers, which is what makes
-        // right-clicking the axis work without a second code path.
-        const price = candleSeries.coordinateToPrice(localY);
-        openAlertMenu(
-            event.clientX - rect.left,
-            localY,
-            typeof price === "number" ? price : null,
-        );
-    }
-
-    /**
-     * The keyboard route to the same menu.
-     *
-     * `ContextMenu` and `Shift+F10` are what a keyboard user presses for a
-     * context menu everywhere else, so the chart answers them too rather than
-     * inventing a shortcut nobody would guess. With no cursor to read a price
-     * from, the menu opens on the last price -- the level a trader means when
-     * they have not pointed at another one -- anchored at that price line.
-     */
-    function handleChartKeydown(event: KeyboardEvent) {
-        if (event.key === "Escape" && alertMenu) {
-            event.stopPropagation();
-            closeAlertMenu(true);
-            return;
-        }
-        const wantsMenu =
-            event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
-        if (!wantsMenu || !candleSeries) return;
-        event.preventDefault();
-        const price = lastChartPrice();
-        if (price === null) return;
-        const y = candleSeries.priceToCoordinate(price);
-        openAlertMenu(12, typeof y === "number" ? y : 12, price);
-    }
-
-    /**
-     * Hands the clicked level to the panel and closes the menu.
-     *
-     * The condition is built the way the Price tab builds it, so a
-     * right-clicked alarm and a typed one are the same document. The chart's
-     * own timeframe travels with it where the rule schema accepts that
-     * spelling -- a monthly chart does not, and falls back to the panel's
-     * default rather than seeding a rule the core would refuse.
-     */
-    function armAlertFromMenu() {
-        const menu = alertMenu;
-        if (!menu) return;
-        const tf = ruleTimeframeFor(timeframe) ?? DEFAULT_RULE_TIMEFRAME;
-        const condition = conditionFromChartClick({
-            clickedPrice: menu.price,
-            lastPrice: lastChartPrice(),
-            decimals: priceDecimals(),
-            timeframe: tf,
-            field: alertPanelState.priceField,
-            source: alertPanelState.priceSeries,
-        });
-        closeAlertMenu();
-        openAlertPanelWith({
-            symbol: normalizeSymbol(symbol, "bitunix"),
-            tab: "price",
-            condition,
-            timeframe: tf,
-        });
-    }
-
-    /** The level as the price axis spells it, for the menu label. */
-    let alertMenuPriceLabel = $derived(
-        alertMenu === null
-            ? ""
-            : new Decimal(alertMenu.price).toFixed(priceDecimals()),
-    );
-
-    $effect(() => {
-        if (alertMenu) alertMenuItem?.focus();
-    });
 
     // Indicator Layer (overlays + sub-panes; replaces the old EMA series trio)
     let indicatorLayer: IndicatorLayer | null = null;
@@ -1154,58 +1014,10 @@
         </div>
     {/if}
 
-    <!--
-      role="application" + tabindex: the chart is a canvas, so a keyboard user
-      has nothing to tab to and no way to reach the context menu (FEAT-0395).
-      The role tells a screen reader to pass keys through instead of reading
-      the region, which is what makes ContextMenu/Shift+F10 arrive here at all.
-    -->
-    <!--
-      The two a11y rules suppressed below assume a document element a screen
-      reader should read. This one wraps a canvas: without a tab stop and key
-      handlers there is no keyboard route to the context menu at all, which
-      fails the harder accessibility test of the two.
-    -->
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         bind:this={chartContainer}
         class="chart-container flex-1 min-h-0 w-full relative"
-        role="application"
-        tabindex="0"
-        aria-label={$_("chartView.alert.regionLabel", { values: { symbol } })}
-        oncontextmenu={handleChartContextMenu}
-        onkeydown={handleChartKeydown}
     >
-        {#if alertMenu}
-            <!--
-              Closes on any pointer press that is not the menu item itself, the
-              way a native context menu does; Escape and focus loss close it too
-              (handleChartKeydown / onfocusout), so it cannot be left hanging
-              over the chart it exists to keep readable.
-            -->
-            <div
-                class="absolute z-40 min-w-[10rem]"
-                style="left: {alertMenu.x}px; top: {alertMenu.y}px;"
-                role="menu"
-                aria-label={$_("chartView.alert.menuLabel")}
-                onfocusout={(e) => {
-                    if (!e.currentTarget.contains(e.relatedTarget as Node)) closeAlertMenu();
-                }}
-            >
-                <button
-                    bind:this={alertMenuItem}
-                    type="button"
-                    role="menuitem"
-                    class="w-full text-left px-3 py-1.5 text-xs rounded-md shadow-lg cursor-pointer bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-                    onclick={armAlertFromMenu}
-                >
-                    {$_("chartView.alert.here", {
-                        values: { price: alertMenuPriceLabel },
-                    })}
-                </button>
-            </div>
-        {/if}
         {#if settingsState.chartWatermark}
             <!-- Painted before the chart mounts, so the canvas stacks above it
                  naturally; pointer-events-none keeps scroll/zoom untouched. -->
