@@ -2,9 +2,7 @@
 id: FEAT-0370
 title: Parallelize REST API requests in Bitunix positions synchronization
 type: feature
-status: done
-assignee: opencode
-branch: feat/FEAT-0370-parallel-bitunix-sync
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -56,10 +54,10 @@ Each network turnaround takes approximately 200–500ms depending on network lat
 
 ## Acceptance criteria
 
-- [x] History, pending positions, and orders requests are dispatched concurrently in parallel.
-- [x] Overall synchronization duration is reduced by at least 40% on identical network conditions.
-- [x] If one non-critical endpoint fails (e.g. pending positions), valid history trades are still imported.
-- [x] No regression in trade deduplication, schema validation, or Local-First Class A storage boundaries.
+- [ ] History, pending positions, and orders requests are dispatched concurrently in parallel.
+- [ ] Overall synchronization duration is reduced by at least 40% on identical network conditions.
+- [ ] If one non-critical endpoint fails (e.g. pending positions), valid history trades are still imported.
+- [ ] No regression in trade deduplication, schema validation, or Local-First Class A storage boundaries.
 
 ## Out of scope
 

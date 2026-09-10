@@ -51,12 +51,6 @@
   let wsData = $derived(symbol ? marketState.data[symbol] : null);
   let data: TechnicalsData | null = $derived(wsData?.technicals?.[timeframe] ?? null);
 
-  // Cached pivots transformation: only recomputed when data.pivots changes,
-  // not on unrelated template re-renders (AGENTS.md performance rule).
-  let pivotsArray = $derived(
-    data?.pivots ? TechnicalsPresenter.getPivotsArray(data.pivots) : [],
-  );
-
   // We can infer "loading" if we have a symbol but no data yet
   let loading = $derived(showPanel && symbol && !data);
   let error: string | null = $state(null);
@@ -440,7 +434,7 @@
                 {$_("settings.technicals.pivotsTitle") || "Pivot Points"}
               </div>
               <div class="grid grid-cols-1 gap-y-0.5">
-                {#each pivotsArray as pivot (pivot.label)}
+                {#each TechnicalsPresenter.getPivotsArray(data.pivots) as pivot}
                   <div
                     class="flex justify-between text-xs py-0.5 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
                   >

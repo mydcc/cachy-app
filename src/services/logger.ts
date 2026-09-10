@@ -76,16 +76,16 @@ class LoggerService {
         const style = this.getStyle(category);
 
         if (data !== undefined) {
-            console.log(`%c${prefix} ${message}`, style, data);
+            console.log("%c%s %s", style, prefix, message, data);
         } else {
-            console.log(`%c${prefix} ${message}`, style);
+            console.log("%c%s %s", style, prefix, message);
         }
     }
 
     warn(category: LogCategory, message: string, data?: unknown, force = false) {
         if (!this.isEnabled(category, force)) return;
         const prefix = `[${category.toUpperCase()}]`;
-        console.warn(`${prefix} ${message}`, data || "");
+        console.warn("%s %s", prefix, message, data || "");
     }
 
     error(category: LogCategory, message: string, error?: unknown, options: LogOptions | boolean = true) {
@@ -100,7 +100,7 @@ class LoggerService {
         // Console output logic
         if (!silent && this.isEnabled(category, force)) {
             const prefix = `[${category.toUpperCase()}]`;
-            console.error(`${prefix} ${message}`, error || "");
+            console.error("%s %s", prefix, message, error || "");
         }
 
         // Toast logic

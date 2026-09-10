@@ -64,7 +64,7 @@ describe('LoggerService', () => {
 
     it('should log error to console when category enabled', () => {
         logger.error('general', 'Test error');
-        expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[GENERAL] Test error'), '');
+        expect(consoleErrorSpy).toHaveBeenCalledWith('%s %s', '[GENERAL]', 'Test error', '');
     });
 
     it('should support legacy boolean force parameter', () => {
