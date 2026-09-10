@@ -123,8 +123,31 @@ check stood in for a numeric one. Covering it needs a browser and belongs in
 Playwright. Until then criterion 4 is met for two of the three paths, and this
 is the documented discrepancy the criterion allows rather than a silent gap.
 
-Still open: the WebGPU leg of criterion 4, no-double-fire on a corrected candle
-(criterion 3), and the three schema gaps above.
+### No double-fire on a corrected candle (criterion 3)
+
+The defence turned out to be two layers, and only one of them held.
+
+`RuleEvaluationLoop.advance` already blocks a candle revised **in place**: it
+only yields an anchor when a strictly later open time appears, so a correction
+carrying the same open time is not an event. That path was safe.
+
+`RuleEvaluationGate` was not. It compared the incoming anchor to the last one
+with `===`, which dedupes the ticks inside one candle and nothing else — *any*
+anchor that was not exactly the previous one passed. A reconnect clears the
+loop's high-water mark (`forgetSeries`), the store refills the series, and
+evaluation resumes from candles already decided: every one of them fired again.
+Changed to reject any anchor at or before the last decided one, which makes the
+class impossible rather than making one path careful. An edit or a disarm calls
+`forget`, which is the only legitimate way to decide an anchor twice.
+
+Covered by `ruleEvaluationGate.test.ts` (correction in place, replay after
+reconnect, moving on afterwards, retry after a failed evaluation, `forget`) and
+end to end against real wasm in `correctedCandle.integration.test.ts` — which
+also pins the other half: suppressing the duplicate must not suppress the
+*effect*, so the candles after a correction are still decided on the corrected
+series. Three of those tests fail if the guard is reverted.
+
+Still open: the WebGPU leg of criterion 4, and the three schema gaps above.
 
 ## Links
 
