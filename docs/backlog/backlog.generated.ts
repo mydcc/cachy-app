@@ -1471,7 +1471,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0424",
     "title": "Financial values in Bitunix validation schemas allow f64 numbers",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -5935,6 +5935,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md"
+  },
+  {
+    "id": "BUG-0433",
+    "title": "Raw leverage fields in Zod schemas accept native numbers",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "backend",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0433-leverage-f64-schemas.md"
   },
   {
     "id": "FEAT-0022",

@@ -40,15 +40,16 @@ export const StrictPriceDataSchema = z.object({
 
 /**
  * Schema for Bitunix Ticker Data
+ * (BUG-0424: money fields go through SafeString like the strict variant)
  */
 export const BitunixTickerDataSchema = z.object({
-  la: z.union([z.string(), z.number()]).optional(), // Last Price
-  o: z.union([z.string(), z.number()]).optional(), // Open
-  h: z.union([z.string(), z.number()]).optional(), // High
-  l: z.union([z.string(), z.number()]).optional(), // Low
-  b: z.union([z.string(), z.number()]).optional(), // Base Volume
-  q: z.union([z.string(), z.number()]).optional(), // Quote Volume
-  r: z.union([z.string(), z.number()]).optional(), // Change Rate
+  la: SafeString.optional(), // Last Price
+  o: SafeString.optional(), // Open
+  h: SafeString.optional(), // High
+  l: SafeString.optional(), // Low
+  b: SafeString.optional(), // Base Volume
+  q: SafeString.optional(), // Quote Volume
+  r: SafeString.optional(), // Change Rate
 });
 
 /**
@@ -91,11 +92,11 @@ export const BitunixOrderSchema = z.object({
   side: z.string().optional(),
   type: z.string().optional(),
   orderStatus: z.string(),
-  price: z.union([z.string(), z.number()]).optional(),
-  qty: z.union([z.string(), z.number()]).optional(),
-  amount: z.union([z.string(), z.number()]).optional(),
-  dealAmount: z.union([z.string(), z.number()]).optional(),
-  ctime: z.union([z.string(), z.number()]).optional(),
+  price: SafeString.optional(),
+  qty: SafeString.optional(),
+  amount: SafeString.optional(),
+  dealAmount: SafeString.optional(),
+  ctime: z.union([z.string(), z.number()]).optional(), // timestamp, not money
 }).passthrough(); // Allow other fields
 
 /**
@@ -106,18 +107,18 @@ export const BitunixPositionSchema = z.object({
   side: z.string().optional(),
   positionSide: z.string().optional(),
   holdSide: z.string().optional(),
-  qty: z.union([z.string(), z.number()]).optional(),
-  size: z.union([z.string(), z.number()]).optional(),
-  amount: z.union([z.string(), z.number()]).optional(),
-  averagePrice: z.union([z.string(), z.number()]).optional(),
-  avgOpenPrice: z.union([z.string(), z.number()]).optional(),
-  entryPrice: z.union([z.string(), z.number()]).optional(),
-  unrealizedPNL: z.union([z.string(), z.number()]).optional(),
-  unrealizedPnl: z.union([z.string(), z.number()]).optional(),
-  leverage: z.union([z.string(), z.number()]).optional(),
+  qty: SafeString.optional(),
+  size: SafeString.optional(),
+  amount: SafeString.optional(),
+  averagePrice: SafeString.optional(),
+  avgOpenPrice: SafeString.optional(),
+  entryPrice: SafeString.optional(),
+  unrealizedPNL: SafeString.optional(),
+  unrealizedPnl: SafeString.optional(),
+  leverage: SafeString.optional(),
   marginMode: z.string().optional(),
-  liquidationPrice: z.union([z.string(), z.number()]).optional(),
-  liqPrice: z.union([z.string(), z.number()]).optional(),
+  liquidationPrice: SafeString.optional(),
+  liqPrice: SafeString.optional(),
   event: z.string().optional(),
 }).passthrough();
 
