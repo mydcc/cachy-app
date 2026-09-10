@@ -18,20 +18,23 @@
 /**
  * Markdown text helpers for the PR-description checks.
  *
- * GitHub does not autolink issue references inside fenced code blocks, so the
- * lint must not either: a PR that quotes a description it is reporting on must
- * not have the quoted `Fixes #N` read as its own trailer (BUG-0431).
+ * GitHub does not autolink issue references inside code — neither fenced
+ * blocks nor four-space-indented code — so the lint must not either: a PR that
+ * quotes a description it is reporting on must not have the quoted `Fixes #N`
+ * read as its own trailer (BUG-0431).
  */
 
 /**
- * Remove fenced code blocks (``` or ~~~) from `text`.
+ * Remove code blocks from `text`: fenced (``` or ~~~) and indented (a tab or
+ * four leading spaces).
  *
  * A fence line may carry an info string (```ts) on opening; the closing fence
  * must use the same character, at least as many of them as the opener, and
  * carry nothing else. An unterminated fence is stripped to the end of the
- * text: a quote the author forgot to close is still a quote, not a declaration.
+ * text: a quote the author forgot to close is still a quote, not a
+ * declaration.
  */
-export function stripFencedCodeBlocks(text: string): string {
+export function stripCodeBlocks(text: string): string {
     const lines = text.split("\n");
     const kept: string[] = [];
     let open: { char: string; length: number } | null = null;
@@ -42,6 +45,7 @@ export function stripFencedCodeBlocks(text: string): string {
                 open = { char: fence[1][0], length: fence[1].length };
                 continue;
             }
+            if (/^(\t| {4,})/.test(line)) continue;
             kept.push(line);
             continue;
         }

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { stripFencedCodeBlocks } from "./markdown-text";
+import { stripCodeBlocks } from "./markdown-text";
 import { TERMINAL_STATUSES } from "./backlog-flip";
 
 /**
@@ -78,7 +78,7 @@ export function mentionsBacklogId(text: string | null | undefined, id: string): 
  */
 export function closingReferences(body: string | null | undefined): number[] {
     if (!body) return [];
-    const scanned = stripFencedCodeBlocks(body);
+    const scanned = stripCodeBlocks(body);
     const pattern = new RegExp(`(?:${CLOSING_KEYWORD})\\s+#(\\d+)`, "gi");
     const found: number[] = [];
     for (const match of scanned.matchAll(pattern)) {

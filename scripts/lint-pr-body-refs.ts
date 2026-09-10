@@ -106,12 +106,17 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
             const idLabel = labels.find((name) => name.startsWith("backlog-id:"));
             if (!idLabel) return { isBacklogMirror: false, itemId: null, baseStatus: null };
             const itemId = idLabel.slice("backlog-id:".length);
-            const tree = git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]) ?? "";
+            // A git failure (missing base ref, shallow checkout) is a tooling
+            // flake like an unreadable label: fail open rather than decline a
+            // trailer we merely could not verify. A genuinely missing item
+            // file is different — the flip gate fails on that, so decline.
+            const tree = git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]);
+            if (tree === null) return null;
             const itemFile = findItemFile(tree.split("\n"), itemId);
-            const baseStatus = itemFile
-                ? readStatus(git(["show", `${base}:${itemFile}`]) ?? "")
-                : null;
-            return { isBacklogMirror: true, itemId, baseStatus };
+            if (itemFile === null) return { isBacklogMirror: true, itemId, baseStatus: null };
+            const content = git(["show", `${base}:${itemFile}`]);
+            if (content === null) return null;
+            return { isBacklogMirror: true, itemId, baseStatus: readStatus(content) };
         },
     });
     autoFixResult = fixResult;

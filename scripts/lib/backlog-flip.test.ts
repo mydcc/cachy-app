@@ -37,6 +37,10 @@ describe("findFixesTrailer", () => {
     it("still takes a real trailer outside a fence", () => {
         expect(findFixesTrailer("```\nFixes #111\n```\nFixes #222\n\nBody")).toBe(222);
     });
+
+    it("ignores a trailer in an indented code block", () => {
+        expect(findFixesTrailer("Reporting:\n\n    Fixes #1792\n\nRefs #1792.")).toBe(null);
+    });
 });
 
 describe("findItemFile", () => {

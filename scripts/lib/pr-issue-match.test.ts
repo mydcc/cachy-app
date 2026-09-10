@@ -84,6 +84,10 @@ describe("closingReferences", () => {
     it("ignores closing keywords inside a fenced code block (BUG-0431)", () => {
         expect(closingReferences("Evidence:\n\n```\nFixes #1792\n```\n\nRefs #1792.")).toEqual([]);
     });
+
+    it("ignores closing keywords inside an indented code block", () => {
+        expect(closingReferences("Evidence:\n\n    Fixes #1792\n\nRefs #1792.")).toEqual([]);
+    });
 });
 
 describe("declaresBacklogItem", () => {

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { stripFencedCodeBlocks } from "./markdown-text";
+import { stripCodeBlocks } from "./markdown-text";
 
 /**
  * Flip-in-fix-PR verdicts (no bots).
@@ -40,7 +40,7 @@ export type FlipVerdict =
 
 /** Extract the declared issue number from a line-start `Fixes #N` trailer. */
 export function findFixesTrailer(body: string): number | null {
-    const match = stripFencedCodeBlocks(body).match(FIXES_TRAILER_RE);
+    const match = stripCodeBlocks(body).match(FIXES_TRAILER_RE);
     if (!match) return null;
     const num = Number.parseInt(match[1], 10);
     return Number.isInteger(num) && num > 0 ? num : null;

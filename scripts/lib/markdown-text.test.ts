@@ -17,30 +17,42 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { stripFencedCodeBlocks } from "./markdown-text";
+import { stripCodeBlocks } from "./markdown-text";
 
-describe("stripFencedCodeBlocks", () => {
+describe("stripCodeBlocks", () => {
     it("drops a backtick fence and its body", () => {
-        expect(stripFencedCodeBlocks("before\n```ts\nFixes #1792\n```\nafter")).toBe("before\nafter");
+        expect(stripCodeBlocks("before\n```ts\nFixes #1792\n```\nafter")).toBe("before\nafter");
     });
 
     it("drops a tilde fence", () => {
-        expect(stripFencedCodeBlocks("a\n~~~\nFixes #1\n~~~\nb")).toBe("a\nb");
+        expect(stripCodeBlocks("a\n~~~\nFixes #1\n~~~\nb")).toBe("a\nb");
     });
 
     it("drops an unterminated fence to the end", () => {
-        expect(stripFencedCodeBlocks("keep\n```\nFixes #1")).toBe("keep");
+        expect(stripCodeBlocks("keep\n```\nFixes #1")).toBe("keep");
     });
 
     it("keeps content after a closed fence", () => {
-        expect(stripFencedCodeBlocks("```\nx\n```\nFixes #7")).toBe("Fixes #7");
+        expect(stripCodeBlocks("```\nx\n```\nFixes #7")).toBe("Fixes #7");
     });
 
     it("does not close a fence with a shorter one", () => {
-        expect(stripFencedCodeBlocks("````\n```\nFixes #1\n````\nkept")).toBe("kept");
+        expect(stripCodeBlocks("````\n```\nFixes #1\n````\nkept")).toBe("kept");
     });
 
-    it("leaves text without fences untouched", () => {
-        expect(stripFencedCodeBlocks("Fixes #7\nbody")).toBe("Fixes #7\nbody");
+    it("drops a four-space indented code line", () => {
+        expect(stripCodeBlocks("keep\n    Fixes #1792\nafter")).toBe("keep\nafter");
+    });
+
+    it("drops a tab-indented code line", () => {
+        expect(stripCodeBlocks("keep\n\tFixes #1\nafter")).toBe("keep\nafter");
+    });
+
+    it("keeps a line indented by fewer than four spaces", () => {
+        expect(stripCodeBlocks("   Fixes #7")).toBe("   Fixes #7");
+    });
+
+    it("leaves text without code blocks untouched", () => {
+        expect(stripCodeBlocks("Fixes #7\nbody")).toBe("Fixes #7\nbody");
     });
 });
