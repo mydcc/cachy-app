@@ -1522,6 +1522,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0426-stateful-technicals-f64.md"
   },
   {
+    "id": "BUG-0429",
+    "title": "Backlog sync reopens freshly closed issues before the auto-done flip lands",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "repo",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0429-sync-reopens-freshly-closed-issues.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
