@@ -37,6 +37,8 @@ export function rule_evaluate(document_json: string, ctx_json: string): string;
 
 export function rule_from_alert_json(alert_json: string, timeframe: string, created_at_ms: number): string;
 
+export function rule_mark_timeframes(document_json: string): any;
+
 /**
  * The schema version this build authors and reads.
  */
@@ -73,6 +75,7 @@ export interface InitOutput {
     readonly rule_content_hash: (a: number, b: number, c: number) => void;
     readonly rule_evaluate: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly rule_from_alert_json: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly rule_mark_timeframes: (a: number, b: number, c: number) => void;
     readonly rule_schema_version: () => number;
     readonly rule_timeframes: (a: number, b: number, c: number) => void;
     readonly rule_validate: (a: number, b: number, c: number) => void;

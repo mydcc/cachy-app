@@ -111,6 +111,7 @@ const indicator = (id: string, params: Record<string, number>, output?: string):
 });
 const constant = (value: string): Operand => ({ kind: "constant", value });
 const price = (field: "close") => ({ kind: "price", field }) as Operand;
+const volume = (): Operand => ({ kind: "volume" });
 
 /** The context the live loop would build at candle `index`. */
 function contextAt(rule: RuleDocument, index: number): EvaluationContext {
@@ -135,6 +136,7 @@ function contextAt(rule: RuleDocument, index: number): EvaluationContext {
 function seriesFor(operand: Operand): (number | null)[] {
   if (operand.kind === "constant") return CANDLE_SERIES.map(() => Number(operand.value));
   if (operand.kind === "price") return CANDLE_SERIES.map((c) => Number(c[operand.field]));
+  if (operand.kind === "volume") return CANDLE_SERIES.map((c) => Number(c.volume));
 
   const result = computeIndicatorSeries(
     { indicator: operand.indicator, timeframe: SERIES_TIMEFRAME },
@@ -325,30 +327,87 @@ describe("indicator conditions against the real evaluator", () => {
   });
 
   /**
-   * Volume anomalies, which FEAT-0028 names as a condition, cannot be written
-   * at all — and not for the reason first recorded in the backlog.
+   * Volume anomalies, the condition FEAT-0028 names and could not express.
    *
-   * `PriceField` has no `volume`, so the only way to reach raw volume would be
-   * `volume_ma` with period 1. The core refuses that: `period` is constrained
-   * to 2..=5000. So there is no workaround, accidental or otherwise, and the
-   * condition is simply unavailable until `volume` becomes an operand.
-   *
-   * This test pins that, rather than leaving the gap as a sentence in a
-   * document nobody re-reads. When `volume` is added, this fails, and whoever
-   * added it writes the real condition test in its place.
+   * `volume` is now its own operand rather than a seventh `PriceField`, which
+   * is what lets the core refuse it against a price instead of comparing
+   * traded size to quote currency. The two directions are both worth pinning:
+   * the condition works, and the nonsense next to it does not.
    */
-  describe("volume anomalies (not yet expressible)", () => {
-    it("has no way to name raw volume, because period 1 is refused", () => {
+  describe("volume anomalies", () => {
+    it("fires when volume runs above its own average", () => {
+      const average = indicator("volume_ma", { period: 20 });
       const rule = ruleWith({
         kind: "compare",
-        left: indicator("volume_ma", { period: 1 }),
+        left: volume(),
         op: "gt",
-        right: indicator("volume_ma", { period: 20 }),
+        right: average,
+        timeframe: SERIES_TIMEFRAME,
+      });
+
+      const { disagreements, fired, compared } = walkSeries(
+        rule,
+        compareOracle(volume(), gt, average),
+      );
+
+      expect(disagreements).toEqual([]);
+      expect(compared).toBeGreaterThan(100);
+      // A random walk spends a good share of its candles above its own
+      // 20-period volume average; if this were near zero the operand would be
+      // reading a constant rather than the series.
+      expect(fired).toBeGreaterThan(50);
+    });
+
+    it("fires on a bare volume threshold, because a constant carries no unit", () => {
+      const threshold = constant("300");
+      const rule = ruleWith({
+        kind: "compare",
+        left: volume(),
+        op: "gt",
+        right: threshold,
+        timeframe: SERIES_TIMEFRAME,
+      });
+
+      const { disagreements, compared } = walkSeries(
+        rule,
+        compareOracle(volume(), gt, threshold),
+      );
+
+      expect(disagreements).toEqual([]);
+      expect(compared).toBeGreaterThan(100);
+    });
+
+    /**
+     * The reason the operand exists in its own right. Both numbers are
+     * well-formed, so nothing downstream would object — the rule would compare
+     * traded size against a price and fire on the crossover of two unrelated
+     * scales. The core refuses it instead.
+     */
+    it("refuses volume against a price rather than comparing them", () => {
+      const rule = ruleWith({
+        kind: "compare",
+        left: volume(),
+        op: "gt",
+        right: price("close"),
         timeframe: SERIES_TIMEFRAME,
       });
 
       expect(() => ruleSchema.evaluate(rule, contextAt(rule, 50))).toThrow(
-        /invalid_indicator_parameter/,
+        /operand_dimension_mismatch/,
+      );
+    });
+
+    it("refuses volume against a price moving average for the same reason", () => {
+      const rule = ruleWith({
+        kind: "compare",
+        left: volume(),
+        op: "gt",
+        right: indicator("ema", { period: 20 }),
+        timeframe: SERIES_TIMEFRAME,
+      });
+
+      expect(() => ruleSchema.evaluate(rule, contextAt(rule, 50))).toThrow(
+        /operand_dimension_mismatch/,
       );
     });
 

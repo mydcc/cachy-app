@@ -71,14 +71,12 @@ recorded history, and cross-path parity between WASM, GPU and JS.
 Three gaps that this item has to close, discovered by making indicator
 conditions actually evaluate rather than resolve to "no value":
 
-- **Volume anomalies cannot be written at all.** `PriceField` is
-  `open|high|low|close|hl2|hlc3` (`technicals-wasm/src/rule/condition.rs`), so
-  raw volume has no operand. `volume_ma` with `period: 1` looked like a
-  workaround and is not one: the core constrains `period` to `2..=5000` and
-  refuses it. So the condition is unavailable rather than awkward. Adding
-  `volume` to `PriceField` is the fix, and it is a core schema change. Pinned by
-  a test in `indicatorConditions.integration.test.ts`, which fails once the
-  operand exists.
+- ~~**Volume anomalies cannot be written at all.**~~ **Closed 2026-09-10** —
+  see "Volume is an operand, and it has a unit" below. Note that the fix this
+  entry proposed, adding `volume` to `PriceField`, was *not* the one taken:
+  every `PriceField` value is denominated in quote currency, which is what makes
+  it comparable against a price threshold, so folding volume in would have made
+  `volume > 65000` a legal document.
 - **Bollinger has no `bandwidth` output**, so squeeze has nothing to compare.
   The registry declares `upper|middle|lower|percent_b`.
 - **Divergence needs a new condition shape.** `compare` and `cross` read one
@@ -147,7 +145,60 @@ also pins the other half: suppressing the duplicate must not suppress the
 *effect*, so the candles after a correction are still decided on the corrected
 series. Three of those tests fail if the guard is reverted.
 
-Still open: the WebGPU leg of criterion 4, and the three schema gaps above.
+## Volume is an operand, and it has a unit (2026-09-10)
+
+`Operand::Volume` rather than a seventh `PriceField`, which was the choice this
+gap actually turned on. `PriceField` names which OHLC value to read and all of
+its values are quote currency; volume is size. One extra enum variant there
+would have cost nothing and would have made `volume > 65000` — volume against a
+price — a document the core accepts and an alert that fires on the crossover of
+two unrelated scales.
+
+So operands now carry a `Dimension` (`price`, `percent`, `volume`, `unitless`)
+and `Condition::validate` refuses a comparison whose sides disagree. Three
+constraints shaped it:
+
+- **`Constant` stays dimensionless.** It is compared against a price, a
+  percentage and an RSI in turn; giving it a unit would break all three. So
+  `volume > 1000000` remains legal, which is the plain threshold form of the
+  anomaly condition.
+- **The dimension sits on the *output*, not the indicator.** `bollinger` is both
+  at once: `upper`/`middle`/`lower` are prices and `percent_b` is a bare ratio.
+  One dimension per indicator would have made that entry a special case.
+  So `volume > volume_ma(20)` is legal and `volume > ema(20)` is refused.
+- **Nothing is serialised.** `Dimension` has no `Serialize`, so no canonical
+  form changed and no stored rule's content hash moved.
+
+Refusals carry `operand_dimension_mismatch` and name both dimensions. Covered by
+9 tests in `document.rs`, 3 in `evaluate.rs` and 5 against the real WASM artefact
+in `indicatorConditions.integration.test.ts`; 3 of them fail if the check is
+reverted.
+
+### Three findings that are not this change's to fix
+
+- **`invalidLookback` had no translation in either locale file.** It shipped
+  with FEAT-0390. `RefusalCode`'s own doc comment claims a variant without a
+  translation is caught at review time, but the test asserting that walked a
+  *hand-maintained* list which had lost the variant too. Both keys are added and
+  the list is now shared by both tests, one of which checks every language.
+  The list is still hand-maintained — enumerating a plain Rust enum needs a
+  macro or a `strum` dependency, and adding one to the crate that computes money
+  is a decision worth taking deliberately.
+- **`price` against `percent_change` is still accepted.** `Dimension` knows the
+  pair is nonsense and the check would refuse it for free, but rules already in
+  a trader's `localStorage` validated yesterday, and a saved alert that stops
+  loading is worse than the one being prevented. Pinned by
+  `a_price_against_a_percentage_stays_accepted_until_its_own_change`; whoever
+  changes that test carries the migration.
+- **A `cross` with no previous closed candle answers `DoesNotFire`.** Verified
+  pre-existing: `Operand::Price` behaves identically. "It did not cross" claims
+  knowledge the evaluator does not have, which is the distinction
+  `Indeterminate` exists to keep — but it is a question about every operand, not
+  about this addition, so the volume operand inherits the existing answer rather
+  than inventing a second one.
+
+Still open: the WebGPU leg of criterion 4, criterion 1's recorded market series,
+and two of the three schema gaps — Bollinger `bandwidth` and divergence.
 
 ## Links
 

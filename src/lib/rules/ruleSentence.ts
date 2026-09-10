@@ -135,6 +135,8 @@ function formatOperand(
   switch (operand.kind) {
     case "price":
       return priceName(operand.field, operand.source, t);
+    case "volume":
+      return t("rules.sentence.volume");
     case "indicator":
       return formatIndicator(operand.indicator);
     case "constant":

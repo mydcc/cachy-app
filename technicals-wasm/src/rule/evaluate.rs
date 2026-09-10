@@ -427,6 +427,16 @@ impl Ctx<'_> {
                 })
             }
 
+            Operand::Volume {} => {
+                // The last-traded series: a mark price is a derived quote and
+                // carries no volume of its own.
+                let candles = self.series(timeframe, PriceSource::Last)?;
+                let index = self.index_back(candles, timeframe, back, PriceSource::Last)?;
+                candles.get(index).map(|c| c.volume).ok_or_else(|| {
+                    Missing::NoValue(format!("{timeframe} candle has no volume"))
+                })
+            }
+
             Operand::PercentChange {
                 field,
                 source,
@@ -1038,5 +1048,105 @@ mod tests {
             evaluate(&document, &a, Some(&account)),
             evaluate(&document, &b, Some(&account))
         );
+    }
+
+    // ---- FEAT-0028: the volume operand ------------------------------------
+
+    /// Candles carrying real volume. The plain `candles` helper zeroes it,
+    /// which was fine while nothing could read it.
+    fn candles_with_volume(rows: &[(&str, &str)]) -> Vec<Candle> {
+        rows.iter()
+            .enumerate()
+            .map(|(i, (close, volume))| Candle {
+                open_time_ms: i as i64 * 14_400_000,
+                open: d(close),
+                high: d(close),
+                low: d(close),
+                close: d(close),
+                volume: d(volume),
+            })
+            .collect()
+    }
+
+    fn volume_above(threshold: &str) -> Condition {
+        Condition::Compare {
+            left: Operand::Volume {},
+            op: CompareOp::Gt,
+            right: Operand::Constant { value: d(threshold) },
+            timeframe: tf("4h"),
+        }
+    }
+
+    /// The volume anomaly FEAT-0028 names, now expressible: it reads the
+    /// closed candle's volume and nothing else.
+    #[test]
+    fn a_volume_operand_reads_the_closed_candles_volume() {
+        let doc = notify_doc(volume_above("1000"));
+
+        let spike = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles_with_volume(&[("100000", "500"), ("100000", "1500")]));
+        assert_eq!(evaluate(&doc, &spike, None), Verdict::Fires);
+
+        let quiet = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles_with_volume(&[("100000", "1500"), ("100000", "500")]));
+        assert_eq!(evaluate(&doc, &quiet, None), Verdict::DoesNotFire);
+    }
+
+    /// Volume comes from the last-traded series even when a mark series is
+    /// present, because a mark price is a derived quote and any volume sitting
+    /// on it is an artefact of how the series was assembled. This is why
+    /// `Operand::Volume` has no `source` to get wrong.
+    #[test]
+    fn a_volume_operand_reads_the_last_traded_series_and_not_the_mark_series() {
+        let market = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles_with_volume(&[("100000", "10"), ("100000", "20")]))
+            .with_mark_candles(
+                tf("4h"),
+                candles_with_volume(&[("100000", "9000"), ("100000", "9000")]),
+            );
+
+        // The mark series would clear the threshold; the last-traded one does not.
+        assert_eq!(
+            evaluate(&notify_doc(volume_above("1000")), &market, None),
+            Verdict::DoesNotFire
+        );
+    }
+
+    /// A volume crossing answers insufficient history exactly the way a price
+    /// crossing does, which is the point of the test.
+    ///
+    /// Both say `DoesNotFire` with a single candle rather than
+    /// `Indeterminate`, so the new operand inherits the schema's existing
+    /// answer instead of inventing a second one. Whether that answer is the
+    /// right one is a live question — a crossing needs a previous closed
+    /// candle, and with none available "it did not cross" claims knowledge the
+    /// evaluator does not have, which is the distinction `Indeterminate`
+    /// exists to keep. That is a pre-existing question about every operand,
+    /// not something this change introduced, so it is pinned here and carried
+    /// separately rather than fixed inside a schema addition.
+    #[test]
+    fn a_volume_crossing_without_a_previous_candle_answers_as_a_price_would() {
+        let market = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles_with_volume(&[("100000", "5000")]));
+        let cross = |left: Operand| {
+            notify_doc(Condition::Cross {
+                left,
+                direction: CrossDirection::Above,
+                right: Operand::Constant { value: d("1000") },
+                timeframe: tf("4h"),
+            })
+        };
+
+        let volume = evaluate(&cross(Operand::Volume {}), &market, None);
+        let price = evaluate(
+            &cross(Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            }),
+            &market,
+            None,
+        );
+        assert_eq!(volume, price);
+        assert_eq!(volume, Verdict::DoesNotFire);
     }
 }

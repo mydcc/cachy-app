@@ -39,6 +39,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+use super::condition::Dimension;
 use super::refusal::{RefusalCode, RuleRefusal};
 
 /// The domain of a parameter, and so what "invalid" means for it.
@@ -69,15 +70,27 @@ pub struct ParamSpec {
 pub struct IndicatorSpec {
     pub id: &'static str,
     pub params: &'static [ParamSpec],
-    /// The output lines a condition may reference. Multi-line indicators name
-    /// each line; single-line indicators expose exactly `value`, so that every
-    /// reference has the same shape and `output` is never optional-by-omission.
-    pub outputs: &'static [&'static str],
+    /// The output lines a condition may reference, each with what its numbers
+    /// are denominated in. Multi-line indicators name each line; single-line
+    /// indicators expose exactly `value`, so that every reference has the same
+    /// shape and `output` is never optional-by-omission.
+    ///
+    /// The dimension sits on the *output*, not on the indicator, because
+    /// `bollinger` is both: `upper`/`middle`/`lower` are prices and `percent_b`
+    /// is a bare ratio. One dimension per indicator would have made that entry
+    /// a special case; one per output makes it representable.
+    pub outputs: &'static [(&'static str, Dimension)],
 }
 
 const PERIOD: ParamKind = ParamKind::Period { min: 2, max: 5000 };
 const SHORT_PERIOD: ParamKind = ParamKind::Period { min: 1, max: 5000 };
-const VALUE: &[&str] = &["value"];
+/// The single-line shape, once per dimension. Four constants rather than one
+/// because "what an indicator's `value` means" differs: an EMA is a price, an
+/// RSI is a percent, an OBV is a volume.
+const VALUE_PRICE: &[(&str, Dimension)] = &[("value", Dimension::Price)];
+const VALUE_PERCENT: &[(&str, Dimension)] = &[("value", Dimension::Percent)];
+const VALUE_VOLUME: &[(&str, Dimension)] = &[("value", Dimension::Volume)];
+const VALUE_UNITLESS: &[(&str, Dimension)] = &[("value", Dimension::Unitless)];
 
 /// Every indicator a rule may name in version 1.
 ///
@@ -100,7 +113,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PERCENT,
     },
     IndicatorSpec {
         id: "stoch_rsi",
@@ -122,7 +135,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 kind: SHORT_PERIOD,
             },
         ],
-        outputs: &["k", "d"],
+        outputs: &[("k", Dimension::Percent), ("d", Dimension::Percent)],
     },
     IndicatorSpec {
         id: "macd",
@@ -140,7 +153,11 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 kind: PERIOD,
             },
         ],
-        outputs: &["macd", "signal", "histogram"],
+        outputs: &[
+            ("macd", Dimension::Price),
+            ("signal", Dimension::Price),
+            ("histogram", Dimension::Price),
+        ],
     },
     IndicatorSpec {
         id: "stochastic",
@@ -158,7 +175,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 kind: SHORT_PERIOD,
             },
         ],
-        outputs: &["k", "d"],
+        outputs: &[("k", Dimension::Percent), ("d", Dimension::Percent)],
     },
     IndicatorSpec {
         id: "williams_r",
@@ -166,7 +183,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PERCENT,
     },
     IndicatorSpec {
         id: "cci",
@@ -174,7 +191,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_UNITLESS,
     },
     IndicatorSpec {
         id: "adx",
@@ -182,7 +199,11 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: &["adx", "plus_di", "minus_di"],
+        outputs: &[
+            ("adx", Dimension::Percent),
+            ("plus_di", Dimension::Percent),
+            ("minus_di", Dimension::Percent),
+        ],
     },
     IndicatorSpec {
         id: "ao",
@@ -196,7 +217,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 kind: PERIOD,
             },
         ],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "momentum",
@@ -204,7 +225,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: SHORT_PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "ema",
@@ -212,7 +233,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "sma",
@@ -220,7 +241,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "wma",
@@ -228,7 +249,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "vwma",
@@ -236,7 +257,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "hma",
@@ -244,7 +265,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "bollinger",
@@ -261,7 +282,13 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 },
             },
         ],
-        outputs: &["upper", "middle", "lower", "percent_b"],
+        outputs: &[
+            ("upper", Dimension::Price),
+            ("middle", Dimension::Price),
+            ("lower", Dimension::Price),
+            // A ratio of the band width, not a price and not a percent.
+            ("percent_b", Dimension::Unitless),
+        ],
     },
     IndicatorSpec {
         id: "atr",
@@ -269,7 +296,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "choppiness",
@@ -277,7 +304,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PERCENT,
     },
     IndicatorSpec {
         id: "super_trend",
@@ -294,7 +321,11 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 },
             },
         ],
-        outputs: &["value", "upper", "lower"],
+        outputs: &[
+            ("value", Dimension::Price),
+            ("upper", Dimension::Price),
+            ("lower", Dimension::Price),
+        ],
     },
     IndicatorSpec {
         id: "mfi",
@@ -302,12 +333,12 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_PERCENT,
     },
     IndicatorSpec {
         id: "obv",
         params: &[],
-        outputs: VALUE,
+        outputs: VALUE_VOLUME,
     },
     IndicatorSpec {
         id: "volume_ma",
@@ -315,7 +346,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
             name: "period",
             kind: PERIOD,
         }],
-        outputs: VALUE,
+        outputs: VALUE_VOLUME,
     },
     IndicatorSpec {
         id: "parabolic_sar",
@@ -342,7 +373,7 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 },
             },
         ],
-        outputs: VALUE,
+        outputs: VALUE_PRICE,
     },
     IndicatorSpec {
         id: "ichimoku",
@@ -360,7 +391,12 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 kind: PERIOD,
             },
         ],
-        outputs: &["conversion", "base", "span_a", "span_b"],
+        outputs: &[
+            ("conversion", Dimension::Price),
+            ("base", Dimension::Price),
+            ("span_a", Dimension::Price),
+            ("span_b", Dimension::Price),
+        ],
     },
 ];
 
@@ -409,6 +445,20 @@ fn default_output() -> String {
 }
 
 impl IndicatorRef {
+    /// What this reference's chosen output line is denominated in.
+    ///
+    /// `None` when the id or the output is not in the registry. That case is
+    /// already refused by `validate`, with a message that names what the
+    /// registry does offer, so answering "unknown" here keeps one bad document
+    /// to one refusal instead of two.
+    pub fn output_dimension(&self) -> Option<Dimension> {
+        spec_for(&self.id)?
+            .outputs
+            .iter()
+            .find(|(name, _)| *name == self.output)
+            .map(|(_, dimension)| *dimension)
+    }
+
     /// Check identity, output line, and every parameter against the registry.
     ///
     /// Collects *all* problems rather than returning the first, so a caller
@@ -428,7 +478,7 @@ impl IndicatorRef {
             return;
         };
 
-        if !spec.outputs.contains(&self.output.as_str()) {
+        if !spec.outputs.iter().any(|(name, _)| *name == self.output) {
             out.push(RuleRefusal::new(
                 RefusalCode::UnknownIndicatorOutput,
                 format!("{field}.output"),
@@ -436,7 +486,12 @@ impl IndicatorRef {
                     "`{}` does not produce an output named `{}`; it produces {}",
                     spec.id,
                     self.output,
-                    spec.outputs.join(", ")
+                    spec
+                        .outputs
+                        .iter()
+                        .map(|(name, _)| *name)
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 ),
             ));
         }

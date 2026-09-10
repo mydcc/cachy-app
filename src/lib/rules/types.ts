@@ -80,6 +80,19 @@ export interface IndicatorRef {
 
 export type Operand =
   | { kind: "price"; field: PriceField; source?: PriceSource }
+  /**
+   * Traded volume of the closed candle.
+   *
+   * Deliberately not a seventh `PriceField`. Every `PriceField` value is
+   * denominated in quote currency, which is what makes it comparable against a
+   * price threshold; volume is denominated in size. As its own operand it
+   * carries its own dimension, and the core refuses `volume` against a price
+   * rather than comparing two unrelated scales.
+   *
+   * No `source`: a mark price is a derived quote with no volume of its own, so
+   * volume is always read from the last-traded series.
+   */
+  | { kind: "volume" }
   | { kind: "indicator"; indicator: IndicatorRef }
   | { kind: "constant"; value: DecimalString }
   /**
