@@ -50,47 +50,26 @@ export function calculateAllIndicators(
   if (!klines || klines.length < 2) return getEmptyData();
 
   const len = klines.length;
-  const pool = settings?.performanceMode === "speed" ? bufferPool : null;
+  // TypedArray pooling is always on: it only recycles scratch buffers for
+  // this call (released in `finally` below) and halves GC pressure on live
+  // ticks. There is no user-facing trade-off, so no setting gates it.
+  const pool = bufferPool;
 
-  let highsNum: Float64Array;
-  let lowsNum: Float64Array;
-  let closesNum: Float64Array;
-  let opensNum: Float64Array;
-  let volumesNum: Float64Array;
-  let timesNum: number[] = [];
+  const highsNum = pool.acquire(len);
+  const lowsNum = pool.acquire(len);
+  const closesNum = pool.acquire(len);
+  const opensNum = pool.acquire(len);
+  const volumesNum = pool.acquire(len);
+  const timesNum: number[] = [];
 
-  if (pool) {
-      highsNum = pool.acquire(len);
-      lowsNum = pool.acquire(len);
-      closesNum = pool.acquire(len);
-      opensNum = pool.acquire(len);
-      volumesNum = pool.acquire(len);
-
-      for (let i = 0; i < len; i++) {
-          const k = klines[i];
-          highsNum[i] = typeof k.high === 'number' ? k.high : k.high.toNumber();
-          lowsNum[i] = typeof k.low === 'number' ? k.low : k.low.toNumber();
-          closesNum[i] = typeof k.close === 'number' ? k.close : k.close.toNumber();
-          opensNum[i] = typeof k.open === 'number' ? k.open : k.open.toNumber();
-          volumesNum[i] = typeof k.volume === 'number' ? k.volume : k.volume.toNumber();
-          timesNum.push(k.time);
-      }
-  } else {
-      highsNum = new Float64Array(len);
-      lowsNum = new Float64Array(len);
-      closesNum = new Float64Array(len);
-      opensNum = new Float64Array(len);
-      volumesNum = new Float64Array(len);
-
-      for (let i = 0; i < len; i++) {
-          const k = klines[i];
-          highsNum[i] = typeof k.high === 'number' ? k.high : k.high.toNumber();
-          lowsNum[i] = typeof k.low === 'number' ? k.low : k.low.toNumber();
-          closesNum[i] = typeof k.close === 'number' ? k.close : k.close.toNumber();
-          opensNum[i] = typeof k.open === 'number' ? k.open : k.open.toNumber();
-          volumesNum[i] = typeof k.volume === 'number' ? k.volume : k.volume.toNumber();
-          timesNum.push(k.time);
-      }
+  for (let i = 0; i < len; i++) {
+      const k = klines[i];
+      highsNum[i] = typeof k.high === 'number' ? k.high : k.high.toNumber();
+      lowsNum[i] = typeof k.low === 'number' ? k.low : k.low.toNumber();
+      closesNum[i] = typeof k.close === 'number' ? k.close : k.close.toNumber();
+      opensNum[i] = typeof k.open === 'number' ? k.open : k.open.toNumber();
+      volumesNum[i] = typeof k.volume === 'number' ? k.volume : k.volume.toNumber();
+      timesNum.push(k.time);
   }
 
   try {
@@ -100,13 +79,11 @@ export function calculateAllIndicators(
 
       return result;
   } finally {
-      if (pool) {
-          pool.release(highsNum);
-          pool.release(lowsNum);
-          pool.release(closesNum);
-          pool.release(opensNum);
-          pool.release(volumesNum);
-      }
+      pool.release(highsNum);
+      pool.release(lowsNum);
+      pool.release(closesNum);
+      pool.release(opensNum);
+      pool.release(volumesNum);
   }
 }
 

@@ -17,9 +17,7 @@ export interface IndicatorSettings {
   precision: number;
   /** Chart-wide indicator line width in px (1-4), Settings → Technicals. */
   lineWidth: number;
-  autoOptimize: boolean;
   preferredEngine: 'auto' | 'ts' | 'wasm' | 'gpu';
-  performanceMode: 'balanced' | 'quality' | 'speed';
 
   // Panel Configuration
   panelSections: {

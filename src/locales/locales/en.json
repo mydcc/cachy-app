@@ -1321,20 +1321,12 @@
       "syncRsiDesc": "Use chart timeframe for RSI",
       "optimization": {
         "title": "Performance Optimization",
-        "autoOptimize": "Auto-Optimize Engine",
-        "autoOptimizeDesc": "Automatically select TypeScript or WebAssembly based on data size",
         "preferredEngine": "Preferred Engine",
-        "performanceMode": "Performance Mode",
         "engines": {
           "auto": "Auto (Recommended)",
           "ts": "TypeScript",
           "wasm": "WebAssembly",
           "gpu": "GPU (Experimental)"
-        },
-        "modes": {
-          "speed": "Speed",
-          "balanced": "Balanced",
-          "quality": "Quality"
         }
       },
       "pnlMode": "PnL Display Mode",
@@ -1875,7 +1867,7 @@
         "columns": {
           "engine": "Engine",
           "health": "Health",
-          "avg": "Avg",
+          "median": "Median",
           "samples": "Samples",
           "candles": "Candles",
           "time": "Time",
@@ -3617,7 +3609,8 @@
   },
   "calculationStrategy": {
     "criticalLag": "Critical Lag: {engine} took {duration}ms",
-    "slowCalc": "Slow Calc: {engine} ({duration}ms)"
+    "slowCalc": "Slow Calc: {engine} ({duration}ms)",
+    "engineDegraded": "Engine degraded: {engine} too slow, switched to TS"
   },
   "duck": {
     "full": "Quack! The duck is stuffed and needs a break.",

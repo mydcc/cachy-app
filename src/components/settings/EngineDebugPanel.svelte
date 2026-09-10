@@ -54,7 +54,46 @@
         return `${mb.toFixed(1)}MB`;
     }
     
-    const engines = ['ts', 'wasm', 'gpu'] as const;
+    const engines = ['ts', 'wasm', 'gpu', 'ts-fallback'] as const;
+
+    const engineLabels: Record<string, string> = {
+        ts: 'TS',
+        wasm: 'WASM',
+        gpu: 'GPU',
+        'ts-fallback': 'TS-FB'
+    };
+
+    function engineLabel(engine: string): string {
+        return engineLabels[engine] ?? engine.toUpperCase();
+    }
+
+    function median(values: number[]): number | undefined {
+        if (values.length === 0) return undefined;
+        const sorted = [...values].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    // Median over the recent history window (capped at 50 entries): robust
+    // against one-off spikes like the first WASM compile, which would
+    // dominate a plain mean at low sample counts.
+    const medianByEngine = $derived(
+        Object.fromEntries(
+            engines.map((engine) => [
+                engine,
+                median(
+                    telemetry.performanceHistory
+                        .filter((entry) => entry.engine === engine)
+                        .map((entry) => entry.executionTime)
+                )
+            ])
+        ) as Record<string, number | undefined>
+    );
+
+    function formatPerCandle(totalTime: number, totalCandles: number): string {
+        if (!totalCandles) return '';
+        return ` · ${(totalTime / totalCandles).toFixed(2)}ms/c`;
+    }
     
     const recentHistory = $derived(
         telemetry.performanceHistory.slice(-10).reverse()
@@ -64,6 +103,7 @@
         (telemetry.stats?.ts.calls ?? 0)
         + (telemetry.stats?.wasm.calls ?? 0)
         + (telemetry.stats?.gpu.calls ?? 0)
+        + (telemetry.stats?.['ts-fallback']?.calls ?? 0)
     );
 </script>
 
@@ -118,7 +158,7 @@
                 <tr>
                     <th>{$_("settings.system.debug.columns.engine")}</th>
                     <th>{$_("settings.system.debug.columns.health")}</th>
-                    <th>{$_("settings.system.debug.columns.avg")}</th>
+                    <th>{$_("settings.system.debug.columns.median")}</th>
                     <th>{$_("settings.system.debug.columns.samples")}</th>
                 </tr>
             </thead>
@@ -129,7 +169,7 @@
             {@const usage = telemetry.usagePercent ? telemetry.usagePercent[engine] : 0}
             <tr>
               <td class="engine-name">
-                {engine.toUpperCase()}
+                {engineLabel(engine)}
                 {#if usage > 0}
                   <span class="usage-badge" title={$_("settings.system.debug.usageShare")}>{usage}%</span>
                 {/if}
@@ -148,7 +188,7 @@
               </td>
               <td>
                 {#if stats.calls > 0}
-                  {(stats.totalTime / stats.calls).toFixed(1)}ms
+                  {(medianByEngine[engine] ?? stats.totalTime / stats.calls).toFixed(1)}ms{formatPerCandle(stats.totalTime, stats.totalCandles)}
                 {:else}
                   -
                 {/if}
@@ -157,7 +197,7 @@
             </tr>
           {:else}
             <tr>
-              <td class="engine-name">{engine.toUpperCase()}</td>
+              <td class="engine-name">{engineLabel(engine)}</td>
               <td class="status-cell"><span class="status-neutral">{$_("settings.system.debug.noData")}</span></td>
               <td>-</td>
               <td>0</td>
@@ -187,7 +227,7 @@
                 <tbody>
                     {#each recentHistory as entry}
                         <tr>
-                            <td class="engine-name">{entry.engine}</td>
+                            <td class="engine-name">{engineLabel(entry.engine)}</td>
                             <td>{entry.candleCount.toLocaleString()}</td>
                             <td>{formatMs(entry.executionTime)}</td>
                             <td>{formatMemory(entry.memoryUsed)}</td>

@@ -55,9 +55,7 @@ import type { IndicatorSettings } from '../../types/indicators';
 const mockSettings = {
     historyLimit: 500,
     precision: 2,
-    autoOptimize: true,
     preferredEngine: 'auto',
-    performanceMode: 'balanced',
     rsi: { length: 14, source: 'close', showSignal: true, signalType: 'sma', signalLength: 14, overbought: 70, oversold: 30, defaultTimeframe: '1h' },
     stochRsi: { length: 14, rsiLength: 14, kPeriod: 3, dPeriod: 3, source: 'close' },
     macd: { fastLength: 12, slowLength: 26, signalLength: 9, source: 'close', oscillatorMaType: 'ema', signalMaType: 'ema' },
