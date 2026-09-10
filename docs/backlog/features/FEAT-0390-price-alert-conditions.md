@@ -2,7 +2,7 @@
 id: FEAT-0390
 title: Price alert conditions beyond a single target
 type: feature
-status: in-progress
+status: done
 assignee: claude
 branch: claude/super-alert-next-task-mpte57
 priority: P2
@@ -109,3 +109,4 @@ What is open:
 - [`FEAT-0389`](FEAT-0389-super-alert-panel.md) — the panel this tab lands in
 - [`FEAT-0027`](FEAT-0027-alert-engine.md) — the price alerts that ship today
 - `technicals-wasm/src/rule/condition.rs`
+- Done 2026-09-10: merged via #2927; first release containing it TBD by the next chore(release).
