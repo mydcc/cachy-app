@@ -242,8 +242,7 @@ async function fetchAllIssues(): Promise<GitHubIssue[]> {
         const data: GitHubIssue[] = await res.json();
 
         // We only care about real issues, not pull requests
-        const issuesOnly = data.filter((item) => !item.pull_request);
-        allIssues = allIssues.concat(issuesOnly);
+        allIssues.push(...data.filter((item) => !item.pull_request));
 
         url = nextPageUrl(res.headers.get("link"));
     }
