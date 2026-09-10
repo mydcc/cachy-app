@@ -47,7 +47,6 @@ import {
 } from "./upstreamRetry";
 import type {
   ExchangeAccountData,
-  KlinePriceSource,
   KlineQuery,
   TickersQuery,
   VenueCredentials,
@@ -775,7 +774,6 @@ async function fetchBitunixKlines(
   limit: number,
   start?: number,
   end?: number,
-  priceSource: KlinePriceSource = "last",
 ) {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/market/kline";
@@ -800,10 +798,6 @@ async function fetchBitunixKlines(
   };
   if (start) params.startTime = start.toString();
   if (end) params.endTime = end.toString();
-  // Only sent for a mark request. The endpoint defaults to `LAST_PRICE`, so
-  // omitting it keeps every existing call byte-identical on the wire — the
-  // chart and every indicator go through here.
-  if (priceSource === "mark") params.type = "MARK_PRICE";
 
   const queryString = new URLSearchParams(params).toString();
   const fullUrl = `${baseUrl}${path}?${queryString}`;
@@ -1300,8 +1294,6 @@ export const bitunixVenue: VenueModule = {
     return fetchBitunixBalance(creds.apiKey, creds.apiSecret);
   },
 
-  supportsMarkKlines: true,
-
   fetchKlines(query: KlineQuery): Promise<VenueKline[]> {
     return fetchBitunixKlines(
       query.symbol,
@@ -1309,7 +1301,6 @@ export const bitunixVenue: VenueModule = {
       query.limit,
       query.start,
       query.end,
-      query.priceSource,
     );
   },
 

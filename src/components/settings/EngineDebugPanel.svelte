@@ -36,11 +36,7 @@
     // Auto-refresh every 5s
     $effect(() => {
         const interval = setInterval(refresh, 5000);
-        let alive = true;
-        // Capabilities resolve async after mount: refresh once they land so
-        // the badges show the real device without waiting for the next tick.
-        calculationStrategy.capabilitiesReady().then(() => { if (alive) refresh(); });
-        return () => { alive = false; clearInterval(interval); };
+        return () => clearInterval(interval);
     });
     
     function formatMs(ms: number | undefined): string {
@@ -58,12 +54,6 @@
     
     const recentHistory = $derived(
         telemetry.performanceHistory.slice(-10).reverse()
-    );
-
-    const totalEngineCalls = $derived(
-        (telemetry.stats?.ts.calls ?? 0)
-        + (telemetry.stats?.wasm.calls ?? 0)
-        + (telemetry.stats?.gpu.calls ?? 0)
     );
 </script>
 
@@ -101,18 +91,9 @@
         </div>
     </div>
 
-    <!-- Result cache (separate from engine Avg: cache hits cost ~0ms) -->
-    <div class="section">
-        <div class="section-label">{$_("settings.system.debug.cache")}</div>
-        <div class="cache-line">{$_("settings.system.debug.cacheSummary", { values: { hits: telemetry.cache.hits, misses: telemetry.cache.misses, hitRate: telemetry.cache.hitRate } })}</div>
-    </div>
-
     <!-- Engine Stats Table -->
     <div class="section">
         <div class="section-label">{$_("settings.system.debug.engineStats")}</div>
-        {#if totalEngineCalls === 0}
-            <div class="no-data">{$_("settings.system.debug.noUncachedYet")}</div>
-        {/if}
         <table class="stats-table">
             <thead>
                 <tr>
@@ -249,10 +230,6 @@
         flex-wrap: wrap;
         gap: 0.35rem;
     }
-    .cache-line {
-        font-size: 0.7rem;
-        color: var(--text-secondary);
-    }
     .cap {
         padding: 1px 6px;
         border-radius: var(--radius-sm);
@@ -264,8 +241,8 @@
     }
     .cap-on {
         opacity: 1;
-        background: color-mix(in srgb, var(--success-color), transparent 85%);
-        color: var(--success-color);
+        background: rgba(52, 211, 153, 0.15);
+        color: rgb(52, 211, 153);
     }
     .ctx {
         padding: 1px 6px;
@@ -275,8 +252,8 @@
         color: var(--text-secondary);
     }
     .ctx-warn {
-        background: color-mix(in srgb, var(--warning-color), transparent 85%);
-        color: var(--warning-color);
+        background: rgba(251, 191, 36, 0.15);
+        color: rgb(251, 191, 36);
     }
     .stats-table {
         width: 100%;
@@ -292,11 +269,11 @@
         opacity: 0.8;
     }
     .status-ok {
-        color: var(--success-color);
+        color: rgb(52, 211, 153);
         font-weight: var(--font-medium);
     }
     .status-err {
-        color: var(--danger-color);
+        color: rgb(239, 68, 68);
         font-weight: var(--font-medium);
     }
     .status-neutral {

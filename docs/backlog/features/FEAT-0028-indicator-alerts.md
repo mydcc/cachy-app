@@ -2,7 +2,7 @@
 id: FEAT-0028
 title: Alerts on indicator conditions
 type: feature
-status: in-progress
+status: specced
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -12,7 +12,6 @@ adr: ADR-0012
 depends_on: [FEAT-0027, FEAT-0387, FEAT-0389]
 estimate: 5
 size: L
-assignee: claude-code
 target_date: 2027-01-29
 start_date: 2026-08-01
 ---
@@ -65,89 +64,6 @@ What remains genuinely this item's work: which conditions exist per indicator (M
 golden/death cross, DEA zero crossing, bullish/bearish divergence, RSI thresholds,
 Bollinger touch and squeeze, volume anomalies, MA crosses), their correctness against
 recorded history, and cross-path parity between WASM, GPU and JS.
-
-## Found while wiring the evaluator (2026-09-10)
-
-Three gaps that this item has to close, discovered by making indicator
-conditions actually evaluate rather than resolve to "no value":
-
-- **Volume anomalies cannot be written at all.** `PriceField` is
-  `open|high|low|close|hl2|hlc3` (`technicals-wasm/src/rule/condition.rs`), so
-  raw volume has no operand. `volume_ma` with `period: 1` looked like a
-  workaround and is not one: the core constrains `period` to `2..=5000` and
-  refuses it. So the condition is unavailable rather than awkward. Adding
-  `volume` to `PriceField` is the fix, and it is a core schema change. Pinned by
-  a test in `indicatorConditions.integration.test.ts`, which fails once the
-  operand exists.
-- **Bollinger has no `bandwidth` output**, so squeeze has nothing to compare.
-  The registry declares `upper|middle|lower|percent_b`.
-- **Divergence needs a new condition shape.** `compare` and `cross` read one
-  candle and two respectively; a divergence is a claim about two swings. It is
-  the only condition in this item that the existing four shapes cannot express.
-
-## Progress (2026-09-10)
-
-Indicator conditions evaluate for the first time — the loop computes and sends
-the series the evaluator reads, which it previously did not, so every indicator
-condition resolved to indeterminate.
-
-Tested per indicator over a 400-candle series, each condition answered twice by
-paths sharing no code: RSI thresholds and cross, MACD line/signal cross and
-histogram sign change, Bollinger touch and `percent_b`, EMA golden cross, volume
-average comparison. Indicator maths separately checked against independent
-textbook implementations.
-
-**Acceptance criterion 1 is not yet ticked**, for one reason worth stating: the
-series is a committed, seeded pseudo-random walk, not recorded market data. It
-is deterministic and not cherry-picked, and it catches what actually breaks in
-condition code — indexing, warmup, cross direction. It cannot catch a condition
-that only misbehaves on a shape real markets produce and the generator does not:
-a halt, a gap, a wick to zero, a depeg. Recording a real series and re-running
-the same oracles against it is the remaining work for that criterion.
-
-### Cross-path parity (criterion 4)
-
-WASM and JS now agree on SMA, EMA, RSI, Bollinger, volume MA and all three MACD
-outputs to within `f64` noise, asserted by
-`src/services/alertEngine/crossPathParity.test.ts` at three different history
-lengths against the real committed WASM artefact.
-
-Getting there meant fixing [`BUG-0430`](../bugs/BUG-0430-macd-seeding-mismatch.md):
-WASM seeded MACD's EMAs with the first close while the rest of the project seeds
-with an SMA, which at short history made the two paths disagree about the *sign*
-of the histogram. Worst histogram difference fell from 1.7 to 9.4e-12.
-
-**The WebGPU path is not covered.** It needs a real `navigator.gpu`, which no
-Node test environment provides — the same wall BUG-0005 hit, where a structural
-check stood in for a numeric one. Covering it needs a browser and belongs in
-Playwright. Until then criterion 4 is met for two of the three paths, and this
-is the documented discrepancy the criterion allows rather than a silent gap.
-
-### No double-fire on a corrected candle (criterion 3)
-
-The defence turned out to be two layers, and only one of them held.
-
-`RuleEvaluationLoop.advance` already blocks a candle revised **in place**: it
-only yields an anchor when a strictly later open time appears, so a correction
-carrying the same open time is not an event. That path was safe.
-
-`RuleEvaluationGate` was not. It compared the incoming anchor to the last one
-with `===`, which dedupes the ticks inside one candle and nothing else — *any*
-anchor that was not exactly the previous one passed. A reconnect clears the
-loop's high-water mark (`forgetSeries`), the store refills the series, and
-evaluation resumes from candles already decided: every one of them fired again.
-Changed to reject any anchor at or before the last decided one, which makes the
-class impossible rather than making one path careful. An edit or a disarm calls
-`forget`, which is the only legitimate way to decide an anchor twice.
-
-Covered by `ruleEvaluationGate.test.ts` (correction in place, replay after
-reconnect, moving on afterwards, retry after a failed evaluation, `forget`) and
-end to end against real wasm in `correctedCandle.integration.test.ts` — which
-also pins the other half: suppressing the duplicate must not suppress the
-*effect*, so the candles after a correction are still decided on the corrected
-series. Three of those tests fail if the guard is reverted.
-
-Still open: the WebGPU leg of criterion 4, and the three schema gaps above.
 
 ## Links
 

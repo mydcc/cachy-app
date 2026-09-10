@@ -19,7 +19,7 @@ Cachy uses a **static multi-engine architecture** to calculate technical indicat
 1. **Device Detection**: At startup (lazily, via a cached singleton prefetched by the strategy), Cachy detects which engines the browser supports (WASM, SIMD, WebGPU).
 2. **Static Thresholds**: The engine is selected based on the number of candles (>5000 → GPU, >300 → WASM, else TS).
 3. **Preferred Engine Override**: Users can force a specific engine (TS, WASM, WebGPU) via settings (Technicals settings → Preferred Engine: Auto/TS/WASM/GPU).
-4. **Basic Degradation**: If the last WASM run exceeds 500ms (tracked as `lastMedian`, currently the latest single sample rather than a true median), the system falls back to TypeScript. Consequence: a single WASM run above 500ms degrades `selectEngine` to `ts` for the rest of the session — the degraded engine is never re-selected, so no new WASM sample can clear the flag and there is no automatic recovery (re-probing). Only a page reload or the Preferred Engine override resets this.
+4. **Basic Degradation**: If the last WASM run exceeds 500ms (tracked as `lastMedian`, currently the latest single sample rather than a true median), the system falls back to TypeScript.
 
 ## Calculation Settings
 

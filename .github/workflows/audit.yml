@@ -105,9 +105,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          # Full history: the fresh-index step diffs the PR against its base.
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -116,32 +113,15 @@ jobs:
 
       # Validates every backlog item's front matter (status, priority, edition,
       # data class, id/filename agreement, duplicate ids/numbers, dependencies
-      # that actually exist). No dependencies needed — the script is plain Node.
+      # that actually exist). Deliberately does NOT require docs/backlog/INDEX.md
+      # to be present or fresh in the PR branch — that file is regenerated and
+      # committed to develop/main by sync-backlog.yml after merge, not by every
+      # backlog-touching PR. Requiring a fresh INDEX.md diff per PR used to cause
+      # near-constant merge conflicts on its two summary lines (item counts,
+      # next free number) whenever two backlog PRs were in flight at once — see
+      # BUG-0225. No dependencies needed — the script is plain Node.
       - name: Validate backlog front matter
         run: npm run backlog:check
-
-      # No bots: a PR that touches files under docs/backlog/ must carry the
-      # regenerated index (INDEX.md + backlog.generated.*) itself — nothing
-      # regenerates it after the merge anymore. BUG-0225 (per-PR index churn
-      # conflicts) stays answered by auto-update-prs.yml, which auto-resolves
-      # generated-only conflicts on open PRs; any residue resolves by merging
-      # develop and re-running `node scripts/backlog-index.mjs` (~1 s, no
-      # install needed). PRs that touch no backlog files skip this silently.
-      - name: Require fresh backlog index when backlog files change
-        if: github.event_name == 'pull_request'
-        run: |
-          BASE="origin/${{ github.event.pull_request.base.ref }}"
-          if git diff --name-only "$BASE"...HEAD -- docs/backlog/ | grep -q .; then
-            node scripts/backlog-index.mjs
-            if ! git diff --quiet -- docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json; then
-              echo "❌ INDEX.md / backlog.generated.* are stale for the backlog files this PR touches."
-              echo "Run 'node scripts/backlog-index.mjs' and commit the result in this PR — no bot does it after the merge."
-              exit 1
-            fi
-            echo "✅ Backlog index is fresh."
-          else
-            echo "No backlog files touched, index check skipped."
-          fi
 
       # A moved or renamed document silently breaks every pointer to it. That
       # happened when the old roadmap was archived and is cheap to prevent.

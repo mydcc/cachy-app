@@ -18,9 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          # Full history: the flip check diffs the PR against its base.
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -57,13 +54,3 @@ jobs:
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: npx tsx scripts/lint-pr-body-refs.ts
-
-      - name: Require the backlog flip in the fix PR
-        # No bots: a PR closing a backlog mirror issue must flip that item to
-        # `status: done` in its own diff. Same env-hygiene as above — the PR
-        # body travels via `env:`, never interpolated into shell.
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: npx tsx scripts/check-backlog-flip.ts

@@ -8,16 +8,13 @@ commit message, a branch name, a test comment or another item can point at it
 permanently.
 
 - **Index of everything:** [`INDEX.md`](INDEX.md) — generated, never edited by
-  hand. The fix PR carries it: whoever flips an item to `done` also runs
-  `node scripts/backlog-index.mjs` (~1 s, no dependencies) and commits the
-  regenerated `INDEX.md` + `backlog.generated.*` in the same PR — there is
-  no bot that does it after the merge. CI enforces both halves: the
-  flip check fails a PR whose `Fixes #N` points at a backlog issue without
-  flipping it, and the freshness check fails a PR whose backlog files leave
-  a stale index behind. On an index conflict between two backlog PRs, merge
-  `develop` and re-run the script (its output is deterministic);
-  `auto-update-prs.yml` auto-resolves generated-only conflicts on open PRs.
-  See BUG-0225 for why the index used to be bot-owned.
+  hand, and never committed by a PR either. CI regenerates and commits it
+  directly to `develop`/`main` after merge
+  (`.github/workflows/sync-backlog.yml`); do not run `npm run backlog:index`
+  and commit the result yourself — two of its lines (item counts, next free
+  number) change on every regeneration regardless of which item you touched,
+  which is a guaranteed merge conflict the moment a second backlog PR is in
+  flight. See BUG-0225.
 - **Typed Backlog Registry (Code & AST Tools):** [`backlog.generated.ts`](backlog.generated.ts) and [`backlog.generated.json`](backlog.generated.json) — generated alongside `INDEX.md` for fast symbol indexing by tools like jCodeMunch or type-safe programmatic access.
 - **When things get built:** [`../ROADMAP.md`](../ROADMAP.md).
 - **Why in that order:** [`../MILESTONES.md`](../MILESTONES.md).
@@ -52,7 +49,7 @@ backlog/
   ideas/IDEA-NNNN-short-slug.md
   templates/
   assets/FEAT-NNNN/ # optional: our own wireframes and diagrams for one item
-  INDEX.md          # generated; maintained by CI on the bot branch after merge, never in a PR
+  INDEX.md          # generated; committed only by CI after merge, never in a PR
 ```
 
 Numbers are shared across all three types — there is no `FEAT-0001` and
@@ -198,11 +195,9 @@ reproducing test first.
    reset the item to its previous status with a state note instead of leaving a
    stale claim. See "Agent Lifecycle" in `AGENTS.md`.
 
-Your PR carries the flip and the fresh index: set `status: done` in your
-item file(s), run `node scripts/backlog-index.mjs`, and commit both.
-CI fails the PR if either half is missing (see "Index of everything"
-above). Your PR only ever touches your own item file(s) plus the
-regenerated artifacts.
+Do not run `npm run backlog:index` and commit `INDEX.md` yourself — CI
+regenerates and commits it after your PR merges (see "Index of everything"
+above). Your PR only ever touches your own item file(s).
 
 **Do not silently change scope.** If the item is wrong, say so in the item and
 ask — an item that turned out to be a bad idea is a useful finding. If it is

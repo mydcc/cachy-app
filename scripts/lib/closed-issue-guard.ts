@@ -19,11 +19,11 @@
  * Merge-window guard for the backlog -> GitHub sync.
  *
  * When a PR merges, GitHub closes the linked issue (via the `Fixes #N`
- * trailer) in the same merge that carries the file's `done` flip — but a
- * forgotten flip (or a manual close with no PR) leaves the file behind for
- * a moment. A sync run in that window must not "repair" the closed issue
- * back to open/In Progress: that reopen + Kanban rollback is the BUG-0411
- * aftermath (issue #2753 went Done -> In Progress -> Done across two runs).
+ * trailer) seconds before the file on `develop` still says `in-progress` —
+ * the `done` flip only lands later through the auto-done PR. A sync run in
+ * that window must not "repair" the closed issue back to open/In Progress:
+ * that reopen + Kanban rollback is the BUG-0411 aftermath (issue #2753 went
+ * Done -> In Progress -> Done across two bot runs).
  *
  * Lives apart from `sync-github-issues.ts` for the same reason
  * `pr-issue-match.ts` does: the sync script exits at import time without
@@ -40,11 +40,11 @@ export type ClosedIssueVerdict = "sync" | "skip-merge-window";
  * file in this run.
  *
  * - Issue open, or file already `done`/`dropped`: `sync` (normal paths,
- *   including a flip converging to Done).
+ *   including the auto-done flip converging to Done).
  * - Issue closed but the file says anything else: only `sync` once the
  *   close is older than the grace window (genuine rework back to
  *   `in-progress` still converges, including the reopen). Inside the
- *   window the flip is assumed to land shortly, so `skip-merge-window`.
+ *   window the auto-done flip is assumed in flight, so `skip-merge-window`.
  * - Unparseable or missing `closedAt`: `sync`. Without a timestamp there
  *   is no evidence of a merge window, and converging self-heals instead
  *   of stranding the item.

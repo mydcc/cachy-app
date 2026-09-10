@@ -42,7 +42,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RuleEvaluationGate, ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
+import { RuleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type { EvaluationCandle, RuleDocument } from "../../lib/rules/types";
 
@@ -165,13 +165,6 @@ describe("rule evaluation against the real wasm core", () => {
     });
 
     beforeEach(() => {
-      // The gate is a module singleton and remembers the last anchor it decided
-      // *per rule id*, which every test here shares. Without this, a test that
-      // replays the series from an earlier candle is correctly refused as
-      // ground already covered — the same guard that stops a reconnect from
-      // re-firing an alert (FEAT-0028 criterion 3).
-      ruleEvaluationGate.forget("a1");
-
       candles = [];
       loop = new RuleEvaluationLoop({
         readCandles: () => candles,

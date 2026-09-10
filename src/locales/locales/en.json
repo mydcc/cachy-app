@@ -360,24 +360,6 @@
         "armed": "Alert armed.",
         "armDisabled": "Add a condition first.",
         "tabLoadFailed": "This tab could not be loaded. Reload the page."
-      },
-      "brokenRule": {
-        "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate."
-      },
-      "price": {
-        "conditionType": "Condition Type",
-        "lookbackHint": "Lookback period in candles",
-        "lookbackLabel": "Lookback",
-        "percentLabel": "Percent",
-        "priceLabel": "Price",
-        "seriesHint": "Which price series to monitor",
-        "seriesLabel": "Price Series",
-        "risesAbove": "Rises Above",
-        "fallsBelow": "Falls Below",
-        "riseReaches": "Rise Reaches",
-        "fallReaches": "Fall Reaches",
-        "seriesLast": "Last Price",
-        "seriesMark": "Mark Price"
       }
     },
     "generalInputs": {
@@ -1890,10 +1872,7 @@
         "disabled": "Disabled",
         "usageShare": "Usage Share",
         "recentHistory": "Recent History",
-        "refresh": "Refresh",
-        "cache": "Result Cache",
-        "cacheSummary": "Hits {hits} · Misses {misses} · {hitRate}% hit rate",
-        "noUncachedYet": "No uncached calculations yet — interact with the chart or run the benchmark."
+        "refresh": "Refresh"
       }
     },
     "performance": {
@@ -2134,13 +2113,7 @@
         "orderRejected": "{symbol} order rejected",
         "orderCancelled": "{symbol} order cancelled"
       }
-    },
-    "brokenAlertReport": "Alerts that can never fire",
-    "brokenAlertReportDesc": "An alert can reference an indicator the alert engine cannot calculate. It keeps sitting in the panel looking armed and will never trigger.",
-    "brokenAlertReportNotify": "Notify me",
-    "brokenAlertReportNotifyDesc": "Show a message the first time such an alert is skipped.",
-    "brokenAlertReportLog": "Log only",
-    "brokenAlertReportLogDesc": "No message. The alert panel still shows which alerts are affected."
+    }
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -3794,12 +3767,7 @@
   "chartView": {
     "loadingHistory": "LOADING HISTORY ...",
     "fetchingMarketData": "FETCHING MARKET DATA ...",
-    "countdownLabel": "Countdown to candle close",
-    "alert": {
-      "menuLabel": "Alert",
-      "regionLabel": "Alert Region",
-      "here": "Alert at {price}"
-    }
+    "countdownLabel": "Countdown to candle close"
   },
   "chart": {
     "pane": {
@@ -3895,11 +3863,7 @@
         "unrealised_pnl_percent": "the unrealised profit in %",
         "exposure": "the exposure",
         "available_balance": "the available balance"
-      },
-      "percentChange": "the change in {price} over the last {lookback} closes",
-      "percentChangeOne": "the change in {price} since the previous close",
-      "markSuffix": " (mark price)",
-      "percentValue": "{value}%"
+      }
     }
   },
   "storage": {

@@ -360,24 +360,6 @@
         "armed": "Alarm scharf geschaltet.",
         "armDisabled": "Füge zuerst eine Bedingung hinzu.",
         "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu."
-      },
-      "brokenRule": {
-        "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann."
-      },
-      "price": {
-        "conditionType": "Bedingungstyp",
-        "lookbackHint": "Lookback-Periode in Kerzen",
-        "lookbackLabel": "Lookback",
-        "percentLabel": "Prozent",
-        "priceLabel": "Preis",
-        "seriesHint": "Welche Preisserie überwachen",
-        "seriesLabel": "Preisserie",
-        "risesAbove": "Steigt über",
-        "fallsBelow": "Fällt unter",
-        "riseReaches": "Stieg erreicht",
-        "fallReaches": "Fall erreicht",
-        "seriesLast": "Letzter Preis",
-        "seriesMark": "Mark-Preis"
       }
     },
     "generalInputs": {
@@ -1657,10 +1639,7 @@
         "disabled": "Deaktiviert",
         "usageShare": "Nutzungsanteil",
         "recentHistory": "Verlauf",
-        "refresh": "Aktualisieren",
-        "cache": "Ergebnis-Cache",
-        "cacheSummary": "Treffer {hits} · Fehlzugriffe {misses} · {hitRate} % Trefferquote",
-        "noUncachedYet": "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten."
+        "refresh": "Aktualisieren"
       }
     },
     "performance": {
@@ -2134,13 +2113,7 @@
         "orderRejected": "{symbol}-Order abgelehnt",
         "orderCancelled": "{symbol}-Order storniert"
       }
-    },
-    "brokenAlertReport": "Alarme, die nie auslösen können",
-    "brokenAlertReportDesc": "Ein Alarm kann einen Indikator verwenden, den die Alarm-Engine nicht berechnen kann. Er bleibt scharf im Panel stehen und löst nie aus.",
-    "brokenAlertReportNotify": "Benachrichtigen",
-    "brokenAlertReportNotifyDesc": "Beim ersten Übergehen eines solchen Alarms eine Meldung zeigen.",
-    "brokenAlertReportLog": "Nur protokollieren",
-    "brokenAlertReportLogDesc": "Keine Meldung. Das Alarm-Panel zeigt weiterhin, welche Alarme betroffen sind."
+    }
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -3794,12 +3767,7 @@
   "chartView": {
     "loadingHistory": "LADE HISTORIE ...",
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
-    "countdownLabel": "Countdown bis zur Kerzenschließung",
-    "alert": {
-      "menuLabel": "Warnung",
-      "regionLabel": "Warn-Region",
-      "here": "Warnung bei {price}"
-    }
+    "countdownLabel": "Countdown bis zur Kerzenschließung"
   },
   "chart": {
     "pane": {
@@ -3895,11 +3863,7 @@
         "unrealised_pnl_percent": "der unrealisierte Gewinn in %",
         "exposure": "das Exposure",
         "available_balance": "das verfügbare Guthaben"
-      },
-      "percentChange": "die Veränderung von {price} über die letzten {lookback} Schlusskurse",
-      "percentChangeOne": "seit dem vorherigen Schlusskurs",
-      "markSuffix": " (Mark-Preis)",
-      "percentValue": "{value} %"
+      }
     }
   },
   "storage": {

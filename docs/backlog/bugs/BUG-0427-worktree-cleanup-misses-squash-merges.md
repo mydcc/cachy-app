@@ -2,7 +2,7 @@
 id: BUG-0427
 title: worktree-cleanup.sh refuses squash-merged branches as unmerged
 type: bug
-status: done
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]

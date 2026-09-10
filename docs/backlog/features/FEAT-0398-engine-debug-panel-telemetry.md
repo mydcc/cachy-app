@@ -2,7 +2,8 @@
 id: FEAT-0398
 title: Engine Debug Panel with real telemetry
 type: feature
-status: done
+status: ready
+branch: worktree-feat-0388-weitermachen-10ee20
 priority: P3
 milestone: M3
 editions: [community, pro, private]
@@ -38,13 +39,13 @@ capability/context badges never reflected the actual device.
 
 ## Acceptance Criteria
 
-- [x] Opening the panel during chart operation shows live Calls/Avg per engine.
+- [ ] Opening the panel during chart operation shows live Calls/Avg per engine.
 - [x] Capability badges reflect the real device (wasm/simd true in modern Chromium).
 - [x] Context badges (battery/memory/mobile) never throw when battery info is
       unavailable (desktop browsers).
 - [x] Engine fallback records both the failed attempt and the successful inline
       ts run, so usage stats stay honest.
-- [x] Degradation consequence documented: a single WASM run above 500ms median
+- [ ] Degradation consequence documented: a single WASM run above 500ms median
       degrades selectEngine to ts for the session.
 
 ## Out of Scope

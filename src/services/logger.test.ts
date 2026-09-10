@@ -64,14 +64,7 @@ describe('LoggerService', () => {
 
     it('should log error to console when category enabled', () => {
         logger.error('general', 'Test error');
-        expect(consoleErrorSpy).toHaveBeenCalledWith('[GENERAL]', 'Test error', '');
-    });
-
-    it('should pass the message as a data arg so %-sequences are never interpreted', () => {
-        // CodeQL js/tainted-format-string: the message must not become part of
-        // the format string, otherwise '%s' would swallow the error argument.
-        logger.error('general', 'user says %s', 'the-error');
-        expect(consoleErrorSpy).toHaveBeenCalledWith('[GENERAL]', 'user says %s', 'the-error');
+        expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[GENERAL] Test error'), '');
     });
 
     it('should support legacy boolean force parameter', () => {

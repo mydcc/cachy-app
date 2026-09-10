@@ -212,9 +212,6 @@ export const technicalsService = {
     const cached = calculationCache.get(cacheKey);
     if (cached) {
       cached.lastAccessed = Date.now();
-      // Cache hits bypass the engines entirely: count them apart so the
-      // per-engine Avg in the debug panel keeps reflecting real compute cost.
-      calculationStrategy.recordCacheHit();
       return cached.data;
     }
 
@@ -247,7 +244,6 @@ export const technicalsService = {
       }
 
       calculationStrategy.recordMetrics(usedEngine as CalculationEngine, performance.now() - startTime, true, klines.length);
-      calculationStrategy.recordCacheMiss();
 
       // Cache storage
 
@@ -263,7 +259,6 @@ export const technicalsService = {
     } catch (e) {
       logger.warn('technicals', "Engine fallback triggered", e);
       calculationStrategy.recordMetrics(engine, performance.now() - startTime, false, klines.length);
-      calculationStrategy.recordCacheMiss();
       // Record the successful inline fallback separately so the panel
       // doesn't over-state the failed engine's failure count.
       const t0 = performance.now();

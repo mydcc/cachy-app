@@ -128,26 +128,3 @@ describe('CalculationStrategy.recordMetrics', () => {
     expect(t.usagePercent.ts).toBe(50);
   });
 });
-
-describe('CalculationStrategy cache accounting', () => {
-  it('starts with zero hits, misses and hit rate', () => {
-    const strategy = new CalculationStrategy();
-
-    const t = strategy.exportTelemetry();
-    expect(t.cache).toEqual({ hits: 0, misses: 0, hitRate: 0 });
-  });
-
-  it('counts hits and misses apart from engine calls', () => {
-    const strategy = new CalculationStrategy();
-    strategy.recordMetrics('ts', 40, true, 500);
-    strategy.recordCacheHit();
-    strategy.recordCacheHit();
-    strategy.recordCacheMiss();
-
-    const t = strategy.exportTelemetry();
-    expect(t.cache).toEqual({ hits: 2, misses: 1, hitRate: 67 });
-    // Engine Avg stays honest: the ~0ms cache hits never enter engine stats.
-    expect(t.stats.ts.calls).toBe(1);
-    expect(t.usagePercent.ts).toBe(100);
-  });
-});

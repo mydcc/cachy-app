@@ -899,68 +899,15 @@ impl TechnicalsCalculator {
             let mut ef = Decimal::ZERO;
             let mut es = Decimal::ZERO;
             let mut sv = Decimal::ZERO;
-
-            // Seeded from the SMA of the first `length` closes, the same way
-            // the standalone EMA a dozen lines above is, and the same way every
-            // other implementation of MACD in this project is.
-            //
-            // This used to seed both EMAs with `closes[0]` and iterate from
-            // there. That is a legitimate convention on its own, but it was not
-            // the one this module already used, and the gap it opened decays
-            // only as fast as an EMA forgets its seed — geometrically, at
-            // (1 - k) per candle. Measured against the JS path on a 400-candle
-            // series it was still 170% of the value at 40 candles of history,
-            // 15% at 80, and did not reach f64 noise until past 250. The core
-            // asks for 27 before it will evaluate a MACD rule, so a trader
-            // could arm an alert on a histogram whose sign disagreed with the
-            // one their chart drew. See FEAT-0028 acceptance criterion 4.
-            //
-            // Walked in lockstep rather than as three separate passes because
-            // the signal line is an EMA *of the MACD line*, so it can only be
-            // seeded once `signal` values of that line exist.
-            let line_starts_at = s.fast.max(s.slow);
-            if s.fast > 0 && s.slow > 0 && s.signal > 0 && len >= line_starts_at + s.signal - 1 {
-                let mut fast_v = Decimal::ZERO;
-                let mut slow_v = Decimal::ZERO;
-                let mut seed_sum = Decimal::ZERO;
-                let mut seed_count: usize = 0;
-                let mut seeded = false;
-
-                for (i, &p) in closes.iter().enumerate() {
-                    let seen = i + 1;
-
-                    if seen == s.fast {
-                        fast_v = closes[..s.fast].iter().sum::<Decimal>() / Decimal::from(s.fast);
-                    } else if seen > s.fast {
-                        fast_v = (p - fast_v) * k_f + fast_v;
-                    }
-
-                    if seen == s.slow {
-                        slow_v = closes[..s.slow].iter().sum::<Decimal>() / Decimal::from(s.slow);
-                    } else if seen > s.slow {
-                        slow_v = (p - slow_v) * k_s + slow_v;
-                    }
-
-                    if seen < line_starts_at {
-                        continue;
-                    }
-
-                    let line = fast_v - slow_v;
-                    if seeded {
-                        sv = (line - sv) * k_sig + sv;
-                    } else {
-                        seed_sum += line;
-                        seed_count += 1;
-                        if seed_count == s.signal {
-                            sv = seed_sum / Decimal::from(s.signal);
-                            seeded = true;
-                        }
-                    }
+            if len > s.slow + s.signal {
+                ef = closes[0];
+                es = closes[0];
+                for &p in closes.iter() {
+                    ef = (p - ef) * k_f + ef;
+                    es = (p - es) * k_s + es;
+                    sv = ((ef - es) - sv) * k_sig + sv;
                 }
-
-                ef = fast_v;
-                es = slow_v;
-                init = seeded;
+                init = true;
             }
             self.macd_states.insert(
                 format!("{}-{}-{}", s.fast, s.slow, s.signal),

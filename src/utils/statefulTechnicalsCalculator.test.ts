@@ -18,7 +18,7 @@
 
 
 import { describe, it, expect } from 'vitest';
-import { StatefulTechnicalsCalculator } from './statefulTechnicalsCalculator';
+import { StatefulTechnicalsCalculator } from '../../src/utils/statefulTechnicalsCalculator';
 import { Decimal } from 'decimal.js';
 
 function mockKline(time: number, close: number) {

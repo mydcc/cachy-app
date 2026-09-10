@@ -58,22 +58,19 @@ There is no deployment-wide secret to generate, keep, or leak.
 
 ```bash
 npm run build
-node --env-file=.env server.js
+node build/index.js
 ```
 
-Cachy is now at `http://localhost:3001`.
+Cachy is now at `http://localhost:3000`.
 
-`server.js` is the production entry point: an Express wrapper around the
-SvelteKit handler with compression and long-lived static-asset caching
-(`server-headers.js`). The server does **not** read `.env` on its own, so
-without `--env-file` flags `PORT` or `ORIGIN` from your `.env` would never
-reach it. (`--env-file` needs Node 20 or newer, which is covered by the required Node v22.19+.)
-Without a `.env`, plain `node server.js` (or `npm start`) works too.
+If you created a `.env`, start with
+`node --env-file=.env build/index.js` instead — the server does **not** read
+`.env` on its own, so `PORT` or `ORIGIN` would never reach it otherwise.
 
-> Fallback: plain `node build/index.js` (adapter standalone, port `3000`)
-> also boots the app, but without compression and immutable static caching —
-> expect lower Lighthouse scores. Prefer `server.js` for anything beyond a
-> quick smoke test.
+> **Why not `npm start`?** It runs `node server.js` (compression +
+> security headers) without `--env-file`, which has the same limitation —
+> use `node --env-file=.env server.js` to combine your `.env` with those
+> extras. (`--env-file` needs Node 20 or newer, which is covered by the required Node v22.19+.)
 
 > If you change anything in `.env` later, **restart the process**. The running
 > server reads its configuration once, at startup.
