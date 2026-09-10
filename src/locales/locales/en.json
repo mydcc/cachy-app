@@ -1890,7 +1890,10 @@
         "disabled": "Disabled",
         "usageShare": "Usage Share",
         "recentHistory": "Recent History",
-        "refresh": "Refresh"
+        "refresh": "Refresh",
+        "cache": "Result Cache",
+        "cacheSummary": "Hits {hits} · Misses {misses} · {hitRate}% hit rate",
+        "noUncachedYet": "No uncached calculations yet — interact with the chart or run the benchmark."
       }
     },
     "performance": {

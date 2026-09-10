@@ -6398,8 +6398,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0398",
     "title": "Engine Debug Panel with real telemetry",
     "type": "feature",
-    "status": "ready",
-    "branch": "worktree-feat-0388-weitermachen-10ee20",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/feat-0398-panel-live-telemetry",
     "priority": "P3",
     "milestone": "M3",
     "editions": [
