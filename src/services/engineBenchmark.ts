@@ -200,12 +200,14 @@ export async function runBenchmark(
       };
       allRuns.push(run);
 
-      // Feed into adaptive strategy
+      // Feed into adaptive strategy as benchmark context: synthetic sizes
+      // must never trip the live degradation hysteresis.
       calculationStrategy.recordMetrics(
         engine,
         med,
         true, // success
-        size // candleCount
+        size, // candleCount
+        'bench'
       );
     }
   }

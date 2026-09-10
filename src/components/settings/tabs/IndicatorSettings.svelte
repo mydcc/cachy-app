@@ -137,10 +137,6 @@
                                 bind:value={indicatorState.historyLimit}
                                 step={50}
                             />
-                            <div class="flex justify-between items-center pt-2">
-                                <span class="text-sm">{$_("settings.technicals.optimization.autoOptimize")}</span>
-                                <Toggle bind:checked={indicatorState.autoOptimize} />
-                            </div>
                             <!-- Performance -->
                             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)] mt-2">
                                 <Select
@@ -148,12 +144,6 @@
                                     label={$_("settings.technicals.engine")}
                                     bind:value={indicatorState.preferredEngine}
                                     options={[{value: "auto", label: $_("settings.technicals.optimization.engines.auto")}, {value: "ts", label: $_("settings.technicals.optimization.engines.ts")}, {value: "wasm", label: $_("settings.technicals.optimization.engines.wasm")}, {value: "gpu", label: $_("settings.technicals.optimization.engines.gpu")}]}
-                                />
-                                <Select
-                                    id="perf-mode"
-                                    label={$_("settings.technicals.mode")}
-                                    bind:value={indicatorState.performanceMode}
-                                    options={[{value: "balanced", label: $_("settings.technicals.optimization.modes.balanced")}, {value: "quality", label: $_("settings.technicals.optimization.modes.quality")}, {value: "speed", label: $_("settings.technicals.optimization.modes.speed")}]}
                                 />
                             </div>
                             <div class="flex justify-between items-center pt-2 border-t border-[var(--border-color)] mt-2">
