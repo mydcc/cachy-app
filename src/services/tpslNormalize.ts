@@ -65,6 +65,13 @@ import type { TpSlOrder } from "./tradeService";
  * non-numeric base, a missing suffix, or the other leg's suffix all return
  * the id unchanged. That also leaves the generic non-Bitunix path, which
  * never split its rows, untouched.
+ *
+ * It rests on the same assumption the scheme itself does (see the file
+ * header): a leg id's base is the venue order id the row was split from.
+ * That is what the API documents, but it has not been confirmed against a
+ * live account (BUG-0386) — if it proves false, this fallback would address
+ * the wrong row rather than a non-existent one. The numeric-base guard above
+ * bounds the damage but does not remove that unconfirmed case.
  */
 export function stripLegSuffix(orderId: string, leg: "tp" | "sl"): string {
     const match = /^(\d+)-(tp|sl)$/.exec(orderId);

@@ -48,6 +48,14 @@ non-Bitunix path is unaffected. This covers both a missing plan row (pruned,
 not yet hydrated, removed mid-drag) and a WebSocket-sourced plan that carries
 no `sourceOrderId`, and keeps the drag interaction instead of refusing it.
 
+## Residual risk
+The fallback assumes a leg id's base is the venue order id it was split from
+— the same documented-but-not-yet-live-confirmed assumption BUG-0292 /
+BUG-0386 carry (see the `tpslNormalize.ts` file header). If it proves false,
+the stripped id addresses the wrong row. The numeric-base guard keeps a real
+venue id from being truncated, and this path is only reached when
+`plansFor()` has no plan to read `sourceOrderId` from.
+
 ## Acceptance criteria
 - [x] Decision made between option 1 and 2; fix implemented.
 - [x] Dragging a bracket leg with no plan row no longer sends a
