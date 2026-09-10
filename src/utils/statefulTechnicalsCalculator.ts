@@ -18,6 +18,12 @@
 /**
  * Stateful Technicals Calculator
  * Manages the state of technical indicators to allow for O(1) incremental updates.
+ *
+ * DISPLAY-ONLY BOUNDARY (BUG-0426): every value this class produces is a
+ * plain f64 for chart overlays, signal scores, and alert thresholds.
+ * Outputs must never feed calculator, risk, journal, or order logic, which
+ * stay on decimal.js. All Decimal→number conversions go through
+ * toDisplayPrice() below so the boundary stays greppable.
  */
 
 import { JSIndicators, type Kline } from "./indicators";
@@ -25,6 +31,17 @@ import { calculateAllIndicators } from "./technicalsCalculator";
 import type { TechnicalsData, TechnicalsState } from "../services/technicalsTypes";
 import type { IndicatorSettings } from "../types/indicators";
 import { CircularBuffer } from "./circularBuffer";
+import type { Decimal } from "decimal.js";
+
+/**
+ * Sole Decimal→number entry point of the technicals graph (BUG-0426).
+ * Indicator math (EMA/RSI/SMA/Bollinger) runs on f64 for display and
+ * signaling only — never on money. Keep every conversion here; the
+ * precision guard test fails if a second conversion site appears.
+ */
+function toDisplayPrice(close: Decimal): number {
+  return close.toNumber();
+}
 
 export class StatefulTechnicalsCalculator {
   private state: TechnicalsState = {
@@ -74,7 +91,7 @@ export class StatefulTechnicalsCalculator {
     }
 
     const prevResult = this.state.lastResult;
-    const currentPrice = tick.close.toNumber();
+    const currentPrice = toDisplayPrice(tick.close);
 
     // Clone the previous result to modify it
     // Deep clone might be expensive, but structure is simple.
@@ -130,7 +147,7 @@ export class StatefulTechnicalsCalculator {
       // This is crucial. 'state.ema' currently holds the value from the *previous* close (T-1).
       // We need to advance it to the current close (T) before starting T+1.
 
-      const lastClose = newCandle.close.toNumber(); // Corrected to use the shifting-in candle
+      const lastClose = toDisplayPrice(newCandle.close); // Corrected to use the shifting-in candle
 
       // Advance EMA State
       if (this.state.ema && this.enabled("ema")) {
@@ -236,7 +253,7 @@ export class StatefulTechnicalsCalculator {
       this.state.rsi = {};
       if (this.enabled("rsi")) {
           const rsiLen = this.settings?.rsi?.length || 14;
-          const closes = history.map(k => k.close.toNumber());
+          const closes = history.map(k => toDisplayPrice(k.close));
           // We need to calculate full RSI series to get the final Average Gain/Loss.
           // JSIndicators.rsi doesn't return state.
           // We will use a helper that does, or just "warm up" manually.
@@ -299,7 +316,7 @@ export class StatefulTechnicalsCalculator {
           const histLen = history.length;
           const startIdx = Math.max(0, histLen - len);
           for (let i = startIdx; i < histLen; i++) {
-              const val = history[i].close.toNumber();
+              const val = toDisplayPrice(history[i].close);
               sumSq += val * val;
           }
           this.state.sma[len] = { prevSum: smaVal * len, prevSumSq: sumSq };
@@ -312,7 +329,7 @@ export class StatefulTechnicalsCalculator {
       const start = Math.max(0, len - this.MAX_HISTORY_SIZE);
       
       for (let i = start; i < len; i++) {
-          this.priceHistory.push(history[i].close.toNumber());
+          this.priceHistory.push(toDisplayPrice(history[i].close));
       }
   }
 
