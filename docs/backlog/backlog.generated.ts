@@ -1541,6 +1541,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0429-sync-reopens-freshly-closed-issues.md"
   },
   {
+    "id": "BUG-0430",
+    "title": "MACD seeded differently in WASM than everywhere else",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "start_date": "2026-09-10",
+    "target_date": "2026-09-10",
+    "size": "S",
+    "estimate": "1",
+    "file": "bugs/BUG-0430-macd-seeding-mismatch.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -3632,7 +3654,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0028",
     "title": "Alerts on indicator conditions",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -3650,6 +3672,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "estimate": "5",
     "size": "L",
+    "assignee": "claude-code",
     "target_date": "2027-01-29",
     "start_date": "2026-08-01",
     "file": "features/FEAT-0028-indicator-alerts.md"
