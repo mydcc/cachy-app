@@ -1,6 +1,6 @@
 # ADR-0016: A claim about a window of candles is an operand, not a fifth condition shape
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-10
 - **Deciders:** pheinze82
 
@@ -85,12 +85,22 @@ Rules a reviewer can check a pull request against:
 4. **`warmup_candles` is `of.warmup_candles() + lookback - 1`, saturating.**
    Stated so the number is auditable rather than discovered when an alert stays
    quiet.
-5. **`lookback` is bounded, and total warmup is bounded.** `2..=500` for the
-   window itself, and a document whose total warmup exceeds
-   `MAX_RULE_WARMUP_CANDLES` is refused at validation with a reason naming the
-   figure — the point of fact 3 above. The exact ceiling is a follow-up
-   question for whoever knows what `HistoryFetcher` will actually deliver per
-   timeframe; it is not a number to invent in this ADR.
+5. **`lookback` is bounded, and total warmup is bounded.**
+   `MAX_RULE_WARMUP_CANDLES = 500`, decided 2026-09-10. A document whose total
+   warmup exceeds it is refused at validation with a reason naming both the
+   figure and the offending operand — the point of fact 3 above. `lookback`
+   itself is `2..=500`, which is the same number for a different job: it is a
+   per-operand sanity filter, while the 500 that decides an alert's fate is the
+   *total*. The two are not redundant and they are not in conflict —
+   `window(min, 500, ema(50))` passes the first and is refused by the second at
+   549, which is the intended reading.
+
+   500 is a chosen figure, not a measured one, and it is chosen on the safe
+   side: it admits `window(min, 200, bandwidth(20, 2))` at 219 and Bollinger's
+   own 120-candle Squeeze at 139, while refusing the depths where ADR-0009's
+   paging turns an alert into a download. If real use shows it too tight, the
+   fix is a new figure in one constant with a note here — not a per-rule
+   override.
 6. **`Min` and `Max` only.** No `Mean`: `volume_ma`, `sma` and `ema` already
    average, and a second way to say the same thing is a second thing to keep
    consistent. Add it when a condition needs it and cannot be written.
@@ -150,6 +160,7 @@ rule 3 is a refusal rather than a convention.
   than the one being evaluated, in any shape, per ADR-0012 decision 3.
 - Shipping a window operand without the warmup ceiling of rule 5, because the
   gate's silence is not a usable error.
+- Making `MAX_RULE_WARMUP_CANDLES` a user setting, per the alternative below.
 
 ## Alternatives considered
 
@@ -176,6 +187,20 @@ because the number is market-specific and silently wrong when carried to
 another symbol — the same objection `Operand::PercentChange`'s doc comment makes
 about a threshold baked in at arming time, which is the difference between a
 rule and a bookmark.
+
+**The ceiling as a per-trader setting.** Proposed on the grounds that every
+trader is different, which is true, and rejected because of *when* the number
+would be read. A rule's warmup requirement is fixed at authoring time; the
+setting would be read at evaluation time, every time. Lowering it after the
+fact does not refuse the rules it invalidates — `ruleEvaluationGate.ts:64`
+returns `undefined` and the alert simply stops firing, with no event, no
+refusal and nothing in the UI that distinguishes it from a rule still warming
+up. That is the exact failure this ADR's fact 3 is about, converted from a
+hazard into a setting. It is also ADR-0012 decision 3 in another costume: a
+value that changes the meaning of a stored rule without touching it is not a
+rule input. A trader who needs 800 candles should get a refusal that says 500
+while they are writing the rule, and an issue to argue the constant up — not a
+switch that silently disarms yesterday's alerts.
 
 **An expression language.** Not considered, and named here so the silence is
 not mistaken for an oversight: ADR-0012 decision 1 forbids deriving a rule's
