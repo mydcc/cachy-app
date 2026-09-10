@@ -57,8 +57,9 @@ const FORCE_FULL_SYNC = process.env.FORCE_FULL_SYNC === 'true';
 
 // How long after an issue close the sync leaves that closed issue alone.
 // Covers the merge window: GitHub closes the linked issue the second its PR
-// merges, while the file still says `in-progress` until the auto-done PR
-// lands. Without this grace the sync "repairs" the fresh close back to
+// merges, while the file flip lands in the same merge — but a forgotten flip
+// (or a manual close with no PR at all) leaves file and issue disagreeing
+// for a moment. Without this grace the sync "repairs" the fresh close back to
 // open/In Progress (the BUG-0411 aftermath on #2753). Genuine rework days
 // later is far outside the window and still converges normally.
 const MERGE_GRACE_MS = (() => {
@@ -465,9 +466,10 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
     const isClosed = CLOSED_STATUSES.has(item.status);
 
     // Merge-window guard: a freshly closed issue with a not-yet-done file is
-    // the auto-done flip in flight, not drift. Touching it here reopens the
+    // a flip that has not landed yet, not drift. Touching it here reopens the
     // issue and rolls the Kanban card back (seen on #2753). Skip the PATCH
-    // and the Kanban round trip entirely; the post-auto-done sync converges.
+    // and the Kanban round trip entirely; a later run converges once the
+    // flip is in — or flags the forgotten flip as drift outside the window.
     if (
         existingIssue &&
         classifyClosedIssueSync({
@@ -477,7 +479,7 @@ async function createOrUpdateIssue(item: BacklogItem, existingIssue: GitHubIssue
             graceMs: MERGE_GRACE_MS,
         }) === "skip-merge-window"
     ) {
-        console.log(`[Sync] Skipped ${item.id} (#${existingIssue.number}) — closed ${existingIssue.closed_at}, inside merge grace window; auto-done flip assumed in flight`);
+        console.log(`[Sync] Skipped ${item.id} (#${existingIssue.number}) — closed ${existingIssue.closed_at}, inside merge grace window; flip assumed in flight`);
         return { number: existingIssue.number, nodeId: existingIssue.node_id };
     }
 
