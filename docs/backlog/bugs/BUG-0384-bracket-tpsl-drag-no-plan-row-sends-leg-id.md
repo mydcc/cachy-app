@@ -2,7 +2,7 @@
 id: BUG-0384
 title: Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,8 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
-assignee: none
+assignee: opencode
+branch: fix/bug-0384-tpsl-no-plan-leg-id
 ---
 
 # BUG-0384 — Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists
@@ -31,19 +32,35 @@ synthetic per-leg id (`<baseId>-tp` / `<baseId>-sl`) to the venue.
 The fallback `?? orderId` assumes the passed id is a valid venue id —
 but for bracket legs it is a local UI key by construction.
 
-## Fix (proposal)
-Two options, needs decision:
-1. Parse the leg id: strip a trailing `-tp`/`-sl` suffix and send the
-   base id when the plan lookup misses. Simple, keeps current data flow.
-2. Refuse the drag with a warning when no plan row exists (drag was
-   never a supported path for brackets without a row). Safer, but
-   removes an interaction.
+## Fix
+Option 1 (strip the leg suffix), implemented in `handleTpSlDrop()`:
+
+```ts
+const venueOrderId =
+    plan?.sourceOrderId ??
+    stripLegSuffix(orderId, kind === "takeProfit" ? "tp" : "sl");
+```
+
+The new `stripLegSuffix()` helper in `tpslNormalize.ts` strips only a
+`-tp`/`-sl` suffix whose base is numeric (Bitunix order ids are numeric, the
+suffix is not), so a real venue id can never be truncated and the generic
+non-Bitunix path is unaffected. This covers both a missing plan row (pruned,
+not yet hydrated, removed mid-drag) and a WebSocket-sourced plan that carries
+no `sourceOrderId`, and keeps the drag interaction instead of refusing it.
+
+## Residual risk
+The fallback assumes a leg id's base is the venue order id it was split from
+— the same documented-but-not-yet-live-confirmed assumption BUG-0292 /
+BUG-0386 carry (see the `tpslNormalize.ts` file header). If it proves false,
+the stripped id addresses the wrong row. The numeric-base guard keeps a real
+venue id from being truncated, and this path is only reached when
+`plansFor()` has no plan to read `sourceOrderId` from.
 
 ## Acceptance criteria
-- [ ] Decision made between option 1 and 2; fix implemented.
-- [ ] Dragging a bracket leg with no plan row no longer sends a
+- [x] Decision made between option 1 and 2; fix implemented.
+- [x] Dragging a bracket leg with no plan row no longer sends a
       `<id>-tp`/`<id>-sl` id to the venue.
-- [ ] Component test covers the no-plan-row drag case.
+- [x] Component test covers the no-plan-row drag case.
 
 ## Out of scope
 - General leg-id redesign (BUG-0292).

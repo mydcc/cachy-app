@@ -500,6 +500,43 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         expect(tpSlState.invalidate).toHaveBeenCalled();
     });
 
+    it("falls back to the base row id when no plan row is available at drop (BUG-0384)", async () => {
+        seedPositionAndPlans();
+        // The line is built from a real leg id (`<baseId>-sl`), not the
+        // placeholder `sl-1` seedPositionAndPlans uses.
+        vi.mocked(tpSlState.plansFor).mockReturnValue({
+            loss: { orderId: "9001-sl", symbol: "BTCUSDT", planType: "LOSS", triggerPrice: "90", status: "NEW" } as never,
+        });
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        // The row is gone by drop time — pruned, not yet hydrated, or removed
+        // mid-drag — so plansFor() can no longer supply `sourceOrderId`.
+        vi.mocked(tpSlState.plansFor).mockReturnValue({});
+
+        const container = host.querySelector(".chart-container") as HTMLElement;
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+
+        dragSlLineTo(container, 90, 95);
+        await settle();
+
+        // The venue row id, not the synthetic `<id>-sl` leg id.
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "9001",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "95",
+            }),
+        );
+    });
+
     it("shows an error toast and still invalidates the cache when the modification is refused", async () => {
         modifyTpSlOrder.mockRejectedValueOnce(new Error("refused"));
         seedPositionAndPlans();

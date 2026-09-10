@@ -59,6 +59,7 @@
         PriceLineManager,
         type TpSlKind,
     } from "../../../services/chart/priceLineManager";
+    import { stripLegSuffix } from "../../../services/tpslNormalize";
     import type { WindowBase } from "../WindowBase.svelte";
     // FEAT-0395 -- creating an alert from the chart.
     import { conditionFromChartClick, ruleTimeframeFor } from "../../alerts/chartAlertSeed";
@@ -521,14 +522,20 @@
     async function handleTpSlDrop(kind: TpSlKind, orderId: string, price: Decimal) {
         const planType = kind === "takeProfit" ? "PROFIT" : "LOSS";
         const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
-        // BUG-0386: `orderId` is the synthetic per-leg id (`<baseId>-tp` /
-        // `<baseId>-sl`, BUG-0292) that only exists locally. The venue knows
-        // the row it was split from — send that id, not the leg id.
         const plans = tpSlState.plansFor(normalizedSymbol);
         const plan = kind === "takeProfit" ? plans.profit : plans.loss;
+        // BUG-0386 / BUG-0384: `orderId` is the synthetic per-leg id
+        // (`<baseId>-tp` / `<baseId>-sl`, BUG-0292) that only exists locally.
+        // The venue knows the row it was split from — send that id. The plan
+        // lookup can miss (row pruned, not yet hydrated, removed mid-drag, or
+        // a WebSocket-sourced plan that carries no `sourceOrderId`); strip the
+        // leg suffix to recover the base row id instead of sending the leg id.
+        const venueOrderId =
+            plan?.sourceOrderId ??
+            stripLegSuffix(orderId, kind === "takeProfit" ? "tp" : "sl");
         try {
             await activeExchange().trading.modifyTpSlOrder({
-                orderId: plan?.sourceOrderId ?? orderId,
+                orderId: venueOrderId,
                 symbol: normalizedSymbol,
                 planType,
                 triggerPrice: price.toString(),
@@ -542,7 +549,7 @@
             // BUG-0386: the toast alone gave no reproducible trace — log the
             // failed mutation (payload + error) before surfacing it.
             logger.warn("api", "TP/SL drag update failed", {
-                orderId: plan?.sourceOrderId ?? orderId,
+                orderId: venueOrderId,
                 planType,
                 error: msg,
             });

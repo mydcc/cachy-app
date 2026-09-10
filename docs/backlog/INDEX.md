@@ -4,7 +4,7 @@
 
 315 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 35 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 249
+Counts by status: 💡 idea 27 · 📋 specced 34 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 250
 
 ---
 
@@ -344,7 +344,7 @@ Counts by status: 💡 idea 27 · 📋 specced 35 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | ✅ done | indicators |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | chat |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | exchange |
-| [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | exchange |
+| [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | ✅ done | exchange |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | tooling |
 | [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | 📋 specced | backend |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
@@ -654,7 +654,7 @@ Counts by status: 💡 idea 27 · 📋 specced 35 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | 📋 specced | none | community, pro, private | none | none | — |
