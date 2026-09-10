@@ -107,6 +107,107 @@ describe("FEAT-0390: PriceTab", () => {
     flushSync();
   }
 
+  /*
+   * FEAT-0395 — the tab renders the draft it was handed.
+   *
+   * A chart right-click seeds the document and *then* the panel opens; if the
+   * form only ever wrote, the trader would land on an empty form and the price
+   * they clicked would live on invisibly inside the rule. Reading the document
+   * back also means switching tabs and returning no longer discards a
+   * half-built condition.
+   */
+  describe("FEAT-0395: a pre-filled draft", () => {
+    it("shows the level a chart click seeded, not an empty form", () => {
+      alertPanelState.seed({
+        symbol: "BTCUSDT",
+        tab: "price",
+        condition: {
+          kind: "cross",
+          left: { kind: "price", field: "close" },
+          direction: "above",
+          right: { kind: "constant", value: "61234.57" },
+          timeframe: "1h",
+        },
+      });
+
+      const el = render();
+
+      const checked = el.querySelector<HTMLInputElement>(
+        'input[name="price-condition-kind"]:checked',
+      );
+      expect(checked?.value).toBe("rises_above");
+      expect(
+        el.querySelector<HTMLInputElement>('input[inputmode="decimal"]')?.value,
+      ).toBe("61234.57");
+    });
+
+    it("shows a downward level as falls below", () => {
+      alertPanelState.seed({
+        symbol: "BTCUSDT",
+        tab: "price",
+        condition: {
+          kind: "cross",
+          left: { kind: "price", field: "close" },
+          direction: "below",
+          right: { kind: "constant", value: "58000" },
+          timeframe: "1h",
+        },
+      });
+
+      const el = render();
+
+      expect(
+        el.querySelector<HTMLInputElement>('input[name="price-condition-kind"]:checked')?.value,
+      ).toBe("falls_below");
+    });
+
+    it("keeps the seeded condition in the document after mounting", () => {
+      // The write-through effect runs on mount. Rebuilding the same condition
+      // is what proves the form and the document agree — an effect that wrote
+      // `null` here would silently disarm the alarm the trader just clicked.
+      alertPanelState.seed({
+        symbol: "BTCUSDT",
+        tab: "price",
+        condition: {
+          kind: "cross",
+          left: { kind: "price", field: "close" },
+          direction: "above",
+          right: { kind: "constant", value: "61234.57" },
+          timeframe: "1h",
+        },
+      });
+
+      render();
+
+      expect(writtenCondition()).toMatchObject({
+        kind: "cross",
+        direction: "above",
+        right: { kind: "constant", value: "61234.57" },
+      });
+    });
+
+    it("stays editable — typing replaces the seeded level", () => {
+      alertPanelState.seed({
+        symbol: "BTCUSDT",
+        tab: "price",
+        condition: {
+          kind: "cross",
+          left: { kind: "price", field: "close" },
+          direction: "above",
+          right: { kind: "constant", value: "61234.57" },
+          timeframe: "1h",
+        },
+      });
+
+      const el = render();
+      typeThreshold(el, "62000");
+
+      expect(writtenCondition()).toMatchObject({
+        right: { kind: "constant", value: "62000" },
+      });
+    });
+  });
+
   it("offers all four condition types", () => {
     const el = render();
     const values = [...el.querySelectorAll<HTMLInputElement>('input[name="price-condition-kind"]')]

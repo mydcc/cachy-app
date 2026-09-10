@@ -3782,7 +3782,12 @@
   "chartView": {
     "loadingHistory": "LADE HISTORIE ...",
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
-    "countdownLabel": "Countdown bis zur Kerzenschließung"
+    "countdownLabel": "Countdown bis zur Kerzenschließung",
+    "alert": {
+      "regionLabel": "Kurschart für {symbol}. Kontextmenü-Taste drücken, um einen Alarm anzulegen.",
+      "menuLabel": "Chart-Alarm",
+      "here": "Alarm hier — {price}"
+    }
   },
   "chart": {
     "pane": {

@@ -3782,7 +3782,12 @@
   "chartView": {
     "loadingHistory": "LOADING HISTORY ...",
     "fetchingMarketData": "FETCHING MARKET DATA ...",
-    "countdownLabel": "Countdown to candle close"
+    "countdownLabel": "Countdown to candle close",
+    "alert": {
+      "regionLabel": "Price chart for {symbol}. Press the context-menu key to create an alert.",
+      "menuLabel": "Chart alert",
+      "here": "Alert here — {price}"
+    }
   },
   "chart": {
     "pane": {
