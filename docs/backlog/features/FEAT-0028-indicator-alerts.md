@@ -81,9 +81,10 @@ conditions actually evaluate rather than resolve to "no value":
   compare.~~ **Closed 2026-09-10** — see "Bandwidth is a percentage, on the
   scale the panel already prints" below. The registry now declares
   `upper|middle|lower|percent_b|bandwidth`.
-- **Divergence needs a new condition shape.** `compare` and `cross` read one
-  candle and two respectively; a divergence is a claim about two swings.
-  **Accepted 2026-09-10** as [`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md),
+- ~~**Divergence needs a new condition shape.**~~ **Closed 2026-09-10** — and
+  the premise was wrong: it needed a new *operand*. `compare` and `cross` read
+  one candle and two respectively; a divergence is a claim about two swings.
+  Decided in [`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md),
   which decides it is not a condition shape at all: a claim about a window is an
   *operand*, and divergence then composes out of `group` + `compare` + a window
   aggregate. Closing gap 2 turned up a second condition with the same
@@ -206,11 +207,9 @@ reverted.
   about this addition, so the volume operand inherits the existing answer rather
   than inventing a second one.
 
-Still open: the WebGPU leg of criterion 4, criterion 1's recorded market series,
-and the last of the three schema gaps — divergence, whose shape is now decided
-in [`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md)
-(`Operand::Window`, ceiling 500 candles) and is implementation work rather than
-an open design question.
+Still open: the WebGPU leg of criterion 4 and criterion 1's recorded market
+series. All three schema gaps are closed — see "A window is an operand" below
+for the last of them.
 
 ## Bandwidth is a percentage, on the scale the panel already prints (2026-09-10)
 
@@ -253,6 +252,65 @@ moves both sides together and the comparison stays silent — reverting the
 `* 100` leaves the contracted-state comparison passing while every candle
 qualifies. That is why the panel comparison and the discriminating-threshold
 test exist: the shared-implementation oracle proves indexing, not units.
+
+## A window is an operand, so divergence and Squeeze are compositions (2026-09-10)
+
+`Operand::Window { of, agg: min|max, lookback }` closes the third gap, and it
+closed a second condition nobody had listed as a gap: Bollinger's actual
+Squeeze is the *lowest* bandwidth of a long lookback, not `bandwidth < 0.5`. The
+absolute threshold works and is market-specific — carried to another symbol the
+constant means something else, which is the difference between a rule and a
+bookmark. Both are now expressible:
+
+- **Squeeze** — `bandwidth <= window(min, 60, bandwidth)`
+- **Bearish divergence** — `group all [ price.high >= window(max, N, price.high),
+  rsi < window(max, N, rsi) ]`
+
+[`ADR-0016`](../../adr/0016-a-claim-about-a-window-is-an-operand.md) carries the
+reasoning and the seven rules a review can check this against. Three things are
+worth repeating here because they are what a trader meets:
+
+- **It is not swing-pivot divergence.** "Price is at an N-candle high and RSI is
+  not" overlaps the textbook picture without being it: no pivot is identified
+  and two swings are never paired. Pivot strength depends on how much future
+  the detector may see, which is what ADR-0012 decision 3 excluded VWAP for.
+  The UI copy has to say this, not just the ADR.
+- **A strict comparison against a window can never fire.** The window includes
+  the candle being evaluated, so `close > max(close, 20)` compares a value with
+  a set it belongs to. "Breaks above its 20-candle high" is `gte`. Pinned by a
+  test rather than left as a footnote, because it is the sentence a trader
+  reaches for first.
+- **Depth is refused, not tolerated.** `MAX_RULE_WARMUP_CANDLES = 500`. Without
+  it an over-deep rule is *silent*: `ruleEvaluationGate` withholds a verdict
+  while the series is too short and has no separate state for a requirement that
+  can never be met, so "never fires" and "still warming up" look identical.
+
+### What the tests actually prove
+
+Two reverts, because a green test is not evidence on its own:
+
+- Pinning the window to the anchor instead of the evaluation offset breaks
+  `a_window_inside_a_cross_moves_with_the_offset` — without it a windowed
+  `cross` would never fire at all.
+- Skipping missing candles instead of aborting the aggregate breaks
+  `a_window_without_its_full_span_yields_no_verdict_rather_than_a_partial_aggregate`.
+  That revert is the plausible-looking one, and it is the dangerous one: the
+  minimum of 3 of 120 closes is below almost any threshold, so a squeeze alert
+  would fire on a gap in the data.
+
+The squeeze itself is checked end to end against an oracle that rolls the window
+in JavaScript while the evaluator rolls it in Rust — two implementations
+agreeing, not one checking itself, which is the weakness the `bandwidth` work
+had to work around.
+
+One test in this batch was **stumped and had to be rewritten**: it asserted that
+`collectIndicators` looks through a window, with the same indicator bare on the
+other side of the comparison. The bare operand requested the series anyway, so
+the window rode along on someone else's success and the test passed with the
+wrapper never opened. It now uses a rule whose only indicator is inside the
+window, and fails without the fix. That failure mode is the one this schema
+addition is most exposed to: nothing raises, the series is simply absent and
+every candle comes back indeterminate.
 
 ## Links
 

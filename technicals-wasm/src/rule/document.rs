@@ -39,7 +39,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::condition::{Condition, ConditionSite, MAX_CONDITION_DEPTH};
+use super::condition::{Condition, ConditionSite, MAX_CONDITION_DEPTH, MAX_RULE_WARMUP_CANDLES};
 use super::consequence::{ConsequenceLevel, RuleAction};
 use super::refusal::{RefusalCode, Refused, RuleRefusal};
 use super::sha256::sha256_hex;
@@ -146,6 +146,32 @@ impl RuleDocument {
         }
 
         self.action.validate("action", &mut out);
+
+        // The ceiling that keeps an over-deep rule from being silent instead of
+        // refused. Checked per tree so the refusal names which half is too
+        // deep; `warmup_candles()` reduces to a maximum and carries no path, so
+        // this is the finest granularity available without a second walker.
+        for (site, tree) in [
+            ("conditions", Some(&self.conditions)),
+            ("veto", self.veto.as_ref()),
+        ] {
+            let Some(tree) = tree else { continue };
+            let needed = tree.warmup_candles();
+            if needed > MAX_RULE_WARMUP_CANDLES {
+                out.push(RuleRefusal::new(
+                    RefusalCode::RuleWarmupTooDeep,
+                    site,
+                    format!(
+                        "this rule needs {needed} closed candles before it can produce a \
+                         verdict, and at most {MAX_RULE_WARMUP_CANDLES} are loaded. Without \
+                         this refusal the alert would simply never fire: the evaluation gate \
+                         withholds a verdict while the series is too short and has no \
+                         separate state for a requirement that can never be met. Shorten a \
+                         window or an indicator period."
+                    ),
+                ));
+            }
+        }
 
         if out.is_empty() {
             Ok(())
@@ -296,7 +322,7 @@ mod tests {
     use super::*;
     use crate::rule::condition::{
         AccountField, CompareOp, CrossDirection, Dimension, LogicOp, Operand, PositionSide,
-        PriceField, PriceSource,
+        PriceField, PriceSource, WindowAgg, MAX_WINDOW_LOOKBACK,
     };
     use crate::rule::consequence::{OrderIntent, OrderSide, SizeBasis};
     use crate::rule::indicator::{IndicatorRef, ParamValue};
@@ -1109,5 +1135,204 @@ mod tests {
         );
         let back: RuleDocument = serde_json::from_str(&json).unwrap();
         assert_eq!(back.conditions, doc.conditions);
+    }
+
+    fn close() -> Operand {
+        Operand::Price {
+            field: PriceField::Close,
+            source: PriceSource::Last,
+        }
+    }
+
+    fn window(agg: WindowAgg, lookback: u32, of: Operand) -> Operand {
+        Operand::Window {
+            of: Box::new(of),
+            agg,
+            lookback,
+        }
+    }
+
+    /// Rule 2 of ADR-0016, checked through the guard rather than at the method.
+    ///
+    /// Asserting `dimension()` directly would prove the delegation and not that
+    /// it is load-bearing. Running it through `check_dimensions` proves the
+    /// thing that matters: a window over a volume is still a volume, so
+    /// comparing it against a price is refused for the same reason the bare
+    /// volume operand is — the guard was inherited, not re-implemented.
+    #[test]
+    fn a_window_is_denominated_in_whatever_it_aggregates() {
+        let volume_window_vs_price = with(compare(
+            window(WindowAgg::Max, 20, Operand::Volume {}),
+            close(),
+        ));
+        let refusals = volume_window_vs_price.validate().unwrap_err().refusals;
+        assert!(
+            refusals
+                .iter()
+                .any(|r| r.code == RefusalCode::OperandDimensionMismatch),
+            "a window over volume against a price has to be refused: {refusals:?}"
+        );
+
+        // And the pair that agrees stays legal, so the test cannot pass by
+        // refusing every window.
+        let volume_window_vs_volume = with(compare(
+            window(WindowAgg::Max, 20, Operand::Volume {}),
+            Operand::Volume {},
+        ));
+        assert!(volume_window_vs_volume.validate().is_ok());
+
+        assert_eq!(
+            window(WindowAgg::Min, 20, Operand::Volume {}).dimension(),
+            Some(Dimension::Volume)
+        );
+    }
+
+    /// Rule 4: `of.warmup_candles() + lookback - 1`.
+    ///
+    /// The `- 1` is the candle the two counts share — the window includes the
+    /// close being evaluated, which the inner operand's own warmup already
+    /// counts. Stated as a number here because the alternative to auditing it
+    /// is discovering it when an alert stays quiet.
+    #[test]
+    fn a_window_costs_its_span_on_top_of_what_it_aggregates() {
+        // A price operand needs 2 (a crossing reads the previous close).
+        let over_price = with(compare(window(WindowAgg::Min, 10, close()), close()));
+        assert_eq!(over_price.warmup_candles(), 11);
+
+        // An rsi(14) needs its own warmup, and the window adds to it.
+        let bare_rsi = with(compare(
+            Operand::Indicator { indicator: rsi(14) },
+            Operand::Constant { value: d("30") },
+        ));
+        let windowed = with(compare(
+            window(
+                WindowAgg::Min,
+                10,
+                Operand::Indicator { indicator: rsi(14) },
+            ),
+            Operand::Constant { value: d("30") },
+        ));
+        assert_eq!(
+            windowed.warmup_candles(),
+            bare_rsi.warmup_candles() + 9,
+            "a 10-close window adds 9 candles to what it aggregates"
+        );
+    }
+
+    /// Rule 3. A refusal rather than a depth budget: no one has named a use for
+    /// a minimum of a maximum, and allowing it lets the history requirement
+    /// compound where the type no longer says so.
+    #[test]
+    fn a_window_over_a_window_is_refused() {
+        let doc = with(compare(
+            window(WindowAgg::Min, 20, window(WindowAgg::Max, 20, close())),
+            close(),
+        ));
+        let refusals = doc.validate().unwrap_err().refusals;
+        assert!(
+            refusals.iter().any(|r| r.code == RefusalCode::NestedWindow),
+            "{refusals:?}"
+        );
+    }
+
+    #[test]
+    fn a_window_shorter_than_two_closes_or_longer_than_the_cap_is_refused() {
+        for lookback in [0, 1, MAX_WINDOW_LOOKBACK + 1] {
+            let doc = with(compare(window(WindowAgg::Min, lookback, close()), close()));
+            let refusals = doc.validate().unwrap_err().refusals;
+            assert!(
+                refusals
+                    .iter()
+                    .any(|r| r.code == RefusalCode::InvalidWindowLookback),
+                "lookback {lookback} has to be refused: {refusals:?}"
+            );
+        }
+
+        // The ends of the accepted range stay accepted.
+        for lookback in [2, MAX_WINDOW_LOOKBACK] {
+            let doc = with(compare(window(WindowAgg::Min, lookback, close()), close()));
+            let refusals = doc.validate().err().map(|e| e.refusals).unwrap_or_default();
+            assert!(
+                !refusals
+                    .iter()
+                    .any(|r| r.code == RefusalCode::InvalidWindowLookback),
+                "lookback {lookback} is inside the range: {refusals:?}"
+            );
+        }
+    }
+
+    /// The refusal that keeps an over-deep rule from being silent.
+    ///
+    /// `ruleEvaluationGate` withholds a verdict while the series is shorter
+    /// than the warmup requirement and has no separate state for "and it always
+    /// will be", so without this the alert is indistinguishable from one still
+    /// warming up. The example is ADR-0016's own: a 500-close window over an
+    /// ema(50) needs 549 candles, which passes the per-operand cap and fails
+    /// the total.
+    #[test]
+    fn a_rule_needing_more_history_than_the_app_loads_is_refused() {
+        let mut params = BTreeMap::new();
+        params.insert("period".to_string(), ParamValue::Count(50));
+        let ema = IndicatorRef {
+            id: "ema".to_string(),
+            params,
+            output: "value".to_string(),
+        };
+
+        let doc = with(compare(
+            window(
+                WindowAgg::Min,
+                MAX_WINDOW_LOOKBACK,
+                Operand::Indicator {
+                    indicator: ema.clone(),
+                },
+            ),
+            Operand::Indicator { indicator: ema },
+        ));
+        assert!(doc.warmup_candles() > MAX_RULE_WARMUP_CANDLES);
+
+        let refusals = doc.validate().unwrap_err().refusals;
+        let deep = refusals
+            .iter()
+            .find(|r| r.code == RefusalCode::RuleWarmupTooDeep)
+            .unwrap_or_else(|| panic!("expected a warmup refusal: {refusals:?}"));
+        assert_eq!(deep.field, "conditions");
+        assert!(
+            deep.detail.contains(&doc.warmup_candles().to_string()),
+            "the refusal has to name the figure a trader must get under: {}",
+            deep.detail
+        );
+    }
+
+    /// Rule 7: the addition is additive. A window names itself in the canonical
+    /// form, survives a round trip, and no document that predates it changes
+    /// shape — so no stored rule's content hash moves and no migration is due.
+    #[test]
+    fn a_window_operand_round_trips_through_its_canonical_form() {
+        let doc = with(compare(
+            close(),
+            window(WindowAgg::Min, 120, Operand::Volume {}),
+        ));
+        let json = serde_json::to_string(&doc).unwrap();
+        assert!(
+            json.contains(r#""kind":"window""#) && json.contains(r#""agg":"min""#),
+            "a window has to serialise as snake_case kind and agg: {json}"
+        );
+        let back: RuleDocument = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.conditions, doc.conditions);
+    }
+
+    /// Rule 6: `Min` and `Max`, and nothing else. `sma`, `ema` and `volume_ma`
+    /// already average over a period; a second spelling of the same number is a
+    /// second thing to keep consistent with the first.
+    #[test]
+    fn a_window_has_no_aggregate_beyond_min_and_max() {
+        let json = serde_json::to_string(&with(compare(
+            close(),
+            window(WindowAgg::Min, 10, close()),
+        )))
+        .unwrap()
+        .replace(r#""agg":"min""#, r#""agg":"mean""#);
+        assert!(serde_json::from_str::<RuleDocument>(&json).is_err());
     }
 }

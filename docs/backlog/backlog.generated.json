@@ -6472,6 +6472,24 @@
       "file": "features/FEAT-0416-account-read-protocol-adr.md"
     },
     {
+      "id": "FEAT-0432",
+      "title": "Generate the refusal-code list from the enum instead of maintaining it twice",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "none",
+      "adr": "ADR-0012",
+      "depends_on": [],
+      "file": "features/FEAT-0432-refusal-codes-from-one-declaration.md"
+    },
+    {
       "id": "IDEA-0036",
       "title": "A gamified fork built on SpacetimeDB and the 3D layer",
       "type": "idea",

@@ -48,7 +48,7 @@ use serde::{Deserialize, Serialize};
 
 use super::condition::{
     AccountField, Condition, CrossDirection, LogicOp, Operand, PositionSide, PriceField,
-    PriceSource,
+    PriceSource, WindowAgg,
 };
 use super::document::RuleDocument;
 use super::indicator::IndicatorRef;
@@ -476,6 +476,40 @@ impl Ctx<'_> {
                             "the {source} {timeframe} percentage move overflowed"
                         ))
                     })
+            }
+
+            // The lowest or highest value `of` took over `lookback` closes
+            // ending at `back`.
+            //
+            // A missing candle anywhere inside the window aborts the whole
+            // aggregate rather than being skipped. The minimum of 117 of 120
+            // closes is not the minimum of 120, and reporting it as one would
+            // make a squeeze condition fire on a gap in the data. `?`
+            // propagates the `Missing`, which the gate reads as "no verdict".
+            //
+            // Recomputed in full on every evaluation: O(lookback) operand
+            // reads, up to 500, once per close of the trigger timeframe. A
+            // monotone deque would make it amortised O(1) but needs state
+            // carried between anchors, and this evaluator is deliberately
+            // stateless per anchor — the property that makes a corrected candle
+            // safe to re-decide. Not optimised until something measures it.
+            Operand::Window { of, agg, lookback } => {
+                let mut acc: Option<Decimal> = None;
+                for step in 0..*lookback as usize {
+                    let value = self.operand_at(of, timeframe, back + step)?;
+                    acc = Some(match (acc, agg) {
+                        (None, _) => value,
+                        (Some(seen), WindowAgg::Min) => seen.min(value),
+                        (Some(seen), WindowAgg::Max) => seen.max(value),
+                    });
+                }
+                acc.ok_or_else(|| {
+                    Missing::NoValue(
+                        "a window spanning no closes has no value; \
+                         `validate` refuses this document"
+                            .to_string(),
+                    )
+                })
             }
 
             // Indicator values are indexed against the last-price series, which
@@ -1148,5 +1182,172 @@ mod tests {
         );
         assert_eq!(volume, price);
         assert_eq!(volume, Verdict::DoesNotFire);
+    }
+
+    /// `price.close <= min(price.close over N closes)` — "at an N-candle low",
+    /// the shape Bollinger's Squeeze uses with `bandwidth` in place of `close`.
+    fn at_a_window_low(lookback: u32) -> Condition {
+        Condition::Compare {
+            left: Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            },
+            op: CompareOp::Lte,
+            right: Operand::Window {
+                of: Box::new(Operand::Price {
+                    field: PriceField::Close,
+                    source: PriceSource::Last,
+                }),
+                agg: WindowAgg::Min,
+                lookback,
+            },
+            timeframe: tf("4h"),
+        }
+    }
+
+    #[test]
+    fn a_window_minimum_is_the_lowest_value_in_its_span() {
+        let doc = notify_doc(at_a_window_low(3));
+
+        // The last close is the lowest of the three.
+        let falling = InMemoryMarket::new().with_candles(tf("4h"), candles(&["5", "4", "3"]));
+        assert_eq!(evaluate(&doc, &falling, None), Verdict::Fires);
+
+        // And the highest, so the test cannot pass by always firing.
+        let rising = InMemoryMarket::new().with_candles(tf("4h"), candles(&["3", "4", "5"]));
+        assert_eq!(evaluate(&doc, &rising, None), Verdict::DoesNotFire);
+    }
+
+    #[test]
+    fn a_window_maximum_is_the_highest_value_in_its_span() {
+        let doc = notify_doc(Condition::Compare {
+            left: Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            },
+            op: CompareOp::Gte,
+            right: Operand::Window {
+                of: Box::new(Operand::Price {
+                    field: PriceField::Close,
+                    source: PriceSource::Last,
+                }),
+                agg: WindowAgg::Max,
+                lookback: 3,
+            },
+            timeframe: tf("4h"),
+        });
+
+        let rising = InMemoryMarket::new().with_candles(tf("4h"), candles(&["3", "4", "5"]));
+        assert_eq!(evaluate(&doc, &rising, None), Verdict::Fires);
+
+        let falling = InMemoryMarket::new().with_candles(tf("4h"), candles(&["5", "4", "3"]));
+        assert_eq!(evaluate(&doc, &falling, None), Verdict::DoesNotFire);
+    }
+
+    /// The window spans the last `lookback` closes, not the whole series.
+    ///
+    /// The discriminating case: a value lower than everything in the window
+    /// sits just outside it. A window that walked the series from the start
+    /// would find `1`, and "at a 3-candle low" would stop being true for the
+    /// rest of the history.
+    #[test]
+    fn a_window_ends_at_the_anchor_and_does_not_reach_past_its_span() {
+        let doc = notify_doc(at_a_window_low(3));
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["1", "9", "8", "7"]));
+
+        // min(9, 8, 7) == 7 == the last close.
+        assert_eq!(evaluate(&doc, &market, None), Verdict::Fires);
+    }
+
+    /// A window shorter than its span has no value, rather than the aggregate
+    /// of what happened to be there.
+    ///
+    /// This is the failure mode that matters for a squeeze: the minimum of 3 of
+    /// 5 closes is not the minimum of 5, and answering with it would report a
+    /// squeeze on missing data. The gate reads `Indeterminate` as "no verdict"
+    /// and keeps waiting, which is the honest state.
+    #[test]
+    fn a_window_without_its_full_span_yields_no_verdict_rather_than_a_partial_aggregate() {
+        let doc = notify_doc(at_a_window_low(5));
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["5", "4", "3"]));
+
+        let Verdict::Indeterminate { reason } = evaluate(&doc, &market, None) else {
+            panic!("expected no verdict while the window is not fully covered");
+        };
+        assert!(reason.contains("closes before the anchor"));
+    }
+
+    /// A `cross` evaluates both the current close and its predecessor, so the
+    /// window has to move with the offset rather than staying pinned to the
+    /// anchor.
+    ///
+    /// Closes `1, 2, 9` with a 2-close minimum: one candle back the window
+    /// spans `2, 1` and reads 1; at the anchor it spans `9, 2` and reads 2. A
+    /// threshold between them is therefore crossed. A window that ignored the
+    /// offset would read 2 at both offsets, see no transition, and this rule
+    /// would never fire at all.
+    #[test]
+    fn a_window_inside_a_cross_moves_with_the_offset() {
+        let doc = notify_doc(Condition::Cross {
+            left: Operand::Window {
+                of: Box::new(Operand::Price {
+                    field: PriceField::Close,
+                    source: PriceSource::Last,
+                }),
+                agg: WindowAgg::Min,
+                lookback: 2,
+            },
+            direction: CrossDirection::Above,
+            right: Operand::Constant { value: d("1.5") },
+            timeframe: tf("4h"),
+        });
+
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["1", "2", "9"]));
+        assert_eq!(evaluate(&doc, &market, None), Verdict::Fires);
+    }
+
+    /// The window includes the candle being evaluated, so a *strict* comparison
+    /// of a value against its own window can never be true: the value is one of
+    /// the numbers the aggregate chose from.
+    ///
+    /// Worth pinning because "breaks above its 20-candle high" is the sentence a
+    /// trader reaches for, and written literally it is a rule that never fires.
+    /// `gte` is the form that expresses it; the UI has to offer that one.
+    #[test]
+    fn a_strict_comparison_against_an_inclusive_window_never_fires() {
+        let of = || {
+            Operand::Price {
+                field: PriceField::Close,
+                source: PriceSource::Last,
+            }
+        };
+        let strictly_above = notify_doc(Condition::Compare {
+            left: of(),
+            op: CompareOp::Gt,
+            right: Operand::Window {
+                of: Box::new(of()),
+                agg: WindowAgg::Max,
+                lookback: 3,
+            },
+            timeframe: tf("4h"),
+        });
+
+        // A run of new highs — the most favourable data there is for a breakout.
+        let breaking_out =
+            InMemoryMarket::new().with_candles(tf("4h"), candles(&["1", "2", "3", "4"]));
+        assert_eq!(evaluate(&strictly_above, &breaking_out, None), Verdict::DoesNotFire);
+
+        // The same data with `gte` is the rule the trader meant.
+        let at_or_above = notify_doc(Condition::Compare {
+            left: of(),
+            op: CompareOp::Gte,
+            right: Operand::Window {
+                of: Box::new(of()),
+                agg: WindowAgg::Max,
+                lookback: 3,
+            },
+            timeframe: tf("4h"),
+        });
+        assert_eq!(evaluate(&at_or_above, &breaking_out, None), Verdict::Fires);
     }
 }

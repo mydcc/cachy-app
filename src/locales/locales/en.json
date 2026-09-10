@@ -3824,7 +3824,10 @@
       "conditionTreeTooDeep": "The conditions are nested too deeply.",
       "duplicateConditionId": "The same condition identifier is used twice.",
       "invalidLookback": "A percentage move needs an earlier candle to measure from. A lookback of 0 compares a candle with itself, which is always zero percent.",
-      "operandDimensionMismatch": "The two sides of this condition are denominated differently — traded volume against a price. Compare volume against a volume average or against a plain threshold."
+      "operandDimensionMismatch": "The two sides of this condition are denominated differently — traded volume against a price. Compare volume against a volume average or against a plain threshold.",
+      "nestedWindow": "A window over a window is not supported. Aggregate over a plain value instead — a lowest high or a highest low, not a lowest highest.",
+      "invalidWindowLookback": "A window needs at least 2 closes and at most 500. One close is the value itself, and deeper history cannot be loaded reliably.",
+      "ruleWarmupTooDeep": "This rule needs more closed candles than the app can load. Shorten the window or use a shorter indicator period — otherwise the alert would stay silent instead of firing."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
@@ -3895,7 +3898,9 @@
       "percentChangeOne": "the change in {price} since the previous close",
       "markSuffix": " (mark price)",
       "percentValue": "{value}%",
-      "volume": "the volume"
+      "volume": "the volume",
+      "windowMin": "the lowest {of} over the last {lookback} closes",
+      "windowMax": "the highest {of} over the last {lookback} closes"
     }
   },
   "storage": {

@@ -77,9 +77,27 @@ export function indicatorKey(
 export function collectIndicators(rule: RuleDocument): IndicatorRequest[] {
   const found = new Map<string, IndicatorRequest>();
 
-  const takeOperand = (operand: unknown, timeframe: string): void => {
+  const takeOperand = (operand: unknown, timeframe: string, depth = 0): void => {
     if (operand === null || typeof operand !== "object") return;
-    const node = operand as { kind?: unknown; indicator?: unknown };
+    // A window nests one level by schema (the core refuses a window of a
+    // window), so this bound only exists because the document comes from
+    // `localStorage` and this collector promises to read defensively.
+    if (depth > 2) return;
+    const node = operand as {
+      kind?: unknown;
+      indicator?: unknown;
+      of?: unknown;
+    };
+
+    // An indicator inside a window needs exactly the series a bare one needs.
+    // Missing it would not raise anything: the series would never be computed,
+    // `indicator_at` would find no value, and the condition would sit
+    // indeterminate for ever — the silent failure ADR-0016 exists to avoid.
+    if (node.kind === "window") {
+      takeOperand(node.of, timeframe, depth + 1);
+      return;
+    }
+
     if (node.kind !== "indicator") return;
 
     const indicator = node.indicator as IndicatorRef | undefined;
