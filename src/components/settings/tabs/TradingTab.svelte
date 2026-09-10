@@ -218,6 +218,35 @@
                         </select>
                     </div>
 
+                    <!-- FEAT-0028: alerts that can never fire -->
+                    <div class="field-group">
+                        <label for="broken-alert-report"
+                            >{$_("settings.brokenAlertReport")}</label
+                        >
+                        <select
+                            id="broken-alert-report"
+                            bind:value={settingsState.brokenAlertReport}
+                            class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
+                        >
+                            <option
+                                value="notify"
+                                class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                                >{$_("settings.brokenAlertReportNotify")}</option
+                            >
+                            <option
+                                value="log"
+                                class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                                >{$_("settings.brokenAlertReportLog")}</option
+                            >
+                        </select>
+                        <p class="text-[10px] text-[var(--text-secondary)]">
+                            {$_("settings.brokenAlertReportDesc")}
+                            {settingsState.brokenAlertReport === "notify"
+                                ? $_("settings.brokenAlertReportNotifyDesc")
+                                : $_("settings.brokenAlertReportLogDesc")}
+                        </p>
+                    </div>
+
                     <!-- Save paper trades to the journal -->
                     <label class="toggle-card gap-3">
                         <div class="flex flex-col min-w-0 flex-1">

@@ -361,20 +361,23 @@
         "armDisabled": "Add a condition first.",
         "tabLoadFailed": "This tab could not be loaded. Reload the page."
       },
+      "brokenRule": {
+        "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate."
+      },
       "price": {
-        "conditionType": "Condition",
-        "risesAbove": "Rises above",
-        "fallsBelow": "Falls below",
-        "riseReaches": "Rise reaches",
-        "fallReaches": "Fall reaches",
+        "conditionType": "Condition Type",
+        "lookbackHint": "Lookback period in candles",
+        "lookbackLabel": "Lookback",
+        "percentLabel": "Percent",
         "priceLabel": "Price",
-        "percentLabel": "Percentage",
-        "lookbackLabel": "Measured over",
-        "lookbackHint": "How many closed candles back the move is measured from.",
-        "seriesLabel": "Price series",
-        "seriesLast": "Last price",
-        "seriesMark": "Mark price",
-        "seriesHint": "The mark price drives liquidation and unrealised PnL, and can differ from the last traded price."
+        "seriesHint": "Which price series to monitor",
+        "seriesLabel": "Price Series",
+        "risesAbove": "Rises Above",
+        "fallsBelow": "Falls Below",
+        "riseReaches": "Rise Reaches",
+        "fallReaches": "Fall Reaches",
+        "seriesLast": "Last Price",
+        "seriesMark": "Mark Price"
       }
     },
     "generalInputs": {
@@ -2128,7 +2131,13 @@
         "orderRejected": "{symbol} order rejected",
         "orderCancelled": "{symbol} order cancelled"
       }
-    }
+    },
+    "brokenAlertReport": "Alerts that can never fire",
+    "brokenAlertReportDesc": "An alert can reference an indicator the alert engine cannot calculate. It keeps sitting in the panel looking armed and will never trigger.",
+    "brokenAlertReportNotify": "Notify me",
+    "brokenAlertReportNotifyDesc": "Show a message the first time such an alert is skipped.",
+    "brokenAlertReportLog": "Log only",
+    "brokenAlertReportLogDesc": "No message. The alert panel still shows which alerts are affected."
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
@@ -3784,9 +3793,9 @@
     "fetchingMarketData": "FETCHING MARKET DATA ...",
     "countdownLabel": "Countdown to candle close",
     "alert": {
-      "regionLabel": "Price chart for {symbol}. Press the context-menu key to create an alert.",
-      "menuLabel": "Chart alert",
-      "here": "Alert here — {price}"
+      "menuLabel": "Alert",
+      "regionLabel": "Alert Region",
+      "here": "Alert at {price}"
     }
   },
   "chart": {
@@ -3817,8 +3826,7 @@
       "migrationNotPossible": "The rule cannot be carried to the current schema version with its meaning intact, so it is refused rather than reinterpreted.",
       "emptyConditionTree": "A group with no conditions has no truth value.",
       "conditionTreeTooDeep": "The conditions are nested too deeply.",
-      "duplicateConditionId": "The same condition identifier is used twice.",
-      "invalidLookback": "A percentage move needs an earlier candle to measure from."
+      "duplicateConditionId": "The same condition identifier is used twice."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
@@ -3826,10 +3834,6 @@
       "empty": "(no condition yet)",
       "negate": "not {condition}",
       "onTimeframe": " (on {timeframe})",
-      "markSuffix": " (mark price)",
-      "percentValue": "{value}%",
-      "percentChange": "the change in {price} over the last {lookback} closes",
-      "percentChangeOne": "the change in {price} since the previous close",
       "compare": "{left} is {op} {right}{timeframe}",
       "crossing": "{left} {direction} {right}{timeframe}",
       "lead": {
@@ -3888,7 +3892,11 @@
         "unrealised_pnl_percent": "the unrealised profit in %",
         "exposure": "the exposure",
         "available_balance": "the available balance"
-      }
+      },
+      "percentChange": "the change in {price} over the last {lookback} closes",
+      "percentChangeOne": "the change in {price} since the previous close",
+      "markSuffix": " (mark price)",
+      "percentValue": "{value}%"
     }
   },
   "storage": {
