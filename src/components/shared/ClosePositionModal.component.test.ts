@@ -150,4 +150,21 @@ describe("BUG-0347 — ClosePositionModal keeps an edited quantity on price tick
 
         expect(quantityInput().value).toBe("5");
     });
+
+    it("does not arm a zero close when the position is fully closed", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+        expect(quantityInput().value).toBe("2");
+
+        // A zero size means the position is gone; the sidebar unmounts this
+        // dialog on the same tick. The seed must not briefly arm a no-op
+        // "close 0" submit in the meantime.
+        component?.refresh({ ...POSITION, amount: new Decimal(0) });
+        settle();
+
+        expect(host.querySelector("#partial-close-qty")).toBeNull();
+    });
 });

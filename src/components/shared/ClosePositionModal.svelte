@@ -58,8 +58,14 @@
    * `position` a fresh object on every price tick, so an effect reading it
    * directly would reset the quantity to the full size on each tick and wipe
    * an in-progress partial close. The string only changes when the size does.
+   *
+   * A zero size is not a seed: it means the position is being fully closed and
+   * the sidebar is about to unmount this dialog. Seeding it would arm a no-op
+   * "close 0" submit, so the field clears instead.
    */
-  const seedAmount = $derived(position ? position.amount.toString() : null);
+  const seedAmount = $derived(
+    position && !position.amount.isZero() ? position.amount.toString() : null,
+  );
   $effect(() => {
     quantity = seedAmount ? new Decimal(seedAmount) : null;
   });

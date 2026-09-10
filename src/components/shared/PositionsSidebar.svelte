@@ -841,8 +841,11 @@
       flashClosingPositionId = pos.positionId ?? null;
       return;
     }
-    // No dialog, so no later re-read: resolve the position once more at
-    // execution time and fall back to the row that was clicked.
+    // No dialog, so no later re-read: resolve the live row at execution time.
+    // The clicked row is a safe fallback because flash close reads only the
+    // symbol and side, both immutable for an open position — so a row that
+    // vanished between render and click cannot make the close use a stale
+    // price or size.
     void runFlashClose(livePosition(pos.positionId ?? null) ?? pos);
   }
 
