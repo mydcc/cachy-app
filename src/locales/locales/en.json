@@ -3893,10 +3893,10 @@
         "exposure": "the exposure",
         "available_balance": "the available balance"
       },
-      "percentChange": "percent change",
-      "percentChangeOne": "one percent change",
-      "markSuffix": "(mark price)",
-      "percentValue": "percent"
+      "percentChange": "the change in {price} over the last {lookback} closes",
+      "percentChangeOne": "the change in {price} since the previous close",
+      "markSuffix": " (mark price)",
+      "percentValue": "{value}%"
     }
   },
   "storage": {

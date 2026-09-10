@@ -3893,10 +3893,10 @@
         "exposure": "das Exposure",
         "available_balance": "das verfügbare Guthaben"
       },
-      "percentChange": "Prozentuale Änderung",
-      "percentChangeOne": "eine Prozent Änderung",
-      "markSuffix": "(Mark-Preis)",
-      "percentValue": "Prozent"
+      "percentChange": "die Veränderung von {price} über die letzten {lookback} Schlusskurse",
+      "percentChangeOne": "seit dem vorherigen Schlusskurs",
+      "markSuffix": " (Mark-Preis)",
+      "percentValue": "{value} %"
     }
   },
   "storage": {
