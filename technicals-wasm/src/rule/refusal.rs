@@ -109,7 +109,7 @@ pub enum RefusalCode {
     /// wrong, so it is refused at authoring time instead of at evaluation.
     InvalidLookback,
     /// A comparison whose two sides are denominated in different things —
-    /// traded volume against a price. Both numbers exist and both are
+    /// traded volume against something that is not volume. Both numbers exist and both are
     /// well-formed, so nothing downstream would complain; the condition would
     /// simply compare size to currency and fire on the crossover of two
     /// unrelated scales. Refused at authoring time because there is no later

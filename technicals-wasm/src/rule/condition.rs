@@ -529,7 +529,7 @@ impl Condition {
             field,
             format!(
                 "the two sides are denominated differently: {l} against {r}. Traded \
-                 volume and a price are not the same kind of number, so this condition \
+                 volume is not the same kind of number as another dimension, so this condition \
                  would fire on arithmetic rather than on a market event. Compare volume \
                  against a volume average (`volume_ma`) or against a plain threshold."
             ),

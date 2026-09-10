@@ -166,6 +166,14 @@ function formatOperand(
           lookback: operand.lookback,
         },
       );
+    default: {
+      // Exhaustiveness without throwing: `renderRuleSentence` promises never
+      // to throw (half-built docs render on every keystroke), so an unknown
+      // future operand degrades to the empty fragment while failing loudly
+      // at compile time via `never`.
+      const _exhaustive: never = operand;
+      return t("rules.sentence.empty");
+    }
   }
 }
 

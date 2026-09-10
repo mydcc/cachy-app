@@ -162,6 +162,9 @@ function seriesFor(operand: Operand): (number | null)[] {
     });
   }
 
+  if (operand.kind !== "indicator")
+    throw new Error(`seriesFor: no series for ${operand.kind}`);
+
   const result = computeIndicatorSeries(
     { indicator: operand.indicator, timeframe: SERIES_TIMEFRAME },
     CANDLE_SERIES,
