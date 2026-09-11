@@ -62,6 +62,6 @@ adds closing power instead of only removing it.
 
 ## Links
 
-- [ADR-0017](../adr/0017-required-ci-gates-fail-closed-after-bounded-retry.md)
+- [ADR-0017](../../adr/0017-required-ci-gates-fail-closed-after-bounded-retry.md)
 - `scripts/lib/pr-issue-match.ts`, `scripts/lib/backlog-flip.ts`
 - BUG-0431

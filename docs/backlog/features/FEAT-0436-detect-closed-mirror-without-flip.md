@@ -47,5 +47,5 @@ backlog files, so it cannot re-introduce the post-merge bot's unreviewed flips.
 
 ## Links
 
-- [ADR-0017](../adr/0017-required-ci-gates-fail-closed-after-bounded-retry.md)
+- [ADR-0017](../../adr/0017-required-ci-gates-fail-closed-after-bounded-retry.md)
 - BUG-0431, `.github/workflows/sync-backlog.yml`
