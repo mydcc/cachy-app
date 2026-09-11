@@ -2384,7 +2384,6 @@
       "testSent": "Testnachricht angenommen.",
       "subject": "Cachy — {category}",
       "testMessage": "Testnachricht von Cachy. Wenn du das liest, funktioniert der Kanal.",
-      "configureFirst": "Fülle die Felder aus, dann lässt sich der Kanal einschalten.",
       "logTitle": "Zustellprotokoll",
       "logClear": "Protokoll leeren",
       "logTest": "Test",

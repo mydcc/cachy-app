@@ -80,9 +80,9 @@ class NotificationSoundStore {
         return this._persistFailed;
     }
 
-    /** Mute folded in, so the UI has one thing to render. */
+    /** Mute folded in, so the UI has one thing to render. Volume 0 also shows as muted. */
     public get availability(): SoundAvailability {
-        return this._muted ? "muted" : this._availability;
+        return (this._muted || this._volume <= 0) ? "muted" : this._availability;
     }
 
     /**

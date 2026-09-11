@@ -2094,7 +2094,6 @@ export type TranslationKey =
   | "settings.externalChannels.testSent"
   | "settings.externalChannels.subject"
   | "settings.externalChannels.testMessage"
-  | "settings.externalChannels.configureFirst"
   | "settings.externalChannels.logTitle"
   | "settings.externalChannels.logClear"
   | "settings.externalChannels.logTest"

@@ -2384,7 +2384,6 @@
       "testSent": "Test message accepted.",
       "subject": "Cachy — {category}",
       "testMessage": "Test message from Cachy. If you are reading this, the channel works.",
-      "configureFirst": "Fill in the fields, then the channel can be switched on.",
       "logTitle": "Delivery log",
       "logClear": "Clear log",
       "logTest": "Test",
