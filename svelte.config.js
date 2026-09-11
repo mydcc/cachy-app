@@ -80,6 +80,8 @@ const config = {
           "wss://ws.bitget.com",
           "https://api.imgbb.com",
           "https://discord.com",
+          "https://api.telegram.org",
+          "https://api.mailgun.net",
           "https://generativelanguage.googleapis.com",
           "https://api.openai.com",
         ],

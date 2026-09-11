@@ -23,6 +23,7 @@
     import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
     import ConfirmationSettings from "../ConfirmationSettings.svelte";
     import NotificationSettings from "../NotificationSettings.svelte";
+    import ExternalChannelSettings from "../ExternalChannelSettings.svelte";
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
     import OrderAuditSettings from "../OrderAuditSettings.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
@@ -664,6 +665,7 @@
                   screen rather than two.
                 -->
                 <NotificationSettings />
+                <ExternalChannelSettings />
             </section>
         {/if}
 

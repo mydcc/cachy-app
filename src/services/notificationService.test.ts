@@ -39,8 +39,26 @@ const toastMock = vi.hoisted(() => ({
 }));
 vi.mock("./toastService.svelte", () => ({ toastService: toastMock }));
 
+/*
+ * The sound channel is mocked here on purpose. This file is about the policy —
+ * which channels a category reaches — and the real WebAudio path, including the
+ * autoplay refusal, is `soundChannel.test.ts`'s subject. Mocking it here keeps
+ * the two from testing each other's scaffolding.
+ */
+const soundMock = vi.hoisted(() => ({ play: vi.fn(() => true) }));
+vi.mock("./soundChannel.svelte", () => ({ soundChannel: soundMock }));
+
+/*
+ * Likewise the external channels: this file's subject is which channels a
+ * category reaches, not what Mailgun answers. The HTTP paths and their failure
+ * reasons are `externalDelivery.test.ts`.
+ */
+const externalMock = vi.hoisted(() => ({ dispatchExternal: vi.fn() }));
+vi.mock("./externalDelivery", () => externalMock);
+
 import { notificationService } from "./notificationService.svelte";
 import { notificationPolicyStore } from "../stores/notifications.svelte";
+import { externalChannelsStore } from "../stores/externalChannels.svelte";
 import {
     DEFAULT_NOTIFICATION_POLICY,
     NOTIFICATION_CATEGORIES,
@@ -63,8 +81,10 @@ function stubNotification(permission: string, ctor: () => void = function () {})
 
 beforeEach(() => {
     vi.clearAllMocks();
+    soundMock.play.mockReturnValue(true);
     notificationService.reset();
     notificationPolicyStore.reset();
+    externalChannelsStore.reload();
     delete (globalThis as { Notification?: unknown }).Notification;
 });
 
@@ -269,5 +289,177 @@ describe("policy defaults and normalisation", () => {
     it("survives a corrupt blob", () => {
         expect(normalizeNotificationPolicy(null)).toEqual(DEFAULT_NOTIFICATION_POLICY);
         expect(normalizeNotificationPolicy("nonsense")).toEqual(DEFAULT_NOTIFICATION_POLICY);
+    });
+});
+
+
+describe("the sound channel — FEAT-0392", () => {
+    it("reports the sound channel in the delivered list", () => {
+        // The criterion is assertable delivery: the channel appears because a
+        // tone actually started, not because the policy wanted one.
+        notificationPolicyStore.setChannel("alert-fired", "sound", true);
+
+        const delivered = notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-1@0",
+            message: "BTCUSDT crossed 70000",
+        });
+
+        expect(delivered).toEqual(["in-app", "sound"]);
+        expect(soundMock.play).toHaveBeenCalledWith("alarm");
+    });
+
+    it("gives an armed alarm its own tone, not the fill tone", () => {
+        // A trader recognising an alarm by ear is the whole point of the
+        // channel; sharing the fill's tone would defeat it.
+        notificationPolicyStore.setChannel("alert-fired", "sound", true);
+        notificationPolicyStore.setChannel("order-filled", "sound", true);
+
+        notificationService.notify({ category: "alert-fired", eventId: "r-1@0", message: "a" });
+        notificationService.notify({ category: "order-filled", eventId: "o-1", message: "b" });
+
+        expect(soundMock.play).toHaveBeenNthCalledWith(1, "alarm");
+        expect(soundMock.play).toHaveBeenNthCalledWith(2, "chime");
+    });
+
+    it("keeps the other channels delivering when the tone is refused", () => {
+        // Autoplay, or a muted channel. The alarm is still announced; it is
+        // only the audible half that is missing, and the list says so.
+        soundMock.play.mockReturnValue(false);
+        notificationPolicyStore.setChannel("alert-fired", "sound", true);
+        stubNotification("granted");
+        notificationPolicyStore.setChannel("alert-fired", "browser", true);
+
+        const delivered = notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-1@0",
+            message: "a",
+        });
+
+        expect(delivered).toEqual(["in-app", "browser"]);
+    });
+
+    it("does not consult the channel at all when the policy says no", () => {
+        notificationService.notify({ category: "alert-fired", eventId: "r-1@0", message: "a" });
+
+        expect(soundMock.play).not.toHaveBeenCalled();
+    });
+
+    it("leaves every sound channel off until asked", () => {
+        // A page that makes noise on first visit is the behaviour that gets the
+        // tab muted at the OS level — taking the alarm with it.
+        for (const category of NOTIFICATION_CATEGORIES) {
+            expect(DEFAULT_NOTIFICATION_POLICY[category].sound).toBe(false);
+        }
+    });
+
+    it("counts a category as silent only when all three channels are off", () => {
+        notificationPolicyStore.setChannel("order-cancelled", "sound", true);
+
+        const delivered = notificationService.notify({
+            category: "order-cancelled",
+            eventId: "o-9",
+            message: "cancelled",
+        });
+
+        // In-app is off for cancellations by default, so sound alone carries it.
+        expect(delivered).toEqual(["sound"]);
+    });
+});
+
+
+describe("the external channels — FEAT-0397", () => {
+    const WEBHOOK = "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_";
+
+    function configureDiscord(): void {
+        externalChannelsStore.setDiscord({ enabled: true, webhookUrl: WEBHOOK, format: "minimal" });
+    }
+
+    it("dispatches on a channel the policy wants and the trader configured", () => {
+        configureDiscord();
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-1@0",
+            message: "BTCUSDT crossed 70000",
+        });
+
+        expect(externalMock.dispatchExternal).toHaveBeenCalledWith(
+            ["discord"],
+            "BTCUSDT crossed 70000",
+            expect.any(String),
+        );
+    });
+
+    it("leaves external channels out of the delivered list", () => {
+        // They cannot be in it honestly: each is a `fetch`, and this function has
+        // already returned by the time Discord answers. The outcome lives in
+        // `externalDeliveryLog` instead — see ADR-0018.
+        configureDiscord();
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        const delivered = notificationService.notify({
+            category: "alert-fired",
+            eventId: "r-1@0",
+            message: "a",
+        });
+
+        expect(delivered).toEqual(["in-app"]);
+    });
+
+    it("does not dispatch on a channel the policy did not ask for", () => {
+        configureDiscord();
+
+        notificationService.notify({ category: "alert-fired", eventId: "r-1@0", message: "a" });
+
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+    });
+
+    it("does not dispatch on a channel switched on but left unconfigured", () => {
+        // One failure entry per alert would bury the entries describing a real
+        // problem, so the gate is configuration *and* policy.
+        notificationPolicyStore.setChannel("alert-fired", "discord", true);
+
+        notificationService.notify({ category: "alert-fired", eventId: "r-1@0", message: "a" });
+
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+    });
+
+    it("announces with zero external channels configured, as before", () => {
+        const delivered = notificationService.notify({
+            category: "order-filled",
+            eventId: "o-1",
+            message: "filled",
+        });
+
+        expect(delivered).toEqual(["in-app"]);
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+    });
+
+    it("respects a silenced category on every channel, external included", () => {
+        // Silencing a category means "do not tell me about this". If the loudest
+        // channel survived the mute, the setting would be a half-truth.
+        configureDiscord();
+        notificationPolicyStore.setChannel("order-filled", "in-app", false);
+        notificationPolicyStore.setChannel("order-filled", "discord", true);
+        notificationPolicyStore.setChannel("order-filled", "discord", false);
+
+        const delivered = notificationService.notify({
+            category: "order-filled",
+            eventId: "o-1",
+            message: "filled",
+        });
+
+        expect(delivered).toEqual([]);
+        expect(externalMock.dispatchExternal).not.toHaveBeenCalled();
+    });
+
+    it("leaves every external channel off out of the box", () => {
+        for (const category of NOTIFICATION_CATEGORIES) {
+            expect(DEFAULT_NOTIFICATION_POLICY[category].email).toBe(false);
+            expect(DEFAULT_NOTIFICATION_POLICY[category].discord).toBe(false);
+            expect(DEFAULT_NOTIFICATION_POLICY[category].telegram).toBe(false);
+        }
     });
 });

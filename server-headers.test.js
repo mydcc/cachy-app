@@ -62,6 +62,16 @@ describe('SECURITY_HEADERS', () => {
     expect(csp).not.toContain('nr-data.net');
   });
 
+  it('CSP connect-src allows every external notification channel host (FEAT-0397)', () => {
+    // Same list as src/csp.test.ts for svelte.config.js: this header is the one
+    // the production Express server actually sends, and it is maintained by
+    // hand alongside svelte.config.js rather than generated from one source.
+    const csp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
+    expect(csp).toContain('https://discord.com');
+    expect(csp).toContain('https://api.telegram.org');
+    expect(csp).toContain('https://api.mailgun.net');
+  });
+
   it('Permissions-Policy delegates 3D metaverse permissions instead of blocking them', () => {
     const pp = SECURITY_HEADERS.find(([name]) => name === 'Permissions-Policy')?.[1];
     expect(pp).toContain('camera=(self "https://space.cachy.app")');
