@@ -295,13 +295,25 @@ export function dimensionOf(entry: CatalogueEntry, output: string): OperandDimen
     return entry.outputs.find((line) => line.name === output)?.dimension ?? "unitless";
 }
 
+/*
+ * i18n keys.
+ *
+ * Output and parameter names are shared tables rather than one entry per
+ * indicator: `period` means the same thing under RSI and under ATR, and 23
+ * copies of "Period" is 23 places for a translation to drift. Only the
+ * indicator names themselves are per id, because those are proper nouns.
+ */
+
 /** i18n key for an indicator's display name. */
-export const nameKey = (id: string): string => `alerts.indicators.${id}.name`;
-/** i18n key for an output line's display name. */
-export const outputKey = (id: string, output: string): string =>
-    `alerts.indicators.${id}.outputs.${output}`;
-/** i18n key for a parameter's display name. */
-export const paramKey = (id: string, param: string): string =>
-    `alerts.indicators.${id}.params.${param}`;
+export const nameKey = (id: string): string => `dashboard.alerts.indicators.name.${id}`;
+/** i18n key for an output line's display name, shared across indicators. */
+export const outputKey = (output: string): string =>
+    `dashboard.alerts.indicators.output.${output}`;
+/** i18n key for a parameter's display name, shared across indicators. */
+export const paramKey = (param: string): string => `dashboard.alerts.indicators.param.${param}`;
 /** i18n key for a group heading. */
-export const groupKey = (group: IndicatorGroup): string => `alerts.indicators.groups.${group}`;
+export const groupKey = (group: IndicatorGroup): string =>
+    `dashboard.alerts.indicators.group.${group}`;
+/** i18n key for the hint under a group heading. */
+export const groupHintKey = (group: IndicatorGroup): string =>
+    `dashboard.alerts.indicators.groupHint.${group}`;
