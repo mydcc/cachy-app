@@ -25,7 +25,8 @@
 import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
 import { deriveFeeRatesFromFills, type RawFill } from "./deriveFeeRates";
-import { resolveFeeRate, entryRoleForOrderType } from "./feeProvenance";
+import { resolveFeeRate, entryRoleForOrderType, resolveFeeFallback } from "./feeProvenance";
+import { CONSTANTS } from "../constants";
 
 /** A fill charged exactly `ratePercent` on a notional of `price × qty`. */
 function fillAt(
@@ -260,5 +261,32 @@ describe("entryRoleForOrderType — the entry leg follows the order type (AC 3)"
 
   it("a limit order is a maker fill", () => {
     expect(entryRoleForOrderType("limit")).toBe("maker");
+  });
+});
+
+describe("resolveFeeFallback — BUG-0379 the broker rate beats the global default", () => {
+  it("prefers the account's remote taker fee when no manual flat fee is set", () => {
+    expect(resolveFeeFallback("", new Decimal("0.033")).toString()).toBe("0.033");
+    expect(resolveFeeFallback(null, new Decimal("0.033")).toString()).toBe("0.033");
+    expect(resolveFeeFallback(undefined, new Decimal("0.033")).toString()).toBe("0.033");
+  });
+
+  it("keeps a manual flat fee even when a remote fee is available", () => {
+    // A user override is a deliberate choice and wins over the derivation.
+    expect(resolveFeeFallback("0.06", new Decimal("0.033")).toString()).toBe("0.06");
+  });
+
+  it("falls back to the documented default when neither source is set", () => {
+    // `undefined` remote fee means no fills seen — NOT zero (FEAT-0253).
+    expect(resolveFeeFallback("", undefined).equals(CONSTANTS.DEFAULT_FEES)).toBe(
+      true,
+    );
+    expect(
+      resolveFeeFallback(undefined, undefined).equals(CONSTANTS.DEFAULT_FEES),
+    ).toBe(true);
+  });
+
+  it("treats whitespace as empty rather than as a rate", () => {
+    expect(resolveFeeFallback("   ", new Decimal("0.033")).toString()).toBe("0.033");
   });
 });

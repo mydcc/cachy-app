@@ -11,7 +11,8 @@ import { Decimal } from "decimal.js";
 import { parseTimestamp, parseDecimal } from "../utils/utils";
 import type { NormalizedPosition, NormalizedOrder } from "../types/exchange";
 import { calculateBreakEvenPrice } from "../lib/calculators/core";
-import { CONSTANTS } from "../lib/constants";
+import { resolveFeeFallback } from "../lib/fees/feeProvenance";
+import { tradeState } from "./trade.svelte";
 
 export interface Position {
   positionId: string;
@@ -353,7 +354,7 @@ class AccountManager {
           markPrice: new Decimal(0),
           breakEvenPrice: calculateBreakEvenPrice(
             safeDecimal(data.averagePrice || data.avgOpenPrice, new Decimal(0)),
-            new Decimal(CONSTANTS.DEFAULT_FEES),
+            resolveFeeFallback(null, tradeState.remoteTakerFee),
             side,
           ),
           marginRate: new Decimal(0),
@@ -529,7 +530,7 @@ class AccountManager {
         markPrice: parseDecimal(p.markPrice),
         breakEvenPrice: calculateBreakEvenPrice(
           entryPrice,
-          new Decimal(CONSTANTS.DEFAULT_FEES),
+          resolveFeeFallback(null, tradeState.remoteTakerFee),
           side,
         ),
         marginRate: parseDecimal(p.marginRate),

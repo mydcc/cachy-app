@@ -32,6 +32,8 @@
 
 import { Decimal } from "decimal.js";
 import type { FeeRole, DerivedFeeRates } from "./deriveFeeRates";
+import { parseDecimal } from "../../utils/utils";
+import { CONSTANTS } from "../constants";
 
 export type FeeProvenance = "broker" | "assumed" | "manual";
 
@@ -150,4 +152,28 @@ export function entryRoleForOrderType(
   orderType: "market" | "limit" | "trigger",
 ): FeeRole {
   return orderType === "limit" ? "maker" : "taker";
+}
+
+/**
+ * BUG-0379 — the flat fee a caller uses when neither leg was resolved.
+ *
+ * Priority: the caller's own flat `fees` value (the exit-leg mirror a user has
+ * overridden) → the account's broker-derived taker rate → the documented
+ * `CONSTANTS.DEFAULT_FEES`. The taker rate is the right intermediate fallback
+ * because a stop-out — the only certain exit while a plan is made — takes
+ * liquidity, so sizing with a maker rate would understate the cost.
+ *
+ * `remoteTakerFee` is `undefined` until the account's fills have been read
+ * (FEAT-0253); that is a real state, not zero, and must fall through to the
+ * default rather than size as if trading were free. All rates are percentages,
+ * the single unit used throughout the fee model.
+ */
+export function resolveFeeFallback(
+  manualFees: string | null | undefined,
+  remoteTakerFee: Decimal | undefined,
+): Decimal {
+  if (manualFees !== null && manualFees !== undefined && manualFees.trim() !== "") {
+    return parseDecimal(manualFees);
+  }
+  return remoteTakerFee ?? new Decimal(CONSTANTS.DEFAULT_FEES);
 }
