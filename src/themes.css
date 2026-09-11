@@ -66,6 +66,9 @@
   --text-secondary: var(--blue-300);
   --text-tertiary: var(--blue-600);
   --border-color: var(--blue-800);
+  /* Input boundary: defaults to --text-secondary (readable on both the field
+     fill and the page); a theme can override it if its text-secondary is dim. */
+  --input-border-color: var(--text-secondary);
   --accent-color: var(--sky-500);
   --accent-color-hover: var(--sky-400);
   --success-color: var(--green-500);
@@ -1160,7 +1163,7 @@
   --scrollbar-thumb: var(--mono-gray);
   --scrollbar-track: var(--mono-bg);
   --text-primary: var(--mono-fg);
-  --text-secondary: var(--mono-gray);
+  --text-secondary: #b2afa1; /* WCAG 1.4.3/1.4.11: lighter than --mono-gray, clears 4.5:1 on bg-primary/secondary/tertiary */
   --border-color: var(--mono-bg-light);
   --accent-color: var(--mono-pink);
   --accent-color-hover: var(--mono-pink-light);
@@ -1501,7 +1504,7 @@
   --scrollbar-thumb: var(--one-comment);
   --scrollbar-track: var(--one-bg-dark);
   --text-primary: var(--one-fg);
-  --text-secondary: var(--one-comment);
+  --text-secondary: #a8acb2; /* WCAG 1.4.3/1.4.11: --one-comment was 2.32:1; clears 4.5:1 on all three surfaces */
   --border-color: var(--one-comment);
   --accent-color: var(--one-blue);
   --accent-color-hover: var(--one-blue-light);
@@ -1765,7 +1768,7 @@
   --scrollbar-thumb: var(--cobalt-comment);
   --scrollbar-track: var(--cobalt-bg-dark);
   --text-primary: var(--cobalt-fg);
-  --text-secondary: var(--cobalt-comment);
+  --text-secondary: #62b6ff; /* WCAG 1.4.3/1.4.11: --cobalt-comment was 2.83:1; clears 4.5:1 on all three surfaces */
   --border-color: var(--cobalt-bg-alt);
   --accent-color: var(--cobalt-yellow);
   --accent-color-hover: var(--cobalt-yellow-light);
@@ -1835,7 +1838,7 @@
   --scrollbar-thumb: var(--owl-bg-lightest);
   --scrollbar-track: var(--owl-bg-light);
   --text-primary: var(--owl-fg);
-  --text-secondary: var(--owl-comment);
+  --text-secondary: #97a5a5; /* WCAG 1.4.3/1.4.11: --owl-comment was 2.46:1; clears 4.5:1 on all three surfaces */
   --border-color: var(--owl-bg-lighter);
   --accent-color: var(--owl-purple);
   --accent-color-hover: var(--owl-purple-light);
@@ -2247,8 +2250,9 @@ select {
   /* WCAG 1.4.11: the field fill (--bg-tertiary) sits barely above the page
      (--bg-primary) in most themes, so a --border-color stroke — which equals
      the fill in the default palette — leaves the control boundary invisible.
-     --text-secondary is guaranteed readable on both surfaces. */
-  border: 1px solid var(--text-secondary);
+     --input-border-color defaults to --text-secondary (readable on both
+     surfaces); a theme can override it if its text-secondary is dim. */
+  border: 1px solid var(--input-border-color, var(--text-secondary));
   border-radius: var(--radius-md);
   padding: 0 var(--space-3);
   color: var(--text-primary);
