@@ -3716,6 +3716,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0435-presence-and-flip-declaration-semantics.md"
   },
   {
+    "id": "BUG-0441",
+    "title": "A legacy alert whose target was crossed while the app was closed never fires",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -5130,7 +5148,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0368",
     "title": "Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates",
     "type": "feature",
-    "status": "ready",
+    "status": "dropped",
     "priority": "P2",
     "milestone": "none",
     "editions": [
