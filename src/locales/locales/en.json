@@ -3802,7 +3802,8 @@
       "level_20_desc": "Reached Level 20 — the cape flows.",
       "onboarding_completed_name": "Ready to Trade! 🦆",
       "onboarding_completed_desc": "Successfully completed the onboarding walkthrough."
-    }
+    },
+    "achievementUnlocked": "🏆 {name}: {desc}"
   },
   "onboarding": {
     "badge": "Cachy Quickstart",
