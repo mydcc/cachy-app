@@ -217,6 +217,11 @@ class OrderAuditService {
             StorageHelper.safeSave(
                 CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY,
                 JSON.stringify({ nextId: this.nextId, entries: this.entries }),
+                () =>
+                    logger.warn(
+                        "data",
+                        "[Audit] Order audit persistence hit the storage quota",
+                    ),
             );
         } catch (e) {
             logger.debug("data", "[Audit] Persist failed", e);

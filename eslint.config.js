@@ -98,6 +98,42 @@ export default [
     },
   },
 
+  // Architecture boundaries.
+  //
+  // Target layering: components -> stores -> services -> lib -> utils.
+  // Gates are added only for leaf layers that are already clean, so the rule
+  // cannot regress: `utils` is the bottom layer and must not reach up into
+  // stores or services. Type-only imports stay allowed — they are erased at
+  // compile time and carry no runtime coupling.
+  //
+  // The `lib -> services` gate lands with the PR that introduces ports for its
+  // four remaining call sites; the `services -> stores` gate is the Phase 2
+  // burn-down.
+  {
+    files: ["src/utils/**/*.ts"],
+    ignores: ["**/*.test.ts", "**/*.spec.ts", "**/tests/**"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/stores/**",
+                "**/stores/*",
+                "**/services/**",
+                "**/services/*",
+              ],
+              allowTypeImports: true,
+              message:
+                "Architecture: utils is a leaf layer and must not import from stores or services. Pass a callback/port instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Svelte specific config
   {
     files: ["**/*.svelte"],

@@ -37,6 +37,7 @@ import { z } from "zod";
 import { CONSTANTS } from "../lib/constants";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
+import { uiState } from "./ui.svelte";
 
 /** The raw, user-entered form of each limit. `null` = not configured. */
 export interface RiskLimitInputs {
@@ -239,6 +240,7 @@ class RiskManager {
                     limits: this._limits,
                     killSwitchEngagedAt: this._killSwitchEngagedAt,
                 }),
+                () => uiState.showError("storage.quotaExceeded"),
             );
             this._persistFailed = !ok;
         } catch {
