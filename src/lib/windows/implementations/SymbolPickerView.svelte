@@ -253,12 +253,12 @@
                     onclick={() => (viewMode = "all")}
                     title={$_("symbolPicker.all")}
                 >
-                    <span class="label uppercase text-xs">All</span>
+                    <span class="label uppercase text-xs">{$_("symbolPicker.all")}</span>
                 </button>
             </div>
 
             <div class="text-xs opacity-50 font-mono">
-                {sortedAndFilteredSymbols.length} Pairs
+                {$_("symbolPicker.pairsCount", { values: { count: sortedAndFilteredSymbols.length } })}
             </div>
         </div>
 
@@ -277,12 +277,12 @@
             class="flex items-center gap-4 text-xs text-[var(--text-secondary)]"
         >
             <div class="flex items-center gap-2">
-                <span class="uppercase tracking-wider opacity-60">Vol:</span>
+                <span class="uppercase tracking-wider opacity-60">{$_("symbolPicker.volumeLabel")}:</span>
                 <select
                     bind:value={minVolumeStr}
                     class="bg-transparent border border-[var(--border-color)] rounded px-2 py-0.5 outline-none"
                 >
-                    <option value="0">All</option>
+                    <option value="0">{$_("symbolPicker.volFilter.all")}</option>
                     <option value="1000000">1M+</option>
                     <option value="10000000">10M+</option>
                     <option value="50000000">50M+</option>
@@ -310,7 +310,7 @@
                 <button
                     class="sort-pill"
                     class:active={sortMode === "volume"}
-                    onclick={() => (sortMode = "volume")}>Vol</button
+                    onclick={() => (sortMode = "volume")}>{$_("symbolPicker.sort.vol")}</button
                 >
             </div>
         </div>

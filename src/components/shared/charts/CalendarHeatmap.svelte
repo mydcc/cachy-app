@@ -18,6 +18,7 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { computePosition, flip, shift, offset, arrow, autoUpdate } from "@floating-ui/dom";
+  import { _ } from "../../../locales/i18n";
 
   interface Props {
     data?: {
@@ -248,7 +249,7 @@
             ${(stats.totalPnl ?? 0).toFixed(0)}
           </div>
           <div class="text-[var(--text-tertiary)]">
-            {stats.totalTrades} Trades
+            {$_("charts.tradesCount", { values: { count: stats.totalTrades } })}
           </div>
         </div>
       </div>
@@ -299,10 +300,10 @@
       <div class="text-left">
         <div class="text-[var(--text-secondary)] text-xs mb-1">{hoveredDateStr}</div>
         <div class="font-bold mb-1" style="color: {hoveredEntry.pnl > 0 ? 'var(--success-color, #10b981)' : hoveredEntry.pnl < 0 ? 'var(--danger-color, #ef4444)' : 'var(--text-secondary, #94a3b8)'}">
-          PnL: ${(hoveredEntry.pnl ?? 0).toFixed(2)}
+          {$_("charts.pnlLabel")} ${(hoveredEntry.pnl ?? 0).toFixed(2)}
         </div>
         <div class="text-[var(--text-primary)] text-xs">
-          Trades: {hoveredEntry.count}
+          {$_("charts.tradesLabel")} {hoveredEntry.count}
           {#if hoveredEntry.winCount !== undefined && hoveredEntry.lossCount !== undefined}
             <span class="text-[var(--text-tertiary)]">({hoveredEntry.winCount}W / {hoveredEntry.lossCount}L)</span>
           {/if}
@@ -310,7 +311,7 @@
       </div>
       {#if hoveredEntry.bestSymbol}
         <div class="text-[var(--text-primary)] text-xs mt-1 border-t border-[var(--border-color)] pt-1">
-          Top: <span class="font-semibold">{hoveredEntry.bestSymbol}</span>
+          {$_("charts.topLabel")} <span class="font-semibold">{hoveredEntry.bestSymbol}</span>
           {#if hoveredEntry.bestSymbolPnl !== undefined && hoveredEntry.bestSymbolPnl !== null}
             <span style="color: {hoveredEntry.bestSymbolPnl > 0 ? 'var(--success-color)' : hoveredEntry.bestSymbolPnl < 0 ? 'var(--danger-color)' : 'inherit'}">
               (${hoveredEntry.bestSymbolPnl.toFixed(2)})

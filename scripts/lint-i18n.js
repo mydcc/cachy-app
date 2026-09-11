@@ -17,13 +17,25 @@
  */
 
 /**
- * Copyright (C) 2026 MYDCT
- * 
  * i18n Lint Script
- * 
- * Scans TypeScript and Svelte files for hardcoded UI strings that should be in i18n keys.
- * Exits with code 1 if violations are found, 0 if clean.
- * 
+ *
+ * Scans Svelte and TypeScript source for user-facing strings that should be
+ * resolved through svelte-i18n instead of being hardcoded.
+ *
+ * It deliberately targets the high-signal cases (no generic "any quoted
+ * string" heuristic, which produced more noise than findings):
+ *
+ *   1. svelte-text      literal text nodes in markup: `>Save<`
+ *   2. svelte-attr      literal placeholder/title/aria-label/alt values
+ *   3. object-label     `label:` / `title:` / `description:` values in
+ *                       user-facing config files (see objectLabelFiles)
+ *   4. user-call        literal toast/alert/confirm/prompt messages
+ *   5. interpolation    `$_("key", { symbol })` without the `values` wrapper
+ *
+ * Escape hatch: add `i18n-ignore` on the same line (or the line above) for a
+ * deliberate exception, or extend scripts/i18n-lint.config.json for recurring
+ * proper nouns / technical identifiers.
+ *
  * Usage: node scripts/lint-i18n.js
  */
 
@@ -33,95 +45,95 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const ROOT = path.join(__dirname, '..');
 
-// Directories to scan
-const SCAN_DIRS = [
-    path.join(__dirname, '../src/components'),
-    path.join(__dirname, '../src/routes'),
-    path.join(__dirname, '../src/lib')
-];
-
-// Individual files to scan (only app.ts which has user-facing modals)
-const SCAN_FILES = [
-    path.join(__dirname, '../src/services/app.ts')
-];
-
-// File extensions to check
+const CONFIG_PATH = path.join(__dirname, 'i18n-lint.config.json');
 const FILE_EXTENSIONS = ['.ts', '.svelte'];
 
-// Minimum string length to consider (reduce false positives)
-const MIN_STRING_LENGTH = 10;
+let config;
+try {
+    config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+} catch (err) {
+    console.error(`❌ Could not read ${path.relative(process.cwd(), CONFIG_PATH)}: ${err.message}`);
+    process.exit(2);
+}
 
-// Patterns that indicate a string should likely be in i18n
-const UI_STRING_PATTERNS = [
-    /["']([A-Z][a-z\s]{10,})["']/g,  // Capitalized UI text
-    /["']([a-z\s]{15,})["']/g        // Long lowercase text
-];
+const EXCLUDE = (config.exclude ?? []).map((p) => path.join(ROOT, p));
+const OBJECT_LABEL_FILES = new Set(
+    (config.objectLabelFiles ?? []).map((p) => path.join(ROOT, p)),
+);
+const ALLOW = {
+    textNodes: new Set(config.allowlist?.textNodes ?? []),
+    attributes: new Set(config.allowlist?.attributes ?? []),
+    objectLabels: new Set(config.allowlist?.objectLabels ?? []),
+};
 
-// Safe contexts where hardcoded strings are allowed
-const SAFE_CONTEXTS = [
-    /console\./,                // console.log/error
-    /logger\./,                 // logger calls
-    /import\s+.*from/,          // import statements
-    /\$_\(/,                    // Already using i18n
-    /get\(locale\)/,            // Already using locale.get()
-    /https?:\/\//,              // URLs
-    /\.css$/,                   // CSS file references
-    /\.svg$/,                   // SVG file references
-    /\/api\//,                  // API paths
-    /data-testid=/,             // Test IDs
-    /aria-label=/,              // ARIA labels using i18n
-    /title=/,                   // title attributes (often already localized)
-    /throw new Error\(/,        // Error messages
-    /Error\(/,                  // Error constructors
-    /\.error\(/,                // Error method calls
-    /error =/,                  // Local error assignment
-    /rel=/,                     // HTML attributes (noopener, noreferrer)
-    /addEventListener\(/,       // Event names
-    /removeEventListener\(/,    // Event names
-    /it\(/,                     // Test descriptions
-    /describe\(/,               // Test suite descriptions
-    /\|\|.*Error/,              // Fallback error messages
-    /alert\(/,                  // Alert calls (should use modal ideally, but temporary)
-    /\/\//,                     // Code comments
-    /^\s*\*/,                   // JSDoc/Block comment continuation
-    /^\s*\/\*/,                 // Block comment start
-    /aria-[\w-]+/,              // All aria attributes
-    /data-[\w-]+/,              // All data attributes
-    /class=/,                   // CSS classes
-    /style=/,                   // Inline styles
-    /id=/,                      // IDs
-    /type=/,                    // Input types
-    /href=/,                    // Links
-    /src=/,                     // Sources
-    /const\s/,                  // Variable declarations
-    /let\s/,                    // Variable declarations
-    /var\s/,                    // Variable declarations
-    /return\s/,                 // Return statements
-    /if\s*\(/,                  // Control flow
-    /else/,                     // Control flow
-    /for\s*\(/,                 // Control flow
-    /while\s*\(/,               // Control flow
-    /switch\s*\(/,              // Control flow
-    /case\s/,                   // Control flow
-    /default:/,                 // Control flow
-    /export\s/,                 // Exports
-    /import\s/,                 // Imports
-    /trackCustomEvent/,         // Tracking keys often English
-    /console\.(log|error|warn|info|debug)/, // Console methods
-    /new\s+Error/,              // Error instantiation
-    /className=/,               // React/Similar class usage
-    /bind:value/,               // Svelte bindings
-    /on:click/,                 // Svelte events
-    /onclick=/,                 // Svelte 5 events
-    /i18n-ignore/,              // Manual Ignore Comment
-    /^\s*\*/,                   // JSDoc/Block comments (lines starting with *)
-    /ISeriesApi</,              // TypeScript type parameters (lightweight-charts library types)
-    /:\s*ISeriesApi/,           // Type annotations with ISeriesApi
-];
+const violations = [];
+const interpolationViolations = [];
 
-let violations = [];
-let interpolationViolations = [];
+const HAS_LETTER = /[A-Za-zÄÖÜäöüß]/;
+// A real word, not a fragment left over between two `{…}` expressions
+// (units like "x", "px", "MB", or punctuation like "—", "(%").
+const HAS_WORD = /[A-Za-zÄÖÜäöüß]{3,}/;
+const TRANSLATION_KEY = /^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/;
+// Quoted single/double-string literals inside an expression.
+const LITERAL = /(["'])((?:(?!\1).)*)\1/g;
+
+function rel(p) {
+    return path.relative(process.cwd(), p);
+}
+
+function isExcluded(filePath) {
+    if (filePath.includes('.test.') || filePath.includes('.spec.') || filePath.includes('.bench.')) {
+        return true;
+    }
+    return EXCLUDE.some((dir) => filePath === dir || filePath.startsWith(dir + path.sep));
+}
+
+function isAllowed(rule, value) {
+    return ALLOW[rule]?.has(value.trim()) ?? false;
+}
+
+function hasIgnore(lines, index) {
+    return ignoredLines.has(index);
+}
+
+/**
+ * `i18n-ignore` on a line (or the line above) exempts a single match;
+ * `i18n-ignore-start` … `i18n-ignore-end` exempts a block (mock content,
+ * generated data).
+ */
+function computeIgnoredLines(lines) {
+    const ignored = new Set();
+    let block = false;
+    lines.forEach((line, i) => {
+        if (line.includes('i18n-ignore-end')) {
+            ignored.add(i);
+            block = false;
+            return;
+        }
+        if (block) {
+            ignored.add(i);
+            return;
+        }
+        if (line.includes('i18n-ignore-start')) {
+            block = true;
+            ignored.add(i);
+            return;
+        }
+        if (line.includes('i18n-ignore')) {
+            ignored.add(i);
+            ignored.add(i + 1);
+        }
+    });
+    return ignored;
+}
+
+let ignoredLines = new Set();
+
+function add(rule, filePath, line, value, context) {
+    violations.push({ rule, file: rel(filePath), line, value: value.trim(), context: context.trim() });
+}
 
 /**
  * svelte-i18n takes interpolation values under a `values` key:
@@ -134,18 +146,13 @@ let interpolationViolations = [];
  * is checked here rather than found by whoever reads the dialog next.
  */
 function checkInterpolation(content, filePath) {
-    // `$_(` followed by a key (string literal, template literal, or an
-    // identifier/cast) and then an object argument.
     const call = /\$_\(\s*(?:"[^"]*"|'[^']*'|`[^`]*`|[\w.[\]]+(?:\s+as\s+[\w.]+)?)\s*,\s*\{/g;
     for (const match of content.matchAll(call)) {
         const after = content.slice(match.index + match[0].length);
-        // `values` may sit on the next line; anything else in first position
-        // means the variables were passed bare.
         if (/^\s*values\s*:/.test(after)) continue;
-        // An empty object is pointless but harmless.
         if (/^\s*\}/.test(after)) continue;
         interpolationViolations.push({
-            file: path.relative(process.cwd(), filePath),
+            file: rel(filePath),
             line: content.slice(0, match.index).split('\n').length,
             context: content.slice(match.index, match.index + 90).split('\n')[0].trim(),
         });
@@ -153,108 +160,216 @@ function checkInterpolation(content, filePath) {
 }
 
 /**
- * Check if a line contains a safe context that exempts it from i18n requirements
+ * Reduce a Svelte component to markup-only text, preserving line count:
+ * drops <script>/<style> blocks, HTML comments, and balanced `{…}`
+ * expressions. Without this, comparison operators (`avgRsi > 30 && x < 70`)
+ * and arrow functions read as `>text<` and drown the real findings.
  */
-function isSafeContext(line) {
-    return SAFE_CONTEXTS.some(pattern => pattern.test(line));
+function toMarkupLines(content) {
+    const lines = content.split('\n');
+    let mode = null; // null | 'script' | 'style' | 'comment'
+    let braces = 0;
+    const out = [];
+    const inCode = [];
+
+    for (const line of lines) {
+        let kept = '';
+        let i = 0;
+        let code = mode !== null;
+        while (i < line.length) {
+            const rest = line.slice(i);
+
+            if (mode === 'comment') {
+                code = true;
+                const end = rest.indexOf('-->');
+                if (end === -1) break;
+                i += end + 3;
+                mode = null;
+                continue;
+            }
+            if (mode === 'script' || mode === 'style') {
+                code = true;
+                const tag = mode === 'script' ? '</script>' : '</style>';
+                const end = rest.toLowerCase().indexOf(tag);
+                if (end === -1) break;
+                i += end + tag.length;
+                mode = null;
+                continue;
+            }
+
+            if (rest.startsWith('<!--')) { code = true; mode = 'comment'; i += 4; continue; }
+            if (/^<script[\s>]/i.test(rest)) { code = true; mode = 'script'; i += rest.indexOf('>') + 1; continue; }
+            if (/^<style[\s>]/i.test(rest)) { code = true; mode = 'style'; i += rest.indexOf('>') + 1; continue; }
+
+            const ch = line[i];
+            if (ch === '{') { braces++; i++; continue; }
+            if (ch === '}') { if (braces > 0) braces--; i++; continue; }
+            if (braces === 0) kept += ch;
+            i++;
+        }
+        out.push(kept);
+        inCode.push(code);
+    }
+    return { lines: out, inCode };
 }
 
 /**
- * Scan a file for hardcoded UI strings
+ * Literal text nodes. Runs over the joined markup so text wrapped across
+ * lines (`<th>Suggested\nChanges</th>`) is seen as one node, not two
+ * fragments that each fail the word check.
  */
-function scanFile(filePath) {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n');
+function scanTextNodes(markupLines, sourceLines, filePath) {
+    const text = markupLines.join('\n');
+    const re = />([^<>{}]+)</g;
+    for (const match of text.matchAll(re)) {
+        const value = match[1].replace(/\s+/g, ' ').trim();
+        if (value.length < 2) continue;
+        if (isAllowed('textNodes', value)) continue;
+        // Ignore HTML entities (&copy;, &nbsp;, &#8203;) and allowlisted
+        // technical tokens (USDT, POC, …) when deciding if this is real copy.
+        const words = (value.replace(/&[a-zA-Z#0-9]+;/g, ' ').match(/[A-Za-zÄÖÜäöüß]{3,}/g) ?? []);
+        if (words.length === 0) continue;
+        if (words.every((word) => isAllowed('textNodes', word))) continue;
+        const index = text.slice(0, match.index).split('\n').length - 1;
+        if (hasIgnore(sourceLines, index)) continue;
+        add('svelte-text', filePath, index + 1, value, sourceLines[index] ?? '');
+    }
+}
 
-    checkInterpolation(content, filePath);
-
+/**
+ * Text interpolations: `>{cond ? "Buy" : "Sell"}<`. `toMarkupLines` drops the
+ * expression, so quoted literals used as visible labels inside it are checked
+ * here. Only `>{…}<` positions are inspected, never attributes or block
+ * directives, to keep the signal high.
+ */
+function scanTextExpressions(lines, inCode, filePath) {
+    const re = />\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*</g;
     lines.forEach((line, index) => {
-        // Skip safe contexts
-        if (isSafeContext(line)) {
-            return;
-        }
-
-        // Check each UI pattern
-        UI_STRING_PATTERNS.forEach(pattern => {
-            const matches = line.matchAll(pattern);
-            for (const match of matches) {
-                const str = match[1];
-                if (str.length >= MIN_STRING_LENGTH) {
-                    violations.push({
-                        file: path.relative(process.cwd(), filePath),
-                        line: index + 1,
-                        string: str,
-                        context: line.trim()
-                    });
-                }
+        if (inCode[index]) return;
+        if (hasIgnore(lines, index)) return;
+        for (const match of line.matchAll(re)) {
+            for (const literal of match[1].matchAll(LITERAL)) {
+                const value = literal[2].trim();
+                if (value.length < 3 || !HAS_WORD.test(value)) continue;
+                if (value.includes('${')) continue;
+                if (TRANSLATION_KEY.test(value)) continue;
+                // Only value positions (`? "A" : "B"`, `(…)`, `, …`), never
+                // comparisons (`=== "string"`) or fallbacks (`|| "x"`).
+                const before = match[1].slice(0, literal.index);
+                if (/\|\|\s*$|\?\?\s*$|===\s*$|!==\s*$|==\s*$|!=\s*$/.test(before)) continue;
+                const prev = before.trimEnd().slice(-1);
+                if (!['', '?', ':'].includes(prev)) continue;
+                if (isAllowed('textNodes', value)) continue;
+                add('svelte-text-expr', filePath, index + 1, value, line);
             }
-        });
+        }
     });
 }
 
-/**
- * Recursively scan a directory
- */
-function scanDirectory(dirPath) {
-    if (!fs.existsSync(dirPath)) {
-        return;
+function scanAttributes(lines, filePath) {
+    const re = /\b(placeholder|aria-label|title|alt)\s*=\s*(?:"([^"{}]*)"|'([^'{}]*)')/g;
+    // Ternary/expression values: `placeholder={isTerminal ? "> ENTER COMMAND" : "…"}`.
+    const exprRe = /\b(placeholder|aria-label|title|alt)\s*=\s*\{([^}]*)\}/g;
+
+    lines.forEach((line, index) => {
+        if (hasIgnore(lines, index)) return;
+        for (const match of line.matchAll(re)) {
+            const value = (match[2] ?? match[3] ?? '').trim();
+            if (value.length < 3 || !HAS_LETTER.test(value)) continue;
+            if (/^(https?:|data:|#)/.test(value)) continue;
+            if (isAllowed('attributes', value)) continue;
+            add('svelte-attr', filePath, index + 1, value, line);
+        }
+        for (const match of line.matchAll(exprRe)) {
+            for (const literal of match[2].matchAll(LITERAL)) {
+                const value = literal[2].trim();
+                if (value.length < 3 || !HAS_WORD.test(value)) continue;
+                if (/^(https?:|data:|#)/.test(value)) continue;
+                if (TRANSLATION_KEY.test(value)) continue;
+                if (isAllowed('attributes', value)) continue;
+                add('svelte-attr', filePath, index + 1, value, line);
+            }
+        }
+    });
+}
+
+function scanObjectLabels(lines, filePath) {
+    if (!OBJECT_LABEL_FILES.has(path.resolve(filePath))) return;
+    const re = /\b(label|title|description)\s*:\s*(?:"([^"{}]*)"|'([^'{}]*)')/g;
+    lines.forEach((line, index) => {
+        if (hasIgnore(lines, index)) return;
+        if (line.includes('$_(')) return;
+        for (const match of line.matchAll(re)) {
+            const value = (match[2] ?? match[3] ?? '').trim();
+            if (value.length < 3 || !HAS_LETTER.test(value)) continue;
+            if (TRANSLATION_KEY.test(value)) continue;
+            if (isAllowed('objectLabels', value)) continue;
+            add('object-label', filePath, index + 1, value, line);
+        }
+    });
+}
+
+function scanUserCalls(lines, filePath) {
+    const toastRe = /\b(?:toastService|toast|\$toast)\.(?:error|success|info|warning|show)\s*\(\s*[`"']/;
+    const nativeRe = /(?<![.\w])(?:alert|confirm|prompt)\s*\(\s*[`"']/;
+    lines.forEach((line, index) => {
+        if (hasIgnore(lines, index)) return;
+        if (line.includes('$_(')) return;
+        if (toastRe.test(line)) add('user-call', filePath, index + 1, '', line);
+        else if (nativeRe.test(line)) add('user-call', filePath, index + 1, '', line);
+    });
+}
+
+function scanFile(filePath) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
+    ignoredLines = computeIgnoredLines(lines);
+    checkInterpolation(content, filePath);
+
+    if (filePath.endsWith('.svelte')) {
+        const { lines: markupLines, inCode } = toMarkupLines(content);
+        scanTextNodes(markupLines, lines, filePath);
+        scanTextExpressions(lines, inCode, filePath);
+        scanAttributes(lines, filePath);
     }
+    scanObjectLabels(lines, filePath);
+    scanUserCalls(lines, filePath);
+}
 
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-
-    for (const entry of entries) {
+function walk(dirPath, out) {
+    for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
         const fullPath = path.join(dirPath, entry.name);
-
-        // Skip API routes (server-side only)
-        if (fullPath.includes(path.join('src', 'routes', 'api'))) {
-            continue;
-        }
-
-        // Skip AI prompts (backend only)
-        if (fullPath.includes(path.join('src', 'lib', 'ai', 'prompts'))) {
-            continue;
-        }
-
-        if (entry.isDirectory()) {
-            scanDirectory(fullPath);
-        } else if (entry.isFile()) {
-            const ext = path.extname(entry.name);
-            // Skip test files
-            if (entry.name.includes('.test.') || entry.name.includes('.spec.')) {
-                continue;
-            }
-            if (FILE_EXTENSIONS.includes(ext)) {
-                scanFile(fullPath);
-            }
-        }
+        if (isExcluded(fullPath)) continue;
+        if (entry.isDirectory()) walk(fullPath, out);
+        else if (entry.isFile() && FILE_EXTENSIONS.includes(path.extname(entry.name))) out.push(fullPath);
     }
 }
 
-// Main execution
-console.log('🔍 Scanning for hardcoded UI strings...\n');
+const files = [];
+walk(path.join(ROOT, 'src'), files);
 
-SCAN_DIRS.forEach(dir => {
-    if (fs.existsSync(dir)) {
-        scanDirectory(dir);
-    }
-});
-
-SCAN_FILES.forEach(file => {
-    if (fs.existsSync(file)) {
-        scanFile(file);
-    }
-});
+console.log(`🔍 Scanning ${files.length} files for hardcoded UI strings...\n`);
+for (const file of files) scanFile(file);
 
 let failed = false;
 
 if (violations.length > 0) {
     failed = true;
-    console.error(`❌ Found ${violations.length} potential i18n violations:\n`);
-    violations.forEach(v => {
-        console.error(`  ${v.file}:${v.line}`);
-        console.error(`    String: "${v.string}"`);
-        console.error(`    Context: ${v.context}\n`);
-    });
+    const byRule = violations.reduce((acc, v) => {
+        (acc[v.rule] ??= []).push(v);
+        return acc;
+    }, {});
+    console.error(`❌ Found ${violations.length} hardcoded UI string(s):\n`);
+    for (const [rule, list] of Object.entries(byRule)) {
+        console.error(`  [${rule}] ${list.length}`);
+        for (const v of list) {
+            console.error(
+                `    ${v.file}:${v.line}${v.value ? `  "${v.value}"` : ''}`,
+            );
+            console.error(`      ${v.context}`);
+        }
+        console.error('');
+    }
 } else {
     console.log('✅ No hardcoded UI strings detected');
 }
@@ -265,7 +380,7 @@ if (interpolationViolations.length > 0) {
         `\n❌ Found ${interpolationViolations.length} $_() call(s) passing interpolation values without the \`values\` wrapper.`,
     );
     console.error('   svelte-i18n ignores them and renders the raw {placeholder} to the user.\n');
-    interpolationViolations.forEach(v => {
+    interpolationViolations.forEach((v) => {
         console.error(`  ${v.file}:${v.line}`);
         console.error(`    Context: ${v.context}`);
         console.error(`    Fix:     $_("key", { values: { … } })\n`);

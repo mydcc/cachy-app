@@ -117,12 +117,12 @@
       {#if index === 0}
         <Tooltip text={$_("orderEntry.notes.firstTargetOnly")}>
           <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent-paired">
-            Exchange Order TP
+            {$_("orderEntry.exchangeOrderTp")}
           </span>
         </Tooltip>
       {:else}
         <span class="text-[9px] font-medium text-[var(--text-secondary)]">
-          Partial Target
+          {$_("orderEntry.partialTarget")}
         </span>
       {/if}
     </div>

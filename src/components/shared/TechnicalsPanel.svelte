@@ -199,7 +199,7 @@
               >
                 <input
                   bind:value={customTimeframeInput}
-                  placeholder="e.g. 3m, 1W"
+                  placeholder={$_("settings.technicals.customTimeframePlaceholder")}
                   class="w-full text-xs p-1 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
                   onkeydown={(e) =>
                     e.key === "Enter" && handleCustomTimeframeSubmit()}
@@ -486,7 +486,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>Vol MA</span>
+                  <span>{$_("settings.technicals.volumeMa.title")}</span>
                   <span class="font-mono"
                     >{TechnicalsPresenter.formatVal(
                       data.advanced.volumeMa,
@@ -557,7 +557,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>ADX ({data.advanced.adx.trend})</span>
+                  <span>{$_("settings.technicals.adx")} ({data.advanced.adx.trend})</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(
@@ -577,7 +577,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>Choppiness</span>
+                  <span>{$_("settings.technicals.choppiness")}</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(
@@ -598,7 +598,7 @@
                 <div
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
-                  <span>Parabolic SAR</span>
+                  <span>{$_("settings.technicals.parabolicSar")}</span>
                   <span class="font-mono"
                     >{TechnicalsPresenter.formatVal(
                       data.advanced.parabolicSar,
@@ -614,7 +614,7 @@
                   class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <div class="flex justify-between">
-                    <span>ATR Stop (Sell)</span>
+                    <span>{$_("settings.technicals.atrStopSell")}</span>
                     <span class="font-mono text-[var(--danger-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.sell,
@@ -623,7 +623,7 @@
                     >
                   </div>
                   <div class="flex justify-between">
-                    <span>ATR Stop (Buy)</span>
+                    <span>{$_("settings.technicals.atrStopBuy")}</span>
                     <span class="font-mono text-[var(--success-color)]"
                       >{TechnicalsPresenter.formatVal(
                         data.advanced.atrTrailingStop.buy,
@@ -652,13 +652,13 @@
                   class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <div class="flex justify-between">
-                    <span>VP (POC)</span>
+                    <span>{$_("settings.technicals.vpPoc")}</span>
                     <span class="font-mono"
                       >{TechnicalsPresenter.formatVal(data.advanced.volumeProfile.poc, indicatorSettings?.precision)}</span
                     >
                   </div>
                   <div class="flex justify-between text-[10px] text-[var(--text-secondary)]">
-                    <span>VA High/Low</span>
+                    <span>{$_("settings.technicals.vaHighLow")}</span>
                     <span class="font-mono">
                         {TechnicalsPresenter.formatVal(data.advanced.volumeProfile.vaHigh, indicatorSettings?.precision)} / {TechnicalsPresenter.formatVal(data.advanced.volumeProfile.vaLow, indicatorSettings?.precision)}
                     </span>
@@ -698,14 +698,14 @@
                 {#if data.advanced.marketStructure.highs.length > 0}
                   {@const lastHigh = data.advanced.marketStructure.highs[data.advanced.marketStructure.highs.length - 1]}
                   <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
-                    <span>Market Structure High</span>
+                    <span>{$_("settings.technicals.marketStructureHigh")}</span>
                     <span class="font-mono">{lastHigh.type} @ {TechnicalsPresenter.formatVal(lastHigh.value, indicatorSettings?.precision)}</span>
                   </div>
                 {/if}
                 {#if data.advanced.marketStructure.lows.length > 0}
                   {@const lastLow = data.advanced.marketStructure.lows[data.advanced.marketStructure.lows.length - 1]}
                   <div class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
-                    <span>Market Structure Low</span>
+                    <span>{$_("settings.technicals.marketStructureLow")}</span>
                     <span class="font-mono">{lastLow.type} @ {TechnicalsPresenter.formatVal(lastLow.value, indicatorSettings?.precision)}</span>
                   </div>
                 {/if}

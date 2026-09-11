@@ -247,7 +247,7 @@
           <option value="Open">{$_("journal.filterOpen")}</option>
           <option value="Won">{$_("journal.filterWon")}</option>
           <option value="Lost">{$_("journal.filterLost")}</option>
-          <option value="Closed">Closed</option>
+          <option value="Closed">{$_("journal.filterClosed")}</option>
         </select>
         <button
           class="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
@@ -344,7 +344,7 @@
       <!-- Advanced Analytics & Metrics (slAtr, atr, mae, mfe, efficiency, duration, risk) -->
       <section class="space-y-2">
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-          {$_("journal.deepDive.title")} & Analytics
+          {$_("journal.deepDive.title")} {$_("journal.deepDive.analytics")}
         </h4>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] text-xs">
           <div>
@@ -372,11 +372,11 @@
             <span class="font-mono font-bold">{formatDuration(trade.entryDate, trade.exitDate, trade.date)}</span>
           </div>
           <div>
-            <span class="text-[var(--text-secondary)] block">Risk Amount</span>
+            <span class="text-[var(--text-secondary)] block">{$_("journal.riskAmount")}</span>
             <span class="font-mono font-bold">{trade.riskAmount ? `${formatDynamicDecimal(trade.riskAmount, 2)} ${currency}` : "—"}</span>
           </div>
           <div>
-            <span class="text-[var(--text-secondary)] block">Max Profit</span>
+            <span class="text-[var(--text-secondary)] block">{$_("journal.maxProfit")}</span>
             <span class="font-mono font-bold">{trade.maxPotentialProfit ? `${formatDynamicDecimal(trade.maxPotentialProfit, 2)} ${currency}` : "—"}</span>
           </div>
         </div>
@@ -386,7 +386,7 @@
       <section class="space-y-2">
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center justify-between">
           <span>{$_("journal.drawer.feeBreakdown")}</span>
-          <span class="text-[10px] font-normal text-[var(--text-secondary)]">Maker / Taker Rates</span>
+          <span class="text-[10px] font-normal text-[var(--text-secondary)]">{$_("journal.makerTakerRates")}</span>
         </h4>
         <div class="p-4 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] space-y-2.5 text-xs">
           <div class="flex items-center justify-between">
@@ -526,7 +526,7 @@
           </div>
         {:else}
           <div class="p-6 rounded-lg border border-dashed border-[var(--border-color)] text-center text-xs text-[var(--text-secondary)] bg-[var(--bg-secondary)]">
-            <span>Kein Screenshot hinterlegt.</span>
+            <span>{$_("journal.noScreenshot")}</span>
           </div>
         {/if}
       </section>

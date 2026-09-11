@@ -108,7 +108,7 @@
                                 onclick={() =>
                                     (settingsState.feePreference = "maker")}
                             >
-                                MAKER
+                                {$_("settings.trading.feeMaker")}
                             </button>
                             <button
                                 class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border transition-all {settingsState.feePreference ===
@@ -118,7 +118,7 @@
                                 onclick={() =>
                                     (settingsState.feePreference = "taker")}
                             >
-                                TAKER
+                                {$_("settings.trading.feeTaker")}
                             </button>
                         </div>
                         <p class="text-[10px] text-[var(--text-secondary)]">

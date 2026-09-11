@@ -227,11 +227,11 @@
       <!-- Preset Buttons -->
       <div class="flex flex-wrap items-center gap-1">
         {#each [
-          { id: "all", label: $_("dashboard.orderHistory.presets.all") || "All" },
-          { id: "today", label: $_("dashboard.orderHistory.presets.today") || "Today" },
-          { id: "7d", label: $_("dashboard.orderHistory.presets.7d") || "7D" },
-          { id: "30d", label: $_("dashboard.orderHistory.presets.30d") || "30D" },
-          { id: "custom", label: $_("dashboard.orderHistory.presets.custom") || "Custom" }
+          { id: "all", label: $_("dashboard.orderHistory.presets.all") },
+          { id: "today", label: $_("dashboard.orderHistory.presets.today") },
+          { id: "7d", label: $_("dashboard.orderHistory.presets.7d") },
+          { id: "30d", label: $_("dashboard.orderHistory.presets.30d") },
+          { id: "custom", label: $_("dashboard.orderHistory.presets.custom") }
         ] as preset}
           <button
             type="button"
@@ -253,7 +253,7 @@
         <button
           type="button"
           class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded hover:bg-[var(--bg-secondary)] disabled:opacity-50"
-          title={$_("dashboard.orderHistory.refresh") || "Refresh"}
+          title={$_("dashboard.orderHistory.refresh")}
           disabled={loading || loadingMore}
           onclick={() => onrefresh?.()}
         >
@@ -269,7 +269,7 @@
     {#if activePreset === "custom"}
       <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[var(--border-color)]">
         <label class="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
-          <span>{$_("dashboard.orderHistory.startDate") || "From"}:</span>
+          <span>{$_("dashboard.orderHistory.startDate")}:</span>
           <input
             type="date"
             class="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
@@ -277,7 +277,7 @@
           />
         </label>
         <label class="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
-          <span>{$_("dashboard.orderHistory.endDate") || "To"}:</span>
+          <span>{$_("dashboard.orderHistory.endDate")}:</span>
           <input
             type="date"
             class="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
@@ -289,14 +289,14 @@
           class="px-2 py-0.5 text-[11px] font-semibold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity"
           onclick={applyCustomRange}
         >
-          {$_("dashboard.orderHistory.applyRange") || "Apply"}
+          {$_("dashboard.orderHistory.applyRange")}
         </button>
         <button
           type="button"
           class="px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           onclick={resetRange}
         >
-          {$_("dashboard.orderHistory.clearRange") || "Reset"}
+          {$_("dashboard.orderHistory.clearRange")}
         </button>
       </div>
     {/if}
@@ -419,9 +419,9 @@
         >
           {#if loadingMore}
             <span class="animate-spin">⌛</span>
-            {$_("dashboard.orderHistory.loadingMore") || "Loading older orders..."}
+            {$_("dashboard.orderHistory.loadingMore")}
           {:else}
-            {$_("dashboard.orderHistory.loadMore") || "Load older orders"}
+            {$_("dashboard.orderHistory.loadMore")}
           {/if}
         </button>
       {/if}

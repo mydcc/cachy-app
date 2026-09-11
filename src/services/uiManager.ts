@@ -19,6 +19,8 @@ import { CONSTANTS } from "../lib/constants";
 import { parseDecimal } from "../utils/utils";
 import { Decimal } from "decimal.js";
 import type { IndividualTpResult } from "../stores/types";
+import { _ } from "../locales/i18n";
+import { get } from "svelte/store";
 
 interface VisualBarContentItem {
   type: string;
@@ -105,7 +107,7 @@ export function updateVisualBar(
   }
 
   markers.push({ pos: slPos, label: "SL", isEntry: false });
-  markers.push({ pos: entryPos, label: "Einstieg", isEntry: true });
+  markers.push({ pos: entryPos, label: get(_)("common.entry"), isEntry: true });
 
   calculatedTpDetails.forEach((tpDetail) => {
     const tpPrice = parseDecimal(targets[tpDetail.index].price);

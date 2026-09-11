@@ -203,7 +203,7 @@
                         <div class="symbol-info">
                             <span class="info-tag">
                                 {#if data.updatedAt}
-                                    {formatTime(currentTime - data.updatedAt)} ago
+                                    {$_("calculationDashboard.timeAgo", { values: { time: formatTime(currentTime - data.updatedAt) } })}
                                 {:else}
                                     {$_("calculationDashboard.pending")}
                                 {/if}

@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import DOMPurify from 'dompurify';
+  import { _ } from "../../locales/i18n";
 
   interface Props {
     slug?: "dashboard" | "journal" | "changelog" | "guide" | "privacy" | "whitepaper";
@@ -59,7 +60,7 @@
 <div class="content-renderer prose dark:prose-invert max-w-none p-4 md:p-8">
   {#if loading}
     <div class="flex justify-center p-8 text-[var(--text-secondary)]">
-       <span>Loading...</span>
+       <span>{$_("common.loading")}</span>
     </div>
   {:else if error}
     <div class="text-[var(--danger-color)] p-4 border border-[var(--danger-color)] rounded">

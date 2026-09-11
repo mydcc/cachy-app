@@ -272,7 +272,7 @@
 {#if uiState.showMarketDashboardModal}
     <ModalFrame
         isOpen={true}
-        title={$_("app.marketDashboard.title") || "Global Market Overview"}
+        title={$_("app.marketDashboard.title")}
         showBackdrop={false}
         width={modalWidth}
         height={modalHeight}
@@ -730,7 +730,7 @@
                                                               ? 'text-[var(--success-color)]'
                                                               : 'text-[var(--text-secondary)]'}"
                                                     >
-                                                        RSI {rsiNum.toFixed(1)}
+                                                        {$_("settings.technicals.rsi.title")} {rsiNum.toFixed(1)}
                                                     </span>
                                                 {/if}
                                             </div>
@@ -844,7 +844,7 @@
                                             {signal.label}
                                         </span>
                                         {#if rsiNum !== null}
-                                            <span>RSI {rsiNum.toFixed(1)}</span>
+                                            <span>{$_("settings.technicals.rsi.title")} {rsiNum.toFixed(1)}</span>
                                         {/if}
                                         {#if fundingOf(row.symbol)}
                                             <span>{$_("app.marketDashboard.funding")} {fundingOf(row.symbol)}</span>

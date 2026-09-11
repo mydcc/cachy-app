@@ -1068,7 +1068,7 @@
                 <span>📊</span>
                 <span>{activeHoverScreenshot.symbol}</span>
             </span>
-            <span class="text-[var(--text-secondary)] text-[11px]">🔍 Klick für Vollbild</span>
+            <span class="text-[var(--text-secondary)] text-[11px]">{$_("journal.fullscreenHint")}</span>
         </div>
     </div>
 {/if}
@@ -1093,7 +1093,7 @@
             <div class="p-3 bg-[var(--bg-secondary)] border-b border-[var(--border-color)] flex items-center justify-between">
                 <h4 class="text-sm font-bold flex items-center gap-2">
                     <span>📷</span>
-                    <span>{activeLightboxScreenshot.symbol} Chart Screenshot</span>
+                    <span>{$_("journal.chartScreenshot", { values: { symbol: activeLightboxScreenshot.symbol } })}</span>
                 </h4>
                 <button
                     class="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"

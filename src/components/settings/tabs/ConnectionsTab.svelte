@@ -344,14 +344,14 @@
                             </div>
                             <div class="body">
                                 <p class="text-xs text-[var(--text-secondary)] mb-3">
-                                    Required for screenshot uploads.
+                                    {$_("settings.connections.imgbbRequired")}
                                     <a
                                         href="https://api.imgbb.com/"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         class="text-[var(--accent-color)] hover:underline"
                                     >
-                                        Get your API key →
+                                        {$_("settings.connections.imgbbGetKey")}
                                     </a>
                                 </p>
                                 <div class="field-group">
@@ -363,7 +363,7 @@
                                             bind:value={settingsState.imgbbApiKey}
                                             class="api-input pr-8"
                                             required
-                                            placeholder="Enter your imgbb API key..."
+                                            placeholder={$_("settings.connections.placeholders.imgbb")}
                                         />
                                         <button
                                             class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"

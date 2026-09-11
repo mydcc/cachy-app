@@ -200,11 +200,11 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.apiCallsLastMinute > 120}
-                    ⚠️ High API usage
+                    {$_("settings.performance.status.usageHigh")}
                 {:else if marketState.telemetry.apiCallsLastMinute > 60}
-                    ℹ️ Moderate usage
+                    {$_("settings.performance.status.usageModerate")}
                 {:else}
-                    ✓ Normal usage
+                    {$_("settings.performance.status.usageNormal")}
                 {/if}
             </div>
         </div>
@@ -240,11 +240,11 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.cacheHitRate > 80}
-                    ✓ Excellent caching
+                    {$_("settings.performance.status.cacheExcellent")}
                 {:else if marketState.telemetry.cacheHitRate > 50}
-                    ℹ️ Good caching
+                    {$_("settings.performance.status.cacheGood")}
                 {:else}
-                    ⚠️ Consider increasing cache size
+                    {$_("settings.performance.status.cacheLow")}
                 {/if}
             </div>
         </div>
@@ -277,13 +277,13 @@
             </div>
             <div class="metric-info">
                 {#if marketState.telemetry.apiLatency < 100}
-                    ⚡ Excellent
+                    {$_("settings.performance.status.latencyExcellent")}
                 {:else if marketState.telemetry.apiLatency < 200}
-                    ✓ Good
+                    {$_("settings.performance.status.latencyGood")}
                 {:else if marketState.telemetry.apiLatency < 500}
-                    ℹ️ Acceptable
+                    {$_("settings.performance.status.latencyAcceptable")}
                 {:else}
-                    ⚠️ High latency
+                    {$_("settings.performance.status.latencyHigh")}
                 {/if}
             </div>
         </div>
@@ -310,15 +310,15 @@
                 {marketState.telemetry.activeConnections}
                 <span
                     class="text-sm text-[var(--text-secondary)] font-normal ml-1"
-                    >active</span
+                    >{$_("settings.performance.active")}</span
                 >
             </div>
             <div class="metric-info flex justify-between items-center">
                 <span>
                     {#if marketState.telemetry.activeConnections > 0}
-                        🟢 Online
+                        {$_("settings.performance.status.online")}
                     {:else}
-                        🔴 Offline
+                        {$_("settings.performance.status.offline")}
                     {/if}
                 </span>
                 {#if marketState.telemetry.wsLatency > 0}

@@ -27,6 +27,8 @@ import { settingsState } from "../../../stores/settings.svelte";
 import { safeTfToMs } from "../../../utils/timeUtils";
 import CandleChartView from "./CandleChartView.svelte";
 import type { WindowOptions, ContextMenuAction } from "../types";
+import { _ } from "../../../locales/i18n";
+import { get } from "svelte/store";
 
 /**
  * ChartWindow is a specific implementation of WindowBase that renders
@@ -144,7 +146,7 @@ export class ChartWindow extends WindowBase {
     public getContextMenuActions(): ContextMenuAction[] {
         return [
             {
-                label: this.showPriceInTitle ? "✅ Show Price in Title" : "Show Price in Title",
+                label: (this.showPriceInTitle ? "✅ " : "") + get(_)("windows.contextMenu.showPriceInTitle"),
                 icon: "💰",
                 active: this.showPriceInTitle,
                 action: () => {
@@ -153,7 +155,7 @@ export class ChartWindow extends WindowBase {
                 }
             },
             {
-                label: "Fenster schließen",
+                label: get(_)("windows.contextMenu.closeWindow"),
                 icon: "✕",
                 danger: true,
                 action: () => {

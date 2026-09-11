@@ -349,12 +349,12 @@
   -->
   <div class="text-[10px] font-mono flex flex-col gap-0.5">
     <p class="text-[var(--text-secondary)]">
-      {$_("dashboard.tpslManager.grossBeforeFees")}: {grossRoi}% ROI ·
+      {$_("dashboard.tpslManager.grossBeforeFees")}: {grossRoi}% {$_("common.roi")} ·
       {grossChange}% · {grossPnl} USDT
     </p>
     {#if netRoi !== null && netPnl !== null}
       <p class="text-[var(--text-primary)]">
-        {$_("dashboard.tpslManager.netAfterFees")}: {netRoi}% ROI · {netPnl} USDT
+        {$_("dashboard.tpslManager.netAfterFees")}: {netRoi}% {$_("common.roi")} · {netPnl} USDT
       </p>
     {/if}
   </div>

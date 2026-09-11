@@ -17,6 +17,7 @@
 
 <script lang="ts">
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
+    import { _ } from "../../../locales/i18n";
 
     interface Props {
         window: WindowBase;
@@ -31,13 +32,15 @@
 
 <div class="chat-mock">
     <div class="messages">
+        <!-- i18n-ignore-start: static mock conversation for the window-system demo -->
         <div class="msg system">System: Willkommen im Global Chat.</div>
         <div class="msg">User: Das neue Fenstersystem ist robust!</div>
         <div class="msg admin">Admin: Absolut, Industriestandard erreicht.</div>
+        <!-- i18n-ignore-end -->
     </div>
     <div class="input-area">
-        <input type="text" placeholder="Nachricht..." />
-        <button>Senden</button>
+        <input type="text" placeholder={$_("chat.placeholder")} />
+        <button>{$_("chat.send")}</button>
     </div>
 </div>
 

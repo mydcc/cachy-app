@@ -11,6 +11,10 @@
       "zoomIn": "Zoom In",
       "decreaseFont": "Decrease Font Size",
       "increaseFont": "Increase Font Size"
+    },
+    "contextMenu": {
+      "closeWindow": "Close Window",
+      "showPriceInTitle": "Show Price in Title"
     }
   },
   "app": {
@@ -114,7 +118,8 @@
       "dismissButton": "Start Fresh / Ignore",
       "restoreButton": "Restore My Data",
       "restoring": "Restoring..."
-    }
+    },
+    "copyright": "© 2026 MYDCT. All rights reserved."
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -1014,7 +1019,8 @@
           "trades": "Trades"
         }
       },
-      "assets": "Assets"
+      "assets": "Assets",
+      "analytics": "& Analytics"
     },
     "days": {
       "mon": "Mon",
@@ -1036,7 +1042,21 @@
     "accountColumn": "Account",
     "accountUnknown": "Removed account",
     "saveFailed": "Failed to save journal. Storage might be full.",
-    "saveError": "Error occurred while saving journal."
+    "saveError": "Error occurred while saving journal.",
+    "filterClosed": "Closed",
+    "riskAmount": "Risk Amount",
+    "maxProfit": "Max Profit",
+    "makerTakerRates": "Maker / Taker Rates",
+    "noScreenshot": "No screenshot attached.",
+    "fullscreenHint": "🔍 Click for fullscreen",
+    "chartScreenshot": "{symbol} Chart Screenshot",
+    "tradeMode": {
+      "live": "Live",
+      "paper": "Paper",
+      "all": "All"
+    },
+    "windowTitle": "Trading Journal",
+    "currentSqn": "Current SQN"
   },
   "marketOverview": {
     "24hHigh": "24h High",
@@ -1137,7 +1157,18 @@
       "intervalDesc": "Controls data freshness vs CPU usage",
       "aria": {
         "removeTimeframe": "Remove timeframe"
-      }
+      },
+      "cpuImpact": "⚠️ CPU Impact",
+      "symbolsCount": "{count} symbols",
+      "timeframesSelected": "{count} selected",
+      "on": "On",
+      "off": "Off",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "timeframesHelpExtended": "Each selected timeframe multiplies API calls and CPU usage.",
+      "timeframeReco": "Scalpers: 5m, 15m. Day traders: 15m, 1h, 4h. Swing traders: 1h, 4h, 1d.",
+      "timeframesWarning": "{count} timeframes selected: Expect {count}x API calls and higher CPU load",
+      "cacheShort": "Cache:"
     },
     "visuals": {
       "subtabs": {
@@ -1257,7 +1288,13 @@
         "indicatorTimeframe": "Indicator interval",
         "tooltipIndicatorTimeframe": "Shared with the Technicals panel: editable in both places, always applies to both. The background's ATR and RSI are read from this interval — if a chart is already open on it, the values cost nothing extra.",
         "atrBands": "ATR reference rings",
-        "tooltipAtrBands": "Draws three rings on the price axis: the last traded price, and ±1 ATR around it. Lets you see at a glance whether a trade's shockwave sits inside the market's normal range or is breaking out of it. Needs the radial price axis and an available ATR reading; with the 2× ATR axis span, ±1 ATR rings sit near the 1/4 and 3/4 points, moving only if price wanders 1+ ATR from the recent centre — which is itself the answer."
+        "tooltipAtrBands": "Draws three rings on the price axis: the last traded price, and ±1 ATR around it. Lets you see at a glance whether a trade's shockwave sits inside the market's normal range or is breaking out of it. Needs the radial price axis and an available ATR reading; with the 2× ATR axis span, ±1 ATR rings sit near the 1/4 and 3/4 points, moving only if price wanders 1+ ATR from the recent centre — which is itself the answer.",
+        "modeEqualizer": "Equalizer",
+        "modeRaindrops": "Raindrops",
+        "modeCity": "Digital City",
+        "modeSonar": "Sonar",
+        "modeBlock": "Block",
+        "modeGalaxy": "Galaxy"
       },
       "coordinates": {
         "x": "X",
@@ -1612,7 +1649,14 @@
       "maTypeEma": "EMA",
       "maTypeWma": "WMA",
       "anchorSession": "Session",
-      "anchorFixed": "Fixed"
+      "anchorFixed": "Fixed",
+      "atrStopSell": "ATR Stop (Sell)",
+      "atrStopBuy": "ATR Stop (Buy)",
+      "vpPoc": "VP (POC)",
+      "vaHighLow": "VA High/Low",
+      "marketStructureHigh": "Market Structure High",
+      "marketStructureLow": "Market Structure Low",
+      "customTimeframePlaceholder": "e.g. 3m, 1W"
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"
@@ -1643,7 +1687,36 @@
       "mode1Desc": "⚡ Direct Mode - Press \"L\" for Long, \"S\" for Short (fastest)",
       "mode2Desc": "🛡️ Safety Mode - Press \"Alt+L\" for Long, \"Alt+S\" for Short (prevents accidents)",
       "switchToCustom": "Switch to Custom Configuration",
-      "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?"
+      "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?",
+      "category": {
+        "favorites": "Favorites",
+        "tradeSetup": "Trade Setup",
+        "uiNavigation": "UI & Navigation",
+        "marketData": "Market Data",
+        "system": "System"
+      },
+      "action": {
+        "fav1": "Load Favorite 1",
+        "fav2": "Load Favorite 2",
+        "fav3": "Load Favorite 3",
+        "fav4": "Load Favorite 4",
+        "focusEntry": "Focus Entry Price",
+        "focusSl": "Focus Stop Loss",
+        "focusNextTp": "Focus Next TP",
+        "focusPrevTp": "Focus Previous TP",
+        "addTp": "Add TP Target",
+        "removeTp": "Remove TP Target",
+        "setLong": "Set Direction Long",
+        "setShort": "Set Direction Short",
+        "resetInputs": "Reset Trade Inputs",
+        "toggleJournal": "Toggle Journal",
+        "openSettings": "Open Settings",
+        "toggleSidebars": "Toggle Sidebars",
+        "toggleTechnicals": "Toggle Technicals Panel",
+        "fetchPrice": "Fetch Price",
+        "openSymbolPicker": "Open Symbol Picker",
+        "toggleAssistant": "Toggle Assistant"
+      }
     },
     "chart": {
       "scaleSection": "Price Scale",
@@ -1874,7 +1947,8 @@
         "intensityMedium": "Medium",
         "intensityHigh": "High",
         "reset": "Reset",
-        "resetConfirm": "Reset all background settings?"
+        "resetConfirm": "Reset all background settings?",
+        "typeTradeFlow": "Trade Flow"
       }
     },
     "connections": {
@@ -1904,7 +1978,8 @@
         "apiSecret": "API Secret",
         "passphrase": "Passphrase",
         "url": "https://...",
-        "appAccessToken": "Click \"Create access token\" or paste one"
+        "appAccessToken": "Click \"Create access token\" or paste one",
+        "imgbb": "Enter your imgbb API key..."
       },
       "providers": {
         "bitunix": "Bitunix",
@@ -1937,7 +2012,9 @@
         "addLabel": "Add an account:",
         "exchange": "Exchange",
         "activeAccountAria": "Active account: {name} on {venue}"
-      }
+      },
+      "imgbbRequired": "Required for screenshot uploads.",
+      "imgbbGetKey": "Get your API key →"
     },
     "imgbbExpiration": "Expiration Time",
     "integrations": {
@@ -2051,7 +2128,8 @@
         "refresh": "Refresh",
         "cache": "Result Cache",
         "cacheSummary": "Hits {hits} · Misses {misses} · {hitRate}% hit rate",
-        "noUncachedYet": "No uncached calculations yet — interact with the chart or run the benchmark."
+        "noUncachedYet": "No uncached calculations yet — interact with the chart or run the benchmark.",
+        "panelTitle": "⚡ Engine Debug Panel"
       }
     },
     "performance": {
@@ -2071,7 +2149,22 @@
       "cacheHit": "Cache Hit Rate",
       "avgLatency": "Avg Latency",
       "networkStatus": "Network Status",
-      "tipsTitle": "Optimization Tips"
+      "tipsTitle": "Optimization Tips",
+      "active": "active",
+      "status": {
+        "usageHigh": "⚠️ High API usage",
+        "usageModerate": "ℹ️ Moderate usage",
+        "usageNormal": "✓ Normal usage",
+        "cacheExcellent": "✓ Excellent caching",
+        "cacheGood": "ℹ️ Good caching",
+        "cacheLow": "⚠️ Consider increasing cache size",
+        "latencyExcellent": "⚡ Excellent",
+        "latencyGood": "✓ Good",
+        "latencyAcceptable": "ℹ️ Acceptable",
+        "latencyHigh": "⚠️ High latency",
+        "online": "🟢 Online",
+        "offline": "🔴 Offline"
+      }
     },
     "trading": {
       "chartTitle": "Data & Market",
@@ -2121,7 +2214,9 @@
       "multiAccount": "Multi-Account Management",
       "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon).",
       "journalPaperTrades": "Save paper trades to the journal",
-      "journalPaperTradesDesc": "Simulated fills are recorded so you can review them. They are always marked PAPER and never counted in your statistics or the daily loss limit."
+      "journalPaperTradesDesc": "Simulated fills are recorded so you can review them. They are always marked PAPER and never counted in your statistics or the daily loss limit.",
+      "feeMaker": "MAKER",
+      "feeTaker": "TAKER"
     },
     "toggleMarketTiles": "Toggle Market Tiles",
     "toggleMarketSentiment": "Toggle Market Sentiment",
@@ -2359,7 +2454,9 @@
       "10m": "10M",
       "50m": "50M"
     },
-    "maxFavorites": "Maximum number of favorites reached (12)."
+    "maxFavorites": "Maximum number of favorites reached (12).",
+    "volumeLabel": "Vol",
+    "pairsCount": "{count} Pairs"
   },
   "common": {
     "windowMenu": "Window menu",
@@ -2392,7 +2489,17 @@
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",
-    "feedDuck": "Feed Duck (Profit)"
+    "feedDuck": "Feed Duck (Profit)",
+    "loading": "Loading...",
+    "typeHere": "Type here...",
+    "entry": "Entry",
+    "active": "active",
+    "error": "Error",
+    "cachyLogo": "Cachy Logo",
+    "unknown": "Unknown",
+    "orderType": "Type: {type}",
+    "refresh": "Refresh",
+    "roi": "ROI"
   },
   "analyst": {
     "trend": {
@@ -3020,7 +3127,8 @@
         "High volume or blow-off."
       ],
       "trading": "Wait for the countermove."
-    }
+    },
+    "noPatterns": "No patterns found."
   },
   "bitunixErrors": {
     "10001": "Network Error",
@@ -3231,7 +3339,11 @@
     "hintGood": "<strong>✓ All systems normal:</strong> Configuration is optimal for current load.",
     "symbolsInMemory": "Symbols in memory",
     "pending": "Pending",
-    "confluenceScore": "Confluence score"
+    "confluenceScore": "Confluence score",
+    "profileLightDesc": "Minimal CPU/Memory, slower updates. Best for: weeks-months timeframes",
+    "profileBalancedDesc": "Good performance & responsiveness. Best for: hours-days timeframes",
+    "profileProDesc": "Maximum responsiveness, higher CPU. Best for: minutes-hours timeframes",
+    "timeAgo": "{time} ago"
   },
   "calculator": {
     "errors": {
@@ -3768,7 +3880,8 @@
     "eraseConfirm": "Click again to confirm",
     "eraseDone": "Deletion requested. Your messages will disappear as the change propagates.",
     "eraseNeedsConnection": "Connect first — erasure runs against the server.",
-    "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild."
+    "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild.",
+    "tokenPlaceholder": "Token"
   },
   "marketAnalyst": {
     "analysisFailed": "Analysis failed for {symbol}: {error}"
@@ -3949,7 +4062,9 @@
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
     },
-    "timeInForceNone": "—"
+    "timeInForceNone": "—",
+    "exchangeOrderTp": "Exchange Order TP",
+    "partialTarget": "Partial Target"
   },
   "chartView": {
     "loadingHistory": "LOADING HISTORY ...",
@@ -4075,5 +4190,74 @@
   },
   "storage": {
     "quotaExceeded": "Storage quota exceeded. Please clear some space."
+  },
+  "depthBar": {
+    "bids": "Bids",
+    "asks": "Asks"
+  },
+  "news": {
+    "regime": "Regime",
+    "scoreLabel": "Score:",
+    "articlesAnalyzed": "{count} Articles Analyzed"
+  },
+  "timeframes": {
+    "addPlaceholder": "Add timeframe..."
+  },
+  "assistant": {
+    "thinking": "Thinking...",
+    "processing": "_ PROCESSING...",
+    "connected": "--- Connected to Global Chat ---",
+    "setupRequired": "Setup Required",
+    "setupDescription": "Please configure your {provider} API Key in Settings to use the AI Assistant.",
+    "columnSymbol": "Symbol",
+    "columnTechnicals": "Technicals",
+    "columnNews": "News",
+    "columnCmc": "CoinMarketCap",
+    "valueLoaded": "✅ Loaded",
+    "valueNone": "❌ None",
+    "valueNoApiKey": "❌ No API Key configured",
+    "articlesCount": "✅ {count} articles",
+    "contextTimedOut": "⚠️ Context gathering timed out (5s). Data may be incomplete.",
+    "qaMarketCheck": "Market Check",
+    "qaTechAnalysis": "Tech Analysis",
+    "qaRiskAudit": "Risk Audit",
+    "qaNewsCheck": "News Check",
+    "persona": {
+      "risk": "Risk Manager",
+      "coach": "Trade Coach",
+      "scalper": "Scalper",
+      "analyst": "Analyst"
+    },
+    "errorApiKeyMissing": "API key missing. Please check settings.",
+    "errorQuotaExceeded": "Generative AI Quota exceeded. Please try again later.",
+    "roleYou": "You",
+    "roleAi": "AI",
+    "terminalReady": "SYSTEM READY. AWAITING INPUT.",
+    "readyToAssist": "Ready to assist.",
+    "placeholderCommand": "> ENTER COMMAND",
+    "placeholderAi": "Message AI...",
+    "placeholderNote": "Type note...",
+    "suggestedChanges": "Suggested Changes",
+    "roleUser": "User",
+    "contextDuration": "⏱ Context: {ms}ms",
+    "contextNews": "📰 {count} News",
+    "contextTech": "📊 Tech: {status}"
+  },
+  "iframe": {
+    "loadingArticle": "Loading article...",
+    "summary": "Summary:",
+    "openArticle": "Open article",
+    "fullArticleOn": "Full article on {source}",
+    "providerProtection": "This provider protects full texts from being loaded directly in the app."
+  },
+  "chat": {
+    "placeholder": "Message...",
+    "send": "Send"
+  },
+  "charts": {
+    "tradesCount": "{count} Trades",
+    "tradesLabel": "Trades:",
+    "pnlLabel": "PnL:",
+    "topLabel": "Top:"
   }
 }

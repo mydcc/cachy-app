@@ -4,7 +4,7 @@
 
 321 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 29 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 259
+Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 260
 
 ---
 
@@ -315,7 +315,7 @@ Counts by status: 💡 idea 28 · 📋 specced 29 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | ui |
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | 📋 specced | ui |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | 📋 specced | calculation |
-| [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | ui |
+| [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | ✅ done | ui |
 | [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | ✅ done | ui |
 | [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | ✅ done | indicators |
 | [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | ✅ done | ui |
@@ -618,7 +618,7 @@ Counts by status: 💡 idea 28 · 📋 specced 29 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | ✅ done | none | community, pro, private | none | none | — |

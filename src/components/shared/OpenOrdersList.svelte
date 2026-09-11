@@ -79,7 +79,7 @@
   }
 
   function handleCancel(order: NormalizedOrder) {
-    if (confirm($_("dashboard.confirmCancelOrder") || "Cancel this order?")) {
+    if (confirm($_("dashboard.confirmCancelOrder"))) {
         oncancel?.(order.id || order.orderId, order.symbol);
     }
   }
@@ -93,7 +93,7 @@
     <div
       class="absolute top-1 right-1 z-10"
       role="status"
-      aria-label={$_("dashboard.refreshing") || "Refreshing"}
+      aria-label={$_("dashboard.refreshing")}
     >
       <div
         class="animate-spin rounded-full h-3 w-3 border-b-2 border-[var(--accent-color)]"
@@ -112,7 +112,7 @@
     </div>
   {:else if orders.length === 0}
     <div class="text-xs text-[var(--text-secondary)] text-center p-4">
-      {$_("dashboard.noOpenOrders") || "No open orders."}
+      {$_("dashboard.noOpenOrders")}
     </div>
   {:else}
     <div class="flex flex-col gap-2">
@@ -148,7 +148,7 @@
                   class:text-green-300={order.side === "BUY"}
                   class:bg-red-900={order.side === "SELL"}
                   class:text-red-300={order.side === "SELL"}
-                  title={`Type: ${order.type || "Unknown"}`}
+                  title={$_("common.orderType", { values: { type: order.type || $_("common.unknown") } })}
                 >
                   {getTypeLabel(order.type)}
                   {order.side === "BUY" ? "Buy" : "Sell"}
@@ -186,7 +186,7 @@
                   <button
                     class="w-5 h-5 flex items-center justify-center bg-[var(--danger-color)] bg-opacity-10 text-[var(--danger-color)] rounded hover:bg-opacity-20 transition-colors"
                     onclick={() => handleCancel(order)}
-                    title={$_("dashboard.cancelOrder") || "Cancel Order"}
+                    title={$_("dashboard.cancelOrder")}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

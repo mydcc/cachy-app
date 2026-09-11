@@ -40,11 +40,11 @@
     let showContextPanel = $state(false);
 
     type AiAnalysisMode = "risk" | "coach" | "scalper" | "analyst";
-    const analysisModes: { id: AiAnalysisMode; icon: string; label: string }[] = [
-        { id: "risk",    icon: "🛡️", label: "Risk Manager" },
-        { id: "coach",   icon: "📚", label: "Trade Coach"  },
-        { id: "scalper", icon: "⚡",   label: "Scalper"      },
-        { id: "analyst", icon: "🎯",   label: "Analyst"     },
+    const analysisModes: { id: AiAnalysisMode; icon: string; labelKey: TranslationKey }[] = [
+        { id: "risk",    icon: "🛡️", labelKey: "assistant.persona.risk" },
+        { id: "coach",   icon: "📚", labelKey: "assistant.persona.coach"  },
+        { id: "scalper", icon: "⚡",   labelKey: "assistant.persona.scalper"      },
+        { id: "analyst", icon: "🎯",   labelKey: "assistant.persona.analyst"     },
     ];
 
     let contextSummary = $derived(aiState.contextSummary);
@@ -72,7 +72,7 @@
         // Pre-check for API key in AI mode
         const mode = settingsState.sidePanelMode;
         if (mode === "ai" && !hasApiKey) {
-            errorMessage = "API key missing. Please check settings.";
+            errorMessage = "assistant.errorApiKeyMissing";
             return;
         }
 
@@ -89,7 +89,7 @@
             }
             messageText = "";
         } catch (e) {
-            errorMessage = e instanceof Error ? e.message : "Error";
+            errorMessage = e instanceof Error ? e.message : "common.error";
         } finally {
             isSending = false;
             // Keep focus only if not error?
@@ -171,7 +171,7 @@
                         <div
                             class="mb-1 text-[10px] uppercase font-bold tracking-wider opacity-60"
                         >
-                            {msg.role === "user" ? "You" : "AI"}
+                            {msg.role === "user" ? $_("assistant.roleYou") : $_("assistant.roleAi")}
                         </div>
                     {/if}
 
@@ -189,7 +189,7 @@
                             class:left={msg.role === "user"}
                             class:right={msg.role !== "user"}
                             onclick={() => copyToClipboard(msg.content)}
-                            title="Copy Content"
+                            title={$_("common.copy")}
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -231,8 +231,7 @@
                                                 <thead
                                                     ><tr
                                                         ><th colspan="2"
-                                                            >Vorgeschlagene
-                                                            Änderungen</th
+                                                            >{$_("assistant.suggestedChanges")}</th
                                                         ></tr
                                                     ></thead
                                                 >
@@ -307,11 +306,11 @@
             {#if aiState.isStreaming}
                 <div class="flex flex-col items-start animate-pulse">
                     {#if isTerminal}<span class="text-xs text-green-500 blink"
-                            >_ PROCESSING...</span
+                            >{$_("assistant.processing")}</span
                         >
                     {:else}<span
                             class="text-[10px] uppercase font-bold text-[var(--accent-color)]"
-                            >Thinking...</span
+                            >{$_("assistant.thinking")}</span
                         >{/if}
                 </div>
             {/if}
@@ -319,12 +318,12 @@
             {#if aiState.messages.length === 0}
                 <div class="empty-state">
                     {#if isTerminal}<p class="text-xs text-green-800">
-                            SYSTEM READY. AWAITING INPUT.
+                            {$_("assistant.terminalReady")}
                         </p>
                     {:else}<p
                             class="text-xs font-medium text-[var(--text-secondary)]"
                         >
-                            Ready to assist.
+                            {$_("assistant.readyToAssist")}
                         </p>{/if}
                 </div>
             {/if}
@@ -340,7 +339,7 @@
                 </div>
             {/each}
         {:else}
-            <div class="chat-status">--- Connected to Global Chat ---</div>
+            <div class="chat-status">{$_("assistant.connected")}</div>
             {#each chatState.messages as msg (msg.id)}
                 <div class="chat-msg">
                     {#if msg.sender === "system"}
@@ -351,7 +350,7 @@
                             msg.senderId === "me"}
                         <div class="flex flex-col">
                             <span class="msg-sender" class:is-me={isMe}>
-                                <span>{isMe ? "You" : "User"}</span>
+                                <span>{isMe ? $_("assistant.roleYou") : $_("assistant.roleUser")}</span>
                             </span>
                             <span class="msg-text">{msg.text}</span>
                             <span class="timestamp"
@@ -376,10 +375,9 @@
                 class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl p-6 text-center shadow-2xl max-w-sm"
             >
                 <div class="text-3xl mb-3">🔑</div>
-                <h3 class="text-lg font-bold mb-2">Setup Required</h3>
+                <h3 class="text-lg font-bold mb-2">{$_("assistant.setupRequired")}</h3>
                 <p class="text-sm opacity-70 mb-4">
-                    Please configure your <b>{settingsState.aiProvider}</b> API Key
-                    in Settings to use the AI Assistant.
+                    {$_("assistant.setupDescription", { values: { provider: settingsState.aiProvider } })}
                 </p>
             </div>
         </div>
@@ -399,9 +397,9 @@
                         class="mode-chip"
                         class:active={settingsState.aiAnalysisMode === am.id}
                         onclick={() => settingsState.aiAnalysisMode = am.id}
-                        title={am.label}
+                        title={$_(am.labelKey)}
                     >
-                        {am.icon} <span class="mode-label">{am.label}</span>
+                        {am.icon} <span class="mode-label">{$_(am.labelKey)}</span>
                     </button>
                 {/each}
             </div>
@@ -410,18 +408,18 @@
             {#if contextSummary}
                 <div class="context-panel-wrapper">
                     <button class="context-toggle" onclick={() => showContextPanel = !showContextPanel}>
-                        ⏱ Context: {contextSummary.durationMs}ms
+                        {$_("assistant.contextDuration", { values: { ms: contextSummary.durationMs } })}
                         <span class="divider">|</span>
-                        📰 {contextSummary.newsCount} News
+                        {$_("assistant.contextNews", { values: { count: contextSummary.newsCount } })}
                         <span class="divider">|</span>
-                        📊 Tech: {contextSummary.hasTechnicals ? "✅" : "❌"}
+                        {$_("assistant.contextTech", { values: { status: contextSummary.hasTechnicals ? "✅" : "❌" } })}
                         <span class="chevron" class:open={showContextPanel}>▼</span>
                     </button>
                     {#if showContextPanel}
                         <div class="context-details">
                             <table>
                                 <tbody>
-                                    <tr><td>Symbol</td><td>{tradeState.symbol || "BTCUSDT"}</td></tr>
+                                    <tr><td>{$_("assistant.columnSymbol")}</td><td>{tradeState.symbol || "BTCUSDT"}</td></tr>
                                     <tr>
                                         <td>{$_("settings.ai.contextConsentTitle")}</td>
                                         <td>
@@ -436,11 +434,11 @@
                                             {/if}
                                         </td>
                                     </tr>
-                                    <tr><td>Technicals</td><td>{contextSummary.hasTechnicals ? "✅ Loaded" : "❌ None"}</td></tr>
-                                    <tr><td>News</td><td>{contextSummary.newsCount > 0 ? `✅ ${contextSummary.newsCount} articles` : "❌ None"}</td></tr>
-                                    <tr><td>CoinMarketCap</td><td>{contextSummary.hasCmc ? "✅ Loaded" : "❌ No API Key configured"}</td></tr>
+                                    <tr><td>{$_("assistant.columnTechnicals")}</td><td>{contextSummary.hasTechnicals ? $_("assistant.valueLoaded") : $_("assistant.valueNone")}</td></tr>
+                                    <tr><td>{$_("assistant.columnNews")}</td><td>{contextSummary.newsCount > 0 ? $_("assistant.articlesCount", { values: { count: contextSummary.newsCount } }) : $_("assistant.valueNone")}</td></tr>
+                                    <tr><td>{$_("assistant.columnCmc")}</td><td>{contextSummary.hasCmc ? $_("assistant.valueLoaded") : $_("assistant.valueNoApiKey")}</td></tr>
                                     {#if contextSummary.timedOut}
-                                        <tr><td colspan="2" class="warning-text">⚠️ Context gathering timed out (5s). Data may be incomplete.</td></tr>
+                                        <tr><td colspan="2" class="warning-text">{$_("assistant.contextTimedOut")}</td></tr>
                                     {/if}
                                 </tbody>
                             </table>
@@ -456,28 +454,28 @@
                         onclick={() => {
                             messageText = $_("sidePanel.quickActions.marketCheck", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>📊 {$_("sidePanel.quickActions.marketCheck", { values: { symbol: tradeState.symbol || "BTC" } }).split(' ')[0]} Check</button
+                        }}>📊 {$_("assistant.qaMarketCheck")}</button
                     >
                     <button
                         class="qa-btn"
                         onclick={() => {
                             messageText = $_("sidePanel.quickActions.techAnalysis", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>🧪 Tech Analysis</button
+                        }}>🧪 {$_("assistant.qaTechAnalysis")}</button
                     >
                     <button
                         class="qa-btn"
                         onclick={() => {
                             messageText = $_("sidePanel.quickActions.riskAudit", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>⚠️ Risk Audit</button
+                        }}>⚠️ {$_("assistant.qaRiskAudit")}</button
                     >
                     <button
                         class="qa-btn"
                         onclick={() => {
                             messageText = $_("sidePanel.quickActions.newsCheck", { values: { symbol: tradeState.symbol || "BTC" } });
                             handleSend();
-                        }}>📰 News Check</button
+                        }}>📰 {$_("assistant.qaNewsCheck")}</button
                     >
                 </div>
             {/if}
@@ -496,8 +494,7 @@
                         class="flex items-center gap-1.5 opacity-90"
                     >
                         <span>⚠️</span><span
-                            >Generative AI Quota exceeded. Please try again
-                            later.</span
+                            >{$_("assistant.errorQuotaExceeded")}</span
                         >
                     </div>
                 {:else}{$_(errorMessage as TranslationKey) ||
@@ -516,9 +513,9 @@
                     class:is-standard={!isTerminal}
                     placeholder={settingsState.sidePanelMode === "ai"
                         ? isTerminal
-                            ? "> ENTER COMMAND"
-                            : "Message AI..."
-                        : "Type note..."}
+                            ? $_("assistant.placeholderCommand")
+                            : $_("assistant.placeholderAi")
+                        : $_("assistant.placeholderNote")}
                     bind:value={messageText}
                     onkeydown={handleKeydown}
                     oninput={(e) =>
@@ -535,7 +532,7 @@
                     class:is-terminal={isTerminal}
                     class:is-bubble={isBubble}
                     class:is-standard={!isTerminal}
-                    placeholder="Type here..."
+                    placeholder={$_("common.typeHere")}
                     bind:value={messageText}
                     onkeydown={handleKeydown}
                     disabled={isSending}
@@ -547,7 +544,7 @@
                     class="send-btn"
                     onclick={handleSend}
                     disabled={!messageText.trim()}
-                    title="Send message"
+                    title={$_("common.send")}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
