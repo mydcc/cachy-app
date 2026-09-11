@@ -2,9 +2,9 @@
 
 # Backlog index
 
-321 items. How to read and add them: [README.md](README.md).
+322 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 261
+Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 261
 
 ---
 
@@ -132,6 +132,7 @@ Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | ✅ done | alerts |
 | [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P1 | ✅ done | alerts |
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | alerts |
+| [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | 🟡 in-progress | alerts |
 | [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | 📋 specced | ui |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
@@ -502,6 +503,7 @@ Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | — |
+| [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -716,4 +718,4 @@ Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 
 ---
 
-Next free number: **0440**
+Next free number: **0441**

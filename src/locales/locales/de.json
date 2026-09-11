@@ -549,7 +549,10 @@
         "emptyHint": "Wähle einen Indikator, um eine Bedingung zu bauen.",
         "dimensionHint": "Angeboten werden nur Vergleiche in derselben Einheit — ein Prozentwert wird nie gegen einen Preis verglichen.",
         "closedCandleHint": "Wird einmal pro geschlossener Kerze des Trigger-Zeitrahmens ausgewertet."
-      }
+      },
+      "firedWithNote": "{message} — {note}",
+      "expired": "Abgelaufen",
+      "expiredHint": "Gültigkeitszeitraum vorbei — abgelaufen, ohne ausgelöst zu haben."
     },
     "generalInputs": {
       "header": "Allgemein",
@@ -2380,7 +2383,8 @@
       "categories": {
         "order-filled": "Order ausgeführt",
         "order-rejected": "Order abgelehnt",
-        "order-cancelled": "Order storniert"
+        "order-cancelled": "Order storniert",
+        "alert-fired": "Alarm ausgelöst"
       },
       "events": {
         "orderFilled": "{symbol} {side} ausgeführt — {qty}",

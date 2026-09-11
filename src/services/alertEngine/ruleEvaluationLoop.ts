@@ -51,6 +51,7 @@ import type {
   EvaluationContext,
   EvaluationIndicatorSeries,
   RuleDocument,
+  RuleState,
   Verdict,
 } from "../../lib/rules/types";
 import { logger } from "../logger";
@@ -60,6 +61,17 @@ export type CandleReader = (symbol: string, timeframe: string) => EvaluationCand
 
 /** The rules currently armed, as the loop should see them right now. */
 export type RuleReader = () => RuleDocument[];
+
+/**
+ * What one rule has already done — FEAT-0440.
+ *
+ * Injected rather than imported for the same reason every other reader here is:
+ * fire state is persisted, and the loop must stay callable in a test with no
+ * storage. The default answers "never fired", which is what the core reads an
+ * absent state as, so an unconfigured loop keeps announcing rather than being
+ * silently muted.
+ */
+export type RuleStateReader = (ruleId: string) => RuleState | undefined;
 
 export interface RuleFiring {
   rule: RuleDocument;
@@ -129,6 +141,14 @@ export interface RuleEvaluationLoopOptions {
    * answered from last-price candles is a wrong alarm that looks right.
    */
   readMarkCandles?: CandleReader;
+  /**
+   * What each rule has already done, for the frequency and validity checks.
+   *
+   * Absent means every rule reads as never-fired: the pre-FEAT-0393 behaviour,
+   * where `frequency` has no effect and a rule announces whenever its
+   * conditions hold.
+   */
+  readRuleState?: RuleStateReader;
   /** Defaults to the shadow sink, which reports and notifies nobody. */
   onFiring?: FiringSink;
   /** No-op by default — most callers have nothing that depends on this. */
@@ -147,6 +167,7 @@ export interface RuleEvaluationLoopOptions {
  */
 const NO_RULES: RuleReader = () => [];
 const NO_CANDLES: CandleReader = () => [];
+const NO_STATE: RuleStateReader = () => undefined;
 
 /**
  * The shadow-mode sink: records that a rule *would* have fired, and stops.
@@ -191,6 +212,7 @@ export class RuleEvaluationLoop {
   private readCandles: CandleReader = NO_CANDLES;
   private readMarkCandles: CandleReader = NO_CANDLES;
   private readRules: RuleReader = NO_RULES;
+  private readRuleState: RuleStateReader = NO_STATE;
   private onFiring: FiringSink = shadowSink;
   private onClose: SeriesCloseHook = () => {};
   private onUnevaluable: UnevaluableSink = logUnevaluable;
@@ -212,6 +234,7 @@ export class RuleEvaluationLoop {
     this.readCandles = options.readCandles;
     this.readMarkCandles = options.readMarkCandles ?? NO_CANDLES;
     this.readRules = options.readRules;
+    this.readRuleState = options.readRuleState ?? NO_STATE;
     this.onFiring = options.onFiring ?? shadowSink;
     this.onClose = options.onClose ?? (() => {});
     this.onUnevaluable = options.onUnevaluable ?? logUnevaluable;
@@ -402,7 +425,32 @@ export class RuleEvaluationLoop {
 
     // Omitted rather than sent empty: a price-only rule should produce the same
     // wire payload it did before this existed.
-    return indicators.length > 0 ? { candles, indicators } : { candles };
+    const ctx: EvaluationContext = indicators.length > 0 ? { candles, indicators } : { candles };
+
+    // Same rule, one key at a time: an absent state is how the core spells
+    // "never fired", so a reader that knows nothing about this rule must leave
+    // the key off entirely rather than send a zeroed one.
+    const state = this.stateFor(rule);
+    if (state !== undefined) ctx.state = state;
+
+    return ctx;
+  }
+
+  /**
+   * What the rule has already done, or `undefined` when nothing tracks it.
+   *
+   * A reader that throws — corrupt storage, a quota error on a read-modify
+   * path — must not take the evaluation of every other rule down with it, and
+   * must not be allowed to mute this one either: the fallback is `undefined`,
+   * which the core reads as never-fired.
+   */
+  private stateFor(rule: RuleDocument): RuleState | undefined {
+    try {
+      return this.readRuleState(rule.id);
+    } catch (e) {
+      logger.error("alerts", `[RuleState] Reading fire state for ${rule.id} failed`, e);
+      return undefined;
+    }
   }
 
   /**

@@ -36,12 +36,15 @@ export type NotificationCategory =
     /** The exchange rejected an order outright. */
     | "order-rejected"
     /** An order was cancelled — by the user, the venue, or a close. */
-    | "order-cancelled";
+    | "order-cancelled"
+    /** An armed alert rule's conditions held and it announced itself — FEAT-0440. */
+    | "alert-fired";
 
 export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
     "order-filled",
     "order-rejected",
     "order-cancelled",
+    "alert-fired",
 ] as const;
 
 /**
@@ -83,6 +86,21 @@ export const DEFAULT_NOTIFICATION_POLICY: NotificationPolicy = {
     "order-filled": { "in-app": true, browser: false },
     "order-rejected": { "in-app": true, browser: false },
     "order-cancelled": { "in-app": false, browser: false },
+    /*
+     * In-app on, browser off — the same shape every other category has.
+     *
+     * On in-app because an alarm the trader armed by hand is the one
+     * announcement they asked for explicitly, and defaulting it off would
+     * produce the failure this subsystem exists to prevent: a rule that looks
+     * armed and is heard by nobody.
+     *
+     * Off on browser because `leaves every browser channel off until asked`
+     * pins that invariant across all categories, and it is right: the channel
+     * needs OS permission, and shipping it on makes the *settings* screen read
+     * as though a channel is live when it silently is not. FEAT-0397 is where a
+     * rule's `trigger_methods` turns it on, next to the permission prompt.
+     */
+    "alert-fired": { "in-app": true, browser: false },
 };
 
 /** Narrows an arbitrary string to a catalogue member. */
@@ -140,4 +158,18 @@ export const DUPLICATE_WINDOW_MS = 60_000;
  */
 export function notificationKey(category: NotificationCategory, orderId: string): string {
     return `${category}:${orderId}`;
+}
+
+/**
+ * The identity of one alert announcement, for suppression — FEAT-0440.
+ *
+ * Keyed on the rule *and the candle it fired on*, not on the rule alone. The
+ * duplicate window is 60s, which is exactly one 1m candle: a rule set to
+ * `every_time` on a 1m trigger would have every second announcement swallowed
+ * by infrastructure the trader never configured, which is the "silently muted
+ * alarm" failure in a new costume. Two deliveries of the *same* candle are
+ * still one event and still suppressed, which is what the window is for.
+ */
+export function alertNotificationKey(ruleId: string, anchorMs: number): string {
+    return `${ruleId}@${anchorMs}`;
 }

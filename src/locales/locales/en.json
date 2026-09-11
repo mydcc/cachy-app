@@ -549,7 +549,10 @@
         "emptyHint": "Pick an indicator to build a condition.",
         "dimensionHint": "Only comparisons in the same unit are offered — a percentage is never compared against a price.",
         "closedCandleHint": "Evaluated once per closed candle of the trigger timeframe."
-      }
+      },
+      "firedWithNote": "{message} — {note}",
+      "expired": "Expired",
+      "expiredHint": "Past its validity period — it lapsed without firing."
     },
     "generalInputs": {
       "header": "General",
@@ -2380,7 +2383,8 @@
       "categories": {
         "order-filled": "Order filled",
         "order-rejected": "Order rejected",
-        "order-cancelled": "Order cancelled"
+        "order-cancelled": "Order cancelled",
+        "alert-fired": "Alert triggered"
       },
       "events": {
         "orderFilled": "{symbol} {side} filled — {qty}",

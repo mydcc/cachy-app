@@ -2459,6 +2459,30 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0405-client-side-signing-cutover.md"
   },
   {
+    "id": "FEAT-0440",
+    "title": "Replace the shadow sink with one that announces, counts and retires",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P1",
+    "assignee": "mydcc",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0387",
+      "FEAT-0393"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0440-real-firing-sink.md"
+  },
+  {
     "id": "BUG-0005",
     "title": "GPU-accelerated Choppiness writes to a field nothing reads",
     "type": "bug",
