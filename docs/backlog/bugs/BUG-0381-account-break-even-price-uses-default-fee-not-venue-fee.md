@@ -2,7 +2,7 @@
 id: BUG-0381
 title: Account break-even price uses hardcoded DEFAULT_FEES, not venue fee
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
