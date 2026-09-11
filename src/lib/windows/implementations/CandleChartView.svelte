@@ -522,17 +522,22 @@
     async function handleTpSlDrop(kind: TpSlKind, orderId: string, price: Decimal) {
         const planType = kind === "takeProfit" ? "PROFIT" : "LOSS";
         const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
-        const plans = tpSlState.plansFor(normalizedSymbol);
-        const plan = kind === "takeProfit" ? plans.profit : plans.loss;
+        const leg = kind === "takeProfit" ? "tp" : "sl";
         // BUG-0386 / BUG-0384: `orderId` is the synthetic per-leg id
         // (`<baseId>-tp` / `<baseId>-sl`, BUG-0292) that only exists locally.
-        // The venue knows the row it was split from — send that id. The plan
-        // lookup can miss (row pruned, not yet hydrated, removed mid-drag, or
-        // a WebSocket-sourced plan that carries no `sourceOrderId`); strip the
-        // leg suffix to recover the base row id instead of sending the leg id.
+        // The venue knows the row it was split from — send that id. Strip the
+        // leg suffix to recover the base row id instead of sending the leg id;
+        // for an already-base id (generic provider) this is a no-op.
+        const baseId = stripLegSuffix(orderId, leg);
+        // BUG-0385: `plansFor()` is keyed by symbol alone, so when a position
+        // plan and a pending bracket coexist it can return the *other* plan —
+        // and the store can even shift between mousedown and mouseup. Only
+        // trust a plan that actually owns the dragged line; otherwise the base
+        // id recovered from the dragged line is authoritative.
+        const plans = tpSlState.plansFor(normalizedSymbol);
+        const plan = kind === "takeProfit" ? plans.profit : plans.loss;
         const venueOrderId =
-            plan?.sourceOrderId ??
-            stripLegSuffix(orderId, kind === "takeProfit" ? "tp" : "sl");
+            plan?.sourceOrderId === baseId ? plan.sourceOrderId : baseId;
         try {
             await activeExchange().trading.modifyTpSlOrder({
                 orderId: venueOrderId,
