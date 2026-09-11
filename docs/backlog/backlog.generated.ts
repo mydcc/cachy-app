@@ -2394,9 +2394,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0393",
     "title": "Trigger method, frequency, validity period and note per rule",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "assignee": "mydcc",
+    "resolved_at": "2026-09-11",
     "milestone": "M4",
     "editions": [
       "community",
