@@ -244,12 +244,22 @@ async function updateEffectiveLocale() {
   svelteLocale.set(target);
 }
 
+// WCAG 3.1.1 (Language of Page): the <html lang> attribute must follow the
+// active UI language so assistive technology announces German content as
+// German. `app.html` ships a hardcoded lang="en"; without this it never
+// changes. The hybrid "de-tech" locale is German, so it maps to "de".
+function syncDocumentLang(value: string) {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = value.startsWith("de") ? "de" : "en";
+}
+
 // Subscribe to the public 'locale' store
 locale.subscribe((value) => {
   if (value) {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("locale", value);
     }
+    syncDocumentLang(value);
     updateEffectiveLocale();
   }
 });
