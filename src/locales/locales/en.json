@@ -359,7 +359,29 @@
         "storeUnreadable": "The rule store could not be read. Nothing was armed, so your existing alerts are not overwritten.",
         "armed": "Alert armed.",
         "armDisabled": "Add a condition first.",
-        "tabLoadFailed": "This tab could not be loaded. Reload the page."
+        "tabLoadFailed": "This tab could not be loaded. Reload the page.",
+        "lifecycle": {
+          "frequency": "Frequency",
+          "frequencyOption": {
+            "once": "Once, then disarm",
+            "every_time": "Every time it happens",
+            "once_per_candle_close": "Once per candle close"
+          },
+          "validUntil": "Valid until",
+          "validUntilHint": "Leave empty to never expire",
+          "triggerMethod": "Announce on",
+          "triggerMethodHint": "Leave all unchecked to use your notification settings",
+          "note": "Note",
+          "notePlaceholder": "Why you armed this — entry, invalidation, reminder",
+          "methodOption": {
+            "in_app": "In-app",
+            "browser": "Browser",
+            "sound": "Sound"
+          },
+          "legend": "Lifecycle",
+          "summaryUntil": "until {date}",
+          "summaryNoted": "noted"
+        }
       },
       "brokenRule": {
         "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate."
@@ -378,6 +400,150 @@
         "fallReaches": "Fall Reaches",
         "seriesLast": "Last Price",
         "seriesMark": "Mark Price"
+      },
+      "candlesticks": {
+        "legend": "Pattern",
+        "group": {
+          "single": "Single candle",
+          "multiple": "Two candles",
+          "structural": "Three candles"
+        },
+        "groupHint": {
+          "single": "One candle tells the whole story.",
+          "multiple": "The second candle is read against the first.",
+          "structural": "A shape that needs three candles to exist."
+        },
+        "historyHint": "Needs {count} closed candles.",
+        "trendHint": "Needs {count} closed candles: {span} for the shape and {lookback} to read the trend before it.",
+        "closedOnly": "Checked only when a candle closes, so a shape that forms and unforms inside a live candle cannot fire.",
+        "clear": "Clear selection",
+        "none": "Pick a pattern to build the rule.",
+        "meaning": {
+          "hammer": "Buyers reject lower prices after a fall. Bullish reversal.",
+          "hanging_man": "The same shape after a rise, and the opposite warning. Bearish.",
+          "inverted_hammer": "Buyers probe higher after a fall. Bullish reversal.",
+          "shooting_star": "Sellers reject higher prices after a rise. Bearish reversal.",
+          "bullish_engulfing": "An up candle swallows the whole previous down body. Bullish reversal.",
+          "bearish_engulfing": "A down candle swallows the whole previous up body. Bearish reversal.",
+          "piercing_line": "An up candle wins back more than half of the previous fall. Bullish.",
+          "dark_cloud_cover": "A down candle gives back more than half of the previous rise. Bearish.",
+          "bullish_harami": "A small up candle inside a large down body. The fall is stalling.",
+          "bearish_harami": "A small down candle inside a large up body. The rise is stalling.",
+          "morning_star": "A pause at the low, then a strong recovery. Bullish reversal.",
+          "evening_star": "A pause at the high, then a strong drop. Bearish reversal.",
+          "three_white_soldiers": "Three strong up candles marching higher. Bullish continuation.",
+          "three_black_crows": "Three strong down candles marching lower. Bearish continuation."
+        }
+      },
+      "indicators": {
+        "legend": "Indicator",
+        "group": {
+          "oscillator": "Oscillators",
+          "trend": "Trend",
+          "volatility": "Volatility",
+          "volume": "Volume"
+        },
+        "groupHint": {
+          "oscillator": "Bounded, so a plain threshold is usually the condition you want.",
+          "trend": "Moving averages and the crosses built from them.",
+          "volatility": "How wide the range is, not which way it points.",
+          "volume": "Denominated in size, so never comparable against a price."
+        },
+        "name": {
+          "rsi": "RSI",
+          "stoch_rsi": "Stochastic RSI",
+          "macd": "MACD",
+          "stochastic": "Stochastic",
+          "williams_r": "Williams %R",
+          "cci": "CCI",
+          "adx": "ADX",
+          "ao": "Awesome Oscillator",
+          "momentum": "Momentum",
+          "ema": "EMA",
+          "sma": "SMA",
+          "wma": "WMA",
+          "vwma": "VWMA",
+          "hma": "HMA",
+          "bollinger": "Bollinger Bands",
+          "atr": "ATR",
+          "choppiness": "Choppiness Index",
+          "super_trend": "SuperTrend",
+          "mfi": "MFI",
+          "obv": "OBV",
+          "volume_ma": "Volume MA",
+          "parabolic_sar": "Parabolic SAR",
+          "ichimoku": "Ichimoku"
+        },
+        "output": {
+          "value": "Value",
+          "k": "%K",
+          "d": "%D",
+          "macd": "MACD line",
+          "signal": "Signal line",
+          "histogram": "Histogram",
+          "upper": "Upper band",
+          "middle": "Middle band",
+          "lower": "Lower band",
+          "percent_b": "%B",
+          "bandwidth": "Bandwidth",
+          "adx": "ADX",
+          "plus_di": "+DI",
+          "minus_di": "-DI",
+          "conversion": "Conversion line",
+          "base": "Base line",
+          "span_a": "Span A",
+          "span_b": "Span B"
+        },
+        "param": {
+          "period": "Period",
+          "fast_period": "Fast period",
+          "slow_period": "Slow period",
+          "signal_period": "Signal period",
+          "rsi_period": "RSI period",
+          "stoch_period": "Stochastic period",
+          "k_period": "%K period",
+          "d_period": "%D period",
+          "k_smoothing": "%K smoothing",
+          "std_dev": "Standard deviations",
+          "factor": "Factor",
+          "start": "Start",
+          "increment": "Increment",
+          "max": "Maximum",
+          "conversion_period": "Conversion period",
+          "base_period": "Base period",
+          "span_b_period": "Span B period"
+        },
+        "op": {
+          "gt": "is above",
+          "gte": "is at or above",
+          "lt": "is below",
+          "lte": "is at or below",
+          "eq": "equals",
+          "neq": "differs from"
+        },
+        "cross": {
+          "above": "crosses above",
+          "below": "crosses below",
+          "any": "crosses in either direction"
+        },
+        "relationKind": {
+          "compare": "Threshold",
+          "cross": "Crossing"
+        },
+        "reference": {
+          "constant": "a value",
+          "price": "the price",
+          "indicator": "another indicator"
+        },
+        "subjectLabel": "Indicator",
+        "outputLabel": "Line",
+        "paramsLabel": "Parameters",
+        "relationLabel": "Condition",
+        "referenceLabel": "Compared with",
+        "thresholdLabel": "Value",
+        "emptyHint": "Pick an indicator to build a condition.",
+        "dimensionHint": "Only comparisons in the same unit are offered — a percentage is never compared against a price.",
+        "closedCandleHint": "Evaluated once per closed candle of the trigger timeframe."
       }
     },
     "generalInputs": {
@@ -3828,7 +3994,9 @@
       "operandDimensionMismatch": "The two sides of this condition are denominated differently — traded volume against something that is not volume. Compare volume against a volume average or against a plain threshold.",
       "nestedWindow": "A window over a window is not supported. Aggregate over a plain value instead — a lowest high or a highest low, not a lowest highest.",
       "invalidWindowLookback": "A window needs at least 2 closes and at most 500. One close is the value itself, and deeper history cannot be loaded reliably.",
-      "ruleWarmupTooDeep": "This rule needs more closed candles than the app can load. Shorten the window or use a shorter indicator period — otherwise the alert would stay silent instead of firing."
+      "ruleWarmupTooDeep": "This rule needs more closed candles than the app can load. Shorten the window or use a shorter indicator period — otherwise the alert would stay silent instead of firing.",
+      "invalidNote": "The note in `{field}` is empty or longer than 280 characters.",
+      "duplicateTriggerMethod": "A trigger channel is listed twice in `{field}`, which would announce the same trigger twice."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
@@ -3838,6 +4006,7 @@
       "onTimeframe": " (on {timeframe})",
       "compare": "{left} is {op} {right}{timeframe}",
       "crossing": "{left} {direction} {right}{timeframe}",
+      "pattern": "a {pattern} prints{timeframe}",
       "lead": {
         "notify": "Notifies",
         "simulate": "Simulates an order",

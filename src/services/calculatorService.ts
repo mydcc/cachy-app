@@ -10,6 +10,7 @@
 import Decimal from "decimal.js";
 import { parseDecimal, formatDynamicDecimal } from "../utils/utils";
 import { CONSTANTS } from "../lib/constants";
+import { resolveFeeFallback } from "../lib/fees/feeProvenance";
 import type {
   TradeValues,
   IndividualTpResult,
@@ -422,8 +423,13 @@ export class CalculatorService {
       leverage: parseDecimal(
         currentTradeState.leverage || CONSTANTS.DEFAULT_LEVERAGE,
       ),
-      fees: parseDecimal(
-        currentTradeState.fees || CONSTANTS.DEFAULT_FEES,
+      // BUG-0379: when the user has not overridden the flat rate, prefer the
+      // account's broker-derived taker rate over the global constant. The
+      // per-leg `entryFees`/`exitFees` below still take precedence inside the
+      // calculator; this only hardens the flat fallback.
+      fees: resolveFeeFallback(
+        currentTradeState.fees,
+        currentTradeState.remoteTakerFee,
       ),
       // FEAT-0253: the per-leg rates, resolved upstream in `GeneralInputs`
       // (which knows the entry order type and the declared exit assumption).

@@ -2391,6 +2391,30 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0388-migrate-alerts-to-rule-documents.md"
   },
   {
+    "id": "FEAT-0393",
+    "title": "Trigger method, frequency, validity period and note per rule",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P1",
+    "assignee": "mydcc",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0387",
+      "FEAT-0389"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0393-rule-trigger-method-and-lifecycle.md"
+  },
+  {
     "id": "FEAT-0401",
     "title": "Record a migration origin ledger for rules converted from legacy alerts",
     "type": "feature",
@@ -3512,7 +3536,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0379",
     "title": "Calculator fee fallback uses hardcoded default instead of per-account remote fee",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3530,7 +3554,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0380",
     "title": "placeOrder qty is not range-clamped before the exchange gate",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3542,6 +3566,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md"
   },
   {
@@ -3569,7 +3594,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0385",
     "title": "TP/SL drag can modify wrong plan when position plan and pending bracket coexist",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3581,14 +3606,17 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "none",
+    "assignee": "opencode",
+    "branch": "fix/bug-0385-tpsl-drag-plan-attribution",
     "file": "bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md"
   },
   {
     "id": "BUG-0419",
     "title": "A read started before a mode switch can still land after it",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0419-mode-switch-rotates-session",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3608,7 +3636,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0431",
     "title": "The closing-reference auto-fix inserts a trailer the flip gate then rejects",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3620,7 +3648,45 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md"
+  },
+  {
+    "id": "BUG-0434",
+    "title": "The exhaustive WindowType record cannot fail the build because tsconfig excludes test files",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0434-test-type-safety-net-is-not-armed.md"
+  },
+  {
+    "id": "BUG-0435",
+    "title": "The body lint mutates the description and the two gates disagree on what it declares",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ci",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0435-presence-and-flip-declaration-semantics.md"
   },
   {
     "id": "FEAT-0019",
@@ -5190,30 +5256,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0390-price-alert-conditions.md"
   },
   {
-    "id": "FEAT-0391",
-    "title": "A template library for alert rules",
-    "type": "feature",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "M4",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "alerts",
-    "data_class": "A",
-    "adr": "ADR-0012",
-    "depends_on": [
-      "FEAT-0028",
-      "FEAT-0030",
-      "FEAT-0389"
-    ],
-    "size": "M",
-    "estimate": "5",
-    "file": "features/FEAT-0391-alert-template-library.md"
-  },
-  {
     "id": "FEAT-0392",
     "title": "A sound channel for notifications",
     "type": "feature",
@@ -5234,33 +5276,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0392-notification-sound-channel.md"
   },
   {
-    "id": "FEAT-0393",
-    "title": "Trigger method, frequency, validity period and note per rule",
-    "type": "feature",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "M4",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "alerts",
-    "data_class": "A",
-    "adr": "ADR-0012",
-    "depends_on": [
-      "FEAT-0387",
-      "FEAT-0389"
-    ],
-    "size": "M",
-    "estimate": "5",
-    "file": "features/FEAT-0393-rule-trigger-method-and-lifecycle.md"
-  },
-  {
     "id": "FEAT-0394",
     "title": "Candlestick pattern conditions",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5275,8 +5294,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0387",
       "FEAT-0389"
     ],
-    "size": "M",
-    "estimate": "5",
+    "size": "L",
+    "estimate": "8",
+    "assignee": "claude-code",
     "file": "features/FEAT-0394-candlestick-pattern-conditions.md"
   },
   {
@@ -5439,6 +5459,50 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0417"
     ],
     "file": "features/FEAT-0420-account-state-setter-only.md"
+  },
+  {
+    "id": "FEAT-0438",
+    "title": "Prove every indicator condition against recorded history",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "C",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0028"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0438-recorded-history-condition-correctness.md"
+  },
+  {
+    "id": "FEAT-0439",
+    "title": "Close the WebGPU leg of cross-path indicator parity",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "C",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0028"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0439-webgpu-cross-path-parity.md"
   },
   {
     "id": "BUG-0007",
@@ -5866,7 +5930,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0381",
     "title": "Account break-even price uses hardcoded DEFAULT_FEES, not venue fee",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5942,7 +6006,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0433",
     "title": "Raw leverage fields in Zod schemas accept native numbers",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5955,6 +6019,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0433-leverage-f64-schemas.md"
+  },
+  {
+    "id": "BUG-0437",
+    "title": "Bitunix order/position/ticker validation schemas are never wired",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "backend",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0437-unwired-bitunix-ws-schemas.md"
   },
   {
     "id": "FEAT-0022",
@@ -6438,6 +6520,30 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0377-gemini-key-header-not-query.md"
   },
   {
+    "id": "FEAT-0391",
+    "title": "A template library for alert rules",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0028",
+      "FEAT-0030",
+      "FEAT-0389"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0391-alert-template-library.md"
+  },
+  {
     "id": "FEAT-0398",
     "title": "Engine Debug Panel with real telemetry",
     "type": "feature",
@@ -6537,6 +6643,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "ADR-0012",
     "depends_on": [],
     "file": "features/FEAT-0432-refusal-codes-from-one-declaration.md"
+  },
+  {
+    "id": "FEAT-0436",
+    "title": "Detect backlog mirror issues that closed without the item being marked done",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ci",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0436-detect-closed-mirror-without-flip.md"
   },
   {
     "id": "IDEA-0036",

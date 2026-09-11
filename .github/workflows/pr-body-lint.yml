@@ -56,6 +56,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: npx tsx scripts/lint-pr-body-refs.ts
 
       - name: Require the backlog flip in the fix PR

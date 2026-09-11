@@ -15,6 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { stripCodeBlocks } from "./markdown-text";
+import { TERMINAL_STATUSES, findClosingTrailer } from "./backlog-flip";
+
 /**
  * Deciding which open pull requests belong to a backlog item.
  *
@@ -75,9 +78,10 @@ export function mentionsBacklogId(text: string | null | undefined, id: string): 
  */
 export function closingReferences(body: string | null | undefined): number[] {
     if (!body) return [];
+    const scanned = stripCodeBlocks(body);
     const pattern = new RegExp(`(?:${CLOSING_KEYWORD})\\s+#(\\d+)`, "gi");
     const found: number[] = [];
-    for (const match of body.matchAll(pattern)) {
+    for (const match of scanned.matchAll(pattern)) {
         const parsed = Number.parseInt(match[1], 10);
         if (!Number.isNaN(parsed) && !found.includes(parsed)) found.push(parsed);
     }
@@ -172,7 +176,7 @@ export type ClosingRefPresenceCheck =
     | { ok: false; reason: "missing" };
 
 /**
- * Does this PR description close anything at all?
+ * Does this PR description declare a closing trailer?
  *
  * The missing half of the rule. AGENTS.md has always required `Fixes #N`, but
  * nothing checked for *presence* — only for stray extra references — so the
@@ -180,14 +184,19 @@ export type ClosingRefPresenceCheck =
  * keyword at all: GitHub closed nothing, the backlog markdown said `done`,
  * and both issues stayed open until someone noticed by hand (BUG-0307).
  *
+ * The declaration is the same one the flip gate enforces: a line-start
+ * closing trailer (`findClosingTrailer`), never a keyword that merely appears
+ * in prose. An inline-only closing keyword no longer satisfies presence
+ * (BUG-0435); it is a stray to neutralize, not a declaration.
+ *
  * `[no issue]` is the explicit escape hatch; silence is not.
  */
 export function checkBodyHasClosingRef(body: string | null | undefined): ClosingRefPresenceCheck {
     if (body && body.toLowerCase().includes(NO_ISSUE_MARKER)) {
         return { ok: true, declared: null, optedOut: true };
     }
-    const refs = closingReferences(body);
-    if (refs.length > 0) return { ok: true, declared: refs[0], optedOut: false };
+    const declared = findClosingTrailer(body ?? "");
+    if (declared !== null) return { ok: true, declared, optedOut: false };
     return { ok: false, reason: "missing" };
 }
 
@@ -213,12 +222,28 @@ export function decideLink(body: string | null | undefined, issueNumber: number)
     return { action: "prepend", issueNumber };
 }
 
+/** What the auto-fix can learn about the issue it is about to link. */
+export interface BacklogIssueVerification {
+    /** The candidate issue carries a `backlog-id:` label. */
+    isBacklogMirror: boolean;
+    /** The backlog item id from that label, when present. */
+    itemId: string | null;
+    /** Front-matter status of the item on the base branch (null = unreadable/missing). */
+    baseStatus: string | null;
+}
+
 /** Context for automated PR body repair. */
 export interface AutoFixPRBodyContext {
     body: string;
     title?: string;
     branch?: string;
     findIssueForBacklogId?: (backlogId: string) => Promise<number | null>;
+    /**
+     * Resolve labels and base status for a candidate issue, for guidance only.
+     * Returning `null` means the lookup itself failed: the auto-fix reports
+     * `unverified` and changes nothing, and the caller fails closed.
+     */
+    verifyBacklogItem?: (issueNumber: number) => Promise<BacklogIssueVerification | null>;
 }
 
 /** Result of automated PR body repair. */
@@ -226,23 +251,41 @@ export interface AutoFixPRBodyResult {
     changed: boolean;
     body: string;
     actionTaken?: string;
+    /**
+     * Set when the auto-fix deliberately declined to insert a trailer: the
+     * candidate is a backlog mirror whose item is not terminal, so `Fixes #N`
+     * would promise a flip this PR does not make (BUG-0431).
+     */
+    declined?: { issueNumber: number; itemId: string; baseStatus: string | null };
+    /**
+     * Set when the trailer could not be inserted because the issue's labels or
+     * item status could not be read (lookup failed after retries). The body is
+     * left untouched and the caller must fail closed, not insert an unverified
+     * closing trailer (BUG-0431).
+     */
+    unverified?: { issueNumber: number };
 }
 
 /**
- * Repairs missing closing references or stray keywords in a PR body.
+ * Repairs a PR body without ever adding closing power.
  *
- * 1. If missing closing reference:
- *    - Finds Backlog-ID in title, branch, or body.
- *    - If an issue is resolved, prepends `Fixes #N`.
- *    - If no issue exists (standalone backlog item), appends `[no issue]`.
- *    - If no Backlog-ID exists but title is standard chore/ci/docs/test/refactor, appends `[no issue]`.
- * 2. If stray closing references exist in prose, breaks their keywords (`closed #<!-- -->123`)
- *    to prevent accidental issue closing on squash merge (BUG-0220 / BUG-0221).
+ * The auto-fix only neutralizes stray closing keywords in prose (breaking them
+ * so a merge cannot close the wrong issue). It never prepends a `Fixes #N`
+ * trailer and never appends `[no issue]`: a closing reference — or an explicit
+ * opt-out — is a claim only the author can make, and inventing either is what
+ * produced BUG-0431 and the BUG-0307 drift in reverse.
+ *
+ * When the trailer is missing, the candidate backlog issue is still resolved
+ * so the failure message can name the item and whether it is finished
+ * (`declined`), or that it could not be read at all (`unverified`). Guidance
+ * is returned; the author writes the line (BUG-0435).
  */
 export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixPRBodyResult> {
     let body = ctx.body;
     let changed = false;
     let actionTaken: string | undefined;
+    let declined: AutoFixPRBodyResult["declined"];
+    let unverified: AutoFixPRBodyResult["unverified"];
 
     // 1. Check if closing reference is missing
     const presence = checkBodyHasClosingRef(body);
@@ -259,22 +302,33 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
                 issueNumber = await ctx.findIssueForBacklogId(backlogId);
             }
             if (issueNumber) {
-                body = `Fixes #${issueNumber}\n\n${body.trimStart()}`;
-                changed = true;
-                actionTaken = `Prepend Fixes #${issueNumber} for ${backlogId}`;
-            } else {
-                body = `${body.trimEnd()}\n\n${NO_ISSUE_MARKER}\n`;
-                changed = true;
-                actionTaken = `Append ${NO_ISSUE_MARKER} for ${backlogId}`;
+                const verification = ctx.verifyBacklogItem
+                    ? await ctx.verifyBacklogItem(issueNumber)
+                    : null;
+                if (ctx.verifyBacklogItem && verification === null) {
+                    unverified = { issueNumber };
+                } else if (
+                    verification?.isBacklogMirror === true &&
+                    verification.itemId !== null &&
+                    (verification.baseStatus === null ||
+                        !TERMINAL_STATUSES.has(verification.baseStatus))
+                ) {
+                    declined = {
+                        issueNumber,
+                        itemId: verification.itemId,
+                        baseStatus: verification.baseStatus,
+                    };
+                }
+                // (BUG-0435) Otherwise nothing: even a verified-safe trailer is
+                // written by the author, never invented here.
             }
-        } else {
-            const isToolingOrChore = /^(chore|ci|docs|test|refactor)(\(.*\))?:/i.test(title);
-            if (isToolingOrChore) {
-                body = `${body.trimEnd()}\n\n${NO_ISSUE_MARKER}\n`;
-                changed = true;
-                actionTaken = `Append ${NO_ISSUE_MARKER} for tooling PR`;
-            }
+            // (BUG-0435) Nothing is appended when no issue is resolved — not a
+            // trailer, not `[no issue]`. A failed lookup could still mean an
+            // issue exists, and inventing an opt-out is as wrong as inventing
+            // a trailer. Leave the body; the generic guidance covers it.
         }
+        // (BUG-0435) No tooling/chore opt-out is invented either: only the
+        // author can declare or opt out.
     }
 
     // 2. Check for stray closing references in prose
@@ -288,5 +342,58 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
         }
     }
 
-    return { changed, body, actionTaken };
+    return { changed, body, actionTaken, declined, unverified };
+}
+
+/**
+ * The guidance printed when a PR description carries no closing reference.
+ *
+ * `declined` is set when `autoFixPRBody` refused to invent one for a
+ * non-terminal backlog mirror — the author must choose between finishing the
+ * item in this PR or opting out (BUG-0431).
+ */
+export function missingClosingRefMessage(
+    declined?: AutoFixPRBodyResult["declined"],
+): string {
+    if (declined) {
+        return (
+            `PR description carries no closing reference.\n\n` +
+            `#${declined.issueNumber} links to backlog item ${declined.itemId}, which is ` +
+            `${declined.baseStatus ?? "not marked done"} on the base branch — this PR does ` +
+            `not complete it, so an inferred \`Fixes #${declined.issueNumber}\` would be a ` +
+            `false claim (a later CI step would then demand the item be flipped).\n\n` +
+            `Choose one:\n` +
+            `  • This PR DOES finish ${declined.itemId}: set \`status: done\` in its file, run ` +
+            `\`node scripts/backlog-index.mjs\`, commit both, and put ` +
+            `\`Fixes #${declined.issueNumber}\` at the top of this description.\n` +
+            `  • It does NOT: put \`${NO_ISSUE_MARKER}\` on its own line to opt out explicitly.`
+        );
+    }
+    return (
+        `PR description carries no closing reference.\n\n` +
+        `AGENTS.md requires \`Fixes #<issue>\` at the start of every PR description so ` +
+        `GitHub links the PR to its backlog issue and closes it on merge — a merge ` +
+        `without one closes nothing, and the issue silently stays open.\n\n` +
+        `Add the missing line (the number of the issue this PR fixes), or, only if this ` +
+        `PR genuinely links to no issue at all, put \`${NO_ISSUE_MARKER}\` on its own line ` +
+        `to opt out explicitly. Silence is not an opt-out.`
+    );
+}
+
+/**
+ * The guidance printed when a PR description carries no closing reference and
+ * the candidate issue could not be verified.
+ *
+ * This is an infrastructure failure, not a rule violation: the author must not
+ * silence it with `[no issue]`, because the issue may well need closing — it
+ * just could not be read. The fix is to re-run the check (BUG-0431).
+ */
+export function unverifiedClosingRefMessage(issueNumber: number): string {
+    return (
+        `PR description carries no closing reference, and #${issueNumber} could ` +
+        `not be verified — the issue lookup failed after retries.\n\n` +
+        `This is an infrastructure failure, not a rule violation. Re-run the ` +
+        `"Closing References" job. Do NOT add \`${NO_ISSUE_MARKER}\` to silence ` +
+        `it: the issue may still need to be closed.`
+    );
 }

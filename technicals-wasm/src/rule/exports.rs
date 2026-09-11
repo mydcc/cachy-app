@@ -46,8 +46,9 @@ use wasm_bindgen::prelude::*;
 
 use super::consequence::ConsequenceLevel;
 use super::document::{parse_document, serialise_document};
-use super::evaluate::{evaluate, AccountSnapshot, Candle, InMemoryMarket};
+use super::evaluate::{evaluate_with_lifecycle, AccountSnapshot, Candle, InMemoryMarket};
 use super::indicator::IndicatorRef;
+use super::lifecycle::RuleState;
 use super::refusal::{RefusalCode, Refused};
 use super::timeframe::Timeframe;
 use super::version::CURRENT_SCHEMA_VERSION;
@@ -184,6 +185,15 @@ struct CtxPayload {
     feeds: BTreeMap<String, Decimal>,
     #[serde(default)]
     account: Option<AccountSnapshot>,
+    /// What the rule has already done, for the frequency and validity checks of
+    /// FEAT-0393.
+    ///
+    /// Optional and defaulting to a never-fired rule, so that a caller who does
+    /// not track state keeps the pre-FEAT-0393 behaviour: conditions decide,
+    /// and nothing suppresses. Defaulting the other way — assuming a rule had
+    /// fired — would silence alerts for every caller that had not been updated.
+    #[serde(default)]
+    state: RuleState,
 }
 
 #[derive(Deserialize)]
@@ -228,11 +238,9 @@ pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refu
     }
 
     for (i, series) in payload.indicators.into_iter().enumerate() {
-        let timeframe = Timeframe::parse_at(
-            &series.timeframe,
-            &format!("ctx.indicators[{i}].timeframe"),
-        )
-        .map_err(|e| Refused { refusals: vec![e] })?;
+        let timeframe =
+            Timeframe::parse_at(&series.timeframe, &format!("ctx.indicators[{i}].timeframe"))
+                .map_err(|e| Refused { refusals: vec![e] })?;
         for (index, value) in series.values.into_iter().enumerate() {
             if let Some(value) = value {
                 market = market.with_indicator(&series.indicator, timeframe, index, value);
@@ -244,7 +252,8 @@ pub fn evaluate_json(document_json: &str, ctx_json: &str) -> Result<String, Refu
         market = market.with_feed(&feed, value);
     }
 
-    let verdict = evaluate(&document, &market, payload.account.as_ref());
+    let verdict =
+        evaluate_with_lifecycle(&document, &market, payload.account.as_ref(), payload.state);
     serde_json::to_string(&verdict).map_err(|e| {
         Refused::one(
             RefusalCode::UnknownField,
@@ -612,11 +621,29 @@ mod tests {
         // (opens hour 4, closes hour 8) has not closed yet — only the first
         // (RSI 25) has, so the condition holds.
         let verdict = evaluate_json(COARSE_CONDITION_DOC, &coarse_ctx_json(5)).unwrap();
-        assert_eq!(verdict, r#"{"verdict":"fires"}"#, "expected the not-yet-closed second 4h candle to be invisible");
+        assert_eq!(
+            verdict, r#"{"verdict":"fires"}"#,
+            "expected the not-yet-closed second 4h candle to be invisible"
+        );
 
         // 8 closed 1h candles: anchor closes at hour 8, exactly when the
         // second 4h candle (RSI 55) closes too — now visible, so it does not.
         let verdict = evaluate_json(COARSE_CONDITION_DOC, &coarse_ctx_json(8)).unwrap();
-        assert_eq!(verdict, r#"{"verdict":"does_not_fire"}"#, "expected the newly-closed second 4h candle to be read");
+        assert_eq!(
+            verdict, r#"{"verdict":"does_not_fire"}"#,
+            "expected the newly-closed second 4h candle to be read"
+        );
     }
+}
+
+/// The indicator registry as JSON.
+///
+/// Exported for `indicatorCatalogue.test.ts`, which fails when the panel's
+/// catalogue and this registry disagree about which indicators exist, what
+/// they take or what their output lines are denominated in (FEAT-0028). The
+/// running app never calls it — the catalogue carries the labels, and this
+/// carries the identities.
+#[wasm_bindgen]
+pub fn rule_indicator_registry() -> String {
+    super::indicator::registry_json()
 }

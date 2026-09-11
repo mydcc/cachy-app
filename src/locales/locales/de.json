@@ -359,7 +359,29 @@
         "storeUnreadable": "Der Regelspeicher konnte nicht gelesen werden. Es wurde nichts scharf geschaltet, damit deine bestehenden Alarme nicht überschrieben werden.",
         "armed": "Alarm scharf geschaltet.",
         "armDisabled": "Füge zuerst eine Bedingung hinzu.",
-        "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu."
+        "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu.",
+        "lifecycle": {
+          "frequency": "Häufigkeit",
+          "frequencyOption": {
+            "once": "Einmal, dann entschärfen",
+            "every_time": "Jedes Mal",
+            "once_per_candle_close": "Einmal pro Kerzenschluss"
+          },
+          "validUntil": "Gültig bis",
+          "validUntilHint": "Leer lassen, um nie abzulaufen",
+          "triggerMethod": "Melden über",
+          "triggerMethodHint": "Nichts angehakt heißt: deine Benachrichtigungs-Einstellungen entscheiden",
+          "note": "Notiz",
+          "notePlaceholder": "Warum du das scharf gestellt hast — Einstieg, Invalidierung, Erinnerung",
+          "methodOption": {
+            "in_app": "In der App",
+            "browser": "Browser",
+            "sound": "Ton"
+          },
+          "legend": "Lebenszyklus",
+          "summaryUntil": "bis {date}",
+          "summaryNoted": "mit Notiz"
+        }
       },
       "brokenRule": {
         "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann."
@@ -378,6 +400,150 @@
         "fallReaches": "Fall erreicht",
         "seriesLast": "Letzter Preis",
         "seriesMark": "Mark-Preis"
+      },
+      "candlesticks": {
+        "legend": "Muster",
+        "group": {
+          "single": "Eine Kerze",
+          "multiple": "Zwei Kerzen",
+          "structural": "Drei Kerzen"
+        },
+        "groupHint": {
+          "single": "Eine Kerze erzählt die ganze Geschichte.",
+          "multiple": "Die zweite Kerze wird gegen die erste gelesen.",
+          "structural": "Eine Form, die drei Kerzen braucht, um zu entstehen."
+        },
+        "historyHint": "Braucht {count} geschlossene Kerzen.",
+        "trendHint": "Braucht {count} geschlossene Kerzen: {span} für die Form und {lookback}, um den Trend davor zu lesen.",
+        "closedOnly": "Wird nur beim Kerzenschluss geprüft. Eine Form, die in der laufenden Kerze entsteht und wieder verschwindet, löst nicht aus.",
+        "clear": "Auswahl aufheben",
+        "none": "Wähle ein Muster, um die Regel zu bauen.",
+        "meaning": {
+          "hammer": "Käufer weisen tiefere Kurse ab. Bullische Umkehr nach einem Abwärtstrend.",
+          "hanging_man": "Dieselbe Form nach einem Aufwärtstrend, mit umgekehrter Warnung. Bärisch.",
+          "inverted_hammer": "Käufer testen höhere Kurse nach einem Abwärtstrend. Bullische Umkehr.",
+          "shooting_star": "Verkäufer weisen höhere Kurse ab. Bärische Umkehr nach einem Aufwärtstrend.",
+          "bullish_engulfing": "Eine Aufwärtskerze verschlingt den ganzen vorherigen Abwärtskörper. Bullische Umkehr.",
+          "bearish_engulfing": "Eine Abwärtskerze verschlingt den ganzen vorherigen Aufwärtskörper. Bärische Umkehr.",
+          "piercing_line": "Eine Aufwärtskerze holt mehr als die Hälfte des vorherigen Falls zurück. Bullisch.",
+          "dark_cloud_cover": "Eine Abwärtskerze gibt mehr als die Hälfte des vorherigen Anstiegs ab. Bärisch.",
+          "bullish_harami": "Kleine Aufwärtskerze im großen Abwärtskörper. Der Fall stockt.",
+          "bearish_harami": "Kleine Abwärtskerze im großen Aufwärtskörper. Der Anstieg stockt.",
+          "morning_star": "Pause am Tief, dann kräftige Erholung. Bullische Umkehr.",
+          "evening_star": "Pause am Hoch, dann kräftiger Abverkauf. Bärische Umkehr.",
+          "three_white_soldiers": "Drei kräftige Aufwärtskerzen in Folge. Bullische Fortsetzung.",
+          "three_black_crows": "Drei kräftige Abwärtskerzen in Folge. Bärische Fortsetzung."
+        }
+      },
+      "indicators": {
+        "legend": "Indikator",
+        "group": {
+          "oscillator": "Oszillatoren",
+          "trend": "Trend",
+          "volatility": "Volatilität",
+          "volume": "Volumen"
+        },
+        "groupHint": {
+          "oscillator": "Begrenzt — deshalb ist meist eine einfache Schwelle die Bedingung, die du willst.",
+          "trend": "Gleitende Durchschnitte und die Kreuzungen, die daraus entstehen.",
+          "volatility": "Wie weit die Spanne ist, nicht wohin sie zeigt.",
+          "volume": "In Größe denominiert, also nie mit einem Preis vergleichbar."
+        },
+        "name": {
+          "rsi": "RSI",
+          "stoch_rsi": "Stochastik-RSI",
+          "macd": "MACD",
+          "stochastic": "Stochastik",
+          "williams_r": "Williams %R",
+          "cci": "CCI",
+          "adx": "ADX",
+          "ao": "Awesome Oscillator",
+          "momentum": "Momentum",
+          "ema": "EMA",
+          "sma": "SMA",
+          "wma": "WMA",
+          "vwma": "VWMA",
+          "hma": "HMA",
+          "bollinger": "Bollinger-Bänder",
+          "atr": "ATR",
+          "choppiness": "Choppiness-Index",
+          "super_trend": "SuperTrend",
+          "mfi": "MFI",
+          "obv": "OBV",
+          "volume_ma": "Volumen-MA",
+          "parabolic_sar": "Parabolic SAR",
+          "ichimoku": "Ichimoku"
+        },
+        "output": {
+          "value": "Wert",
+          "k": "%K",
+          "d": "%D",
+          "macd": "MACD-Linie",
+          "signal": "Signallinie",
+          "histogram": "Histogramm",
+          "upper": "Oberes Band",
+          "middle": "Mittleres Band",
+          "lower": "Unteres Band",
+          "percent_b": "%B",
+          "bandwidth": "Bandbreite",
+          "adx": "ADX",
+          "plus_di": "+DI",
+          "minus_di": "-DI",
+          "conversion": "Wandlungslinie",
+          "base": "Basislinie",
+          "span_a": "Span A",
+          "span_b": "Span B"
+        },
+        "param": {
+          "period": "Periode",
+          "fast_period": "Schnelle Periode",
+          "slow_period": "Langsame Periode",
+          "signal_period": "Signal-Periode",
+          "rsi_period": "RSI-Periode",
+          "stoch_period": "Stochastik-Periode",
+          "k_period": "%K-Periode",
+          "d_period": "%D-Periode",
+          "k_smoothing": "%K-Glättung",
+          "std_dev": "Standardabweichungen",
+          "factor": "Faktor",
+          "start": "Start",
+          "increment": "Schrittweite",
+          "max": "Maximum",
+          "conversion_period": "Wandlungsperiode",
+          "base_period": "Basisperiode",
+          "span_b_period": "Span-B-Periode"
+        },
+        "op": {
+          "gt": "liegt über",
+          "gte": "liegt bei oder über",
+          "lt": "liegt unter",
+          "lte": "liegt bei oder unter",
+          "eq": "ist gleich",
+          "neq": "ist ungleich"
+        },
+        "cross": {
+          "above": "kreuzt nach oben",
+          "below": "kreuzt nach unten",
+          "any": "kreuzt in beide Richtungen"
+        },
+        "relationKind": {
+          "compare": "Schwelle",
+          "cross": "Kreuzung"
+        },
+        "reference": {
+          "constant": "ein Wert",
+          "price": "der Preis",
+          "indicator": "ein anderer Indikator"
+        },
+        "subjectLabel": "Indikator",
+        "outputLabel": "Linie",
+        "paramsLabel": "Parameter",
+        "relationLabel": "Bedingung",
+        "referenceLabel": "Verglichen mit",
+        "thresholdLabel": "Wert",
+        "emptyHint": "Wähle einen Indikator, um eine Bedingung zu bauen.",
+        "dimensionHint": "Angeboten werden nur Vergleiche in derselben Einheit — ein Prozentwert wird nie gegen einen Preis verglichen.",
+        "closedCandleHint": "Wird einmal pro geschlossener Kerze des Trigger-Zeitrahmens ausgewertet."
       }
     },
     "generalInputs": {
@@ -3828,7 +3994,9 @@
       "operandDimensionMismatch": "Die beiden Seiten dieser Bedingung haben unterschiedliche Einheiten — gehandeltes Volumen gegen etwas, das kein Volumen ist. Vergleiche Volumen mit einem Volumendurchschnitt oder mit einem festen Schwellwert.",
       "nestedWindow": "Ein Fenster über einem Fenster wird nicht unterstützt. Aggregiere über einen einfachen Wert — ein tiefstes Hoch oder ein höchstes Tief, nicht ein tiefstes Höchstes.",
       "invalidWindowLookback": "Ein Fenster braucht mindestens 2 und höchstens 500 Kerzenschlüsse. Ein Schluss ist der Wert selbst, und tiefere Historie lässt sich nicht zuverlässig laden.",
-      "ruleWarmupTooDeep": "Diese Regel braucht mehr geschlossene Kerzen, als die App laden kann. Verkürze das Fenster oder die Indikator-Periode — sonst bliebe der Alarm stumm, statt auszulösen."
+      "ruleWarmupTooDeep": "Diese Regel braucht mehr geschlossene Kerzen, als die App laden kann. Verkürze das Fenster oder die Indikator-Periode — sonst bliebe der Alarm stumm, statt auszulösen.",
+      "invalidNote": "Die Notiz in `{field}` ist leer oder länger als 280 Zeichen.",
+      "duplicateTriggerMethod": "Ein Auslöse-Kanal ist in `{field}` doppelt aufgeführt und würde denselben Auslöser zweimal melden."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
@@ -3838,6 +4006,7 @@
       "onTimeframe": " (auf {timeframe})",
       "compare": "{left} {op} {right}{timeframe}",
       "crossing": "{left} {direction} {right}{timeframe}",
+      "pattern": "ein {pattern} entsteht{timeframe}",
       "lead": {
         "notify": "Benachrichtigt",
         "simulate": "Simuliert eine Order",

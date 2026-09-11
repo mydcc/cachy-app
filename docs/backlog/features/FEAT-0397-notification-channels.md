@@ -76,6 +76,40 @@ to Cachy's server.
 - Attachments or rich formatting (first iteration: plain text messages)
 - Authentication UI helpers (e.g., OAuth flow for Discord) — user provides the token/URL directly
 
+## Found while sequencing M4 (2026-09-11)
+
+Three parts of the proposal above cannot be built as written in a browser-only,
+Local-First app. They are not reasons to drop the item; they are the decisions it
+has to make before it starts.
+
+- **A browser cannot speak SMTP.** SMTP is a raw TCP protocol and there is no socket
+  API in a page. "SMTP server (host, port, TLS)" is not implementable client-side at
+  all — only the API-key path (Resend, Mailgun, SendGrid) works, where the trader owns
+  the key and the request is an ordinary HTTPS call. The acceptance criterion "Email
+  delivery works with at least one SMTP provider (e.g., Gmail, Proton Mail)" therefore
+  cannot be met by the described mechanism and needs rewriting to name a provider API.
+
+- **Discord and Telegram hit CORS from a page.** Discord webhooks accept a cross-origin
+  `POST`; Telegram's Bot API does not do so reliably. Routing Telegram through a proxy
+  makes the proxy see the bot token, which turns a Class A credential into something
+  that leaves the device — an
+  [`ADR-0001`](../../adr/0001-local-first-boundary.md) question, not an implementation
+  detail. Decide the proxy question in this item or drop Telegram from the first
+  iteration.
+
+- **"Encrypted in localStorage" is obfuscation without a user secret.** If the app can
+  decrypt the credential unattended in order to send an alert, the key is stored beside
+  the ciphertext and any script with same-origin access reads both. Either the trader
+  supplies a passphrase (and alerts cannot fire while the app is locked), or the field
+  is honestly labelled as stored in plaintext-equivalent form. Shipping the word
+  "encrypted" over the first design is the failure mode: it is the point where the
+  Local-First claim in the docs stops matching the code.
+
+Sequencing: this item comes after
+[`FEAT-0393`](FEAT-0393-rule-trigger-method-and-lifecycle.md), which owns the
+trigger-method selector these toggles live in. Building the toggles first means
+building them twice.
+
 ## Links
 
 - [`FEAT-0389`](FEAT-0389-super-alert-panel.md) — the panel that houses channel configuration

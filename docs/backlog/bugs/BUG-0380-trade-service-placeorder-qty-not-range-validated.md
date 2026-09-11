@@ -2,7 +2,7 @@
 id: BUG-0380
 title: placeOrder qty is not range-clamped before the exchange gate
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,9 +10,10 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
-# BUG-0375 — placeOrder qty is not range-clamped before the exchange gate
+# BUG-0380 — placeOrder qty is not range-clamped before the exchange gate
 
 ## Symptom
 

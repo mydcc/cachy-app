@@ -16,7 +16,7 @@
  *
  * Account read ordering — BUG-0412.
  *
- * `accountSession` (FEAT-0026) answers *which account* a read belongs to. It
+ * `accountEpoch` (FEAT-0026) answers *which account* a read belongs to. It
  * does not answer *which read* — inside one session `isCurrent()` is true for
  * a stale response and a fresh one alike, so the account snapshot was
  * last-landing-wins.
@@ -47,7 +47,7 @@
  * it is a traffic concern, this is the correctness one.
  */
 
-import { accountSession, type AccountSession } from "./accountSession.svelte";
+import { accountEpoch, type AccountSession } from "./accountEpoch.svelte";
 
 declare const ticketBrand: unique symbol;
 
@@ -82,7 +82,7 @@ class AccountReadOrder {
         this.issued += 1;
         return {
             seq: this.issued,
-            session: accountSession.current(),
+            session: accountEpoch.current(),
         } as unknown as AccountReadTicket;
     }
 
@@ -95,7 +95,7 @@ class AccountReadOrder {
      * before writing — not as a precondition it re-checks.
      */
     mayApply(ticket: AccountReadTicket): boolean {
-        if (!accountSession.isCurrent(ticket.session)) return false;
+        if (!accountEpoch.isCurrent(ticket.session)) return false;
         if (ticket.seq <= this.applied) return false;
         this.applied = ticket.seq;
         return true;

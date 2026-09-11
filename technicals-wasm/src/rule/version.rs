@@ -21,15 +21,16 @@
 //! ADR-0012 lists "schema versioning becomes permanent work" among the costs it
 //! accepts: every armed rule carries the version it was authored under, and
 //! every migration must preserve meaning or refuse to migrate. This module is
-//! that machinery, built at version 1 so the second version has somewhere to
-//! land rather than being bolted on once rules are live on real accounts.
+//! that machinery. It was built at version 1 so version 2 had somewhere to land
+//! rather than being designed under pressure with rules already armed; the
+//! `1 → 2` lifecycle step of FEAT-0393 now lives in it.
 
 use serde::{Deserialize, Serialize};
 
 use super::refusal::{RefusalCode, RuleRefusal};
 
 /// The version this build authors and evaluates.
-pub const CURRENT_SCHEMA_VERSION: u16 = 1;
+pub const CURRENT_SCHEMA_VERSION: u16 = 2;
 
 /// The oldest version this build can still read. Below it, a document is
 /// refused rather than guessed at.
@@ -105,21 +106,53 @@ impl std::fmt::Display for SchemaVersion {
 /// notices is wrong.
 type MigrationStep = fn(&mut serde_json::Value) -> Result<(), RuleRefusal>;
 
-/// The migration chain, indexed by the version being migrated *from*.
+/// The migration chain, indexed by the version being migrated *from* — today
+/// the single `1 → 2` step of FEAT-0393.
 ///
-/// Empty at version 1 by construction: there is nothing before it. The chain
-/// exists now, with its tests, so that adding version 2 is filling in a slot
-/// rather than designing migration under pressure with rules already armed.
-// The single-arm match is the extension point, not an oversight: adding version
-// 2 means adding `1 => Some(migrate_v1_to_v2),` here and nowhere else. Collapsing
-// it to a bare `None` as clippy suggests would delete the shape that makes that
-// obvious.
-#[allow(clippy::match_single_binding)]
+/// A version that is supported but has no step is refused rather than
+/// reinterpreted, so adding a version means filling in a slot here instead of
+/// designing a migration under pressure with rules already armed.
+// The extension point: adding version 3 means adding `2 => Some(...)` here and
+// nowhere else.
 fn migration_for(from: u16) -> Option<MigrationStep> {
     match from {
-        // 1 => Some(migrate_v1_to_v2),
+        1 => Some(migrate_v1_to_v2),
         _ => None,
     }
+}
+
+/// Version 1 to 2: the per-rule lifecycle fields of FEAT-0393.
+///
+/// A pure addition, and the only migration shape that can never refuse: every
+/// new field has a default, and each default is exactly the behaviour a version
+/// 1 rule already had. A v1 rule fired once and disarmed, announced on whatever
+/// the notification policy chose, never expired, and carried no note — which is
+/// `frequency: once`, no `trigger_methods`, no `valid_until_ms`, no `note`.
+///
+/// Only `frequency` is written. The other three are absent-means-default on the
+/// wire (`skip_serializing_if`), and writing `null` for them would make a
+/// migrated document differ byte-for-byte from a freshly authored identical one
+/// for no gain.
+///
+/// The fields are inserted rather than left to `serde(default)` at parse time
+/// so that the migrated JSON is a complete version 2 document on its own —
+/// something written back to storage, diffed, or read by a human is then the
+/// real shape, not a v1 document wearing a v2 version number.
+fn migrate_v1_to_v2(raw: &mut serde_json::Value) -> Result<(), RuleRefusal> {
+    let Some(map) = raw.as_object_mut() else {
+        return Err(RuleRefusal::new(
+            RefusalCode::MigrationNotPossible,
+            "",
+            "a rule document must be a JSON object",
+        ));
+    };
+
+    // `entry`-style insertion: a document that somehow already carries the
+    // field keeps its value rather than being overwritten by the default.
+    map.entry("frequency")
+        .or_insert_with(|| serde_json::json!("once"));
+
+    Ok(())
 }
 
 /// Bring a raw document up to [`CURRENT_SCHEMA_VERSION`], or refuse.
@@ -228,8 +261,8 @@ mod tests {
         }
     }
 
-    /// The chain is empty today. This asserts the *shape* of the guarantee, so
-    /// that when version 2 lands, a missing step is a refusal rather than a
+    /// The chain now carries the `1 → 2` step. This asserts the *shape* of the
+    /// guarantee: a supported version with no step is a refusal rather than a
     /// document that quietly keeps its old meaning under a new version number.
     #[test]
     fn a_gap_in_the_migration_chain_refuses_instead_of_reinterpreting() {
@@ -237,9 +270,9 @@ mod tests {
             migration_for(CURRENT_SCHEMA_VERSION).is_none(),
             "there is nothing after the current version to migrate to"
         );
-        // A `for` over the range would be an empty literal range today (min ==
-        // current), which clippy rejects outright. Written as a while loop it
-        // stays a real assertion the moment a second version exists.
+        // A `for` over the range with literal bounds is rejected by clippy, so
+        // this stays a while loop. It now walks the `1 → 2` step and will cover
+        // each future version without being rewritten.
         let mut v = MINIMUM_SUPPORTED_VERSION;
         while v < CURRENT_SCHEMA_VERSION {
             assert!(
@@ -250,6 +283,47 @@ mod tests {
             );
             v += 1;
         }
+    }
+
+    #[test]
+    fn a_v1_document_migrates_to_v2_and_gains_the_default_frequency() {
+        let mut doc = json!({ "schema_version": 1, "name": "x" });
+        assert_eq!(migrate_to_current(&mut doc).unwrap(), SchemaVersion(2));
+        assert_eq!(doc["frequency"], json!("once"));
+        assert_eq!(doc["schema_version"], json!(2));
+    }
+
+    #[test]
+    fn migration_does_not_write_the_optional_lifecycle_fields() {
+        let mut doc = json!({ "schema_version": 1, "name": "x" });
+        migrate_to_current(&mut doc).unwrap();
+        for absent in ["trigger_methods", "valid_until_ms", "note"] {
+            assert!(
+                doc.get(absent).is_none(),
+                "`{absent}` defaults to absent on the wire; writing null would \
+                 make a migrated document differ from an identical fresh one"
+            );
+        }
+    }
+
+    #[test]
+    fn migration_keeps_a_frequency_the_document_already_carried() {
+        let mut doc = json!({ "schema_version": 1, "frequency": "every_time" });
+        migrate_to_current(&mut doc).unwrap();
+        assert_eq!(
+            doc["frequency"],
+            json!("every_time"),
+            "a default must not overwrite a value that is already there"
+        );
+    }
+
+    #[test]
+    fn a_non_object_document_is_refused_rather_than_migrated() {
+        // Driven directly: a bare array carries no `schema_version`, so through
+        // `migrate_to_current` it would fail earlier and never reach the step.
+        let mut arr = json!([1, 2, 3]);
+        let err = migrate_v1_to_v2(&mut arr).unwrap_err();
+        assert_eq!(err.code, RefusalCode::MigrationNotPossible);
     }
 
     /// A compile-time invariant, asserted so that a future edit inverting the

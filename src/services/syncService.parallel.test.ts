@@ -59,8 +59,8 @@ const uiMocks = vi.hoisted(() => ({
 }));
 vi.mock("../stores/ui.svelte", () => ({ uiState: uiMocks }));
 
-vi.mock("./accountSession.svelte", () => ({
-    accountSession: {
+vi.mock("./accountEpoch.svelte", () => ({
+    accountEpoch: {
         current: () => ({}),
         isCurrent: () => true,
     },

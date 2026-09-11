@@ -629,6 +629,69 @@ fn check_param(spec: &ParamSpec, value: &ParamValue, field: &str, out: &mut Vec<
     }
 }
 
+/// The registry as JSON, for the one consumer that must not drift from it: the
+/// TypeScript catalogue the alert panel's indicator builder renders from
+/// (FEAT-0028).
+///
+/// Written by hand rather than derived, and the reason is load-bearing.
+/// Deriving it would mean `Serialize` on `Dimension` and `ParamKind`, and
+/// `Dimension` deliberately has none: nothing about an operand's unit may reach
+/// a canonical form, or a rule already sitting in a trader's `localStorage`
+/// hashes differently from the hash it was stored under. A function that writes
+/// a string keeps this export outside the document's serialisation entirely.
+///
+/// Consumed by `indicatorCatalogue.test.ts` and nothing else. The catalogue is
+/// not generated from this: labels, grouping and translations are the panel's
+/// to own, and generating them from Rust would move editorial decisions into
+/// the crate that computes money. What the test buys is the other direction —
+/// an indicator, a parameter or an output line that exists here and not there
+/// fails a test instead of quietly never appearing in the picker.
+pub fn registry_json() -> String {
+    let specs: Vec<serde_json::Value> = REGISTRY
+        .iter()
+        .map(|spec| {
+            let params: Vec<serde_json::Value> = spec
+                .params
+                .iter()
+                .map(|param| match param.kind {
+                    // `min`/`max` stay in the shape their domain has: whole
+                    // candles as numbers, multipliers as decimal *strings*.
+                    // A factor that arrives in JavaScript as an f64 is a
+                    // rounding error waiting to be compared against a price.
+                    ParamKind::Period { min, max } => serde_json::json!({
+                        "name": param.name,
+                        "kind": "period",
+                        "min": min,
+                        "max": max,
+                    }),
+                    ParamKind::Factor { min, max } => serde_json::json!({
+                        "name": param.name,
+                        "kind": "factor",
+                        "min": min,
+                        "max": max,
+                    }),
+                })
+                .collect();
+            let outputs: Vec<serde_json::Value> = spec
+                .outputs
+                .iter()
+                .map(|(name, dimension)| {
+                    serde_json::json!({
+                        "name": name,
+                        "dimension": dimension.to_string(),
+                    })
+                })
+                .collect();
+            serde_json::json!({
+                "id": spec.id,
+                "params": params,
+                "outputs": outputs,
+            })
+        })
+        .collect();
+    serde_json::Value::Array(specs).to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -950,4 +1013,50 @@ mod tests {
             );
         }
     }
+
+    /// The JSON export names every registry entry, with its parameters and its
+    /// output dimensions.
+    ///
+    /// Asserted against `REGISTRY` itself rather than against a written-out
+    /// expectation: a test that repeats the list is a third copy to keep in
+    /// step, which is the failure this whole export exists to prevent.
+    #[test]
+    fn registry_json_names_every_spec_its_params_and_its_outputs() {
+        let json: serde_json::Value =
+            serde_json::from_str(&registry_json()).expect("registry_json is valid JSON");
+        let entries = json.as_array().expect("registry_json is an array");
+        assert_eq!(entries.len(), REGISTRY.len());
+
+        for (entry, spec) in entries.iter().zip(REGISTRY.iter()) {
+            assert_eq!(entry["id"], spec.id);
+
+            let params = entry["params"].as_array().expect("params is an array");
+            assert_eq!(params.len(), spec.params.len());
+            for (param_json, param) in params.iter().zip(spec.params.iter()) {
+                assert_eq!(param_json["name"], param.name);
+                match param.kind {
+                    ParamKind::Period { min, max } => {
+                        assert_eq!(param_json["kind"], "period");
+                        assert_eq!(param_json["min"], min);
+                        assert_eq!(param_json["max"], max);
+                    }
+                    ParamKind::Factor { min, max } => {
+                        assert_eq!(param_json["kind"], "factor");
+                        // Strings, not numbers: a factor reaches a comparison
+                        // against a price and must not round on the way.
+                        assert_eq!(param_json["min"], min);
+                        assert_eq!(param_json["max"], max);
+                    }
+                }
+            }
+
+            let outputs = entry["outputs"].as_array().expect("outputs is an array");
+            assert_eq!(outputs.len(), spec.outputs.len());
+            for (output_json, (name, dimension)) in outputs.iter().zip(spec.outputs.iter()) {
+                assert_eq!(output_json["name"], *name);
+                assert_eq!(output_json["dimension"], dimension.to_string());
+            }
+        }
+    }
+
 }

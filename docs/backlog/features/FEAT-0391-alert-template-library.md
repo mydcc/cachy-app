@@ -3,7 +3,7 @@ id: FEAT-0391
 title: A template library for alert rules
 type: feature
 status: specced
-priority: P2
+priority: P3
 milestone: M4
 editions: [community, pro, private]
 area: alerts
@@ -55,6 +55,13 @@ Every template ships at `consequence_level: notify` and
 - [ ] No shipped template has a `consequence_level` above `notify`
 - [ ] Categories filter the list
 - [ ] German and English names and descriptions for every template
+
+
+## Blocked by
+
+[`FEAT-0030`](FEAT-0030-combined-alerts.md) is currently `status: idea`. This item cannot
+load a template into the Combo builder without the Combo tab itself, which FEAT-0030 owns.
+This item remains specced and ready to implement once FEAT-0030 shifts from idea to ready.
 
 ## Out of scope
 

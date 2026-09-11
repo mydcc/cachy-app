@@ -39,12 +39,14 @@ indicator alerts trustworthy or not.
 ## Acceptance criteria
 
 - [ ] Each condition fires correctly against recorded historical data, tested
-      per indicator
+      per indicator — owned by [`FEAT-0438`](FEAT-0438-recorded-history-condition-correctness.md)
 - [ ] Closed-candle evaluation is the default and intra-candle is opt-in per
       alert
 - [ ] Recalculation on a corrected candle does not double-fire
 - [ ] Conditions produce identical results across the WASM, GPU and JS paths —
-      or the discrepancy is documented
+      or the discrepancy is documented. WASM↔JS is shipped
+      (`src/services/alertEngine/crossPathParity.test.ts`); the WebGPU leg is owned by
+      [`FEAT-0439`](FEAT-0439-webgpu-cross-path-parity.md)
 - [ ] German and English strings
 
 ## Note added while planning the Super-Alert work (2026-09-04)
@@ -320,3 +322,52 @@ every candle comes back indeterminate.
 - [`FEAT-0027`](FEAT-0027-alert-engine.md)
 - `src/services/technicalsService.ts`
 - [`BUG-0005`](../bugs/BUG-0005-gpu-chop-field-mismatch.md) — cross-path parity matters here
+
+## Progress (2026-09-11)
+
+The builder exists. `IndicatorsTab.svelte` is no longer the FEAT-0389
+placeholder: it offers every indicator the core accepts, its output lines and
+its parameters, and writes a `compare` or `cross` condition through to the rule
+document on every edit.
+
+**The catalogue is held to the registry by a mechanism, not by discipline.**
+The panel needs grouping, defaults and translatable names; the registry in
+`technicals-wasm/src/rule/indicator.rs` has ids, parameter bounds and output
+dimensions. Neither list can own both, so there are two — and
+`rule_indicator_registry()` plus `indicatorCatalogue.test.ts` make them fail CI
+the moment they disagree. The strongest of those checks builds a document from
+each entry's defaults and hands it to `rule_validate`, so a misspelled
+parameter is caught in CI rather than at the moment a trader presses arm.
+
+The export is hand-written JSON rather than a derive, because `Dimension` has
+no `Serialize` for a reason that still holds: nothing about an operand's unit
+may reach a canonical form, or a stored rule's content hash moves.
+
+**The dimension gate is the design, not a validation step.** The reference side
+only offers what `Dimension::compatible_with` would accept — the price is not
+offered against RSI, and only volume indicators are offered against OBV. The
+core's `operand_dimension_mismatch` still stands behind the tab; nothing
+reachable from it should ever produce one.
+
+Covered by `indicatorCatalogue.test.ts` (95), `indicatorConditionForm.test.ts`
+(15), `IndicatorsTab.component.test.ts` (11) and one new Rust test asserted
+against `REGISTRY` itself.
+
+### One rough edge, named rather than hidden
+
+The tab puts the indicator on the left and the reference on the right, always.
+Bollinger touch therefore reads "upper band crosses below the price" rather
+than "price crosses above the upper band". The two are the same event and the
+generated sentence is truthful, but the phrasing is backwards from how a trader
+says it. A side swap is the fix; it is not in this change because it also
+touches the sentence builder.
+
+### What is still open
+
+Both remaining acceptance criteria are unchanged by this work:
+
+- **AC 1** still rests on a seeded pseudo-random walk rather than a recorded
+  series. `FEAT-0394` carries the same gap for patterns — it is one piece of
+  work owed to both items, not two.
+- **AC 4** still covers WASM and JS but not WebGPU, which needs a browser and
+  belongs in Playwright.

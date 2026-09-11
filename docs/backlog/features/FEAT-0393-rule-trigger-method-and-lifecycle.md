@@ -2,8 +2,9 @@
 id: FEAT-0393
 title: Trigger method, frequency, validity period and note per rule
 type: feature
-status: specced
-priority: P2
+status: in-progress
+priority: P1
+assignee: mydcc
 milestone: M4
 editions: [community, pro, private]
 area: alerts
@@ -54,25 +55,62 @@ failure, not a silent audit hole.
 
 ## Acceptance criteria
 
-- [ ] Frequency `once` disarms after firing; `every time` stays armed; `once per candle
+- [x] Frequency `once` disarms after firing; `every time` stays armed; `once per candle
       close` fires at most once per closed trigger candle
-- [ ] A rule past its validity period expires and does **not** fire, and Manage shows it
-      as expired rather than as fired
-- [ ] Two rules differing only in frequency, validity or note have the **same** content hash
-- [ ] Two rules differing in symbol, timeframe, conditions or consequence level have
+- [x] A rule past its validity period expires and does **not** fire, and Manage shows it
+      as expired rather than as fired — core reports `Verdict::Expired`, distinct from
+      `AlreadyFired`; the Manage rendering is still open (see "Still open")
+- [x] Two rules differing only in frequency, validity or note have the **same** content hash
+- [x] Two rules differing in symbol, timeframe, conditions or consequence level have
       **different** content hashes
-- [ ] A document written at the previous schema version migrates and keeps its hash
+- [x] A document written at the previous schema version migrates and keeps its hash
 - [ ] The note appears in the announcement on every channel that can carry text
-- [ ] German and English strings
+- [x] German and English strings
 
 ## Out of scope
 
 - Snooze and per-rule cooldown. Related, but a separate decision.
 
-## Open questions
+## Resolved while building (2026-09-11)
 
-- **Does "once per candle close" mean the trigger timeframe's candle?** It should, but
-  say so explicitly — a rule reading three timeframes has three candidate answers.
+- **"Once per candle close" means the trigger timeframe's candle.** Settled in
+  `lifecycle::TriggerFrequency::OncePerCandleClose`: it is the only candle the rule is
+  already anchored on, so counting against it needs no second notion of "now".
+
+- **`schema_version` had to leave the hash.** It was hashed at v1, so a migrated
+  document could not possibly keep its hash and AC 5 was unsatisfiable as written. It is
+  now in `EXCLUDED_FROM_HASH`: how a document is *encoded* is not what it says. This is
+  affordable exactly once, before any rule is live on a funded account.
+
+- **Expiry and frequency read the anchor candle's close instant, not a wall clock.**
+  `evaluate` is pure by design; taking a clock reading inside it would make a backtest
+  expire every rule against today's date. `RuleState` is passed in by whoever owns the
+  store for the same reason.
+
+- **The four fields are flat on `RuleDocument`, not nested in a `lifecycle` object.**
+  `canonical_value()` excludes by key name, so a nested bag would be one entry in
+  `EXCLUDED_FROM_HASH` and anything added inside it later would go unhashed in silence.
+
+## Still open
+
+- **The note in the announcement (AC 6) is blocked, not skipped.** There is no
+  announcement to put it in: `ruleEvaluationLoop` is still shadow-only — its default
+  `FiringSink` is `shadowSink`, which writes a log line and nothing else. No firing rule
+  reaches `notificationService` today. The note ships the moment a real sink exists, and
+  that sink's owner should carry this AC.
+
+- **Runtime enforcement of frequency and expiry.** The core decides them
+  (`evaluate_with_lifecycle`), but the loop never passes a `RuleState`, so nothing tracks
+  `fired_count` across evaluations yet. Deliberately left with the sink work: persisting
+  fire state belongs next to whatever consumes a firing, not bolted onto a loop that
+  currently discards them.
+
+- **The Manage surface for expired rules (AC 2's rendering half).** Neither the schema PR
+  nor the footer PR touches `ManageTab.svelte`, so Manage still lists a rule without a
+  lifecycle status. That rendering needs `valid_until_ms` + `RuleState`, not just the
+  verdict, which places it with the sink work above — AC 2 is ticked for the core
+  behaviour only. Whoever lands the sink should deliver it and re-check the criterion, so
+  it is neither lost nor counted twice.
 
 - [`FEAT-0397`](FEAT-0397-notification-channels.md) — notification channel configuration
 ## Links
