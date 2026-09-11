@@ -3,7 +3,7 @@ id: FEAT-0393
 title: Trigger method, frequency, validity period and note per rule
 type: feature
 status: specced
-priority: P2
+priority: P1
 milestone: M4
 editions: [community, pro, private]
 area: alerts
