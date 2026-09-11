@@ -123,4 +123,20 @@ describe("FEAT-0389: the bell opens the Super-Alert panel", () => {
     // looking for the panel would have closed it.
     expect(uiState.showAlertsModal).toBe(true);
   });
+
+  it("gives every icon-only control an accessible name", () => {
+    const el = render();
+    const buttons = Array.from(
+      el.querySelectorAll<HTMLButtonElement>("button.control-btn"),
+    );
+
+    // The panel ships nine icon-only controls; the journal shortcut renders
+    // only while a journal window is minimized, so it is not counted here.
+    expect(buttons.length).toBeGreaterThanOrEqual(9);
+    for (const button of buttons) {
+      expect(
+        button.getAttribute("aria-label")?.trim().length ?? 0,
+      ).toBeGreaterThan(0);
+    }
+  });
 });
