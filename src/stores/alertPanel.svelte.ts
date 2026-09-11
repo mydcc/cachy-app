@@ -110,6 +110,13 @@ function blankDraft(symbol: string): RuleDocument {
     action: { consequence_level: "notify" },
     enabled: true,
     provenance: { source: "human", created_at_ms: Date.now() },
+    // FEAT-0393 lifecycle. `once` is written rather than left to the core's
+    // default so the footer has something to render and the draft is a complete
+    // document from the first frame. The other three are absent-means-default:
+    // no channels means the notification policy decides, and a rule with no
+    // expiry and no note simply has neither.
+    frequency: "once",
+    trigger_methods: [],
   };
 }
 

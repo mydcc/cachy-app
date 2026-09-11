@@ -53,6 +53,7 @@
     import type { TranslationKey } from "../../locales/schema";
     import { uiState } from "../../stores/ui.svelte";
     import { logger } from "../../services/logger";
+    import RuleLifecycleFields from "./RuleLifecycleFields.svelte";
 
 let rootElement: HTMLElement | null = null;
 
@@ -326,6 +327,13 @@ let rootElement: HTMLElement | null = null;
 
     <footer class="panel-footer">
         <!--
+          The lifecycle fields sit above the sentence, in the one footer every
+          builder tab shares: frequency, expiry, channels and note are per-rule
+          regardless of which tab wrote the condition.
+        -->
+        <RuleLifecycleFields />
+
+        <!--
           The rule in words, above the arm button and never behind a toggle.
           This is what a trader actually arms from: the sentence is rendered
           from the document the core will be handed, not from the form, so the
@@ -454,7 +462,13 @@ let rootElement: HTMLElement | null = null;
     }
     .tab-body {
         flex: 1 1 auto;
-        min-height: 0;
+        /*
+          A floor, not `min-height: 0`. With zero the body is the first thing the
+          flex column sacrifices, so a footer that grows squeezes the builder off
+          screen entirely rather than scrolling it — which is what happened when
+          the FEAT-0393 lifecycle fields landed.
+        */
+        min-height: 8rem;
         overflow-y: auto;
     }
     .loading {

@@ -59,13 +59,13 @@ failure, not a silent audit hole.
       close` fires at most once per closed trigger candle
 - [x] A rule past its validity period expires and does **not** fire, and Manage shows it
       as expired rather than as fired — core reports `Verdict::Expired`, distinct from
-      `AlreadyFired`; the Manage surface itself lands with the UI half
+      `AlreadyFired`; the Manage rendering is still open (see "Still open")
 - [x] Two rules differing only in frequency, validity or note have the **same** content hash
 - [x] Two rules differing in symbol, timeframe, conditions or consequence level have
       **different** content hashes
 - [x] A document written at the previous schema version migrates and keeps its hash
 - [ ] The note appears in the announcement on every channel that can carry text
-- [ ] German and English strings
+- [x] German and English strings
 
 ## Out of scope
 
@@ -93,9 +93,24 @@ failure, not a silent audit hole.
 
 ## Still open
 
-- **The UI half.** The footer (FEAT-0389), the note in the announcement text, and the
-  German/English strings. The core, the schema, the migration and the WASM boundary are
-  in; nothing renders these fields yet.
+- **The note in the announcement (AC 6) is blocked, not skipped.** There is no
+  announcement to put it in: `ruleEvaluationLoop` is still shadow-only — its default
+  `FiringSink` is `shadowSink`, which writes a log line and nothing else. No firing rule
+  reaches `notificationService` today. The note ships the moment a real sink exists, and
+  that sink's owner should carry this AC.
+
+- **Runtime enforcement of frequency and expiry.** The core decides them
+  (`evaluate_with_lifecycle`), but the loop never passes a `RuleState`, so nothing tracks
+  `fired_count` across evaluations yet. Deliberately left with the sink work: persisting
+  fire state belongs next to whatever consumes a firing, not bolted onto a loop that
+  currently discards them.
+
+- **The Manage surface for expired rules (AC 2's rendering half).** Neither the schema PR
+  nor the footer PR touches `ManageTab.svelte`, so Manage still lists a rule without a
+  lifecycle status. That rendering needs `valid_until_ms` + `RuleState`, not just the
+  verdict, which places it with the sink work above — AC 2 is ticked for the core
+  behaviour only. Whoever lands the sink should deliver it and re-check the criterion, so
+  it is neither lost nor counted twice.
 
 - [`FEAT-0397`](FEAT-0397-notification-channels.md) — notification channel configuration
 ## Links

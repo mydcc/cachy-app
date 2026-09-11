@@ -359,7 +359,29 @@
         "storeUnreadable": "The rule store could not be read. Nothing was armed, so your existing alerts are not overwritten.",
         "armed": "Alert armed.",
         "armDisabled": "Add a condition first.",
-        "tabLoadFailed": "This tab could not be loaded. Reload the page."
+        "tabLoadFailed": "This tab could not be loaded. Reload the page.",
+        "lifecycle": {
+          "frequency": "Frequency",
+          "frequencyOption": {
+            "once": "Once, then disarm",
+            "every_time": "Every time it happens",
+            "once_per_candle_close": "Once per candle close"
+          },
+          "validUntil": "Valid until",
+          "validUntilHint": "Leave empty to never expire",
+          "triggerMethod": "Announce on",
+          "triggerMethodHint": "Leave all unchecked to use your notification settings",
+          "note": "Note",
+          "notePlaceholder": "Why you armed this — entry, invalidation, reminder",
+          "methodOption": {
+            "in_app": "In-app",
+            "browser": "Browser",
+            "sound": "Sound"
+          },
+          "legend": "Lifecycle",
+          "summaryUntil": "until {date}",
+          "summaryNoted": "noted"
+        }
       },
       "brokenRule": {
         "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate."
