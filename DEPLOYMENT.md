@@ -152,10 +152,13 @@ had actually finished). The fix is to stop compiling on the server entirely:
    every push to `develop`/`main` and publishes it as `cachy-build.tar.gz` on a
    per-branch moving release tag (`deploy-beta` for `develop`, `deploy-stable`
    for `main`). The download URL is fixed.
-2. `./deploy.sh --beta --ci` then downloads that URL, extracts `build/` into the
-   shadow directory, refreshes production dependencies with
-   `npm ci --omit=dev` (cheap on memory, unlike a full build), and runs the same
-   backup → swap → restart → health-check sequence as a local deploy.
+2. `./deploy.sh --beta --ci` then downloads that URL, extracts the artifact
+   (`build/`, `server.js`, `server-headers.js`) into the shadow directory,
+   refreshes production dependencies with `npm ci --omit=dev` (cheap on memory,
+   unlike a full build), and runs the same backup → swap → restart →
+   health-check sequence as a local deploy. The wrapper files travel with the
+   artifact because `build/index.js` is rewritten to delegate to `server.js`,
+   so `node build` resolves them on hosts without a full checkout.
 
 Everything else — concurrency lock, backup, atomic swap, graceful shutdown,
 health check — is shared with the local-build path. A failed download aborts

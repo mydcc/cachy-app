@@ -628,9 +628,9 @@ The production build is a Node.js adapter output.
 1. **Build**: `npm run build` (compiles SvelteKit to `build/`)
 2. **Run**: `npm start`, which runs `node server.js` — a small Express wrapper
    in the repository root that adds compression and security headers on top of
-   the adapter output (`build/handler.js`). If your process manager starts
-   `build/index.js` directly, it bypasses both — check which entry point it is
-   configured for.
+   the adapter output (`build/handler.js`). The build also rewrites
+   `build/index.js` to delegate to that wrapper, so starting either entry point
+   (`node server.js` or `node build`) gives the same server.
 3. **Reverse Proxy**: Nginx is recommended for SSL termination. Ports follow `DEPLOYMENT.md`/`deploy.sh`: **3001** for stable (cachy.app) and **3002** for beta
    (dev.cachy.app); `server.js` defaults `PORT` to 3001.
 
