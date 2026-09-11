@@ -36,6 +36,9 @@ const LeverageMarginModeRequestSchema = BaseRequestSchema.extend({
 interface LeverageMarginModeData {
   symbol: string;
   marginCoin: string;
+  // BUG-0433: read-back leverage stays a native integer here, mirroring
+  // BitunixLeverageMarginModeSchema (BUG-0409) — the venue answers with an
+  // int and the UI only displays/compares it, so no string boundary is needed.
   leverage: number;
   marginMode: string;
 }
