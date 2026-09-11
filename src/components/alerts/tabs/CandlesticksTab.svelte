@@ -19,9 +19,9 @@
   FEAT-0394 -- the candlestick pattern picker.
 
   One choice and nothing else: which of the fourteen patterns the core can
-  detect should arm this alarm. No thresholds to tune, because the geometry is
-  the core's business and a trader tuning "how long is a long shadow" would be
-  tuning something they cannot see the effect of.
+  detect should arm this alarm. No thresholds to tune; geometry is the core's
+  business. A trader adjusting threshold values would be tuning
+  invisible parameters.
 
   The tiles are grouped by how many candles the pattern spans, which is the
   same 1/2/3 split `CandlePattern::candles_spanned()` makes in Rust. Mirrors
