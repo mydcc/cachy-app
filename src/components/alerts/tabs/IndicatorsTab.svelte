@@ -30,6 +30,7 @@
     import { _ } from "../../../locales/i18n";
     import { alertPanelState, refusalsForField } from "../../../stores/alertPanel.svelte";
     import {
+        INDICATOR_CATALOGUE,
         INDICATOR_GROUP_ORDER,
         catalogueEntry,
         defaultRef,
@@ -42,9 +43,6 @@
         paramKey,
         type CatalogueEntry,
         type OperandDimension,
-    } from "../../../lib/alerts/indicatorCatalogue";
-    import {
-        INDICATOR_CATALOGUE,
     } from "../../../lib/alerts/indicatorCatalogue";
     import {
         buildIndicatorCondition,
