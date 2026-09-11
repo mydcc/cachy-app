@@ -44,8 +44,13 @@ app.use(express.static('build/client', {
 app.use(handler);
 
 const port = process.env.PORT || "3001";
-const server = app.listen(port, () => {
-  console.log(`Starting server on port ${port}...`);
+// HOST is optional. Unset means every interface (the long-standing behaviour);
+// set it to 127.0.0.1 behind a reverse proxy so the app is reachable only via
+// nginx. adapter-node would read HOST itself, but this wrapper owns the listen
+// call, so without this the value was silently ignored.
+const host = process.env.HOST;
+const server = app.listen(port, host, () => {
+  console.log(`Starting server on ${host || "0.0.0.0"}:${port}...`);
 });
 
 // Drain in-flight requests on SIGTERM/SIGINT instead of dropping them. Without
