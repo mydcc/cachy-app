@@ -359,7 +359,29 @@
         "storeUnreadable": "Der Regelspeicher konnte nicht gelesen werden. Es wurde nichts scharf geschaltet, damit deine bestehenden Alarme nicht überschrieben werden.",
         "armed": "Alarm scharf geschaltet.",
         "armDisabled": "Füge zuerst eine Bedingung hinzu.",
-        "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu."
+        "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu.",
+        "lifecycle": {
+          "frequency": "Häufigkeit",
+          "frequencyOption": {
+            "once": "Einmal, dann entschärfen",
+            "every_time": "Jedes Mal",
+            "once_per_candle_close": "Einmal pro Kerzenschluss"
+          },
+          "validUntil": "Gültig bis",
+          "validUntilHint": "Leer lassen, um nie abzulaufen",
+          "triggerMethod": "Melden über",
+          "triggerMethodHint": "Nichts angehakt heißt: deine Benachrichtigungs-Einstellungen entscheiden",
+          "note": "Notiz",
+          "notePlaceholder": "Warum du das scharf gestellt hast — Einstieg, Invalidierung, Erinnerung",
+          "methodOption": {
+            "in_app": "In der App",
+            "browser": "Browser",
+            "sound": "Ton"
+          },
+          "legend": "Lebenszyklus",
+          "summaryUntil": "bis {date}",
+          "summaryNoted": "mit Notiz"
+        }
       },
       "brokenRule": {
         "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann."
