@@ -2,9 +2,9 @@
 
 # Backlog index
 
-318 items. How to read and add them: [README.md](README.md).
+319 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 253
+Counts by status: 💡 idea 28 · 📋 specced 34 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 253
 
 ---
 
@@ -349,6 +349,7 @@ Counts by status: 💡 idea 28 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | ✅ done | exchange |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | tooling |
 | [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | ✅ done | backend |
+| [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | 📋 specced | backend |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -663,6 +664,7 @@ Counts by status: 💡 idea 28 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -710,4 +712,4 @@ Counts by status: 💡 idea 28 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-pro
 
 ---
 
-Next free number: **0437**
+Next free number: **0438**
