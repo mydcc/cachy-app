@@ -66,7 +66,6 @@ const ALLOW = {
     textNodes: new Set(config.allowlist?.textNodes ?? []),
     attributes: new Set(config.allowlist?.attributes ?? []),
     objectLabels: new Set(config.allowlist?.objectLabels ?? []),
-    matches: (config.allowlist?.matches ?? []).map((r) => new RegExp(r)),
 };
 
 const violations = [];
@@ -90,9 +89,7 @@ function isExcluded(filePath) {
 }
 
 function isAllowed(rule, value) {
-    const trimmed = value.trim();
-    if (ALLOW[rule]?.has(trimmed)) return true;
-    return ALLOW.matches.some((re) => re.test(trimmed));
+    return ALLOW[rule]?.has(value.trim()) ?? false;
 }
 
 function hasIgnore(lines, index) {
@@ -180,23 +177,23 @@ function toMarkupLines(content) {
 
             if (mode === 'comment') {
                 const end = rest.indexOf('-->');
-                if (end === -1) { i = line.length; break; }
+                if (end === -1) break;
                 i += end + 3;
                 mode = null;
                 continue;
             }
             if (mode === 'script' || mode === 'style') {
                 const tag = mode === 'script' ? '</script>' : '</style>';
-                const end = rest.indexOf(tag);
-                if (end === -1) { i = line.length; break; }
+                const end = rest.toLowerCase().indexOf(tag);
+                if (end === -1) break;
                 i += end + tag.length;
                 mode = null;
                 continue;
             }
 
             if (rest.startsWith('<!--')) { mode = 'comment'; i += 4; continue; }
-            if (/^<script[\s>]/.test(rest)) { mode = 'script'; i += rest.indexOf('>') + 1; continue; }
-            if (/^<style[\s>]/.test(rest)) { mode = 'style'; i += rest.indexOf('>') + 1; continue; }
+            if (/^<script[\s>]/i.test(rest)) { mode = 'script'; i += rest.indexOf('>') + 1; continue; }
+            if (/^<style[\s>]/i.test(rest)) { mode = 'style'; i += rest.indexOf('>') + 1; continue; }
 
             const ch = line[i];
             if (ch === '{') { braces++; i++; continue; }
