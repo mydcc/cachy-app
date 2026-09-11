@@ -17,6 +17,15 @@
 
 import { z } from "zod";
 
+/**
+ * Leverage boundary (BUG-0433): leverage is an integer, but it leaves the
+ * schema as a string like every other value on the money boundary
+ * (BUG-0424/0425). A raw JSON number is normalized to its shortest
+ * round-trip string so a downstream consumer cannot widen it with f64
+ * arithmetic.
+ */
+const LeverageString = z.union([z.string(), z.number()]).transform((v) => String(v));
+
 export const AccountRequestSchema = z.object({
   exchange: z.enum(["bitunix", "bitget"]),
   apiKey: z.string().optional(),
@@ -27,7 +36,7 @@ export const AccountRequestSchema = z.object({
   // Params for setter actions
   params: z.object({
       symbol: z.string().optional(),
-      leverage: z.union([z.string(), z.number()]).optional(),
+      leverage: LeverageString.optional(),
       marginMode: z.enum(["cross", "isolated"]).optional()
   }).optional()
 });
