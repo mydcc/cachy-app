@@ -68,22 +68,3 @@ export const StrictDecimal = z
         }
     });
 
-/**
- * Common balance properties with strict validation
- */
-export const BalanceResponseSchema = z.object({
-    available: StrictDecimal,
-    margin: StrictDecimal,
-    crossUnrealizedPNL: StrictDecimal,
-});
-
-/**
- * Standard ticker with price validation
- */
-export const TickerSchema = z.object({
-    symbol: z.string(),
-    lastPrice: StrictDecimal.refine((val) => val.gt(0), {
-        message: "lastPrice must be > 0",
-    }),
-    volume: StrictDecimal,
-});

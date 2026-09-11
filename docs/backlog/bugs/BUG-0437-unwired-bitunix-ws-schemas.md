@@ -2,7 +2,9 @@
 id: BUG-0437
 title: Bitunix order/position/ticker validation schemas are never wired
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0437-unwired-bitunix-schemas
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -61,11 +63,33 @@ Do not change any order/PnL math.
 
 ## Acceptance criteria
 
-- [ ] No validation schema remains that is imported only by its own test.
-- [ ] If kept: the position/order/ticker WS path validates through it, and a
+- [x] No validation schema remains that is imported only by its own test.
+- [x] If kept: the position/order/ticker WS path validates through it, and a
       test covers the live call site rather than the schema in isolation.
-- [ ] If deleted: `bitunixValidation.ts` and its tests contain no dangling
+      Not applicable — the deletion path was chosen instead.
+- [x] If deleted: `bitunixValidation.ts` and its tests contain no dangling
       references.
+
+## Applied
+
+Deletion path. The three superseded schemas (`BitunixTickerDataSchema`,
+`BitunixOrderSchema`, `BitunixPositionSchema`) and their money test
+(`bitunixValidation.money.test.ts`) were removed; the `Strict*` variants the
+WS parser actually executes stay untouched. A repo-wide sibling audit of
+test-only / unused exported schemas removed the same dead pattern elsewhere,
+so the criterion holds beyond the Bitunix file:
+
+- `BitgetWSKlineSchema` (`src/types/bitgetValidation.ts`) — only referenced by
+  `apiSchemas.money.test.ts`, never executed at runtime.
+- `KlineRawSchema` / `KlineRaw` (`src/services/technicalsTypes.ts`) — only
+  referenced by `apiSchemas.money.test.ts`.
+- Never-imported exports: `BalanceResponseSchema`, `TickerSchema`
+  (`src/types/schemas.ts`); `BitunixKlineResponseSchema`,
+  `BitgetKlineResponseSchema`, `ApiResponseSchema`, `PositionListSchema`,
+  and the shadowed duplicate `AccountRequestSchema`
+  (`src/types/apiSchemas.ts`; the live schema lives in `accountSchemas.ts`).
+
+No order/PnL math, WS normalisation or Decimal conversion was changed.
 
 ## Out of scope
 

@@ -48,6 +48,10 @@ established for `BitunixPriceDataSchema`/`StrictPriceDataSchema`. Numbers are
 accepted but leave the schema as their shortest round-trip string, so no f64
 widening occurs downstream. `ctime` (timestamp) stays a raw union.
 
+Follow-up: those three schemas turned out to be unused (BUG-0437) and were
+removed rather than wired. The money boundary stays enforced by the live
+`BitunixPriceDataSchema` and the `Strict*` variants the WS parser executes.
+
 ## Acceptance criteria
 
 - [x] A test reproduces the defect by validating an API payload with an unrepresentable f64 value that loses precision.
