@@ -30,7 +30,7 @@ vi.mock("./logger", () => ({
 }));
 
 import { accountReadOrder } from "./accountReadOrder";
-import { accountSession } from "./accountSession.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 
 describe("accountReadOrder", () => {
     beforeEach(() => {
@@ -70,13 +70,13 @@ describe("accountReadOrder", () => {
 
     it("drops a read whose account was switched under it (FEAT-0026)", () => {
         const ticket = accountReadOrder.begin();
-        accountSession.rotate("account-switch");
+        accountEpoch.rotate("account-switch");
 
         expect(accountReadOrder.mayApply(ticket)).toBe(false);
     });
 
     it("keeps ordering intact across a rotation", () => {
-        accountSession.rotate("venue-switch");
+        accountEpoch.rotate("venue-switch");
         const stale = accountReadOrder.begin();
         const fresh = accountReadOrder.begin();
 

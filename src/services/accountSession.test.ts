@@ -34,6 +34,7 @@ vi.mock("./logger", () => ({
 }));
 
 import { accountSession } from "./accountSession.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 import { accountState } from "../stores/account.svelte";
 import { omsService } from "./omsService";
 import { tradeState } from "../stores/trade.svelte";
@@ -48,28 +49,28 @@ beforeEach(() => {
 
 describe("the session token", () => {
     it("keeps a captured session valid while nothing switches", () => {
-        const session = accountSession.current();
-        expect(accountSession.isCurrent(session)).toBe(true);
+        const session = accountEpoch.current();
+        expect(accountEpoch.isCurrent(session)).toBe(true);
     });
 
     it("invalidates a captured session on rotation", () => {
-        const session = accountSession.current();
-        accountSession.rotate("account-switch");
-        expect(accountSession.isCurrent(session)).toBe(false);
+        const session = accountEpoch.current();
+        accountEpoch.rotate("account-switch");
+        expect(accountEpoch.isCurrent(session)).toBe(false);
     });
 
     it("invalidates every session captured before the rotation, not just the last", () => {
-        const first = accountSession.current();
-        const second = accountSession.current();
-        accountSession.rotate("venue-switch");
+        const first = accountEpoch.current();
+        const second = accountEpoch.current();
+        accountEpoch.rotate("venue-switch");
 
-        expect(accountSession.isCurrent(first)).toBe(false);
-        expect(accountSession.isCurrent(second)).toBe(false);
+        expect(accountEpoch.isCurrent(first)).toBe(false);
+        expect(accountEpoch.isCurrent(second)).toBe(false);
     });
 
     it("treats a missing session as not current, so an unguarded caller cannot pass by accident", () => {
-        expect(accountSession.isCurrent(null)).toBe(false);
-        expect(accountSession.isCurrent(undefined)).toBe(false);
+        expect(accountEpoch.isCurrent(null)).toBe(false);
+        expect(accountEpoch.isCurrent(undefined)).toBe(false);
     });
 });
 
@@ -132,9 +133,9 @@ describe("reset clears what belongs to the account being left", () => {
     });
 
     it("rotates, so a fetch started before the switch cannot write after it", () => {
-        const inFlight = accountSession.current();
+        const inFlight = accountEpoch.current();
         accountSession.reset("account-switch");
-        expect(accountSession.isCurrent(inFlight)).toBe(false);
+        expect(accountEpoch.isCurrent(inFlight)).toBe(false);
     });
 
     /*
@@ -150,20 +151,20 @@ describe("reset clears what belongs to the account being left", () => {
      * results.
      */
     it("both rotates and clears, and a listener woken after sees the new session", () => {
-        const before = accountSession.seq;
+        const before = accountEpoch.seq;
         accountState.positions = [
             { symbol: "BTCUSDT", side: "long" },
         ] as unknown as typeof accountState.positions;
 
         const seen: number[] = [];
-        accountState.registerSyncCallback(() => seen.push(accountSession.seq));
+        accountState.registerSyncCallback(() => seen.push(accountEpoch.seq));
 
         accountSession.reset("account-switch");
         accountState.requestSync();
 
-        expect(accountSession.seq).toBeGreaterThan(before);
+        expect(accountEpoch.seq).toBeGreaterThan(before);
         expect(accountState.positions).toHaveLength(0);
-        expect(seen).toEqual([accountSession.seq]);
+        expect(seen).toEqual([accountEpoch.seq]);
         accountState.registerSyncCallback(null);
     });
 });
@@ -185,10 +186,10 @@ describe("paper mode", () => {
 
     it("still rotates in paper mode, so a live response cannot land either", () => {
         paperState.setEnabled(true);
-        const inFlight = accountSession.current();
+        const inFlight = accountEpoch.current();
 
         accountSession.reset("account-switch");
 
-        expect(accountSession.isCurrent(inFlight)).toBe(false);
+        expect(accountEpoch.isCurrent(inFlight)).toBe(false);
     });
 });

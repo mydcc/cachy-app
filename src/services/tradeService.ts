@@ -53,7 +53,7 @@ import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
-import { accountSession } from "./accountSession.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 import { accountReadOrder, leverageReadOrder } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
 import { roundDownToStep } from "../lib/calculators/partialClose";
@@ -606,17 +606,17 @@ class TradeService {
         read: () => Promise<void>,
         isApplied: () => boolean,
     ): Promise<"confirmed" | "unconfirmed" | "switched"> {
-        const session = accountSession.current();
+        const session = accountEpoch.current();
 
         for (let attempt = 0; attempt < READ_BACK_ATTEMPTS; attempt++) {
             if (attempt > 0) {
                 await new Promise((resolve) =>
                     setTimeout(resolve, READ_BACK_DELAYS_MS[attempt - 1]),
                 );
-                if (!accountSession.isCurrent(session)) return "switched";
+                if (!accountEpoch.isCurrent(session)) return "switched";
             }
             await read();
-            if (!accountSession.isCurrent(session)) return "switched";
+            if (!accountEpoch.isCurrent(session)) return "switched";
             if (isApplied()) return "confirmed";
         }
         return "unconfirmed";

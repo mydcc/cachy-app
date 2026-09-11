@@ -20,7 +20,7 @@ import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { keysForActiveAccount } from "../stores/settings/accounts";
-import { accountSession } from "./accountSession.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 import { apiService } from "./apiService";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
@@ -179,7 +179,7 @@ export const syncService = {
     // journal write: this routine makes three concurrent REST calls with a
     // deliberate pause between kline batches, so a switch lands inside it
     // routinely rather than exceptionally.
-    const session = accountSession.current();
+    const session = accountEpoch.current();
     const syncAccountId = settings.activeAccountId;
     const syncProvider = settings.apiProvider;
 
@@ -585,7 +585,7 @@ export const syncService = {
 
         // Add trades to journal immediately (streaming/incremental update)
         if (validResults.length > 0) {
-          if (!accountSession.isCurrent(session)) return;
+        if (!accountEpoch.isCurrent(session)) return;
 
           const currentJournalState = journalState.entries;
           const keptJournal = currentJournalState.filter(
@@ -623,7 +623,7 @@ export const syncService = {
       // (isManual === false && status === "Open") before each save, so
       // freshly-fetched pending entries must be re-added here.
       if (pendingEntries.length > 0) {
-        if (!accountSession.isCurrent(session)) return;
+          if (!accountEpoch.isCurrent(session)) return;
 
         const pendingIds = new Set(pendingEntries.map(e => e.id));
         const currentJournalState = journalState.entries;

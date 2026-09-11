@@ -6,6 +6,7 @@ import { marketState } from "../stores/market.svelte";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
 import { accountSession } from "./accountSession.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 import { fundingRateService } from "./fundingRateService.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { paperTradingService } from "./paperTradingService";
@@ -92,7 +93,7 @@ export function setupRealtimeUpdatesEffect(app: any) {
           if (providerChanged || accountChanged) {
             accountSession.reset(providerChanged ? "venue-switch" : "account-switch");
           } else {
-            accountSession.rotate("account-switch");
+            accountEpoch.rotate("account-switch");
           }
 
           connectionManager.switchProvider(provider || "bitunix", { force: true });

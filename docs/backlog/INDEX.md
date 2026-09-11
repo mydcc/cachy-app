@@ -4,7 +4,7 @@
 
 321 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 30 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 258
+Counts by status: 💡 idea 28 · 📋 specced 29 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 259
 
 ---
 
@@ -284,7 +284,7 @@ Counts by status: 💡 idea 28 · 📋 specced 30 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | ✅ done | exchange |
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | ui |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | ✅ done | exchange |
-| [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | trade-panel |
+| [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | ✅ done | trade-panel |
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | ci |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | ci |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
@@ -557,7 +557,7 @@ Counts by status: 💡 idea 28 · 📋 specced 30 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
+| [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | 📋 specced | M4 | community, pro, private | none | none | — |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | none | community, pro, private | none | none | — |

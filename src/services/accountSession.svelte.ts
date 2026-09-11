@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- * Account session — FEAT-0026.
+ * Account session clearing — FEAT-0026.
  *
  * Switching accounts has to do two things, and only one of them is obvious.
  *
@@ -24,19 +24,11 @@
  * data from two accounts without labelling" criterion failing in the worst
  * possible way. `reset()` does that.
  *
- * The one that is easy to miss is the *in-flight* request. Every account
- * fetch in this app reads credentials, awaits a network round trip, and then
- * writes the result into a shared store. Nothing in that sequence re-checks
- * which account it started for. A switch during the await leaves the write
- * unopposed: `syncService` is the extreme case, with three sequential REST
- * calls and a deliberate pause between kline batches, so its window is
- * seconds to minutes.
- *
- * A rotating counter answers that. A caller captures `current()` before its
- * first `await` and checks `isCurrent()` before it writes; a write from a
- * superseded session is dropped rather than blended. The token is branded for
- * the same reason `GatePass` is — a plain number invites a call site to
- * "helpfully" pass `0`.
+ * The one that is easy to miss is the *in-flight* request. The epoch that
+ * answers it — `rotate`/`current`/`isCurrent` — lives in `accountEpoch` now,
+ * split out for BUG-0419 so a mode switch can invalidate its own in-flight
+ * reads without importing this module (and closing a cycle through
+ * `paperTradingService`). `reset()` still rotates first, then clears.
  *
  * What this deliberately does NOT clear is in `reset()`'s own note.
  */
@@ -47,100 +39,63 @@ import { tpSlState } from "../stores/tpsl.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { paperState } from "../stores/paperTrading.svelte";
 import { paperTradingService } from "./paperTradingService";
-import { logger } from "./logger";
-
-declare const sessionBrand: unique symbol;
+import { accountEpoch, type RotationReason } from "./accountEpoch.svelte";
 
 /**
- * Proof that a write was started under the account session still current.
+ * Clear the state that belongs to the account being left.
  *
- * Carries `seq` so a holder can be compared and logged, but the brand means
- * only this module can mint one.
+ * **Rotation happens first, deliberately — but defensively.**
+ * `accountState.reset()` ends with `notifyListeners()`, and the listeners
+ * it wakes go and fetch. That fan-out is debounced, so today nothing runs
+ * synchronously inside `reset()` and the ordering is unobservable. It is
+ * written this way so that a listener which later becomes synchronous
+ * does not start carrying the *old* session and silently discarding its
+ * own results. No test asserts the ordering, because none can.
+ *
+ * Not cleared, each for a reason:
+ * - `paperState` — a separate book, not account-scoped at all. It is
+ *   re-mirrored below, because `paperTradingService` renders it *through*
+ *   the same live stores this clears, so clearing them would empty the
+ *   panel a simulated trader is looking at.
+ * - `marketState` — Class C, venue-scoped, identical for every account.
+ * - `orderAuditService` — append-only, and already stamped with the
+ *   provider and key fingerprint. Clearing it would destroy the record of
+ *   what the *previous* account did, which is the opposite of what an
+ *   audit log is for.
+ * - `riskLimits` — the user's own policy, not fetched state.
  */
-export interface AccountSession {
-    readonly [sessionBrand]: true;
-    readonly seq: number;
+export function resetAccountSession(reason: RotationReason): void {
+    accountEpoch.rotate(reason);
+
+    accountState.reset();
+    omsService.reset();
+    tpSlState.reset();
+    tradeState.clearRemoteAccountState();
+
+    // The paper book renders through the stores just cleared, so without
+    // this a switch would blank a simulated trader's positions, orders and
+    // balance. `paperTradingService.setEnabled` uses the same
+    // clear-then-re-mirror pairing, for the same reason.
+    //
+    // Synchronous, and imported statically: a dynamic import here left the
+    // panel empty for a microtask and made the clear only partly
+    // observable from a caller's point of view. There is no cycle to
+    // avoid — `paperTradingService` reaches `accountState`, `omsService`,
+    // `tradeState` and `paperState`, and none of them reaches back here.
+    //
+    // `syncToStores` is itself a no-op when paper mode is off
+    // (`paperAccountFeed()` returns null), so the guard below is about
+    // not doing pointless work, not about safety.
+    if (paperState.enabled) paperTradingService.syncToStores();
 }
 
-/** Why the session rotated. Kept for the log line, not for control flow. */
-export type RotationReason = "account-switch" | "venue-switch";
-
-class AccountSessionStore {
-    /**
-     * Reactive so a component can key an `$effect` on it and drop its own
-     * local caches — the ones that live in component `$state` and that
-     * `accountState.reset()` therefore cannot reach.
-     */
-    seq = $state(0);
-
-    /** The session a caller is about to do work under. */
-    current(): AccountSession {
-        return { seq: this.seq } as unknown as AccountSession;
-    }
-
-    /** Whether work started under `session` may still write. */
-    isCurrent(session: AccountSession | null | undefined): boolean {
-        return session?.seq === this.seq;
-    }
-
-    /**
-     * Invalidate every in-flight read without touching any store.
-     *
-     * Separate from `reset()` so the ordering there can be deliberate; see
-     * the note on `reset()`.
-     */
-    rotate(reason: RotationReason): void {
-        this.seq += 1;
-        logger.log("governance", `[AccountSession] rotated to ${this.seq}`, { reason });
-    }
-
-    /**
-     * Clear the state that belongs to the account being left.
-     *
-     * **Rotation happens first, deliberately — but defensively.**
-     * `accountState.reset()` ends with `notifyListeners()`, and the listeners
-     * it wakes go and fetch. That fan-out is debounced, so today nothing runs
-     * synchronously inside `reset()` and the ordering is unobservable. It is
-     * written this way so that a listener which later becomes synchronous
-     * does not start carrying the *old* session and silently discarding its
-     * own results. No test asserts the ordering, because none can.
-     *
-     * Not cleared, each for a reason:
-     * - `paperState` — a separate book, not account-scoped at all. It is
-     *   re-mirrored below, because `paperTradingService` renders it *through*
-     *   the same live stores this clears, so clearing them would empty the
-     *   panel a simulated trader is looking at.
-     * - `marketState` — Class C, venue-scoped, identical for every account.
-     * - `orderAuditService` — append-only, and already stamped with the
-     *   provider and key fingerprint. Clearing it would destroy the record of
-     *   what the *previous* account did, which is the opposite of what an
-     *   audit log is for.
-     * - `riskLimits` — the user's own policy, not fetched state.
-     */
-    reset(reason: RotationReason): void {
-        this.rotate(reason);
-
-        accountState.reset();
-        omsService.reset();
-        tpSlState.reset();
-        tradeState.clearRemoteAccountState();
-
-        // The paper book renders through the stores just cleared, so without
-        // this a switch would blank a simulated trader's positions, orders and
-        // balance. `paperTradingService.setEnabled` uses the same
-        // clear-then-re-mirror pairing, for the same reason.
-        //
-        // Synchronous, and imported statically: a dynamic import here left the
-        // panel empty for a microtask and made the clear only partly
-        // observable from a caller's point of view. There is no cycle to
-        // avoid — `paperTradingService` reaches `accountState`, `omsService`,
-        // `tradeState` and `paperState`, and none of them reaches back here.
-        //
-        // `syncToStores` is itself a no-op when paper mode is off
-        // (`paperAccountFeed()` returns null), so the guard below is about
-        // not doing pointless work, not about safety.
-        if (paperState.enabled) paperTradingService.syncToStores();
-    }
-}
-
-export const accountSession = new AccountSessionStore();
+/**
+ * The account-session surface a `reset` belongs to.
+ *
+ * Kept as an object so the call sites that predate the BUG-0419 split
+ * (`accountSession.reset(...)`) read unchanged; the epoch half now lives on
+ * `accountEpoch`.
+ */
+export const accountSession = {
+    reset: resetAccountSession,
+};
