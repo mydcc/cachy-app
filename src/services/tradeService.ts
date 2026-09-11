@@ -56,6 +56,7 @@ import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accou
 import { accountSession } from "./accountSession.svelte";
 import { accountReadOrder, leverageReadOrder } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
+import { roundDownToStep } from "../lib/calculators/partialClose";
 import {
     orderGate,
     assertGatePass,
@@ -1398,6 +1399,19 @@ class TradeService {
                marketState?.symbolMeta?.[normalizeSymbol(params.symbol, "bitunix")])
             : undefined;
 
+        // The venue fills whole multiples of the instrument's step, so a raw
+        // calculator result that lands between steps is refused there — after
+        // the user has already confirmed. Round down to the step before it
+        // travels; the gate still refuses the volume limits (BUG-0380).
+        const stepSize =
+            params.displayed.stepSize ??
+            (meta?.basePrecision !== undefined
+                ? new Decimal(10).pow(-meta.basePrecision)
+                : undefined);
+        const qty = stepSize
+            ? roundDownToStep(new Decimal(params.qty), stepSize)
+            : params.qty;
+
         // formatApiNum everywhere: a price serialised as "1e-7" is rejected
         // by the exchange, and a native float here would undo the precision
         // the calculator spent effort producing.
@@ -1406,7 +1420,7 @@ class TradeService {
             symbol: params.symbol,
             side: params.side,
             orderType,
-            qty: formatApiNum(params.qty),
+            qty: formatApiNum(qty),
             price: params.price !== undefined ? formatApiNum(params.price) : undefined,
             reduceOnly: params.reduceOnly ?? false,
             clientId,
@@ -1434,12 +1448,6 @@ class TradeService {
                 payload.slOrderPrice = formatApiNum(params.stopLoss.orderPrice);
             }
         }
-
-        const stepSize =
-            params.displayed.stepSize ??
-            (meta?.basePrecision !== undefined
-                ? new Decimal(10).pow(-meta.basePrecision)
-                : undefined);
 
         const result = await this.gatedRequest({
             kind: "open",

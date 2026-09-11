@@ -3554,7 +3554,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0380",
     "title": "placeOrder qty is not range-clamped before the exchange gate",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3566,6 +3566,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md"
   },
   {

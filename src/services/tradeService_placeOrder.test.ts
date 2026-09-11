@@ -485,3 +485,35 @@ describe("FEAT-0067 — trading pair metadata rounding and limits in placeOrder"
         expect(sent).toHaveLength(0);
     });
 });
+
+// BUG-0380 — a quantity that is not a whole multiple of the symbol's step is
+// refused by the venue, after the user has already confirmed. It has to reach
+// the exchange already aligned.
+describe("BUG-0380 — qty is clamped to the symbol step before it travels", () => {
+    it("rounds a between-steps quantity down to the nearest step", async () => {
+        await tradeService.placeOrder({
+            ...baseParams(),
+            qty: new Decimal("0.0234"),
+            displayed: { ...displayed(), stepSize: new Decimal("0.01") },
+        });
+
+        // 0.0234 is not a multiple of 0.01; floor(0.0234 / 0.01) = 2.
+        expect(sent).toHaveLength(1);
+        expect(sent[0].qty).toBe("0.02");
+    });
+
+    it("leaves an aligned quantity untouched", async () => {
+        await tradeService.placeOrder({
+            ...baseParams(),
+            qty: new Decimal("0.02"),
+            displayed: { ...displayed(), stepSize: new Decimal("0.01") },
+        });
+        expect(sent[0].qty).toBe("0.02");
+    });
+
+    it("derives the step from basePrecision when none is displayed", async () => {
+        // basePrecision 4 → step 0.0001; 0.02005 is half a step out.
+        await tradeService.placeOrder({ ...baseParams(), qty: new Decimal("0.02005") });
+        expect(sent[0].qty).toBe("0.02");
+    });
+});

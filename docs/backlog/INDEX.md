@@ -4,7 +4,7 @@
 
 321 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 32 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 256
+Counts by status: 💡 idea 28 · 📋 specced 31 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 257
 
 ---
 
@@ -281,7 +281,7 @@ Counts by status: 💡 idea 28 · 📋 specced 32 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | ✅ done | market |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | chat |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | ✅ done | calculator |
-| [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | exchange |
+| [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | ✅ done | exchange |
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | ui |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | exchange |
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | trade-panel |
@@ -554,7 +554,7 @@ Counts by status: 💡 idea 28 · 📋 specced 32 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0363](bugs/BUG-0363-market-manager-metadata-unbounded-growth.md) | MarketManager symbolMeta and positionTiers records grow unbounded and ignore symbol cache eviction | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0372](bugs/BUG-0372-chat-message-text-in-server-logs.md) | Global chat reducer logs every message text to server logs, defeating the 90-day retention promise | P2 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0379](bugs/BUG-0379-calculator-fees-fallback-uses-hardcoded-default.md) | Calculator fee fallback uses hardcoded default instead of per-account remote fee | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0380](bugs/BUG-0380-trade-service-placeorder-qty-not-range-validated.md) | placeOrder qty is not range-clamped before the exchange gate | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0383](bugs/BUG-0383-alert-definitions-modal-has-no-entry-point.md) | Alert management UI unreachable — AlertDefinitionsModal has no entry point | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
