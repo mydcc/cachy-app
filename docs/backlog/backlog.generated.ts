@@ -5981,7 +5981,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0433",
     "title": "Raw leverage fields in Zod schemas accept native numbers",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [

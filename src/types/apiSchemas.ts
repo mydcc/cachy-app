@@ -112,6 +112,9 @@ export const BitunixTradingPairSchema = z.object({
   maxMarketOrderVolume: StrictDecimal.nullable().optional(),
   basePrecision: z.number().optional(),
   quotePrecision: z.number().optional(),
+  // BUG-0433: leverage is a small integer (safe as f64 up to 2^53) and these
+  // are UI range metadata, not money — deliberately numeric so the leverage
+  // slider can do its range arithmetic without a Decimal round-trip.
   minLeverage: z.number().optional(),
   maxLeverage: z.number().optional(),
   defaultLeverage: z.number().optional(),
@@ -133,6 +136,8 @@ export const BitunixPositionTierSchema = z.object({
   level: z.number(),
   startValue: StrictDecimal.nullable().optional(),
   endValue: StrictDecimal.nullable().optional(),
+  // BUG-0433: integer tier metadata, deliberately numeric for the same reason
+  // as the trading-pair leverage fields above.
   leverage: z.number().optional(),
   maintenanceMarginRate: StrictDecimal.nullable().optional(),
 });

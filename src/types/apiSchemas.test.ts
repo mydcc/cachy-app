@@ -58,6 +58,8 @@ describe('BitunixTradingPairResponseSchema', () => {
       }],
     });
     expect(result.data?.[0].maxLeverage).toBe(125);
+    // BUG-0433: leverage metadata stays numeric by decision (UI range math).
+    expect(typeof result.data?.[0].maxLeverage).toBe('number');
     expect(result.data?.[0].isApiSupported).toBe(true);
     expect(result.data?.[0].minTradeVolume?.toString()).toBe('0.0001');
   });
@@ -74,6 +76,8 @@ describe('BitunixPositionTierResponseSchema', () => {
       ],
     });
     expect(result.data).toHaveLength(2);
+    // BUG-0433: tier leverage stays numeric by decision (UI range math).
+    expect(typeof result.data?.[1].leverage).toBe('number');
     expect(result.data?.[1].maintenanceMarginRate?.toString()).toBe('0.005');
   });
 });
