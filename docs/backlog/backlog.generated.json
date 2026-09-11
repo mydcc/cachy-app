@@ -475,6 +475,24 @@
       "file": "bugs/BUG-0079-store-subscribe-timer-leak.md"
     },
     {
+      "id": "BUG-0081",
+      "title": "Trade store leaks auto-save $effect.root closures and timers during HMR",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0081-trade-store-hmr-leak.md"
+    },
+    {
       "id": "BUG-0182",
       "title": "Epic: Migrate Rust/WASM backend to rust_decimal",
       "type": "bug",
@@ -3241,5 +3259,5 @@
       "file": "ideas/IDEA-0199-bitunix-ui-analysis.md"
     }
   ],
-  "count": 142
+  "count": 143
 }
