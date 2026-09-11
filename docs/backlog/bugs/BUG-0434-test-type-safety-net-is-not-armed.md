@@ -2,7 +2,7 @@
 id: BUG-0434
 title: The exhaustive WindowType record cannot fail the build because tsconfig excludes test files
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0434-windowtype-exhaustiveness
 ---
 
 # BUG-0434 — The exhaustive WindowType record cannot fail the build because tsconfig excludes test files
@@ -69,9 +71,20 @@ does not depend on anyone remembering to keep two lists in sync.
 
 ## Acceptance criteria
 
-- [ ] Adding a member to the `WindowType` union without a registered config fails
+- [x] Adding a member to the `WindowType` union without a registered config fails
       `npm run check`.
-- [ ] The claim is verified by demonstration: add a throwaway union member, show the
+- [x] The claim is verified by demonstration: add a throwaway union member, show the
       check goes red, remove it.
-- [ ] The misleading comment in `WindowRegistry.test.ts` is corrected or removed, so no
+- [x] The misleading comment in `WindowRegistry.test.ts` is corrected or removed, so no
       file claims a guarantee it does not provide.
+
+## Fix
+
+The exhaustive record now lives in `WindowRegistry.svelte.ts`
+(`buildDefaultConfigs(): Record<WindowType, WindowConfig>`), a file `svelte-check`
+compiles. Adding a union member without a config is a missing-key compile error
+there. Demonstrated by appending a throwaway member to the union: `tsc` reported
+`WindowRegistry.svelte.ts(129,9): error TS2741: Property '"throwaway-bug0434"'
+is missing in type '{ w…` (exit 2), and the check went green again after removal.
+The misleading `NOTE (BUG-0434)` comment in `WindowRegistry.test.ts` is replaced
+with one that points at the compile-time guard.
