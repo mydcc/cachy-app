@@ -431,6 +431,7 @@ cp .env.example .env
 
 ```env
 PORT=3001
+HOST=127.0.0.1
 ORIGIN=https://cachy.app
 NODE_ENV=production
 ADDRESS_HEADER=X-Forwarded-For
@@ -462,8 +463,9 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 > otherwise a caller could forge the header and spoof any IP, bypassing every
 > per-IP limit.
 >
-> The bundled server listens on **all interfaces** (it does not honour `HOST`),
-> so "not directly reachable" is on you: block the app `PORT` in the firewall.
+> The bundled server binds every interface unless `HOST` is set. Behind this
+> proxy shape, set `HOST=127.0.0.1` (see the sample above) so the app is
+> reachable only through nginx — or block the app `PORT` in the firewall.
 > Confirm from an external host that `http://<server-ip>:<PORT>/api/health` is
 > refused **before** enabling `ADDRESS_HEADER`; otherwise a caller can forge the
 > header and spoof any IP.
