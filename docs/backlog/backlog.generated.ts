@@ -5995,6 +5995,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0433-leverage-f64-schemas.md"
   },
   {
+    "id": "BUG-0437",
+    "title": "Bitunix order/position/ticker validation schemas are never wired",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "backend",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0437-unwired-bitunix-ws-schemas.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
