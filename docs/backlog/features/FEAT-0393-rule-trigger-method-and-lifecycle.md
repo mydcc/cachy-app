@@ -65,7 +65,7 @@ failure, not a silent audit hole.
       **different** content hashes
 - [x] A document written at the previous schema version migrates and keeps its hash
 - [ ] The note appears in the announcement on every channel that can carry text
-- [ ] German and English strings
+- [x] German and English strings
 
 ## Out of scope
 
@@ -93,9 +93,17 @@ failure, not a silent audit hole.
 
 ## Still open
 
-- **The UI half.** The footer (FEAT-0389), the note in the announcement text, and the
-  German/English strings. The core, the schema, the migration and the WASM boundary are
-  in; nothing renders these fields yet.
+- **The note in the announcement (AC 6) is blocked, not skipped.** There is no
+  announcement to put it in: `ruleEvaluationLoop` is still shadow-only — its default
+  `FiringSink` is `shadowSink`, which writes a log line and nothing else. No firing rule
+  reaches `notificationService` today. The note ships the moment a real sink exists, and
+  that sink's owner should carry this AC.
+
+- **Runtime enforcement of frequency and expiry.** The core decides them
+  (`evaluate_with_lifecycle`), but the loop never passes a `RuleState`, so nothing tracks
+  `fired_count` across evaluations yet. Deliberately left with the sink work: persisting
+  fire state belongs next to whatever consumes a firing, not bolted onto a loop that
+  currently discards them.
 
 - [`FEAT-0397`](FEAT-0397-notification-channels.md) — notification channel configuration
 ## Links
