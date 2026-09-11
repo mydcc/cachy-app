@@ -2391,6 +2391,29 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0388-migrate-alerts-to-rule-documents.md"
   },
   {
+    "id": "FEAT-0393",
+    "title": "Trigger method, frequency, validity period and note per rule",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0387",
+      "FEAT-0389"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0393-rule-trigger-method-and-lifecycle.md"
+  },
+  {
     "id": "FEAT-0401",
     "title": "Record a migration origin ledger for rules converted from legacy alerts",
     "type": "feature",
@@ -5228,30 +5251,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0390-price-alert-conditions.md"
   },
   {
-    "id": "FEAT-0391",
-    "title": "A template library for alert rules",
-    "type": "feature",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "M4",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "alerts",
-    "data_class": "A",
-    "adr": "ADR-0012",
-    "depends_on": [
-      "FEAT-0028",
-      "FEAT-0030",
-      "FEAT-0389"
-    ],
-    "size": "M",
-    "estimate": "5",
-    "file": "features/FEAT-0391-alert-template-library.md"
-  },
-  {
     "id": "FEAT-0392",
     "title": "A sound channel for notifications",
     "type": "feature",
@@ -5270,29 +5269,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "S",
     "estimate": "2",
     "file": "features/FEAT-0392-notification-sound-channel.md"
-  },
-  {
-    "id": "FEAT-0393",
-    "title": "Trigger method, frequency, validity period and note per rule",
-    "type": "feature",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "M4",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "alerts",
-    "data_class": "A",
-    "adr": "ADR-0012",
-    "depends_on": [
-      "FEAT-0387",
-      "FEAT-0389"
-    ],
-    "size": "M",
-    "estimate": "5",
-    "file": "features/FEAT-0393-rule-trigger-method-and-lifecycle.md"
   },
   {
     "id": "FEAT-0394",
@@ -5478,6 +5454,50 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0417"
     ],
     "file": "features/FEAT-0420-account-state-setter-only.md"
+  },
+  {
+    "id": "FEAT-0438",
+    "title": "Prove every indicator condition against recorded history",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "C",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0028"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0438-recorded-history-condition-correctness.md"
+  },
+  {
+    "id": "FEAT-0439",
+    "title": "Close the WebGPU leg of cross-path indicator parity",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "C",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0028"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0439-webgpu-cross-path-parity.md"
   },
   {
     "id": "BUG-0007",
@@ -6493,6 +6513,30 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "antigravity",
     "shipped": "1.6.0-beta.213",
     "file": "features/FEAT-0377-gemini-key-header-not-query.md"
+  },
+  {
+    "id": "FEAT-0391",
+    "title": "A template library for alert rules",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0028",
+      "FEAT-0030",
+      "FEAT-0389"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0391-alert-template-library.md"
   },
   {
     "id": "FEAT-0398",

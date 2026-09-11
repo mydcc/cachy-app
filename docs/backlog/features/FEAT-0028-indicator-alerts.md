@@ -39,12 +39,14 @@ indicator alerts trustworthy or not.
 ## Acceptance criteria
 
 - [ ] Each condition fires correctly against recorded historical data, tested
-      per indicator
+      per indicator — owned by [`FEAT-0438`](FEAT-0438-recorded-history-condition-correctness.md)
 - [ ] Closed-candle evaluation is the default and intra-candle is opt-in per
       alert
 - [ ] Recalculation on a corrected candle does not double-fire
 - [ ] Conditions produce identical results across the WASM, GPU and JS paths —
-      or the discrepancy is documented
+      or the discrepancy is documented. WASM↔JS is shipped
+      (`src/services/alertEngine/crossPathParity.test.ts`); the WebGPU leg is owned by
+      [`FEAT-0439`](FEAT-0439-webgpu-cross-path-parity.md)
 - [ ] German and English strings
 
 ## Note added while planning the Super-Alert work (2026-09-04)
