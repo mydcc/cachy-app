@@ -5278,7 +5278,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0394",
     "title": "Candlestick pattern conditions",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
