@@ -3971,7 +3971,9 @@
       "operandDimensionMismatch": "The two sides of this condition are denominated differently — traded volume against something that is not volume. Compare volume against a volume average or against a plain threshold.",
       "nestedWindow": "A window over a window is not supported. Aggregate over a plain value instead — a lowest high or a highest low, not a lowest highest.",
       "invalidWindowLookback": "A window needs at least 2 closes and at most 500. One close is the value itself, and deeper history cannot be loaded reliably.",
-      "ruleWarmupTooDeep": "This rule needs more closed candles than the app can load. Shorten the window or use a shorter indicator period — otherwise the alert would stay silent instead of firing."
+      "ruleWarmupTooDeep": "This rule needs more closed candles than the app can load. Shorten the window or use a shorter indicator period — otherwise the alert would stay silent instead of firing.",
+      "invalidNote": "The note in `{field}` is empty or longer than 280 characters.",
+      "duplicateTriggerMethod": "A trigger channel is listed twice in `{field}`, which would announce the same trigger twice."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",

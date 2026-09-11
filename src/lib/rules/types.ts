@@ -236,9 +236,55 @@ export interface RuleDocument {
   action: RuleAction;
   enabled?: boolean;
   provenance: Provenance;
+
+  /*
+   * FEAT-0393 lifecycle. None of these change the content hash: two rules that
+   * differ only in how loudly they announce themselves are the same strategy,
+   * and a journal entry naming one must keep matching the other.
+   */
+  /**
+   * Which channels announce a trigger. Absent or empty means the notification
+   * service's own default policy — what every rule authored before this field
+   * had.
+   */
+  trigger_methods?: TriggerMethod[];
+  /** How often it may announce. Absent means `once`. */
+  frequency?: TriggerFrequency;
+  /** Epoch ms after which the rule expires *without* firing. */
+  valid_until_ms?: number;
+  /** Why this rule was armed, in the author's words. Class A — never leaves the device. */
+  note?: string;
 }
 
 /** One reason a document was refused, naming the field responsible. */
+/** How often an armed rule may announce itself. Mirrors `lifecycle::TriggerFrequency`. */
+export type TriggerFrequency = "once" | "every_time" | "once_per_candle_close";
+
+/**
+ * A channel a trigger is announced on. Mirrors `lifecycle::TriggerMethod`.
+ *
+ * External channels are deliberately absent: FEAT-0397 has unresolved
+ * constraints, and a type invented for a shape that may not ship is a migration
+ * owed for nothing.
+ */
+export type TriggerMethod = "in_app" | "browser" | "sound";
+
+/** The longest a note may be, in characters. Mirrors `lifecycle::NOTE_MAX_CHARS`. */
+export const NOTE_MAX_CHARS = 280;
+
+/**
+ * What a rule has already done. Mirrors `lifecycle::RuleState`.
+ *
+ * Supplied by whoever owns the rule store, so that evaluation stays a pure
+ * function of its inputs. Omitting it means "never fired", which keeps a caller
+ * that does not track state firing alerts rather than silently muting them.
+ */
+export interface RuleState {
+  fired_count?: number;
+  /** Close instant of the trigger candle the last announcement was anchored on. */
+  last_fired_anchor_ms?: number | null;
+}
+
 export interface RuleRefusal {
   code: string;
   /** Dotted path to the offending field, e.g. `action.consequence_level`. */
@@ -300,6 +346,14 @@ export interface EvaluationContext {
   indicators?: EvaluationIndicatorSeries[];
   feeds?: Record<string, DecimalString>;
   account?: AccountSnapshot;
+  /**
+   * What the rule has already done, for the frequency and validity checks.
+   *
+   * Omit it and the rule is treated as never-fired: a caller that does not
+   * track state keeps the pre-FEAT-0393 behaviour rather than being silently
+   * muted.
+   */
+  state?: RuleState;
 }
 
 /** What an evaluation concluded. Mirrors `evaluate::Verdict`. */
@@ -307,4 +361,8 @@ export type Verdict =
   | { verdict: "fires" }
   | { verdict: "does_not_fire" }
   | { verdict: "suppressed" }
-  | { verdict: "indeterminate"; reason: string };
+  | { verdict: "indeterminate"; reason: string }
+  /** Past its validity period. Lapsed *without* firing — Manage shows expired, not fired. */
+  | { verdict: "expired" }
+  /** Conditions held, but the frequency was already spent on this candle or for good. */
+  | { verdict: "already_fired" };
