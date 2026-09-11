@@ -1,0 +1,142 @@
+{
+  "flow": "position-sizing-core",
+  "description": "Golden-value fixtures for the pure position-sizing and risk math in src/lib/calculators/core.ts. Values are derived independently from the formulas and pinned as exact Decimal strings so any change to precision or arithmetic shows up immediately.",
+  "source": "src/lib/calculators/core.ts",
+  "cases": [
+    {
+      "name": "long-basic",
+      "fn": "calculateBaseMetrics",
+      "tradeType": "long",
+      "values": {
+        "accountSize": "10000",
+        "riskPercentage": "1",
+        "entryPrice": "30000",
+        "stopLossPrice": "29700",
+        "leverage": "10",
+        "fees": "0.0420",
+        "maintenanceMarginRate": "0"
+      },
+      "expected": {
+        "positionSize": "0.33333333333333333333",
+        "requiredMargin": "999.99999999999999999",
+        "netLoss": "108.358",
+        "breakEvenPrice": "30025.210588447147802",
+        "liquidationPrice": "27000",
+        "entryFee": "4.2",
+        "riskAmount": "100"
+      }
+    },
+    {
+      "name": "long-wide-stop-with-mmr",
+      "fn": "calculateBaseMetrics",
+      "tradeType": "long",
+      "values": {
+        "accountSize": "50000",
+        "riskPercentage": "0.5",
+        "entryPrice": "67000",
+        "stopLossPrice": "64000",
+        "leverage": "5",
+        "fees": "0.0420",
+        "maintenanceMarginRate": "0.005"
+      },
+      "expected": {
+        "positionSize": "0.083333333333333333333",
+        "requiredMargin": "1116.6666666666666667",
+        "netLoss": "254.585",
+        "breakEvenPrice": "67056.303647531963425",
+        "liquidationPrice": "53935",
+        "entryFee": "2.345",
+        "riskAmount": "250"
+      }
+    },
+    {
+      "name": "short-basic",
+      "fn": "calculateBaseMetrics",
+      "tradeType": "short",
+      "values": {
+        "accountSize": "20000",
+        "riskPercentage": "2",
+        "entryPrice": "45000",
+        "stopLossPrice": "46500",
+        "leverage": "20",
+        "fees": "0.0420",
+        "maintenanceMarginRate": "0.005"
+      },
+      "expected": {
+        "positionSize": "0.26666666666666666667",
+        "requiredMargin": "600",
+        "netLoss": "410.248",
+        "breakEvenPrice": "44962.215869334879351",
+        "liquidationPrice": "47025",
+        "entryFee": "5.04",
+        "riskAmount": "400"
+      }
+    },
+    {
+      "name": "long-per-leg-maker-taker",
+      "fn": "calculateBaseMetrics",
+      "tradeType": "long",
+      "values": {
+        "accountSize": "10000",
+        "riskPercentage": "1",
+        "entryPrice": "30000",
+        "stopLossPrice": "29700",
+        "leverage": "10",
+        "fees": "0.0420",
+        "entryFees": "0.0140",
+        "exitFees": "0.0550",
+        "maintenanceMarginRate": "0"
+      },
+      "expected": {
+        "positionSize": "0.33333333333333333333",
+        "requiredMargin": "999.99999999999999999",
+        "netLoss": "106.845",
+        "breakEvenPrice": "30020.711391265195858",
+        "liquidationPrice": "27000",
+        "entryFee": "1.4",
+        "riskAmount": "100"
+      }
+    },
+    {
+      "name": "zero-risk-entry-equals-stop",
+      "fn": "calculateBaseMetrics",
+      "tradeType": "long",
+      "values": {
+        "accountSize": "10000",
+        "riskPercentage": "1",
+        "entryPrice": "30000",
+        "stopLossPrice": "30000",
+        "leverage": "10",
+        "fees": "0.0420",
+        "maintenanceMarginRate": "0"
+      },
+      "expected": null
+    },
+    {
+      "name": "two-take-profits",
+      "fn": "calculateTotalMetrics",
+      "tradeType": "long",
+      "values": {
+        "accountSize": "10000",
+        "riskPercentage": "1",
+        "entryPrice": "30000",
+        "stopLossPrice": "29700",
+        "leverage": "10",
+        "fees": "0.0420",
+        "maintenanceMarginRate": "0",
+        "totalPercentSold": "100",
+        "targets": [
+          { "price": "30600", "percent": "50" },
+          { "price": "31200", "percent": "50" }
+        ]
+      },
+      "expected": {
+        "totalNetProfit": "291.474",
+        "totalRR": "2.91474",
+        "totalFees": "8.526",
+        "maxPotentialProfit": "391.432",
+        "riskAmount": "100"
+      }
+    }
+  ]
+}
