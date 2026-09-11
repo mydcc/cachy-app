@@ -41,6 +41,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use super::indicator::IndicatorRef;
+use super::pattern::CandlePattern;
 use super::refusal::{RefusalCode, RuleRefusal};
 use super::timeframe::Timeframe;
 
@@ -385,6 +386,16 @@ pub enum Condition {
     },
     /// all / any / none over members.
     Group { op: LogicOp, of: Vec<Condition> },
+    /// A candlestick pattern printing on the last closed candle of `timeframe`.
+    ///
+    /// Carries no operator: a pattern either printed or it did not, and the
+    /// shapes that would need a threshold (how long is a "long" shadow) are
+    /// settled once in `pattern.rs` rather than per rule, so two traders' hammers
+    /// are the same hammer.
+    Pattern {
+        pattern: CandlePattern,
+        timeframe: Timeframe,
+    },
     /// A third-party aggregate. Legal in `veto`, refused in `conditions`.
     ExternalFeed {
         /// Opaque feed identifier — a screener, a funding rate, a heatmap.
@@ -449,6 +460,9 @@ impl Condition {
                 left.validate(&format!("{field}.left"), out);
                 right.validate(&format!("{field}.right"), out);
                 Self::check_dimensions(left, right, field, out);
+            }
+            Self::Pattern { timeframe, .. } => {
+                Self::check_timeframe(*timeframe, trigger, field, out);
             }
             Self::Position { .. } | Self::Account { .. } => {
                 if !may_read_account {
@@ -545,7 +559,9 @@ impl Condition {
     /// Every timeframe this subtree reads, for the evaluator to pre-load.
     pub fn timeframes(&self, into: &mut Vec<Timeframe>) {
         match self {
-            Self::Compare { timeframe, .. } | Self::Cross { timeframe, .. } => {
+            Self::Compare { timeframe, .. }
+            | Self::Cross { timeframe, .. }
+            | Self::Pattern { timeframe, .. } => {
                 if !into.contains(timeframe) {
                     into.push(*timeframe);
                 }
@@ -584,7 +600,10 @@ impl Condition {
                 }
             }
             Self::Group { of, .. } => of.iter().for_each(|c| c.mark_timeframes(into)),
-            Self::Position { .. } | Self::Account { .. } | Self::ExternalFeed { .. } => {}
+            Self::Pattern { .. }
+            | Self::Position { .. }
+            | Self::Account { .. }
+            | Self::ExternalFeed { .. } => {}
         }
     }
 
@@ -596,6 +615,7 @@ impl Condition {
                 left.warmup_candles().max(right.warmup_candles())
             }
             Self::Group { of, .. } => of.iter().map(|c| c.warmup_candles()).max().unwrap_or(0),
+            Self::Pattern { pattern, .. } => pattern.warmup_candles(),
             _ => 0,
         }
     }

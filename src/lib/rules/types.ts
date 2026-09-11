@@ -130,6 +130,41 @@ export type Operand =
    */
   | { kind: "window"; of: Operand; agg: WindowAgg; lookback: number };
 
+/**
+ * The candlestick patterns the rule core can detect, spelled exactly as the
+ * Rust `CandlePattern` enum serialises them (`technicals-wasm/src/rule/pattern.rs`).
+ *
+ * A name the core does not know is refused at parse rather than ignored, so a
+ * typo here surfaces as a refusal and never as an alarm that quietly never
+ * fires.
+ *
+ * Engulfing and Harami carry their direction in the name. They are two
+ * patterns each, not one: a bullish and a bearish engulfing point opposite
+ * ways, and a direction-less "engulfing" alert would send a trader the wrong
+ * way half the time.
+ */
+export type CandlePatternName =
+  // One candle. These four are two shapes read against the preceding trend:
+  // the same lower-pin candle is a hammer after a fall and a hanging man after
+  // a rise, which is why the core needs trend context for them and not for the
+  // rest.
+  | "hammer"
+  | "inverted_hammer"
+  | "shooting_star"
+  | "hanging_man"
+  // Two candles.
+  | "bullish_engulfing"
+  | "bearish_engulfing"
+  | "piercing_line"
+  | "dark_cloud_cover"
+  | "bullish_harami"
+  | "bearish_harami"
+  // Three candles.
+  | "morning_star"
+  | "evening_star"
+  | "three_white_soldiers"
+  | "three_black_crows";
+
 export type Condition =
   | { kind: "compare"; left: Operand; op: CompareOp; right: Operand; timeframe: TimeframeString }
   | {
@@ -139,6 +174,16 @@ export type Condition =
       right: Operand;
       timeframe: TimeframeString;
     }
+  /**
+   * A candlestick pattern printing on the last closed candle of `timeframe`
+   * (FEAT-0394).
+   *
+   * Detection lives in Rust, next to the evaluator -- there is exactly one
+   * implementation and this is not it. `src/services/candlestickPatterns.ts`
+   * is Academy teaching material that shares these ids so the illustrations
+   * and translations can be reused; no logic crosses between them.
+   */
+  | { kind: "pattern"; pattern: CandlePatternName; timeframe: TimeframeString }
   | { kind: "position"; side: PositionSide; open: boolean }
   | { kind: "account"; field: AccountFieldName; op: CompareOp; value: DecimalString }
   | { kind: "group"; op: LogicOp; of: Condition[] }

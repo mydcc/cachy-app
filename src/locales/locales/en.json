@@ -378,6 +378,40 @@
         "fallReaches": "Fall Reaches",
         "seriesLast": "Last Price",
         "seriesMark": "Mark Price"
+      },
+      "candlesticks": {
+        "legend": "Pattern",
+        "group": {
+          "single": "Single candle",
+          "multiple": "Two candles",
+          "structural": "Three candles"
+        },
+        "groupHint": {
+          "single": "One candle tells the whole story.",
+          "multiple": "The second candle is read against the first.",
+          "structural": "A shape that needs three candles to exist."
+        },
+        "historyHint": "Needs {count} closed candles.",
+        "trendHint": "Needs {count} closed candles: {span} for the shape and {lookback} to read the trend before it.",
+        "closedOnly": "Checked only when a candle closes, so a shape that forms and unforms inside a live candle cannot fire.",
+        "clear": "Clear selection",
+        "none": "Pick a pattern to build the rule.",
+        "meaning": {
+          "hammer": "Buyers reject lower prices after a fall. Bullish reversal.",
+          "hanging_man": "The same shape after a rise, and the opposite warning. Bearish.",
+          "inverted_hammer": "Buyers probe higher after a fall. Bullish reversal.",
+          "shooting_star": "Sellers reject higher prices after a rise. Bearish reversal.",
+          "bullish_engulfing": "An up candle swallows the whole previous down body. Bullish reversal.",
+          "bearish_engulfing": "A down candle swallows the whole previous up body. Bearish reversal.",
+          "piercing_line": "An up candle wins back more than half of the previous fall. Bullish.",
+          "dark_cloud_cover": "A down candle gives back more than half of the previous rise. Bearish.",
+          "bullish_harami": "A small up candle inside a large down body. The fall is stalling.",
+          "bearish_harami": "A small down candle inside a large up body. The rise is stalling.",
+          "morning_star": "A pause at the low, then a strong recovery. Bullish reversal.",
+          "evening_star": "A pause at the high, then a strong drop. Bearish reversal.",
+          "three_white_soldiers": "Three strong up candles marching higher. Bullish continuation.",
+          "three_black_crows": "Three strong down candles marching lower. Bearish continuation."
+        }
       }
     },
     "generalInputs": {
@@ -3837,6 +3871,7 @@
       "onTimeframe": " (on {timeframe})",
       "compare": "{left} is {op} {right}{timeframe}",
       "crossing": "{left} {direction} {right}{timeframe}",
+      "pattern": "a {pattern} prints{timeframe}",
       "lead": {
         "notify": "Notifies",
         "simulate": "Simulates an order",

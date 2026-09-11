@@ -20,13 +20,14 @@ import { windowRegistry } from "./WindowRegistry.svelte";
 import type { WindowType } from "./types";
 
 /**
- * A `Record<WindowType, true>` rather than a plain array: if a new member is
- * ever added to the `WindowType` union without a matching entry here,
- * `npm run check` fails to compile this file (missing key), and if an entry
- * here stops matching a real union member, it fails the same way (excess
- * key). The list can't silently drift out of sync with `types.ts` the way a
- * hand-maintained array could -- this is the mechanism that "would have
- * caught chatpanel" (FEAT-0050's own framing).
+ * A `Record<WindowType, true>` rather than a plain array, so that a member added
+ * to the `WindowType` union without a matching entry here is a type error.
+ *
+ * NOTE (BUG-0434): that type error is currently never surfaced. `tsconfig.json`
+ * excludes every test file from compilation, so `svelte-check` never reads this one, and
+ * Vitest transpiles it without type checking. `alertpanel` went missing here
+ * exactly that way. Treat this record as documentation until the invariant is
+ * moved somewhere the compiler reads -- it is not a safety net today.
  */
 const ALL_WINDOW_TYPES: Record<WindowType, true> = {
     window: true,
@@ -46,6 +47,7 @@ const ALL_WINDOW_TYPES: Record<WindowType, true> = {
     channel: true,
     academy: true,
     dialog: true,
+    alertpanel: true,
 };
 
 describe("WindowRegistry (FEAT-0050)", () => {
@@ -75,6 +77,18 @@ describe("WindowRegistry (FEAT-0050)", () => {
             expect(config.flags.isResponsive, `${type} must go fullscreen on mobile`).toBe(true);
             expect(config.flags.edgeToEdgeBreakpoint).toBe(768);
         }
+    });
+
+    it("keeps the alert panel a singleton via the flag WindowBase actually reads (FEAT-0389)", () => {
+        // WindowBase enforces single-instance through `!allowMultipleInstances`
+        // -- `maxInstances` is declared in types.ts but read nowhere, so an
+        // assertion against it would pass while the panel opened twice. Pin the
+        // flag that carries the behaviour.
+        const config = windowRegistry.getConfig("alertpanel");
+        expect(
+            config.flags.allowMultipleInstances ?? false,
+            "a second alert panel would edit the same draft rule from two places"
+        ).toBe(false);
     });
 });
 
