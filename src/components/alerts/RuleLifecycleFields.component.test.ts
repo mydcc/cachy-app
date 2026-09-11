@@ -30,6 +30,7 @@ import { flushSync, mount, unmount } from "svelte";
 import en from "../../locales/locales/en.json";
 import RuleLifecycleFields from "./RuleLifecycleFields.svelte";
 import { alertPanelState } from "../../stores/alertPanel.svelte";
+import { locale } from "../../locales/i18n";
 
 const dictionary = en as Record<string, unknown>;
 
@@ -42,21 +43,20 @@ function getNestedTranslation(path: string): string {
   return typeof current === "string" ? current : path;
 }
 
-vi.mock("../../locales/i18n", () => {
-  const translate = (key: string) => getNestedTranslation(key);
+vi.mock("../../locales/i18n", async () => {
+  const { writable } = await import("svelte/store");
+  // Interpolates `{name}` placeholders so the summary's formatted date is
+  // observable, unlike the real `$_`, which would need a loaded dictionary.
+  const translate = (key: string, options?: { values?: Record<string, unknown> }) => {
+    let out = getNestedTranslation(key);
+    for (const [name, value] of Object.entries(options?.values ?? {})) {
+      out = out.replace(`{${name}}`, String(value));
+    }
+    return out;
+  };
   return {
-    _: {
-      subscribe: (fn: (val: typeof translate) => void) => {
-        fn(translate);
-        return () => {};
-      },
-    },
-    locale: {
-      subscribe: (fn: (val: string) => void) => {
-        fn("en");
-        return () => {};
-      },
-    },
+    _: writable(translate),
+    locale: writable("en"),
   };
 });
 
@@ -65,6 +65,7 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
   let component: ReturnType<typeof mount> | null = null;
 
   beforeEach(() => {
+    locale.set("en");
     target = document.createElement("div");
     document.body.appendChild(target);
     alertPanelState.reset("BTCUSDT");
@@ -226,5 +227,24 @@ describe("FEAT-0393: RuleLifecycleFields", () => {
 
     expect(input.value).toBe("");
     expect(alertPanelState.draft.valid_until_ms).toBeUndefined();
+  });
+
+  it("shows the expiry in the app's language, not the browser's", () => {
+    // Local-time construction so the calendar day cannot roll over by zone.
+    alertPanelState.draft.valid_until_ms = new Date(2026, 11, 24, 18, 30).getTime();
+
+    locale.set("de");
+    render();
+    const german = target.querySelector("summary")?.textContent ?? "";
+
+    locale.set("en");
+    flushSync();
+    const english = target.querySelector("summary")?.textContent ?? "";
+
+    // `toLocaleString()` followed the OS locale; the summary now follows the
+    // app's, so a German UI shows a German date on an English machine and the
+    // English UI a month name.
+    expect(german).toContain("24.12.2026");
+    expect(english).toContain("Dec 24");
   });
 });

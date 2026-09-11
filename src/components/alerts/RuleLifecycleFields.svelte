@@ -12,7 +12,7 @@
   construction into a different strategy.
 -->
 <script lang="ts">
-    import { _ } from "../../locales/i18n";
+    import { _, locale } from "../../locales/i18n";
     import { alertPanelState } from "../../stores/alertPanel.svelte";
     import {
         NOTE_MAX_CHARS,
@@ -24,6 +24,15 @@
     const METHODS: TriggerMethod[] = ["in_app", "browser", "sound"];
 
     const draft = $derived(alertPanelState.draft);
+
+    /**
+     * An `Intl` locale tag for the app's language, not the browser's.
+     *
+     * `toLocaleString()` follows the OS locale, so a German UI on an English
+     * machine rendered an English date inside a German sentence. The hybrid
+     * `de-tech` locale is not a tag `Intl` accepts, so it maps to plain `de`.
+     */
+    const intlTag = $derived(($locale ?? "en").startsWith("de") ? "de-DE" : "en-US");
 
     /**
      * The expiry as a `datetime-local` value, or "" when the rule never expires.
@@ -96,7 +105,12 @@
         if (draft.valid_until_ms !== undefined) {
             parts.push(
                 $_("dashboard.alerts.panel.lifecycle.summaryUntil", {
-                    values: { date: new Date(draft.valid_until_ms).toLocaleString() },
+                    values: {
+                        date: new Intl.DateTimeFormat(intlTag, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                        }).format(new Date(draft.valid_until_ms)),
+                    },
                 }),
             );
         }
@@ -203,11 +217,11 @@
     }
 
     .summary-label {
-        color: var(--color-text-secondary);
+        color: var(--text-secondary);
     }
 
     .summary-value {
-        color: var(--color-text);
+        color: var(--text-primary);
     }
 
     .row {
@@ -225,17 +239,17 @@
     }
 
     .field-label {
-        color: var(--color-text-secondary);
+        color: var(--text-secondary);
         font-size: var(--font-size-xs, 0.75rem);
     }
 
     .field-input {
         width: 100%;
         padding: 0.35rem 0.5rem;
-        border: 1px solid var(--color-border);
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-sm, 0.25rem);
-        background: var(--color-surface);
-        color: var(--color-text);
+        background: var(--bg-primary);
+        color: var(--text-primary);
         font-size: var(--font-size-sm, 0.875rem);
     }
 
@@ -246,12 +260,12 @@
 
     .field-hint {
         align-self: flex-end;
-        color: var(--color-text-secondary);
+        color: var(--text-secondary);
         font-size: var(--font-size-xs, 0.75rem);
     }
 
     .field-hint.over {
-        color: var(--color-danger);
+        color: var(--danger-color);
     }
 
     .methods {
@@ -268,7 +282,7 @@
         display: flex;
         align-items: center;
         gap: 0.3rem;
-        color: var(--color-text);
+        color: var(--text-primary);
         font-size: var(--font-size-sm, 0.875rem);
     }
 
