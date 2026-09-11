@@ -1,7 +1,10 @@
 <!--
-  Replace <issue_number> below. The `Fixes #` line must stay at the very top of
-  the description so GitHub links the PR to the issue and advances the Kanban
-  card. See AGENTS.md § "Commits & Branches".
+  Keep a single closing reference at the very top of the description so GitHub
+  links the PR to its issue. Use `Fixes #<issue_number>`; for a PR that
+  genuinely links to nothing, replace the line with `[no issue]` (the CI check
+  in scripts/lint-pr-body-refs.ts accepts that marker). Avoid any other
+  closing keyword before an issue number — GitHub links those too.
+  See AGENTS.md § "Commits & Branches".
 -->
 
 Fixes #<issue_number>
