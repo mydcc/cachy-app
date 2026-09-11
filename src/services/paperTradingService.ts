@@ -41,6 +41,7 @@ import { paperState, type PaperPosition } from "../stores/paperTrading.svelte";
 import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { tradeState } from "../stores/trade.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 import { logger } from "./logger";
 import type { OMSPosition } from "./omsTypes";
 
@@ -203,6 +204,18 @@ class PaperTradingService {
      */
     public setEnabled(on: boolean): void {
         if (paperState.enabled === on) return;
+
+        // BUG-0419: a mode switch is an account switch, so it rotates the
+        // session exactly as `accountSession.reset()` does. A read that
+        // started in the mode being left — an `/api/account` or
+        // `/api/leverage-margin-mode` response still in flight — carries the
+        // old epoch and is now refused by `accountReadOrder`/`leverageReadOrder`
+        // instead of being written into the mode the trader just entered.
+        //
+        // Rotation first, the same defensive order `accountSession.reset()`
+        // uses: a listener that later becomes synchronous must not start
+        // carrying the old session into its own fetch.
+        accountEpoch.rotate("mode-switch");
 
         omsService.reset();
         accountState.reset();

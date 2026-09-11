@@ -41,7 +41,7 @@ import { app } from "./app";
 import { connectionManager } from "./connectionManager";
 import { settingsState } from "../stores/settings.svelte";
 import { accountState } from "../stores/account.svelte";
-import { accountSession } from "./accountSession.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 
 import { flushSync } from "svelte";
 
@@ -155,13 +155,13 @@ describe("app.setupRealtimeUpdates - clearing is for identity, not keystrokes", 
   it("still rotates the session on a key edit, so a stale response cannot land", async () => {
     app.setupRealtimeUpdates();
     flushSync();
-    const before = accountSession.current();
+    const before = accountEpoch.current();
 
     settingsState.accountFor("bitunix").keys.key = "edited";
     flushSync();
 
     await vi.waitFor(() => {
-      expect(accountSession.isCurrent(before)).toBe(false);
+      expect(accountEpoch.isCurrent(before)).toBe(false);
     });
   });
 

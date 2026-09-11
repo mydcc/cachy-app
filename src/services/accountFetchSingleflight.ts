@@ -35,7 +35,7 @@
  * being left.
  */
 
-import { accountSession } from "./accountSession.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 
 /** Where an account read was triggered — the coalescing key's trigger half. */
 export type AccountFetchTrigger = "mount" | "keys" | "sync";
@@ -47,7 +47,7 @@ export function accountFetchKey(
   provider: string,
   accountId: string,
 ): string {
-  return `${accountSession.seq}:${provider}:${accountId}:${trigger}`;
+  return `${accountEpoch.seq}:${provider}:${accountId}:${trigger}`;
 }
 
 /**

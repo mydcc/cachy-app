@@ -2,7 +2,9 @@
 id: BUG-0419
 title: A read started before a mode switch can still land after it
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0419-mode-switch-rotates-session
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -67,13 +69,25 @@ which belong in a fix that also touches order pricing:
 Option 1 is the honest one; it is a refactor and wants its own PR and its own
 regression run.
 
+**Implemented (opencode, `fix/bug-0419-mode-switch-rotates-session`).** Option 1:
+the epoch (`seq`/`current`/`isCurrent`/`rotate`) moved into
+`src/services/accountEpoch.svelte.ts`, which imports only the logger; `reset()`
+stays in `accountSession.svelte.ts` and delegates its rotation. That makes the
+epoch importable from `paperTradingService.setEnabled()`, which now rotates with
+`rotate("mode-switch")` before its clears. Every existing epoch consumer
+(`accountReadOrder`, `accountFetchSingleflight`, `tradeService`, `syncService`,
+`appEffects`, `PortfolioInputs`, `PositionsSidebar`) was repointed; the
+`accountSession.reset()` surface is unchanged. Regression:
+`src/services/paperTrading_modeSwitchRace.test.ts` holds each read open across
+the switch — it fails on the unfixed code and passes after.
+
 ## Acceptance criteria
 
-- [ ] A test holds an account read open across a mode switch and asserts the
+- [x] A test holds an account read open across a mode switch and asserts the
       response is discarded
-- [ ] The same for `/api/leverage-margin-mode`
-- [ ] No import cycle is introduced
-- [ ] Every existing `accountSession.reset()` caller still behaves identically
+- [x] The same for `/api/leverage-margin-mode`
+- [x] No import cycle is introduced
+- [x] Every existing `accountSession.reset()` caller still behaves identically
 
 ## Links
 
