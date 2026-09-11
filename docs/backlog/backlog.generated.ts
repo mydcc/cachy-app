@@ -255,7 +255,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0347",
     "title": "Modals show frozen price and PnL due to static snapshot props",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -5163,8 +5163,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0389",
     "title": "Replace the alert modal with a Super-Alert side panel",
     "type": "feature",
-    "status": "ready",
-    "branch": "worktree-super-alert-side-panel-59eaf9",
+    "status": "done",
+    "branch": "worktree-super-alert-panel-shell-2c0093",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5903,7 +5903,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0384",
     "title": "Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5915,7 +5915,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "none",
+    "assignee": "opencode",
+    "branch": "fix/bug-0384-tpsl-no-plan-leg-id",
     "file": "bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md"
   },
   {

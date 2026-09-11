@@ -91,3 +91,33 @@ describe("WindowRegistry (FEAT-0050)", () => {
         ).toBe(false);
     });
 });
+
+/**
+ * FEAT-0389 -- "the chart stays visible and interactive beside it".
+ *
+ * That criterion is not implemented in the panel's own markup; it is these
+ * three registry flags. A backdrop would cover the chart, `closeOnBlur` would
+ * dismiss the panel the moment the trader touched the chart, and centring
+ * would drop it on top of the thing it is meant to sit beside. The modal this
+ * replaced had all three, so a well-meaning "make it consistent with the other
+ * windows" edit is exactly how the old defect comes back.
+ */
+describe("WindowRegistry: the alert panel is not a modal (FEAT-0389)", () => {
+    const config = windowRegistry.getConfig("alertpanel");
+
+    it("shows no backdrop, so the chart behind it stays visible", () => {
+        expect(config.flags.showBackdrop).toBe(false);
+    });
+
+    it("survives a click on the chart", () => {
+        expect(config.flags.closeOnBlur).toBe(false);
+    });
+
+    it("opens beside the chart rather than centred over it", () => {
+        expect(config.flags.centerByDefault).toBe(false);
+    });
+
+    it("allows only one panel, so the bell cannot stack duplicates", () => {
+        expect(config.flags.maxInstances).toBe(1);
+    });
+});

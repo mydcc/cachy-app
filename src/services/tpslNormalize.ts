@@ -49,6 +49,35 @@
 
 import type { TpSlOrder } from "./tradeService";
 
+/**
+ * Inverse of the leg-id scheme described above (BUG-0384): recovers the venue
+ * row id from a leg id by stripping the `${baseId}-tp` / `${baseId}-sl`
+ * suffix this app added.
+ *
+ * Needed when `tpSlState.plansFor()` holds no plan to read `sourceOrderId`
+ * from — the row was pruned, is not hydrated yet, vanished mid-drag, or came
+ * over the WebSocket (which does not carry `sourceOrderId`) — so a chart drag
+ * must not hand the venue an id it has never seen.
+ *
+ * Only a **numeric** base is stripped. Bitunix order ids are numeric
+ * (`docs/bitunix-api/06_tp_sl.md`) while the `-tp` / `-sl` suffix is not, so
+ * this can never truncate a real venue id that merely looks leg-shaped: a
+ * non-numeric base, a missing suffix, or the other leg's suffix all return
+ * the id unchanged. That also leaves the generic non-Bitunix path, which
+ * never split its rows, untouched.
+ *
+ * It rests on the same assumption the scheme itself does (see the file
+ * header): a leg id's base is the venue order id the row was split from.
+ * That is what the API documents, but it has not been confirmed against a
+ * live account (BUG-0386) — if it proves false, this fallback would address
+ * the wrong row rather than a non-existent one. The numeric-base guard above
+ * bounds the damage but does not remove that unconfirmed case.
+ */
+export function stripLegSuffix(orderId: string, leg: "tp" | "sl"): string {
+    const match = /^(\d+)-(tp|sl)$/.exec(orderId);
+    return match && match[2] === leg ? match[1] : orderId;
+}
+
 /** One leg's worth of fields, as they are named on the wire. */
 interface LegFields {
     price?: string;

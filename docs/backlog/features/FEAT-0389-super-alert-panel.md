@@ -2,8 +2,8 @@
 id: FEAT-0389
 title: Replace the alert modal with a Super-Alert side panel
 type: feature
-status: ready
-branch: worktree-super-alert-side-panel-59eaf9
+status: done
+branch: worktree-super-alert-panel-shell-2c0093
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -58,16 +58,16 @@ Tabs load lazily, the way `+layout.svelte:82` already loads the modal.
 
 ## Acceptance criteria
 
-- [ ] The panel opens from the bell and the chart stays visible and interactive beside it
+- [x] The panel opens from the bell and the chart stays visible and interactive beside it
 - [x] Every armed rule renders as a readable sentence in both locales, and the sentence
       changes when the rule changes
 - [x] A rule refused by `validate()` shows the refusal against the offending field, not
       as a single generic message
 - [x] The engine-failed banner is shown whenever `engineStatus === "failed"`
-- [ ] Manage lists armed rules and history with the same behaviour as the current modal
-- [ ] Tabs are code-split; opening the panel does not load every builder
-- [ ] Keyboard reachable and focus-trapped; Escape closes without arming
-- [ ] German and English strings
+- [x] Manage lists armed rules and history with the same behaviour as the current modal
+- [x] Tabs are code-split; opening the panel does not load every builder
+- [x] Keyboard reachable and focus-trapped; Escape closes without arming
+- [x] German and English strings
 
 ## Out of scope
 
@@ -76,9 +76,11 @@ Tabs load lazily, the way `+layout.svelte:82` already loads the modal.
 
 ## Open questions
 
-- **Is there a panel primitive already?** If not, add one beside
-  `src/components/shared/ModalFrame.svelte` rather than restyling the modal into a
-  panel; the stacking authority in `ADR-0006` applies either way.
+- ~~**Is there a panel primitive already?**~~ **Answered:** no, and none was
+  added. `ADR-0006` already requires every floating surface to be a `WindowBase`,
+  so the panel is `AlertPanelWindow` on the shared stack rather than a second
+  primitive beside `ModalFrame.svelte`. Its non-modal behaviour is three registry
+  flags, not markup — see the closing state below.
 
 
 ## Two constraints the window operand hands this item (2026-09-10)
@@ -143,19 +145,42 @@ The shell is built. What exists:
 - `AlertDefinitionsModal.svelte` is deleted; Manage moved to
   `tabs/ManageTab.svelte` with its two cutover notices unchanged.
 
-What is open:
-
-- The five builder tabs are real code-split modules with placeholder bodies.
-  Each is replaced by its own item without touching the shell's loader.
-- The Manage tab keeps the old quick-add form (symbol + price). It leaves when
-  [`FEAT-0390`](FEAT-0390-price-alert-conditions.md) lands — shipping the panel
-  without any way to arm an alarm would have been a regression.
-- The arm button is disabled until the draft has a condition, which no builder
-  can produce yet. The path behind it (validate → `armRule`) is complete and
-  tested, so FEAT-0390 only has to write into `alertPanelState.draft`.
-- The price-source select in the header is not yet wired into the document; it
-  becomes the default `PriceField` for the Price tab's conditions in FEAT-0390.
-
 ## Grooming note (2026-09-08)
 
 Shell merged (#2727). Proven by tests: sentence rendering both locales (`AlertPanelView.component.test.ts`, `ruleSentence.test.ts`), field-anchored refusals, engine-failed banner. Open: bell entry + chart interactivity, Manage parity, tab code-splitting proof, keyboard Escape/focus-trap, panel-chrome strings.
+
+## Closing state (2026-09-10)
+
+The five criteria the grooming note left open were already implemented — by
+#2727 and by FEAT-0390 and FEAT-0395 landing on top of it — and had no test
+holding them. This item closes by writing those tests, so the criteria stop
+depending on someone re-reading the code to know they still hold.
+
+| Criterion | What proves it |
+|---|---|
+| Opens from the bell | `LeftControlPanel.component.test.ts` — the bell raises `uiState.showAlertsModal`, opens rather than toggles, and carries an `aria-label` |
+| Chart stays visible and interactive | `WindowRegistry.test.ts` — `showBackdrop`, `closeOnBlur` and `centerByDefault` are all false for `alertpanel`. These three flags *are* the criterion; a "make it consistent with the other windows" edit is how the modal's defect returns |
+| …and lands *beside* the chart | `implementations/AlertPanelWindow.test.ts` — docks to the right edge on first open, leaves usable width to its left, clamps on a narrow viewport, and does not overrule a position the trader dragged it to |
+| Manage parity | `tabs/ManageTab.component.test.ts` — active vs. history split, fired badge, per-row delete, empty state |
+| Tabs code-split | `tabCodeSplitting.test.ts` — one literal `import()` per tab, no template-literal and no static tab import |
+| Keyboard, focus, Escape | `AlertPanelView.component.test.ts` (Tab wraps at both ends, mid-cycle Tab still moves, Escape arms nothing) and `WindowManager.test.ts` (the panel is Escape-dismissible *despite* `closeOnBlur: false`) |
+| German and English strings | 23 `dashboard.alerts.panel.*` keys, locale parity checked by the i18n suite |
+
+Not covered: no e2e spec drives the bell in a real browser. Every link of the
+chain is asserted at its own level — bell → `uiState` flag → mounted window →
+registry flags → docked geometry — but nothing asserts the rendered result in
+a running app. `tests/e2e/` is where that would go if the panel ever earns a
+regression.
+
+One fix came out of writing the tests: the panel root carried the Tab-trap's
+`onkeydown` with no ARIA role, which the Svelte compiler had been warning about
+(`a11y_no_static_element_interactions`) and which made the trap's container
+invisible to assistive tech. It is now `role="region"` with the panel title as
+its label.
+
+What belongs to other items, not here:
+
+- The five builder tabs are real code-split modules with placeholder bodies.
+  FEAT-0391, FEAT-0030, FEAT-0028 and FEAT-0394 replace the bodies without
+  touching the shell's loader. FEAT-0390 already replaced the Price tab.
+- The price-source select in the header is still not wired into the document.
