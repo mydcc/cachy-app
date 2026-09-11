@@ -26,7 +26,9 @@ import {
     declaresBacklogItem,
     matchPRsForItem,
     mentionsBacklogId,
+    missingClosingRefMessage,
     NO_ISSUE_MARKER,
+    unverifiedClosingRefMessage,
     type MatchablePR,
 } from "./pr-issue-match";
 
@@ -78,6 +80,18 @@ describe("closingReferences", () => {
 
     it("returns empty for no body", () => {
         expect(closingReferences(null)).toEqual([]);
+    });
+
+    it("ignores closing keywords inside a fenced code block (BUG-0431)", () => {
+        expect(closingReferences("Evidence:\n\n```\nFixes #1792\n```\n\nRefs #1792.")).toEqual([]);
+    });
+
+    it("ignores closing keywords inside an indented code block", () => {
+        expect(closingReferences("Evidence:\n\n    Fixes #1792\n\nRefs #1792.")).toEqual([]);
+    });
+
+    it("ignores closing keywords inside a blockquoted fence", () => {
+        expect(closingReferences("> ```\n> Fixes #1792\n> ```\n\nRefs #1792.")).toEqual([]);
     });
 });
 
@@ -334,6 +348,10 @@ describe("checkBodyHasClosingRef", () => {
         expect(checkBodyHasClosingRef(body).ok).toBe(true);
         expect(checkBodyForStrayClosingRefs(body).ok).toBe(false);
     });
+
+    it("does not treat a fenced quote as the PR's closing reference", () => {
+        expect(checkBodyHasClosingRef("```\nFixes #1\n```")).toEqual({ ok: false, reason: "missing" });
+    });
 });
 
 describe("autoFixPRBody", () => {
@@ -396,5 +414,69 @@ describe("autoFixPRBody", () => {
         expect(res.changed).toBe(true);
         expect(res.body).toContain("closed #<!-- -->200");
         expect(checkBodyForStrayClosingRefs(res.body).ok).toBe(true);
+    });
+
+    it("declines to insert a trailer for a non-terminal backlog mirror (BUG-0431)", async () => {
+        const res = await autoFixPRBody({
+            body: "Advances FEAT-0028; two gaps still open.",
+            title: "feat: schema gap one (FEAT-0028)",
+            branch: "feat/feat-0028-schema-gap",
+            findIssueForBacklogId: async () => 1792,
+            verifyBacklogItem: async () => ({
+                isBacklogMirror: true,
+                itemId: "FEAT-0028",
+                baseStatus: "in-progress",
+            }),
+        });
+        expect(res.changed).toBe(false);
+        expect(res.body).not.toContain("Fixes #");
+        expect(res.declined).toEqual({ issueNumber: 1792, itemId: "FEAT-0028", baseStatus: "in-progress" });
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(false);
+        const message = missingClosingRefMessage(res.declined);
+        expect(message).toContain("[no issue]");
+        expect(message).toContain("status: done");
+        expect(message).toContain("FEAT-0028");
+        expect(message).toContain("#1792");
+    });
+
+    it("still inserts a trailer when the mirror item is already terminal", async () => {
+        const res = await autoFixPRBody({
+            body: "Advances FEAT-0028.",
+            title: "feat: x (FEAT-0028)",
+            findIssueForBacklogId: async () => 1792,
+            verifyBacklogItem: async () => ({ isBacklogMirror: true, itemId: "FEAT-0028", baseStatus: "done" }),
+        });
+        expect(res.body.startsWith("Fixes #1792")).toBe(true);
+        expect(res.declined).toBeUndefined();
+    });
+
+    it("inserts a trailer when the issue is not a backlog mirror", async () => {
+        const res = await autoFixPRBody({
+            body: "Address a plain issue.",
+            title: "fix: plain (BUG-0219)",
+            findIssueForBacklogId: async () => 42,
+            verifyBacklogItem: async () => ({ isBacklogMirror: false, itemId: null, baseStatus: null }),
+        });
+        expect(res.body.startsWith("Fixes #42")).toBe(true);
+    });
+
+    it("fails closed with no trailer when the verification lookup flakes", async () => {
+        // A required gate must never insert a closing trailer it could not
+        // verify: the body stays untouched and the caller reports an
+        // infrastructure failure (BUG-0431).
+        const res = await autoFixPRBody({
+            body: "Address a plain issue.",
+            title: "fix: plain (BUG-0219)",
+            findIssueForBacklogId: async () => 42,
+            verifyBacklogItem: async () => null,
+        });
+        expect(res.changed).toBe(false);
+        expect(res.body).not.toContain("Fixes #");
+        expect(res.unverified).toEqual({ issueNumber: 42 });
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(false);
+        const message = unverifiedClosingRefMessage(res.unverified!.issueNumber);
+        expect(message).toContain("infrastructure failure");
+        expect(message).toContain("#42");
+        expect(message).toContain("[no issue]");
     });
 });

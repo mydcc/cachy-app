@@ -15,19 +15,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { stripCodeBlocks } from "./markdown-text";
+
 /**
  * Flip-in-fix-PR verdicts (no bots).
  *
- * A fix PR whose description carries `Fixes #N` for a backlog mirror issue
- * (a `backlog-id:<ID>` label) must flip that item to `status: done` in its
- * own diff — there is no bot that does it after the merge anymore. Pure and
- * unit-testable; the workflow runner (`scripts/check-backlog-flip.ts`)
- * supplies body, labels, base status and diff, this module only decides.
+ * A fix PR whose description carries a line-start closing trailer (`Fixes #N`,
+ * `Closes #N`, …) for a backlog mirror issue (a `backlog-id:<ID>` label) must
+ * flip that item to `status: done` in its own diff — there is no bot that does
+ * it after the merge anymore. Pure and unit-testable; the workflow runner
+ * (`scripts/check-backlog-flip.ts`) supplies body, labels, base status and
+ * diff, this module only decides.
  *
- * Only the enforced line-start trailer counts, never prose (BUG-0220).
+ * Only a line-start trailer counts, never prose (BUG-0220).
  */
 
-export const FIXES_TRAILER_RE = /^Fixes #(\d+)\b/m;
+export const CLOSING_TRAILER_RE = /^(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+#(\d+)\b/im;
 export const NO_ISSUE_RE = /\[no issue\]/i;
 export const FLIP_LINE_RE = /^\+status:\s*done\s*$/m;
 export const TERMINAL_STATUSES = new Set(["done", "dropped"]);
@@ -36,9 +39,17 @@ export type FlipVerdict =
     | { outcome: "pass"; detail: string }
     | { outcome: "fail"; detail: string };
 
-/** Extract the declared issue number from a line-start `Fixes #N` trailer. */
-export function findFixesTrailer(body: string): number | null {
-    const match = body.match(FIXES_TRAILER_RE);
+/**
+ * Extract the declared issue number from a line-start closing trailer.
+ *
+ * Any GitHub closing keyword counts, not just `Fixes`: the presence check
+ * accepts `Closes #N`/`Resolves #N`, so the flip gate must enforce on them too
+ * or a mirror issue could be closed on merge without its item being flipped.
+ * Still line-start only, so prose that merely mentions a keyword cannot
+ * declare a trailer (BUG-0220).
+ */
+export function findClosingTrailer(body: string): number | null {
+    const match = stripCodeBlocks(body).match(CLOSING_TRAILER_RE);
     if (!match) return null;
     const num = Number.parseInt(match[1], 10);
     return Number.isInteger(num) && num > 0 ? num : null;
@@ -74,22 +85,27 @@ export interface FlipInputs {
  *
  * Pass-open by design, fail-closed on findings — mirroring the old bot
  * guards, but as a pre-merge gate instead of a post-merge repair:
- * - no trailer, or an explicit `[no issue]` opt-out: pass (the presence
- *   check in `lint-pr-body-refs.ts` owns the missing-trailer case).
- * - issue labels unreadable (API flake): pass with a warning detail — a
- *   retry on the next push re-evaluates; blocking merges on flakes strands
- *   every backlog PR at once.
+ * - no trailer, or an explicit `[no issue]` opt-out: pass (the opt-out is
+ *   honoured here, before the trailer lookup; the presence check in
+ *   `lint-pr-body-refs.ts` owns the missing-trailer case).
+ * - issue labels unreadable: fail. After the runner's bounded retry a
+ *   still-unreadable lookup is an infrastructure failure, and a required gate
+ *   must not green-light unknown state; the check is red until a re-run can
+ *   read the labels.
  * - issue is not a backlog mirror (no `backlog-id:` label): pass.
  * - item already terminal on base: pass, nothing to flip.
  * - otherwise the diff must contain the `+status: done` line.
  */
 export function checkBacklogFlip(inputs: FlipInputs): FlipVerdict {
-    const declared = findFixesTrailer(inputs.body);
+    if (NO_ISSUE_RE.test(inputs.body)) {
+        return { outcome: "pass", detail: "explicit [no issue] opt-out; flip not required" };
+    }
+    const declared = findClosingTrailer(inputs.body);
     if (declared === null) {
         return { outcome: "pass", detail: "no Fixes trailer; presence is enforced elsewhere" };
     }
     if (inputs.issueLabels === null) {
-        return { outcome: "pass", detail: `labels of #${declared} unreadable; retry on next push` };
+        return { outcome: "fail", detail: `labels of #${declared} unreadable; re-run the check` };
     }
     const idLabel = inputs.issueLabels.find((name) => name.startsWith("backlog-id:"));
     if (!idLabel) {

@@ -3608,7 +3608,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0431",
     "title": "The closing-reference auto-fix inserts a trailer the flip gate then rejects",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3620,6 +3620,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md"
   },
   {
@@ -3639,6 +3640,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0434-test-type-safety-net-is-not-armed.md"
+  },
+  {
+    "id": "BUG-0435",
+    "title": "The body lint mutates the description and the two gates disagree on what it declares",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ci",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0435-presence-and-flip-declaration-semantics.md"
   },
   {
     "id": "FEAT-0019",
@@ -5961,7 +5980,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0433",
     "title": "Raw leverage fields in Zod schemas accept native numbers",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5974,6 +5993,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0433-leverage-f64-schemas.md"
+  },
+  {
+    "id": "BUG-0437",
+    "title": "Bitunix order/position/ticker validation schemas are never wired",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "backend",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0437-unwired-bitunix-ws-schemas.md"
   },
   {
     "id": "FEAT-0022",
@@ -6556,6 +6593,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "ADR-0012",
     "depends_on": [],
     "file": "features/FEAT-0432-refusal-codes-from-one-declaration.md"
+  },
+  {
+    "id": "FEAT-0436",
+    "title": "Detect backlog mirror issues that closed without the item being marked done",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ci",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0436-detect-closed-mirror-without-flip.md"
   },
   {
     "id": "IDEA-0036",

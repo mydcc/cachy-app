@@ -29,18 +29,20 @@
  *   BASE_REF           base branch short name, e.g. `develop` (no `origin/`)
  *   GH_TOKEN           for the read-only `gh issue view` call
  *
- * Exit 0 = rule satisfied or not applicable. Exit 1 = the linked item is
- * not flipped. GitHub/API flakes fail OPEN with a warning (a retry on the
- * next push re-evaluates); deterministic findings fail CLOSED.
+ * Exit 0 = rule satisfied or not applicable. Exit 1 = the linked item is not
+ * flipped, or a lookup still failed after bounded retries. This is a required
+ * gate: deterministic findings fail closed, and so does an infrastructure
+ * lookup failure — a red, re-runnable check, never a silent pass.
  */
 
 import { execFileSync } from "node:child_process";
 import {
     checkBacklogFlip,
-    findFixesTrailer,
+    findClosingTrailer,
     findItemFile,
     readStatus,
 } from "./lib/backlog-flip";
+import { withRetry, LOOKUP_ATTEMPTS } from "./lib/retry";
 
 const body = process.env.PR_BODY ?? "";
 const baseRef = process.env.BASE_REF || "develop";
@@ -55,32 +57,37 @@ function git(args: string[]): string | null {
     }
 }
 
-function warn(msg: string): void {
-    console.warn(`⚠️ [backlog-flip] ${msg}`);
-}
-
-const declared = findFixesTrailer(body);
+const declared = findClosingTrailer(body);
 if (declared === null) {
-    console.log("✅ [backlog-flip] no Fixes trailer; nothing to check.");
+    console.log("✅ [backlog-flip] no closing trailer; nothing to check.");
     process.exit(0);
 }
 
-// Labels decide whether the issue is a backlog mirror. Unreadable labels
-// (API flake, missing token) fail open — the lib documents why.
-let labels: string[] | null = null;
-try {
-    const stdout = execFileSync(
-        "gh",
-        ["issue", "view", String(declared), "--json", "labels", "--jq", ".labels[].name"],
-        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], env: { ...process.env, GH_TOKEN: token ?? "" } },
+// Labels decide whether the issue is a backlog mirror. Lookup failures are
+// retried; if they persist the gate fails closed (a required check must not
+// pass on unknown state).
+const labels = withRetry<string[]>(() => {
+    try {
+        const stdout = execFileSync(
+            "gh",
+            ["issue", "view", String(declared), "--json", "labels", "--jq", ".labels[].name"],
+            { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], env: { ...process.env, GH_TOKEN: token ?? "" } },
+        );
+        return stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+    } catch {
+        return null;
+    }
+});
+if (labels === null) {
+    console.error(
+        `❌ [backlog-flip] labels of #${declared} unreadable after ${LOOKUP_ATTEMPTS} attempts; ` +
+        `re-run the check (infrastructure failure, not a rule violation).`,
     );
-    labels = stdout.split("\n").map((l) => l.trim()).filter(Boolean);
-} catch {
-    warn(`cannot read labels of #${declared}; skipping (retry on next push).`);
+    process.exit(1);
 }
 
-const idLabel = labels?.find((name) => name.startsWith("backlog-id:"));
-if (labels === null || !idLabel) {
+const idLabel = labels.find((name) => name.startsWith("backlog-id:"));
+if (!idLabel) {
     const verdict = checkBacklogFlip({ body, issueLabels: labels, baseStatus: null, fileDiff: "" });
     console.log(`✅ [backlog-flip] ${verdict.detail}.`);
     process.exit(0);
@@ -89,7 +96,14 @@ const itemId = idLabel.slice("backlog-id:".length);
 
 // Locate the item file on base and in this diff. `git ls-tree` on the base
 // ref is cheaper and staler-proof compared to walking the worktree.
-const tree = git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]) ?? "";
+const tree = withRetry(() => git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]));
+if (tree === null) {
+    console.error(
+        `❌ [backlog-flip] cannot read the ${base} tree after ${LOOKUP_ATTEMPTS} attempts; ` +
+        `re-run the check (infrastructure failure, not a rule violation).`,
+    );
+    process.exit(1);
+}
 const itemFile = findItemFile(tree.split("\n"), itemId);
 if (itemFile === null) {
     console.error(
@@ -99,9 +113,24 @@ if (itemFile === null) {
     process.exit(1);
 }
 
-const baseContent = git(["show", `${base}:${itemFile}`]) ?? "";
+const baseContent = withRetry(() => git(["show", `${base}:${itemFile}`]));
+if (baseContent === null) {
+    console.error(
+        `❌ [backlog-flip] cannot read ${itemFile} on ${base} after ${LOOKUP_ATTEMPTS} attempts; ` +
+        `re-run the check (infrastructure failure, not a rule violation).`,
+    );
+    process.exit(1);
+}
 const baseStatus = readStatus(baseContent);
-const fileDiff = git(["diff", `${base}...HEAD`, "--", itemFile]) ?? "";
+
+const fileDiff = withRetry(() => git(["diff", `${base}...HEAD`, "--", itemFile]));
+if (fileDiff === null) {
+    console.error(
+        `❌ [backlog-flip] cannot diff ${itemFile} after ${LOOKUP_ATTEMPTS} attempts; ` +
+        `re-run the check (infrastructure failure, not a rule violation).`,
+    );
+    process.exit(1);
+}
 
 const verdict = checkBacklogFlip({ body, issueLabels: labels, baseStatus, fileDiff });
 if (verdict.outcome === "pass") {

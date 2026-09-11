@@ -249,9 +249,9 @@ npm run backlog:check   # validate front matter and id/number collisions locally
 
 Nothing else. No approval step, no triage meeting — an unsorted item in the
 backlog is better than an idea in a chat log. Set `status: idea` and
-`priority: P3` if you are not sure; that is what those values are for. Do not
-run `npm run backlog:index` and commit `INDEX.md` — see "Index of everything"
-above.
+`priority: P3` if you are not sure; that is what those values are for. Committing
+the regenerated `INDEX.md` (`npm run backlog:index`) belongs in the same PR — see
+"Index of everything" above.
 
 ---
 
