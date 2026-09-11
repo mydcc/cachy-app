@@ -20,6 +20,7 @@
     import { uiState } from "../../stores/ui.svelte";
     import { trackCustomEvent } from "../../services/trackingService";
     import { onMount } from "svelte";
+    import { _ } from "../../locales/i18n";
 
     // SHA-256 Hash of the cheat code (not stored in plaintext)
     const CHEAT_CODE_HASH =
@@ -110,6 +111,7 @@
         checked={settingsState.entitlement.isPro}
         onchange={handleToggle}
         disabled={!settingsState.entitlement.isProLicenseActive}
+        aria-label={$_("app.pro")}
     />
 </div>
 
@@ -210,5 +212,10 @@
 
     .checkbox-wrapper-25 input[type="checkbox"]:focus {
         outline: none;
+    }
+
+    .checkbox-wrapper-25 input[type="checkbox"]:focus-visible {
+        outline: 2px solid var(--accent-color);
+        outline-offset: 2px;
     }
 </style>

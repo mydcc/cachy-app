@@ -497,6 +497,7 @@
         onfocus={() => (isSymbolFocused = true)}
         onblur={() => (isSymbolFocused = false)}
         class="input-field w-full px-3 rounded-md pr-16 relative z-30 touch-manipulation text-sm"
+        aria-label={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
         placeholder={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
         autocomplete="off"
         inputmode="text"
@@ -591,6 +592,7 @@
           ? 'border-[var(--orange-500)] shadow-[0_0_5px_var(--orange-500)]'
           : ''}"
         placeholder={$_("dashboard.tradeSetupInputs.entryPricePlaceholder")}
+        aria-label={$_("dashboard.tradeSetupInputs.entryPricePlaceholder")}
       />
       {#if priceDeviation > 1}
         <div
@@ -743,7 +745,7 @@
           aria-checked={useAtrSl}
         />
         <div
-          class="atr-toggle-track relative w-[36px] h-[12px] peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-0 after:left-0 after:border after:rounded-full after:h-[12px] after:w-[24px]"
+          class="atr-toggle-track relative w-[36px] h-[12px] peer-focus:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--accent-color)] rounded-full peer after:content-[''] after:absolute after:top-0 after:left-0 after:border after:rounded-full after:h-[12px] after:w-[24px]"
         ></div>
       </label>
     </div>
@@ -766,6 +768,9 @@
           onblur={() => (isStopLossPriceFocused = false)}
           oninput={handleStopLossPriceInput}
           class="input-field w-full px-3 rounded-md text-sm"
+          aria-label={$_(
+            "dashboard.tradeSetupInputs.manualStopLossPlaceholder",
+          )}
           placeholder={$_(
             "dashboard.tradeSetupInputs.manualStopLossPlaceholder",
           )}
@@ -790,6 +795,7 @@
               onblur={() => (isAtrValueFocused = false)}
               oninput={handleAtrValueInput}
               class="input-field w-full px-3 rounded-md text-sm"
+              aria-label={$_("dashboard.tradeSetupInputs.atrValuePlaceholder")}
               placeholder={$_("dashboard.tradeSetupInputs.atrValuePlaceholder")}
             />
           </div>
@@ -809,6 +815,9 @@
               onblur={() => (isAtrMultiplierFocused = false)}
               oninput={handleAtrMultiplierInput}
               class="input-field w-full px-3 rounded-md text-sm"
+              aria-label={$_(
+                "dashboard.tradeSetupInputs.multiplierPlaceholder",
+              )}
               placeholder={$_(
                 "dashboard.tradeSetupInputs.multiplierPlaceholder",
               )}

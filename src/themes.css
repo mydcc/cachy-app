@@ -251,14 +251,18 @@
   --scrollbar-thumb: var(--slate-300);
   --scrollbar-track: var(--slate-100);
   --text-primary: var(--slate-900);
-  --text-secondary: var(--slate-500);
-  --text-tertiary: var(--slate-400);
+  /* WCAG 1.4.3: the original slate-500/slate-400/green-600/red-600/orange-500
+     pairings measured 4.34:1, 2.56:1, 3.01:1, 4.41:1 and 2.56:1 on the
+     theme's own backgrounds. These darker tones clear 4.5:1 on both
+     --bg-primary and --bg-tertiary. */
+  --text-secondary: #475569;
+  --text-tertiary: #526172;
   --border-color: var(--slate-300);
   --accent-color: var(--indigo-600);
   --accent-color-hover: var(--indigo-500);
-  --success-color: var(--green-600);
-  --danger-color: var(--red-600);
-  --warning-color: var(--orange-500);
+  --success-color: #166534;
+  --danger-color: #b91c1c;
+  --warning-color: #953800;
   --shadow-tooltip: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
   --text-on-accent: var(--pure-white);
   --text-on-success: var(--pure-white);
@@ -271,10 +275,10 @@
   --btn-danger-bg: var(--red-500);
   --btn-danger-hover-bg: var(--red-600);
   --btn-danger-text: var(--slate-100);
-  --btn-accent-bg: var(--sky-400);
-  --btn-accent-hover-bg: var(--sky-500);
+  --btn-accent-bg: var(--indigo-600);
+  --btn-accent-hover-bg: var(--indigo-500);
   --btn-accent-text: var(--pure-white);
-  --btn-success-bg: var(--green-600);
+  --btn-success-bg: #166534;
   --btn-success-hover-bg: var(--green-700);
   --btn-success-text: var(--pure-white);
 
@@ -931,19 +935,22 @@
   --base3: #fdf6e3;
   --base2: #eee8d5;
   --base1: #e7e1cf;
-  --base00: #657b83;
-  --base01: #586e75;
+  /* WCAG 1.4.3: the stock solarized-light tones (base00 #657b83, base01
+     #586e75, green #859900, red #dc322f, yellow #b58900, blue #268bd2) measured
+     below 4.5:1 on this theme's backgrounds. Darkened to clear AA. */
+  --base00: #3f4d5e;
+  --base01: #475569;
   --base02: #93a1a1;
   --base03: #839496;
   --base04: #002b36;
   /* Added for high contrast text */
-  --blue: #268bd2;
-  --blue-dark: #1e6a9e;
-  --green: #859900;
-  --green-dark: #728300;
-  --red: #dc322f;
+  --blue: #1a5f9e;
+  --blue-dark: #16548c;
+  --green: #166534;
+  --green-dark: #14532d;
+  --red: #b91c1c;
   --orange: #cb4b16;
-  --yellow: #b58900;
+  --yellow: #953800;
   --white-overlay: rgba(255, 255, 255, 0.7);
 
   /* --- Semantic Mapping --- */
@@ -956,6 +963,7 @@
   --scrollbar-track: var(--base2);
   --text-primary: var(--base00);
   --text-secondary: var(--base01);
+  --text-tertiary: #526172;
   --border-color: var(--base02);
   --accent-color: var(--blue);
   --accent-color-hover: var(--blue-dark);
@@ -1933,16 +1941,18 @@
   --ayu-light-bg: #f8f9fa;
   --ayu-light-bg-alt: #f3f4f5;
   --ayu-light-fg: #5c6166;
-  --ayu-light-fg-alt: #8a9199;
+  /* WCAG 1.4.3: fg-alt, green, red, orange and accent measured 3.02:1, 2.17:1,
+     3.54:1, 2.23:1 and 1.80:1 on this theme's backgrounds. Darkened to AA. */
+  --ayu-light-fg-alt: #57606a;
   --ayu-light-border: #e6e6e6;
-  --ayu-light-accent: #ffaa33;
-  --ayu-light-accent-light: #ffb757;
-  --ayu-light-green: #6cbf43;
-  --ayu-light-green-light: #84d259;
-  --ayu-light-red: #e65050;
-  --ayu-light-red-light: #f06969;
-  --ayu-light-orange: #fa8d3e;
-  --ayu-light-blue: #399ee6;
+  --ayu-light-accent: #9a3412;
+  --ayu-light-accent-light: #7c2d12;
+  --ayu-light-green: #166534;
+  --ayu-light-green-light: #14532d;
+  --ayu-light-red: #b91c1c;
+  --ayu-light-red-light: #991b1b;
+  --ayu-light-orange: #953800;
+  --ayu-light-blue: #1f6fbf;
   --ayu-light-border-hover: #d9d9d9;
   --white-overlay: rgba(255, 255, 255, 0.7);
 
@@ -1956,6 +1966,7 @@
   --scrollbar-track: var(--ayu-light-bg);
   --text-primary: var(--ayu-light-fg);
   --text-secondary: var(--ayu-light-fg-alt);
+  --text-tertiary: #526172;
   --border-color: var(--ayu-light-border);
   --accent-color: var(--ayu-light-accent);
   --accent-color-hover: var(--ayu-light-accent-light);
@@ -1963,8 +1974,8 @@
   --danger-color: var(--ayu-light-red);
   --warning-color: var(--ayu-light-orange);
   --text-on-accent: var(--ayu-light-bg);
-  --text-on-success: var(--ayu-light-fg);
-  --text-on-danger: var(--ayu-light-fg);
+  --text-on-success: #ffffff;
+  --text-on-danger: #ffffff;
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-light-border);
@@ -1972,13 +1983,13 @@
   --btn-default-text: var(--ayu-light-fg);
   --btn-danger-bg: var(--ayu-light-red);
   --btn-danger-hover-bg: var(--ayu-light-red-light);
-  --btn-danger-text: var(--ayu-light-fg);
+  --btn-danger-text: #ffffff;
   --btn-accent-bg: var(--ayu-light-accent);
   --btn-accent-hover-bg: var(--ayu-light-accent-light);
   --btn-accent-text: var(--ayu-light-bg);
   --btn-success-bg: var(--ayu-light-green);
   --btn-success-hover-bg: var(--ayu-light-green-light);
-  --btn-success-text: var(--ayu-light-fg);
+  --btn-success-text: #ffffff;
 
   /* --- Toggle & UI --- */
   --toggle-bg-off: var(--ayu-light-border);
@@ -2134,19 +2145,22 @@
   --gh-light-fg-alt: #57606a;
   --gh-light-blue: #0969da;
   --gh-light-blue-light: #2c85e9;
-  --gh-light-green: #1f883d;
-  --gh-light-green-light: #26a14a;
+  /* WCAG 1.4.3: green #1f883d measured 4.03:1 and orange #9a6700 4.34:1 on
+     bg-tertiary; the accent button #2da44e held white text at 3.22:1.
+     Darkened to clear AA. */
+  --gh-light-green: #166534;
+  --gh-light-green-light: #14532d;
   --gh-light-red: #cf222e;
   --gh-light-red-light: #e5535d;
-  --gh-light-orange: #9a6700;
+  --gh-light-orange: #953800;
   --gh-light-purple: #8250df;
   --gh-light-white: #ffffff;
   --gh-light-btn-bg: #f6f8fa;
   --gh-light-btn-hover-bg: #f0f2f5;
   --gh-light-btn-danger-bg: #d73a49;
   --gh-light-btn-danger-hover-bg: #cf222e;
-  --gh-light-btn-accent-bg: #2da44e;
-  --gh-light-btn-accent-hover-bg: #2c974b;
+  --gh-light-btn-accent-bg: #1a7f37;
+  --gh-light-btn-accent-hover-bg: #166534;
   --white-overlay: rgba(255, 255, 255, 0.7);
 
   /* --- Semantic Mapping --- */
@@ -2159,6 +2173,7 @@
   --scrollbar-track: var(--gh-light-bg-alt);
   --text-primary: var(--gh-light-fg);
   --text-secondary: var(--gh-light-fg-alt);
+  --text-tertiary: #526172;
   --border-color: var(--gh-light-border);
   --accent-color: var(--gh-light-blue);
   --accent-color-hover: var(--gh-light-blue-light);
@@ -2229,7 +2244,11 @@ select {
   height: 42px;
   max-height: 42px;
   background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  /* WCAG 1.4.11: the field fill (--bg-tertiary) sits barely above the page
+     (--bg-primary) in most themes, so a --border-color stroke — which equals
+     the fill in the default palette — leaves the control boundary invisible.
+     --text-secondary is guaranteed readable on both surfaces. */
+  border: 1px solid var(--text-secondary);
   border-radius: var(--radius-md);
   padding: 0 var(--space-3);
   color: var(--text-primary);
