@@ -3971,7 +3971,9 @@
       "operandDimensionMismatch": "Die beiden Seiten dieser Bedingung haben unterschiedliche Einheiten — gehandeltes Volumen gegen etwas, das kein Volumen ist. Vergleiche Volumen mit einem Volumendurchschnitt oder mit einem festen Schwellwert.",
       "nestedWindow": "Ein Fenster über einem Fenster wird nicht unterstützt. Aggregiere über einen einfachen Wert — ein tiefstes Hoch oder ein höchstes Tief, nicht ein tiefstes Höchstes.",
       "invalidWindowLookback": "Ein Fenster braucht mindestens 2 und höchstens 500 Kerzenschlüsse. Ein Schluss ist der Wert selbst, und tiefere Historie lässt sich nicht zuverlässig laden.",
-      "ruleWarmupTooDeep": "Diese Regel braucht mehr geschlossene Kerzen, als die App laden kann. Verkürze das Fenster oder die Indikator-Periode — sonst bliebe der Alarm stumm, statt auszulösen."
+      "ruleWarmupTooDeep": "Diese Regel braucht mehr geschlossene Kerzen, als die App laden kann. Verkürze das Fenster oder die Indikator-Periode — sonst bliebe der Alarm stumm, statt auszulösen.",
+      "invalidNote": "Die Notiz in `{field}` ist leer oder länger als 280 Zeichen.",
+      "duplicateTriggerMethod": "Ein Auslöse-Kanal ist in `{field}` doppelt aufgeführt und würde denselben Auslöser zweimal melden."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",

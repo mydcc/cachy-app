@@ -42,6 +42,7 @@
 use super::condition::{Condition, CrossDirection, Operand, PriceField, PriceSource};
 use super::consequence::{ConsequenceLevel, RuleAction};
 use super::document::{AuthoringSource, Provenance, RuleDocument};
+use super::lifecycle::TriggerFrequency;
 use super::refusal::Refused;
 use super::timeframe::Timeframe;
 use super::version::SchemaVersion;
@@ -99,6 +100,10 @@ pub fn rule_from_alert(
             created_at_ms,
             model: None,
         },
+        trigger_methods: Vec::new(),
+        frequency: TriggerFrequency::Once,
+        valid_until_ms: None,
+        note: None,
     };
 
     document.validate()?;

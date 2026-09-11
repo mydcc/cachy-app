@@ -2,8 +2,9 @@
 id: FEAT-0393
 title: Trigger method, frequency, validity period and note per rule
 type: feature
-status: specced
+status: in-progress
 priority: P1
+assignee: mydcc
 milestone: M4
 editions: [community, pro, private]
 area: alerts
@@ -54,14 +55,15 @@ failure, not a silent audit hole.
 
 ## Acceptance criteria
 
-- [ ] Frequency `once` disarms after firing; `every time` stays armed; `once per candle
+- [x] Frequency `once` disarms after firing; `every time` stays armed; `once per candle
       close` fires at most once per closed trigger candle
-- [ ] A rule past its validity period expires and does **not** fire, and Manage shows it
-      as expired rather than as fired
-- [ ] Two rules differing only in frequency, validity or note have the **same** content hash
-- [ ] Two rules differing in symbol, timeframe, conditions or consequence level have
+- [x] A rule past its validity period expires and does **not** fire, and Manage shows it
+      as expired rather than as fired — core reports `Verdict::Expired`, distinct from
+      `AlreadyFired`; the Manage surface itself lands with the UI half
+- [x] Two rules differing only in frequency, validity or note have the **same** content hash
+- [x] Two rules differing in symbol, timeframe, conditions or consequence level have
       **different** content hashes
-- [ ] A document written at the previous schema version migrates and keeps its hash
+- [x] A document written at the previous schema version migrates and keeps its hash
 - [ ] The note appears in the announcement on every channel that can carry text
 - [ ] German and English strings
 
@@ -69,10 +71,31 @@ failure, not a silent audit hole.
 
 - Snooze and per-rule cooldown. Related, but a separate decision.
 
-## Open questions
+## Resolved while building (2026-09-11)
 
-- **Does "once per candle close" mean the trigger timeframe's candle?** It should, but
-  say so explicitly — a rule reading three timeframes has three candidate answers.
+- **"Once per candle close" means the trigger timeframe's candle.** Settled in
+  `lifecycle::TriggerFrequency::OncePerCandleClose`: it is the only candle the rule is
+  already anchored on, so counting against it needs no second notion of "now".
+
+- **`schema_version` had to leave the hash.** It was hashed at v1, so a migrated
+  document could not possibly keep its hash and AC 5 was unsatisfiable as written. It is
+  now in `EXCLUDED_FROM_HASH`: how a document is *encoded* is not what it says. This is
+  affordable exactly once, before any rule is live on a funded account.
+
+- **Expiry and frequency read the anchor candle's close instant, not a wall clock.**
+  `evaluate` is pure by design; taking a clock reading inside it would make a backtest
+  expire every rule against today's date. `RuleState` is passed in by whoever owns the
+  store for the same reason.
+
+- **The four fields are flat on `RuleDocument`, not nested in a `lifecycle` object.**
+  `canonical_value()` excludes by key name, so a nested bag would be one entry in
+  `EXCLUDED_FROM_HASH` and anything added inside it later would go unhashed in silence.
+
+## Still open
+
+- **The UI half.** The footer (FEAT-0389), the note in the announcement text, and the
+  German/English strings. The core, the schema, the migration and the WASM boundary are
+  in; nothing renders these fields yet.
 
 - [`FEAT-0397`](FEAT-0397-notification-channels.md) — notification channel configuration
 ## Links
