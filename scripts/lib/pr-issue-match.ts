@@ -16,7 +16,7 @@
  */
 
 import { stripCodeBlocks } from "./markdown-text";
-import { TERMINAL_STATUSES } from "./backlog-flip";
+import { TERMINAL_STATUSES, findClosingTrailer } from "./backlog-flip";
 
 /**
  * Deciding which open pull requests belong to a backlog item.
@@ -176,7 +176,7 @@ export type ClosingRefPresenceCheck =
     | { ok: false; reason: "missing" };
 
 /**
- * Does this PR description close anything at all?
+ * Does this PR description declare a closing trailer?
  *
  * The missing half of the rule. AGENTS.md has always required `Fixes #N`, but
  * nothing checked for *presence* — only for stray extra references — so the
@@ -184,14 +184,19 @@ export type ClosingRefPresenceCheck =
  * keyword at all: GitHub closed nothing, the backlog markdown said `done`,
  * and both issues stayed open until someone noticed by hand (BUG-0307).
  *
+ * The declaration is the same one the flip gate enforces: a line-start
+ * closing trailer (`findClosingTrailer`), never a keyword that merely appears
+ * in prose. An inline-only closing keyword no longer satisfies presence
+ * (BUG-0435); it is a stray to neutralize, not a declaration.
+ *
  * `[no issue]` is the explicit escape hatch; silence is not.
  */
 export function checkBodyHasClosingRef(body: string | null | undefined): ClosingRefPresenceCheck {
     if (body && body.toLowerCase().includes(NO_ISSUE_MARKER)) {
         return { ok: true, declared: null, optedOut: true };
     }
-    const refs = closingReferences(body);
-    if (refs.length > 0) return { ok: true, declared: refs[0], optedOut: false };
+    const declared = findClosingTrailer(body ?? "");
+    if (declared !== null) return { ok: true, declared, optedOut: false };
     return { ok: false, reason: "missing" };
 }
 
@@ -234,9 +239,9 @@ export interface AutoFixPRBodyContext {
     branch?: string;
     findIssueForBacklogId?: (backlogId: string) => Promise<number | null>;
     /**
-     * Resolve labels and base status for a candidate issue. Returning `null`
-     * means the lookup itself failed (API flake): the auto-fix then behaves as
-     * before and fails open, mirroring `checkBacklogFlip`.
+     * Resolve labels and base status for a candidate issue, for guidance only.
+     * Returning `null` means the lookup itself failed: the auto-fix reports
+     * `unverified` and changes nothing, and the caller fails closed.
      */
     verifyBacklogItem?: (issueNumber: number) => Promise<BacklogIssueVerification | null>;
 }
@@ -262,15 +267,18 @@ export interface AutoFixPRBodyResult {
 }
 
 /**
- * Repairs missing closing references or stray keywords in a PR body.
+ * Repairs a PR body without ever adding closing power.
  *
- * 1. If missing closing reference:
- *    - Finds Backlog-ID in title, branch, or body.
- *    - If an issue is resolved, prepends `Fixes #N`.
- *    - If no issue exists (standalone backlog item), appends `[no issue]`.
- *    - If no Backlog-ID exists but title is standard chore/ci/docs/test/refactor, appends `[no issue]`.
- * 2. If stray closing references exist in prose, breaks their keywords (`closed #<!-- -->123`)
- *    to prevent accidental issue closing on squash merge (BUG-0220 / BUG-0221).
+ * The auto-fix only neutralizes stray closing keywords in prose (breaking them
+ * so a merge cannot close the wrong issue). It never prepends a `Fixes #N`
+ * trailer and never appends `[no issue]`: a closing reference — or an explicit
+ * opt-out — is a claim only the author can make, and inventing either is what
+ * produced BUG-0431 and the BUG-0307 drift in reverse.
+ *
+ * When the trailer is missing, the candidate backlog issue is still resolved
+ * so the failure message can name the item and whether it is finished
+ * (`declined`), or that it could not be read at all (`unverified`). Guidance
+ * is returned; the author writes the line (BUG-0435).
  */
 export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixPRBodyResult> {
     let body = ctx.body;
@@ -310,24 +318,17 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
                         itemId: verification.itemId,
                         baseStatus: verification.baseStatus,
                     };
-                } else {
-                    body = `Fixes #${issueNumber}\n\n${body.trimStart()}`;
-                    changed = true;
-                    actionTaken = `Prepend Fixes #${issueNumber} for ${backlogId}`;
                 }
-            } else {
-                body = `${body.trimEnd()}\n\n${NO_ISSUE_MARKER}\n`;
-                changed = true;
-                actionTaken = `Append ${NO_ISSUE_MARKER} for ${backlogId}`;
+                // (BUG-0435) Otherwise nothing: even a verified-safe trailer is
+                // written by the author, never invented here.
             }
-        } else {
-            const isToolingOrChore = /^(chore|ci|docs|test|refactor)(\(.*\))?:/i.test(title);
-            if (isToolingOrChore) {
-                body = `${body.trimEnd()}\n\n${NO_ISSUE_MARKER}\n`;
-                changed = true;
-                actionTaken = `Append ${NO_ISSUE_MARKER} for tooling PR`;
-            }
+            // (BUG-0435) Nothing is appended when no issue is resolved — not a
+            // trailer, not `[no issue]`. A failed lookup could still mean an
+            // issue exists, and inventing an opt-out is as wrong as inventing
+            // a trailer. Leave the body; the generic guidance covers it.
         }
+        // (BUG-0435) No tooling/chore opt-out is invented either: only the
+        // author can declare or opt out.
     }
 
     // 2. Check for stray closing references in prose

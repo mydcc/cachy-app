@@ -352,6 +352,14 @@ describe("checkBodyHasClosingRef", () => {
     it("does not treat a fenced quote as the PR's closing reference", () => {
         expect(checkBodyHasClosingRef("```\nFixes #1\n```")).toEqual({ ok: false, reason: "missing" });
     });
+
+    it("does not treat an inline-only closing keyword as a declaration (BUG-0435)", () => {
+        expect(checkBodyHasClosingRef("Today this closes #2002, FYI.")).toEqual({ ok: false, reason: "missing" });
+    });
+
+    it("treats a line-start Closes trailer as the declaration (BUG-0435)", () => {
+        expect(checkBodyHasClosingRef("Closes #42\n\nBody.")).toEqual({ ok: true, declared: 42, optedOut: false });
+    });
 });
 
 describe("autoFixPRBody", () => {
@@ -372,38 +380,38 @@ describe("autoFixPRBody", () => {
         expect(res.changed).toBe(false);
     });
 
-    it("prepends Fixes #N when a backlog ID has an existing issue", async () => {
+    it("never prepends a trailer when a backlog ID has an existing issue (BUG-0435)", async () => {
         const res = await autoFixPRBody({
             body: "Addresses FEAT-0359 in modal.",
             title: "perf(ui): lazy-load markdownLoader",
             branch: "feat/feat-0359-lazy-load",
             findIssueForBacklogId: async (id) => (id === "FEAT-0359" ? 2500 : null),
         });
-        expect(res.changed).toBe(true);
-        expect(res.body.startsWith("Fixes #2500\n\nAddresses FEAT-0359")).toBe(true);
-        expect(checkBodyHasClosingRef(res.body).ok).toBe(true);
+        expect(res.changed).toBe(false);
+        expect(res.body).toBe("Addresses FEAT-0359 in modal.");
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(false);
     });
 
-    it("appends [no issue] when a backlog ID has no matching GitHub issue", async () => {
+    it("never appends [no issue] when a backlog ID has no matching issue (BUG-0435)", async () => {
         const res = await autoFixPRBody({
             body: "Addresses FEAT-0359 in modal.",
             title: "perf(ui): lazy-load markdownLoader",
             branch: "feat/feat-0359-lazy-load",
             findIssueForBacklogId: async () => null,
         });
-        expect(res.changed).toBe(true);
-        expect(res.body).toContain("[no issue]");
-        expect(checkBodyHasClosingRef(res.body).ok).toBe(true);
+        expect(res.changed).toBe(false);
+        expect(res.body).not.toContain("[no issue]");
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(false);
     });
 
-    it("appends [no issue] for standard chore / tooling PR without backlog ID", async () => {
+    it("never invents an opt-out for standard chore / tooling PRs (BUG-0435)", async () => {
         const res = await autoFixPRBody({
             body: "Updated dependencies to latest.",
             title: "chore: bump dependencies",
         });
-        expect(res.changed).toBe(true);
-        expect(res.body).toContain("[no issue]");
-        expect(checkBodyHasClosingRef(res.body).ok).toBe(true);
+        expect(res.changed).toBe(false);
+        expect(res.body).not.toContain("[no issue]");
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(false);
     });
 
     it("neutralizes stray closing references in prose to prevent BUG-0220", async () => {
@@ -439,25 +447,30 @@ describe("autoFixPRBody", () => {
         expect(message).toContain("#1792");
     });
 
-    it("still inserts a trailer when the mirror item is already terminal", async () => {
+    it("leaves a terminal-mirror body to the author instead of inserting (BUG-0435)", async () => {
         const res = await autoFixPRBody({
             body: "Advances FEAT-0028.",
             title: "feat: x (FEAT-0028)",
             findIssueForBacklogId: async () => 1792,
             verifyBacklogItem: async () => ({ isBacklogMirror: true, itemId: "FEAT-0028", baseStatus: "done" }),
         });
-        expect(res.body.startsWith("Fixes #1792")).toBe(true);
+        expect(res.changed).toBe(false);
+        expect(res.body).toBe("Advances FEAT-0028.");
         expect(res.declined).toBeUndefined();
+        expect(res.unverified).toBeUndefined();
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(false);
     });
 
-    it("inserts a trailer when the issue is not a backlog mirror", async () => {
+    it("leaves a non-mirror body to the author instead of inserting (BUG-0435)", async () => {
         const res = await autoFixPRBody({
             body: "Address a plain issue.",
             title: "fix: plain (BUG-0219)",
             findIssueForBacklogId: async () => 42,
             verifyBacklogItem: async () => ({ isBacklogMirror: false, itemId: null, baseStatus: null }),
         });
-        expect(res.body.startsWith("Fixes #42")).toBe(true);
+        expect(res.changed).toBe(false);
+        expect(res.body).toBe("Address a plain issue.");
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(false);
     });
 
     it("fails closed with no trailer when the verification lookup flakes", async () => {
