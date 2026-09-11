@@ -47,6 +47,7 @@ is required to run Cachy** — the file exists for optional knobs:
 - `ORIGIN` — the public URL, needed for correct CSRF/form handling behind a proxy
 - `ADDRESS_HEADER` / `XFF_DEPTH` — make rate limiting see real client IPs behind a reverse proxy
 - `LOG_STREAM_KEY` — protects the debug log stream endpoint
+- `SHUTDOWN_TIMEOUT` — seconds to drain in-flight requests on SIGTERM/SIGINT (default `9`)
 
 API authentication needs no configuration: the app mints its own access token
 automatically (see [ADR-0002](adr/0002-api-authentication-fails-closed.md)).

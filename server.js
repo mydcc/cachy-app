@@ -44,6 +44,36 @@ app.use(express.static('build/client', {
 app.use(handler);
 
 const port = process.env.PORT || "3001";
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Starting server on port ${port}...`);
 });
+
+// Drain in-flight requests on SIGTERM/SIGINT instead of dropping them. Without
+// this, deploy.sh's SIGTERM grace period is pointless: the process dies on the
+// first signal and any request mid-flight is cut. SHUTDOWN_TIMEOUT keeps
+// adapter-node's unit (seconds); the default sits just under deploy.sh's 10s
+// SIGTERM-to-SIGKILL window so a clean exit wins the race.
+const shutdownTimeoutMs =
+  (Number(process.env.SHUTDOWN_TIMEOUT) > 0 ? Number(process.env.SHUTDOWN_TIMEOUT) : 9) * 1000;
+
+let shuttingDown = false;
+for (const signal of ["SIGTERM", "SIGINT"]) {
+  process.on(signal, () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`Received ${signal}, draining in-flight requests...`);
+    server.close(() => {
+      console.log("All connections closed, exiting.");
+      process.exit(0);
+    });
+    // Idle keep-alive sockets would otherwise hold server.close() open until
+    // their timeout, even though no request is in flight.
+    server.closeIdleConnections?.();
+    // Hard stop for requests that do not finish in time. unref() so the timer
+    // itself never keeps the process alive after a clean close.
+    setTimeout(() => {
+      console.warn(`Shutdown timeout (${shutdownTimeoutMs}ms) reached, forcing exit.`);
+      process.exit(1);
+    }, shutdownTimeoutMs).unref();
+  });
+}
