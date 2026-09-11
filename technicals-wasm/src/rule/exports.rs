@@ -620,3 +620,15 @@ mod tests {
         assert_eq!(verdict, r#"{"verdict":"does_not_fire"}"#, "expected the newly-closed second 4h candle to be read");
     }
 }
+
+/// The indicator registry as JSON.
+///
+/// Exported for `indicatorCatalogue.test.ts`, which fails when the panel's
+/// catalogue and this registry disagree about which indicators exist, what
+/// they take or what their output lines are denominated in (FEAT-0028). The
+/// running app never calls it — the catalogue carries the labels, and this
+/// carries the identities.
+#[wasm_bindgen]
+pub fn rule_indicator_registry() -> String {
+    super::indicator::registry_json()
+}

@@ -84,3 +84,17 @@ of that mapping through `validate()` so a wrong parameter name cannot ship.
 - [`FEAT-0029`](FEAT-0029-drawing-alerts.md) — the neighbouring entry point
 - [`FEAT-0389`](FEAT-0389-super-alert-panel.md), [`FEAT-0390`](FEAT-0390-price-alert-conditions.md)
 - `src/components/settings/tabs/IndicatorCard.svelte`
+
+## State (2026-09-11)
+
+**The blocker is lifted.** `IndicatorsTab.svelte` is a real builder as of
+FEAT-0028, so "Alert on this indicator" now has somewhere to land and a
+pre-filled draft can be edited before arming.
+
+What the second half still needs is unchanged in substance and shorter by one
+item: the mapping from the panel's indicator settings
+(`src/stores/indicator.svelte.ts`, camelCase `rsi.length`) to the core's
+identities (`rsi`/`period`), and the `IndicatorRef[]` seed channel for cards
+that carry several configured lines. The test that runs every entry of that
+mapping through `validate()` now has a sibling to copy:
+`indicatorCatalogue.test.ts` does exactly that for the catalogue's defaults.
