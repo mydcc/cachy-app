@@ -98,8 +98,6 @@ export const BitunixKlineSchema = z.object({
   ts: z.union([z.number(), z.string()]).optional(),
 });
 
-export const BitunixKlineResponseSchema = z.array(BitunixKlineSchema);
-
 // Bitunix Trading Pair Schema (market/trading_pairs) — precision, order-size
 // limits, leverage range and symbol status. Read-only metadata used to
 // validate/round order inputs client-side (no order placement yet).
@@ -179,16 +177,6 @@ export const BitgetKlineSchema = z.tuple([
   MoneyLike, // volume
 ]).rest(z.unknown()); // Allow extra fields
 
-export const BitgetKlineResponseSchema = z.array(BitgetKlineSchema);
-
-// Generic API Response Wrapper
-export const ApiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) => z.object({
-    code: z.union([z.string(), z.number()]).transform(String),
-    msg: z.string().optional(),
-    error: z.string().optional(),
-    data: dataSchema.optional().nullable()
-});
-
 // Position Schema (Bitunix & Generic)
 export const PositionRawSchema = z.object({
     symbol: z.string(),
@@ -229,16 +217,6 @@ export const PositionRawSchema = z.object({
 }, {
     message: "Position object missing quantity field (qty, size, or amount)",
     path: ["qty"]
-});
-
-export const PositionListSchema = z.array(PositionRawSchema);
-
-// Account Request Schema
-export const AccountRequestSchema = z.object({
-    exchange: z.enum(["bitunix", "bitget"]),
-    apiKey: z.string().optional(),
-    apiSecret: z.string().optional(),
-    passphrase: z.string().optional() // Required for Bitget
 });
 
 // --- TP/SL Request Validation Schemas ---

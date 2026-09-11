@@ -6028,7 +6028,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0437",
     "title": "Bitunix order/position/ticker validation schemas are never wired",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0437-unwired-bitunix-schemas",
     "priority": "P3",
     "milestone": "none",
     "editions": [
