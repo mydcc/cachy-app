@@ -535,7 +535,10 @@
             uiState.isLoading = true;
             uiState.loadingMessage = $_("journal.messages.uploading");
 
-            const url = await imgbbService.uploadToImgbb(file);
+            const url = await imgbbService.uploadToImgbb(file, {
+                apiKey: settingsState.imgbbApiKey,
+                expiration: settingsState.imgbbExpiration,
+            });
             const trade = journalState.entries.find((t) => t.id === id);
             if (trade) {
                 app.updateTrade(id, { screenshot: url });

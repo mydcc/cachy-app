@@ -21,6 +21,7 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import svelteParser from "svelte-eslint-parser";
 import globals from "globals";
+import { servicesToStoresAllowlist } from "./eslint.architecture.boundaries.js";
 
 // Svelte 5 runes are compiler-provided globals. They are resolved by
 // svelte-eslint-parser inside .svelte files, but plain `.svelte.ts` modules need
@@ -155,6 +156,42 @@ export default [
           ],
         },
       ],
+    },
+  },
+
+  // Phase 2 burn-down: services must not import stores. State belongs to the
+  // store layer; a service reads what it needs from a parameter or an injected
+  // port. Existing violators are grandfathered in
+  // eslint.architecture.boundaries.js — that list is burn-down only.
+  {
+    files: ["src/services/**/*.ts"],
+    ignores: [
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/tests/**",
+      "src/services/__fixtures__/**",
+    ],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/stores/**", "**/stores/*"],
+              allowTypeImports: true,
+              message:
+                "Architecture: services must not import stores. Read the value from a parameter or an injected port; the store layer owns state.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: servicesToStoresAllowlist,
+    rules: {
+      // Grandfathered: see eslint.architecture.boundaries.js.
+      "@typescript-eslint/no-restricted-imports": "off",
     },
   },
 
