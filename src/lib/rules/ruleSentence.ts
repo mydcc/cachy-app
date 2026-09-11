@@ -232,6 +232,15 @@ function formatCondition(
         timeframe: timeframeSuffix(condition.timeframe, anchor, t),
       });
     }
+    case "pattern":
+      // The pattern's own name comes from the Academy translations, which are
+      // keyed by the same ids the core serialises (FEAT-0394). One vocabulary,
+      // already translated in both locales -- a second set of names here would
+      // be a second thing to keep in step.
+      return t("rules.sentence.pattern", {
+        pattern: t(`candlestickPatterns.${condition.pattern}.name`),
+        timeframe: timeframeSuffix(condition.timeframe, anchor, t),
+      });
     case "position":
       return t(
         condition.open

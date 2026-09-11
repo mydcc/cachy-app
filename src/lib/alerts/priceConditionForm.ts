@@ -31,6 +31,7 @@
 
 import Decimal from "decimal.js";
 import type { Condition } from "../rules/types";
+import { soleCondition } from "./soleCondition";
 
 export type PriceConditionKind =
   "rises_above" | "falls_below" | "rise_reaches" | "fall_reaches";
@@ -48,12 +49,6 @@ export const BLANK_PRICE_FORM: PriceFormState = {
   threshold: "",
   lookback: 1,
 };
-
-/** The one condition a single-condition draft holds, or null. */
-function soleCondition(conditions: Condition): Condition | null {
-  if (conditions.kind !== "group") return conditions;
-  return conditions.of.length === 1 ? conditions.of[0] : null;
-}
 
 /**
  * A threshold string for display: plain digits, trailing zeros dropped.

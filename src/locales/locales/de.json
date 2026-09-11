@@ -378,6 +378,40 @@
         "fallReaches": "Fall erreicht",
         "seriesLast": "Letzter Preis",
         "seriesMark": "Mark-Preis"
+      },
+      "candlesticks": {
+        "legend": "Muster",
+        "group": {
+          "single": "Eine Kerze",
+          "multiple": "Zwei Kerzen",
+          "structural": "Drei Kerzen"
+        },
+        "groupHint": {
+          "single": "Eine Kerze erzählt die ganze Geschichte.",
+          "multiple": "Die zweite Kerze wird gegen die erste gelesen.",
+          "structural": "Eine Form, die drei Kerzen braucht, um zu entstehen."
+        },
+        "historyHint": "Braucht {count} geschlossene Kerzen.",
+        "trendHint": "Braucht {count} geschlossene Kerzen: {span} für die Form und {lookback}, um den Trend davor zu lesen.",
+        "closedOnly": "Wird nur beim Kerzenschluss geprüft. Eine Form, die in der laufenden Kerze entsteht und wieder verschwindet, löst nicht aus.",
+        "clear": "Auswahl aufheben",
+        "none": "Wähle ein Muster, um die Regel zu bauen.",
+        "meaning": {
+          "hammer": "Käufer weisen tiefere Kurse ab. Bullische Umkehr nach einem Abwärtstrend.",
+          "hanging_man": "Dieselbe Form nach einem Aufwärtstrend, mit umgekehrter Warnung. Bärisch.",
+          "inverted_hammer": "Käufer testen höhere Kurse nach einem Abwärtstrend. Bullische Umkehr.",
+          "shooting_star": "Verkäufer weisen höhere Kurse ab. Bärische Umkehr nach einem Aufwärtstrend.",
+          "bullish_engulfing": "Eine Aufwärtskerze verschlingt den ganzen vorherigen Abwärtskörper. Bullische Umkehr.",
+          "bearish_engulfing": "Eine Abwärtskerze verschlingt den ganzen vorherigen Aufwärtskörper. Bärische Umkehr.",
+          "piercing_line": "Eine Aufwärtskerze holt mehr als die Hälfte des vorherigen Falls zurück. Bullisch.",
+          "dark_cloud_cover": "Eine Abwärtskerze gibt mehr als die Hälfte des vorherigen Anstiegs ab. Bärisch.",
+          "bullish_harami": "Kleine Aufwärtskerze im großen Abwärtskörper. Der Fall stockt.",
+          "bearish_harami": "Kleine Abwärtskerze im großen Aufwärtskörper. Der Anstieg stockt.",
+          "morning_star": "Pause am Tief, dann kräftige Erholung. Bullische Umkehr.",
+          "evening_star": "Pause am Hoch, dann kräftiger Abverkauf. Bärische Umkehr.",
+          "three_white_soldiers": "Drei kräftige Aufwärtskerzen in Folge. Bullische Fortsetzung.",
+          "three_black_crows": "Drei kräftige Abwärtskerzen in Folge. Bärische Fortsetzung."
+        }
       }
     },
     "generalInputs": {
@@ -3837,6 +3871,7 @@
       "onTimeframe": " (auf {timeframe})",
       "compare": "{left} {op} {right}{timeframe}",
       "crossing": "{left} {direction} {right}{timeframe}",
+      "pattern": "ein {pattern} entsteht{timeframe}",
       "lead": {
         "notify": "Benachrichtigt",
         "simulate": "Simuliert eine Order",

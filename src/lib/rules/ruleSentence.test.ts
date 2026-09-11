@@ -323,3 +323,43 @@ describe("renderRuleSentence", () => {
         expect(sentence).toContain("5%");
     });
 });
+
+describe("a candlestick pattern condition (FEAT-0394)", () => {
+    const hammer: Condition = { kind: "pattern", pattern: "hammer", timeframe: "4h" };
+
+    it("reads back as a sentence in both locales", () => {
+        // The translator throws on a missing key, so this also proves both
+        // locales carry the pattern's name -- which comes from the Academy
+        // block, not from a second set of names written for the alert panel.
+        expect(renderRuleSentence(ruleWith(hammer), et)).toBe(
+            "Notifies when, on the 4h close, a Hammer prints",
+        );
+        expect(renderRuleSentence(ruleWith(hammer), dt)).toContain("Hammer");
+    });
+
+    it("names the timeframe only when it differs from the trigger", () => {
+        // Same as every other condition: repeating "on the 4h" inside a rule
+        // that already says "on the 4h close" is noise a trader has to read past.
+        expect(renderRuleSentence(ruleWith(hammer), et)).not.toContain("(on 4h)");
+
+        const daily: Condition = { kind: "pattern", pattern: "morning_star", timeframe: "1d" };
+        expect(renderRuleSentence(ruleWith(daily), et)).toContain("(on 1d)");
+    });
+
+    it("carries the direction in the name for the patterns that have one", () => {
+        // A direction-less "engulfing" would read as one signal while meaning
+        // two opposite ones.
+        const bullish: Condition = {
+            kind: "pattern",
+            pattern: "bullish_engulfing",
+            timeframe: "4h",
+        };
+        const bearish: Condition = {
+            kind: "pattern",
+            pattern: "bearish_engulfing",
+            timeframe: "4h",
+        };
+        expect(renderRuleSentence(ruleWith(bullish), et)).toContain("Bullish Engulfing");
+        expect(renderRuleSentence(ruleWith(bearish), et)).toContain("Bearish Engulfing");
+    });
+});

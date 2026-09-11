@@ -46,6 +46,7 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+use super::pattern::{preceding_trend, Trend};
 use super::condition::{
     AccountField, Condition, CrossDirection, LogicOp, Operand, PositionSide, PriceField,
     PriceSource, WindowAgg,
@@ -614,6 +615,37 @@ fn eval(condition: &Condition, ctx: &Ctx) -> Truth {
             Some(current) => truth(op.apply(current, *value)),
             None => Truth::Unknown(format!("feed `{feed}` has no value")),
         },
+
+        Condition::Pattern { pattern, timeframe } => {
+            let candles = ctx.market.closed_candles(*timeframe);
+            let Some(anchor) = ctx.closed_index(*timeframe) else {
+                return Truth::Unknown(format!("no closed {timeframe} candle yet"));
+            };
+
+            let span = pattern.candles_spanned();
+            let required = pattern.warmup_candles() as usize;
+
+            // Short history is Unknown, never false. "No hammer printed" and
+            // "we cannot see far enough back to say" are different answers, and
+            // a rule that reports the first while meaning the second would look
+            // like a checked condition that simply did not fire.
+            if anchor + 1 < required {
+                return Truth::Unknown(format!(
+                    "{} needs {required} closed {timeframe} candles, has {}",
+                    pattern.id(),
+                    anchor + 1
+                ));
+            }
+
+            let window = &candles[anchor + 1 - span..=anchor];
+            let trend = if pattern.needs_trend_context() {
+                preceding_trend(&candles[anchor + 1 - required..anchor + 1 - span])
+            } else {
+                Trend::Sideways
+            };
+
+            truth(pattern.detect(window, trend))
+        }
 
         Condition::Group { op, of } => eval_group(*op, of, ctx),
     }
@@ -1349,5 +1381,162 @@ mod tests {
             timeframe: tf("4h"),
         });
         assert_eq!(evaluate(&at_or_above, &breaking_out, None), Verdict::Fires);
+    }
+    // ---- FEAT-0394: candlestick pattern conditions ----
+
+    use crate::rule::pattern::CandlePattern;
+
+    const FOUR_H_MS: i64 = 4 * 60 * 60 * 1000;
+
+    fn ohlc(index: i64, open: &str, high: &str, low: &str, close: &str) -> Candle {
+        Candle {
+            open_time_ms: index * FOUR_H_MS,
+            open: d(open),
+            high: d(high),
+            low: d(low),
+            close: d(close),
+            volume: Decimal::ZERO,
+        }
+    }
+
+    /// Five falling candles, then a hammer that closes near its high.
+    fn hammer_after_downtrend() -> Vec<Candle> {
+        vec![
+            ohlc(0, "200", "201", "189", "190"),
+            ohlc(1, "190", "191", "179", "180"),
+            ohlc(2, "180", "181", "169", "170"),
+            ohlc(3, "170", "171", "159", "160"),
+            ohlc(4, "160", "161", "149", "150"),
+            ohlc(5, "150", "152", "140", "151"),
+        ]
+    }
+
+    fn pattern_doc(pattern: CandlePattern) -> RuleDocument {
+        notify_doc(Condition::Pattern {
+            pattern,
+            timeframe: tf("4h"),
+        })
+    }
+
+    #[test]
+    fn a_hammer_after_a_downtrend_fires() {
+        let market = InMemoryMarket::new().with_candles(tf("4h"), hammer_after_downtrend());
+        assert_eq!(
+            evaluate(&pattern_doc(CandlePattern::Hammer), &market, None),
+            Verdict::Fires
+        );
+    }
+
+    #[test]
+    fn the_same_candles_are_not_a_hanging_man() {
+        // Same shape, opposite trend requirement. Reporting both would arm a
+        // trader for a reversal in whichever direction they happened to pick.
+        let market = InMemoryMarket::new().with_candles(tf("4h"), hammer_after_downtrend());
+        assert_eq!(
+            evaluate(&pattern_doc(CandlePattern::HangingMan), &market, None),
+            Verdict::DoesNotFire
+        );
+    }
+
+    #[test]
+    fn too_little_history_is_indeterminate_not_a_quiet_no() {
+        // The hammer is there, but there are not enough candles before it to say
+        // what the trend was -- so the rule cannot answer, and must not pretend
+        // the pattern was absent.
+        let short: Vec<Candle> = hammer_after_downtrend().into_iter().skip(3).collect();
+        let market = InMemoryMarket::new().with_candles(tf("4h"), short);
+
+        match evaluate(&pattern_doc(CandlePattern::Hammer), &market, None) {
+            Verdict::Indeterminate { reason } => {
+                assert!(
+                    reason.contains("hammer") && reason.contains("6"),
+                    "reason must contain pattern name and warmup count"
+                );
+            }
+            other => panic!("expected Indeterminate, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_pattern_condition_declares_the_timeframe_it_reads() {
+        // Without this the evaluator never pre-loads the series and every
+        // pattern rule would sit permanently Indeterminate.
+        let mut into = Vec::new();
+        Condition::Pattern {
+            pattern: CandlePattern::MorningStar,
+            timeframe: tf("1h"),
+        }
+        .timeframes(&mut into);
+        assert_eq!(into, vec![tf("1h")]);
+
+        // ... but never asks for a mark series.
+        let mut mark = Vec::new();
+        Condition::Pattern {
+            pattern: CandlePattern::MorningStar,
+            timeframe: tf("1h"),
+        }
+        .mark_timeframes(&mut mark);
+        assert!(mark.is_empty());
+    }
+
+    #[test]
+    fn warmup_accounts_for_multi_candle_patterns() {
+        let three = Condition::Pattern {
+            pattern: CandlePattern::ThreeWhiteSoldiers,
+            timeframe: tf("4h"),
+        };
+        assert_eq!(three.warmup_candles(), 3);
+
+        let trend_dependent = Condition::Pattern {
+            pattern: CandlePattern::Hammer,
+            timeframe: tf("4h"),
+        };
+        assert!(
+            trend_dependent.warmup_candles() > 1,
+            "a hammer needs history for the trend that names it"
+        );
+    }
+
+    #[test]
+    fn a_pattern_condition_round_trips_through_json() {
+        let condition = Condition::Pattern {
+            pattern: CandlePattern::DarkCloudCover,
+            timeframe: tf("4h"),
+        };
+        let json = serde_json::to_string(&condition).expect("serialises");
+        assert!(json.contains("\"kind\":\"pattern\""), "tagged on kind: {json}");
+        assert!(json.contains("dark_cloud_cover"), "id survives: {json}");
+
+        let back: Condition = serde_json::from_str(&json).expect("parses back");
+        assert_eq!(back, condition);
+    }
+
+    #[test]
+    fn an_unknown_pattern_name_is_refused_rather_than_ignored() {
+        let json = r#"{"kind":"pattern","pattern":"hamer","timeframe":"4h"}"#;
+        let parsed: Result<Condition, _> = serde_json::from_str(json);
+        assert!(parsed.is_err(), "a misspelled pattern must not parse");
+    }
+    #[test]
+    fn a_pattern_document_round_trips_and_the_pattern_is_covered_by_the_hash() {
+        use crate::rule::document::{parse_document, serialise_document};
+
+        let doc = pattern_doc(CandlePattern::MorningStar);
+        let json = serialise_document(&doc).expect("serialises");
+        let back = parse_document(&json).expect("parses back");
+        assert_eq!(back.conditions, doc.conditions);
+        assert_eq!(
+            back.content_hash().expect("hashes"),
+            doc.content_hash().expect("hashes")
+        );
+
+        // Swapping the pattern must move the hash: a rule that now watches for
+        // an evening star instead of a morning star is a different rule, and a
+        // hash that did not notice would let the change ride an old approval.
+        let other = pattern_doc(CandlePattern::EveningStar);
+        assert_ne!(
+            other.content_hash().expect("hashes"),
+            doc.content_hash().expect("hashes")
+        );
     }
 }
