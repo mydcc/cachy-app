@@ -208,12 +208,23 @@
                 {#each entry.params as param (param.name)}
                     <label class="field">
                         <span>{$_(key(paramKey(param.name)))}</span>
+                        {#if param.kind === "period"}
+                        {@const bounds = entry.params.find((p) => p.name === param.name)}
                         <input
-                            type={param.kind === "period" ? "number" : "text"}
+                            type="number"
+                            min={bounds ? bounds.default : ""}
+                            max="5000"
+                            value={String(params[param.name] ?? param.default)}
+                            oninput={(e) => setParam(param.name, e.currentTarget.value, "period")}
+                        />
+                    {:else}
+                        <input
+                            type="text"
                             inputmode="decimal"
                             value={String(params[param.name] ?? param.default)}
-                            oninput={(e) => setParam(param.name, e.currentTarget.value, param.kind)}
+                            oninput={(e) => setParam(param.name, e.currentTarget.value, "factor")}
                         />
+                    {/if}
                     </label>
                 {/each}
             </fieldset>

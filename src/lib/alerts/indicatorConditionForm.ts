@@ -140,6 +140,9 @@ function referenceFor(operand: Operand): Reference | null {
         case "constant":
             return { kind: "constant", value: operand.value };
         case "price":
+            // A price with a source (mark vs last) cannot be round-tripped through
+            // this tab, so don't try.
+            if (operand.source) return null;
             return { kind: "price", field: operand.field };
         case "indicator":
             return { kind: "indicator", indicator: operand.indicator };

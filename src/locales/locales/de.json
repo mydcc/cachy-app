@@ -513,14 +513,6 @@
           "price": "der Preis",
           "indicator": "ein anderer Indikator"
         },
-        "priceField": {
-          "close": "Schlusskurs",
-          "open": "Eröffnung",
-          "high": "Hoch",
-          "low": "Tief",
-          "hl2": "HL2",
-          "hlc3": "HLC3"
-        },
         "subjectLabel": "Indikator",
         "outputLabel": "Linie",
         "paramsLabel": "Parameter",

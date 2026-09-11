@@ -116,6 +116,20 @@ describe("reading the form back out of a draft", () => {
         ).toBeNull();
     });
 
+    it("returns null when the draft has a price reference with a source", () => {
+        // A mark-price vs last-price reference cannot be round-tripped through
+        // this tab, so it is rejected rather than silently normalized to last.
+        expect(
+            readIndicatorForm({
+                kind: "compare",
+                left: { kind: "indicator", indicator: defaultRef(rsi) },
+                op: "gt",
+                right: { kind: "price", field: "close", source: "mark" },
+                timeframe: "1h",
+            }),
+        ).toBeNull();
+    });
+
     it("returns null for an indicator this build no longer knows", () => {
         // Rather than rendering an empty picker that rewrites the rule on the
         // first edit -- a saved alert quietly becoming a different alert.

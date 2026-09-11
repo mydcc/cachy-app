@@ -513,14 +513,6 @@
           "price": "the price",
           "indicator": "another indicator"
         },
-        "priceField": {
-          "close": "Close",
-          "open": "Open",
-          "high": "High",
-          "low": "Low",
-          "hl2": "HL2",
-          "hlc3": "HLC3"
-        },
         "subjectLabel": "Indicator",
         "outputLabel": "Line",
         "paramsLabel": "Parameters",
