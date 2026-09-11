@@ -36,12 +36,34 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { autoFixPRBody, checkBodyForStrayClosingRefs, checkBodyHasClosingRef } from "./lib/pr-issue-match";
+import {
+    autoFixPRBody,
+    checkBodyForStrayClosingRefs,
+    checkBodyHasClosingRef,
+    missingClosingRefMessage,
+    unverifiedClosingRefMessage,
+    type AutoFixPRBodyResult,
+    type BacklogIssueVerification,
+} from "./lib/pr-issue-match";
+import { findItemFile, readStatus } from "./lib/backlog-flip";
+import { withRetry } from "./lib/retry";
 
 let body = process.env.PR_BODY ?? "";
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
 const prNumber = process.env.PR_NUMBER;
 const prNum = prNumber ? Number.parseInt(prNumber, 10) : NaN;
+const baseRef = process.env.BASE_REF || "develop";
+const base = `origin/${baseRef}`;
+
+function git(args: string[]): string | null {
+    try {
+        return execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    } catch {
+        return null;
+    }
+}
+
+let autoFixResult: AutoFixPRBodyResult | null = null;
 
 // When running in CI on a PR, attempt silent auto-fix before reporting failures
 if (token && Number.isInteger(prNum) && prNum > 0) {
@@ -50,25 +72,63 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
         title: process.env.PR_TITLE,
         branch: process.env.PR_BRANCH,
         findIssueForBacklogId: async (backlogId: string) => {
-            try {
-                const stdout = execFileSync("gh", [
-                    "issue", "list",
-                    "--search", backlogId,
-                    "--json", "number,title",
-                    "--limit", "10",
-                ], {
-                    encoding: "utf8",
-                    stdio: ["ignore", "pipe", "ignore"],
-                    env: { ...process.env, GH_TOKEN: token },
-                });
-                const issues = JSON.parse(stdout) as Array<{ number: number; title: string }>;
-                const match = issues.find(i => i.title.includes(backlogId));
-                return match ? match.number : null;
-            } catch {
-                return null;
-            }
+            const issues = withRetry<Array<{ number: number; title: string }>>(() => {
+                try {
+                    const stdout = execFileSync("gh", [
+                        "issue", "list",
+                        "--search", backlogId,
+                        "--json", "number,title",
+                        "--limit", "10",
+                    ], {
+                        encoding: "utf8",
+                        stdio: ["ignore", "pipe", "ignore"],
+                        env: { ...process.env, GH_TOKEN: token },
+                    });
+                    return JSON.parse(stdout) as Array<{ number: number; title: string }>;
+                } catch {
+                    return null;
+                }
+            });
+            if (issues === null) return null;
+            const match = issues.find(i => i.title.includes(backlogId));
+            return match ? match.number : null;
+        },
+        verifyBacklogItem: async (issueNumber: number): Promise<BacklogIssueVerification | null> => {
+            const labels = withRetry<string[]>(() => {
+                try {
+                    const stdout = execFileSync("gh", [
+                        "issue", "view", String(issueNumber),
+                        "--json", "labels", "--jq", ".labels[].name",
+                    ], {
+                        encoding: "utf8",
+                        stdio: ["ignore", "pipe", "ignore"],
+                        env: { ...process.env, GH_TOKEN: token },
+                    });
+                    return stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+                } catch {
+                    return null;
+                }
+            });
+            // Unreadable after retries: return null so the caller declines to
+            // insert an unverified trailer and fails closed (BUG-0431).
+            if (labels === null) return null;
+            const idLabel = labels.find((name) => name.startsWith("backlog-id:"));
+            if (!idLabel) return { isBacklogMirror: false, itemId: null, baseStatus: null };
+            const itemId = idLabel.slice("backlog-id:".length);
+            // A git failure (missing base ref, shallow checkout) is an
+            // infrastructure flake: return null so the caller fails closed
+            // rather than inserting a trailer it could not verify. A genuinely
+            // missing item file is different — the flip gate fails on that.
+            const tree = withRetry(() => git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]));
+            if (tree === null) return null;
+            const itemFile = findItemFile(tree.split("\n"), itemId);
+            if (itemFile === null) return { isBacklogMirror: true, itemId, baseStatus: null };
+            const content = withRetry(() => git(["show", `${base}:${itemFile}`]));
+            if (content === null) return null;
+            return { isBacklogMirror: true, itemId, baseStatus: readStatus(content) };
         },
     });
+    autoFixResult = fixResult;
 
     if (fixResult.changed) {
         try {
@@ -91,17 +151,10 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
 
 const presence = checkBodyHasClosingRef(body);
 if (!presence.ok) {
-    console.error(
-        `❌ PR description carries no closing reference.\n`,
-    );
-    console.error(`
-AGENTS.md requires \`Fixes #<issue>\` at the start of every PR description so
-GitHub links the PR to its backlog issue and closes it on merge — a merge
-without one closes nothing, and the issue silently stays open.
-
-Add the missing line (the number of the issue this PR fixes), or, only if this
-PR genuinely links to no issue at all, put \`${"[no issue]"}\` on its own line
-to opt out explicitly. Silence is not an opt-out.
+    const guidance = autoFixResult?.unverified
+        ? unverifiedClosingRefMessage(autoFixResult.unverified.issueNumber)
+        : missingClosingRefMessage(autoFixResult?.declined);
+    console.error(`❌ ${guidance}
 `);
     process.exit(1);
 }
