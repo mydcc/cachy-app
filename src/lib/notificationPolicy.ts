@@ -51,21 +51,54 @@ export const NOTIFICATION_CATEGORIES: readonly NotificationCategory[] = [
  * Where an announcement can go.
  *
  * `in-app` is the toast that already exists. `browser` is the OS notification,
- * which needs permission and degrades to nothing when refused — see
- * `notificationService`.
+ * which needs permission and degrades to nothing when refused. `sound` is the
+ * audible channel — FEAT-0392 — which needs no permission but does need a prior
+ * user gesture before a browser will let it make noise. All three degrade to
+ * nothing rather than throwing; see `notificationService`.
  *
- * No third channel. The item mentions "optionally an external channel the user
- * configures"; that is deliberately not built here, because an external
- * endpoint is the one path by which Class A data could leave the device, and it
- * deserves its own item and its own review rather than riding along with the
- * plumbing.
+ * `email`, `discord` and `telegram` are the external channels — FEAT-0397. They
+ * are the one path by which Class A content leaves the device, which is why they
+ * are here in the same matrix rather than beside it: the policy of which event
+ * announces itself where is one thing, and a second mechanism next to it is how
+ * that stops being true. What they add is a precondition — a channel the trader
+ * has not configured cannot be switched on — and a delivery result that arrives
+ * after `notify()` has returned, because a `fetch` cannot be awaited on the hot
+ * path. See `services/externalDelivery.ts` and ADR-0018.
  */
-export type NotificationChannel = "in-app" | "browser";
+export type NotificationChannel =
+    | "in-app"
+    | "browser"
+    | "sound"
+    | "email"
+    | "discord"
+    | "telegram";
 
 export const NOTIFICATION_CHANNELS: readonly NotificationChannel[] = [
     "in-app",
     "browser",
+    "sound",
+    "email",
+    "discord",
+    "telegram",
 ] as const;
+
+/**
+ * The channels that reach off this device.
+ *
+ * Kept as its own list so that code which must treat local and external
+ * delivery differently — the sync return of `notify()`, the settings UI's
+ * "configure this first" gate — asks a question instead of hard-coding three
+ * names it will forget to update.
+ */
+export const EXTERNAL_NOTIFICATION_CHANNELS: readonly NotificationChannel[] = [
+    "email",
+    "discord",
+    "telegram",
+] as const;
+
+export function isExternalChannel(channel: NotificationChannel): boolean {
+    return (EXTERNAL_NOTIFICATION_CHANNELS as readonly string[]).includes(channel);
+}
 
 export type NotificationPolicy = Record<
     NotificationCategory,
@@ -73,7 +106,7 @@ export type NotificationPolicy = Record<
 >;
 
 /**
- * In-app on, browser off.
+ * In-app on, everything else off.
  *
  * The asymmetry is the point. A toast costs a glance; an OS notification
  * interrupts, and asking for notification permission unprompted on first run is
@@ -81,11 +114,27 @@ export type NotificationPolicy = Record<
  * something the user turns on when they want to be told while the tab is in the
  * background — which is exactly the situation the item describes, and exactly
  * when they will grant permission willingly.
+ *
+ * Sound is off by default for the same reason and one more: a page that makes
+ * noise on its own on first visit is the behaviour that gets a tab muted at the
+ * OS level, and a muted tab takes the alarm with it.
+ *
+ * The external channels are off because they cannot be anything else: none of
+ * them has credentials until the trader enters some.
  */
+const LOCAL_OFF: Record<NotificationChannel, boolean> = {
+    "in-app": false,
+    browser: false,
+    sound: false,
+    email: false,
+    discord: false,
+    telegram: false,
+};
+
 export const DEFAULT_NOTIFICATION_POLICY: NotificationPolicy = {
-    "order-filled": { "in-app": true, browser: false },
-    "order-rejected": { "in-app": true, browser: false },
-    "order-cancelled": { "in-app": false, browser: false },
+    "order-filled": { ...LOCAL_OFF, "in-app": true },
+    "order-rejected": { ...LOCAL_OFF, "in-app": true },
+    "order-cancelled": { ...LOCAL_OFF },
     /*
      * In-app on, browser off — the same shape every other category has.
      *
@@ -97,10 +146,11 @@ export const DEFAULT_NOTIFICATION_POLICY: NotificationPolicy = {
      * Off on browser because `leaves every browser channel off until asked`
      * pins that invariant across all categories, and it is right: the channel
      * needs OS permission, and shipping it on makes the *settings* screen read
-     * as though a channel is live when it silently is not. FEAT-0397 is where a
-     * rule's `trigger_methods` turns it on, next to the permission prompt.
+     * as though a channel is live when it silently is not. The same holds for
+     * sound, which needs a user gesture, and for the external channels, which
+     * need credentials.
      */
-    "alert-fired": { "in-app": true, browser: false },
+    "alert-fired": { ...LOCAL_OFF, "in-app": true },
 };
 
 /** Narrows an arbitrary string to a catalogue member. */
