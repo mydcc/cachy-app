@@ -43,7 +43,7 @@ cp .env.example .env
 the code by a test, so nothing the app reads is missing from it. **Nothing in it
 is required to run Cachy** — the file exists for optional knobs:
 
-- `PORT` — listen port (default `3000` for `node build/index.js`, `3001` for `node server.js` / `npm start`)
+- `PORT` — listen port (default `3001`; both `node server.js` and `node build/index.js` boot the same Express wrapper)
 - `ORIGIN` — the public URL, needed for correct CSRF/form handling behind a proxy
 - `ADDRESS_HEADER` / `XFF_DEPTH` — make rate limiting see real client IPs behind a reverse proxy
 - `LOG_STREAM_KEY` — protects the debug log stream endpoint
@@ -70,10 +70,10 @@ without `--env-file` flags `PORT` or `ORIGIN` from your `.env` would never
 reach it. (`--env-file` needs Node 20 or newer, which is covered by the required Node v22.19+.)
 Without a `.env`, plain `node server.js` (or `npm start`) works too.
 
-> Fallback: plain `node build/index.js` (adapter standalone, port `3000`)
-> also boots the app, but without compression and immutable static caching —
-> expect lower Lighthouse scores. Prefer `server.js` for anything beyond a
-> quick smoke test.
+> `node build/index.js` boots the same Express wrapper: `npm run build`
+> rewrites the adapter entry point to delegate to `server.js`, so starting
+> either entry point yields compression, security headers and immutable static
+> caching. Use whichever your process manager is configured for.
 
 > If you change anything in `.env` later, **restart the process**. The running
 > server reads its configuration once, at startup.
