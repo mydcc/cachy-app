@@ -2,7 +2,7 @@
 id: BUG-0433
 title: Raw leverage fields in Zod schemas accept native numbers
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -61,13 +61,30 @@ Decide per site and make the decision explicit in code:
 
 Do not change any order/PnL math.
 
+## Applied
+
+Per-site decision, each explicit in code:
+
+- `src/types/accountSchemas.ts` — `params.leverage` goes through a local
+  `LeverageString` normalizer (`z.union([z.string(), z.number()]).transform`)
+  and therefore leaves the schema as a string, matching the money boundary.
+- `src/types/apiSchemas.ts` — `BitunixTradingPairSchema` `minLeverage`/
+  `maxLeverage`/`defaultLeverage` and `BitunixPositionTierSchema.leverage` stay
+  `z.number()` with a comment: small integers used as UI range metadata, not
+  money.
+- `src/routes/api/leverage-margin-mode/+server.ts` — the route-local
+  `LeverageMarginModeData.leverage: number` carries the same comment, mirroring
+  the deliberate `BitunixLeverageMarginModeSchema` coercion.
+- `src/types/accountSchemas.test.ts` — covers number, string and omitted input;
+  `src/types/apiSchemas.test.ts` pins the metadata leverage as numeric.
+
 ## Acceptance criteria
 
-- [ ] Each of the three raw leverage sites is either normalized to a string at
+- [x] Each of the three raw leverage sites is either normalized to a string at
       the boundary or carries a comment stating it is intentionally numeric.
-- [ ] A test covers `AccountRequestSchema` leverage with both string and number
+- [x] A test covers `AccountRequestSchema` leverage with both string and number
       input and asserts the chosen contract.
-- [ ] `BitunixLeverageMarginModeSchema` and `ChangeLeverageSchema` are unchanged
+- [x] `BitunixLeverageMarginModeSchema` and `ChangeLeverageSchema` are unchanged
       and their rationale comments remain.
 
 ## Out of scope
