@@ -5866,7 +5866,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0354",
     "title": "The backup-restore rejection message is hardcoded English",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "shipped": "1.6.0-beta.235",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5880,6 +5881,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "estimate": "1",
     "size": "XS",
+    "assignee": "opencode",
+    "branch": "fix/bug-0354-backlog-tracking",
     "file": "bugs/BUG-0354-backup-rejection-message-untranslated.md"
   },
   {
