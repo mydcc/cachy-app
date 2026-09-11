@@ -36,12 +36,12 @@
 
     // Background Animation Options
     const animPresets = [
-        { value: "none", label: $_("settings.profile.background.typeNone") },
-        { value: "gradient", label: "Gradient Flow" },
-        { value: "particles", label: "Particles" },
-        { value: "breathing", label: "Breathing" },
-        { value: "waves", label: "Waves" },
-        { value: "aurora", label: "Aurora" },
+        { value: "none", label: "settings.profile.background.presetNone" },
+        { value: "gradient", label: "settings.profile.background.presetGradient" },
+        { value: "particles", label: "settings.profile.background.presetParticles" },
+        { value: "breathing", label: "settings.profile.background.presetBreathing" },
+        { value: "waves", label: "settings.profile.background.presetWaves" },
+        { value: "aurora", label: "settings.profile.background.presetAurora" },
     ];
 
     // Static label map, duplicated in VisualsAppearance (which uses the full
@@ -56,12 +56,12 @@
 
     // Added labels for TradeFlow modes
     const tfModeLabels: Record<string, string> = {
-        equalizer: "Equalizer",
-        raindrops: "Raindrops",
-        city: "Digital City",
-        sonar: "Sonar",
-        block: "Block",
-        galaxy: "Galaxy"
+        equalizer: "settings.visuals.tradeFlow.modeEqualizer",
+        raindrops: "settings.visuals.tradeFlow.modeRaindrops",
+        city: "settings.visuals.tradeFlow.modeCity",
+        sonar: "settings.visuals.tradeFlow.modeSonar",
+        block: "settings.visuals.tradeFlow.modeBlock",
+        galaxy: "settings.visuals.tradeFlow.modeGalaxy",
     };
 
     function handleWidthChange(e: Event & { currentTarget: HTMLInputElement }) {
@@ -215,7 +215,7 @@
                 class="input-field"
             >
                 {#each animPresets as p}
-                    <option value={p.value}>{p.label}</option>
+                    <option value={p.value}>{$_(p.label as TranslationKey)}</option>
                 {/each}
             </select>
         </div>
@@ -661,7 +661,7 @@
                                 : 'bg-[var(--bg-tertiary)] border-[var(--border-color)]'}"
                             onclick={() => settingsState.tradeFlowSettings.flowMode = mode}
                         >
-                            {tfModeLabels[mode] || mode.charAt(0).toUpperCase() + mode.slice(1)}
+                            {$_(tfModeLabels[mode] as TranslationKey)}
                         </button>
                     {/each}
                 </div>

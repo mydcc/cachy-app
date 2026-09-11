@@ -68,7 +68,7 @@
               {dict.app.deepwiki}
            </a>
         </div>
-        <p>&copy; 2026 MYDCT. All rights reserved.</p>
+        <p>{dict.app.copyright}</p>
      </div>
   </footer>
 </div>

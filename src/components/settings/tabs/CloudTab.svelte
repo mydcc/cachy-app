@@ -152,7 +152,7 @@
       {#if !connected}
         <label class="cloud-field">
           <span>{$_("cloud.tokenLabel")}</span>
-          <input bind:value={settingsState.cloudToken} type="password" placeholder="Token" />
+          <input bind:value={settingsState.cloudToken} type="password" placeholder={$_("cloud.tokenPlaceholder")} />
         </label>
         <p class="text-xs" style="color: var(--text-secondary);">
           {$_("cloud.tokenHelp")}

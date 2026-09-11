@@ -11,6 +11,10 @@
       "zoomIn": "Zoom In",
       "decreaseFont": "Decrease Font Size",
       "increaseFont": "Increase Font Size"
+    },
+    "contextMenu": {
+      "closeWindow": "Close Window",
+      "showPriceInTitle": "Show Price in Title"
     }
   },
   "app": {
@@ -114,7 +118,8 @@
       "dismissButton": "Start Fresh / Ignore",
       "restoreButton": "Restore My Data",
       "restoring": "Restoring..."
-    }
+    },
+    "copyright": "© 2026 MYDCT. All rights reserved."
   },
   "sidePanel": {
     "globalChat": "Global Chat",
@@ -1036,7 +1041,19 @@
     "accountColumn": "Account",
     "accountUnknown": "Removed account",
     "saveFailed": "Failed to save journal. Storage might be full.",
-    "saveError": "Error occurred while saving journal."
+    "saveError": "Error occurred while saving journal.",
+    "filterClosed": "Closed",
+    "riskAmount": "Risk Amount",
+    "maxProfit": "Max Profit",
+    "makerTakerRates": "Maker / Taker Rates",
+    "noScreenshot": "No screenshot attached.",
+    "fullscreenHint": "🔍 Click for fullscreen",
+    "chartScreenshot": "{symbol} Chart Screenshot",
+    "tradeMode": {
+      "live": "Live",
+      "paper": "Paper",
+      "all": "All"
+    }
   },
   "marketOverview": {
     "24hHigh": "24h High",
@@ -1137,7 +1154,10 @@
       "intervalDesc": "Controls data freshness vs CPU usage",
       "aria": {
         "removeTimeframe": "Remove timeframe"
-      }
+      },
+      "cpuImpact": "⚠️ CPU Impact",
+      "symbolsCount": "{count} symbols",
+      "timeframesSelected": "{count} selected"
     },
     "visuals": {
       "subtabs": {
@@ -1257,7 +1277,13 @@
         "indicatorTimeframe": "Indicator interval",
         "tooltipIndicatorTimeframe": "Shared with the Technicals panel: editable in both places, always applies to both. The background's ATR and RSI are read from this interval — if a chart is already open on it, the values cost nothing extra.",
         "atrBands": "ATR reference rings",
-        "tooltipAtrBands": "Draws three rings on the price axis: the last traded price, and ±1 ATR around it. Lets you see at a glance whether a trade's shockwave sits inside the market's normal range or is breaking out of it. Needs the radial price axis and an available ATR reading; with the 2× ATR axis span, ±1 ATR rings sit near the 1/4 and 3/4 points, moving only if price wanders 1+ ATR from the recent centre — which is itself the answer."
+        "tooltipAtrBands": "Draws three rings on the price axis: the last traded price, and ±1 ATR around it. Lets you see at a glance whether a trade's shockwave sits inside the market's normal range or is breaking out of it. Needs the radial price axis and an available ATR reading; with the 2× ATR axis span, ±1 ATR rings sit near the 1/4 and 3/4 points, moving only if price wanders 1+ ATR from the recent centre — which is itself the answer.",
+        "modeEqualizer": "Equalizer",
+        "modeRaindrops": "Raindrops",
+        "modeCity": "Digital City",
+        "modeSonar": "Sonar",
+        "modeBlock": "Block",
+        "modeGalaxy": "Galaxy"
       },
       "coordinates": {
         "x": "X",
@@ -1612,7 +1638,14 @@
       "maTypeEma": "EMA",
       "maTypeWma": "WMA",
       "anchorSession": "Session",
-      "anchorFixed": "Fixed"
+      "anchorFixed": "Fixed",
+      "atrStopSell": "ATR Stop (Sell)",
+      "atrStopBuy": "ATR Stop (Buy)",
+      "vpPoc": "VP (POC)",
+      "vaHighLow": "VA High/Low",
+      "marketStructureHigh": "Market Structure High",
+      "marketStructureLow": "Market Structure Low",
+      "customTimeframePlaceholder": "e.g. 3m, 1W"
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"
@@ -1643,7 +1676,36 @@
       "mode1Desc": "⚡ Direct Mode - Press \"L\" for Long, \"S\" for Short (fastest)",
       "mode2Desc": "🛡️ Safety Mode - Press \"Alt+L\" for Long, \"Alt+S\" for Short (prevents accidents)",
       "switchToCustom": "Switch to Custom Configuration",
-      "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?"
+      "confirmOverwrite": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?",
+      "category": {
+        "favorites": "Favorites",
+        "tradeSetup": "Trade Setup",
+        "uiNavigation": "UI & Navigation",
+        "marketData": "Market Data",
+        "system": "System"
+      },
+      "action": {
+        "fav1": "Load Favorite 1",
+        "fav2": "Load Favorite 2",
+        "fav3": "Load Favorite 3",
+        "fav4": "Load Favorite 4",
+        "focusEntry": "Focus Entry Price",
+        "focusSl": "Focus Stop Loss",
+        "focusNextTp": "Focus Next TP",
+        "focusPrevTp": "Focus Previous TP",
+        "addTp": "Add TP Target",
+        "removeTp": "Remove TP Target",
+        "setLong": "Set Direction Long",
+        "setShort": "Set Direction Short",
+        "resetInputs": "Reset Trade Inputs",
+        "toggleJournal": "Toggle Journal",
+        "openSettings": "Open Settings",
+        "toggleSidebars": "Toggle Sidebars",
+        "toggleTechnicals": "Toggle Technicals Panel",
+        "fetchPrice": "Fetch Price",
+        "openSymbolPicker": "Open Symbol Picker",
+        "toggleAssistant": "Toggle Assistant"
+      }
     },
     "chart": {
       "scaleSection": "Price Scale",
@@ -1904,7 +1966,8 @@
         "apiSecret": "API Secret",
         "passphrase": "Passphrase",
         "url": "https://...",
-        "appAccessToken": "Click \"Create access token\" or paste one"
+        "appAccessToken": "Click \"Create access token\" or paste one",
+        "imgbb": "Enter your imgbb API key..."
       },
       "providers": {
         "bitunix": "Bitunix",
@@ -2051,7 +2114,8 @@
         "refresh": "Refresh",
         "cache": "Result Cache",
         "cacheSummary": "Hits {hits} · Misses {misses} · {hitRate}% hit rate",
-        "noUncachedYet": "No uncached calculations yet — interact with the chart or run the benchmark."
+        "noUncachedYet": "No uncached calculations yet — interact with the chart or run the benchmark.",
+        "panelTitle": "⚡ Engine Debug Panel"
       }
     },
     "performance": {
@@ -2071,7 +2135,8 @@
       "cacheHit": "Cache Hit Rate",
       "avgLatency": "Avg Latency",
       "networkStatus": "Network Status",
-      "tipsTitle": "Optimization Tips"
+      "tipsTitle": "Optimization Tips",
+      "active": "active"
     },
     "trading": {
       "chartTitle": "Data & Market",
@@ -2359,7 +2424,9 @@
       "10m": "10M",
       "50m": "50M"
     },
-    "maxFavorites": "Maximum number of favorites reached (12)."
+    "maxFavorites": "Maximum number of favorites reached (12).",
+    "volumeLabel": "Vol",
+    "pairsCount": "{count} Pairs"
   },
   "common": {
     "windowMenu": "Window menu",
@@ -2392,7 +2459,11 @@
     "minimize": "Minimize",
     "maximize": "Maximize",
     "restore": "Restore",
-    "feedDuck": "Feed Duck (Profit)"
+    "feedDuck": "Feed Duck (Profit)",
+    "loading": "Loading...",
+    "typeHere": "Type here...",
+    "entry": "Entry",
+    "active": "active"
   },
   "analyst": {
     "trend": {
@@ -3231,7 +3302,10 @@
     "hintGood": "<strong>✓ All systems normal:</strong> Configuration is optimal for current load.",
     "symbolsInMemory": "Symbols in memory",
     "pending": "Pending",
-    "confluenceScore": "Confluence score"
+    "confluenceScore": "Confluence score",
+    "profileLightDesc": "Minimal CPU/Memory, slower updates. Best for: weeks-months timeframes",
+    "profileBalancedDesc": "Good performance & responsiveness. Best for: hours-days timeframes",
+    "profileProDesc": "Maximum responsiveness, higher CPU. Best for: minutes-hours timeframes"
   },
   "calculator": {
     "errors": {
@@ -3768,7 +3842,8 @@
     "eraseConfirm": "Click again to confirm",
     "eraseDone": "Deletion requested. Your messages will disappear as the change propagates.",
     "eraseNeedsConnection": "Connect first — erasure runs against the server.",
-    "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild."
+    "eraseUnavailable": "Unavailable in this build: the SpacetimeDB bindings predate the deletion reducer. The operator must run `spacetime generate` and rebuild.",
+    "tokenPlaceholder": "Token"
   },
   "marketAnalyst": {
     "analysisFailed": "Analysis failed for {symbol}: {error}"
@@ -4075,5 +4150,52 @@
   },
   "storage": {
     "quotaExceeded": "Storage quota exceeded. Please clear some space."
+  },
+  "depthBar": {
+    "bids": "Bids",
+    "asks": "Asks"
+  },
+  "news": {
+    "regime": "Regime"
+  },
+  "timeframes": {
+    "addPlaceholder": "Add timeframe..."
+  },
+  "assistant": {
+    "thinking": "Thinking...",
+    "processing": "_ PROCESSING...",
+    "connected": "--- Connected to Global Chat ---",
+    "setupRequired": "Setup Required",
+    "setupDescription": "Please configure your {provider} API Key in Settings to use the AI Assistant.",
+    "columnSymbol": "Symbol",
+    "columnTechnicals": "Technicals",
+    "columnNews": "News",
+    "columnCmc": "CoinMarketCap",
+    "valueLoaded": "✅ Loaded",
+    "valueNone": "❌ None",
+    "valueNoApiKey": "❌ No API Key configured",
+    "articlesCount": "✅ {count} articles",
+    "contextTimedOut": "⚠️ Context gathering timed out (5s). Data may be incomplete.",
+    "qaMarketCheck": "Market Check",
+    "qaTechAnalysis": "Tech Analysis",
+    "qaRiskAudit": "Risk Audit",
+    "qaNewsCheck": "News Check",
+    "persona": {
+      "risk": "Risk Manager",
+      "coach": "Trade Coach",
+      "scalper": "Scalper",
+      "analyst": "Analyst"
+    }
+  },
+  "iframe": {
+    "loadingArticle": "Loading article...",
+    "summary": "Summary:",
+    "openArticle": "Open article",
+    "fullArticleOn": "Full article on {source}",
+    "providerProtection": "This provider protects full texts from being loaded directly in the app."
+  },
+  "chat": {
+    "placeholder": "Message...",
+    "send": "Send"
   }
 }

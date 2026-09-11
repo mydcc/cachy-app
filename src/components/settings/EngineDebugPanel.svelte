@@ -109,7 +109,7 @@
 
 <div class="debug-panel">
     <div class="panel-header">
-        <h4 class="panel-title">⚡ Engine Debug Panel</h4>
+        <h4 class="panel-title">{$_("settings.system.debug.panelTitle")}</h4>
         <button class="refresh-btn" onclick={refresh} title={$_("settings.system.debug.refresh")}>🔄</button>
     </div>
 

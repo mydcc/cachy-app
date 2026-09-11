@@ -363,7 +363,7 @@
                                             bind:value={settingsState.imgbbApiKey}
                                             class="api-input pr-8"
                                             required
-                                            placeholder="Enter your imgbb API key..."
+                                            placeholder={$_("settings.connections.placeholders.imgbb")}
                                         />
                                         <button
                                             class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"

@@ -19,7 +19,9 @@
   import { settingsState } from "../../stores/settings.svelte";
   import {
     HOTKEY_ACTIONS,
+    HOTKEY_CATEGORY_KEYS,
     type HotkeyAction,
+    type HotkeyCategory,
     normalizeKeyCombo,
   } from "../../services/hotkeyService";
   import { _ } from "../../locales/i18n";
@@ -83,7 +85,7 @@
 
     if (existingAction) {
       conflictWarning = $_("settings.hotkeys.conflictWarning", {
-        values: { newCombo, existingLabel: existingAction.label },
+        values: { newCombo, existingLabel: $_(existingAction.labelKey) },
       });
       // We don't save yet, just warn.
       // Actually, usually it's better to just highlight the conflict or auto-unbind.
@@ -91,7 +93,7 @@
       // For this version: simple overwrite is fine, but let's confirm.
       if (
         !confirm(
-          $_("settings.hotkeys.confirmOverwrite" as import("../../locales/schema").TranslationKey, { values: { newCombo, existingLabel: existingAction.label } })
+          $_("settings.hotkeys.confirmOverwrite" as import("../../locales/schema").TranslationKey, { values: { newCombo, existingLabel: $_(existingAction.labelKey) } })
         )
       ) {
         return;
@@ -157,14 +159,14 @@
         <h4
           class="text-sm font-bold text-[var(--accent-color)] border-b border-[var(--border-color)] pb-1 mb-1"
         >
-          {category}
+          {$_(HOTKEY_CATEGORY_KEYS[category as HotkeyCategory])}
         </h4>
         <SettingsGrid gap="gap-3">
           {#each groupedActions[category] as action}
             <div
               class="flex justify-between items-center p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
             >
-              <span class="text-sm min-w-0">{action.label}</span>
+              <span class="text-sm min-w-0">{$_(action.labelKey)}</span>
 
               <button
                 class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center transition-colors shrink-0

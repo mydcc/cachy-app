@@ -378,7 +378,7 @@
     <dl class="summary">
       <div><dt>{$_("orderEntry.summary.size")}</dt><dd>{formatDynamicDecimal(data.positionSize, meta?.basePrecision ?? 4)}</dd></div>
       {#if marginCost}
-        <div><dt>Margin</dt><dd>{formatDynamicDecimal(marginCost, 2)}</dd></div>
+        <div><dt>{$_("dashboard.margin")}</dt><dd>{formatDynamicDecimal(marginCost, 2)}</dd></div>
       {/if}
       <div><dt>{$_("orderEntry.summary.entry")}</dt><dd>{formatDynamicDecimal(data.entryPrice, meta?.quotePrecision ?? 2)}</dd></div>
       <div><dt>{$_("orderEntry.summary.stop")}</dt><dd>{formatDynamicDecimal(data.stopLossPrice, meta?.quotePrecision ?? 2)}</dd></div>

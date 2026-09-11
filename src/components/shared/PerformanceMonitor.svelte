@@ -310,7 +310,7 @@
                 {marketState.telemetry.activeConnections}
                 <span
                     class="text-sm text-[var(--text-secondary)] font-normal ml-1"
-                    >active</span
+                    >{$_("settings.performance.active")}</span
                 >
             </div>
             <div class="metric-info flex justify-between items-center">

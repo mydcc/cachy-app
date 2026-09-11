@@ -844,7 +844,7 @@
                                             {signal.label}
                                         </span>
                                         {#if rsiNum !== null}
-                                            <span>RSI {rsiNum.toFixed(1)}</span>
+                                            <span>{$_("settings.technicals.rsi.title")} {rsiNum.toFixed(1)}</span>
                                         {/if}
                                         {#if fundingOf(row.symbol)}
                                             <span>{$_("app.marketDashboard.funding")} {fundingOf(row.symbol)}</span>

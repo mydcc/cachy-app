@@ -54,9 +54,11 @@
     import HotkeySettings from "../HotkeySettings.svelte";
     import {
         HOTKEY_ACTIONS,
+        HOTKEY_CATEGORY_KEYS,
         MODE1_MAP,
         MODE2_MAP,
         type HotkeyAction,
+        type HotkeyCategory,
     } from "../../../services/hotkeyService";
 
     function clearAppCache() {
@@ -792,12 +794,12 @@
                             {#each categories as category}
                                 <div class="flex flex-col gap-2">
                                     <h4 class="text-sm font-bold text-[var(--accent-color)] border-b border-[var(--border-color)] pb-1 mb-1">
-                                        {category}
+                                        {$_(HOTKEY_CATEGORY_KEYS[category as HotkeyCategory])}
                                     </h4>
                                     <SettingsGrid gap="gap-3">
                                         {#each groupedActions[category] as action}
                                             <div class="flex justify-between items-center gap-2 p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-                                                <span class="text-sm min-w-0">{action.label}</span>
+                                                <span class="text-sm min-w-0">{$_(action.labelKey)}</span>
                                                 <span class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)] shrink-0">
                                                     {getPresetKey(action, settingsState.hotkeyMode)}
                                                 </span>

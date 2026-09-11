@@ -11,6 +11,10 @@
       "zoomIn": "Vergrößern",
       "decreaseFont": "Schriftgröße verkleinern",
       "increaseFont": "Schriftgröße vergrößern"
+    },
+    "contextMenu": {
+      "closeWindow": "Fenster schließen",
+      "showPriceInTitle": "Preis im Titel anzeigen"
     }
   },
   "app": {
@@ -114,7 +118,8 @@
       "dismissButton": "Neu anfangen / Verwerfen",
       "restoreButton": "Meine Daten wiederherstellen",
       "restoring": "Wiederherstellen..."
-    }
+    },
+    "copyright": "© 2026 MYDCT. Alle Rechte vorbehalten."
   },
   "sidePanel": {
     "globalChat": "Globaler Chat",
@@ -1036,7 +1041,19 @@
     "accountColumn": "Konto",
     "accountUnknown": "Entferntes Konto",
     "saveFailed": "Journal konnte nicht gespeichert werden. Speicher voll?",
-    "saveError": "Fehler beim Speichern des Journals."
+    "saveError": "Fehler beim Speichern des Journals.",
+    "filterClosed": "Geschlossen",
+    "riskAmount": "Risikobetrag",
+    "maxProfit": "Max. Gewinn",
+    "makerTakerRates": "Maker-/Taker-Gebühren",
+    "noScreenshot": "Kein Screenshot hinterlegt.",
+    "fullscreenHint": "🔍 Klick für Vollbild",
+    "chartScreenshot": "{symbol} Chart-Screenshot",
+    "tradeMode": {
+      "live": "Live",
+      "paper": "Paper",
+      "all": "Alle"
+    }
   },
   "marketOverview": {
     "24hHigh": "24h Hoch",
@@ -1137,7 +1154,10 @@
       "intervalDesc": "Steuert Datenfrische vs. CPU-Auslastung",
       "aria": {
         "removeTimeframe": "Zeitrahmen entfernen"
-      }
+      },
+      "cpuImpact": "⚠️ CPU-Auswirkung",
+      "symbolsCount": "{count} Symbole",
+      "timeframesSelected": "{count} ausgewählt"
     },
     "visuals": {
       "subtabs": {
@@ -1257,7 +1277,13 @@
         "indicatorTimeframe": "Indikator-Intervall",
         "tooltipIndicatorTimeframe": "Geteilt mit dem Technicals Panel: Hier und dort einstellbar, gilt immer für beide. ATR und RSI des Hintergrunds werden aus diesem Intervall gelesen — ist dafür bereits ein Chart offen, kosten die Werte nichts zusätzlich.",
         "atrBands": "ATR-Referenzringe",
-        "tooltipAtrBands": "Zeichnet drei Ringe auf die Preisachse: den zuletzt gehandelten Preis und ±1 ATR darum. So ist auf einen Blick erkennbar, ob die Schockwelle eines Trades innerhalb der normalen Marktspanne liegt oder daraus ausbricht. Benötigt die radiale Preisachse und einen verfügbaren ATR-Wert; mit der 2× ATR-Achsenspanne sitzen ±1 ATR-Ringe nahe den 1/4- und 3/4-Positionen, bewegen sich nur, wenn der Preis um 1+ ATR von der aktuellen Mitte abweicht — was selbst schon die Antwort ist."
+        "tooltipAtrBands": "Zeichnet drei Ringe auf die Preisachse: den zuletzt gehandelten Preis und ±1 ATR darum. So ist auf einen Blick erkennbar, ob die Schockwelle eines Trades innerhalb der normalen Marktspanne liegt oder daraus ausbricht. Benötigt die radiale Preisachse und einen verfügbaren ATR-Wert; mit der 2× ATR-Achsenspanne sitzen ±1 ATR-Ringe nahe den 1/4- und 3/4-Positionen, bewegen sich nur, wenn der Preis um 1+ ATR von der aktuellen Mitte abweicht — was selbst schon die Antwort ist.",
+        "modeEqualizer": "Equalizer",
+        "modeRaindrops": "Regentropfen",
+        "modeCity": "Digitale Stadt",
+        "modeSonar": "Sonar",
+        "modeBlock": "Block",
+        "modeGalaxy": "Galaxy"
       },
       "coordinates": {
         "x": "X",
@@ -1640,7 +1666,14 @@
       "maTypeEma": "EMA",
       "maTypeWma": "WMA",
       "anchorSession": "Sitzung",
-      "anchorFixed": "Fixiert"
+      "anchorFixed": "Fixiert",
+      "atrStopSell": "ATR-Stop (Verkauf)",
+      "atrStopBuy": "ATR-Stop (Kauf)",
+      "vpPoc": "VP (POC)",
+      "vaHighLow": "VA Hoch/Tief",
+      "marketStructureHigh": "Marktstruktur-Hoch",
+      "marketStructureLow": "Marktstruktur-Tief",
+      "customTimeframePlaceholder": "z.B. 3m, 1W"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
@@ -1668,7 +1701,36 @@
       "mode1Desc": "⚡ Direktmodus - Drücke \"L\" für Long, \"S\" für Short (am schnellsten)",
       "mode2Desc": "🛡️ Sicherheitsmodus - Drücke \"Alt+L\" für Long, \"Alt+S\" für Short (verhindert Unfälle)",
       "switchToCustom": "Zur benutzerdefinierten Konfiguration wechseln",
-      "confirmOverwrite": "\"{newCombo}\" wird von \"{existingLabel}\" verwendet. Überschreiben?"
+      "confirmOverwrite": "\"{newCombo}\" wird von \"{existingLabel}\" verwendet. Überschreiben?",
+      "category": {
+        "favorites": "Favoriten",
+        "tradeSetup": "Trade-Setup",
+        "uiNavigation": "UI & Navigation",
+        "marketData": "Marktdaten",
+        "system": "System"
+      },
+      "action": {
+        "fav1": "Favorit 1 laden",
+        "fav2": "Favorit 2 laden",
+        "fav3": "Favorit 3 laden",
+        "fav4": "Favorit 4 laden",
+        "focusEntry": "Entry-Preis fokussieren",
+        "focusSl": "Stop-Loss fokussieren",
+        "focusNextTp": "Nächstes TP fokussieren",
+        "focusPrevTp": "Vorheriges TP fokussieren",
+        "addTp": "TP-Ziel hinzufügen",
+        "removeTp": "TP-Ziel entfernen",
+        "setLong": "Richtung Long setzen",
+        "setShort": "Richtung Short setzen",
+        "resetInputs": "Trade-Eingaben zurücksetzen",
+        "toggleJournal": "Journal umschalten",
+        "openSettings": "Einstellungen öffnen",
+        "toggleSidebars": "Sidebars umschalten",
+        "toggleTechnicals": "Technik-Panel umschalten",
+        "fetchPrice": "Preis abrufen",
+        "openSymbolPicker": "Symbolauswahl öffnen",
+        "toggleAssistant": "Assistent umschalten"
+      }
     },
     "chart": {
       "scaleSection": "Skalierung",
@@ -1818,7 +1880,8 @@
         "refresh": "Aktualisieren",
         "cache": "Ergebnis-Cache",
         "cacheSummary": "Treffer {hits} · Fehlzugriffe {misses} · {hitRate} % Trefferquote",
-        "noUncachedYet": "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten."
+        "noUncachedYet": "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten.",
+        "panelTitle": "⚡ Engine-Debug-Panel"
       }
     },
     "performance": {
@@ -1838,7 +1901,8 @@
       "cacheHit": "Cache-Trefferquote",
       "avgLatency": "Ø Latenz",
       "networkStatus": "Netzwerkstatus",
-      "tipsTitle": "Optimierungstipps"
+      "tipsTitle": "Optimierungstipps",
+      "active": "aktiv"
     },
     "connections": {
       "exchanges": "Börsen",
@@ -1867,7 +1931,8 @@
         "apiSecret": "API-Secret",
         "passphrase": "Passphrase",
         "url": "https://...",
-        "appAccessToken": "\"Zugangstoken erstellen\" klicken oder einfügen"
+        "appAccessToken": "\"Zugangstoken erstellen\" klicken oder einfügen",
+        "imgbb": "imgbb-API-Key eingeben..."
       },
       "providers": {
         "bitunix": "Bitunix",
@@ -2331,7 +2396,10 @@
     "hintGood": "<strong>✓ Alle Systeme normal:</strong> Konfiguration ist optimal für die aktuelle Last.",
     "symbolsInMemory": "Symbole im Speicher",
     "pending": "Ausstehend",
-    "confluenceScore": "Konfluenz-Score"
+    "confluenceScore": "Konfluenz-Score",
+    "profileLightDesc": "Minimaler CPU-/Speicherbedarf, langsamere Updates. Ideal für: Wochen-Monate",
+    "profileBalancedDesc": "Gute Leistung & Reaktionsfähigkeit. Ideal für: Stunden-Tage",
+    "profileProDesc": "Maximale Reaktionsfähigkeit, höhere CPU. Ideal für: Minuten-Stunden"
   },
   "symbolPicker": {
     "title": "Symbol auswählen",
@@ -2357,7 +2425,9 @@
       "10m": "10M",
       "50m": "50M"
     },
-    "maxFavorites": "Maximale Anzahl an Favoriten erreicht (12)."
+    "maxFavorites": "Maximale Anzahl an Favoriten erreicht (12).",
+    "volumeLabel": "Vol",
+    "pairsCount": "{count} Paare"
   },
   "common": {
     "windowMenu": "Fenstermenü",
@@ -2390,7 +2460,11 @@
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "restore": "Wiederherstellen",
-    "feedDuck": "Ente füttern (Profit)"
+    "feedDuck": "Ente füttern (Profit)",
+    "loading": "Lädt...",
+    "typeHere": "Hier eingeben...",
+    "entry": "Einstieg",
+    "active": "aktiv"
   },
   "analyst": {
     "trend": {
@@ -3724,7 +3798,8 @@
     "eraseConfirm": "Zum Bestätigen erneut klicken",
     "eraseDone": "Löschung angefordert. Deine Nachrichten verschwinden, sobald die Änderung durchläuft.",
     "eraseNeedsConnection": "Zuerst verbinden — die Löschung läuft gegen den Server.",
-    "eraseUnavailable": "In diesem Build nicht verfügbar: Die SpacetimeDB-Bindings sind älter als der Lösch-Reducer. Der Betreiber muss `spacetime generate` ausführen und neu bauen."
+    "eraseUnavailable": "In diesem Build nicht verfügbar: Die SpacetimeDB-Bindings sind älter als der Lösch-Reducer. Der Betreiber muss `spacetime generate` ausführen und neu bauen.",
+    "tokenPlaceholder": "Token"
   },
   "positionsList": {
     "noOpenPositions": "Keine offenen Positionen.",
@@ -4075,5 +4150,52 @@
   },
   "storage": {
     "quotaExceeded": "Speicherkontingent erschöpft. Bitte geben Sie Speicherplatz frei."
+  },
+  "depthBar": {
+    "bids": "Gebote",
+    "asks": "Angebote"
+  },
+  "news": {
+    "regime": "Regime"
+  },
+  "timeframes": {
+    "addPlaceholder": "Timeframe hinzufügen..."
+  },
+  "assistant": {
+    "thinking": "Denkt nach...",
+    "processing": "_ VERARBEITUNG...",
+    "connected": "--- Mit Global Chat verbunden ---",
+    "setupRequired": "Einrichtung erforderlich",
+    "setupDescription": "Bitte konfiguriere deinen {provider}-API-Key in den Einstellungen, um den KI-Assistenten zu nutzen.",
+    "columnSymbol": "Symbol",
+    "columnTechnicals": "Technik",
+    "columnNews": "News",
+    "columnCmc": "CoinMarketCap",
+    "valueLoaded": "✅ Geladen",
+    "valueNone": "❌ Keine",
+    "valueNoApiKey": "❌ Kein API-Key konfiguriert",
+    "articlesCount": "✅ {count} Artikel",
+    "contextTimedOut": "⚠️ Zeitüberschreitung beim Sammeln des Kontexts (5s). Daten möglicherweise unvollständig.",
+    "qaMarketCheck": "Markt-Check",
+    "qaTechAnalysis": "Technische Analyse",
+    "qaRiskAudit": "Risiko-Audit",
+    "qaNewsCheck": "News-Check",
+    "persona": {
+      "risk": "Risikomanager",
+      "coach": "Trade-Coach",
+      "scalper": "Scalper",
+      "analyst": "Analyst"
+    }
+  },
+  "iframe": {
+    "loadingArticle": "Lade Artikel...",
+    "summary": "Zusammenfassung:",
+    "openArticle": "Artikel öffnen",
+    "fullArticleOn": "Vollständiger Artikel auf {source}",
+    "providerProtection": "Dieser Anbieter schützt Volltexte vor direktem In-App-Laden."
+  },
+  "chat": {
+    "placeholder": "Nachricht...",
+    "send": "Senden"
   }
 }

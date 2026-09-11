@@ -32,7 +32,7 @@
   let {
     selected = $bindable([]),
     options = [],
-    placeholder = "Add timeframe...",
+    placeholder = $_("timeframes.addPlaceholder"),
     maxItems = 4,
     onchange,
   }: Props = $props();

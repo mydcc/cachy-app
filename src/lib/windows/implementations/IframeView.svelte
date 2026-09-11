@@ -201,13 +201,13 @@
                 {:else if isFetchingFullArticle}
                     <div class="flex items-center gap-2 py-3 text-xs text-[var(--text-tertiary)]">
                         <div class="animate-spin w-3.5 h-3.5 border-2 border-[var(--accent-color)] border-t-transparent rounded-full"></div>
-                        <span>Lade Artikel...</span>
+                        <span>{$_("iframe.loadingArticle")}</span>
                     </div>
                 {:else}
                     <div class="flex flex-col gap-3.5 mt-1">
                         {#if win.description}
                             <div class="p-3.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] text-xs md:text-sm text-[var(--text-primary)] leading-relaxed">
-                                <span class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1">Zusammenfassung:</span>
+                                <span class="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider block mb-1">{$_("iframe.summary")}</span>
                                 {cleanSnippet(win.description)}
                             </div>
                         {/if}
@@ -215,10 +215,10 @@
                         <div class="p-3.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                             <div class="flex flex-col gap-0.5">
                                 <span class="text-xs font-medium text-[var(--text-primary)]">
-                                    Vollständiger Artikel auf {win.source || 'Website'}
+                                    {$_("iframe.fullArticleOn", { values: { source: win.source || 'Website' } })}
                                 </span>
                                 <span class="text-[11px] text-[var(--text-tertiary)]">
-                                    Dieser Anbieter schützt Volltexte vor direktem In-App-Laden.
+                                    {$_("iframe.providerProtection")}
                                 </span>
                             </div>
                             <button
@@ -226,7 +226,7 @@
                                 onclick={openInNewTab}
                                 class="px-3 py-1.5 rounded-lg bg-[var(--accent-color)] text-black font-medium text-xs hover:opacity-90 transition-opacity flex items-center gap-1.5 shrink-0 cursor-pointer"
                             >
-                                <span>Artikel öffnen</span>
+                                <span>{$_("iframe.openArticle")}</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>

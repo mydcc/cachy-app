@@ -18,6 +18,7 @@
 <script lang="ts">
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
+  import { _ } from "../../locales/i18n";
 
   interface Props {
     bids?: [string, string][];
@@ -69,10 +70,10 @@
   <!-- Text Labels -->
   <div class="flex justify-between text-[10px] text-[var(--text-secondary)]">
     <span class="text-[var(--success-color)]"
-      >{formatDynamicDecimal(bidVol, 0)} Bids</span
+      >{formatDynamicDecimal(bidVol, 0)} {$_("depthBar.bids")}</span
     >
     <span class="text-[var(--danger-color)]"
-      >{formatDynamicDecimal(askVol, 0)} Asks</span
+      >{formatDynamicDecimal(askVol, 0)} {$_("depthBar.asks")}</span
     >
   </div>
 </div>

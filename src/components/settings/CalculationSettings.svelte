@@ -32,7 +32,6 @@
     const presets: Record<
         PresetType,
         {
-            label: string;
             description: string;
             marketAnalysisInterval: number;
             pauseAnalysisOnBlur: boolean;
@@ -43,8 +42,7 @@
         }
     > = {
         light: {
-            label: "💡 Light (Position Trading)",
-            description: "Minimal CPU/Memory, slower updates. Best for: weeks-months timeframes",
+            description: "calculationDashboard.profileLightDesc",
             marketAnalysisInterval: 300, // 5 minutes
             pauseAnalysisOnBlur: true,
             analyzeAllFavorites: false,
@@ -53,8 +51,7 @@
             analysisTimeframes: ["1h", "4h"],
         },
         balanced: {
-            label: "⚖️ Balanced (Day Trading)",
-            description: "Good performance & responsiveness. Best for: hours-days timeframes",
+            description: "calculationDashboard.profileBalancedDesc",
             marketAnalysisInterval: 60, // 1 minute
             pauseAnalysisOnBlur: true,
             analyzeAllFavorites: false,
@@ -63,8 +60,7 @@
             analysisTimeframes: ["15m", "1h", "4h"],
         },
         pro: {
-            label: "⚡ Pro (Scalping/Intraday)",
-            description: "Maximum responsiveness, higher CPU. Best for: minutes-hours timeframes",
+            description: "calculationDashboard.profileProDesc",
             marketAnalysisInterval: 10, // 10 seconds
             pauseAnalysisOnBlur: false,
             analyzeAllFavorites: true,
@@ -123,10 +119,10 @@
                 <button
                     class="preset-btn {selectedPreset === key ? 'active' : ''}"
                     onclick={() => applyPreset(key as PresetType)}
-                    title={preset.description}
+                    title={$_(preset.description as TranslationKey)}
                 >
                     <div class="preset-label">{$_(`calculationDashboard.profile${key.charAt(0).toUpperCase() + key.slice(1)}` as TranslationKey)}</div>
-                    <div class="preset-desc">{preset.description}</div>
+                    <div class="preset-desc">{$_(preset.description as TranslationKey)}</div>
                     <div class="preset-specs">
                         {$_("settings.calculation.intervalLabel")} {formatIntervalLabel(
                             preset.marketAnalysisInterval,
@@ -198,7 +194,7 @@
             <p class="help-text">
                 {$_("settings.calculation.favoritesHelp")}
                 {#if settingsState.analyzeAllFavorites}
-                    <span class="warning">⚠️ CPU Impact</span>
+                    <span class="warning">{$_("settings.calculation.cpuImpact")}</span>
                 {/if}
             </p>
         </div>
@@ -224,7 +220,7 @@
             <label for="marketCacheSize">
                 <span class="label-text">{$_("settings.calculation.cacheSize")}</span>
                 <span class="current-value"
-                    >{settingsState.marketCacheSize} symbols</span
+                    >{$_("settings.calculation.symbolsCount", { values: { count: settingsState.marketCacheSize } })}</span
                 >
             </label>
             <div class="slider-container">
@@ -253,7 +249,7 @@
             <div class="label-row">
                 <span class="label-text">{$_("settings.calculation.timeframes")}</span>
                 <span class="current-value"
-                    >{settingsState.analysisTimeframes.length} selected</span
+                    >{$_("settings.calculation.timeframesSelected", { values: { count: settingsState.analysisTimeframes.length } })}</span
                 >
             </div>
             <div class="timeframe-grid">
@@ -350,7 +346,7 @@
             <div class="info-item">
                 <span class="label">{$_("settings.calculation.cacheLabel")}</span>
                 <span class="value"
-                    >{settingsState.marketCacheSize} symbols</span
+                    >{$_("settings.calculation.symbolsCount", { values: { count: settingsState.marketCacheSize } })}</span
                 >
             </div>
             <div class="info-item">

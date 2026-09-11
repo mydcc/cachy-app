@@ -241,7 +241,7 @@
             >
               <div class="flex justify-between items-center">
                 <span class="text-[10px] text-[var(--text-secondary)]"
-                  >Regime</span
+                  >{$_("news.regime")}</span
                 >
                 <span class="text-[10px] font-bold" style:color={sentimentColor}
                   >{analysis.regime} ({(analysis.score * 100).toFixed(

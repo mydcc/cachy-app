@@ -79,7 +79,7 @@
   }
 
   function handleCancel(order: NormalizedOrder) {
-    if (confirm($_("dashboard.confirmCancelOrder") || "Cancel this order?")) {
+    if (confirm($_("dashboard.confirmCancelOrder"))) {
         oncancel?.(order.id || order.orderId, order.symbol);
     }
   }

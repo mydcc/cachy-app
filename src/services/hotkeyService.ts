@@ -23,6 +23,7 @@ import { app } from "./app";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
 import { SymbolPickerWindow } from "../lib/windows/implementations/SymbolPickerWindow.svelte";
 import { CONSTANTS } from "../lib/constants";
+import type { TranslationKey } from "../locales/schema";
 
 // --- Types & Constants ---
 
@@ -33,9 +34,17 @@ export type HotkeyCategory =
   | "Market Data"
   | "System";
 
+export const HOTKEY_CATEGORY_KEYS: Record<HotkeyCategory, TranslationKey> = {
+  Favorites: "settings.hotkeys.category.favorites",
+  "Trade Setup": "settings.hotkeys.category.tradeSetup",
+  "UI & Navigation": "settings.hotkeys.category.uiNavigation",
+  "Market Data": "settings.hotkeys.category.marketData",
+  System: "settings.hotkeys.category.system",
+};
+
 export interface HotkeyAction {
   id: string;
-  label: string;
+  labelKey: TranslationKey;
   category: HotkeyCategory;
   defaultKey: string; // Used as default for Custom mode
   action: () => void;
@@ -130,28 +139,28 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
   // --- Favorites ---
   {
     id: "FAV_1",
-    label: "Load Favorite 1",
+    labelKey: "settings.hotkeys.action.fav1",
     category: "Favorites",
     defaultKey: "Alt+1",
     action: () => loadFavorite(1),
   },
   {
     id: "FAV_2",
-    label: "Load Favorite 2",
+    labelKey: "settings.hotkeys.action.fav2",
     category: "Favorites",
     defaultKey: "Alt+2",
     action: () => loadFavorite(2),
   },
   {
     id: "FAV_3",
-    label: "Load Favorite 3",
+    labelKey: "settings.hotkeys.action.fav3",
     category: "Favorites",
     defaultKey: "Alt+3",
     action: () => loadFavorite(3),
   },
   {
     id: "FAV_4",
-    label: "Load Favorite 4",
+    labelKey: "settings.hotkeys.action.fav4",
     category: "Favorites",
     defaultKey: "Alt+4",
     action: () => loadFavorite(4),
@@ -160,49 +169,49 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
   // --- Trade Setup ---
   {
     id: "FOCUS_ENTRY",
-    label: "Focus Entry Price",
+    labelKey: "settings.hotkeys.action.focusEntry",
     category: "Trade Setup",
     defaultKey: "Alt+E",
     action: () => focusElement(IDs.ENTRY_PRICE),
   },
   {
     id: "FOCUS_SL",
-    label: "Focus Stop Loss",
+    labelKey: "settings.hotkeys.action.focusSl",
     category: "Trade Setup",
     defaultKey: "Alt+O",
     action: () => focusElement(IDs.STOP_LOSS),
   },
   {
     id: "FOCUS_TP_NEXT",
-    label: "Focus Next TP",
+    labelKey: "settings.hotkeys.action.focusNextTp",
     category: "Trade Setup",
     defaultKey: "Alt+T",
     action: () => cycleTakeProfitFocus(false),
   },
   {
     id: "FOCUS_TP_PREV",
-    label: "Focus Previous TP",
+    labelKey: "settings.hotkeys.action.focusPrevTp",
     category: "Trade Setup",
     defaultKey: "Alt+Shift+T",
     action: () => cycleTakeProfitFocus(true),
   },
   {
     id: "ADD_TP",
-    label: "Add TP Target",
+    labelKey: "settings.hotkeys.action.addTp",
     category: "Trade Setup",
     defaultKey: "Alt+Plus",
     action: () => app.addTakeProfitRow(),
   },
   {
     id: "REMOVE_TP",
-    label: "Remove TP Target",
+    labelKey: "settings.hotkeys.action.removeTp",
     category: "Trade Setup",
     defaultKey: "Alt+Minus",
     action: () => removeLastTakeProfit(),
   },
   {
     id: "SET_LONG",
-    label: "Set Direction Long",
+    labelKey: "settings.hotkeys.action.setLong",
     category: "Trade Setup",
     defaultKey: "Alt+L",
     action: () =>
@@ -213,7 +222,7 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
   },
   {
     id: "SET_SHORT",
-    label: "Set Direction Short",
+    labelKey: "settings.hotkeys.action.setShort",
     category: "Trade Setup",
     defaultKey: "Alt+S",
     action: () =>
@@ -224,7 +233,7 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
   },
   {
     id: "RESET_INPUTS",
-    label: "Reset Trade Inputs",
+    labelKey: "settings.hotkeys.action.resetInputs",
     category: "Trade Setup",
     defaultKey: "Alt+R",
     action: () => tradeState.resetInputs(true),
@@ -233,21 +242,21 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
   // --- UI & Navigation ---
   {
     id: "OPEN_JOURNAL",
-    label: "Toggle Journal",
+    labelKey: "settings.hotkeys.action.toggleJournal",
     category: "UI & Navigation",
     defaultKey: "Alt+J",
     action: () => uiState.toggleJournalModal(true),
   },
   {
     id: "TOGGLE_SETTINGS",
-    label: "Open Settings",
+    labelKey: "settings.hotkeys.action.openSettings",
     category: "UI & Navigation",
     defaultKey: "Alt+,",
     action: () => uiState.toggleSettingsModal(true),
   },
   {
     id: "TOGGLE_SIDEBAR",
-    label: "Toggle Sidebars",
+    labelKey: "settings.hotkeys.action.toggleSidebars",
     category: "UI & Navigation",
     defaultKey: "Alt+B",
     action: () => {
@@ -256,7 +265,7 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
   },
   {
     id: "TOGGLE_TECHNICALS",
-    label: "Toggle Technicals Panel",
+    labelKey: "settings.hotkeys.action.toggleTechnicals",
     category: "UI & Navigation",
     defaultKey: "Alt+K",
     action: () => {
@@ -267,21 +276,21 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
   // --- Market Data ---
   {
     id: "FETCH_PRICE",
-    label: "Fetch Price",
+    labelKey: "settings.hotkeys.action.fetchPrice",
     category: "Market Data",
     defaultKey: "Alt+P",
     action: () => app.handleFetchPrice(),
   },
   {
     id: "TOGGLE_SYMBOL_PICKER",
-    label: "Open Symbol Picker",
+    labelKey: "settings.hotkeys.action.openSymbolPicker",
     category: "UI & Navigation",
     defaultKey: "Alt+F",
     action: () => windowManager.open(new SymbolPickerWindow()),
   },
   {
     id: "TOGGLE_ASSISTANT",
-    label: "Toggle Assistant",
+    labelKey: "settings.hotkeys.action.toggleAssistant",
     category: "UI & Navigation",
     defaultKey: "Alt+A",
     action: () => uiState.toggleAssistant(true),

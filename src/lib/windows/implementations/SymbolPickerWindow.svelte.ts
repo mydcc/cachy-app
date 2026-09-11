@@ -22,6 +22,8 @@
 
 import { WindowBase } from "../WindowBase.svelte";
 import SymbolPickerView from "./SymbolPickerView.svelte";
+import { _ } from "../../../locales/i18n";
+import { get } from "svelte/store";
 
 export class SymbolPickerWindow extends WindowBase {
     // Matches DialogWindow.svelte.ts's resolve type: its one real caller,
@@ -32,7 +34,7 @@ export class SymbolPickerWindow extends WindowBase {
 
     constructor(resolve?: (value: boolean | string) => void) {
         super({
-            title: "Symbol Selection",
+            title: get(_)("symbolPicker.title"),
             windowType: "symbolpicker"
         });
         if (resolve) this.resolve = resolve;
