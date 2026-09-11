@@ -30,14 +30,14 @@
  *   GH_TOKEN           for the read-only `gh issue view` call
  *
  * Exit 0 = rule satisfied or not applicable. Exit 1 = the linked item is
- * not flipped. GitHub/API flakes fail OPEN with a warning (a retry on the
+ * not flipped. GitHub/API/git flakes fail OPEN with a warning (a retry on the
  * next push re-evaluates); deterministic findings fail CLOSED.
  */
 
 import { execFileSync } from "node:child_process";
 import {
     checkBacklogFlip,
-    findFixesTrailer,
+    findClosingTrailer,
     findItemFile,
     readStatus,
 } from "./lib/backlog-flip";
@@ -59,9 +59,9 @@ function warn(msg: string): void {
     console.warn(`⚠️ [backlog-flip] ${msg}`);
 }
 
-const declared = findFixesTrailer(body);
+const declared = findClosingTrailer(body);
 if (declared === null) {
-    console.log("✅ [backlog-flip] no Fixes trailer; nothing to check.");
+    console.log("✅ [backlog-flip] no closing trailer; nothing to check.");
     process.exit(0);
 }
 
@@ -89,7 +89,11 @@ const itemId = idLabel.slice("backlog-id:".length);
 
 // Locate the item file on base and in this diff. `git ls-tree` on the base
 // ref is cheaper and staler-proof compared to walking the worktree.
-const tree = git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]) ?? "";
+const tree = git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]);
+if (tree === null) {
+    warn(`cannot read the ${base} tree; skipping (retry on next push).`);
+    process.exit(0);
+}
 const itemFile = findItemFile(tree.split("\n"), itemId);
 if (itemFile === null) {
     console.error(
@@ -99,9 +103,18 @@ if (itemFile === null) {
     process.exit(1);
 }
 
-const baseContent = git(["show", `${base}:${itemFile}`]) ?? "";
+const baseContent = git(["show", `${base}:${itemFile}`]);
+if (baseContent === null) {
+    warn(`cannot read ${itemFile} on ${base}; skipping (retry on next push).`);
+    process.exit(0);
+}
 const baseStatus = readStatus(baseContent);
-const fileDiff = git(["diff", `${base}...HEAD`, "--", itemFile]) ?? "";
+
+const fileDiff = git(["diff", `${base}...HEAD`, "--", itemFile]);
+if (fileDiff === null) {
+    warn(`cannot diff ${itemFile}; skipping (retry on next push).`);
+    process.exit(0);
+}
 
 const verdict = checkBacklogFlip({ body, issueLabels: labels, baseStatus, fileDiff });
 if (verdict.outcome === "pass") {

@@ -52,6 +52,18 @@ describe("stripCodeBlocks", () => {
         expect(stripCodeBlocks("   Fixes #7")).toBe("   Fixes #7");
     });
 
+    it("drops a fenced block inside a blockquote", () => {
+        expect(stripCodeBlocks("> ```\n> Fixes #1792\n> ```\n> kept")).toBe("> kept");
+    });
+
+    it("drops an indented code line inside a blockquote", () => {
+        expect(stripCodeBlocks(">     Fixes #1\n> real")).toBe("> real");
+    });
+
+    it("keeps a normal blockquote line", () => {
+        expect(stripCodeBlocks("> Fixes #7")).toBe("> Fixes #7");
+    });
+
     it("leaves text without code blocks untouched", () => {
         expect(stripCodeBlocks("Fixes #7\nbody")).toBe("Fixes #7\nbody");
     });

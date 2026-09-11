@@ -20,16 +20,17 @@ import { stripCodeBlocks } from "./markdown-text";
 /**
  * Flip-in-fix-PR verdicts (no bots).
  *
- * A fix PR whose description carries `Fixes #N` for a backlog mirror issue
- * (a `backlog-id:<ID>` label) must flip that item to `status: done` in its
- * own diff — there is no bot that does it after the merge anymore. Pure and
- * unit-testable; the workflow runner (`scripts/check-backlog-flip.ts`)
- * supplies body, labels, base status and diff, this module only decides.
+ * A fix PR whose description carries a line-start closing trailer (`Fixes #N`,
+ * `Closes #N`, …) for a backlog mirror issue (a `backlog-id:<ID>` label) must
+ * flip that item to `status: done` in its own diff — there is no bot that does
+ * it after the merge anymore. Pure and unit-testable; the workflow runner
+ * (`scripts/check-backlog-flip.ts`) supplies body, labels, base status and
+ * diff, this module only decides.
  *
- * Only the enforced line-start trailer counts, never prose (BUG-0220).
+ * Only a line-start trailer counts, never prose (BUG-0220).
  */
 
-export const FIXES_TRAILER_RE = /^Fixes #(\d+)\b/m;
+export const CLOSING_TRAILER_RE = /^(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+#(\d+)\b/im;
 export const NO_ISSUE_RE = /\[no issue\]/i;
 export const FLIP_LINE_RE = /^\+status:\s*done\s*$/m;
 export const TERMINAL_STATUSES = new Set(["done", "dropped"]);
@@ -38,9 +39,17 @@ export type FlipVerdict =
     | { outcome: "pass"; detail: string }
     | { outcome: "fail"; detail: string };
 
-/** Extract the declared issue number from a line-start `Fixes #N` trailer. */
-export function findFixesTrailer(body: string): number | null {
-    const match = stripCodeBlocks(body).match(FIXES_TRAILER_RE);
+/**
+ * Extract the declared issue number from a line-start closing trailer.
+ *
+ * Any GitHub closing keyword counts, not just `Fixes`: the presence check
+ * accepts `Closes #N`/`Resolves #N`, so the flip gate must enforce on them too
+ * or a mirror issue could be closed on merge without its item being flipped.
+ * Still line-start only, so prose that merely mentions a keyword cannot
+ * declare a trailer (BUG-0220).
+ */
+export function findClosingTrailer(body: string): number | null {
+    const match = stripCodeBlocks(body).match(CLOSING_TRAILER_RE);
     if (!match) return null;
     const num = Number.parseInt(match[1], 10);
     return Number.isInteger(num) && num > 0 ? num : null;
@@ -90,7 +99,7 @@ export function checkBacklogFlip(inputs: FlipInputs): FlipVerdict {
     if (NO_ISSUE_RE.test(inputs.body)) {
         return { outcome: "pass", detail: "explicit [no issue] opt-out; flip not required" };
     }
-    const declared = findFixesTrailer(inputs.body);
+    const declared = findClosingTrailer(inputs.body);
     if (declared === null) {
         return { outcome: "pass", detail: "no Fixes trailer; presence is enforced elsewhere" };
     }

@@ -17,29 +17,42 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { checkBacklogFlip, findFixesTrailer, findItemFile, readStatus } from "./backlog-flip";
+import { checkBacklogFlip, findClosingTrailer, findItemFile, readStatus } from "./backlog-flip";
 
 // Flip-in-fix-PR: the author flips the item, no bot repairs it afterwards.
-describe("findFixesTrailer", () => {
+describe("findClosingTrailer", () => {
     it("takes the line-start trailer", () => {
-        expect(findFixesTrailer("Fixes #2793\n\nBody")).toBe(2793);
+        expect(findClosingTrailer("Fixes #2793\n\nBody")).toBe(2793);
     });
 
     it("ignores prose mentions (BUG-0220)", () => {
-        expect(findFixesTrailer("This is fixed, see #2793 for context")).toBe(null);
+        expect(findClosingTrailer("This is fixed, see #2793 for context")).toBe(null);
     });
 
     it("ignores a trailer inside a fenced code block (BUG-0431)", () => {
         const body = "Reporting the bug:\n\n```\nFixes #1792\n```\n\nRefs #1792.";
-        expect(findFixesTrailer(body)).toBe(null);
+        expect(findClosingTrailer(body)).toBe(null);
     });
 
     it("still takes a real trailer outside a fence", () => {
-        expect(findFixesTrailer("```\nFixes #111\n```\nFixes #222\n\nBody")).toBe(222);
+        expect(findClosingTrailer("```\nFixes #111\n```\nFixes #222\n\nBody")).toBe(222);
     });
 
     it("ignores a trailer in an indented code block", () => {
-        expect(findFixesTrailer("Reporting:\n\n    Fixes #1792\n\nRefs #1792.")).toBe(null);
+        expect(findClosingTrailer("Reporting:\n\n    Fixes #1792\n\nRefs #1792.")).toBe(null);
+    });
+
+    it("ignores a trailer inside a blockquoted fence", () => {
+        expect(findClosingTrailer("> ```\n> Fixes #1792\n> ```\n\nRefs #1792.")).toBe(null);
+    });
+
+    it("takes any line-start closing keyword, not only Fixes", () => {
+        expect(findClosingTrailer("Closes #2793\n\nBody")).toBe(2793);
+        expect(findClosingTrailer("Resolves #42")).toBe(42);
+    });
+
+    it("ignores a closing keyword that is not at line start", () => {
+        expect(findClosingTrailer("See: closes #2793 for context.")).toBe(null);
     });
 });
 
@@ -128,6 +141,17 @@ describe("checkBacklogFlip", () => {
                 fileDiff: "",
             }).outcome,
         ).toBe("pass");
+    });
+
+    it("requires the flip for a Closes trailer too", () => {
+        expect(
+            checkBacklogFlip({
+                body: "Closes #2793",
+                issueLabels: labels,
+                baseStatus: "ready",
+                fileDiff: "",
+            }).outcome,
+        ).toBe("fail");
     });
 
     it("passes a body carrying both a trailer and the [no issue] opt-out (BUG-0431)", () => {

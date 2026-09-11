@@ -26,7 +26,7 @@
 
 /**
  * Remove code blocks from `text`: fenced (``` or ~~~) and indented (a tab or
- * four leading spaces).
+ * four leading spaces), including inside a blockquote (``> ``` `` … ``> ``` ``).
  *
  * A fence line may carry an info string (```ts) on opening; the closing fence
  * must use the same character, at least as many of them as the opener, and
@@ -39,21 +39,25 @@ export function stripCodeBlocks(text: string): string {
     const kept: string[] = [];
     let open: { char: string; length: number } | null = null;
     for (const line of lines) {
-        const fence = line.match(/^\s{0,3}(`{3,}|~{3,})(.*)$/);
+        // Classify a blockquote line by its content after the `>` markers, but
+        // keep the original line when it is not code. GitHub does not autolink
+        // inside a fenced block quoted in a blockquote either.
+        const core = line.replace(/^\s{0,3}(?:>\s?)+/, "");
+        const fence = core.match(/^( {0,3})(`{3,}|~{3,})(.*)$/);
         if (open === null) {
             if (fence) {
-                open = { char: fence[1][0], length: fence[1].length };
+                open = { char: fence[2][0], length: fence[2].length };
                 continue;
             }
-            if (/^(\t| {4,})/.test(line)) continue;
+            if (/^(\t| {4,})/.test(core)) continue;
             kept.push(line);
             continue;
         }
         if (
             fence &&
-            fence[1][0] === open.char &&
-            fence[1].length >= open.length &&
-            fence[2].trim() === ""
+            fence[2][0] === open.char &&
+            fence[2].length >= open.length &&
+            fence[3].trim() === ""
         ) {
             open = null;
         }
