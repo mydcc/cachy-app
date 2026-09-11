@@ -1450,7 +1450,7 @@ mod tests {
             Verdict::Indeterminate { reason } => {
                 assert!(
                     reason.contains("hammer") && reason.contains("6"),
-                    "the reason should name the pattern and what it needed: {reason}"
+                    "reason must contain pattern name and warmup count"
                 );
             }
             other => panic!("expected Indeterminate, got {other:?}"),
