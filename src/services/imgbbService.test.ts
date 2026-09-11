@@ -15,17 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { imgbbService } from "./imgbbService";
-import { settingsState } from "../stores/settings.svelte";
 
 describe("imgbbService", () => {
   const originalFetch = globalThis.fetch;
-
-  beforeEach(() => {
-    settingsState.imgbbApiKey = "";
-    settingsState.imgbbExpiration = 0;
-  });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
@@ -33,18 +27,14 @@ describe("imgbbService", () => {
   });
 
   it("throws error if API key is not configured", async () => {
-    settingsState.imgbbApiKey = "";
     const fakeFile = new File(["dummy content"], "test.png", { type: "image/png" });
 
-    await expect(imgbbService.uploadToImgbb(fakeFile)).rejects.toThrow(
+    await expect(imgbbService.uploadToImgbb(fakeFile, {})).rejects.toThrow(
       "Please configure your ImgBB API Key in Settings > API first.",
     );
   });
 
   it("sends key and image in FormData and not in URL query string", async () => {
-    settingsState.imgbbApiKey = "test-secret-key-12345";
-    settingsState.imgbbExpiration = 0;
-
     let calledUrl = "";
     let calledOptions: RequestInit | undefined;
 
@@ -63,7 +53,10 @@ describe("imgbbService", () => {
     });
 
     const fakeFile = new File(["dummy content"], "test.png", { type: "image/png" });
-    const resultUrl = await imgbbService.uploadToImgbb(fakeFile);
+    const resultUrl = await imgbbService.uploadToImgbb(fakeFile, {
+      apiKey: "test-secret-key-12345",
+      expiration: 0,
+    });
 
     expect(resultUrl).toBe("https://i.ibb.co/xyz/test.png");
     // URL must be clean without any query params (no ?key=...)
@@ -81,9 +74,6 @@ describe("imgbbService", () => {
   });
 
   it("appends expiration to FormData when specified", async () => {
-    settingsState.imgbbApiKey = "test-secret-key-12345";
-    settingsState.imgbbExpiration = 3600;
-
     let calledUrl = "";
     let calledOptions: RequestInit | undefined;
 
@@ -102,7 +92,10 @@ describe("imgbbService", () => {
     });
 
     const fakeFile = new File(["dummy content"], "test.png", { type: "image/png" });
-    await imgbbService.uploadToImgbb(fakeFile);
+    await imgbbService.uploadToImgbb(fakeFile, {
+      apiKey: "test-secret-key-12345",
+      expiration: 3600,
+    });
 
     expect(calledUrl).toBe("https://api.imgbb.com/1/upload");
     const body = calledOptions?.body as FormData;
@@ -110,8 +103,6 @@ describe("imgbbService", () => {
   });
 
   it("handles API error response properly", async () => {
-    settingsState.imgbbApiKey = "invalid-key";
-
     globalThis.fetch = vi.fn().mockImplementation(async () => {
       return {
         ok: false,
@@ -125,6 +116,8 @@ describe("imgbbService", () => {
     });
 
     const fakeFile = new File(["dummy content"], "test.png", { type: "image/png" });
-    await expect(imgbbService.uploadToImgbb(fakeFile)).rejects.toThrow("Invalid API key");
+    await expect(
+      imgbbService.uploadToImgbb(fakeFile, { apiKey: "invalid-key" }),
+    ).rejects.toThrow("Invalid API key");
   });
 });

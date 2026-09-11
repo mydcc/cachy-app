@@ -26,6 +26,7 @@
     import { effectsState } from "../../stores/effects.svelte";
     import { StressLogic } from "../../lib/physics/StressLogic";
     import { DuckLogic } from "../../lib/pets/DuckLogic";
+    import { toastService } from "../../services/toastService.svelte";
 
     let container: HTMLDivElement;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -517,7 +518,7 @@
         });
 
         // Init Duck
-        duckLogic = new DuckLogic(scene);
+        duckLogic = new DuckLogic(scene, toastService);
         duckLogic.init();
 
         // Render initial static frame
