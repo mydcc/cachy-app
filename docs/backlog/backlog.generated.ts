@@ -3719,7 +3719,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0441",
     "title": "A legacy alert whose target was crossed while the app was closed never fires",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3731,6 +3731,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "branch": "worktree-alert-engine-batching-dc1192",
+    "start_date": "2026-09-12",
     "file": "bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md"
   },
   {

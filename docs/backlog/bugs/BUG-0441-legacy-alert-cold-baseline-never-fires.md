@@ -2,7 +2,7 @@
 id: BUG-0441
 title: A legacy alert whose target was crossed while the app was closed never fires
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: alerts
 data_class: A
 adr: none
 depends_on: []
+branch: worktree-alert-engine-batching-dc1192
+start_date: 2026-09-12
 ---
 
 # BUG-0441 — A legacy alert whose target was crossed while the app was closed never fires
@@ -65,34 +67,88 @@ already intended the cold-start case to fire and implemented a test that cannot 
 
 ## Fix
 
-Give the no-baseline case a directional answer instead of an equality test. With no
-baseline, a `PriceReached(t)` should fire when the first observed price is on or past
-`t` in either direction; `PriceCrossUp(t)` / `PriceCrossDown(t)` are genuinely
-directional and should fire when the first observed price is already at or beyond `t`
-on the trigger side.
+**The first draft of this section was wrong, and the correction is the whole
+solution.** It proposed giving the no-baseline case a directional answer — fire when
+the first observed price is already at or past the target. That contradicts
+`FEAT-0390`'s sharpest requirement, which the rule evaluator enforces under the name
+`rises_above_does_not_fire_when_the_price_was_already_above`: "rises above 60000" must
+*not* fire on a price that was already above 60000 when the alarm was armed. A
+first-tick comparison cannot tell that case apart from a genuine crossing, so it would
+have replaced a missed alert with a false one.
 
-Leave alone:
+The information the engine is missing is not "which side was the price on when the
+alarm was armed". It is **history** — and the rule engine, which never had this bug,
+shows why: it derives "the previous value" from persisted candle closes rather than
+from an in-memory tick stream. History answers both questions at once:
 
-- The per-tick evaluation cadence. That is [`FEAT-0368`](../features/FEAT-0368-alert-engine-evaluation-batching.md),
+- a price that *crossed* while the app was closed leaves a pair of closes straddling
+  the target, and fires;
+- a price that was *always* past the target leaves no such pair, and does not fire.
+
+So: **replay the recent closed candles through the unchanged engine at startup**,
+oldest first, before any live tick reaches it. No Rust change, no WASM rebuild, no new
+condition kind, and the existing fire-once hysteresis still bounds each alarm to one
+firing.
+
+Left alone:
+
+- The per-tick evaluation cadence — that is [`FEAT-0368`](../features/FEAT-0368-alert-engine-evaluation-batching.md),
   measured and dropped.
-- The `alert.active = false` fire-once hysteresis.
-- The rule engine path. `FEAT-0387` rules warm up from real candle history and do not
-  share this baseline.
-
-Touching `alert_engine.rs` means a WASM rebuild, so the PR has to ship a regenerated
-`static/wasm` artefact and prove it regenerated — an unchanged `.d.ts` proves nothing
-and the build is quiet on failure.
+- `technicals-wasm/` entirely. The engine's crossing logic was never wrong; it was
+  being started without the history it needed.
+- The rule engine path. A covered alert is not in the legacy engine at all, so the
+  replay cannot reach it.
 
 ## Acceptance criteria
 
-- [ ] A Rust unit test in `technicals-wasm` reproduces the defect and fails without the fix
-- [ ] The same test passes with the fix
-- [ ] An alert armed below a price that is already above it fires on the first tick after a cold start
-- [ ] An already-warm baseline still fires only on a genuine crossing — no double fire, no fire on every tick while price sits past the target (the fire-once hysteresis must carry this)
-- [ ] `static/wasm` is rebuilt in the same PR and the rebuild is demonstrated, not asserted
+- [x] A test reproduces the defect and fails without the fix — `alerts_engineWiring.test.ts`,
+      "fires the alert, because the crossing is in the candle history": verified RED
+      with the replay call removed (1 failed / 5 passed), GREEN with it (6 passed)
+- [x] The test passes with the fix
+- [x] An alert armed below a level the price crossed while the app was closed fires at
+      startup, anchored to the candle that crossed rather than to startup time
+- [x] A price that was already past the level the whole time still does not fire —
+      `FEAT-0390`'s requirement is preserved, not traded away
+- [x] No double fire: a live tick crossing again after the replay leaves exactly one
+      fired alert (hysteresis), and an alert the rule engine covers is excluded from
+      the replay entirely
+- [x] Missing history, a history read that throws, and a corrupt candle mid-series all
+      leave startup reaching `ready` with no guessed baseline
+- [x] ~~`static/wasm` is rebuilt in the same PR~~ — not applicable: the fix is
+      TypeScript only, which is why it is also free of the artefact-drift hazard
+
+## Fixed (2026-09-12)
+
+`src/services/alertEngine/replayClosedCandles.ts` — a pure function over injected
+readers, so its 13 tests need neither the market store nor wasm. `initAlertEngine`
+calls it immediately after `syncEngine(covered)`.
+
+**Two details carry the correctness.**
+
+*Closes only.* A candle whose high crossed the target but whose close came back does
+not fire. That matches the rule evaluator and the behaviour `FEAT-0387` documented to
+traders ("no firing for a mid-candle touch that recovers"); replaying highs and lows
+would make the legacy fallback *more* sensitive than the engine that replaced it.
+
+*Ordering is a correctness requirement, not a preference.* The replay has to be the
+engine's first evaluation for a symbol. If a live tick seeds the baseline first, the
+replay's oldest close is compared against the live price — an arbitrary jump that can
+straddle a target in either direction and fire for nothing. The dynamic
+`import("./ruleLoopWiring")` therefore moved *above* `await alertEngine.ensureLoaded()`,
+so everything from that await's continuation through the replay runs in one synchronous
+stretch no WebSocket callback can interleave. `evaluate` early-returns while the
+instance is null, so nothing can have been evaluated before it either.
+
+Two candles are required before anything is replayed. A single close cannot express a
+crossing, and a lone stale baseline paired with the next live tick spans an unknown gap
+— the same arbitrary jump, arriving through the front door.
 
 ## Links
 
-- `technicals-wasm/src/alert_engine.rs` — `AlertEngine::evaluate`, `last_prices`
+- `src/services/alertEngine/replayClosedCandles.ts` — the fix
+- `src/stores/alerts.svelte.ts` — `initAlertEngine`, the ordering constraint
+- `technicals-wasm/src/alert_engine.rs` — `AlertEngine::evaluate`, `last_prices` (unchanged)
+- `technicals-wasm/src/rule/evaluate.rs` — `rises_above_does_not_fire_when_the_price_was_already_above`,
+  the semantics this fix had to preserve
 - `src/stores/alerts.svelte.ts:62` — `cachy_alerts_v1` persistence
 - [`FEAT-0368`](../features/FEAT-0368-alert-engine-evaluation-batching.md) — where this was found

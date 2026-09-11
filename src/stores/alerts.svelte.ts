@@ -34,6 +34,7 @@ import {
     readCoveredAlertIds,
     releaseCoverage,
 } from "../services/alertEngine/ruleCoverage";
+import { replayClosedCandles } from "../services/alertEngine/replayClosedCandles";
 import { recordFiring, recordLegacyFiring } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
@@ -391,6 +392,26 @@ export async function initAlertEngine(
         logger.error("alerts", "[Cutover] Rule schema core failed to load — every alert stays on the legacy engine", e);
     }
 
+    // Imported once, here, rather than at module scope: the wiring — and the
+    // market store it reads — stays out of the import graph on the path this
+    // function returns early from. `ensureLoaded()` below is client-only for
+    // the same reason; the graph has to agree with the guard or SSR pulls in
+    // the whole client half anyway. `isSeriesObserved` (needed for coverage),
+    // `readClosedCandles` (needed for the BUG-0441 replay) and
+    // `startRuleEvaluationLoop` all come from the same module, so one import
+    // covers them.
+    //
+    // Ordered *before* `ensureLoaded()` rather than after it, which BUG-0441
+    // made a correctness requirement: awaiting anything between the engine
+    // becoming usable and the replay below would let a WebSocket tick seed the
+    // crossing baseline first, and the replay's oldest close would then be
+    // compared against the live price instead of against its own predecessor.
+    // With the last `await` here, everything from `ensureLoaded()`'s
+    // continuation through the replay runs in one synchronous stretch that no
+    // callback can interleave.
+    const { isSeriesObserved, ledgerSink, readClosedCandles, startRuleEvaluationLoop } =
+        await import("../services/alertEngine/ruleLoopWiring");
+
     try {
         await alertEngine.ensureLoaded(loadModule);
     } catch (e) {
@@ -400,17 +421,6 @@ export async function initAlertEngine(
         throw e;
     }
 
-    // Imported once, here, rather than at module scope: the wiring — and the
-    // market store it reads — stays out of the import graph on the path this
-    // function returns early from. `ensureLoaded()` above is client-only for
-    // the same reason; the graph has to agree with the guard or SSR pulls in
-    // the whole client half anyway. Both `isSeriesObserved` (needed for
-    // coverage, below) and `startRuleEvaluationLoop` (needed after) come from
-    // the same module, so one import covers both.
-    const { isSeriesObserved, ledgerSink, startRuleEvaluationLoop } = await import(
-        "../services/alertEngine/ruleLoopWiring"
-    );
-
     // FEAT-0387 cutover: real coverage only in live mode. A shadow run must
     // remove nothing from the legacy engine — that is what makes it a pure
     // addition rather than a second, quieter cutover.
@@ -419,6 +429,25 @@ export async function initAlertEngine(
             ? readCoveredAlertIds(isSeriesObserved)
             : new Set<string>();
     alertState.syncEngine(covered);
+
+    // BUG-0441: the engine now holds exactly the uncovered alerts and has not
+    // seen a tick yet, which is the only moment a replay is safe. Feeding the
+    // recent closed candles through it here is what lets an alarm whose target
+    // was crossed while the app was closed fire at all — the crossing baseline
+    // lives in the WASM instance and does not survive a reload, while the
+    // alerts do. Synchronous and never awaited, on purpose: see the import
+    // above. `replayClosedCandles` never throws.
+    const replayed = replayClosedCandles({
+        alerts: alertsForLegacyEngine(alertState.definitions, covered),
+        readCandles: readClosedCandles,
+        evaluate: (symbol, close, timestampMs) => alertEngine.evaluate(symbol, close, timestampMs),
+    });
+    logger.log(
+        "alerts",
+        `[BUG-0441] Replayed ${replayed.candles} closes across ${replayed.symbols} symbol(s); ` +
+            `${replayed.skipped.length} without history, ${replayed.failed.length} failed`,
+    );
+
     alertState.engineStatus = "ready";
 
     // FEAT-0387 cutover: coverage above is a startup snapshot, but the market
