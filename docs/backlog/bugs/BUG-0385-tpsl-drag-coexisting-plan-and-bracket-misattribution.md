@@ -2,7 +2,7 @@
 id: BUG-0385
 title: TP/SL drag can modify wrong plan when position plan and pending bracket coexist
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,8 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
-assignee: none
+assignee: opencode
+branch: fix/bug-0385-tpsl-drag-plan-attribution
 ---
 
 # BUG-0385 — TP/SL drag can modify wrong plan when position plan and pending bracket coexist
@@ -35,19 +36,25 @@ The drag handler only has `(kind, orderId, price)`; `plansFor()` is
 keyed by symbol alone. There is no mapping from a pending order's
 bracket leg to its owning plan.
 
-## Fix (proposal)
-Key the leg→plan resolution by the base order id: the pending-order
-chart line already knows its base id (`<baseId>-tp`); look up the plan
-by `plan.sourceOrderId === baseId` (or register pending brackets in
-`tpSlState` under their base id) instead of falling back to
-symbol-level `plansFor()`. Position plans keep the current lookup.
+## Fix
+
+Implemented in `handleTpSlDrop()`: the base id is recovered from the
+dragged line's own id (`stripLegSuffix(orderId, leg)`, BUG-0384) and the
+symbol-level `plansFor()` result is only trusted when it actually owns
+that line (`plan.sourceOrderId === baseId`). A coexisting plan — or the
+same store shifting between mousedown and mouseup — can no longer
+substitute a different plan's `sourceOrderId`.
+
+Scope is the drag handler (per the proposal below); pending bracket lines
+remain read-only in `PriceLineManager`, so the coexistence case is
+exercised through the draggable leg line, exactly as BUG-0384's test does.
 
 ## Acceptance criteria
-- [ ] With both a position plan and a pending bracket for one symbol,
+- [x] With both a position plan and a pending bracket for one symbol,
       dragging the pending leg modifies the pending order's TP/SL, not
       the position plan's.
-- [ ] Dragging a position plan's line still resolves to that plan.
-- [ ] Component test covers the coexistence case.
+- [x] Dragging a position plan's line still resolves to that plan.
+- [x] Component test covers the coexistence case.
 
 ## Out of scope
 - Leg-id scheme redesign (BUG-0292).
