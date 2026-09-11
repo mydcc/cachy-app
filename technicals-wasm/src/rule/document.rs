@@ -22,8 +22,13 @@
 //! FEAT-0303 asks for "a content hash that identifies this exact rule in a
 //! journal entry or decision log". That is a question about *meaning*, not about
 //! bytes, so the hash covers the semantic fields — symbol, trigger timeframe,
-//! conditions, veto, action, schema version — and deliberately excludes `id`,
-//! `name`, `enabled` and `provenance`.
+//! conditions, veto and action — and excludes everything in
+//! [`EXCLUDED_FROM_HASH`]: identity and labelling (`id`, `name`, `enabled`,
+//! `provenance`), the encoding (`schema_version`), and the per-rule lifecycle
+//! fields (`trigger_methods`, `frequency`, `valid_until_ms`, `note`), which
+//! change only how loudly a rule announces itself. That list, not this
+//! paragraph, is the definition; the test below pins it so excluding a field is
+//! a deliberate edit with a reason next to it.
 //!
 //! The exclusion is the useful half. Renaming a rule from "rsi dip" to "RSI dip"
 //! must not make an audit think the strategy changed; arming and disarming the
@@ -184,7 +189,7 @@ impl RuleDocument {
         seen.dedup();
         if seen.len() != self.trigger_methods.len() {
             out.push(RuleRefusal::new(
-                RefusalCode::UnknownField,
+                RefusalCode::DuplicateTriggerMethod,
                 "trigger_methods",
                 "a channel is listed twice, which would announce the trigger \
                  twice on it",
@@ -679,6 +684,7 @@ mod tests {
         let mut doc = rsi_dip();
         doc.trigger_methods = vec![TriggerMethod::Browser, TriggerMethod::Browser];
         let refused = doc.validate().unwrap_err();
+        assert!(refused.has(RefusalCode::DuplicateTriggerMethod));
         assert!(refused
             .refusals
             .iter()

@@ -192,6 +192,13 @@ pub enum Verdict {
     /// Separate from `DoesNotFire` because a trader reading Manage needs to see
     /// that the setup ran out of time, not that the market never reached it —
     /// and separate from a fired rule because an expired one never announced.
+    ///
+    /// Reachable only from a firing verdict: [`evaluate_with_lifecycle`] applies
+    /// expiry to a `Fires` and never relabels a `DoesNotFire` or an
+    /// `Indeterminate`. A lapsed rule whose conditions never held again still
+    /// reads `DoesNotFire`, so a surface that wants "expired" independent of the
+    /// market should judge from `valid_until_ms` and `RuleState` rather than from
+    /// this verdict alone.
     Expired,
     /// The conditions held, but the frequency was already spent: a `once` rule
     /// that has fired, or a `once per candle close` rule on a candle it has
@@ -354,6 +361,11 @@ pub fn evaluate(
 /// Expiry is measured against the anchor candle's close instant, not a wall
 /// clock. A replay of last week's candles therefore reaches last week's answers
 /// instead of expiring every rule against today's date.
+///
+/// Expiry is decided before frequency (see [`super::lifecycle::may_announce`]),
+/// so a `once` rule that has fired and then lapsed reports [`Verdict::Expired`],
+/// not [`Verdict::AlreadyFired`]: "lapsed" is the more actionable fact, and a
+/// surface that needs the two distinguished has `RuleState.fired_count`.
 pub fn evaluate_with_lifecycle(
     document: &RuleDocument,
     market: &dyn MarketView,

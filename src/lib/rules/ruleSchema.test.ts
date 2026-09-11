@@ -57,7 +57,7 @@ const CTX: EvaluationContext = {
 function fakeCore(overrides: Record<string, unknown> = {}) {
   return {
     default: vi.fn().mockResolvedValue(undefined),
-    rule_schema_version: () => 1,
+    rule_schema_version: () => 2,
     rule_validate: (json: string) => json,
     rule_content_hash: () => "a".repeat(64),
     rule_authorise: () => undefined,
@@ -96,7 +96,7 @@ describe("ruleSchema", () => {
     expect(ruleSchema.isReady()).toBe(false);
     await ruleSchema.load();
     expect(ruleSchema.isReady()).toBe(true);
-    expect(ruleSchema.schemaVersion()).toBe(1);
+    expect(ruleSchema.schemaVersion()).toBe(2);
   });
 
   it("loads once even when several callers ask at the same time", async () => {

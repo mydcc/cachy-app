@@ -3246,6 +3246,8 @@ export type TranslationKey =
   | "rules.refusal.nestedWindow"
   | "rules.refusal.invalidWindowLookback"
   | "rules.refusal.ruleWarmupTooDeep"
+  | "rules.refusal.invalidNote"
+  | "rules.refusal.duplicateTriggerMethod"
   | "rules.sentence.frame"
   | "rules.sentence.unless"
   | "rules.sentence.empty"

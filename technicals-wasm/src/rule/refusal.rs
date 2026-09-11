@@ -134,6 +134,16 @@ pub enum RefusalCode {
     /// requirement can never be met looks exactly like one still warming up.
     /// ADR-0009 is the cost side — Bitunix pages 200 rows at a time.
     RuleWarmupTooDeep,
+    /// A note that is present but blank, or longer than the character limit.
+    ///
+    /// A blank note is refused rather than normalised to absent, because a
+    /// caller that sends an empty string has a bug worth surfacing. The limit
+    /// exists because a note is rendered into an OS notification and into
+    /// Manage, so an unbounded one is unreadable in both.
+    InvalidNote,
+    /// The same trigger channel listed twice, which would announce one trigger
+    /// twice on it.
+    DuplicateTriggerMethod,
 }
 
 impl RefusalCode {
@@ -175,6 +185,8 @@ impl RefusalCode {
             Self::NestedWindow => "nestedWindow",
             Self::InvalidWindowLookback => "invalidWindowLookback",
             Self::RuleWarmupTooDeep => "ruleWarmupTooDeep",
+            Self::InvalidNote => "invalidNote",
+            Self::DuplicateTriggerMethod => "duplicateTriggerMethod",
         }
     }
 }
@@ -310,6 +322,8 @@ mod tests {
         RefusalCode::NestedWindow,
         RefusalCode::InvalidWindowLookback,
         RefusalCode::RuleWarmupTooDeep,
+        RefusalCode::InvalidNote,
+        RefusalCode::DuplicateTriggerMethod,
     ];
 
     /// Every locale file a refusal can be rendered through.

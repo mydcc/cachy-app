@@ -129,6 +129,12 @@ impl RuleState {
 /// — not a wall clock. Expiry is therefore decided by the candle the rule would
 /// fire on, which keeps a replay of yesterday's candles reaching yesterday's
 /// answer instead of expiring everything against today's date.
+///
+/// Expiry is decided first and wins over frequency: a `once` rule that has fired
+/// and then lapsed returns [`Announce::Expired`], not
+/// [`Announce::AlreadyAnnounced`]. "Lapsed" is the more actionable fact; a caller
+/// wanting "fired, then expired" distinct from "lapsed without firing" reads
+/// [`RuleState::fired_count`].
 pub fn may_announce(
     frequency: TriggerFrequency,
     valid_until_ms: Option<i64>,
@@ -169,7 +175,7 @@ pub fn validate_note(note: Option<&str>, field: &str, out: &mut Vec<RuleRefusal>
 
     if note.trim().is_empty() {
         out.push(RuleRefusal::new(
-            RefusalCode::UnknownField,
+            RefusalCode::InvalidNote,
             field,
             "a note that is present must say something; omit it instead",
         ));
@@ -180,7 +186,7 @@ pub fn validate_note(note: Option<&str>, field: &str, out: &mut Vec<RuleRefusal>
     let chars = note.chars().count();
     if chars > NOTE_MAX_CHARS {
         out.push(RuleRefusal::new(
-            RefusalCode::UnknownField,
+            RefusalCode::InvalidNote,
             field,
             format!("note is {chars} characters, the limit is {NOTE_MAX_CHARS}"),
         ));
@@ -316,6 +322,7 @@ mod tests {
         let mut out = Vec::new();
         validate_note(Some("   "), "note", &mut out);
         assert_eq!(out.len(), 1);
+        assert_eq!(out[0].code, RefusalCode::InvalidNote);
         assert_eq!(out[0].field, "note");
     }
 
@@ -338,6 +345,7 @@ mod tests {
 
         validate_note(Some(&"ä".repeat(NOTE_MAX_CHARS + 1)), "note", &mut out);
         assert_eq!(out.len(), 1);
+        assert_eq!(out[0].code, RefusalCode::InvalidNote);
     }
 
     #[test]

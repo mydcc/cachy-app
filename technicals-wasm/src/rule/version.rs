@@ -21,8 +21,9 @@
 //! ADR-0012 lists "schema versioning becomes permanent work" among the costs it
 //! accepts: every armed rule carries the version it was authored under, and
 //! every migration must preserve meaning or refuse to migrate. This module is
-//! that machinery, built at version 1 so the second version has somewhere to
-//! land rather than being bolted on once rules are live on real accounts.
+//! that machinery. It was built at version 1 so version 2 had somewhere to land
+//! rather than being designed under pressure with rules already armed; the
+//! `1 → 2` lifecycle step of FEAT-0393 now lives in it.
 
 use serde::{Deserialize, Serialize};
 
@@ -105,11 +106,12 @@ impl std::fmt::Display for SchemaVersion {
 /// notices is wrong.
 type MigrationStep = fn(&mut serde_json::Value) -> Result<(), RuleRefusal>;
 
-/// The migration chain, indexed by the version being migrated *from*.
+/// The migration chain, indexed by the version being migrated *from* — today
+/// the single `1 → 2` step of FEAT-0393.
 ///
-/// Empty at version 1 by construction: there is nothing before it. The chain
-/// exists now, with its tests, so that adding version 2 is filling in a slot
-/// rather than designing migration under pressure with rules already armed.
+/// A version that is supported but has no step is refused rather than
+/// reinterpreted, so adding a version means filling in a slot here instead of
+/// designing a migration under pressure with rules already armed.
 // The extension point: adding version 3 means adding `2 => Some(...)` here and
 // nowhere else.
 fn migration_for(from: u16) -> Option<MigrationStep> {
@@ -259,8 +261,8 @@ mod tests {
         }
     }
 
-    /// The chain is empty today. This asserts the *shape* of the guarantee, so
-    /// that when version 2 lands, a missing step is a refusal rather than a
+    /// The chain now carries the `1 → 2` step. This asserts the *shape* of the
+    /// guarantee: a supported version with no step is a refusal rather than a
     /// document that quietly keeps its old meaning under a new version number.
     #[test]
     fn a_gap_in_the_migration_chain_refuses_instead_of_reinterpreting() {
@@ -268,9 +270,9 @@ mod tests {
             migration_for(CURRENT_SCHEMA_VERSION).is_none(),
             "there is nothing after the current version to migrate to"
         );
-        // A `for` over the range would be an empty literal range today (min ==
-        // current), which clippy rejects outright. Written as a while loop it
-        // stays a real assertion the moment a second version exists.
+        // A `for` over the range with literal bounds is rejected by clippy, so
+        // this stays a while loop. It now walks the `1 → 2` step and will cover
+        // each future version without being rewritten.
         let mut v = MINIMUM_SUPPORTED_VERSION;
         while v < CURRENT_SCHEMA_VERSION {
             assert!(
