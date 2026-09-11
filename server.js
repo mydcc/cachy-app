@@ -50,7 +50,12 @@ const port = process.env.PORT || "3001";
 // call, so without this the value was silently ignored.
 const host = process.env.HOST;
 const server = app.listen(port, host, () => {
-  console.log(`Starting server on ${host || "0.0.0.0"}:${port}...`);
+  // Report the address the OS actually bound rather than the requested host:
+  // with HOST unset that is `::` (dual-stack any), not `0.0.0.0`.
+  const address = server.address();
+  const where =
+    typeof address === "string" ? address : `${address.address}:${address.port}`;
+  console.log(`Starting server on ${where}...`);
 });
 
 // Drain in-flight requests on SIGTERM/SIGINT instead of dropping them. Without
