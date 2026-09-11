@@ -134,6 +134,30 @@ export default [
     },
   },
 
+  // `lib` is the domain layer: it may be used by services and stores, and must
+  // not reach up into them. Only the `services` direction is gated here; the
+  // pre-existing `lib -> stores` reads are a separate burn-down. UI views that
+  // live under `lib/windows/**` are `.svelte` and stay out of this rule.
+  {
+    files: ["src/lib/**/*.ts"],
+    ignores: ["**/*.test.ts", "**/*.spec.ts", "**/tests/**"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/services/**", "**/services/*"],
+              allowTypeImports: true,
+              message:
+                "Architecture: lib is a domain layer and must not import from services. Introduce a port (interface/callback) and let the caller supply the implementation.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Svelte specific config
   {
     files: ["**/*.svelte"],

@@ -20,7 +20,7 @@
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
-  import { trackClick } from "../../lib/actions";
+  import { trackClick } from "../../actions/tracking";
   import { tradeState } from "../../stores/trade.svelte";
   import { app } from "../../services/app";
   import type { IndividualTpResult } from "../../stores/types";
