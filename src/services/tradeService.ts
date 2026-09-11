@@ -1206,7 +1206,7 @@ class TradeService {
             if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
             // Hardening: Best Effort Processing
-            // Instead of failing the entire batch via PositionListSchema, we validate per item.
+            // Instead of failing the entire batch on one malformed entry, we validate per item.
             const rawList = Array.isArray(pendingResult.data) ? pendingResult.data : [];
 
             if (rawList.length === 0) {

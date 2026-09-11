@@ -39,20 +39,6 @@ export const StrictPriceDataSchema = z.object({
 }).passthrough();
 
 /**
- * Schema for Bitunix Ticker Data
- * (BUG-0424: money fields go through SafeString like the strict variant)
- */
-export const BitunixTickerDataSchema = z.object({
-  la: SafeString.optional(), // Last Price
-  o: SafeString.optional(), // Open
-  h: SafeString.optional(), // High
-  l: SafeString.optional(), // Low
-  b: SafeString.optional(), // Base Volume
-  q: SafeString.optional(), // Quote Volume
-  r: SafeString.optional(), // Change Rate
-});
-
-/**
  * Strict Schema for Ticker Data
  */
 export const StrictTickerDataSchema = z.object({
@@ -80,46 +66,6 @@ export const StrictTickerDataSchema = z.object({
 export const StrictDepthDataSchema = z.object({
   b: z.array(z.array(SafeString)), // Bids [price, qty]
   a: z.array(z.array(SafeString)), // Asks [price, qty]
-}).passthrough();
-
-/**
- * Schema for Bitunix Order Data
- * Strictly enforces orderId as string to prevent precision loss
- */
-export const BitunixOrderSchema = z.object({
-  orderId: z.string(), // Strict string required
-  symbol: z.string(),
-  side: z.string().optional(),
-  type: z.string().optional(),
-  orderStatus: z.string(),
-  price: SafeString.optional(),
-  qty: SafeString.optional(),
-  amount: SafeString.optional(),
-  dealAmount: SafeString.optional(),
-  ctime: z.union([z.string(), z.number()]).optional(), // timestamp, not money
-}).passthrough(); // Allow other fields
-
-/**
- * Schema for Bitunix Position Data
- */
-export const BitunixPositionSchema = z.object({
-  symbol: z.string(),
-  side: z.string().optional(),
-  positionSide: z.string().optional(),
-  holdSide: z.string().optional(),
-  qty: SafeString.optional(),
-  size: SafeString.optional(),
-  amount: SafeString.optional(),
-  averagePrice: SafeString.optional(),
-  avgOpenPrice: SafeString.optional(),
-  entryPrice: SafeString.optional(),
-  unrealizedPNL: SafeString.optional(),
-  unrealizedPnl: SafeString.optional(),
-  leverage: SafeString.optional(),
-  marginMode: z.string().optional(),
-  liquidationPrice: SafeString.optional(),
-  liqPrice: SafeString.optional(),
-  event: z.string().optional(),
 }).passthrough();
 
 /**

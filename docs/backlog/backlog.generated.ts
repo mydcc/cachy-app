@@ -3680,7 +3680,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0434",
     "title": "The exhaustive WindowType record cannot fail the build because tsconfig excludes test files",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -3692,6 +3692,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0434-windowtype-exhaustiveness",
     "file": "bugs/BUG-0434-test-type-safety-net-is-not-armed.md"
   },
   {
@@ -5891,7 +5893,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0354",
     "title": "The backup-restore rejection message is hardcoded English",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "shipped": "1.6.0-beta.235",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -5905,6 +5908,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "estimate": "1",
     "size": "XS",
+    "assignee": "opencode",
+    "branch": "fix/bug-0354-backlog-tracking",
     "file": "bugs/BUG-0354-backup-rejection-message-untranslated.md"
   },
   {
@@ -6050,7 +6055,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0437",
     "title": "Bitunix order/position/ticker validation schemas are never wired",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0437-unwired-bitunix-schemas",
     "priority": "P3",
     "milestone": "none",
     "editions": [

@@ -20,14 +20,15 @@ import { windowRegistry } from "./WindowRegistry.svelte";
 import type { WindowType } from "./types";
 
 /**
- * A `Record<WindowType, true>` rather than a plain array, so that a member added
- * to the `WindowType` union without a matching entry here is a type error.
+ * Runtime mirror of the `WindowType` union, used only by the assertion below.
  *
- * NOTE (BUG-0434): that type error is currently never surfaced. `tsconfig.json`
- * excludes every test file from compilation, so `svelte-check` never reads this one, and
- * Vitest transpiles it without type checking. `alertpanel` went missing here
- * exactly that way. Treat this record as documentation until the invariant is
- * moved somewhere the compiler reads -- it is not a safety net today.
+ * The authoritative exhaustiveness guard is now compile-time and lives in
+ * `WindowRegistry.svelte.ts` (`buildDefaultConfigs(): Record<WindowType,
+ * WindowConfig>`). That file is compiled by `svelte-check`, unlike this one --
+ * `tsconfig.json` excludes `*.test.ts` -- so a union member added without a
+ * config fails `npm run check` there (BUG-0434). This record is kept as a
+ * belt-and-braces runtime check that `getConfig()` returns a dedicated config
+ * rather than the generic fallback.
  */
 const ALL_WINDOW_TYPES: Record<WindowType, true> = {
     window: true,

@@ -61,17 +61,6 @@ export const BitgetWSTickerSchema = z.object({
 });
 
 /**
- * Schema for Bitget Kline Data (WS)
- * Returns [timestamp, open, high, low, close, volume, quoteVolume]
- * But in WS it might be an object or array.
- * For 'candle1m' channel, data is usually:
- * [ [ "167...", "23000", "23100", ... ], ... ]
- */
-export const BitgetWSKlineSchema = z
-  .array(z.union([z.string(), z.number()]))
-  .transform((row) => row.map((v, i) => (i === 0 ? v : String(v))));
-
-/**
  * Allowed Channels whitelist
  */
 export const ALLOWED_BITGET_CHANNELS = [

@@ -2,7 +2,8 @@
 id: BUG-0354
 title: The backup-restore rejection message is hardcoded English
 type: bug
-status: specced
+status: done
+shipped: 1.6.0-beta.235
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,9 +13,11 @@ adr: none
 depends_on: []
 estimate: 1
 size: XS
+assignee: opencode
+branch: fix/bug-0354-backlog-tracking
 ---
 
-# BUG-0336 — The backup-restore rejection message is hardcoded English
+# BUG-0354 — The backup-restore rejection message is hardcoded English
 
 ## Problem
 
@@ -36,11 +39,14 @@ correct; only the presentation is untranslated.
 
 ## Acceptance criteria
 
-- [ ] The rejection message comes from `src/locales/`, German and English
-- [ ] The rejected section names remain legible — a raw key list is not a
+- [x] The rejection message comes from `src/locales/`, German and English
+- [x] The rejected section names remain legible — a raw key list is not a
       translation, so either translate the section names or keep them
       verbatim deliberately
-- [ ] The "no changes were applied" reassurance survives translation
+- [x] The "no changes were applied" reassurance survives translation
+
+Fixed in #2637 (translation key `app.backupRejected` + `messageParams`), with the
+interpolation follow-up in #2680. This PR only flips the backlog tracking.
 
 ## Out of scope
 

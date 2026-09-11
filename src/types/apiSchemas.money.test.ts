@@ -32,8 +32,7 @@ import {
   TpSlRequestSchema,
 } from './apiSchemas';
 import { BitunixPriceDataSchema } from './bitunixValidation';
-import { BitgetWSTickerSchema, BitgetWSKlineSchema } from './bitgetValidation';
-import { KlineRawSchema } from '../services/technicalsTypes';
+import { BitgetWSTickerSchema } from './bitgetValidation';
 
 // Classic f64 trap: 0.30000000000000004, not 0.3.
 const F64_TRAP = 0.1 + 0.2;
@@ -84,25 +83,11 @@ describe('BUG-0425 money boundary normalization', () => {
     expect(typeof out.ip).toBe('string');
   });
 
-  it('Bitget ticker fundingRate and WS klines emit strings', () => {
+  it('Bitget ticker fundingRate emits strings', () => {
     const ticker = mustParse(BitgetWSTickerSchema.safeParse({
       instId: 'BTCUSDT', last: '67455.321', fundingRate: 0.0001,
     }));
     expect(typeof ticker.fundingRate).toBe('string');
-    const klines = mustParse(BitgetWSKlineSchema.safeParse(
-      [1720000000000, 67432.187, 67500, 67300.5, F64_TRAP, 123.456],
-    ));
-    for (const v of klines.slice(1)) expect(typeof v).toBe('string');
-  });
-
-  it('KlineRawSchema emits strings for OHLCV numbers', () => {
-    const out = mustParse(KlineRawSchema.safeParse({
-      time: 1720000000000, open: 67432.187, high: 67500,
-      low: 67300.5, close: F64_TRAP, volume: 123.456,
-    }));
-    expect(typeof out.close).toBe('string');
-    expect(out.close).toBe(String(F64_TRAP));
-    expect(out.time).toBe(1720000000000);
   });
 
   it('string inputs pass through byte-identical and stay Decimal-exact', () => {

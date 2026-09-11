@@ -4,7 +4,7 @@
 
 322 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 261
+Counts by status: 💡 idea 28 · 📋 specced 25 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 264
 
 ---
 
@@ -133,7 +133,7 @@ Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P1 | ✅ done | alerts |
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | alerts |
 | [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | 🟡 in-progress | alerts |
-| [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | 📋 specced | ui |
+| [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | ✅ done | ui |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
 | [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
@@ -345,14 +345,14 @@ Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | security |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | api |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | ui |
-| [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | ui |
+| [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | ✅ done | ui |
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | ✅ done | indicators |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | chat |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | ✅ done | exchange |
 | [BUG-0384](bugs/BUG-0384-bracket-tpsl-drag-no-plan-row-sends-leg-id.md) | Bracket TP/SL drag with no tpSlState row still sends leg id — orderNotFound persists | P3 | ✅ done | exchange |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | tooling |
 | [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | ✅ done | backend |
-| [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | 📋 specced | backend |
+| [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | ✅ done | backend |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -561,7 +561,7 @@ Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | ✅ done | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | 📋 specced | M4 | community, pro, private | none | none | — |
+| [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
@@ -661,7 +661,7 @@ Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0294](bugs/BUG-0294-multi-tab-reset-misses-indexeddb.md) | Factory reset cannot delete IndexedDB blocked by connections held in other tabs | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0288](bugs/BUG-0288-app-reset-misses-indexeddb.md) |
 | [BUG-0295](bugs/BUG-0295-ollama-default-url.md) | Ollama proxy silently 403s requests without baseUrl (default localhost) after SSRF fix | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0291](bugs/BUG-0291-ssrf-ai-proxy-baseurl.md) |
 | [BUG-0324](bugs/BUG-0324-galaxy-light-theme-noblending.md) | Galaxy 3D disables blending instead of switching to normal blending on light themes | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0354](bugs/BUG-0354-backup-rejection-message-untranslated.md) | The backup-restore rejection message is hardcoded English | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0362](bugs/BUG-0362-visibility-controller-listener-leak.md) | VisibilityController attaches uncleaned document visibilitychange listener without destroy method | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) | Short sender IDs are 32-bit identity prefixes and can collide, breaking GDPR erasure and message attribution | P3 | ✅ done | none | community, pro, private | B | none | — |
 | [BUG-0381](bugs/BUG-0381-account-break-even-price-uses-default-fee-not-venue-fee.md) | Account break-even price uses hardcoded DEFAULT_FEES, not venue fee | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -669,7 +669,7 @@ Counts by status: 💡 idea 28 · 📋 specced 28 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | M4 | community, pro, private | A | none | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) |
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
