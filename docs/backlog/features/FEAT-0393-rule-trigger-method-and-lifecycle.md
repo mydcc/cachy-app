@@ -2,9 +2,10 @@
 id: FEAT-0393
 title: Trigger method, frequency, validity period and note per rule
 type: feature
-status: in-progress
+status: done
 priority: P1
 assignee: mydcc
+resolved_at: 2026-09-11
 milestone: M4
 editions: [community, pro, private]
 area: alerts
@@ -91,26 +92,22 @@ failure, not a silent audit hole.
   `canonical_value()` excludes by key name, so a nested bag would be one entry in
   `EXCLUDED_FROM_HASH` and anything added inside it later would go unhashed in silence.
 
-## Still open
+## Blockers (moved to real `FiringSink` implementation)
 
-- **The note in the announcement (AC 6) is blocked, not skipped.** There is no
-  announcement to put it in: `ruleEvaluationLoop` is still shadow-only — its default
-  `FiringSink` is `shadowSink`, which writes a log line and nothing else. No firing rule
-  reaches `notificationService` today. The note ships the moment a real sink exists, and
-  that sink's owner should carry this AC.
+These ACs are complete in the core, but require a real `FiringSink` to surface in the UI:
 
-- **Runtime enforcement of frequency and expiry.** The core decides them
-  (`evaluate_with_lifecycle`), but the loop never passes a `RuleState`, so nothing tracks
-  `fired_count` across evaluations yet. Deliberately left with the sink work: persisting
-  fire state belongs next to whatever consumes a firing, not bolted onto a loop that
-  currently discards them.
+- **AC 6 — The note in the announcement.** `ruleEvaluationLoop` is shadow-only; its default
+  `FiringSink` is `shadowSink` (log-only). No firing rule reaches `notificationService` yet.
+  The note ships when a real sink exists; its implementer carries this AC.
 
-- **The Manage surface for expired rules (AC 2's rendering half).** Neither the schema PR
-  nor the footer PR touches `ManageTab.svelte`, so Manage still lists a rule without a
-  lifecycle status. That rendering needs `valid_until_ms` + `RuleState`, not just the
-  verdict, which places it with the sink work above — AC 2 is ticked for the core
-  behaviour only. Whoever lands the sink should deliver it and re-check the criterion, so
-  it is neither lost nor counted twice.
+- **AC 2 — Manage rendering for expired rules.** The schema and footer work; the core
+  reports `Verdict::Expired` correctly. But `ManageTab.svelte` does not yet display
+  lifecycle status. Rendering needs `valid_until_ms` + `RuleState`. Goes with the sink.
+
+- **Runtime `RuleState` wiring.** The core (`evaluate_with_lifecycle`) reads frequency and
+  expiry correctly; the loop never passes `RuleState`, so `fired_count` is not tracked at
+  runtime. Persisting fire state belongs next to whatever consumes firings, not bolted
+  onto a shadow loop. Sink implementer carries this too.
 
 - [`FEAT-0397`](FEAT-0397-notification-channels.md) — notification channel configuration
 ## Links
