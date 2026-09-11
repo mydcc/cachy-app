@@ -3636,7 +3636,8 @@
       "level_20_desc": "Level 20 erreicht — das Cape weht.",
       "onboarding_completed_name": "Startklar! 🦆",
       "onboarding_completed_desc": "Das Onboarding erfolgreich abgeschlossen."
-    }
+    },
+    "achievementUnlocked": "🏆 {name}: {desc}"
   },
   "onboarding": {
     "badge": "Cachy Quickstart",
