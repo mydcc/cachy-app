@@ -46,13 +46,14 @@ use std::collections::BTreeMap;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use super::pattern::{preceding_trend, Trend};
 use super::condition::{
     AccountField, Condition, CrossDirection, LogicOp, Operand, PositionSide, PriceField,
     PriceSource, WindowAgg,
 };
 use super::document::RuleDocument;
 use super::indicator::IndicatorRef;
+use super::lifecycle::{may_announce, Announce, RuleState};
+use super::pattern::{preceding_trend, Trend};
 use super::timeframe::Timeframe;
 
 /// One closed candle. `open_time_ms` is the bucket start; the candle is
@@ -186,6 +187,19 @@ pub enum Verdict {
     /// FEAT-0027 already learned that a silently swallowed evaluation is a bug
     /// worth surfacing.
     Indeterminate { reason: String },
+    /// The validity period has passed. The rule lapsed **without** firing.
+    ///
+    /// Separate from `DoesNotFire` because a trader reading Manage needs to see
+    /// that the setup ran out of time, not that the market never reached it —
+    /// and separate from a fired rule because an expired one never announced.
+    Expired,
+    /// The conditions held, but the frequency was already spent: a `once` rule
+    /// that has fired, or a `once per candle close` rule on a candle it has
+    /// already announced on.
+    ///
+    /// Not `DoesNotFire`: the market *did* what the rule watches for, and an
+    /// audit that cannot tell those apart cannot answer "did my rule work".
+    AlreadyFired,
 }
 
 /// A market held in memory. Used by the backtest path and by tests.
@@ -328,6 +342,53 @@ pub fn evaluate(
     Verdict::Fires
 }
 
+/// [`evaluate`], then the rule's own lifecycle: has it expired, and has it
+/// already announced as often as its frequency allows.
+///
+/// Kept as a wrapper rather than folded into `evaluate` so that the pure core
+/// stays pure — `evaluate` answers "do the conditions hold", which is a question
+/// about the market alone. Whether the answer may be *announced* depends on what
+/// this rule has already done, and that state belongs to the caller that owns
+/// the store.
+///
+/// Expiry is measured against the anchor candle's close instant, not a wall
+/// clock. A replay of last week's candles therefore reaches last week's answers
+/// instead of expiring every rule against today's date.
+pub fn evaluate_with_lifecycle(
+    document: &RuleDocument,
+    market: &dyn MarketView,
+    account: Option<&AccountSnapshot>,
+    state: RuleState,
+) -> Verdict {
+    let verdict = evaluate(document, market, account);
+
+    // Only a firing verdict is subject to the lifecycle. A rule that does not
+    // fire has nothing to suppress, and an indeterminate one must keep saying
+    // so — reporting it as expired would claim knowledge the evaluation
+    // explicitly disclaimed.
+    if verdict != Verdict::Fires {
+        return verdict;
+    }
+
+    // `evaluate` already proved there is an anchor candle: it returns
+    // `Indeterminate` otherwise, and that was handled above.
+    let Some(anchor) = market.closed_candles(document.trigger_timeframe).last() else {
+        return verdict;
+    };
+    let anchor_close_ms = anchor.open_time_ms + document.trigger_timeframe.milliseconds();
+
+    match may_announce(
+        document.frequency,
+        document.valid_until_ms,
+        state,
+        anchor_close_ms,
+    ) {
+        Announce::Yes => Verdict::Fires,
+        Announce::Expired => Verdict::Expired,
+        Announce::AlreadyAnnounced => Verdict::AlreadyFired,
+    }
+}
+
 struct Ctx<'a> {
     market: &'a dyn MarketView,
     account: Option<&'a AccountSnapshot>,
@@ -433,9 +494,10 @@ impl Ctx<'_> {
                 // carries no volume of its own.
                 let candles = self.series(timeframe, PriceSource::Last)?;
                 let index = self.index_back(candles, timeframe, back, PriceSource::Last)?;
-                candles.get(index).map(|c| c.volume).ok_or_else(|| {
-                    Missing::NoValue(format!("{timeframe} candle has no volume"))
-                })
+                candles
+                    .get(index)
+                    .map(|c| c.volume)
+                    .ok_or_else(|| Missing::NoValue(format!("{timeframe} candle has no volume")))
             }
 
             Operand::PercentChange {
@@ -704,6 +766,8 @@ fn truth(value: bool) -> Truth {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rule::lifecycle::TriggerFrequency;
+
     use crate::rule::condition::CompareOp;
     use crate::rule::consequence::{ConsequenceLevel, RuleAction};
     use crate::rule::document::{AuthoringSource, Provenance};
@@ -785,6 +849,10 @@ mod tests {
                 created_at_ms: 0,
                 model: None,
             },
+            trigger_methods: Vec::new(),
+            frequency: TriggerFrequency::Once,
+            valid_until_ms: None,
+            note: None,
         }
     }
 
@@ -826,6 +894,10 @@ mod tests {
                 created_at_ms: 0,
                 model: None,
             },
+            trigger_methods: Vec::new(),
+            frequency: TriggerFrequency::Once,
+            valid_until_ms: None,
+            note: None,
         }
     }
 
@@ -836,7 +908,9 @@ mod tests {
                 source,
             },
             direction: CrossDirection::Above,
-            right: Operand::Constant { value: d(threshold) },
+            right: Operand::Constant {
+                value: d(threshold),
+            },
             timeframe: tf("4h"),
         }
     }
@@ -847,8 +921,8 @@ mod tests {
     #[test]
     fn rises_above_does_not_fire_when_the_price_was_already_above() {
         let doc = notify_doc(crosses_above("60000", PriceSource::Last));
-        let already_above = InMemoryMarket::new()
-            .with_candles(tf("4h"), candles(&["61000", "62000"]));
+        let already_above =
+            InMemoryMarket::new().with_candles(tf("4h"), candles(&["61000", "62000"]));
         assert_eq!(evaluate(&doc, &already_above, None), Verdict::DoesNotFire);
 
         let genuinely_crossing =
@@ -1138,7 +1212,9 @@ mod tests {
         Condition::Compare {
             left: Operand::Volume {},
             op: CompareOp::Gt,
-            right: Operand::Constant { value: d(threshold) },
+            right: Operand::Constant {
+                value: d(threshold),
+            },
             timeframe: tf("4h"),
         }
     }
@@ -1149,12 +1225,16 @@ mod tests {
     fn a_volume_operand_reads_the_closed_candles_volume() {
         let doc = notify_doc(volume_above("1000"));
 
-        let spike = InMemoryMarket::new()
-            .with_candles(tf("4h"), candles_with_volume(&[("100000", "500"), ("100000", "1500")]));
+        let spike = InMemoryMarket::new().with_candles(
+            tf("4h"),
+            candles_with_volume(&[("100000", "500"), ("100000", "1500")]),
+        );
         assert_eq!(evaluate(&doc, &spike, None), Verdict::Fires);
 
-        let quiet = InMemoryMarket::new()
-            .with_candles(tf("4h"), candles_with_volume(&[("100000", "1500"), ("100000", "500")]));
+        let quiet = InMemoryMarket::new().with_candles(
+            tf("4h"),
+            candles_with_volume(&[("100000", "1500"), ("100000", "500")]),
+        );
         assert_eq!(evaluate(&doc, &quiet, None), Verdict::DoesNotFire);
     }
 
@@ -1165,7 +1245,10 @@ mod tests {
     #[test]
     fn a_volume_operand_reads_the_last_traded_series_and_not_the_mark_series() {
         let market = InMemoryMarket::new()
-            .with_candles(tf("4h"), candles_with_volume(&[("100000", "10"), ("100000", "20")]))
+            .with_candles(
+                tf("4h"),
+                candles_with_volume(&[("100000", "10"), ("100000", "20")]),
+            )
             .with_mark_candles(
                 tf("4h"),
                 candles_with_volume(&[("100000", "9000"), ("100000", "9000")]),
@@ -1347,11 +1430,9 @@ mod tests {
     /// `gte` is the form that expresses it; the UI has to offer that one.
     #[test]
     fn a_strict_comparison_against_an_inclusive_window_never_fires() {
-        let of = || {
-            Operand::Price {
-                field: PriceField::Close,
-                source: PriceSource::Last,
-            }
+        let of = || Operand::Price {
+            field: PriceField::Close,
+            source: PriceSource::Last,
         };
         let strictly_above = notify_doc(Condition::Compare {
             left: of(),
@@ -1367,7 +1448,10 @@ mod tests {
         // A run of new highs — the most favourable data there is for a breakout.
         let breaking_out =
             InMemoryMarket::new().with_candles(tf("4h"), candles(&["1", "2", "3", "4"]));
-        assert_eq!(evaluate(&strictly_above, &breaking_out, None), Verdict::DoesNotFire);
+        assert_eq!(
+            evaluate(&strictly_above, &breaking_out, None),
+            Verdict::DoesNotFire
+        );
 
         // The same data with `gte` is the rule the trader meant.
         let at_or_above = notify_doc(Condition::Compare {
@@ -1504,7 +1588,10 @@ mod tests {
             timeframe: tf("4h"),
         };
         let json = serde_json::to_string(&condition).expect("serialises");
-        assert!(json.contains("\"kind\":\"pattern\""), "tagged on kind: {json}");
+        assert!(
+            json.contains("\"kind\":\"pattern\""),
+            "tagged on kind: {json}"
+        );
         assert!(json.contains("dark_cloud_cover"), "id survives: {json}");
 
         let back: Condition = serde_json::from_str(&json).expect("parses back");
@@ -1537,6 +1624,124 @@ mod tests {
         assert_ne!(
             other.content_hash().expect("hashes"),
             doc.content_hash().expect("hashes")
+        );
+    }
+
+    // ---- FEAT-0393: lifecycle on top of the pure verdict --------------------
+
+    /// The market state every test below shares: conditions that hold, so the
+    /// only thing under test is what the lifecycle does with a firing verdict.
+    fn firing_setup() -> (RuleDocument, InMemoryMarket, i64) {
+        let doc = notify_doc(crosses_above("60000", PriceSource::Last));
+        let market = InMemoryMarket::new().with_candles(tf("4h"), candles(&["59000", "61000"]));
+
+        let trigger = doc.trigger_timeframe;
+        let anchor_open_ms = market
+            .closed_candles(trigger)
+            .last()
+            .expect("the fixture must have a closed anchor candle")
+            .open_time_ms;
+        let anchor_close_ms = anchor_open_ms + trigger.milliseconds();
+
+        // Guard the premise: every test below asserts what the lifecycle does
+        // to a firing verdict, so a fixture that stopped firing would make them
+        // pass for the wrong reason.
+        assert_eq!(evaluate(&doc, &market, None), Verdict::Fires);
+
+        (doc, market, anchor_close_ms)
+    }
+
+    #[test]
+    fn a_fresh_rule_fires_and_the_lifecycle_does_not_get_in_the_way() {
+        let (doc, market, _) = firing_setup();
+        assert_eq!(
+            evaluate_with_lifecycle(&doc, &market, None, RuleState::default()),
+            Verdict::Fires
+        );
+    }
+
+    #[test]
+    fn a_once_rule_that_already_fired_reports_already_fired_not_does_not_fire() {
+        let (doc, market, anchor) = firing_setup();
+        let spent = RuleState::default().after_firing(anchor);
+
+        assert_eq!(
+            evaluate_with_lifecycle(&doc, &market, None, spent),
+            Verdict::AlreadyFired,
+            "the market did what the rule watches for; the audit must see that"
+        );
+    }
+
+    #[test]
+    fn an_every_time_rule_keeps_firing() {
+        let (mut doc, market, anchor) = firing_setup();
+        doc.frequency = TriggerFrequency::EveryTime;
+        let spent = RuleState::default().after_firing(anchor);
+
+        assert_eq!(
+            evaluate_with_lifecycle(&doc, &market, None, spent),
+            Verdict::Fires
+        );
+    }
+
+    #[test]
+    fn once_per_candle_close_is_counted_against_the_trigger_candle() {
+        let (mut doc, market, anchor) = firing_setup();
+        doc.frequency = TriggerFrequency::OncePerCandleClose;
+
+        let same_candle = RuleState::default().after_firing(anchor);
+        assert_eq!(
+            evaluate_with_lifecycle(&doc, &market, None, same_candle),
+            Verdict::AlreadyFired
+        );
+
+        let previous_candle =
+            RuleState::default().after_firing(anchor - doc.trigger_timeframe.milliseconds());
+        assert_eq!(
+            evaluate_with_lifecycle(&doc, &market, None, previous_candle),
+            Verdict::Fires
+        );
+    }
+
+    #[test]
+    fn a_rule_past_its_validity_expires_rather_than_firing() {
+        let (mut doc, market, anchor) = firing_setup();
+        doc.valid_until_ms = Some(anchor - 1);
+
+        assert_eq!(
+            evaluate_with_lifecycle(&doc, &market, None, RuleState::default()),
+            Verdict::Expired
+        );
+    }
+
+    #[test]
+    fn expiry_is_reported_even_when_the_rule_had_never_fired() {
+        let (mut doc, market, anchor) = firing_setup();
+        doc.valid_until_ms = Some(anchor - 1);
+        doc.frequency = TriggerFrequency::Once;
+
+        assert_eq!(
+            evaluate_with_lifecycle(&doc, &market, None, RuleState::default()),
+            Verdict::Expired,
+            "Manage must show it as expired, not as still-armed"
+        );
+    }
+
+    #[test]
+    fn the_lifecycle_never_converts_a_non_firing_verdict() {
+        // An expired rule whose conditions do not hold must still say so: the
+        // lifecycle may only ever suppress a `Fires`, never invent a claim
+        // about a market the evaluation could not read.
+        let (mut doc, _, _) = firing_setup();
+        doc.valid_until_ms = Some(0);
+        let empty = InMemoryMarket::new();
+
+        assert!(
+            matches!(
+                evaluate_with_lifecycle(&doc, &empty, None, RuleState::default()),
+                Verdict::Indeterminate { .. }
+            ),
+            "an indeterminate evaluation must not be relabelled as expired"
         );
     }
 }

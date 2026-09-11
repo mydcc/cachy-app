@@ -41,6 +41,7 @@ use serde::{Deserialize, Serialize};
 
 use super::condition::{Condition, ConditionSite, MAX_CONDITION_DEPTH, MAX_RULE_WARMUP_CANDLES};
 use super::consequence::{ConsequenceLevel, RuleAction};
+use super::lifecycle::{validate_note, validate_validity, TriggerFrequency, TriggerMethod};
 use super::refusal::{RefusalCode, Refused, RuleRefusal};
 use super::sha256::sha256_hex;
 use super::timeframe::Timeframe;
@@ -97,6 +98,28 @@ pub struct RuleDocument {
     #[serde(default)]
     pub enabled: bool,
     pub provenance: Provenance,
+
+    // The lifecycle fields. Flat on the document rather than gathered into a
+    // nested `lifecycle` object on purpose: `canonical_value` excludes by key
+    // name, so a nested bag would be one entry in `EXCLUDED_FROM_HASH` and
+    // every field added inside it later would go unhashed in silence. Four flat
+    // names cost four entries and keep "a new field is hashed until someone
+    // says otherwise, loudly" true.
+    /// Which channels announce a trigger. Not hashed: where an alarm is heard
+    /// is not what it means. Empty means the notification service's own default
+    /// policy, which is what every rule authored before this field had.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trigger_methods: Vec<TriggerMethod>,
+    /// How often it may announce. Not hashed.
+    #[serde(default)]
+    pub frequency: TriggerFrequency,
+    /// The instant after which the rule expires *without* firing. Not hashed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valid_until_ms: Option<i64>,
+    /// Why this rule was armed, in the author's own words. Class A, never
+    /// leaves the device, not hashed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 impl RuleDocument {
@@ -146,6 +169,27 @@ impl RuleDocument {
         }
 
         self.action.validate("action", &mut out);
+
+        validate_note(self.note.as_deref(), "note", &mut out);
+        validate_validity(
+            self.valid_until_ms,
+            self.provenance.created_at_ms,
+            "valid_until_ms",
+            &mut out,
+        );
+
+        // Duplicates would announce the same trigger twice on one channel.
+        let mut seen = self.trigger_methods.clone();
+        seen.sort_unstable();
+        seen.dedup();
+        if seen.len() != self.trigger_methods.len() {
+            out.push(RuleRefusal::new(
+                RefusalCode::UnknownField,
+                "trigger_methods",
+                "a channel is listed twice, which would announce the trigger \
+                 twice on it",
+            ));
+        }
 
         // The ceiling that keeps an over-deep rule from being silent instead of
         // refused. Checked per tree so the refusal names which half is too
@@ -266,7 +310,24 @@ impl RuleDocument {
 /// Fields that identify or annotate the rule rather than define it.
 ///
 /// Kept next to the test that pins it so the two cannot drift apart.
-const EXCLUDED_FROM_HASH: &[&str] = &["id", "name", "enabled", "provenance"];
+pub(crate) const EXCLUDED_FROM_HASH: &[&str] = &[
+    // How the document is *encoded*, not what it says. Excluded so that a
+    // document migrated from an older version keeps the hash it was recorded
+    // under — a journal entry naming a strategy must not stop matching it
+    // because the app learned a new field. This is affordable exactly once,
+    // before any rule is live on a funded account; after that, changing what is
+    // hashed rewrites history.
+    "schema_version",
+    "id",
+    "name",
+    "enabled",
+    "provenance",
+    // Lifecycle. See the fields on `RuleDocument` for why each is here.
+    "trigger_methods",
+    "frequency",
+    "valid_until_ms",
+    "note",
+];
 
 /// Parse untrusted JSON into a validated document: migrate, then parse, then
 /// validate.
@@ -373,6 +434,10 @@ mod tests {
                 created_at_ms: 1_700_000_000_000,
                 model: None,
             },
+            trigger_methods: Vec::new(),
+            frequency: TriggerFrequency::Once,
+            valid_until_ms: None,
+            note: None,
         }
     }
 
@@ -494,21 +559,142 @@ mod tests {
     /// not the reason it is excluded, the hash still covers it.
     #[test]
     fn only_labelling_fields_are_excluded_from_the_hash() {
-        assert_eq!(EXCLUDED_FROM_HASH, &["id", "name", "enabled", "provenance"]);
-        let canonical = rsi_dip().canonical_value().unwrap();
+        assert_eq!(
+            EXCLUDED_FROM_HASH,
+            &[
+                "schema_version",
+                "id",
+                "name",
+                "enabled",
+                "provenance",
+                "trigger_methods",
+                "frequency",
+                "valid_until_ms",
+                "note",
+            ],
+            "this list is pinned on purpose: adding a field to `RuleDocument` \
+             hashes it by default, and excluding it must be a deliberate edit \
+             here with a reason next to the field"
+        );
+
+        // Every field is set to a non-default value first, so that a field
+        // excluded from the hash is proven absent rather than merely skipped by
+        // `skip_serializing_if`.
+        let mut doc = rsi_dip();
+        doc.trigger_methods = vec![TriggerMethod::Browser];
+        doc.frequency = TriggerFrequency::EveryTime;
+        doc.valid_until_ms = Some(1_800_000_000_000);
+        doc.note = Some("entry on the retest".to_string());
+
+        let canonical = doc.canonical_value().unwrap();
         let map = canonical.as_object().unwrap();
         for excluded in EXCLUDED_FROM_HASH {
-            assert!(!map.contains_key(*excluded));
+            assert!(
+                !map.contains_key(*excluded),
+                "{excluded} is excluded but reached the canonical form"
+            );
         }
-        for included in [
-            "schema_version",
-            "symbol",
-            "trigger_timeframe",
-            "conditions",
-            "action",
-        ] {
+        for included in ["symbol", "trigger_timeframe", "conditions", "action"] {
             assert!(map.contains_key(included), "{included} must be hashed");
         }
+    }
+
+    // ---- FEAT-0393: the lifecycle fields are labelling, not meaning ---------
+
+    /// AC: two rules differing only in frequency, validity or note have the
+    /// same content hash.
+    #[test]
+    fn lifecycle_fields_do_not_change_the_strategy_hash() {
+        let base = rsi_dip();
+        let hash = base.content_hash().unwrap();
+
+        for mutate in [
+            (|doc: &mut RuleDocument| doc.frequency = TriggerFrequency::EveryTime)
+                as fn(&mut RuleDocument),
+            |doc: &mut RuleDocument| doc.frequency = TriggerFrequency::OncePerCandleClose,
+            |doc: &mut RuleDocument| doc.valid_until_ms = Some(1_800_000_000_000),
+            |doc: &mut RuleDocument| doc.note = Some("invalidation, not entry".to_string()),
+            |doc: &mut RuleDocument| {
+                doc.trigger_methods = vec![TriggerMethod::Browser, TriggerMethod::Sound]
+            },
+        ] {
+            let mut altered = base.clone();
+            mutate(&mut altered);
+            assert_eq!(
+                altered.content_hash().unwrap(),
+                hash,
+                "a lifecycle field changed the strategy hash"
+            );
+        }
+    }
+
+    /// AC: a document written at the previous schema version migrates and keeps
+    /// its hash.
+    ///
+    /// This is why `schema_version` is excluded from the hash. A journal entry
+    /// records the strategy a trade was taken on; that strategy does not become
+    /// a different one because the app learned how to expire a rule.
+    #[test]
+    fn a_v1_document_keeps_its_hash_after_migrating_to_v2() {
+        let current = rsi_dip();
+
+        // The same strategy as it was written at version 1: no lifecycle
+        // fields, and the older version number.
+        let mut v1 = serde_json::to_value(&current).unwrap();
+        let map = v1.as_object_mut().unwrap();
+        map.insert("schema_version".into(), serde_json::json!(1));
+        for added_in_v2 in ["trigger_methods", "frequency", "valid_until_ms", "note"] {
+            map.remove(added_in_v2);
+        }
+
+        let migrated = parse_document(&serde_json::to_string(&v1).unwrap()).unwrap();
+
+        assert_eq!(migrated.schema_version, SchemaVersion::CURRENT);
+        assert_eq!(migrated.frequency, TriggerFrequency::Once);
+        assert_eq!(
+            migrated.content_hash().unwrap(),
+            current.content_hash().unwrap(),
+            "migrating a document must not rename the strategy it records"
+        );
+    }
+
+    #[test]
+    fn a_blank_note_is_refused() {
+        let mut doc = rsi_dip();
+        doc.note = Some("  ".to_string());
+        let refused = doc.validate().unwrap_err();
+        assert!(refused.refusals.iter().any(|r| r.field == "note"));
+    }
+
+    #[test]
+    fn a_validity_period_before_the_rule_was_authored_is_refused() {
+        let mut doc = rsi_dip();
+        doc.valid_until_ms = Some(doc.provenance.created_at_ms - 1);
+        let refused = doc.validate().unwrap_err();
+        assert!(refused.refusals.iter().any(|r| r.field == "valid_until_ms"));
+    }
+
+    #[test]
+    fn the_same_channel_listed_twice_is_refused() {
+        let mut doc = rsi_dip();
+        doc.trigger_methods = vec![TriggerMethod::Browser, TriggerMethod::Browser];
+        let refused = doc.validate().unwrap_err();
+        assert!(refused
+            .refusals
+            .iter()
+            .any(|r| r.field == "trigger_methods"));
+    }
+
+    #[test]
+    fn a_rule_with_every_lifecycle_field_set_round_trips() {
+        let mut doc = rsi_dip();
+        doc.trigger_methods = vec![TriggerMethod::InApp, TriggerMethod::Sound];
+        doc.frequency = TriggerFrequency::OncePerCandleClose;
+        doc.valid_until_ms = Some(doc.provenance.created_at_ms + 86_400_000);
+        doc.note = Some("Wochenend-Setup, Einstieg am Retest".to_string());
+
+        let parsed = parse_document(&serialise_document(&doc).unwrap()).unwrap();
+        assert_eq!(parsed, doc);
     }
 
     // ---- FEAT-0390: price source and percentage moves ----------------------
@@ -571,7 +757,9 @@ mod tests {
             mark.content_hash().unwrap(),
             "the price series a rule reads is part of what it means"
         );
-        assert!(serialise_document(&mark).unwrap().contains(r#""source":"mark""#));
+        assert!(serialise_document(&mark)
+            .unwrap()
+            .contains(r#""source":"mark""#));
     }
 
     #[test]
@@ -617,7 +805,10 @@ mod tests {
         let mut doc = rsi_dip();
         doc.conditions = percent_move(3);
         assert!(doc.validate().is_ok(), "{:?}", doc.validate());
-        assert_eq!(parse_document(&serialise_document(&doc).unwrap()).unwrap(), doc);
+        assert_eq!(
+            parse_document(&serialise_document(&doc).unwrap()).unwrap(),
+            doc
+        );
     }
 
     /// A percentage move cannot answer before its reference candle exists.
@@ -704,8 +895,21 @@ mod tests {
 
     #[test]
     fn a_document_with_no_schema_version_is_refused() {
-        let json = serialise_document(&rsi_dip()).unwrap();
-        let stripped = json.replace(r#""schema_version":1,"#, "");
+        // Removed structurally rather than by string replace. A literal needle
+        // like `"schema_version":1,` stops matching the moment the version is
+        // bumped, and the test then asserts a refusal on a perfectly valid
+        // document — passing while testing nothing.
+        let mut value = serde_json::to_value(rsi_dip()).unwrap();
+        assert!(
+            value
+                .as_object_mut()
+                .unwrap()
+                .remove("schema_version")
+                .is_some(),
+            "the field must be there to be removed"
+        );
+        let stripped = serde_json::to_string(&value).unwrap();
+
         let err = parse_document(&stripped).unwrap_err();
         assert!(err.has(RefusalCode::UnsupportedSchemaVersion));
     }
@@ -1327,12 +1531,10 @@ mod tests {
     /// second thing to keep consistent with the first.
     #[test]
     fn a_window_has_no_aggregate_beyond_min_and_max() {
-        let json = serde_json::to_string(&with(compare(
-            close(),
-            window(WindowAgg::Min, 10, close()),
-        )))
-        .unwrap()
-        .replace(r#""agg":"min""#, r#""agg":"mean""#);
+        let json =
+            serde_json::to_string(&with(compare(close(), window(WindowAgg::Min, 10, close()))))
+                .unwrap()
+                .replace(r#""agg":"min""#, r#""agg":"mean""#);
         assert!(serde_json::from_str::<RuleDocument>(&json).is_err());
     }
 }
