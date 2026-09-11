@@ -35,7 +35,11 @@ import {
     releaseCoverage,
 } from "../services/alertEngine/ruleCoverage";
 import { recordFiring, recordLegacyFiring } from "../services/alertEngine/shadowLedger";
+import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
+import { notificationService } from "../services/notificationService.svelte";
+import { alertNotificationKey } from "../lib/notificationPolicy";
 import type { FiringSink } from "../services/alertEngine/ruleEvaluationLoop";
+import type { RuleDocument } from "../lib/rules/types";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
 
@@ -179,14 +183,76 @@ export const alertState = new AlertsManager();
  * store and the toast service; keeping it here leaves `ruleLoopWiring` free of
  * a dependency on `alertState`, which would otherwise be a cycle.
  */
+/**
+ * Whether this announcement was the rule's last one — FEAT-0440.
+ *
+ * Only `once` retires a rule. `every_time` and `once_per_candle_close` stay
+ * armed and are held back by the core instead, which answers `already_fired`
+ * for a candle whose slot is spent; that check needs `RuleState`, which is why
+ * this ships with the state store and not before it.
+ *
+ * An absent `frequency` is `once`, matching both the schema default and the
+ * legacy engine every migrated rule came from — an infrastructure swap must not
+ * turn a one-shot alarm into a repeating one.
+ */
+export function isSpentAfterFiring(rule: RuleDocument): boolean {
+    return (rule.frequency ?? "once") === "once";
+}
+
+/**
+ * The line a trader reads, with their own note on the end — FEAT-0393 AC 6.
+ *
+ * The note is Class A and stays on the device: this renders into a local toast
+ * and a browser notification the user's own browser draws, neither of which
+ * leaves the machine. It is appended rather than substituted because the
+ * symbol and price are what makes the message scannable at a glance, and the
+ * note is what makes it actionable two weeks later.
+ */
+export function firingMessage(rule: RuleDocument): string {
+    const t = get(_) as (key: string, options?: Record<string, unknown>) => string;
+    const price = ruleThresholdOf(rule) ?? "";
+    const base =
+        t("dashboard.alerts.priceReached", { values: { symbol: rule.symbol, price } }) ||
+        `${rule.symbol} reached ${price}`;
+
+    const note = rule.note?.trim();
+    if (!note) return base;
+
+    return t("dashboard.alerts.firedWithNote", { values: { message: base, note } }) || `${base} — ${note}`;
+}
+
+/**
+ * FEAT-0387 cutover, FEAT-0440 sink — what happens when a *rule* fires.
+ *
+ * The same four steps in the same order every time: announce, count, record,
+ * and retire only if the frequency is spent. A trader must not be able to tell
+ * which engine served an alarm, so the ordering matches the legacy handler
+ * above; what is new is that retiring is now a decision rather than a
+ * certainty.
+ *
+ * Counting happens before the disarm and after the announcement. Before the
+ * disarm because `isSpentAfterFiring` is about the *rule*, not about whether a
+ * write succeeded; after the announcement because a storage quota error must
+ * never be the reason a trader did not hear their alarm.
+ *
+ * Lives in this module rather than in the loop's wiring because it needs the
+ * store; keeping it here leaves `ruleLoopWiring` free of a dependency on
+ * `alertState`, which would otherwise be a cycle.
+ */
 export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
     try {
-        const t = get(_) as (key: string, options?: Record<string, unknown>) => string;
-        const price = ruleThresholdOf(rule) ?? "";
-        toastService.success(
-            t("dashboard.alerts.priceReached", { values: { symbol: rule.symbol, price } }) ||
-                `${rule.symbol} reached ${price}`,
-        );
+        // Keyed per candle, not per rule: the service's 60s duplicate window is
+        // exactly one 1m candle, and swallowing an `every_time` rule's second
+        // announcement would mute an alarm the trader explicitly asked to hear
+        // on every touch. See `alertNotificationKey`.
+        notificationService.notify({
+            category: "alert-fired",
+            eventId: alertNotificationKey(rule.id, anchorMs),
+            message: firingMessage(rule),
+            tone: "success",
+        });
+
+        recordRuleFiring(rule.id, anchorMs);
 
         recordFiring({
             source: "rule",
@@ -197,6 +263,8 @@ export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
             anchorMs,
             verdict: verdict.verdict,
         });
+
+        if (!isSpentAfterFiring(rule)) return;
 
         // One shot, matching the legacy engine: an alert that fired is done
         // until the trader re-arms it. Both stores are disarmed because both
@@ -212,6 +280,7 @@ export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
         logger.error("alerts", `[Cutover] Handling a rule firing failed for ${rule.id}`, e);
     }
 };
+
 
 /**
  * `"live"` covers alerts the rule engine has taken over and notifies on their

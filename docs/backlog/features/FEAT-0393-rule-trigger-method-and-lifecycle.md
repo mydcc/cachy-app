@@ -2,9 +2,10 @@
 id: FEAT-0393
 title: Trigger method, frequency, validity period and note per rule
 type: feature
-status: in-progress
+status: done
 priority: P1
 assignee: mydcc
+resolved_at: 2026-09-11
 milestone: M4
 editions: [community, pro, private]
 area: alerts
@@ -64,7 +65,8 @@ failure, not a silent audit hole.
 - [x] Two rules differing in symbol, timeframe, conditions or consequence level have
       **different** content hashes
 - [x] A document written at the previous schema version migrates and keeps its hash
-- [ ] The note appears in the announcement on every channel that can carry text
+- [x] The note appears in the announcement on every channel that can carry text
+      (delivered by [`FEAT-0440`](FEAT-0440-real-firing-sink.md))
 - [x] German and English strings
 
 ## Out of scope
@@ -91,26 +93,24 @@ failure, not a silent audit hole.
   `canonical_value()` excludes by key name, so a nested bag would be one entry in
   `EXCLUDED_FROM_HASH` and anything added inside it later would go unhashed in silence.
 
-## Still open
+## Blockers — resolved by [`FEAT-0440`](FEAT-0440-real-firing-sink.md) (2026-09-11)
 
-- **The note in the announcement (AC 6) is blocked, not skipped.** There is no
-  announcement to put it in: `ruleEvaluationLoop` is still shadow-only — its default
-  `FiringSink` is `shadowSink`, which writes a log line and nothing else. No firing rule
-  reaches `notificationService` today. The note ships the moment a real sink exists, and
-  that sink's owner should carry this AC.
+These ACs were complete in the core and needed a real `FiringSink` to surface. All three
+shipped with FEAT-0440:
 
-- **Runtime enforcement of frequency and expiry.** The core decides them
-  (`evaluate_with_lifecycle`), but the loop never passes a `RuleState`, so nothing tracks
-  `fired_count` across evaluations yet. Deliberately left with the sink work: persisting
-  fire state belongs next to whatever consumes a firing, not bolted onto a loop that
-  currently discards them.
+- **AC 6 — The note in the announcement.** Done. `notifyingRuleSink` routes through
+  `notificationService` on the new `alert-fired` category, and `firingMessage()` appends
+  the trader's note.
 
-- **The Manage surface for expired rules (AC 2's rendering half).** Neither the schema PR
-  nor the footer PR touches `ManageTab.svelte`, so Manage still lists a rule without a
-  lifecycle status. That rendering needs `valid_until_ms` + `RuleState`, not just the
-  verdict, which places it with the sink work above — AC 2 is ticked for the core
-  behaviour only. Whoever lands the sink should deliver it and re-check the criterion, so
-  it is neither lost nor counted twice.
+- **AC 2 — Manage rendering for expired rules.** Done. `ruleLifecycleView.ts` joins legacy
+  alert ids to their rules; `ManageTab.svelte` badges an expired rule as expired. An
+  expired rule is deliberately *not* disarmed — that would drop it into the history list,
+  where every row reads "fired".
+
+- **Runtime `RuleState` wiring.** Done. `ruleStateStore.ts` owns fire state in
+  `cachy_rule_state_v1`; the loop takes a `readRuleState` reader and populates
+  `EvaluationContext.state`. This also fixed a live defect: the sink disarmed
+  unconditionally, so `every_time` and `once_per_candle_close` behaved as `once`.
 
 - [`FEAT-0397`](FEAT-0397-notification-channels.md) — notification channel configuration
 ## Links

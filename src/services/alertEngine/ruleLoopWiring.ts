@@ -46,6 +46,7 @@ import {
   type UnevaluableSink,
 } from "./ruleEvaluationLoop";
 import { recordFiring } from "./shadowLedger";
+import { readRuleState } from "./ruleStateStore";
 
 /**
  * The closed candles of one series, oldest first.
@@ -234,6 +235,9 @@ export function startRuleEvaluationLoop(onFiring: FiringSink = ledgerSink, onClo
     readCandles: readClosedCandles,
     readMarkCandles: readMarkCandles,
     readRules: readStoredRules,
+    // FEAT-0440: without this the core sees every rule as never-fired, and
+    // `frequency` is a field the builder writes and nothing reads.
+    readRuleState,
     onFiring,
     onClose,
     onUnevaluable: settingsAwareUnevaluableSink,

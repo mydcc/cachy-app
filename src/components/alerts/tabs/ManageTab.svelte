@@ -37,6 +37,7 @@
         acknowledgeCutoverNotice,
         shouldShowCutoverNotice,
     } from "../../../services/alertEngine/cutoverNotice";
+    import { alertLifecycleStatuses } from "../../../services/alertEngine/ruleLifecycleView";
 
     // Declared to satisfy the shell's tab contract, unused since the quick-add
     // form left: this tab lists armed rules, which it reads from the store
@@ -61,6 +62,22 @@
 
     let activeAlerts = $derived(alertState.definitions.filter((a) => a.active));
     let historyAlerts = $derived(alertState.definitions.filter((a) => !a.active));
+
+    /*
+      FEAT-0393 AC 2 -- an alert whose rule ran past its validity period is
+      still `active` in the legacy store, because nothing disarms on expiry.
+      That is deliberate: disarming would drop it into the history list, where
+      every row reads "fired", and a setup that lapsed untriggered is not one
+      that paid off.
+
+      Derived from the alert list rather than read once on mount, so a rule
+      crossing its expiry while the panel is open is relabelled on the next
+      change the list sees.
+    */
+    let lifecycle = $derived.by(() => {
+        void alertState.definitions.length;
+        return alertLifecycleStatuses();
+    });
 
     function formatCondition(condition: Record<string, unknown>) {
         if (condition.price_cross_up)
@@ -142,7 +159,11 @@
             <div class="alert-info">
                 <strong>{alert.symbol}</strong>
                 <span>{formatCondition(alert.condition)}</span>
-                {#if listTab === "history"}
+                {#if lifecycle.get(alert.id) === "expired"}
+                    <span class="expired-badge" title={$_("dashboard.alerts.expiredHint")}>
+                        {$_("dashboard.alerts.expired")}
+                    </span>
+                {:else if listTab === "history"}
                     <span class="fired-badge">{$_("dashboard.alerts.fired")}</span>
                 {/if}
             </div>
@@ -249,6 +270,17 @@
         color: var(--success-color);
         text-transform: uppercase;
         font-weight: var(--font-bold);
+    }
+    /* Reads as a lapse, not a success: an expired alert never fired. */
+    .expired-badge {
+        margin-left: var(--space-2);
+        padding: 0 var(--space-2);
+        border-radius: var(--radius-sm);
+        background: var(--bg-tertiary, var(--bg-secondary));
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
     .delete-btn {
         background: none;

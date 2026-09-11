@@ -2394,9 +2394,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0393",
     "title": "Trigger method, frequency, validity period and note per rule",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "assignee": "mydcc",
+    "resolved_at": "2026-09-11",
     "milestone": "M4",
     "editions": [
       "community",
@@ -2456,6 +2457,30 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "ADR-0013",
     "depends_on": [],
     "file": "features/FEAT-0405-client-side-signing-cutover.md"
+  },
+  {
+    "id": "FEAT-0440",
+    "title": "Replace the shadow sink with one that announces, counts and retires",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P1",
+    "assignee": "mydcc",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0387",
+      "FEAT-0393"
+    ],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0440-real-firing-sink.md"
   },
   {
     "id": "BUG-0005",
