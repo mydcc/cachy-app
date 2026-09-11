@@ -20,7 +20,7 @@
  * Optimized O(N) implementations using Monotonic Queues.
  */
 
-import type { NumberArray } from "./indicators";
+import type { NumberArray } from "./indicatorTypes";
 
 /**
  * Calculates the sliding window maximum for the given data.
