@@ -944,8 +944,8 @@
   --base03: #839496;
   --base04: #002b36;
   /* Added for high contrast text */
-  --blue: #1f6fbf;
-  --blue-dark: #1a5f9e;
+  --blue: #1a5f9e;
+  --blue-dark: #16548c;
   --green: #166534;
   --green-dark: #14532d;
   --red: #b91c1c;
@@ -1945,8 +1945,8 @@
      3.54:1, 2.23:1 and 1.80:1 on this theme's backgrounds. Darkened to AA. */
   --ayu-light-fg-alt: #57606a;
   --ayu-light-border: #e6e6e6;
-  --ayu-light-accent: #b45309;
-  --ayu-light-accent-light: #92400e;
+  --ayu-light-accent: #9a3412;
+  --ayu-light-accent-light: #7c2d12;
   --ayu-light-green: #166534;
   --ayu-light-green-light: #14532d;
   --ayu-light-red: #b91c1c;
