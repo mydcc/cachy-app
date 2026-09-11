@@ -28,6 +28,7 @@ import {
     mentionsBacklogId,
     missingClosingRefMessage,
     NO_ISSUE_MARKER,
+    unverifiedClosingRefMessage,
     type MatchablePR,
 } from "./pr-issue-match";
 
@@ -459,13 +460,23 @@ describe("autoFixPRBody", () => {
         expect(res.body.startsWith("Fixes #42")).toBe(true);
     });
 
-    it("fails open when the verification lookup flakes", async () => {
+    it("fails closed with no trailer when the verification lookup flakes", async () => {
+        // A required gate must never insert a closing trailer it could not
+        // verify: the body stays untouched and the caller reports an
+        // infrastructure failure (BUG-0431).
         const res = await autoFixPRBody({
             body: "Address a plain issue.",
             title: "fix: plain (BUG-0219)",
             findIssueForBacklogId: async () => 42,
             verifyBacklogItem: async () => null,
         });
-        expect(res.body.startsWith("Fixes #42")).toBe(true);
+        expect(res.changed).toBe(false);
+        expect(res.body).not.toContain("Fixes #");
+        expect(res.unverified).toEqual({ issueNumber: 42 });
+        expect(checkBodyHasClosingRef(res.body).ok).toBe(false);
+        const message = unverifiedClosingRefMessage(res.unverified!.issueNumber);
+        expect(message).toContain("infrastructure failure");
+        expect(message).toContain("#42");
+        expect(message).toContain("[no issue]");
     });
 });

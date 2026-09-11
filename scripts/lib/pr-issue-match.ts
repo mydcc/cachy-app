@@ -252,6 +252,13 @@ export interface AutoFixPRBodyResult {
      * would promise a flip this PR does not make (BUG-0431).
      */
     declined?: { issueNumber: number; itemId: string; baseStatus: string | null };
+    /**
+     * Set when the trailer could not be inserted because the issue's labels or
+     * item status could not be read (lookup failed after retries). The body is
+     * left untouched and the caller must fail closed, not insert an unverified
+     * closing trailer (BUG-0431).
+     */
+    unverified?: { issueNumber: number };
 }
 
 /**
@@ -270,6 +277,7 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
     let changed = false;
     let actionTaken: string | undefined;
     let declined: AutoFixPRBodyResult["declined"];
+    let unverified: AutoFixPRBodyResult["unverified"];
 
     // 1. Check if closing reference is missing
     const presence = checkBodyHasClosingRef(body);
@@ -289,7 +297,9 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
                 const verification = ctx.verifyBacklogItem
                     ? await ctx.verifyBacklogItem(issueNumber)
                     : null;
-                if (
+                if (ctx.verifyBacklogItem && verification === null) {
+                    unverified = { issueNumber };
+                } else if (
                     verification?.isBacklogMirror === true &&
                     verification.itemId !== null &&
                     (verification.baseStatus === null ||
@@ -331,7 +341,7 @@ export async function autoFixPRBody(ctx: AutoFixPRBodyContext): Promise<AutoFixP
         }
     }
 
-    return { changed, body, actionTaken, declined };
+    return { changed, body, actionTaken, declined, unverified };
 }
 
 /**
@@ -366,5 +376,23 @@ export function missingClosingRefMessage(
         `Add the missing line (the number of the issue this PR fixes), or, only if this ` +
         `PR genuinely links to no issue at all, put \`${NO_ISSUE_MARKER}\` on its own line ` +
         `to opt out explicitly. Silence is not an opt-out.`
+    );
+}
+
+/**
+ * The guidance printed when a PR description carries no closing reference and
+ * the candidate issue could not be verified.
+ *
+ * This is an infrastructure failure, not a rule violation: the author must not
+ * silence it with `[no issue]`, because the issue may well need closing — it
+ * just could not be read. The fix is to re-run the check (BUG-0431).
+ */
+export function unverifiedClosingRefMessage(issueNumber: number): string {
+    return (
+        `PR description carries no closing reference, and #${issueNumber} could ` +
+        `not be verified — the issue lookup failed after retries.\n\n` +
+        `This is an infrastructure failure, not a rule violation. Re-run the ` +
+        `"Closing References" job. Do NOT add \`${NO_ISSUE_MARKER}\` to silence ` +
+        `it: the issue may still need to be closed.`
     );
 }

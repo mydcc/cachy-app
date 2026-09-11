@@ -41,10 +41,12 @@ import {
     checkBodyForStrayClosingRefs,
     checkBodyHasClosingRef,
     missingClosingRefMessage,
+    unverifiedClosingRefMessage,
     type AutoFixPRBodyResult,
     type BacklogIssueVerification,
 } from "./lib/pr-issue-match";
 import { findItemFile, readStatus } from "./lib/backlog-flip";
+import { withRetry } from "./lib/retry";
 
 let body = process.env.PR_BODY ?? "";
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
@@ -70,51 +72,58 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
         title: process.env.PR_TITLE,
         branch: process.env.PR_BRANCH,
         findIssueForBacklogId: async (backlogId: string) => {
-            try {
-                const stdout = execFileSync("gh", [
-                    "issue", "list",
-                    "--search", backlogId,
-                    "--json", "number,title",
-                    "--limit", "10",
-                ], {
-                    encoding: "utf8",
-                    stdio: ["ignore", "pipe", "ignore"],
-                    env: { ...process.env, GH_TOKEN: token },
-                });
-                const issues = JSON.parse(stdout) as Array<{ number: number; title: string }>;
-                const match = issues.find(i => i.title.includes(backlogId));
-                return match ? match.number : null;
-            } catch {
-                return null;
-            }
+            const issues = withRetry<Array<{ number: number; title: string }>>(() => {
+                try {
+                    const stdout = execFileSync("gh", [
+                        "issue", "list",
+                        "--search", backlogId,
+                        "--json", "number,title",
+                        "--limit", "10",
+                    ], {
+                        encoding: "utf8",
+                        stdio: ["ignore", "pipe", "ignore"],
+                        env: { ...process.env, GH_TOKEN: token },
+                    });
+                    return JSON.parse(stdout) as Array<{ number: number; title: string }>;
+                } catch {
+                    return null;
+                }
+            });
+            if (issues === null) return null;
+            const match = issues.find(i => i.title.includes(backlogId));
+            return match ? match.number : null;
         },
         verifyBacklogItem: async (issueNumber: number): Promise<BacklogIssueVerification | null> => {
-            let labels: string[];
-            try {
-                const stdout = execFileSync("gh", [
-                    "issue", "view", String(issueNumber),
-                    "--json", "labels", "--jq", ".labels[].name",
-                ], {
-                    encoding: "utf8",
-                    stdio: ["ignore", "pipe", "ignore"],
-                    env: { ...process.env, GH_TOKEN: token },
-                });
-                labels = stdout.split("\n").map((l) => l.trim()).filter(Boolean);
-            } catch {
-                return null; // API flake → fail open
-            }
+            const labels = withRetry<string[]>(() => {
+                try {
+                    const stdout = execFileSync("gh", [
+                        "issue", "view", String(issueNumber),
+                        "--json", "labels", "--jq", ".labels[].name",
+                    ], {
+                        encoding: "utf8",
+                        stdio: ["ignore", "pipe", "ignore"],
+                        env: { ...process.env, GH_TOKEN: token },
+                    });
+                    return stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+                } catch {
+                    return null;
+                }
+            });
+            // Unreadable after retries: return null so the caller declines to
+            // insert an unverified trailer and fails closed (BUG-0431).
+            if (labels === null) return null;
             const idLabel = labels.find((name) => name.startsWith("backlog-id:"));
             if (!idLabel) return { isBacklogMirror: false, itemId: null, baseStatus: null };
             const itemId = idLabel.slice("backlog-id:".length);
-            // A git failure (missing base ref, shallow checkout) is a tooling
-            // flake like an unreadable label: fail open rather than decline a
-            // trailer we merely could not verify. A genuinely missing item
-            // file is different — the flip gate fails on that, so decline.
-            const tree = git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]);
+            // A git failure (missing base ref, shallow checkout) is an
+            // infrastructure flake: return null so the caller fails closed
+            // rather than inserting a trailer it could not verify. A genuinely
+            // missing item file is different — the flip gate fails on that.
+            const tree = withRetry(() => git(["ls-tree", "-r", "--name-only", base, "docs/backlog"]));
             if (tree === null) return null;
             const itemFile = findItemFile(tree.split("\n"), itemId);
             if (itemFile === null) return { isBacklogMirror: true, itemId, baseStatus: null };
-            const content = git(["show", `${base}:${itemFile}`]);
+            const content = withRetry(() => git(["show", `${base}:${itemFile}`]));
             if (content === null) return null;
             return { isBacklogMirror: true, itemId, baseStatus: readStatus(content) };
         },
@@ -142,7 +151,10 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
 
 const presence = checkBodyHasClosingRef(body);
 if (!presence.ok) {
-    console.error(`❌ ${missingClosingRefMessage(autoFixResult?.declined)}
+    const guidance = autoFixResult?.unverified
+        ? unverifiedClosingRefMessage(autoFixResult.unverified.issueNumber)
+        : missingClosingRefMessage(autoFixResult?.declined);
+    console.error(`❌ ${guidance}
 `);
     process.exit(1);
 }

@@ -121,7 +121,10 @@ describe("checkBacklogFlip", () => {
         ).toBe("pass");
     });
 
-    it("passes open on unreadable labels (API flake)", () => {
+    it("fails closed on unreadable labels (infrastructure flake)", () => {
+        // A required gate must not green-light unknown state: the runner
+        // retries first, and only reaches this verdict once the lookup is
+        // still failing, where the safe answer is red.
         expect(
             checkBacklogFlip({
                 body: "Fixes #2793",
@@ -129,7 +132,7 @@ describe("checkBacklogFlip", () => {
                 baseStatus: "ready",
                 fileDiff: "",
             }).outcome,
-        ).toBe("pass");
+        ).toBe("fail");
     });
 
     it("leaves missing-trailer bodies to the presence check", () => {

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-316 items. How to read and add them: [README.md](README.md).
+318 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 252
+Counts by status: 💡 idea 28 · 📋 specced 34 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 252
 
 ---
 
@@ -284,6 +284,7 @@ Counts by status: 💡 idea 27 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0385](bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md) | TP/SL drag can modify wrong plan when position plan and pending bracket coexist | P2 | 📋 specced | exchange |
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | trade-panel |
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | ci |
+| [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | 📋 specced | ci |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -372,6 +373,7 @@ Counts by status: 💡 idea 27 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | alerts |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | docs |
 | [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | 🟢 ready | alerts |
+| [FEAT-0436](features/FEAT-0436-detect-closed-mirror-without-flip.md) | Detect backlog mirror issues that closed without the item being marked done | P3 | 💡 idea | ci |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -554,6 +556,7 @@ Counts by status: 💡 idea 27 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0418](bugs/BUG-0418-mode-switch-keeps-remote-account-state.md) |
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | 📋 specced | M4 | community, pro, private | none | none | — |
+| [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -688,6 +691,7 @@ Counts by status: 💡 idea 27 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | 🟢 ready | none | community, pro, private | none | ADR-0012 | — |
+| [FEAT-0436](features/FEAT-0436-detect-closed-mirror-without-flip.md) | Detect backlog mirror issues that closed without the item being marked done | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -706,4 +710,4 @@ Counts by status: 💡 idea 27 · 📋 specced 33 · 🟢 ready 2 · 🟡 in-pro
 
 ---
 
-Next free number: **0435**
+Next free number: **0437**

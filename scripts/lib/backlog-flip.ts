@@ -88,9 +88,10 @@ export interface FlipInputs {
  * - no trailer, or an explicit `[no issue]` opt-out: pass (the opt-out is
  *   honoured here, before the trailer lookup; the presence check in
  *   `lint-pr-body-refs.ts` owns the missing-trailer case).
- * - issue labels unreadable (API flake): pass with a warning detail — a
- *   retry on the next push re-evaluates; blocking merges on flakes strands
- *   every backlog PR at once.
+ * - issue labels unreadable: fail. After the runner's bounded retry a
+ *   still-unreadable lookup is an infrastructure failure, and a required gate
+ *   must not green-light unknown state; the check is red until a re-run can
+ *   read the labels.
  * - issue is not a backlog mirror (no `backlog-id:` label): pass.
  * - item already terminal on base: pass, nothing to flip.
  * - otherwise the diff must contain the `+status: done` line.
@@ -104,7 +105,7 @@ export function checkBacklogFlip(inputs: FlipInputs): FlipVerdict {
         return { outcome: "pass", detail: "no Fixes trailer; presence is enforced elsewhere" };
     }
     if (inputs.issueLabels === null) {
-        return { outcome: "pass", detail: `labels of #${declared} unreadable; retry on next push` };
+        return { outcome: "fail", detail: `labels of #${declared} unreadable; re-run the check` };
     }
     const idLabel = inputs.issueLabels.find((name) => name.startsWith("backlog-id:"));
     if (!idLabel) {
