@@ -31,6 +31,7 @@ import { Decimal } from "decimal.js";
 import { slidingWindowMax, slidingWindowMin } from "./slidingWindow";
 import { toNumFast } from "./fastConversion";
 import type { BufferPool } from "./bufferPool";
+import type { NumberArray } from "./indicatorTypes";
 
 // --- Types ---
 
@@ -43,7 +44,7 @@ export interface Kline {
   volume: Decimal;
 }
 
-export type NumberArray = number[] | Float64Array;
+export type { NumberArray };
 
 // --- JSIndicators (Fast, Array-based, used by Worker/Service) ---
 export const JSIndicators = {
