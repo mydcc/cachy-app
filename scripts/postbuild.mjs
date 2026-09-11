@@ -15,65 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+// CLI entry for the `postbuild` npm lifecycle script. It runs unconditionally
+// (no entry-point guard), so it can never exit 0 without patching: a missing
+// adapter output throws instead. Pure logic lives in postbuild-lib.mjs so it
+// stays unit-testable without side effects.
+import { patchBuildIndex } from './postbuild-lib.mjs';
 
-// The build output always lives at <repo-root>/build, regardless of the
-// directory the build was invoked from, so resolve it from this script's
-// location rather than the current working directory.
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-// adapter-node writes `build/index.js` as a standalone Polka entry that skips
-// the Express wrapper (compression + security headers). Rewrite it to delegate
-// to `../server.js` when executed, while still re-exporting the adapter's
-// `handler` so importing this module for that export stays side-effect free.
-const DELEGATE_SHIM = `import fs from 'node:fs';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { handler } from './handler.js';
-
-export { handler };
-
-// True when this file is the program entry point. \`node build\` passes the
-// directory as argv[1] while \`node build/index.js\` passes the file, so a
-// directory is resolved to its index.js before the comparison.
-function isEntryPoint() {
-  const arg = process.argv[1];
-  if (!arg) return false;
-  const resolved = path.resolve(arg);
-  const stat = fs.statSync(resolved, { throwIfNoEntry: false });
-  const entry = stat && stat.isDirectory() ? path.join(resolved, 'index.js') : resolved;
-  return import.meta.url === pathToFileURL(entry).href;
-}
-
-// Boot the Express wrapper (compression + security headers) only when executed;
-// importing this module for \`handler\` must not start a second server.
-if (isEntryPoint()) {
-  await import('../server.js');
-}
-`;
-
-/**
- * Rewrite the adapter's entry point so `node build` serves through the Express
- * wrapper. Throws when the adapter output is missing — a silent no-op would let
- * a build "succeed" without the delegation it promises.
- * @param {string} [root] repository root that contains `build/`
- * @returns {string} the patched file path
- */
-export function patchBuildIndex(root = REPO_ROOT) {
-  const buildIndexPath = path.join(root, 'build', 'index.js');
-  if (!fs.existsSync(buildIndexPath)) {
-    throw new Error(
-      `postbuild: ${buildIndexPath} not found. Run this after a successful ` +
-        '`vite build` (adapter-node output) produced the build/ directory.',
-    );
-  }
-  fs.writeFileSync(buildIndexPath, DELEGATE_SHIM, 'utf-8');
-  return buildIndexPath;
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const patched = patchBuildIndex();
-  console.log(`Successfully patched ${patched} to delegate to server.js`);
-}
+const patched = patchBuildIndex();
+console.log(`Successfully patched ${patched} to delegate to server.js`);
