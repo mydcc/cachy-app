@@ -15,8 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { accountState } from './account.svelte';
+import { Decimal } from 'decimal.js';
+import { calculateBreakEvenPrice } from '../lib/calculators/core';
+import { CONSTANTS } from '../lib/constants';
+import { tradeState } from './trade.svelte';
 
 describe('AccountManager', () => {
     beforeEach(() => {
@@ -520,6 +524,86 @@ describe('AccountManager', () => {
         it('is zero with no open positions', () => {
             accountState.hydratePositions([]);
             expect(accountState.totalUnrealizedPnl.toString()).toBe('0');
+        });
+    });
+
+    // BUG-0379 / BUG-0381: break-even must reflect the broker-derived taker
+    // rate the account actually pays, not the global default — but only when a
+    // rate was derived. `undefined` means "no fills seen yet", which is not a
+    // zero fee and must fall back to `DEFAULT_FEES`.
+    describe('breakEvenPrice prefers the remote taker fee', () => {
+        const ENTRY = new Decimal('50000');
+        const REMOTE_TAKER = new Decimal('0.033');
+
+        afterEach(() => {
+            tradeState.remoteTakerFee = undefined;
+        });
+
+        it('hydratePositions derives break-even from remoteTakerFee when available', () => {
+            tradeState.remoteTakerFee = REMOTE_TAKER;
+
+            accountState.hydratePositions([
+                {
+                    positionId: '1', symbol: 'BTCUSDT', side: 'LONG',
+                    entryPrice: '50000', marginMode: 'CROSS',
+                },
+            ]);
+
+            const pos = accountState.positions[0];
+            expect(
+                pos.breakEvenPrice.equals(
+                    calculateBreakEvenPrice(ENTRY, REMOTE_TAKER, 'long'),
+                ),
+            ).toBe(true);
+            expect(
+                pos.breakEvenPrice.equals(
+                    calculateBreakEvenPrice(
+                        ENTRY,
+                        new Decimal(CONSTANTS.DEFAULT_FEES),
+                        'long',
+                    ),
+                ),
+            ).toBe(false);
+        });
+
+        it('falls back to DEFAULT_FEES when no remote rate has been derived', () => {
+            tradeState.remoteTakerFee = undefined;
+
+            accountState.hydratePositions([
+                {
+                    positionId: '1', symbol: 'BTCUSDT', side: 'LONG',
+                    entryPrice: '50000', marginMode: 'CROSS',
+                },
+            ]);
+
+            expect(
+                accountState.positions[0].breakEvenPrice.equals(
+                    calculateBreakEvenPrice(
+                        ENTRY,
+                        new Decimal(CONSTANTS.DEFAULT_FEES),
+                        'long',
+                    ),
+                ),
+            ).toBe(true);
+        });
+
+        it('the WebSocket path also uses the remote rate', () => {
+            tradeState.remoteTakerFee = REMOTE_TAKER;
+
+            accountState.updatePositionFromWs({
+                positionId: '2', symbol: 'ETHUSDT', side: 'short',
+                qty: '1', averagePrice: '2500', marginMode: 'cross',
+            });
+
+            expect(
+                accountState.positions[0].breakEvenPrice.equals(
+                    calculateBreakEvenPrice(
+                        new Decimal('2500'),
+                        REMOTE_TAKER,
+                        'short',
+                    ),
+                ),
+            ).toBe(true);
         });
     });
 });

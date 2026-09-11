@@ -3536,7 +3536,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0379",
     "title": "Calculator fee fallback uses hardcoded default instead of per-account remote fee",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5926,7 +5926,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0381",
     "title": "Account break-even price uses hardcoded DEFAULT_FEES, not venue fee",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [

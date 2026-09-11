@@ -2,7 +2,7 @@
 id: BUG-0379
 title: Calculator fee fallback uses hardcoded default instead of per-account remote fee
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
