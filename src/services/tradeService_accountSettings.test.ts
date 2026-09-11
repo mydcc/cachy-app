@@ -63,7 +63,7 @@ vi.mock("../lib/appAuth", () => ({
 import { tradeService } from "./tradeService";
 import { tradeState } from "../stores/trade.svelte";
 import { accountState } from "../stores/account.svelte";
-import { accountSession } from "./accountSession.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 import { paperState } from "../stores/paperTrading.svelte";
 
 /** Every request the service made, as (url, parsed body) pairs. */
@@ -485,7 +485,7 @@ describe("BUG-0409 — the read-back is bounded and honest", () => {
                 // The switch lands between the ticket and the answer: the
                 // body is fresh but belongs to no session the read-back
                 // tracks, so it is dropped instead of warned about.
-                accountSession.rotate("account-switch");
+                accountEpoch.rotate("account-switch");
             }
             return String(url) === "/api/leverage-margin-mode"
                 ? ok({ symbol: "BTCUSDT", marginCoin: "USDT", leverage: 20, marginMode: "CROSS" })

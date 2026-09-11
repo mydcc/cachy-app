@@ -3614,7 +3614,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0419",
     "title": "A read started before a mode switch can still land after it",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0419-mode-switch-rotates-session",
     "priority": "P2",
     "milestone": "none",
     "editions": [

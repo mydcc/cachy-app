@@ -20,7 +20,7 @@
   import { Decimal } from "decimal.js";
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
-  import { accountSession } from "../../services/accountSession.svelte";
+  import { accountEpoch } from "../../services/accountEpoch.svelte";
   import { accountReadOrder, positionsReadOrder } from "../../services/accountReadOrder";
   import {
     accountFetchKey,
@@ -988,7 +988,7 @@
    * Registers no listener, so there is nothing to return.
    */
   $effect(() => {
-    void accountSession.seq;
+    void accountEpoch.seq;
     untrack(() => {
       historyOrders = [];
       accountInfo = {
