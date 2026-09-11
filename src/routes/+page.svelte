@@ -37,7 +37,7 @@
   import { onMount } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
   import { formatDynamicDecimal } from "../utils/utils";
-  import { trackClick } from "../lib/actions";
+  import { trackClick } from "../actions/tracking";
   import type { TranslationKey } from "../locales/schema";
 
   import SummaryResults from "../components/results/SummaryResults.svelte";

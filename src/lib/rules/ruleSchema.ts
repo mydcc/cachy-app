@@ -31,7 +31,6 @@
  * callers that want to ask before committing.
  */
 
-import { logger } from "../../services/logger";
 import type {
   RuleDocument,
   Refused,
@@ -135,12 +134,13 @@ class RuleSchemaService {
     this.loading = (async () => {
       try {
         this.core = await this.loader();
-        logger.log("alerts", "[RuleSchema] core loaded, schema v" + this.core.rule_schema_version());
+        // No logging here: `lib` is a domain layer and must not reach up into
+        // `services/logger`. The caller that triggered `load()` reports the
+        // outcome — see the cutover block in `stores/alerts.svelte.ts`.
       } catch (err) {
         // Clear the latch so a later attempt can retry rather than being stuck
         // on one transient failure for the life of the tab.
         this.loading = null;
-        logger.error("alerts", "[RuleSchema] failed to load core", err);
         throw new RuleCoreUnavailableError(err);
       }
     })();

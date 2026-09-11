@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// src/lib/actions.ts
+// src/actions/tracking.ts
 
 import { trackCustomEvent } from "../services/trackingService";
 

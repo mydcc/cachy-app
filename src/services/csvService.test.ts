@@ -84,7 +84,9 @@ describe("csvService", () => {
     const csvContent = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss,Notizen,Tags,TP1 Preis,TP1 %
 12345,01.01.2023,12:00:00,BTCUSDT,Long,Won,50000,49000,"Test ""Notes""","tag1;tag2",51000,50`;
 
-    const entries = csvService.parseCSVContent(csvContent);
+    const entries = csvService.parseCSVContent(csvContent, {
+      useUtcDateParsing: true,
+    });
     expect(entries.length).toBe(1);
     const entry = entries[0];
     expect(entry.symbol).toBe("BTCUSDT");

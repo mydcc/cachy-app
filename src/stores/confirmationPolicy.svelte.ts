@@ -42,6 +42,7 @@ import {
 } from "../lib/confirmationPolicy";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
+import { uiState } from "./ui.svelte";
 
 /*
  * Permissive on purpose: the shape is validated as "an object of booleans"
@@ -150,6 +151,7 @@ class ConfirmationPolicyStore {
             const ok = StorageHelper.safeSave(
                 CONSTANTS.LOCAL_STORAGE_CONFIRMATION_POLICY_KEY,
                 JSON.stringify({ policy: this._policy }),
+                () => uiState.showError("storage.quotaExceeded"),
             );
             this._persistFailed = !ok;
         } catch {
