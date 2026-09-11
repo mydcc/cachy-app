@@ -1,6 +1,6 @@
 # ADR-0017: A required CI gate fails closed after bounded retry
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-11
 - **Deciders:** repository maintainers
 
