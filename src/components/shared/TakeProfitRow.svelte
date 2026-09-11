@@ -147,7 +147,8 @@
       <button
         class="lock-tp-btn p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors rounded hover:bg-[var(--bg-secondary)]"
         title={$_("dashboard.takeProfitRow.lockButtonTitle")}
-        tabindex="-1"
+        aria-label={$_("dashboard.takeProfitRow.lockButtonTitle")}
+        aria-pressed={isLocked}
         onclick={toggleLock}
         use:trackClick={{
           category: "TakeProfitRow",
@@ -182,7 +183,7 @@
         <button
           class="remove-tp-btn p-1 text-[var(--danger-color)] hover:opacity-80 transition-opacity rounded hover:bg-[var(--bg-secondary)]"
           title={$_("dashboard.takeProfitRow.removeButtonTitle")}
-          tabindex="-1"
+          aria-label={$_("dashboard.takeProfitRow.removeButtonTitle")}
           onclick={removeRow}
           use:trackClick={{
             category: "TakeProfitRow",
@@ -218,6 +219,7 @@
         value={format(price)}
         oninput={handlePriceInput}
         class="input-field w-full px-3 rounded-md text-sm font-mono"
+        aria-label={"TP " + (index + 1) + " " + $_("dashboard.takeProfitRow.pricePlaceholder")}
         placeholder={$_("dashboard.takeProfitRow.pricePlaceholder")}
       />
     </div>
@@ -246,6 +248,7 @@
           class="input-field w-full px-2 rounded-md text-sm text-center font-mono pr-5"
           class:locked-input={isLocked}
           disabled={isLocked}
+          aria-label={"TP " + (index + 1) + " " + $_("dashboard.alerts.price.percentLabel")}
           placeholder="100"
         />
         <span class="absolute right-2 text-xs text-[var(--text-secondary)] pointer-events-none">%</span>
@@ -258,5 +261,11 @@
   .input-field:focus {
     box-shadow: var(--shadow-card);
     border-color: var(--accent-color);
+  }
+
+  .lock-tp-btn:focus-visible,
+  .remove-tp-btn:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 1px;
   }
 </style>

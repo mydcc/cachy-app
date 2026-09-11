@@ -355,6 +355,7 @@
           <select
             id="preset-loader"
             class="input-field px-3 py-2 rounded-md text-sm"
+            aria-label={$_("dashboard.presetLoad")}
             onchange={handlePresetLoad}
             bind:value={presetState.selectedPreset}
           >
@@ -680,6 +681,7 @@
           id="tradeNotes"
           class="input-field w-full px-3 py-2 rounded-md mb-3 text-sm"
           rows="2"
+          aria-label={$_("dashboard.tradeNotesPlaceholder")}
           placeholder={$_("dashboard.tradeNotesPlaceholder")}
           bind:value={tradeState.tradeNotes}
         ></textarea>
