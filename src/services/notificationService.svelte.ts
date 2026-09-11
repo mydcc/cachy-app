@@ -21,14 +21,21 @@
  * a channel is unavailable.
  *
  * Nothing here reaches the network. The browser channel is the OS's own
- * notification, rendered locally by the user's browser — no Class A data leaves
- * the device, which is this item's fifth acceptance criterion and the reason
- * the external channel it mentions is not built here.
+ * notification, rendered locally by the user's browser, and the sound channel is
+ * an oscillator — no Class A data leaves the device, which is FEAT-0025's fifth
+ * acceptance criterion and the reason the external channel it mentions is not
+ * built here.
  */
 
 import { DUPLICATE_WINDOW_MS, notificationKey } from "../lib/notificationPolicy";
 import { notificationPolicyStore } from "../stores/notifications.svelte";
 import { toastService } from "./toastService.svelte";
+import { soundChannel } from "./soundChannel.svelte";
+import { TONE_FOR_CATEGORY } from "../lib/notificationTones";
+import { dispatchExternal } from "./externalDelivery";
+import { externalChannelsStore } from "../stores/externalChannels.svelte";
+import { EXTERNAL_NOTIFICATION_CHANNELS } from "../lib/notificationPolicy";
+import type { ExternalChannelId } from "../lib/notifications/externalChannels";
 import { logger } from "./logger";
 import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
@@ -120,7 +127,57 @@ class NotificationService {
             delivered.push("browser");
         }
 
+        /*
+         * The sound channel — FEAT-0392. Last because it is the one channel that
+         * can be refused by the platform rather than by the user, and the two
+         * above must already have run by then. `play` returns whether a tone
+         * actually started, so a muted or autoplay-blocked channel is absent
+         * from the list rather than claimed.
+         */
+        if (
+            notificationPolicyStore.wants(category, "sound") &&
+            soundChannel.play(TONE_FOR_CATEGORY[category])
+        ) {
+            delivered.push("sound");
+        }
+
+        /*
+         * The external channels — FEAT-0397. Absent from `delivered` on purpose:
+         * each one is a `fetch`, and a synchronous return cannot honestly say
+         * whether Discord accepted the message. Claiming delivery here would
+         * make the very assertion this return value exists for a lie, so the
+         * outcome goes to `externalDeliveryLog` and the settings UI reads it
+         * there.
+         */
+        const external = this.externalTargets(category);
+        if (external.length > 0) dispatchExternal(external, message, this.subjectFor(category));
+
         return delivered;
+    }
+
+    /**
+     * The external channels this category should reach: wanted by the policy,
+     * and actually configured.
+     *
+     * Both halves matter. A channel switched on with a cleared webhook would
+     * otherwise produce one failure entry per alert, which buries the entries
+     * that describe a real problem.
+     */
+    private externalTargets(category: NotificationCategory): ExternalChannelId[] {
+        const targets: ExternalChannelId[] = [];
+        for (const channel of EXTERNAL_NOTIFICATION_CHANNELS) {
+            if (!notificationPolicyStore.wants(category, channel)) continue;
+            const id = channel as ExternalChannelId;
+            if (externalChannelsStore.isActive(id)) targets.push(id);
+        }
+        return targets;
+    }
+
+    /** The e-mail subject. The body is the same line every other channel gets. */
+    private subjectFor(category: NotificationCategory): string {
+        const t = get(_) as (k: string) => string;
+        const label = t(`settings.notifications.categories.${category}`);
+        return t("settings.externalChannels.subject").replace("{category}", label);
     }
 
     /**

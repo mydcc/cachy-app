@@ -33,6 +33,8 @@ export const CONSTANTS = {
   LOCAL_STORAGE_ORDER_AUDIT_KEY: "cachy_order_audit",
   LOCAL_STORAGE_CONFIRMATION_POLICY_KEY: "cachy_confirmation_policy",
   LOCAL_STORAGE_NOTIFICATION_POLICY_KEY: "cachy_notification_policy",
+  LOCAL_STORAGE_NOTIFICATION_SOUND_KEY: "cachy_notification_sound",
+  LOCAL_STORAGE_EXTERNAL_CHANNELS_KEY: "cachy_external_channels",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
   // FEAT-0212 Phase 2. Class A: stores only the picked file's display name and
   // the write interval, never the file contents or a path — the

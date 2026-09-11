@@ -5287,7 +5287,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0392",
     "title": "A sound channel for notifications",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "mydcc",
+    "branch": "worktree-feat-0392-0397-a48a54",
+    "resolved_at": "2026-09-11",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5380,7 +5383,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0397",
     "title": "Configure notification delivery channels (Email, Discord, Telegram)",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "mydcc",
+    "branch": "worktree-feat-0392-0397-a48a54",
+    "resolved_at": "2026-09-11",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5390,7 +5396,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "area": "alerts",
     "data_class": "A",
-    "adr": "none",
+    "adr": "ADR-0018",
     "depends_on": [
       "FEAT-0389"
     ],
