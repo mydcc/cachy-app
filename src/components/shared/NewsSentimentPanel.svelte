@@ -344,7 +344,7 @@
               {analysis.regime}
             </span>
             <span class="text-[10px] text-[var(--text-secondary)]">
-              Score: {(analysis.score * 100).toFixed(0)}%
+              {$_("news.scoreLabel")} {(analysis.score * 100).toFixed(0)}%
             </span>
           </div>
         {/if}
@@ -365,14 +365,14 @@
       >
         <div class="flex justify-between items-center">
           <span class="text-xs text-[var(--text-secondary)] font-medium">
-            {news.length} Articles Analyzed
+            {$_("news.articlesAnalyzed", { values: { count: news.length } })}
           </span>
           <button
             type="button"
             onclick={handleRefresh}
             class="btn-action text-xs flex items-center gap-1.5 py-1 px-2.5 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
           >
-            <span>🔄</span> Refresh
+            <span>🔄</span> {$_("common.refresh")}
           </button>
         </div>
 

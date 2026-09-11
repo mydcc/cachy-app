@@ -344,14 +344,14 @@
                             </div>
                             <div class="body">
                                 <p class="text-xs text-[var(--text-secondary)] mb-3">
-                                    Required for screenshot uploads.
+                                    {$_("settings.connections.imgbbRequired")}
                                     <a
                                         href="https://api.imgbb.com/"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         class="text-[var(--accent-color)] hover:underline"
                                     >
-                                        Get your API key →
+                                        {$_("settings.connections.imgbbGetKey")}
                                     </a>
                                 </p>
                                 <div class="field-group">

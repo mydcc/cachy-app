@@ -1019,7 +1019,8 @@
           "trades": "Trades"
         }
       },
-      "assets": "Assets"
+      "assets": "Assets",
+      "analytics": "& Analysen"
     },
     "days": {
       "mon": "Mo",
@@ -1054,7 +1055,8 @@
       "paper": "Paper",
       "all": "Alle"
     },
-    "windowTitle": "Trading-Journal"
+    "windowTitle": "Trading-Journal",
+    "currentSqn": "Aktueller SQN"
   },
   "marketOverview": {
     "24hHigh": "24h Hoch",
@@ -1165,7 +1167,8 @@
       "disabled": "Deaktiviert",
       "timeframesHelpExtended": "Jeder ausgewählte Zeitrahmen vervielfacht API-Aufrufe und CPU-Last.",
       "timeframeReco": "Scalper: 5m, 15m. Daytrader: 15m, 1h, 4h. Swingtrader: 1h, 4h, 1d.",
-      "timeframesWarning": "{count} Zeitrahmen ausgewählt: Erwarte {count}x API-Aufrufe und höhere CPU-Last"
+      "timeframesWarning": "{count} Zeitrahmen ausgewählt: Erwarte {count}x API-Aufrufe und höhere CPU-Last",
+      "cacheShort": "Cache:"
     },
     "visuals": {
       "subtabs": {
@@ -1910,7 +1913,21 @@
       "avgLatency": "Ø Latenz",
       "networkStatus": "Netzwerkstatus",
       "tipsTitle": "Optimierungstipps",
-      "active": "aktiv"
+      "active": "aktiv",
+      "status": {
+        "usageHigh": "⚠️ Hohe API-Nutzung",
+        "usageModerate": "ℹ️ Moderate Nutzung",
+        "usageNormal": "✓ Normale Nutzung",
+        "cacheExcellent": "✓ Ausgezeichnetes Caching",
+        "cacheGood": "ℹ️ Gutes Caching",
+        "cacheLow": "⚠️ Cache-Größe erhöhen",
+        "latencyExcellent": "⚡ Ausgezeichnet",
+        "latencyGood": "✓ Gut",
+        "latencyAcceptable": "ℹ️ Akzeptabel",
+        "latencyHigh": "⚠️ Hohe Latenz",
+        "online": "🟢 Online",
+        "offline": "🔴 Offline"
+      }
     },
     "connections": {
       "exchanges": "Börsen",
@@ -1973,7 +1990,9 @@
         "addLabel": "Konto hinzufügen:",
         "exchange": "Börse",
         "activeAccountAria": "Aktives Konto: {name} auf {venue}"
-      }
+      },
+      "imgbbRequired": "Erforderlich für Screenshot-Uploads.",
+      "imgbbGetKey": "API-Key anfordern →"
     },
     "trading": {
       "executionTitle": "Exekution & Gebühren",
@@ -2023,7 +2042,9 @@
       "multiAccount": "Multi-Account-Verwaltung",
       "multiAccountDesc": "Verwalten Sie mehrere Börsenkonten gleichzeitig (Demnächst).",
       "journalPaperTrades": "Paper Trades im Journal speichern",
-      "journalPaperTradesDesc": "Simulierte Ausführungen werden gespeichert, damit du sie auswerten kannst. Sie sind immer mit PAPER markiert und zählen nie in deine Statistiken oder das Tagesverlust-Limit."
+      "journalPaperTradesDesc": "Simulierte Ausführungen werden gespeichert, damit du sie auswerten kannst. Sie sind immer mit PAPER markiert und zählen nie in deine Statistiken oder das Tagesverlust-Limit.",
+      "feeMaker": "MAKER",
+      "feeTaker": "TAKER"
     },
     "profile": {
       "appearanceTitle": "Erscheinungsbild & Identität",
@@ -2408,7 +2429,8 @@
     "confluenceScore": "Konfluenz-Score",
     "profileLightDesc": "Minimaler CPU-/Speicherbedarf, langsamere Updates. Ideal für: Wochen-Monate",
     "profileBalancedDesc": "Gute Leistung & Reaktionsfähigkeit. Ideal für: Stunden-Tage",
-    "profileProDesc": "Maximale Reaktionsfähigkeit, höhere CPU. Ideal für: Minuten-Stunden"
+    "profileProDesc": "Maximale Reaktionsfähigkeit, höhere CPU. Ideal für: Minuten-Stunden",
+    "timeAgo": "vor {time}"
   },
   "symbolPicker": {
     "title": "Symbol auswählen",
@@ -2477,7 +2499,9 @@
     "error": "Fehler",
     "cachyLogo": "Cachy-Logo",
     "unknown": "Unbekannt",
-    "orderType": "Typ: {type}"
+    "orderType": "Typ: {type}",
+    "refresh": "Aktualisieren",
+    "roi": "ROI"
   },
   "analyst": {
     "trend": {
@@ -3087,7 +3111,8 @@
         "Hohes Volumen oder Blow-off."
       ],
       "trading": "Gegenbewegung abwarten."
-    }
+    },
+    "noPatterns": "Keine Muster gefunden."
   },
   "apiErrors": {
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",
@@ -4037,7 +4062,9 @@
       "belowMinTradeVolume": "Positionsgröße liegt unter dem Mindesthandelsvolumen ({min}).",
       "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max})."
     },
-    "timeInForceNone": "—"
+    "timeInForceNone": "—",
+    "exchangeOrderTp": "Börsen-Order-TP",
+    "partialTarget": "Teilziel"
   },
   "chartView": {
     "loadingHistory": "LADE HISTORIE ...",
@@ -4169,7 +4196,9 @@
     "asks": "Angebote"
   },
   "news": {
-    "regime": "Regime"
+    "regime": "Regime",
+    "scoreLabel": "Score:",
+    "articlesAnalyzed": "{count} Artikel analysiert"
   },
   "timeframes": {
     "addPlaceholder": "Timeframe hinzufügen..."
@@ -4207,7 +4236,12 @@
     "readyToAssist": "Bereit zu helfen.",
     "placeholderCommand": "> BEFEHL EINGEBEN",
     "placeholderAi": "Nachricht an KI...",
-    "placeholderNote": "Notiz eingeben..."
+    "placeholderNote": "Notiz eingeben...",
+    "suggestedChanges": "Vorgeschlagene Änderungen",
+    "roleUser": "Benutzer",
+    "contextDuration": "⏱ Kontext: {ms}ms",
+    "contextNews": "📰 {count} News",
+    "contextTech": "📊 Technik: {status}"
   },
   "iframe": {
     "loadingArticle": "Lade Artikel...",
@@ -4219,5 +4253,11 @@
   "chat": {
     "placeholder": "Nachricht...",
     "send": "Senden"
+  },
+  "charts": {
+    "tradesCount": "{count} Trades",
+    "tradesLabel": "Trades:",
+    "pnlLabel": "PnL:",
+    "topLabel": "Top:"
   }
 }

@@ -352,7 +352,7 @@ class UiManager {
     if (show) {
       const { default: SettingsContent } = await import("../components/settings/SettingsContent.svelte");
       windowManager.toggle("settings", () => {
-        const win = new ModalWindow(SettingsContent, "Settings", {
+        const win = new ModalWindow(SettingsContent, get(_)("settings.title"), {
           id: "settings",
           windowType: "settings",
           width: 1024,

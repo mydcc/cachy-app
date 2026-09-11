@@ -126,7 +126,7 @@
                     <div class="preset-specs">
                         {$_("settings.calculation.intervalLabel")} {formatIntervalLabel(
                             preset.marketAnalysisInterval,
-                        )} • Cache: {preset.marketCacheSize} •
+                        )} • {$_("settings.calculation.cacheShort")} {preset.marketCacheSize} •
                         {preset.analysisTimeframes.join(", ")}
                     </div>
                 </button>

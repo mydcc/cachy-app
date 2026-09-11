@@ -344,7 +344,7 @@
       <!-- Advanced Analytics & Metrics (slAtr, atr, mae, mfe, efficiency, duration, risk) -->
       <section class="space-y-2">
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-          {$_("journal.deepDive.title")} & Analytics
+          {$_("journal.deepDive.title")} {$_("journal.deepDive.analytics")}
         </h4>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] text-xs">
           <div>

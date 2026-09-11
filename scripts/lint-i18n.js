@@ -76,6 +76,8 @@ const HAS_LETTER = /[A-Za-zÄÖÜäöüß]/;
 // (units like "x", "px", "MB", or punctuation like "—", "(%").
 const HAS_WORD = /[A-Za-zÄÖÜäöüß]{3,}/;
 const TRANSLATION_KEY = /^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/;
+// Quoted single/double-string literals inside an expression.
+const LITERAL = /(["'])((?:(?!\1).)*)\1/g;
 
 function rel(p) {
     return path.relative(process.cwd(), p);
@@ -168,14 +170,17 @@ function toMarkupLines(content) {
     let mode = null; // null | 'script' | 'style' | 'comment'
     let braces = 0;
     const out = [];
+    const inCode = [];
 
     for (const line of lines) {
         let kept = '';
         let i = 0;
+        let code = mode !== null;
         while (i < line.length) {
             const rest = line.slice(i);
 
             if (mode === 'comment') {
+                code = true;
                 const end = rest.indexOf('-->');
                 if (end === -1) break;
                 i += end + 3;
@@ -183,6 +188,7 @@ function toMarkupLines(content) {
                 continue;
             }
             if (mode === 'script' || mode === 'style') {
+                code = true;
                 const tag = mode === 'script' ? '</script>' : '</style>';
                 const end = rest.toLowerCase().indexOf(tag);
                 if (end === -1) break;
@@ -191,9 +197,9 @@ function toMarkupLines(content) {
                 continue;
             }
 
-            if (rest.startsWith('<!--')) { mode = 'comment'; i += 4; continue; }
-            if (/^<script[\s>]/i.test(rest)) { mode = 'script'; i += rest.indexOf('>') + 1; continue; }
-            if (/^<style[\s>]/i.test(rest)) { mode = 'style'; i += rest.indexOf('>') + 1; continue; }
+            if (rest.startsWith('<!--')) { code = true; mode = 'comment'; i += 4; continue; }
+            if (/^<script[\s>]/i.test(rest)) { code = true; mode = 'script'; i += rest.indexOf('>') + 1; continue; }
+            if (/^<style[\s>]/i.test(rest)) { code = true; mode = 'style'; i += rest.indexOf('>') + 1; continue; }
 
             const ch = line[i];
             if (ch === '{') { braces++; i++; continue; }
@@ -202,21 +208,60 @@ function toMarkupLines(content) {
             i++;
         }
         out.push(kept);
+        inCode.push(code);
     }
-    return out;
+    return { lines: out, inCode };
 }
 
-function scanTextNodes(lines, filePath) {
-    const markup = toMarkupLines(lines.join('\n'));
-    markup.forEach((line, index) => {
+/**
+ * Literal text nodes. Runs over the joined markup so text wrapped across
+ * lines (`<th>Suggested\nChanges</th>`) is seen as one node, not two
+ * fragments that each fail the word check.
+ */
+function scanTextNodes(markupLines, sourceLines, filePath) {
+    const text = markupLines.join('\n');
+    const re = />([^<>{}]+)</g;
+    for (const match of text.matchAll(re)) {
+        const value = match[1].replace(/\s+/g, ' ').trim();
+        if (value.length < 2) continue;
+        if (isAllowed('textNodes', value)) continue;
+        // Ignore HTML entities (&copy;, &nbsp;, &#8203;) and allowlisted
+        // technical tokens (USDT, POC, …) when deciding if this is real copy.
+        const words = (value.replace(/&[a-zA-Z#0-9]+;/g, ' ').match(/[A-Za-zÄÖÜäöüß]{3,}/g) ?? []);
+        if (words.length === 0) continue;
+        if (words.every((word) => isAllowed('textNodes', word))) continue;
+        const index = text.slice(0, match.index).split('\n').length - 1;
+        if (hasIgnore(sourceLines, index)) continue;
+        add('svelte-text', filePath, index + 1, value, sourceLines[index] ?? '');
+    }
+}
+
+/**
+ * Text interpolations: `>{cond ? "Buy" : "Sell"}<`. `toMarkupLines` drops the
+ * expression, so quoted literals used as visible labels inside it are checked
+ * here. Only `>{…}<` positions are inspected, never attributes or block
+ * directives, to keep the signal high.
+ */
+function scanTextExpressions(lines, inCode, filePath) {
+    const re = />\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*</g;
+    lines.forEach((line, index) => {
+        if (inCode[index]) return;
         if (hasIgnore(lines, index)) return;
-        const re = />([^<>{}]+)</g;
         for (const match of line.matchAll(re)) {
-            const text = match[1].trim();
-            if (text.length < 2) continue;
-            if (!HAS_WORD.test(text)) continue;
-            if (isAllowed('textNodes', text)) continue;
-            add('svelte-text', filePath, index + 1, text, lines[index] ?? '');
+            for (const literal of match[1].matchAll(LITERAL)) {
+                const value = literal[2].trim();
+                if (value.length < 3 || !HAS_WORD.test(value)) continue;
+                if (value.includes('${')) continue;
+                if (TRANSLATION_KEY.test(value)) continue;
+                // Only value positions (`? "A" : "B"`, `(…)`, `, …`), never
+                // comparisons (`=== "string"`) or fallbacks (`|| "x"`).
+                const before = match[1].slice(0, literal.index);
+                if (/\|\|\s*$|\?\?\s*$|===\s*$|!==\s*$|==\s*$|!=\s*$/.test(before)) continue;
+                const prev = before.trimEnd().slice(-1);
+                if (!['', '?', ':'].includes(prev)) continue;
+                if (isAllowed('textNodes', value)) continue;
+                add('svelte-text-expr', filePath, index + 1, value, line);
+            }
         }
     });
 }
@@ -225,7 +270,6 @@ function scanAttributes(lines, filePath) {
     const re = /\b(placeholder|aria-label|title|alt)\s*=\s*(?:"([^"{}]*)"|'([^'{}]*)')/g;
     // Ternary/expression values: `placeholder={isTerminal ? "> ENTER COMMAND" : "…"}`.
     const exprRe = /\b(placeholder|aria-label|title|alt)\s*=\s*\{([^}]*)\}/g;
-    const literalRe = /(["'])((?:(?!\1).)*)\1/g;
 
     lines.forEach((line, index) => {
         if (hasIgnore(lines, index)) return;
@@ -237,7 +281,7 @@ function scanAttributes(lines, filePath) {
             add('svelte-attr', filePath, index + 1, value, line);
         }
         for (const match of line.matchAll(exprRe)) {
-            for (const literal of match[2].matchAll(literalRe)) {
+            for (const literal of match[2].matchAll(LITERAL)) {
                 const value = literal[2].trim();
                 if (value.length < 3 || !HAS_WORD.test(value)) continue;
                 if (/^(https?:|data:|#)/.test(value)) continue;
@@ -283,7 +327,9 @@ function scanFile(filePath) {
     checkInterpolation(content, filePath);
 
     if (filePath.endsWith('.svelte')) {
-        scanTextNodes(lines, filePath);
+        const { lines: markupLines, inCode } = toMarkupLines(content);
+        scanTextNodes(markupLines, lines, filePath);
+        scanTextExpressions(lines, inCode, filePath);
         scanAttributes(lines, filePath);
     }
     scanObjectLabels(lines, filePath);

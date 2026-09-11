@@ -976,7 +976,7 @@
                         <div
                             class="text-sm text-[var(--text-secondary)] uppercase tracking-widest"
                         >
-                            Current SQN
+                            {$_("journal.currentSqn")}
                         </div>
                         <div
                             class="text-5xl font-bold text-[var(--accent-color)] my-4"

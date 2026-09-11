@@ -1019,7 +1019,8 @@
           "trades": "Trades"
         }
       },
-      "assets": "Assets"
+      "assets": "Assets",
+      "analytics": "& Analytics"
     },
     "days": {
       "mon": "Mon",
@@ -1054,7 +1055,8 @@
       "paper": "Paper",
       "all": "All"
     },
-    "windowTitle": "Trading Journal"
+    "windowTitle": "Trading Journal",
+    "currentSqn": "Current SQN"
   },
   "marketOverview": {
     "24hHigh": "24h High",
@@ -1165,7 +1167,8 @@
       "disabled": "Disabled",
       "timeframesHelpExtended": "Each selected timeframe multiplies API calls and CPU usage.",
       "timeframeReco": "Scalpers: 5m, 15m. Day traders: 15m, 1h, 4h. Swing traders: 1h, 4h, 1d.",
-      "timeframesWarning": "{count} timeframes selected: Expect {count}x API calls and higher CPU load"
+      "timeframesWarning": "{count} timeframes selected: Expect {count}x API calls and higher CPU load",
+      "cacheShort": "Cache:"
     },
     "visuals": {
       "subtabs": {
@@ -2009,7 +2012,9 @@
         "addLabel": "Add an account:",
         "exchange": "Exchange",
         "activeAccountAria": "Active account: {name} on {venue}"
-      }
+      },
+      "imgbbRequired": "Required for screenshot uploads.",
+      "imgbbGetKey": "Get your API key →"
     },
     "imgbbExpiration": "Expiration Time",
     "integrations": {
@@ -2145,7 +2150,21 @@
       "avgLatency": "Avg Latency",
       "networkStatus": "Network Status",
       "tipsTitle": "Optimization Tips",
-      "active": "active"
+      "active": "active",
+      "status": {
+        "usageHigh": "⚠️ High API usage",
+        "usageModerate": "ℹ️ Moderate usage",
+        "usageNormal": "✓ Normal usage",
+        "cacheExcellent": "✓ Excellent caching",
+        "cacheGood": "ℹ️ Good caching",
+        "cacheLow": "⚠️ Consider increasing cache size",
+        "latencyExcellent": "⚡ Excellent",
+        "latencyGood": "✓ Good",
+        "latencyAcceptable": "ℹ️ Acceptable",
+        "latencyHigh": "⚠️ High latency",
+        "online": "🟢 Online",
+        "offline": "🔴 Offline"
+      }
     },
     "trading": {
       "chartTitle": "Data & Market",
@@ -2195,7 +2214,9 @@
       "multiAccount": "Multi-Account Management",
       "multiAccountDesc": "Manage multiple exchange accounts simultaneously (Coming Soon).",
       "journalPaperTrades": "Save paper trades to the journal",
-      "journalPaperTradesDesc": "Simulated fills are recorded so you can review them. They are always marked PAPER and never counted in your statistics or the daily loss limit."
+      "journalPaperTradesDesc": "Simulated fills are recorded so you can review them. They are always marked PAPER and never counted in your statistics or the daily loss limit.",
+      "feeMaker": "MAKER",
+      "feeTaker": "TAKER"
     },
     "toggleMarketTiles": "Toggle Market Tiles",
     "toggleMarketSentiment": "Toggle Market Sentiment",
@@ -2476,7 +2497,9 @@
     "error": "Error",
     "cachyLogo": "Cachy Logo",
     "unknown": "Unknown",
-    "orderType": "Type: {type}"
+    "orderType": "Type: {type}",
+    "refresh": "Refresh",
+    "roi": "ROI"
   },
   "analyst": {
     "trend": {
@@ -3104,7 +3127,8 @@
         "High volume or blow-off."
       ],
       "trading": "Wait for the countermove."
-    }
+    },
+    "noPatterns": "No patterns found."
   },
   "bitunixErrors": {
     "10001": "Network Error",
@@ -3318,7 +3342,8 @@
     "confluenceScore": "Confluence score",
     "profileLightDesc": "Minimal CPU/Memory, slower updates. Best for: weeks-months timeframes",
     "profileBalancedDesc": "Good performance & responsiveness. Best for: hours-days timeframes",
-    "profileProDesc": "Maximum responsiveness, higher CPU. Best for: minutes-hours timeframes"
+    "profileProDesc": "Maximum responsiveness, higher CPU. Best for: minutes-hours timeframes",
+    "timeAgo": "{time} ago"
   },
   "calculator": {
     "errors": {
@@ -4037,7 +4062,9 @@
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
     },
-    "timeInForceNone": "—"
+    "timeInForceNone": "—",
+    "exchangeOrderTp": "Exchange Order TP",
+    "partialTarget": "Partial Target"
   },
   "chartView": {
     "loadingHistory": "LOADING HISTORY ...",
@@ -4169,7 +4196,9 @@
     "asks": "Asks"
   },
   "news": {
-    "regime": "Regime"
+    "regime": "Regime",
+    "scoreLabel": "Score:",
+    "articlesAnalyzed": "{count} Articles Analyzed"
   },
   "timeframes": {
     "addPlaceholder": "Add timeframe..."
@@ -4207,7 +4236,12 @@
     "readyToAssist": "Ready to assist.",
     "placeholderCommand": "> ENTER COMMAND",
     "placeholderAi": "Message AI...",
-    "placeholderNote": "Type note..."
+    "placeholderNote": "Type note...",
+    "suggestedChanges": "Suggested Changes",
+    "roleUser": "User",
+    "contextDuration": "⏱ Context: {ms}ms",
+    "contextNews": "📰 {count} News",
+    "contextTech": "📊 Tech: {status}"
   },
   "iframe": {
     "loadingArticle": "Loading article...",
@@ -4219,5 +4253,11 @@
   "chat": {
     "placeholder": "Message...",
     "send": "Send"
+  },
+  "charts": {
+    "tradesCount": "{count} Trades",
+    "tradesLabel": "Trades:",
+    "pnlLabel": "PnL:",
+    "topLabel": "Top:"
   }
 }

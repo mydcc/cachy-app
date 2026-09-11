@@ -231,8 +231,7 @@
                                                 <thead
                                                     ><tr
                                                         ><th colspan="2"
-                                                            >Vorgeschlagene
-                                                            Änderungen</th
+                                                            >{$_("assistant.suggestedChanges")}</th
                                                         ></tr
                                                     ></thead
                                                 >
@@ -351,7 +350,7 @@
                             msg.senderId === "me"}
                         <div class="flex flex-col">
                             <span class="msg-sender" class:is-me={isMe}>
-                                <span>{isMe ? "You" : "User"}</span>
+                                <span>{isMe ? $_("assistant.roleYou") : $_("assistant.roleUser")}</span>
                             </span>
                             <span class="msg-text">{msg.text}</span>
                             <span class="timestamp"
@@ -409,11 +408,11 @@
             {#if contextSummary}
                 <div class="context-panel-wrapper">
                     <button class="context-toggle" onclick={() => showContextPanel = !showContextPanel}>
-                        ⏱ Context: {contextSummary.durationMs}ms
+                        {$_("assistant.contextDuration", { values: { ms: contextSummary.durationMs } })}
                         <span class="divider">|</span>
-                        📰 {contextSummary.newsCount} News
+                        {$_("assistant.contextNews", { values: { count: contextSummary.newsCount } })}
                         <span class="divider">|</span>
-                        📊 Tech: {contextSummary.hasTechnicals ? "✅" : "❌"}
+                        {$_("assistant.contextTech", { values: { status: contextSummary.hasTechnicals ? "✅" : "❌" } })}
                         <span class="chevron" class:open={showContextPanel}>▼</span>
                     </button>
                     {#if showContextPanel}

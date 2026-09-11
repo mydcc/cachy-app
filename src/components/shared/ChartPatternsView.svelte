@@ -252,7 +252,7 @@
                 <div
                     class="text-center text-[var(--text-tertiary)] text-sm py-4"
                 >
-                    No patterns found.
+                    {$_("chartPatterns.noPatterns")}
                 </div>
             {/if}
         </div>

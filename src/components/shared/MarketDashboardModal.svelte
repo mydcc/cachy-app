@@ -730,7 +730,7 @@
                                                               ? 'text-[var(--success-color)]'
                                                               : 'text-[var(--text-secondary)]'}"
                                                     >
-                                                        RSI {rsiNum.toFixed(1)}
+                                                        {$_("settings.technicals.rsi.title")} {rsiNum.toFixed(1)}
                                                     </span>
                                                 {/if}
                                             </div>
