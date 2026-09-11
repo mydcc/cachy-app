@@ -537,6 +537,46 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         );
     });
 
+    it("keeps the dragged leg's own owner when a position plan and a pending bracket coexist (BUG-0385)", async () => {
+        seedPositionAndPlans();
+        // Render time: the draggable SL line belongs to the pending bracket
+        // (`9001`), so its leg id is `9001-sl`.
+        vi.mocked(tpSlState.plansFor).mockReturnValue({
+            loss: { orderId: "9001-sl", symbol: "BTCUSDT", planType: "LOSS", triggerPrice: "90", status: "NEW", sourceOrderId: "9001" } as never,
+        });
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        // Drop time: the store now answers with the coexisting position plan
+        // (`9002`). The symbol-level lookup (`plansFor` is keyed by symbol
+        // alone) must not hijack the bracket's line.
+        vi.mocked(tpSlState.plansFor).mockReturnValue({
+            loss: { orderId: "9002-sl", symbol: "BTCUSDT", planType: "LOSS", triggerPrice: "90", status: "NEW", sourceOrderId: "9002" } as never,
+        });
+
+        const container = host.querySelector(".chart-container") as HTMLElement;
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+
+        dragSlLineTo(container, 90, 95);
+        await settle();
+
+        // The dragged line's base (`9001`), not the position plan's (`9002`).
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "9001",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "95",
+            }),
+        );
+    });
+
     it("shows an error toast and still invalidates the cache when the modification is refused", async () => {
         modifyTpSlOrder.mockRejectedValueOnce(new Error("refused"));
         seedPositionAndPlans();
