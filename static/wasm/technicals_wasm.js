@@ -322,6 +322,33 @@ export function rule_from_alert_json(alert_json, timeframe, created_at_ms) {
 }
 
 /**
+ * The indicator registry as JSON.
+ *
+ * Exported for `indicatorCatalogue.test.ts`, which fails when the panel's
+ * catalogue and this registry disagree about which indicators exist, what
+ * they take or what their output lines are denominated in (FEAT-0028). The
+ * running app never calls it — the catalogue carries the labels, and this
+ * carries the identities.
+ * @returns {string}
+ */
+export function rule_indicator_registry() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        wasm.rule_indicator_registry(retptr);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred1_0 = r0;
+        deferred1_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * @param {string} document_json
  * @returns {any}
  */
