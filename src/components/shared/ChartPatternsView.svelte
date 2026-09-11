@@ -188,7 +188,7 @@
         >
             <input
                 type="text"
-                placeholder={$_("chartPatterns.searchPlaceholder") || "Search patterns..."}
+                placeholder={$_("chartPatterns.searchPlaceholder")}
                 bind:value={searchQuery}
                 class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--border-color)] focus:border-[var(--accent-color)] outline-none text-[var(--text-primary)] transition-all"
             />

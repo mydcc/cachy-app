@@ -134,7 +134,7 @@
 <section class="settings-section animate-fade-in">
     <!-- Type Selector -->
     <div class="flex gap-2 mb-4 flex-wrap">
-        {#each [{ v: "none" as const, l: $_("settings.profile.background.typeNone") }, { v: "image" as const, l: $_("settings.profile.background.typeMedia") }, { v: "animation" as const, l: $_("settings.profile.background.typeAnimation") }, { v: "threejs" as const, l: $_("settings.visuals.bgGalaxy") }, { v: "tradeflow" as const, l: "Trade Flow" }] as type}
+        {#each [{ v: "none" as const, l: $_("settings.profile.background.typeNone") }, { v: "image" as const, l: $_("settings.profile.background.typeMedia") }, { v: "animation" as const, l: $_("settings.profile.background.typeAnimation") }, { v: "threejs" as const, l: $_("settings.visuals.bgGalaxy") }, { v: "tradeflow" as const, l: $_("settings.profile.background.typeTradeFlow") }] as type}
             <button
                 class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType ===
                     type.v ||

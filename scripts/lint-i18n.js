@@ -223,6 +223,10 @@ function scanTextNodes(lines, filePath) {
 
 function scanAttributes(lines, filePath) {
     const re = /\b(placeholder|aria-label|title|alt)\s*=\s*(?:"([^"{}]*)"|'([^'{}]*)')/g;
+    // Ternary/expression values: `placeholder={isTerminal ? "> ENTER COMMAND" : "…"}`.
+    const exprRe = /\b(placeholder|aria-label|title|alt)\s*=\s*\{([^}]*)\}/g;
+    const literalRe = /(["'])((?:(?!\1).)*)\1/g;
+
     lines.forEach((line, index) => {
         if (hasIgnore(lines, index)) return;
         for (const match of line.matchAll(re)) {
@@ -231,6 +235,16 @@ function scanAttributes(lines, filePath) {
             if (/^(https?:|data:|#)/.test(value)) continue;
             if (isAllowed('attributes', value)) continue;
             add('svelte-attr', filePath, index + 1, value, line);
+        }
+        for (const match of line.matchAll(exprRe)) {
+            for (const literal of match[2].matchAll(literalRe)) {
+                const value = literal[2].trim();
+                if (value.length < 3 || !HAS_WORD.test(value)) continue;
+                if (/^(https?:|data:|#)/.test(value)) continue;
+                if (TRANSLATION_KEY.test(value)) continue;
+                if (isAllowed('attributes', value)) continue;
+                add('svelte-attr', filePath, index + 1, value, line);
+            }
         }
     });
 }

@@ -53,8 +53,8 @@
   <button
     class="control-btn"
     onclick={() => uiState.toggleMarketDashboardModal(true)}
-    title={$_("app.marketDashboard.buttonTitle") || "Market Overview"}
-    aria-label={$_("app.marketDashboard.buttonTitle") || "Market Overview"}
+    title={$_("app.marketDashboard.buttonTitle")}
+    aria-label={$_("app.marketDashboard.buttonTitle")}
     use:trackClick={{
       category: "Navigation",
       action: "Click",
@@ -68,8 +68,8 @@
   <button
     class="control-btn"
     onclick={() => uiState.toggleSettingsModal(true)}
-    title={$_("settings.title") || "Settings"}
-    aria-label={$_("settings.title") || "Settings"}
+    title={$_("settings.title")}
+    aria-label={$_("settings.title")}
     use:trackClick={{
       category: "Navigation",
       action: "Click",
@@ -99,8 +99,8 @@
     <button
       class="control-btn"
       onclick={() => windowManager.openAcademy()}
-      title={$_("academy.title") || "Trading Academy"}
-      aria-label={$_("academy.title") || "Trading Academy"}
+      title={$_("academy.title")}
+      aria-label={$_("academy.title")}
       use:trackClick={{
         category: "Navigation",
         action: "Click",
@@ -141,8 +141,8 @@
     class="control-btn"
     class:active={uiState.showAssistant}
     onclick={() => uiState.toggleAssistant(!uiState.showAssistant)}
-    title={$_("sidePanel.aiAssistant") || "Assistant"}
-    aria-label={$_("sidePanel.aiAssistant") || "Assistant"}
+    title={$_("sidePanel.aiAssistant")}
+    aria-label={$_("sidePanel.aiAssistant")}
     use:trackClick={{
       category: "Navigation",
       action: "Click",
@@ -159,8 +159,8 @@
         windowManager.bringToFront(journalWindow.id);
         journalWindow.restore();
       }}
-      title={journalWindow.title || "Trading Journal"}
-      aria-label={journalWindow.title || "Trading Journal"}
+      title={journalWindow.title}
+      aria-label={journalWindow.title}
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -176,8 +176,8 @@
     class:active={settingsState.showTechnicals}
     onclick={() =>
       (settingsState.showTechnicals = !settingsState.showTechnicals)}
-    title={$_("settings.showTechnicals") || "Toggle Technicals"}
-    aria-label={$_("settings.showTechnicals") || "Toggle Technicals"}
+    title={$_("settings.showTechnicals")}
+    aria-label={$_("settings.showTechnicals")}
   >
     {@html icons.chart}
   </button>
@@ -188,8 +188,8 @@
     class:active={settingsState.showMarketOverview}
     onclick={() =>
       (settingsState.showMarketOverview = !settingsState.showMarketOverview)}
-    title={$_("settings.toggleMarketTiles") || "Toggle Market Tiles"}
-    aria-label={$_("settings.toggleMarketTiles") || "Toggle Market Tiles"}
+    title={$_("settings.toggleMarketTiles")}
+    aria-label={$_("settings.toggleMarketTiles")}
   >
     {@html ICONS.overview}
   </button>
@@ -200,8 +200,8 @@
     class:active={settingsState.showSidebarActivity}
     onclick={() =>
       (settingsState.showSidebarActivity = !settingsState.showSidebarActivity)}
-    title={$_("dashboard.marketActivity") || "Toggle Market Activity"}
-    aria-label={$_("dashboard.marketActivity") || "Toggle Market Activity"}
+    title={$_("dashboard.marketActivity")}
+    aria-label={$_("dashboard.marketActivity")}
   >
     {@html ICONS.activity}
   </button>
@@ -212,8 +212,8 @@
     class:active={settingsState.showMarketSentiment}
     onclick={() =>
       (settingsState.showMarketSentiment = !settingsState.showMarketSentiment)}
-    title={$_("settings.toggleMarketSentiment") || "Toggle Market Sentiment"}
-    aria-label={$_("settings.toggleMarketSentiment") || "Toggle Market Sentiment"}
+    title={$_("settings.toggleMarketSentiment")}
+    aria-label={$_("settings.toggleMarketSentiment")}
   >
     {@html ICONS.sentiment}
   </button>

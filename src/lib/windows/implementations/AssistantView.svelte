@@ -72,7 +72,7 @@
         // Pre-check for API key in AI mode
         const mode = settingsState.sidePanelMode;
         if (mode === "ai" && !hasApiKey) {
-            errorMessage = "API key missing. Please check settings.";
+            errorMessage = "assistant.errorApiKeyMissing";
             return;
         }
 
@@ -89,7 +89,7 @@
             }
             messageText = "";
         } catch (e) {
-            errorMessage = e instanceof Error ? e.message : "Error";
+            errorMessage = e instanceof Error ? e.message : "common.error";
         } finally {
             isSending = false;
             // Keep focus only if not error?
@@ -171,7 +171,7 @@
                         <div
                             class="mb-1 text-[10px] uppercase font-bold tracking-wider opacity-60"
                         >
-                            {msg.role === "user" ? "You" : "AI"}
+                            {msg.role === "user" ? $_("assistant.roleYou") : $_("assistant.roleAi")}
                         </div>
                     {/if}
 
@@ -319,12 +319,12 @@
             {#if aiState.messages.length === 0}
                 <div class="empty-state">
                     {#if isTerminal}<p class="text-xs text-green-800">
-                            SYSTEM READY. AWAITING INPUT.
+                            {$_("assistant.terminalReady")}
                         </p>
                     {:else}<p
                             class="text-xs font-medium text-[var(--text-secondary)]"
                         >
-                            Ready to assist.
+                            {$_("assistant.readyToAssist")}
                         </p>{/if}
                 </div>
             {/if}
@@ -495,8 +495,7 @@
                         class="flex items-center gap-1.5 opacity-90"
                     >
                         <span>⚠️</span><span
-                            >Generative AI Quota exceeded. Please try again
-                            later.</span
+                            >{$_("assistant.errorQuotaExceeded")}</span
                         >
                     </div>
                 {:else}{$_(errorMessage as TranslationKey) ||
@@ -515,9 +514,9 @@
                     class:is-standard={!isTerminal}
                     placeholder={settingsState.sidePanelMode === "ai"
                         ? isTerminal
-                            ? "> ENTER COMMAND"
-                            : "Message AI..."
-                        : "Type note..."}
+                            ? $_("assistant.placeholderCommand")
+                            : $_("assistant.placeholderAi")
+                        : $_("assistant.placeholderNote")}
                     bind:value={messageText}
                     onkeydown={handleKeydown}
                     oninput={(e) =>

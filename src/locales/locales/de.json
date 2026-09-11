@@ -1053,7 +1053,8 @@
       "live": "Live",
       "paper": "Paper",
       "all": "Alle"
-    }
+    },
+    "windowTitle": "Trading-Journal"
   },
   "marketOverview": {
     "24hHigh": "24h Hoch",
@@ -1157,7 +1158,14 @@
       },
       "cpuImpact": "⚠️ CPU-Auswirkung",
       "symbolsCount": "{count} Symbole",
-      "timeframesSelected": "{count} ausgewählt"
+      "timeframesSelected": "{count} ausgewählt",
+      "on": "An",
+      "off": "Aus",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "timeframesHelpExtended": "Jeder ausgewählte Zeitrahmen vervielfacht API-Aufrufe und CPU-Last.",
+      "timeframeReco": "Scalper: 5m, 15m. Daytrader: 15m, 1h, 4h. Swingtrader: 1h, 4h, 1d.",
+      "timeframesWarning": "{count} Zeitrahmen ausgewählt: Erwarte {count}x API-Aufrufe und höhere CPU-Last"
     },
     "visuals": {
       "subtabs": {
@@ -2072,7 +2080,8 @@
         "intensityHigh": "Hoch",
         "reset": "Zurücksetzen",
         "resetConfirm": "Alle Hintergrund-Einstellungen zurücksetzen?",
-        "videoSpeed": "Speed"
+        "videoSpeed": "Speed",
+        "typeTradeFlow": "Trade Flow"
       }
     },
     "indicators": {
@@ -2464,7 +2473,11 @@
     "loading": "Lädt...",
     "typeHere": "Hier eingeben...",
     "entry": "Einstieg",
-    "active": "aktiv"
+    "active": "aktiv",
+    "error": "Fehler",
+    "cachyLogo": "Cachy-Logo",
+    "unknown": "Unbekannt",
+    "orderType": "Typ: {type}"
   },
   "analyst": {
     "trend": {
@@ -4185,7 +4198,16 @@
       "coach": "Trade-Coach",
       "scalper": "Scalper",
       "analyst": "Analyst"
-    }
+    },
+    "errorApiKeyMissing": "API-Key fehlt. Bitte Einstellungen prüfen.",
+    "errorQuotaExceeded": "Generatives KI-Kontingent überschritten. Bitte später erneut versuchen.",
+    "roleYou": "Du",
+    "roleAi": "KI",
+    "terminalReady": "SYSTEM BEREIT. WARTE AUF EINGABE.",
+    "readyToAssist": "Bereit zu helfen.",
+    "placeholderCommand": "> BEFEHL EINGEBEN",
+    "placeholderAi": "Nachricht an KI...",
+    "placeholderNote": "Notiz eingeben..."
   },
   "iframe": {
     "loadingArticle": "Lade Artikel...",

@@ -17,6 +17,8 @@
 
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
 import { CONSTANTS } from "../lib/constants";
 import { isLightTheme, themeBackground } from "../lib/themeBackgrounds";
 import { toastService } from "../services/toastService.svelte";
@@ -292,7 +294,7 @@ class UiManager {
     if (show) {
       const { default: JournalContent } = await import("../components/shared/JournalContent.svelte");
       windowManager.toggle("journal", () => {
-        const win = new ModalWindow(JournalContent, "Trading Journal", {
+        const win = new ModalWindow(JournalContent, get(_)("journal.windowTitle"), {
           id: "journal",
           windowType: "journal",
           width: 1200,

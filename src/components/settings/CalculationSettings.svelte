@@ -282,13 +282,12 @@
                 {/each}
             </div>
             <p class="help-text">
-                Each selected timeframe multiplies API calls and CPU usage. 
+                {$_("settings.calculation.timeframesHelpExtended")}
                 <strong>{$_("settings.calculation.recommendation")}</strong>
-                Scalpers: 5m, 15m. Day traders: 15m, 1h, 4h. Swing traders: 1h, 4h, 1d.
+                {$_("settings.calculation.timeframeReco")}
                 {#if settingsState.analysisTimeframes.length >= 4}
                     <span class="warning"
-                        >⚠️ {settingsState.analysisTimeframes.length} timeframes selected: 
-                        Expect {settingsState.analysisTimeframes.length}x API calls and higher CPU load</span
+                        >⚠️ {$_("settings.calculation.timeframesWarning", { values: { count: settingsState.analysisTimeframes.length } })}</span
                     >
                 {/if}
             </p>
@@ -308,7 +307,7 @@
                         ? 'active'
                         : ''}"
                 >
-                    {settingsState.enableNewsAnalysis ? "On" : "Off"}
+                    {settingsState.enableNewsAnalysis ? $_("settings.calculation.on") : $_("settings.calculation.off")}
                 </span>
             </label>
             <p class="help-text">
@@ -353,14 +352,14 @@
                 <span class="label">{$_("settings.calculation.newsLabel")}</span>
                 <span class="value"
                     >{settingsState.enableNewsAnalysis
-                        ? "Enabled"
-                        : "Disabled"}</span
+                        ? $_("settings.calculation.enabled")
+                        : $_("settings.calculation.disabled")}</span
                 >
             </div>
             <div class="info-item">
                 <span class="label">{$_("settings.calculation.smartPauseLabel")}</span>
                 <span class="value"
-                    >{settingsState.pauseAnalysisOnBlur ? "On" : "Off"}</span
+                    >{settingsState.pauseAnalysisOnBlur ? $_("settings.calculation.on") : $_("settings.calculation.off")}</span
                 >
             </div>
         </div>

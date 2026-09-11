@@ -272,7 +272,7 @@
 {#if uiState.showMarketDashboardModal}
     <ModalFrame
         isOpen={true}
-        title={$_("app.marketDashboard.title") || "Global Market Overview"}
+        title={$_("app.marketDashboard.title")}
         showBackdrop={false}
         width={modalWidth}
         height={modalHeight}

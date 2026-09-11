@@ -1053,7 +1053,8 @@
       "live": "Live",
       "paper": "Paper",
       "all": "All"
-    }
+    },
+    "windowTitle": "Trading Journal"
   },
   "marketOverview": {
     "24hHigh": "24h High",
@@ -1157,7 +1158,14 @@
       },
       "cpuImpact": "⚠️ CPU Impact",
       "symbolsCount": "{count} symbols",
-      "timeframesSelected": "{count} selected"
+      "timeframesSelected": "{count} selected",
+      "on": "On",
+      "off": "Off",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "timeframesHelpExtended": "Each selected timeframe multiplies API calls and CPU usage.",
+      "timeframeReco": "Scalpers: 5m, 15m. Day traders: 15m, 1h, 4h. Swing traders: 1h, 4h, 1d.",
+      "timeframesWarning": "{count} timeframes selected: Expect {count}x API calls and higher CPU load"
     },
     "visuals": {
       "subtabs": {
@@ -1936,7 +1944,8 @@
         "intensityMedium": "Medium",
         "intensityHigh": "High",
         "reset": "Reset",
-        "resetConfirm": "Reset all background settings?"
+        "resetConfirm": "Reset all background settings?",
+        "typeTradeFlow": "Trade Flow"
       }
     },
     "connections": {
@@ -2463,7 +2472,11 @@
     "loading": "Loading...",
     "typeHere": "Type here...",
     "entry": "Entry",
-    "active": "active"
+    "active": "active",
+    "error": "Error",
+    "cachyLogo": "Cachy Logo",
+    "unknown": "Unknown",
+    "orderType": "Type: {type}"
   },
   "analyst": {
     "trend": {
@@ -4185,7 +4198,16 @@
       "coach": "Trade Coach",
       "scalper": "Scalper",
       "analyst": "Analyst"
-    }
+    },
+    "errorApiKeyMissing": "API key missing. Please check settings.",
+    "errorQuotaExceeded": "Generative AI Quota exceeded. Please try again later.",
+    "roleYou": "You",
+    "roleAi": "AI",
+    "terminalReady": "SYSTEM READY. AWAITING INPUT.",
+    "readyToAssist": "Ready to assist.",
+    "placeholderCommand": "> ENTER COMMAND",
+    "placeholderAi": "Message AI...",
+    "placeholderNote": "Type note..."
   },
   "iframe": {
     "loadingArticle": "Loading article...",
