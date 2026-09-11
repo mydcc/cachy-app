@@ -21,6 +21,10 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import svelteParser from "svelte-eslint-parser";
 import globals from "globals";
+import {
+  servicesToStoresAllowlist,
+  utilsToServicesAllowlist,
+} from "./eslint.architecture.boundaries.js";
 
 // Svelte 5 runes are compiler-provided globals. They are resolved by
 // svelte-eslint-parser inside .svelte files, but plain `.svelte.ts` modules need
@@ -95,6 +99,110 @@ export default [
       // Roadmap item 21's backlog reached zero — both rules are gates now.
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+    },
+  },
+
+  // Architecture boundaries.
+  //
+  // Target layering: components -> stores -> services -> lib -> utils.
+  // Gates are added only for leaf layers that are already clean, so the rule
+  // cannot regress: `utils` is the bottom layer and must not reach up into
+  // stores or services. Type-only imports stay allowed — they are erased at
+  // compile time and carry no runtime coupling.
+  //
+  // The `lib -> services` gate lands with the PR that introduces ports for its
+  // four remaining call sites; the `services -> stores` gate is the Phase 2
+  // burn-down.
+  {
+    files: ["src/utils/**/*.ts"],
+    ignores: ["**/*.test.ts", "**/*.spec.ts", "**/tests/**"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/stores/**",
+                "**/stores/*",
+                "**/services/**",
+                "**/services/*",
+              ],
+              allowTypeImports: true,
+              message:
+                "Architecture: utils is a leaf layer and must not import from stores or services. Pass a callback/port instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
+    files: utilsToServicesAllowlist,
+    rules: {
+      // Grandfathered: see eslint.architecture.boundaries.js.
+      "@typescript-eslint/no-restricted-imports": "off",
+    },
+  },
+
+  // `lib` is the domain layer: it may be used by services and stores, and must
+  // not reach up into them. Only the `services` direction is gated here; the
+  // pre-existing `lib -> stores` reads are a separate burn-down. UI views that
+  // live under `lib/windows/**` are `.svelte` and stay out of this rule.
+  {
+    files: ["src/lib/**/*.ts"],
+    ignores: ["**/*.test.ts", "**/*.spec.ts", "**/tests/**"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/services/**", "**/services/*"],
+              allowTypeImports: true,
+              message:
+                "Architecture: lib is a domain layer and must not import from services. Introduce a port (interface/callback) and let the caller supply the implementation.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Phase 2 burn-down: services must not import stores. State belongs to the
+  // store layer; a service reads what it needs from a parameter or an injected
+  // port. Existing violators are grandfathered in
+  // eslint.architecture.boundaries.js — that list is burn-down only.
+  {
+    files: ["src/services/**/*.ts"],
+    ignores: [
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/tests/**",
+      "src/services/__fixtures__/**",
+    ],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/stores/**", "**/stores/*"],
+              allowTypeImports: true,
+              message:
+                "Architecture: services must not import stores. Read the value from a parameter or an injected port; the store layer owns state.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: servicesToStoresAllowlist,
+    rules: {
+      // Grandfathered: see eslint.architecture.boundaries.js.
+      "@typescript-eslint/no-restricted-imports": "off",
     },
   },
 
