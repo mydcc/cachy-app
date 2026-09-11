@@ -21,7 +21,10 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import svelteParser from "svelte-eslint-parser";
 import globals from "globals";
-import { servicesToStoresAllowlist } from "./eslint.architecture.boundaries.js";
+import {
+  servicesToStoresAllowlist,
+  utilsToServicesAllowlist,
+} from "./eslint.architecture.boundaries.js";
 
 // Svelte 5 runes are compiler-provided globals. They are resolved by
 // svelte-eslint-parser inside .svelte files, but plain `.svelte.ts` modules need
@@ -132,6 +135,14 @@ export default [
           ],
         },
       ],
+    },
+  },
+
+  {
+    files: utilsToServicesAllowlist,
+    rules: {
+      // Grandfathered: see eslint.architecture.boundaries.js.
+      "@typescript-eslint/no-restricted-imports": "off",
     },
   },
 

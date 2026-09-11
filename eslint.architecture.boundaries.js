@@ -31,6 +31,7 @@ export const servicesToStoresAllowlist = [
   "src/services/dataRepairService.ts",
   "src/services/engineBenchmark.ts",
   "src/services/exchange/registry.ts",
+  "src/services/externalDelivery.ts",
   "src/services/feeRateService.ts",
   "src/services/fundingRateService.svelte.ts",
   "src/services/hotkeyService.ts",
@@ -46,9 +47,22 @@ export const servicesToStoresAllowlist = [
   "src/services/paperJournalService.ts",
   "src/services/paperTradingService.ts",
   "src/services/rmsService.ts",
+  "src/services/soundChannel.svelte.ts",
   "src/services/syncService.ts",
   "src/services/technicalsService.ts",
   "src/services/trackingService.ts",
   "src/services/tradeCalculator.svelte.ts",
   "src/services/tradeService.ts",
+];
+
+/*
+ * Grandfathered `utils -> services` imports. Same burn-down rules as above:
+ * these predate the utils gate and are infrastructure reads (logger, db,
+ * storage, order-refusal formatting) rather than state. Fix with a port and
+ * delete the path here once the util no longer needs the service.
+ */
+export const utilsToServicesAllowlist = [
+  "src/utils/appReset.ts",
+  "src/utils/errorUtils.ts",
+  "src/utils/retryPolicy.ts",
 ];
