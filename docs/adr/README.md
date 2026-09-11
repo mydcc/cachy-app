@@ -52,6 +52,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0014](0014-layout-design-tokens.md) | Layout design tokens are the single source for radius, spacing and type scale | Proposed |
 | [0015](0015-account-state-is-read-under-a-ticket-and-never-paired-across-time.md) | Account state is read under a ticket and never paired across time | Proposed |
 | [0016](0016-a-claim-about-a-window-is-an-operand.md) | A claim about a window of candles is an operand, not a fifth condition shape | Proposed |
-| [0017](0017-required-ci-gates-fail-closed-after-bounded-retry.md) | A required CI gate fails closed after bounded retry | Proposed |
+| [0017](0017-required-ci-gates-fail-closed-after-bounded-retry.md) | A required CI gate fails closed after bounded retry | Accepted |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._
