@@ -3594,7 +3594,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0385",
     "title": "TP/SL drag can modify wrong plan when position plan and pending bracket coexist",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3606,7 +3606,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "none",
+    "assignee": "opencode",
+    "branch": "fix/bug-0385-tpsl-drag-plan-attribution",
     "file": "bugs/BUG-0385-tpsl-drag-coexisting-plan-and-bracket-misattribution.md"
   },
   {
