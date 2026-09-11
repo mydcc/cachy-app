@@ -45,6 +45,15 @@ describe("Content-Security-Policy Configuration (BUG-0270)", () => {
     }
   });
 
+  it("svelte.config.js connect-src allows every external notification channel host (FEAT-0397)", () => {
+    // One entry per host actually called from src/services/externalDelivery.ts.
+    // Missing one here means a silent-in-CI, broken-in-production channel: unit
+    // tests mock fetch and never see the browser enforce this policy.
+    expect(connectSrc).toContain("https://discord.com");
+    expect(connectSrc).toContain("https://api.telegram.org");
+    expect(connectSrc).toContain("https://api.mailgun.net");
+  });
+
   it("src/app.html inline scripts must include nonce='%sveltekit.nonce%'", () => {
     const appHtmlPath = path.resolve(__dirname, "app.html");
     const appHtml = fs.readFileSync(appHtmlPath, "utf-8");
