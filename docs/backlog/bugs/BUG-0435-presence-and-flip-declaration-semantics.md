@@ -2,7 +2,7 @@
 id: BUG-0435
 title: The body lint mutates the description and the two gates disagree on what it declares
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: ci
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0435 — The body lint mutates the description and the two gates disagree on what it declares
@@ -54,11 +55,11 @@ adds closing power instead of only removing it.
 
 ## Acceptance criteria
 
-- [ ] Presence and the flip gate call the same declaration function
-- [ ] An inline-only closing keyword no longer satisfies presence
-- [ ] The auto-fix never adds a closing trailer; it only neutralizes strays
-- [ ] A failed issue search does not append `[no issue]`
-- [ ] The BUG-0220 prose protection still holds (no trailer inferred from prose)
+- [x] Presence and the flip gate call the same declaration function
+- [x] An inline-only closing keyword no longer satisfies presence
+- [x] The auto-fix never adds a closing trailer; it only neutralizes strays
+- [x] A failed issue search does not append `[no issue]`
+- [x] The BUG-0220 prose protection still holds (no trailer inferred from prose)
 
 ## Links
 

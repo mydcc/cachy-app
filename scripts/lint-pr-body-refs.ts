@@ -65,7 +65,7 @@ function git(args: string[]): string | null {
 
 let autoFixResult: AutoFixPRBodyResult | null = null;
 
-// When running in CI on a PR, attempt silent auto-fix before reporting failures
+// When running in CI on a PR, attempt silent stray-neutralization before reporting failures
 if (token && Number.isInteger(prNum) && prNum > 0) {
     const fixResult = await autoFixPRBody({
         body,
