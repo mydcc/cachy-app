@@ -213,11 +213,20 @@ cause is the same — a replay must be the symbol's first evaluation — so the 
 no-rollback-path constraint applies; noted here so it reads as a decision, not an
 oversight.
 
-**Left as documentation, not fixed here**, because closing any of these properly means probing
-stateful `evaluate()` speculatively (it seeds the baseline and can flip `alert.active`),
-which would need a rollback path the engine does not have. A real fix is a follow-up,
-not a comment; this bug's own acceptance criteria are met by the coverage that exists,
-worded to say so precisely.
+A third, mid-session variant: the replay's `evaluate` is engine-wide for the symbol, but
+the coordinator's pending set is a snapshot from `initAlertEngine()`. If the symbol is
+still pending when the trader arms a second alert B on it, the replay's historical pair
+can straddle B's target and fire it at once — even though B was armed at the current
+price and the trader never saw that crossing. Skipping the replay for a symbol whose
+armed set changed would take alert A down with it, which is the population this fix
+targets, so that is not a trade worth making either.
+
+**Left as documentation, not fixed here**, because closing any of these properly means either
+probing stateful `evaluate()` speculatively (it seeds the baseline and can flip
+`alert.active`) or evaluating a per-alert subset the engine does not expose — both need a
+rollback or `set_alerts` path the engine does not have. A real fix is a follow-up, not a
+comment; this bug's own acceptance criteria are met by the coverage that exists, worded
+to say so precisely.
 
 ## Out of scope
 
