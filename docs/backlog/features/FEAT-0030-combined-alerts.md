@@ -2,8 +2,7 @@
 id: FEAT-0030
 title: Combine several conditions into one alert
 type: feature
-status: in-progress
-assignee: claude
+status: done
 branch: worktree-super-alert-system-overview-157ec6
 priority: P2
 milestone: M4
