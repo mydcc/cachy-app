@@ -30,18 +30,6 @@ vi.mock("./settings.svelte", () => ({
   settingsState: mockSettings,
 }));
 
-// The journal singleton kicks off a background ATR repair scan on every
-// load(), i.e. on every `new JournalManager()` in this file. Left real, it
-// mutates journalState via dataRepairService.updateEntry() out of band and
-// schedules a save on the singleton — a second, untracked write racing the
-// debounced one under test. Mocked to a no-op scan so it never fires.
-vi.mock("../services/dataRepairService", () => ({
-  dataRepairService: {
-    scanForMissingAtr: vi.fn(() => 0),
-    repairMissingAtr: vi.fn(async () => {}),
-  },
-}));
-
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
