@@ -29,7 +29,7 @@
 <!-- A small, always-visible "i" that carries a setting's explanation in a
      tooltip, so long help text no longer pads the settings list. -->
 <Tooltip {text} underline={false}>
-  <span class="info-tip" aria-label="Info">
+  <span class="info-tip" aria-label={text}>
     <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
       <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.4" />
       <rect x="7.25" y="6.9" width="1.5" height="4.3" rx="0.75" fill="currentColor" />

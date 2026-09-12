@@ -1165,7 +1165,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="field-group">
                         <div class="flex items-center gap-1.5">
-                            <label for="tfg-atr-width">{$_("settings.visuals.tradeFlow.atrBandWidth")}: {settingsState.tradeFlowSettings.galaxyFlow.atrBandWidth.toFixed(2)}x ATR</label>
+                            <label for="tfg-atr-width">{$_("settings.visuals.tradeFlow.atrBandWidth")}: {settingsState.tradeFlowSettings.galaxyFlow.atrBandWidth.toFixed(2)}x</label>
                             <InfoTip text={$_("settings.visuals.tradeFlow.tooltipAtrBandWidth")} />
                         </div>
                         <input id="tfg-atr-width" type="range" min="0.25" max="3" step="0.05"
@@ -1247,11 +1247,7 @@
                     </div>
                 </div>
 
-                <!-- Rotation -->
-                <!-- Galaxy mode aims the camera with lookAt() while auto-center is on,
-                     which overrides these three angles entirely. Hidden rather than shown
-                     dead: the galaxy section has its own Rotation control that does work. -->
-                {#if !(settingsState.tradeFlowSettings.flowMode === 'galaxy' && settingsState.tradeFlowSettings.galaxyFlow.autoCenter)}
+                <!-- Rotation (grid modes; the galaxy has its own camera block above) -->
                  <div class="grid grid-cols-3 gap-2 mb-4">
                     <div class="field-group">
                         <label for="tf-cam-rx">{$_("settings.visuals.tradeFlow.rotationX")}: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
@@ -1275,7 +1271,6 @@
                             class="range-input" />
                     </div>
                 </div>
-                {/if}
             </div>
             {/if}
         </div>

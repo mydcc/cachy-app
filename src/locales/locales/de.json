@@ -1342,7 +1342,7 @@
         "tooltipIndicatorTimeframe": "Geteilt mit dem Technicals Panel: Hier und dort einstellbar, gilt immer für beide. ATR und RSI des Hintergrunds werden aus diesem Intervall gelesen — ist dafür bereits ein Chart offen, kosten die Werte nichts zusätzlich.",
         "atrBands": "ATR-Referenzringe",
         "tooltipAtrBands": "Zeichnet drei Ringe auf die Preisachse: den zuletzt gehandelten Preis und ±1 ATR darum. So ist auf einen Blick erkennbar, ob die Schockwelle eines Trades innerhalb der normalen Marktspanne liegt oder daraus ausbricht. Benötigt die radiale Preisachse und einen verfügbaren ATR-Wert; mit der 2× ATR-Achsenspanne sitzen ±1 ATR-Ringe nahe den 1/4- und 3/4-Positionen, bewegen sich nur, wenn der Preis um 1+ ATR von der aktuellen Mitte abweicht — was selbst schon die Antwort ist.",
-        "atrBandWidth": "Ringabstand",
+        "atrBandWidth": "Ringabstand (ATR)",
         "tooltipAtrBandWidth": "Wie viele ATR die äußeren Ringe vom letzten Preis entfernt liegen. 1,00 = klassisches ±1-ATR-Band; kleiner zieht die Ringe zum Preis, größer spreizt sie. Jenseits von ±2 ATR (Achsenspanne) klemmen sie am Disc-Rand — liest sich als „Preis weit von seiner jüngsten Mitte entfernt“.",
         "atrBandStrength": "Ringstärke",
         "tooltipAtrBandStrength": "Deckkraft der Referenzringe. 1,0 = abgestimmter Standard; 0 blendet sie aus, ohne die Funktion abzuschalten; höher macht sie heller.",

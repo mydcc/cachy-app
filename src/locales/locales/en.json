@@ -1342,7 +1342,7 @@
         "tooltipIndicatorTimeframe": "Shared with the Technicals panel: editable in both places, always applies to both. The background's ATR and RSI are read from this interval — if a chart is already open on it, the values cost nothing extra.",
         "atrBands": "ATR reference rings",
         "tooltipAtrBands": "Draws three rings on the price axis: the last traded price, and ±1 ATR around it. Lets you see at a glance whether a trade's shockwave sits inside the market's normal range or is breaking out of it. Needs the radial price axis and an available ATR reading; with the 2× ATR axis span, ±1 ATR rings sit near the 1/4 and 3/4 points, moving only if price wanders 1+ ATR from the recent centre — which is itself the answer.",
-        "atrBandWidth": "Ring distance",
+        "atrBandWidth": "Ring distance (ATR)",
         "tooltipAtrBandWidth": "How many ATRs the outer rings sit from the last price. 1.00 = the classic ±1 ATR band; smaller tightens the rings toward the price, larger spreads them out. Beyond ±2 ATR (the axis span) they pin to the disc rim, which reads as \"price is far from its recent centre\".",
         "atrBandStrength": "Ring strength",
         "tooltipAtrBandStrength": "Opacity of the reference rings. 1.0 = the tuned default; 0 hides them without turning the feature off; higher makes them brighter.",
