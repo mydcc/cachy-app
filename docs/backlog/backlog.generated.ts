@@ -5414,6 +5414,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "S",
     "assignee": "claude-code",
+    "branch": "worktree-super-alert-system-8498ff",
     "estimate": "3",
     "file": "features/FEAT-0395-alert-entry-points.md"
   },

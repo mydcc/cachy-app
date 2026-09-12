@@ -12,6 +12,7 @@ adr: none
 depends_on: [FEAT-0389, FEAT-0390, FEAT-0028]
 size: S
 assignee: claude-code
+branch: worktree-super-alert-system-8498ff
 estimate: 3
 ---
 
@@ -144,11 +145,13 @@ it, which is what `mappingLines()` exists for. Three reverts were checked:
 misspelling a core parameter, misspelling a panel key, and dropping the
 `Decimal` conversion each fail by name.
 
-**Which cards get a button is derived, not placed.** All 28 cards pass their
-store key to `IndicatorCard`; `isAlertableIndicator` decides whether an action
-renders. Pivots, VWAP, Volume Profile and the ATR trailing stop have no
-registry identity, so they get no button rather than a button onto nothing —
-and an indicator that gains a mapping gains its button without a second edit.
+**Which cards get a button is derived, not placed.** 27 of the 28 cards pass
+their store key to `IndicatorCard` (the plain Volume card has no parameters, so
+it passes none); `isAlertableIndicator` decides whether an action renders.
+Pivots, VWAP, Volume Profile and the ATR trailing stop have no registry
+identity, so even where a key is passed no button appears rather than a button
+onto nothing — and an indicator that gains a mapping gains its button without a
+second edit.
 
 ### Two decisions worth naming
 
@@ -161,6 +164,18 @@ and an indicator that gains a mapping gains its button without a second edit.
   parameters — which are on the trader's screen — and leaves `> 0`, the tab's
   own default. RSI 70 would have been the plausible-looking default, and a
   plausible default is what gets armed unread (ADR-0012 decision 5).
+
+### Parameters the core cannot carry
+
+`IndicatorRef.params` only carries what the registry (`indicator.rs`) declares,
+so trader-facing settings with no core counterpart are not seeded: the sources
+(`rsi`/`ema`/`macd`/`stochRsi`/`momentum`/`bollingerBands`), `volumeMa.maType`,
+`cci.smoothingLength`/`threshold`, `ichimoku.displacement` and
+`obv.smoothingLength`, alongside the already-commented ADX `diLength`. The
+consequence is visible in the alert, not the panel: a trader who set EMA on
+`hl2` gets an alarm on EMA of close. The core documents "no source in v1", and
+the card carries no hint that only the period travels — left for a follow-up
+rather than implied by a button that cannot deliver it.
 
 ### Deviation from the plan above
 
