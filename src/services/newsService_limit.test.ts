@@ -18,6 +18,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { newsService } from './newsService';
+import { setNewsSettingsProvider } from './newsSettings';
 import { dbService } from './dbService';
 
 // Polyfill btoa if missing (Node env)
@@ -25,16 +26,14 @@ if (typeof global.btoa === 'undefined') {
     global.btoa = (str) => Buffer.from(str).toString('base64');
 }
 
-// Mock dependencies
-vi.mock('../stores/settings.svelte', () => ({
-    settingsState: {
-        rssPresets: [],
-        customRssFeeds: [],
-        cryptoPanicApiKey: 'test',
-        newsApiKey: 'test',
-        cryptoPanicFilter: 'important',
-        rssFilterBySymbol: false
-    }
+// The settings store normally installs this reader; supply the same values here.
+setNewsSettingsProvider(() => ({
+    rssPresets: [],
+    customRssFeeds: [],
+    cryptoPanicApiKey: 'test',
+    newsApiKey: 'test',
+    cryptoPanicFilter: 'important',
+    rssFilterBySymbol: false
 }));
 
 vi.mock('./apiQuotaTracker.svelte', () => ({
