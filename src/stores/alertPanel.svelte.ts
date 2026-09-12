@@ -230,6 +230,21 @@ class AlertPanelStore {
     };
   }
 
+  /**
+   * Replace the draft's conditions with the several a combo builder produced
+   * (FEAT-0030).
+   *
+   * Takes the whole group rather than a list plus an operator so that the one
+   * shape the document uses stays the one the builder hands over. A builder
+   * with no usable rows passes `null`, which empties the group for the same
+   * reason `setSingleCondition` does: an armed rule that can never fire is
+   * worse than a disabled arm button.
+   */
+  setConditionGroup(group: Condition | null) {
+    this.draft.conditions =
+      group && group.kind === "group" ? group : { kind: "group", op: "all", of: [] };
+  }
+
   setSymbol(symbol: string) {
     this.draft.symbol = symbol;
   }

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-324 items. How to read and add them: [README.md](README.md).
+325 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 268 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 269 · ⛔ dropped 1
 
 ---
 
@@ -132,11 +132,11 @@ Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | ✅ done | alerts |
 | [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P1 | ✅ done | alerts |
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | alerts |
-| [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | 🟡 in-progress | alerts |
+| [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | ✅ done | alerts |
 | [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | ✅ done | ui |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | alerts |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | alerts |
-| [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | alerts |
+| [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 🟡 in-progress | alerts |
 | [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | trade-panel |
 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | ✅ done | alerts |
 | [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) | Price alert conditions beyond a single target | P2 | ✅ done | alerts |
@@ -290,6 +290,7 @@ Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | ci |
 | [BUG-0441](bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md) | A legacy alert whose target was crossed while the app was closed never fires | P2 | ✅ done | alerts |
 | [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | ✅ done | journal |
+| [BUG-0443](bugs/BUG-0443-builder-tab-erases-a-rule-it-cannot-read.md) | A builder tab erases a rule it cannot read back | P2 | 📋 specced | alerts |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -505,7 +506,7 @@ Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | — |
-| [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) |
+| [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -567,11 +568,12 @@ Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0441](bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md) | A legacy alert whose target was crossed while the app was closed never fires | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0443](bugs/BUG-0443-builder-tab-erases-a-rule-it-cannot-read.md) | A builder tab erases a rule it cannot read back | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0029](features/FEAT-0029-drawing-alerts.md) | Alerts on chart drawings | P2 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
-| [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 💡 idea | M4 | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0030](features/FEAT-0030-combined-alerts.md) | Combine several conditions into one alert | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0031](features/FEAT-0031-whitelabel-theming.md) | Rebrand a build without editing source | P2 | 💡 idea | M5 | community | none | none | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
 | [FEAT-0032](features/FEAT-0032-plugin-contract.md) | A plugin contract for paid modules | P2 | 💡 idea | M6 | pro, private | none | ADR-0005 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md), [FEAT-0040](features/FEAT-0040-computation-extensions.md) |
 | [FEAT-0033](features/FEAT-0033-chat-hardening-and-reputation.md) | Harden Global Chat and add peer-signal reputation | P2 | 📋 specced | M7 | pro, private | B | ADR-0004 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
@@ -722,4 +724,4 @@ Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0443**
+Next free number: **0444**
