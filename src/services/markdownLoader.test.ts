@@ -21,6 +21,8 @@ import {
   mergeGeneratedReleases,
   loadInstruction,
   GENERATED_RELEASES_MARKER,
+  releaseSourceForLocale,
+  RELEASE_CHANGELOGS,
 } from "./markdownLoader";
 
 /**
@@ -162,5 +164,40 @@ describe("loadInstruction('changelog')", () => {
 
     expect(html).not.toContain("CHANGELOG_GENERATED");
     expect(html.length).toBeGreaterThan(0);
+  });
+});
+
+describe("localized release notes", () => {
+  const versionHeadings = (md: string): string[] =>
+    md
+      .split("\n")
+      .map((line) => line.match(/^#{1,3}\s+\[?(\d+\.\d+\.\d+)/))
+      .filter((match): match is RegExpMatchArray => match !== null)
+      .map((match) => match[1]);
+
+  it("keeps the German and English release lists in step", () => {
+    // The German notes are a hand-curated mirror. If a release is added to one
+    // file and not the other, the in-app changelog would silently diverge.
+    expect(versionHeadings(RELEASE_CHANGELOGS.de)).toEqual(
+      versionHeadings(RELEASE_CHANGELOGS.en),
+    );
+  });
+
+  it.each(["de", "en"])("selects the %s release source", (lang) => {
+    expect(releaseSourceForLocale(lang)).toBe(RELEASE_CHANGELOGS[lang]);
+  });
+
+  it("falls back to the English notes for an unknown locale", () => {
+    expect(releaseSourceForLocale("fr")).toBe(RELEASE_CHANGELOGS.en);
+  });
+
+  it("renders German notes on the German page and English on the English page", async () => {
+    const de = await loadInstruction("changelog", "de");
+    const en = await loadInstruction("changelog", "en");
+
+    expect(de.html).toContain("Hinzugefügt");
+    expect(de.html).not.toContain("### Added");
+    expect(en.html).toContain("Added");
+    expect(en.html).not.toContain("Hinzugefügt");
   });
 });
