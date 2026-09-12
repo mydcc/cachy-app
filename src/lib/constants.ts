@@ -682,6 +682,43 @@ export const themeIcons = {
   midnight: "🕛",
 };
 
+/**
+ * Look & Feel dropdown options. Kept beside `themes` so the UI list cannot drift
+ * from the canonical id list again — `ever` and `insight` used to be missing
+ * here, which left them reachable only through the theme-cycle hotkey.
+ * `ui_theme.test.ts` asserts the two lists cover the same ids.
+ */
+export const themeOptions = [
+  { value: "dark", label: "Dark (Default)" },
+  { value: "light", label: "Light" },
+  { value: "meteorite", label: "Meteorite" },
+  { value: "midnight", label: "Midnight" },
+  { value: "cobalt2", label: "Cobalt2" },
+  { value: "night-owl", label: "Night Owl" },
+  { value: "dracula", label: "Dracula" },
+  { value: "dracula-soft", label: "Dracula Soft" },
+  { value: "monokai", label: "Monokai" },
+  { value: "nord", label: "Nord" },
+  { value: "solarized-dark", label: "Solarized Dark" },
+  { value: "solarized-light", label: "Solarized Light" },
+  { value: "gruvbox-dark", label: "Gruvbox Dark" },
+  { value: "catppuccin", label: "Catppuccin" },
+  { value: "tokyo-night", label: "Tokyo Night" },
+  { value: "one-dark-pro", label: "One Dark Pro" },
+  { value: "obsidian", label: "Obsidian" },
+  { value: "ayu-dark", label: "Ayu Dark" },
+  { value: "ayu-light", label: "Ayu Light" },
+  { value: "ayu-mirage", label: "Ayu Mirage" },
+  { value: "github-dark", label: "GitHub Dark" },
+  { value: "github-light", label: "GitHub Light" },
+  { value: "steel", label: "Steel" },
+  { value: "matrix", label: "Matrix" },
+  { value: "everforest-dark", label: "Everforest Dark" },
+  { value: "insight", label: "Insight" },
+  { value: "ever", label: "Ever" },
+  { value: "VIP", label: "VIP" },
+];
+
 export const icons = {
   save: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="pointer-events-none" viewBox="0 0 16 16"><path d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"/></svg>',
   delete:

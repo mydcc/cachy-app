@@ -19,6 +19,8 @@
   import { onMount } from "svelte";
   import { browser } from "$app/environment";
   import { settingsState } from "../../../stores/settings.svelte";
+  import { uiState } from "../../../stores/ui.svelte";
+  import { themeBackground } from "../../../lib/themeBackgrounds";
   import { tradeState } from "../../../stores/trade.svelte";
   import { activeExchange } from "../../../services/exchange";
   import { marketState } from "../../../stores/market.svelte";
@@ -47,9 +49,14 @@
   // THEME & COLOR RESOLUTION
   // ========================================
 
-  const resolveColor = (varName: string, fallback: string = "#000000"): string => {
-    if (!browser) return fallback;
-    const style = getComputedStyle(document.documentElement);
+  // The computed style is passed in rather than resolved per call: a single
+  // colour update reads half a dozen variables, and `getComputedStyle` forces a
+  // style recalc each time. `updateColors` fetches it once for the whole update.
+  const resolveColor = (
+    varName: string,
+    style: CSSStyleDeclaration,
+    fallback: string = "#000000",
+  ): string => {
     const initialValue = varName.startsWith("--") ? style.getPropertyValue(varName) : varName;
     const trimmed = initialValue.trim();
     if (trimmed.startsWith("var(")) {
@@ -91,8 +98,8 @@
    * to normal on a light theme, otherwise the stars wash the page out — the
    * standalone background makes the same switch.
    */
-  function resolveGalaxyPalette() {
-    const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
+  function resolveGalaxyPalette(style: CSSStyleDeclaration) {
+    const bgStr = resolveColor("--galaxy-bg", style) || "#0a0e27";
     const rgb = parseColorToRgb(bgStr);
     let light = false;
     if (rgb) {
@@ -100,10 +107,10 @@
       light = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 > 0.5;
     }
     return {
-      inside: resolveColor("--galaxy-stars-core") || "#6366f1",
-      out1: resolveColor("--galaxy-stars-edge") || "#8b5cf6",
-      out2: resolveColor("--galaxy-stars-edge-2") || "#8b5cf6",
-      out3: resolveColor("--galaxy-stars-edge-3") || "#6366f1",
+      inside: resolveColor("--galaxy-stars-core", style) || "#6366f1",
+      out1: resolveColor("--galaxy-stars-edge", style) || "#8b5cf6",
+      out2: resolveColor("--galaxy-stars-edge-2", style) || "#8b5cf6",
+      out3: resolveColor("--galaxy-stars-edge-3", style) || "#6366f1",
       // THREE.NormalBlending = 1, THREE.AdditiveBlending = 2.
       blending: light ? 1 : 2,
       cutoff: light ? 0.6 : 0.2,
@@ -111,20 +118,50 @@
   }
 
   function updateColors() {
-    if (!worker || lifecycleState !== LifecycleState.READY) return;
+    if (!browser || !worker || lifecycleState !== LifecycleState.READY) return;
+
+    // One style lookup for the whole update — the buy/sell, background and
+    // galaxy palettes all read from it.
+    const style = getComputedStyle(document.documentElement);
 
     // `colorMode: "custom"` picks the user's own buy/sell colours over the
     // theme's. Every mode reads these two through the worker, so the switch
     // applies to all of them, galaxy included.
     const s = settingsState.tradeFlowSettings;
     const custom = s.colorMode === "custom";
-    const colorUp = (custom ? s.customColorUp : resolveColor("--color-up")) || "#00ff88";
-    const colorDown = (custom ? s.customColorDown : resolveColor("--color-down")) || "#ff4444";
-    const bg = resolveColor("--color-bg-primary") || "#000000";
+    const colorUp = (custom ? s.customColorUp : resolveColor("--color-up", style)) || "#00ff88";
+    const colorDown = (custom ? s.customColorDown : resolveColor("--color-down", style)) || "#ff4444";
+    // `--color-bg-primary` resolves to a CSS `radial-gradient` on the meteorite,
+    // steel, insight and ever themes. three cannot parse that: `Color.set` warns
+    // and keeps the previous colour, so the scene background would silently stay
+    // the old theme's (a light one after switching to ever). The per-theme map
+    // guarantees a solid hex.
+    const bg = themeBackground(uiState.currentTheme) || "#000000";
 
+    // `blending` doubles as the light/dark signal: 1 is NormalBlending, which
+    // the atmosphere sky needs on a light theme so its clouds do not wash out.
+    const palette = resolveGalaxyPalette(style);
     worker.postMessage({
       type: 'updateColors',
-      data: { colorUp, colorDown, background: bg, galaxy: resolveGalaxyPalette() }
+      data: {
+        colorUp,
+        colorDown,
+        background: bg,
+        light: palette.blending === 1,
+        galaxy: palette
+      }
+    });
+  }
+
+  // Coalesce a burst of theme mutations into one colour update per frame. The
+  // observer watches `style` too, so a theme transition can fire it many times
+  // and each pass would otherwise pay for its own `getComputedStyle` + post.
+  let themeColorRaf = 0;
+  function scheduleColorUpdate() {
+    if (themeColorRaf) return;
+    themeColorRaf = requestAnimationFrame(() => {
+      themeColorRaf = 0;
+      updateColors();
     });
   }
 
@@ -159,7 +196,10 @@
           width: window.innerWidth,
           height: window.innerHeight,
           pixelRatio: Math.min(window.devicePixelRatio, 2),
-          settings: JSON.parse(JSON.stringify(settingsState.tradeFlowSettings))
+          // `$state.snapshot` strips the reactive proxy so the settings survive
+          // structured clone — same purpose as the JSON round-trip it replaces,
+          // without serialising the whole object to a string first.
+          settings: $state.snapshot(settingsState.tradeFlowSettings)
         }
       }, [offscreen]);
 
@@ -268,7 +308,7 @@
       prevStructuralKey = structuralKey;
       worker.postMessage({
         type: 'updateSettings',
-        data: { settings: JSON.parse(JSON.stringify(s)) }
+        data: { settings: $state.snapshot(s) }
       });
       // A mode switch builds a fresh engine with no palette yet, so re-send the
       // colours; otherwise the galaxy renders with its uninitialised white stars
@@ -371,12 +411,19 @@
     // never learn the user switched source.
     const _volSrc = s.volatilitySource;
     const _moodSrc = s.moodSource;
+    // Atmosphere shaping is read live in the worker's animate loop, so it needs
+    // the lightweight channel — the structural key never re-sends it, and the
+    // one-time init leaves it frozen at the default.
+    const _atmoI = s.atmosphereIntensity;
+    const _atmoS = s.atmosphereSpeed;
 
     worker.postMessage({
       type: 'updateLightSettings',
       data: {
         volatilitySource: _volSrc,
         moodSource: _moodSrc,
+        atmosphereIntensity: _atmoI,
+        atmosphereSpeed: _atmoS,
         volumeScale: _vol,
         persistenceDuration: _persist,
         speed: _speed,
@@ -390,6 +437,27 @@
         cameraRotationZ: _camRZ,
       }
     });
+  });
+
+  // Gyroscope — separate switch from the 3D galaxy's, and only meaningful for
+  // the galaxy mode. While enabled, forward device tilt so the worker can steer
+  // the camera; the effect's cleanup removes the listener on any change.
+  $effect(() => {
+    if (!browser || lifecycleState !== LifecycleState.READY || !worker) return;
+    const s = settingsState.tradeFlowSettings;
+    const enabled = s.flowMode === "galaxy" && s.galaxyFlow.enableGyroscope;
+    if (!enabled) return;
+
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      if (event.alpha === null || event.beta === null || event.gamma === null) return;
+      worker!.postMessage({
+        type: "gyro",
+        data: { alpha: event.alpha, beta: event.beta, gamma: event.gamma }
+      });
+    };
+
+    window.addEventListener("deviceorientation", handleOrientation);
+    return () => window.removeEventListener("deviceorientation", handleOrientation);
   });
 
   // Dynamic Subscription
@@ -440,7 +508,7 @@
 
     window.addEventListener('resize', handleResize);
     
-    themeObserver = new MutationObserver(() => updateColors());
+    themeObserver = new MutationObserver(scheduleColorUpdate);
     themeObserver.observe(document.documentElement, { 
       attributes: true, 
       attributeFilter: ["class", "data-mode", "style"] 
@@ -483,6 +551,10 @@
 
   function cleanup() {
     window.removeEventListener('resize', handleResize);
+    if (themeColorRaf) {
+      cancelAnimationFrame(themeColorRaf);
+      themeColorRaf = 0;
+    }
     if (themeObserver) themeObserver.disconnect();
     if (worker) {
       worker.terminate();

@@ -171,9 +171,13 @@ export interface GalaxySettings {
  * than flattened because `particleCount` and `size` already exist there with a
  * completely different meaning (grid particles, not stars).
  *
- * The defaults are scaled for the Trade Flow camera (height 80, distance 120),
- * which sits ~28x further out than the standalone galaxy's camera — hence
- * `radius: 60` instead of 5 and `particleSize: 6` instead of 0.5.
+ * The camera uses the same settings as the standalone galaxy (`camPos`,
+ * `galaxyRot`, `autoCenter`, `enableGyroscope`). `camPos` is kept in the
+ * standalone's units (default z: 5 against its radius-5 disc) and the worker
+ * scales it by the 12x world ratio, so the two galaxies frame identically and
+ * their camera sliders carry the same values. The world itself stays larger —
+ * `radius: 60` instead of 5 and `particleSize: 6` instead of 0.5 — so the
+ * market effects keep their tuned proportions.
  */
 export interface GalaxyFlowSettings {
   particleCount: number;
@@ -186,8 +190,16 @@ export interface GalaxyFlowSettings {
   concentrationPower: number;
   rotationSpeed: number;
   galaxyRot: { x: number; y: number; z: number };
+  /**
+   * Camera position, in the standalone galaxy's units. The worker multiplies it
+   * by the world scale, so the default `{0, 2, 5}` frames this galaxy exactly
+   * like the standalone one.
+   */
+  camPos: { x: number; y: number; z: number };
   /** Point the camera at the galaxy core instead of using the raw camera rotation. */
   autoCenter: boolean;
+  /** Control the camera with device motion (mobile). Independent of the 3D galaxy's switch. */
+  enableGyroscope: boolean;
   /** Scales every trade shockwave. 0 = the galaxy ignores trades entirely. */
   marketReactivity: number;
   /** How strongly the rolling buy/sell ratio tints the arms. */
@@ -206,6 +218,14 @@ export interface GalaxyFlowSettings {
    * radial price axis. Needs `priceAxis` and an available ATR reading.
    */
   atrBands: boolean;
+  /**
+   * Ring distance, in ATR multiples around the last price. 1 = ±1 ATR (the
+   * classic band). Values beyond the ±2 ATR axis span clamp to the disc rim,
+   * which reads correctly as "price is further from its recent centre".
+   */
+  atrBandWidth: number;
+  /** Multiplier on the reference rings' opacity. 1 = the tuned default look. */
+  atrBandStrength: number;
 }
 
 export interface TradeFlowSettings {
@@ -222,6 +242,16 @@ export interface TradeFlowSettings {
   gridWidth: number;
   gridLength: number;
   enableAtmosphere: boolean;
+  /**
+   * How strongly the dynamic atmosphere (lights, fog, sky, tint) reacts, on top
+   * of the on/off toggle. 0 = visually neutral, 1 = the tuned default.
+   */
+  atmosphereIntensity: number;
+  /**
+   * Reaction-speed multiplier. Scales the smoothing time constants and the sky
+   * drift, so 2 reacts twice as fast without changing the resting look.
+   */
+  atmosphereSpeed: number;
   volumeScale: number; // Factor to scale volume mapping
   flowMode: "equalizer" | "raindrops" | "city" | "sonar" | "block" | "galaxy";
   persistenceDuration: number;
@@ -663,6 +693,8 @@ const defaultSettings: Settings = {
     gridWidth: 80,
     gridLength: 160,
     enableAtmosphere: true,
+    atmosphereIntensity: 1.0,
+    atmosphereSpeed: 1.0,
     enableRotation: false,
     volumeScale: 1.0,
     persistenceDuration: 60,
@@ -686,12 +718,16 @@ const defaultSettings: Settings = {
       concentrationPower: 1.5,
       rotationSpeed: 0.1,
       galaxyRot: { x: 0, y: 0, z: 0 },
+      camPos: { x: 0, y: 2, z: 5 },
       autoCenter: true,
+      enableGyroscope: false,
       marketReactivity: 1.0,
       sentimentTint: 0.35,
       activityRotation: 1.0,
       priceAxis: true,
       atrBands: true,
+      atrBandWidth: 1.0,
+      atrBandStrength: 1.0,
     },
   } as TradeFlowSettings,
   galaxySettings: {
