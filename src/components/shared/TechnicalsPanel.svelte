@@ -200,7 +200,7 @@
                 <input
                   bind:value={customTimeframeInput}
                   placeholder={$_("settings.technicals.customTimeframePlaceholder")}
-                  class="w-full text-xs p-1 rounded border border-[var(--input-border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
+                  class="w-full text-xs p-1 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
                   onkeydown={(e) =>
                     e.key === "Enter" && handleCustomTimeframeSubmit()}
                 />

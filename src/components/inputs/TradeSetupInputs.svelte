@@ -838,7 +838,7 @@
                 data-track-id="select-atr-timeframe"
                 value={atrTimeframe}
                 onchange={handleAtrTimeframeChange}
-                class="input-field w-full px-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--input-border-color)] text-sm cursor-pointer"
+                class="input-field w-full px-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
               >
                 {#each (settingsState.favoriteTimeframes?.length ?? 0) > 0 ? settingsState.favoriteTimeframes : ["5m", "15m", "1h", "4h"] as tf}
                   <option value={tf}>{tf}</option>

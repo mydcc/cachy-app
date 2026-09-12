@@ -130,7 +130,7 @@
         </div>
         <select
             bind:value={settingsState.repairTimeframe}
-            class="bg-[var(--bg-secondary)] border border-[var(--input-border-color)] rounded px-3 py-1.5 text-sm outline-none focus:border-[var(--accent-color)]"
+            class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded px-3 py-1.5 text-sm outline-none focus:border-[var(--accent-color)]"
             disabled={isRepairing}
         >
             {#each timeframes as tf}

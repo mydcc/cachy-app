@@ -41,9 +41,6 @@ vi.mock("../../services/activeTechnicalsManager.svelte", () => ({
 
 vi.mock("../../services/trackingService", () => ({
   trackInteraction: vi.fn(),
-  // settings.svelte.ts installs this at module load; the mock must carry it
-  // or importing the real settings store fails.
-  setTelemetryConsentProvider: vi.fn(),
 }));
 
 vi.mock("../../locales/i18n", () => ({

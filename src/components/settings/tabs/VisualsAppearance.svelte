@@ -642,7 +642,7 @@
     }
     .input-field {
         background-color: var(--bg-secondary);
-        /* border is supplied by the global .input-field rule (--input-border-color) */
+        border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
         padding: var(--space-2) var(--space-3);
         font-size: var(--text-sm);

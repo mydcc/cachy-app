@@ -63,7 +63,7 @@
   --scrollbar-thumb: var(--blue-800);
   --scrollbar-track: var(--blue-900);
   --text-primary: var(--blue-100);
-  --text-secondary: #a0adc0; /* WCAG 1.4.3: lighter than --blue-300, which was 4.04:1 on --bg-tertiary */
+  --text-secondary: var(--blue-300);
   --text-tertiary: var(--blue-600);
   --border-color: var(--blue-800);
   /* Input boundary: defaults to --text-secondary (readable on both the field
@@ -896,7 +896,7 @@
   --scrollbar-thumb: var(--dark-purple-600);
   --scrollbar-track: var(--dark-purple-800);
   --text-primary: var(--light-gray);
-  --text-secondary: #caa8fa; /* WCAG 1.4.3: --purple was 3.79:1; clears 4.5:1 on all surfaces */
+  --text-secondary: var(--purple);
   --border-color: var(--dark-purple-400);
   --accent-color: var(--pink);
   --accent-color-hover: var(--pink-hover);
@@ -1095,7 +1095,7 @@
   --chat-bubble-bg: var(--gruv-dark0-hard);
   --chat-messages-bg: var(--gruv-dark0);
   --text-primary: var(--gruv-light1);
-  --text-secondary: #aca195; /* WCAG 1.4.3: --gruv-gray was 3.16:1; clears 4.5:1 on all surfaces */
+  --text-secondary: var(--gruv-gray);
   --border-color: var(--gruv-dark2);
   --accent-color: var(--gruv-aqua-bright);
   --accent-color-hover: var(--gruv-aqua);
@@ -1299,7 +1299,7 @@
   --scrollbar-thumb: var(--ever-gray);
   --scrollbar-track: var(--ever-bg);
   --text-primary: var(--ever-fg);
-  --text-secondary: #a0aba4; /* WCAG 1.4.3: --ever-gray was 3.33:1; clears 4.5:1 on all surfaces */
+  --text-secondary: var(--ever-gray);
   --border-color: var(--ever-bg3);
   --accent-color: var(--ever-aqua);
   --accent-color-hover: var(--ever-aqua-light);
@@ -1366,8 +1366,8 @@
   --chat-messages-bg: var(--base03);
   --scrollbar-thumb: var(--base01);
   --scrollbar-track: var(--base03);
-  --text-primary: #a9b5b6; /* WCAG 1.4.3: --base0 was 3.73:1; clears 4.5:1 on all surfaces */
-  --text-secondary: #96a4a4; /* WCAG 1.4.3: --base1 was 4.41:1; clears 4.5:1 on all surfaces */
+  --text-primary: var(--base0);
+  --text-secondary: var(--base1);
   --border-color: var(--base02);
   --accent-color: var(--blue);
   --accent-color-hover: var(--blue-light);
@@ -1569,7 +1569,7 @@
   --scrollbar-thumb: var(--obsidian-border-light);
   --scrollbar-track: var(--obsidian-bg-alt);
   --text-primary: var(--obsidian-fg);
-  --text-secondary: #ababab; /* WCAG 1.4.3: --obsidian-gray was 3.70:1; clears 4.5:1 on all surfaces */
+  --text-secondary: var(--obsidian-gray);
   --border-color: var(--obsidian-border);
   --accent-color: var(--obsidian-blue);
   --accent-color-hover: var(--obsidian-blue-light);
@@ -1633,7 +1633,7 @@
   --scrollbar-thumb: var(--drac-soft-comment);
   --scrollbar-track: var(--drac-soft-bg);
   --text-primary: var(--drac-soft-fg);
-  --text-secondary: #c8aed6; /* WCAG 1.4.3: --drac-soft-purple was 3.41:1; clears 4.5:1 on all surfaces */
+  --text-secondary: var(--drac-soft-purple);
   --border-color: var(--drac-soft-border);
   --accent-color: var(--drac-soft-pink);
   --accent-color-hover: var(--drac-soft-pink-light);
@@ -1701,8 +1701,8 @@
   --chat-messages-bg: var(--ayu-bg);
   --scrollbar-thumb: var(--ayu-border-light);
   --scrollbar-track: var(--ayu-bg-alt);
-  --text-primary: #d8d7d2; /* WCAG 1.4.3: --ayu-fg was 4.28:1 and identical to secondary */
-  --text-secondary: #c4c3bc; /* WCAG 1.4.3: was 4.28:1; clears 4.5:1 on all surfaces */
+  --text-primary: var(--ayu-fg);
+  --text-secondary: var(--ayu-fg);
   --border-color: var(--ayu-border);
   --accent-color: var(--ayu-entity);
   --accent-color-hover: var(--ayu-entity-light);
@@ -2034,7 +2034,7 @@
   --scrollbar-thumb: var(--ayu-mirage-border-hover);
   --scrollbar-track: var(--ayu-mirage-bg-alt);
   --text-primary: var(--ayu-mirage-fg);
-  --text-secondary: #9199a6; /* WCAG 1.4.3: --ayu-mirage-fg-alt was 3.04:1; clears 4.5:1 on all surfaces */
+  --text-secondary: var(--ayu-mirage-fg-alt);
   --border-color: var(--ayu-mirage-border);
   --accent-color: var(--ayu-mirage-accent);
   --accent-color-hover: var(--ayu-mirage-accent-light);
@@ -2103,7 +2103,7 @@
   --scrollbar-thumb: var(--gh-dark-btn-bg);
   --scrollbar-track: var(--gh-dark-bg);
   --text-primary: var(--gh-dark-fg);
-  --text-secondary: #979fa8; /* WCAG 1.4.3: --gh-dark-fg-alt was 3.97:1; clears 4.5:1 on all surfaces */
+  --text-secondary: var(--gh-dark-fg-alt);
   --border-color: var(--gh-dark-border);
   --accent-color: var(--gh-dark-blue);
   --accent-color-hover: var(--gh-dark-blue-light);
