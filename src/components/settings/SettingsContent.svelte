@@ -17,6 +17,7 @@
 
 <script lang="ts">
     import { uiState } from "../../stores/ui.svelte";
+    import { themeOptions } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
 
     // New Tab Components
@@ -39,35 +40,6 @@
             block: "nearest",
         });
     }
-
-    const themes = [
-        { value: "dark", label: "Dark (Default)" },
-        { value: "light", label: "Light" },
-        { value: "meteorite", label: "Meteorite" },
-        { value: "midnight", label: "Midnight" },
-        { value: "cobalt2", label: "Cobalt2" },
-        { value: "night-owl", label: "Night Owl" },
-        { value: "dracula", label: "Dracula" },
-        { value: "dracula-soft", label: "Dracula Soft" },
-        { value: "monokai", label: "Monokai" },
-        { value: "nord", label: "Nord" },
-        { value: "solarized-dark", label: "Solarized Dark" },
-        { value: "solarized-light", label: "Solarized Light" },
-        { value: "gruvbox-dark", label: "Gruvbox Dark" },
-        { value: "catppuccin", label: "Catppuccin" },
-        { value: "tokyo-night", label: "Tokyo Night" },
-        { value: "one-dark-pro", label: "One Dark Pro" },
-        { value: "obsidian", label: "Obsidian" },
-        { value: "ayu-dark", label: "Ayu Dark" },
-        { value: "ayu-light", label: "Ayu Light" },
-        { value: "ayu-mirage", label: "Ayu Mirage" },
-        { value: "github-dark", label: "GitHub Dark" },
-        { value: "github-light", label: "GitHub Light" },
-        { value: "steel", label: "Steel" },
-        { value: "matrix", label: "Matrix" },
-        { value: "everforest-dark", label: "Everforest Dark" },
-        { value: "VIP", label: "VIP" },
-    ];
 
     const tabs = [
         {
@@ -161,7 +133,7 @@
         {:else if activeTab === "chart"}
             <ChartTab />
         {:else if activeTab === "visuals"}
-            <VisualsTab {themes} />
+            <VisualsTab themes={themeOptions} />
         {:else if activeTab === "ai"}
             <AiTab />
         {:else if activeTab === "connections"}

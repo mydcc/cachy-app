@@ -24,7 +24,7 @@ import { join } from "node:path";
 vi.mock("$app/environment", () => ({ browser: true, dev: true }));
 
 import { uiState } from "./ui.svelte";
-import { themes } from "../lib/constants";
+import { themes, themeOptions } from "../lib/constants";
 import {
   DEFAULT_THEME_BACKGROUND,
   THEME_BACKGROUNDS,
@@ -82,6 +82,19 @@ describe("uiState Theme Transitions & Management", () => {
 describe("theme background single source of truth", () => {
   it("covers every theme in the theme list", () => {
     expect(new Set(Object.keys(THEME_BACKGROUNDS))).toEqual(new Set(themes));
+  });
+
+  it("keeps the Look & Feel dropdown in step with the theme list", () => {
+    // This list used to be a hand-maintained third copy that had drifted:
+    // `ever` and `insight` could only be reached through the hotkey.
+    expect(new Set(themeOptions.map((option) => option.value))).toEqual(new Set(themes));
+    expect(themeOptions.length).toBe(themes.length);
+  });
+
+  it("gives every dropdown option a label", () => {
+    for (const option of themeOptions) {
+      expect(option.label.length).toBeGreaterThan(0);
+    }
   });
 
   it("holds only valid #rrggbb colors", () => {
