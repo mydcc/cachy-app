@@ -5367,7 +5367,8 @@
       "id": "FEAT-0395",
       "title": "Create an alert from the chart and from indicator settings",
       "type": "feature",
-      "status": "in-progress",
+      "status": "done",
+      "shipped": "1.6.0-beta.274",
       "priority": "P2",
       "milestone": "M4",
       "editions": [

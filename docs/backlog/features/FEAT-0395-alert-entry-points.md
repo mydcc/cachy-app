@@ -2,7 +2,8 @@
 id: FEAT-0395
 title: Create an alert from the chart and from indicator settings
 type: feature
-status: in-progress
+status: done
+shipped: 1.6.0-beta.274
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -203,3 +204,12 @@ be edited before arming.
 
 The action is exercised in `happy-dom`, not a browser, so the button's
 placement in the card header is asserted structurally rather than visually.
+
+### Shipped
+
+Merged as [#3218](https://github.com/mydcc/cachy-app/pull/3218), shipped in
+`1.6.0-beta.274`. Two documented follow-ups remain open, not defects: an inline
+hint that an alert carries only the period (the sources and other unmatched
+settings are dropped), and a line picker so a trader with three configured
+EMAs can choose which one the alert watches — the seed currently takes the
+first line.
