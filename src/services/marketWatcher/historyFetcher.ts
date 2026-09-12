@@ -88,31 +88,6 @@ export class HistoryFetcher {
     }
 
     /**
-     * BUG-0441 reliability (review finding): load a series' IndexedDB history
-     * into `marketState` with no network, so the legacy alert replay — which
-     * reads `marketState` synchronously before the engine can evaluate — sees
-     * the candles a returning user already has. Best-effort and offline: a
-     * series with fewer than two cached candles returns `false` and the
-     * replay's existing `skipped` path applies. Network priming for a
-     * never-cached symbol is BUG-0441's documented follow-up.
-     *
-     * Writing here is this layer's normal job (`ensureHistory` does the same);
-     * it is the market-data producer, not a background consumer writing into
-     * the store.
-     */
-    public async primeFromStorage(symbol: string, tf: string): Promise<boolean> {
-        try {
-            const stored = await storageService.getKlines(symbol, tf);
-            if (!Array.isArray(stored) || stored.length < 2) return false;
-            marketState.updateSymbolKlines(symbol, tf, stored, "rest");
-            return true;
-        } catch (e) {
-            logger.error("market", `[BUG-0441] Priming ${symbol}:${tf} from storage failed`, e);
-            return false;
-        }
-    }
-
-    /**
      * Backfill `symbol`:`tf` history into marketState, paginating around the
      * exchange's per-request candle cap (Bitunix hard-caps at 200 regardless
      * of the requested limit).

@@ -56,7 +56,7 @@ vi.mock("../logger", () => {
     };
 });
 vi.mock("../storageService", () => ({
-    storageService: { getKlines: vi.fn() },
+    storageService: {},
 }));
 vi.mock("../activeTechnicalsManager.svelte", () => ({
     activeTechnicalsManager: { forceRefresh: vi.fn() },
@@ -64,7 +64,6 @@ vi.mock("../activeTechnicalsManager.svelte", () => ({
 
 import { apiService } from "../apiService";
 import { marketState } from "../../stores/market.svelte";
-import { storageService } from "../storageService";
 import { HistoryFetcher, type LoadMoreHistoryResult } from "./historyFetcher";
 
 const store = marketState as unknown as {
@@ -156,52 +155,5 @@ describe("BUG-0296 — HistoryFetcher.loadMoreHistory result semantics", () => {
 
         expect(result).toBe("busy");
         expect(fetchKlines).not.toHaveBeenCalled();
-    });
-});
-
-describe("BUG-0441 — HistoryFetcher.primeFromStorage", () => {
-    const getKlines = vi.mocked(storageService.getKlines);
-    let fetcher: HistoryFetcher;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        store.data = {};
-        fetcher = makeFetcher();
-    });
-
-    it("loads cached candles into the store without touching the network", async () => {
-        getKlines.mockResolvedValue([
-            makeKline(1700000000000),
-            makeKline(1700000060000),
-        ] as never);
-
-        const result = await fetcher.primeFromStorage("ICPUSDT", "1m");
-
-        expect(result).toBe(true);
-        expect(store.updateSymbolKlines).toHaveBeenCalledWith(
-            "ICPUSDT",
-            "1m",
-            expect.any(Array),
-            "rest",
-        );
-        expect(fetchKlines).not.toHaveBeenCalled();
-    });
-
-    it("reports nothing primed for a series with fewer than two cached candles", async () => {
-        getKlines.mockResolvedValue([makeKline(1700000000000)] as never);
-
-        const result = await fetcher.primeFromStorage("ICPUSDT", "1m");
-
-        expect(result).toBe(false);
-        expect(store.updateSymbolKlines).not.toHaveBeenCalled();
-    });
-
-    it("stays best-effort when storage read fails", async () => {
-        getKlines.mockRejectedValue(new Error("idb gone"));
-
-        const result = await fetcher.primeFromStorage("ICPUSDT", "1m");
-
-        expect(result).toBe(false);
-        expect(store.updateSymbolKlines).not.toHaveBeenCalled();
     });
 });

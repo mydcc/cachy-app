@@ -205,14 +205,6 @@ export class MarketWatcher {
     }
 
     /**
-     * BUG-0441 reliability: load cached history into `marketState` before the
-     * legacy alert replay runs. See `HistoryFetcher.primeFromStorage`.
-     */
-    public primeFromStorage(symbol: string, tf: string): Promise<boolean> {
-        return this.historyFetcher.primeFromStorage(symbol, tf);
-    }
-
-    /**
      * Check if history is currently being loaded (backfilled) for a symbol/timeframe.
      */
     public isBackfilling(symbol: string, tf: string): boolean {

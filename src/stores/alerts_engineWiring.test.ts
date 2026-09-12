@@ -122,15 +122,6 @@ vi.mock("../services/toastService.svelte", () => ({
   toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
-// BUG-0441 reliability priming reads cached history through the market watcher,
-// which imports the market store — whose `MarketTelemetry` owns a 60-second
-// interval that would collide with this file's re-sync-timer spy (which selects
-// intervals by their 60_000 ms period). Priming has its own tests in
-// `historyFetcher.test.ts`; here it is mocked to the neutral "nothing cached".
-vi.mock("../services/marketWatcher", () => ({
-  marketWatcher: { primeFromStorage: vi.fn(async () => false) },
-}));
-
 // Returns the key itself, so assertions can name the string that reached the
 // user rather than depending on the German or English wording.
 vi.mock("../locales/i18n", () => ({
@@ -183,10 +174,18 @@ const mockStartRuleEvaluationLoop = vi.fn();
  * measuring exactly what it measured before the replay existed.
  */
 const mockReadClosedCandles = vi.fn((_symbol: string, _timeframe: string) => [] as unknown[]);
+/**
+ * BUG-0441 review: the replay discovers a symbol's timeframes instead of
+ * probing a fixed list. Defaults to "none", which makes the pure replay fall
+ * back to its default list — the same behaviour these tests measured before
+ * discovery existed.
+ */
+const mockReadAvailableKlineTimeframes = vi.fn((_symbol: string) => [] as string[]);
 vi.mock("../services/alertEngine/ruleLoopWiring", () => ({
   isSeriesObserved: mockIsSeriesObserved,
   ledgerSink: mockLedgerSink,
   readClosedCandles: mockReadClosedCandles,
+  readAvailableKlineTimeframes: mockReadAvailableKlineTimeframes,
   startRuleEvaluationLoop: mockStartRuleEvaluationLoop,
 }));
 
@@ -283,6 +282,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     mockLedgerSink.mockImplementation(() => {});
     mockStartRuleEvaluationLoop.mockImplementation(() => {});
     mockReadClosedCandles.mockReturnValue([]);
+    mockReadAvailableKlineTimeframes.mockReturnValue([]);
 
     localStorage.clear();
     localStorage.setItem(STORAGE_KEY, JSON.stringify([ARMED_BEFORE_RELOAD]));

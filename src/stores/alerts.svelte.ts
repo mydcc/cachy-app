@@ -35,10 +35,10 @@ import {
     releaseCoverage,
 } from "../services/alertEngine/ruleCoverage";
 import {
-    REPLAY_TIMEFRAMES,
-    hasAlertHistoryReplayed,
-    replayAlertHistoryOnce,
-} from "../services/alertEngine/replayClosedCandles";
+    configureLegacyReplay,
+    replayPendingLegacySymbolsAtStartup,
+    setPendingLegacyReplaySymbols,
+} from "../services/alertEngine/legacyReplayCoordinator";
 import { recordFiring, recordLegacyFiring } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
@@ -411,59 +411,16 @@ export async function initAlertEngine(
     // becoming usable and the replay below would let a WebSocket tick seed the
     // crossing baseline first, and the replay's oldest close would then be
     // compared against the live price instead of against its own predecessor.
-    // The history priming below is deliberately kept on this side of
-    // `ensureLoaded()` too, so `ensureLoaded()` stays the last `await` before
-    // the replay and everything from its continuation through the replay runs
-    // in one synchronous stretch that no callback can interleave.
-    const { isSeriesObserved, ledgerSink, readClosedCandles, startRuleEvaluationLoop } =
-        await import("../services/alertEngine/ruleLoopWiring");
-
-    // BUG-0441 reliability: the replay below reads candle history from
-    // `marketState`, but that history arrives asynchronously (IndexedDB / REST
-    // via the market watcher). At cold start the store is empty, so the replay
-    // skipped every armed symbol — and being once-only, it never tried again,
-    // leaving the bug's own "crossed while the app was closed" case unfixed on
-    // a normal reload. Load the history IndexedDB already holds before the
-    // engine can evaluate, so the replay's synchronous stretch sees it.
-    // Best-effort and offline: a symbol with nothing cached stays `skipped`,
-    // exactly as the unprimed replay behaved, and a hang cannot stall startup
-    // on the network. (Network priming for a never-cached symbol is BUG-0441's
-    // documented follow-up.)
-    //
-    // Skipped once the replay has already been attempted: a second init must
-    // not redo the IndexedDB reads and store writes for a replay that will not
-    // run again. Every timeframe with cache is primed, not just the finest, so
-    // the replay's own finest-first fall-through has data at each rung — a
-    // finest series that turns out to hold fewer than two usable closes falls
-    // through to a coarser one instead of finding it unprimed.
-    if (!hasAlertHistoryReplayed()) {
-        try {
-            const armedSymbols = Array.from(
-                new Set(
-                    alertState.definitions
-                        .filter(
-                            (alert) =>
-                                alert !== null &&
-                                typeof alert === "object" &&
-                                alert.active === true &&
-                                typeof alert.symbol === "string" &&
-                                alert.symbol.length > 0,
-                        )
-                        .map((alert) => alert.symbol),
-                ),
-            );
-            if (armedSymbols.length > 0) {
-                const { marketWatcher } = await import("../services/marketWatcher");
-                for (const symbol of armedSymbols) {
-                    for (const timeframe of REPLAY_TIMEFRAMES) {
-                        await marketWatcher.primeFromStorage(symbol, timeframe);
-                    }
-                }
-            }
-        } catch (e) {
-            logger.error("alerts", "[BUG-0441] Priming replay history failed — replay stays best-effort", e);
-        }
-    }
+    // With the last `await` here, everything from `ensureLoaded()`'s
+    // continuation through the replay runs in one synchronous stretch that no
+    // callback can interleave.
+    const {
+        isSeriesObserved,
+        ledgerSink,
+        readClosedCandles,
+        readAvailableKlineTimeframes,
+        startRuleEvaluationLoop,
+    } = await import("../services/alertEngine/ruleLoopWiring");
 
     try {
         await alertEngine.ensureLoaded(loadModule);
@@ -483,28 +440,36 @@ export async function initAlertEngine(
             : new Set<string>();
     alertState.syncEngine(covered);
 
-    // BUG-0441: the engine now holds exactly the uncovered alerts and has not
-    // seen a tick yet, which is the only moment a replay is safe. Feeding the
-    // recent closed candles through it here is what lets an alarm whose target
-    // was crossed while the app was closed fire at all — the crossing baseline
-    // lives in the WASM instance and does not survive a reload, while the
-    // alerts do. Synchronous and never awaited, on purpose: see the import
-    // above. `replayAlertHistoryOnce` never throws.
+    // BUG-0441: give the legacy engine the history it lost across a reload.
     //
-    // The once-only guard lives in `replayClosedCandles.ts`, not here: under
-    // dev HMR a replaced `alerts.svelte.ts` module resets its own module scope
-    // while the `alertEngine` WASM singleton it guards survives, which would
-    // let a re-replay seed a live baseline. `null` means the replay already ran.
-    const replayed = replayAlertHistoryOnce({
-        alerts: alertsForLegacyEngine(alertState.definitions, covered),
+    // This cannot be a single startup pass. The market store is empty right
+    // here — klines arrive later as the chart/watchlist subscribes — so a
+    // startup-only replay usually finds no history and lets the first live tick
+    // consume the crossing the fix exists to recover. `legacyReplayCoordinator`
+    // therefore also replays each symbol the moment its history becomes
+    // observable (the market store's kline write path) and immediately before
+    // its first live evaluation, the last point at which a replay is still the
+    // engine's *first* evaluation for that symbol. The second-init hazard the
+    // old `hasReplayedAlertHistory` flag covered is now the coordinator's
+    // `decided` set.
+    configureLegacyReplay({
         readCandles: readClosedCandles,
-        evaluate: (symbol, close, timestampMs) => alertEngine.evaluate(symbol, close, timestampMs),
+        timeframesFor: readAvailableKlineTimeframes,
+        evaluate: (symbol, close, timestampMs) => {
+            if (!alertEngine.evaluate(symbol, close, timestampMs)) {
+                throw new Error(`[BUG-0441] legacy replay evaluation failed for ${symbol}`);
+            }
+        },
     });
-    if (replayed) {
+    setPendingLegacyReplaySymbols(
+        alertsForLegacyEngine(alertState.definitions, covered).map((alert) => alert.symbol),
+    );
+    const replayed = replayPendingLegacySymbolsAtStartup();
+    if (replayed !== null) {
         logger.log(
             "alerts",
             `[BUG-0441] Replayed ${replayed.candles} closes across ${replayed.symbols} symbol(s); ` +
-                `${replayed.skipped.length} without history, ${replayed.failed.length} failed`,
+                `${replayed.skipped.length} awaiting history, ${replayed.failed.length} failed`,
         );
     }
 

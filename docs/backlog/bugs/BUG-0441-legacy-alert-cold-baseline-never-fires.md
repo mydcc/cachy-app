@@ -85,10 +85,15 @@ from an in-memory tick stream. History answers both questions at once:
   the target, and fires;
 - a price that was *always* past the target leaves no such pair, and does not fire.
 
-So: **replay the recent closed candles through the unchanged engine at startup**,
-oldest first, before any live tick reaches it. No Rust change, no WASM rebuild, no new
-condition kind, and the existing fire-once hysteresis still bounds each alarm to one
-firing.
+So: **replay the recent closed candles through the unchanged engine**, oldest first,
+before any live tick reaches it. No Rust change, no WASM rebuild, no new condition
+kind, and the existing fire-once hysteresis still bounds each alarm to one firing.
+
+The replay cannot be a single startup pass: the market store is empty at
+`initAlertEngine()` and klines arrive later, as the chart/watchlist subscribes. It
+therefore runs at the first point history exists — at startup if already present, the
+moment a symbol's klines land, or at the latest immediately before that symbol's first
+live evaluation. See "Fixed" below.
 
 Left alone:
 
@@ -105,10 +110,11 @@ Left alone:
       "fires the alert, because the crossing is in the candle history": verified RED
       with the replay call removed (1 failed / 5 passed), GREEN with it (6 passed)
 - [x] The test passes with the fix
-- [x] An alert armed below a level the price crossed while the app was closed fires at
-      startup, anchored to the candle that crossed rather than to startup time —
-      **bounded**: only within the replay window (see "Known limitation" below), not
-      for every possible crossing regardless of age
+- [x] An alert armed below a level the price crossed while the app was closed fires when
+      its history is available — at startup, when the series' klines land, or at the
+      latest before the symbol's first live evaluation — anchored to the candle that
+      crossed rather than to any live tick — **bounded**: only within the replay window
+      (see "Known limitation" below), not for every possible crossing regardless of age
 - [x] A price that was already past the level the whole time still does not fire —
       `FEAT-0390`'s requirement is preserved, not traded away
 - [x] No double fire: a live tick crossing again after the replay leaves exactly one
@@ -122,8 +128,34 @@ Left alone:
 ## Fixed (2026-09-12)
 
 `src/services/alertEngine/replayClosedCandles.ts` — a pure function over injected
-readers, so its 13 tests need neither the market store nor wasm. `initAlertEngine`
-calls it immediately after `syncEngine(covered)`.
+readers, so its tests need neither the market store nor wasm.
+`src/services/alertEngine/legacyReplayCoordinator.ts` — the small state machine that
+decides when it runs and enforces the ordering rule.
+
+**History is read when it exists, not once at startup (review follow-up).** The market
+store is empty at `initAlertEngine()`; klines arrive later as the chart/watchlist
+subscribes. A single startup pass therefore usually replayed nothing and let the first
+live tick consume the crossing. The coordinator attempts the replay in three places, in
+order of preference: at startup, the moment a symbol's klines land
+(`noteLegacyReplaySeriesObserved`, wired into `marketState.applySymbolKlines`), and
+immediately before a symbol's first live evaluation (`replayBeforeLegacyEvaluation`,
+wired into `applyUpdate`). A symbol that replays or throws is `decided` and never
+replayed again; only "no history yet" stays pending. There is no deferral — a symbol
+whose history never arrives degrades to the pre-fix behaviour rather than to an alert
+that never evaluates.
+
+**Every available timeframe is considered, not a fixed `1m`/`5m`/`15m` list (review
+follow-up).** `readAvailableKlineTimeframes` returns the store's own series for the
+symbol, finest first, so a symbol charted at `1h` is replayed from its `1h` history
+instead of being skipped because it holds none of the three probed defaults.
+
+**One malformed candle no longer costs the whole series (review follow-up).**
+`readClosedCandles` drops an unreadable candle instead of throwing and returning `[]`,
+which previously withheld every rule on the symbol.
+
+**A refused evaluation is reported (review follow-up).** `alertEngine.evaluate` now
+returns whether the engine actually ran, so the replay's `failed` count reflects a WASM
+refusal instead of swallowing it.
 
 **Two details carry the correctness.**
 
@@ -135,78 +167,71 @@ would make the legacy fallback *more* sensitive than the engine that replaced it
 *Ordering is a correctness requirement, not a preference.* The replay has to be the
 engine's first evaluation for a symbol. If a live tick seeds the baseline first, the
 replay's oldest close is compared against the live price — an arbitrary jump that can
-straddle a target in either direction and fire for nothing. The dynamic
-`import("./ruleLoopWiring")` therefore moved *above* `await alertEngine.ensureLoaded()`,
-so everything from that await's continuation through the replay runs in one synchronous
-stretch no WebSocket callback can interleave. `evaluate` early-returns while the
-instance is null, so nothing can have been evaluated before it either.
+straddle a target in either direction and fire for nothing. The coordinator's
+`decided` set closes that window: the pre-evaluation hook replays from whatever history
+is present and then locks the symbol, so no later replay can run against a live
+baseline. The dynamic `import("./ruleLoopWiring")` also moved *above*
+`await alertEngine.ensureLoaded()`, so the startup attempt runs before any WebSocket
+callback can interleave. `evaluate` early-returns while the instance is null, so
+nothing can have been evaluated before it either.
 
 Two candles are required before anything is replayed. A single close cannot express a
 crossing, and a lone stale baseline paired with the next live tick spans an unknown gap
 — the same arbitrary jump, arriving through the front door.
 
-**A second `initAlertEngine()` call cannot re-replay (found in review, 2026-09-12).**
-`ensureLoaded()` caches the WASM instance across calls, so a second call — none exists
-in production today, but nothing stopped one — would have replayed into an engine that
-already holds a live baseline for some symbols: the exact arbitrary-jump false fire this
-whole fix exists to prevent. `replayAlertHistoryOnce()` in `replayClosedCandles.ts`
-makes the replay step a no-op on any call after the first. RED proven first (a
-still-armed alert flipped to fired by a second, unrelated window) then GREEN, in
-`alerts_engineWiring.test.ts`. The guard lives in the replay module rather than in
-`alerts.svelte.ts` on purpose: under dev HMR a replaced `alerts.svelte.ts` resets its
-own module scope while the guarded `alertEngine` WASM singleton survives, so a flag up
-there would allow exactly the re-replay the guard exists to stop.
-
-**The replay was a no-op on a cold start (found in review, 2026-09-12).** The replay
-reads candle history from `marketState`, but that history is filled asynchronously by
-the market watcher (IndexedDB, then REST), so at startup the store is empty and the
-replay skipped every armed symbol — and being once-only, it never retried. The bug's own
-"crossed while the app was closed" case is the returning-user case where the candles are
-already in IndexedDB, so `initAlertEngine` calls `marketWatcher.primeFromStorage()` for
-each armed symbol before `ensureLoaded()`, loading that history into the store so the
-replay's synchronous stretch sees it. It is IndexedDB-only and best-effort: a
-never-cached symbol still stays `skipped`. Network priming for those symbols is Out of
-scope below.
+**A second `initAlertEngine()` call cannot re-replay.** `ensureLoaded()` caches the WASM
+instance across calls, so a second call — none exists in production today, but nothing
+stopped one — would have replayed into an engine that already holds a live baseline for
+some symbols: the exact arbitrary-jump false fire this whole fix exists to prevent. The
+coordinator's `decided` set makes the replay step a no-op on any call after the first.
+RED proven first (a still-armed alert flipped to fired by a second, unrelated window)
+then GREEN, in `alerts_engineWiring.test.ts`.
 
 ## Known limitation (found in review, 2026-09-12)
 
-The window search stops at the **first** timeframe in `REPLAY_TIMEFRAMES` (`1m`, `5m`,
-`15m`) that has two usable closes — it does not check whether that timeframe's window
-actually straddles the target, nor does it fall through to a coarser timeframe when it
-doesn't. At `1m` the effective window is `REPLAY_MAX_CANDLES` (240) candles = 4 hours.
+The window search stops at the **first available timeframe** that has two usable closes
+— it does not check whether that timeframe's window actually straddles the target, nor
+does it fall through to a coarser series when it doesn't. At `1m` the effective window
+is `REPLAY_MAX_CANDLES` (240) candles = 4 hours.
 
 Concretely: a trader charting `1m` who arms an alert Friday evening and whose target is
 crossed Saturday, with the app reopened Monday, gets a `1m` window that is entirely
-*past* the target (no straddling pair) — so no fire — even though the `5m` or `15m`
-series, never consulted because `1m` already had two closes, would have straddled it.
-This is exactly the overnight/weekend case the bug report opens with, at that specific
-window length.
+*past* the target (no straddling pair) — so no fire — even though a coarser series that
+was also loaded would have straddled it.
 
-**Left as documentation, not fixed here.** The obstacle is *not* that the JS layer
-cannot see a straddle: a legacy `AlertDefinition` carries its `condition` (a
-`price_reached` / `price_cross_up` / `price_cross_down` decimal target), so a
-window can be checked for a close on each side of it without calling `evaluate()`.
-The real obstacle is that a legacy alert has **no arming timestamp** — `AlertDefinition`
-is only `{ id, symbol, condition, active }`. The engine's semantics are "fire on the
-first crossing observed after arming", so a coarser window (e.g. `15m` reach = 240 ×
-15m = 60 h) would happily surface a crossing that happened *before* the trader armed
-the alert, firing for a move they never asked to be told about. The current
-finest-first, 240 × `1m` window already carries a weak version of that risk; falling
-through to a coarser timeframe would make it materially worse, which is a bad trade in
-a money path. A correct fix needs an arming timestamp on legacy definitions (and then
-"search the finest timeframe whose window starts at or after it and straddles the
-target"), which is a schema/creation-path change, not a loop bound. Tracked as a
-follow-up; this bug's own acceptance criteria are met by the window that exists, worded
+A second residual: the replay is not deferred. If a symbol's first live tick arrives
+before any of its klines — possible when the price channel is live but the history fetch
+has not resolved — the tick seeds the baseline and the crossing is lost exactly as
+before. There is no bounded retry after that, because a replay then would no longer be
+the symbol's first evaluation.
+
+A narrower sibling of that second residual: the "history becomes observable" hook replays
+on the *first* batch that yields two usable closes, which can be a 2–3 candle WebSocket
+dribble that lands before the full REST history resolves. Once decided, the wider,
+informative window is never replayed, so a true crossing inside it is lost. The root
+cause is the same — a replay must be the symbol's first evaluation — so the same
+no-rollback-path constraint applies; noted here so it reads as a decision, not an
+oversight.
+
+A third, mid-session variant: the replay's `evaluate` is engine-wide for the symbol, but
+the coordinator's pending set is a snapshot from `initAlertEngine()`. If the symbol is
+still pending when the trader arms a second alert B on it, the replay's historical pair
+can straddle B's target and fire it at once — even though B was armed at the current
+price and the trader never saw that crossing. Skipping the replay for a symbol whose
+armed set changed would take alert A down with it, which is the population this fix
+targets, so that is not a trade worth making either.
+
+**Left as documentation, not fixed here**, because closing any of these properly means either
+probing stateful `evaluate()` speculatively (it seeds the baseline and can flip
+`alert.active`) or evaluating a per-alert subset the engine does not expose — both need a
+rollback or `set_alerts` path the engine does not have. A real fix is a follow-up, not a
+comment; this bug's own acceptance criteria are met by the coverage that exists, worded
 to say so precisely.
 
 ## Out of scope
 
 - Searching multiple timeframes for a straddling pair instead of stopping at the first
-  with usable history — unsafe without an arming timestamp (see "Known limitation"),
-  not merely unbuilt.
-- Priming replay history by fetching over the network for a symbol that was never
-  charted (so never cached in IndexedDB). The shipping replay primes from IndexedDB only
-  and stays best-effort; a network prime is a load/UX trade-off of its own.
+  with usable history — see "Known limitation" above.
 - Widening `REPLAY_MAX_CANDLES` beyond 240. The cost is negligible (see the "closes
   only" note above), but a longer window is a product decision about how old a
   crossing should still count, not a bug fix.
@@ -214,8 +239,12 @@ to say so precisely.
 
 ## Links
 
-- `src/services/alertEngine/replayClosedCandles.ts` — the fix
-- `src/stores/alerts.svelte.ts` — `initAlertEngine`, the ordering constraint
+- `src/services/alertEngine/replayClosedCandles.ts` — the pure replay
+- `src/services/alertEngine/legacyReplayCoordinator.ts` — when it runs, and the ordering guarantee
+- `src/services/alertEngine/ruleLoopWiring.ts` — `readClosedCandles` and `readAvailableKlineTimeframes`, the history source
+- `src/stores/alerts.svelte.ts` — `initAlertEngine`, the wiring
+- `src/stores/market.svelte.ts` — the kline write path that triggers a replay when history lands
+- `src/stores/market/applyUpdate.ts` — the pre-evaluation replay that closes the ordering window
 - `technicals-wasm/src/alert_engine.rs` — `AlertEngine::evaluate`, `last_prices` (unchanged)
 - `technicals-wasm/src/rule/evaluate.rs` — `rises_above_does_not_fire_when_the_price_was_already_above`,
   the semantics this fix had to preserve
