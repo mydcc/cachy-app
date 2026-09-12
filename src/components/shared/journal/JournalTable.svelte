@@ -1018,7 +1018,7 @@
             <select
                 bind:value={itemsPerPage}
                 onchange={handleItemsPerPageChange}
-                class="py-1 px-2 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)]"
+                class="py-1 px-2 rounded border border-[var(--input-border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)]"
             >
                 <option value={5}>5</option>
                 <option value={10}>10</option>

@@ -30,6 +30,7 @@ import { marketState } from "../../stores/market.svelte";
 import {
   isSeriesObserved,
   ledgerSink,
+  readAvailableKlineTimeframes,
   readClosedCandles,
   readStoredRules,
   startRuleEvaluationLoop,
@@ -110,6 +111,39 @@ describe("rule loop wiring", () => {
 
       expect(readClosedCandles("ETHUSDT", "1m")).toEqual([]);
       expect(readClosedCandles("BTCUSDT", "4h")).toEqual([]);
+    });
+
+    it("skips a single malformed candle instead of losing the whole series", () => {
+      // BUG-0441 review: one bad candle used to throw on `.toString()` and
+      // make the reader return [] for the symbol, silently withholding every
+      // rule on it. A gap between two real closes cannot invent a crossing.
+      marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
+      const stored = marketState.data["BTCUSDT"]?.klines?.["1m"] as unknown as Array<
+        Record<string, unknown>
+      >;
+      stored[1].close = null;
+
+      expect(readClosedCandles("BTCUSDT", "1m").map((c) => c.open_time_ms)).toEqual([1_000]);
+    });
+  });
+
+  describe("readAvailableKlineTimeframes", () => {
+    it("returns the symbol's own series, finest first", () => {
+      marketState.applySymbolKlines("BTCUSDT", "4h", CANDLES);
+      marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
+      marketState.applySymbolKlines("BTCUSDT", "1h", CANDLES);
+
+      expect(readAvailableKlineTimeframes("BTCUSDT")).toEqual(["1m", "1h", "4h"]);
+    });
+
+    it("ignores a series too short to express a crossing", () => {
+      marketState.applySymbolKlines("BTCUSDT", "1m", [CANDLES[0]]);
+
+      expect(readAvailableKlineTimeframes("BTCUSDT")).toEqual([]);
+    });
+
+    it("is empty for a symbol nothing has subscribed to", () => {
+      expect(readAvailableKlineTimeframes("ETHUSDT")).toEqual([]);
     });
   });
 

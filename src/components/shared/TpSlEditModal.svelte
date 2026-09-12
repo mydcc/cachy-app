@@ -200,7 +200,7 @@
           type="number"
           step="any"
           bind:value={triggerPrice}
-          class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)]"
+          class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
         />
       </div>
     {/if}
@@ -217,7 +217,7 @@
         type="number"
         step="any"
         bind:value={amount}
-        class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)]"
+        class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
       />
     </div>
 

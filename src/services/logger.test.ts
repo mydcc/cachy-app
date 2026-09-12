@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { logger } from './logger';
+import { setLoggerConfigProvider } from './loggerConfig';
 import { toastService } from './toastService.svelte';
 import * as appEnvironment from '$app/environment';
 
@@ -25,18 +26,6 @@ vi.mock('./toastService.svelte', () => ({
     toastService: {
         error: vi.fn(),
         add: vi.fn()
-    }
-}));
-
-// Mock settingsState
-vi.mock('../stores/settings.svelte', () => ({
-    settingsState: {
-        debugMode: false,
-        logSettings: {
-            ui: true,
-            network: false,
-            general: true
-        }
     }
 }));
 
@@ -52,6 +41,13 @@ describe('LoggerService', () => {
         vi.clearAllMocks();
         consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
         vi.spyOn(console, 'log').mockImplementation(() => {});
+
+        // The settings store normally installs this reader; supply the same
+        // category map here so the tests exercise settings-driven filtering.
+        setLoggerConfigProvider(() => ({
+            debugMode: false,
+            logSettings: { ui: true, network: false, general: true },
+        }));
 
         // Reset browser mock default
         // @ts-expect-error -- overriding a module export to exercise the browser code path

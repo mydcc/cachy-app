@@ -567,7 +567,10 @@
     .input-field,
     .textarea-field {
         background-color: var(--bg-secondary);
-        border: 1px solid var(--border-color);
+        /* WCAG 1.4.11: --border-color is invisible in most themes; use the
+           theme-tunable input boundary token. Covers the .textarea-field-only
+           textarea, which has no .input-field class. */
+        border: 1px solid var(--input-border-color, var(--text-secondary));
         border-radius: var(--radius-lg);
         padding: var(--space-2) var(--space-3);
         font-size: var(--text-sm);

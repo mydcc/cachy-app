@@ -51,6 +51,17 @@ export class JournalManager {
   }
 
   destroy() {
+    // BUG-0442: revoke the store's own definition of "alive" first.
+    //
+    // `scheduleSave`, `save` and `saveSync` all gate on this flag, so clearing
+    // it is what actually makes a destroyed store inert. Disposing the timer
+    // and the listeners below only stops what happens to be pending: the next
+    // mutation would arm a fresh timer, and `flush()` reaches `save()` without
+    // a timer at all — so a store the app had torn down went on writing the
+    // journal (Class A) to localStorage. Set before the disposal, not after,
+    // so nothing re-arms between the two.
+    this.effectActive = false;
+
     if (this.effectCleanup) {
       this.effectCleanup();
       this.effectCleanup = null;

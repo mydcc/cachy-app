@@ -69,7 +69,7 @@
         <div class="mb-6">
             <input
                 type="text"
-                class="w-full px-4 py-3 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] focus:border-[var(--accent-color)] outline-none transition-colors"
+                class="w-full px-4 py-3 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] focus:border-[var(--accent-color)] outline-none transition-colors"
                 placeholder={$_("dashboard.customModal.promptPlaceholder")}
                 bind:value={inputValue}
                 bind:this={inputElement}

@@ -272,7 +272,7 @@
           <span>{$_("dashboard.orderHistory.startDate")}:</span>
           <input
             type="date"
-            class="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
+            class="bg-[var(--bg-primary)] border border-[var(--input-border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
             bind:value={customStartDate}
           />
         </label>
@@ -280,7 +280,7 @@
           <span>{$_("dashboard.orderHistory.endDate")}:</span>
           <input
             type="date"
-            class="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
+            class="bg-[var(--bg-primary)] border border-[var(--input-border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
             bind:value={customEndDate}
           />
         </label>
