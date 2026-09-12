@@ -4,7 +4,7 @@
 
 323 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-progress 3 · ✅ done 267
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 3 · 🟡 in-progress 3 · ✅ done 267
 
 ---
 
@@ -126,6 +126,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0382](bugs/BUG-0382-alert-engine-never-initialised.md) | The price alert engine is never initialised, so no alert ever fires | P1 | ✅ done | alerts |
 | [BUG-0402](bugs/BUG-0402-migrated-rule-keeps-stale-threshold.md) | A migrated rule keeps the old price after its alert is edited | P1 | ✅ done | alerts |
 | [BUG-0430](bugs/BUG-0430-macd-seeding-mismatch.md) | MACD seeded differently in WASM than everywhere else | P1 | ✅ done | indicators |
+| [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) | Switching builder tabs wipes the condition the trader just configured | P1 | 🟡 in-progress | alerts |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | alerts |
 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) | One rule schema alerts, backtests and bots all read | P1 | ✅ done | alerts |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | ✅ done | alerts |
@@ -142,7 +143,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) | Price alert conditions beyond a single target | P2 | ✅ done | alerts |
 | [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | ✅ done | alerts |
 | [FEAT-0394](features/FEAT-0394-candlestick-pattern-conditions.md) | Candlestick pattern conditions | P2 | ✅ done | alerts |
-| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 🟡 in-progress | alerts |
+| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 🟢 ready | alerts |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | ✅ done | alerts |
 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | 📋 specced | alerts |
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | 📋 specced | alerts |
@@ -288,7 +289,6 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | ✅ done | trade-panel |
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | ci |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | ci |
-| [BUG-0443](bugs/BUG-0443-builder-tab-erases-a-rule-it-cannot-read.md) | A builder tab erases a rule it cannot read back | P2 | 📋 specced | alerts |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -466,6 +466,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0430](bugs/BUG-0430-macd-seeding-mismatch.md) | MACD seeded differently in WASM than everywhere else | P1 | ✅ done | M4 | community, pro, private | none | none | — |
+| [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) | Switching builder tabs wipes the condition the trader just configured | P1 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -564,7 +565,6 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0443](bugs/BUG-0443-builder-tab-erases-a-rule-it-cannot-read.md) | A builder tab erases a rule it cannot read back | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -636,7 +636,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) | Price alert conditions beyond a single target | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | ✅ done | M4 | community, pro, private | A | none | — |
 | [FEAT-0394](features/FEAT-0394-candlestick-pattern-conditions.md) | Candlestick pattern conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
-| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 🟡 in-progress | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md), [FEAT-0390](features/FEAT-0390-price-alert-conditions.md), [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
+| [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | 🟢 ready | M4 | community, pro, private | A | none | [FEAT-0389](features/FEAT-0389-super-alert-panel.md), [FEAT-0390](features/FEAT-0390-price-alert-conditions.md), [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | 💡 idea | M9 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | ✅ done | M4 | community, pro, private | A | ADR-0018 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | M3 | community, pro, private | none | none | — |
