@@ -96,38 +96,34 @@
         settingsState.tradeFlowSettings.cameraRotationZ = parseInt(e.currentTarget.value);
     }
 
-    function toggleGyro() {
-        const isEnabled = settingsState.galaxySettings.enableGyroscope;
-
-        if (!isEnabled) {
-            // Check for iOS permission requirement
-            const deviceOrientationEventiOS =
-                DeviceOrientationEvent as unknown as DeviceOrientationEventiOS;
-            if (
-                typeof DeviceOrientationEvent !== "undefined" &&
-                typeof deviceOrientationEventiOS.requestPermission ===
-                    "function"
-            ) {
-                deviceOrientationEventiOS
-                    .requestPermission()
-                    .then((response) => {
-                        if (response === "granted") {
-                            settingsState.galaxySettings.enableGyroscope = true;
-                        } else {
-                            toastService.error(
-                                $_("settings.visuals.gyroPermissionDenied"),
-                            );
-                        }
-                    })
-                    .catch((err: unknown) => {
-                        console.error(err);
-                    });
-            } else {
-                // Non-iOS or older devices (Android)
-                settingsState.galaxySettings.enableGyroscope = true;
+    /** iOS 13+ gates device orientation behind an explicit permission request. */
+    async function requestGyroPermission(): Promise<boolean> {
+        const deviceOrientationEventiOS =
+            DeviceOrientationEvent as unknown as DeviceOrientationEventiOS;
+        if (
+            typeof DeviceOrientationEvent !== "undefined" &&
+            typeof deviceOrientationEventiOS.requestPermission === "function"
+        ) {
+            try {
+                return (await deviceOrientationEventiOS.requestPermission()) === "granted";
+            } catch {
+                return false;
             }
+        }
+        // Non-iOS or older devices (Android) need no permission.
+        return true;
+    }
+
+    async function setGalaxyGyro(enabled: boolean) {
+        if (!enabled) {
+            settingsState.galaxySettings.enableGyroscope = false;
+            return;
+        }
+        if (await requestGyroPermission()) {
+            settingsState.galaxySettings.enableGyroscope = true;
         } else {
             settingsState.galaxySettings.enableGyroscope = false;
+            toastService.error($_("settings.visuals.gyroPermissionDenied"));
         }
     }
 
@@ -135,38 +131,16 @@
      * TradeFlow galaxy gyroscope switch. Independent of the 3D galaxy's — each
      * effect owns its own camera — but the iOS permission dance is identical.
      */
-    function toggleTradeFlowGyro() {
-        const isEnabled =
-            settingsState.tradeFlowSettings.galaxyFlow.enableGyroscope;
-
-        if (!isEnabled) {
-            const deviceOrientationEventiOS =
-                DeviceOrientationEvent as unknown as DeviceOrientationEventiOS;
-            if (
-                typeof DeviceOrientationEvent !== "undefined" &&
-                typeof deviceOrientationEventiOS.requestPermission ===
-                    "function"
-            ) {
-                deviceOrientationEventiOS
-                    .requestPermission()
-                    .then((response) => {
-                        if (response === "granted") {
-                            settingsState.tradeFlowSettings.galaxyFlow.enableGyroscope =
-                                true;
-                        } else {
-                            toastService.error(
-                                $_("settings.visuals.gyroPermissionDenied"),
-                            );
-                        }
-                    })
-                    .catch((err: unknown) => {
-                        console.error(err);
-                    });
-            } else {
-                settingsState.tradeFlowSettings.galaxyFlow.enableGyroscope = true;
-            }
+    async function setTradeFlowGyro(enabled: boolean) {
+        if (!enabled) {
+            settingsState.tradeFlowSettings.galaxyFlow.enableGyroscope = false;
+            return;
+        }
+        if (await requestGyroPermission()) {
+            settingsState.tradeFlowSettings.galaxyFlow.enableGyroscope = true;
         } else {
             settingsState.tradeFlowSettings.galaxyFlow.enableGyroscope = false;
+            toastService.error($_("settings.visuals.gyroPermissionDenied"));
         }
     }
 </script>
@@ -640,21 +614,13 @@
                         )}</span
                     >
                 </div>
-                <button
-                    class="w-12 h-6 rounded-full relative transition-colors {settingsState
-                        .galaxySettings.enableGyroscope
-                        ? 'bg-[var(--accent-color)]'
-                        : 'bg-[var(--border-color)]'}"
-                    onclick={toggleGyro}
-                    aria-label={$_("settings.visuals.gyroscope")}
-                >
-                    <span
-                        class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform {settingsState
-                            .galaxySettings.enableGyroscope
-                            ? 'translate-x-6'
-                            : 'translate-x-0'}"
-                    ></span>
-                </button>
+                <Toggle
+                    bind:checked={settingsState.galaxySettings.enableGyroscope}
+                    onchange={(e) =>
+                        setGalaxyGyro(
+                            (e.currentTarget as HTMLInputElement).checked,
+                        )}
+                />
             </div>
         </div>
     {/if}
@@ -1125,21 +1091,14 @@
                         <span class="text-sm font-medium">{$_("settings.visuals.gyroscope")}</span>
                         <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.visuals.gyroscopeDesc")}</span>
                     </div>
-                    <button
-                        class="w-12 h-6 rounded-full relative transition-colors {settingsState
-                            .tradeFlowSettings.galaxyFlow.enableGyroscope
-                            ? 'bg-[var(--accent-color)]'
-                            : 'bg-[var(--border-color)]'}"
-                        onclick={toggleTradeFlowGyro}
-                        aria-label={$_("settings.visuals.gyroscope")}
-                    >
-                        <span
-                            class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform {settingsState
-                                .tradeFlowSettings.galaxyFlow.enableGyroscope
-                                ? 'translate-x-6'
-                                : 'translate-x-0'}"
-                        ></span>
-                    </button>
+                    <Toggle
+                        bind:checked={settingsState.tradeFlowSettings.galaxyFlow
+                            .enableGyroscope}
+                        onchange={(e) =>
+                            setTradeFlowGyro(
+                                (e.currentTarget as HTMLInputElement).checked,
+                            )}
+                    />
                 </div>
 
                 <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)] pt-3 border-t border-[var(--border-color)]">{$_("settings.visuals.tradeFlow.marketCoupling")}</h3>
