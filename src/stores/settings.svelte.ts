@@ -13,6 +13,7 @@ import { CONSTANTS, VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
+import { setTelemetryConsentProvider } from "../services/trackingService";
 import { EntitlementStore } from "./entitlement.svelte";
 // Class A both sides, and no back edge: `paperTrading.svelte.ts` imports
 // nothing from here, so reading the mode cannot cycle.
@@ -2382,6 +2383,11 @@ export class SettingsManager {
 }
 
 export const settingsState = new SettingsManager();
+
+// BUG-0286: the telemetry gate lives in trackingService, which may not import
+// this store. Hand it a live reader so an opt-out (or a restored/imported
+// setting) takes effect immediately, not only after a reload.
+setTelemetryConsentProvider(() => settingsState.enableTelemetry !== false);
 
 // HMR: Cleanup on module disposal to prevent timers and effect leaks
 if (import.meta.hot) {
