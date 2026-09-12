@@ -48,7 +48,9 @@ export const RELEASE_CHANGELOGS: Record<string, string> = {
  * localized source has no releases yet, fall back to English so the page is
  * never empty rather than showing a bare marker.
  */
-export function releaseSourceForLocale(lang: string | undefined): string {
+export function releaseSourceForLocale(
+  lang: string | null | undefined,
+): string {
   const localized = RELEASE_CHANGELOGS[lang ?? "en"];
   if (localized && extractReleaseSections(localized)) {
     return localized;
