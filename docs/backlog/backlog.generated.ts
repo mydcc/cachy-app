@@ -2482,9 +2482,11 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0440",
     "title": "Replace the shadow sink with one that announces, counts and retires",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "assignee": "mydcc",
+    "resolved_at": "2026-09-11",
+    "branch": "worktree-super-alert-firing-sink-11441b",
     "milestone": "M4",
     "editions": [
       "community",
@@ -3837,7 +3839,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0030",
     "title": "Combine several conditions into one alert",
     "type": "feature",
-    "status": "idea",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-super-alert-system-overview-157ec6",
     "priority": "P2",
     "milestone": "M4",
     "editions": [

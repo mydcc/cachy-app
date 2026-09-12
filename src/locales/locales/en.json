@@ -552,7 +552,54 @@
       },
       "firedWithNote": "{message} — {note}",
       "expired": "Expired",
-      "expiredHint": "Past its validity period — it lapsed without firing."
+      "expiredHint": "Past its validity period — it lapsed without firing.",
+      "combo": {
+        "logicLabel": "How the conditions are joined",
+        "op": {
+          "all": "All of them",
+          "any": "Any of them"
+        },
+        "opHint": {
+          "all": "Fires when every condition holds in the same evaluation.",
+          "any": "Fires when at least one condition holds."
+        },
+        "rowLabel": "Condition {index}",
+        "addRow": "Add condition",
+        "removeRow": "Remove condition {index}",
+        "limitHint": "Up to {max} conditions per rule.",
+        "empty": "No condition yet. Add one to build a combination.",
+        "lockedTitle": "This rule cannot be edited here",
+        "lockedBody": "It uses a structure the combo builder does not offer — a nested group, a condition of another kind, or a join this builder withholds. It is left exactly as it is.",
+        "indicatorLabel": "Indicator",
+        "outputLabel": "Line",
+        "relationLabel": "Relation",
+        "referenceLabel": "Compared with",
+        "relation": {
+          "compare": "is",
+          "cross": "crosses"
+        },
+        "compareOp": {
+          "gt": "greater than",
+          "gte": "greater than or equal to",
+          "lt": "less than",
+          "lte": "less than or equal to",
+          "eq": "equal to",
+          "neq": "not equal to"
+        },
+        "reference": {
+          "constant": "A value",
+          "price": "Price",
+          "indicator": "Another indicator"
+        },
+        "priceField": {
+          "open": "Open",
+          "high": "High",
+          "low": "Low",
+          "close": "Close",
+          "hl2": "Median (HL2)",
+          "hlc3": "Typical (HLC3)"
+        }
+      }
     },
     "generalInputs": {
       "header": "General",
@@ -2451,7 +2498,7 @@
       "soundMute": "Mute",
       "soundPreview": "Play tone",
       "soundReady": "The sound channel is ready.",
-      "soundLocked": "Your browser allows sound only after you have clicked the page. Until then this channel stays silent \u2014 the others do not. Clicking \u201cPlay tone\u201d unlocks it.",
+      "soundLocked": "Your browser allows sound only after you have clicked the page. Until then this channel stays silent — the others do not. Clicking “Play tone” unlocks it.",
       "soundUnsupported": "This browser cannot play sound.",
       "soundMuted": "This channel is muted. The other channels still announce.",
       "permissionDenied": "Your browser is blocking notifications for this site. Allow them in the site settings to use this channel.",
