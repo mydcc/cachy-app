@@ -93,6 +93,20 @@ describe("readCssColor", () => {
     expect(readCssColor("--accent-color", "#000000", style)).toBe("#0ea5e9");
   });
 
+  it("resolves a chain of var() indirection", () => {
+    const style = styleFrom({
+      "--galaxy-stars-core": "var(--accent-color)",
+      "--accent-color": "var(--sky-500)",
+      "--sky-500": "#0ea5e9",
+    });
+    expect(readCssColor("--galaxy-stars-core", "#000000", style)).toBe("#0ea5e9");
+  });
+
+  it("stops on a var() cycle instead of looping", () => {
+    const style = styleFrom({ "--a": "var(--b)", "--b": "var(--a)" });
+    expect(readCssColor("--a", "#123456", style)).toBe("#123456");
+  });
+
   it("uses the var() fallback when the inner token is empty", () => {
     const style = styleFrom({ "--accent-color": "var(--missing, #ff8800)" });
     expect(readCssColor("--accent-color", "#000000", style)).toBe("#ff8800");

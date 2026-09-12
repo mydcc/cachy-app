@@ -370,6 +370,9 @@ function applyQuality(): void {
     // The galaxy's point-size uniform is captured at build time, so a tier
     // change has to push the new ratio through or the stars keep the old scale.
     if (activeEngine instanceof GalaxyFlowEngine) activeEngine.setPixelRatio(ratio);
+    // setPixelRatio resizes and clears the buffer; with motion reduced the loop
+    // has already stopped, so the frozen frame would otherwise go blank.
+    ensureFrame();
 }
 
 /**
@@ -691,6 +694,8 @@ function updateColors(data: ColorMessageData) {
             activeEngine.updateThemeColors(colorUp, colorDown, colorBg);
         }
     }
+
+    ensureFrame();
 }
 
 function switchMode(mode: string | undefined) {

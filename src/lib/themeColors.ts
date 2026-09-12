@@ -39,6 +39,9 @@ export const DEFAULT_COLOR_FALLBACK = "#000000";
 
 const CSS_VAR_PATTERN = /^var\((--[\w-]+)(?:,\s*(.+))?\)$/;
 
+/** Safety cap for chained `var()` indirection; a theme chain is a handful deep. */
+const MAX_VAR_RESOLVE_DEPTH = 8;
+
 /**
  * Parse `#rgb`, `#rrggbb` (alpha ignored) or `rgb()/rgba()` to an RGB triple.
  * Handles `%` channels (`rgb(100% 0% 0%)`); any extra tokens after the third
@@ -97,9 +100,12 @@ function defaultStyleReader(): StyleReader | null {
  *
  * The argument may be a literal color (returned as-is) or a custom-property
  * name such as `--accent-color`. A value that is itself `var(--other, fb)`
- * is resolved one level deep — a plain `getComputedStyle().getPropertyValue`
- * returns the specified value for unregistered custom properties, so the
- * indirection has to be unwrapped by hand.
+ * is resolved by walking the chain — a plain
+ * `getComputedStyle().getPropertyValue` returns the specified value for
+ * unregistered custom properties, so the indirection has to be unwrapped by
+ * hand. The galaxy tokens need this: `--galaxy-stars-core` is
+ * `var(--accent-color)`, which is in turn `var(--sky-500)`. The walk is
+ * depth-capped and cycle-guarded; anything still unresolved falls back.
  */
 export function readCssColor(
   token: string,
@@ -111,14 +117,17 @@ export function readCssColor(
   const reader = style ?? defaultStyleReader();
   if (!reader) return fallback;
 
-  const raw = reader.getPropertyValue(token).trim();
-  if (!raw) return fallback;
-
-  const match = raw.match(CSS_VAR_PATTERN);
-  if (match) {
-    return reader.getPropertyValue(match[1]).trim() || match[2]?.trim() || fallback;
+  let raw = reader.getPropertyValue(token).trim();
+  const seen = new Set<string>([token]);
+  let depth = 0;
+  while (raw.startsWith("var(") && depth < MAX_VAR_RESOLVE_DEPTH) {
+    const match = raw.match(CSS_VAR_PATTERN);
+    if (!match || seen.has(match[1])) break;
+    seen.add(match[1]);
+    raw = reader.getPropertyValue(match[1]).trim() || match[2]?.trim() || "";
+    depth += 1;
   }
-  return raw.startsWith("var(") ? fallback : raw;
+  return raw && !raw.startsWith("var(") ? raw : fallback;
 }
 
 export interface ThemePalette {

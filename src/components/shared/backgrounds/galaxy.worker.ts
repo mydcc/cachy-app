@@ -83,6 +83,9 @@ function applyQuality(): void {
     // The galaxy's point-size uniform is captured at build time, so a tier
     // change has to push the new ratio through or the stars keep the old scale.
     galaxyEngine?.setPixelRatio(ratio);
+    // setPixelRatio resizes and clears the buffer; with motion reduced the loop
+    // has already stopped, so the frozen frame would otherwise go blank.
+    ensureFrame();
 }
 
 /**
@@ -274,6 +277,8 @@ function updateColors(data: UpdateColorsMessageData) {
     if (starDustEngine) {
         starDustEngine.updateColor(colors.inside);
     }
+
+    ensureFrame();
 }
 
 function handleGyro(data: { alpha: number; beta: number; gamma: number }) {
