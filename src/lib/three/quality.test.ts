@@ -75,6 +75,28 @@ describe("nextQualityTier", () => {
     expect(nextQualityTier("balanced", 18, PAST_COOLDOWN)).toBe("balanced");
   });
 
+  it("recovers on a 60 Hz panel after a downshift", () => {
+    // 16.7 ms is the vsync floor; a fixed 13 ms gate could never clear it.
+    expect(nextQualityTier("low", 16.7, PAST_COOLDOWN, DEFAULT_QUALITY_THRESHOLDS, 16.7)).toBe(
+      "balanced",
+    );
+  });
+
+  it("does not upgrade while frames sit above the scaled gate", () => {
+    expect(nextQualityTier("low", 20, PAST_COOLDOWN, DEFAULT_QUALITY_THRESHOLDS, 16.7)).toBe("low");
+  });
+
+  it("keeps the fixed gate when the cadence is unknown", () => {
+    expect(nextQualityTier("low", 10, PAST_COOLDOWN)).toBe("balanced");
+  });
+
+  it("does not ping-pong on a 30 Hz panel", () => {
+    // refreshMs 33.3 would scale the gate to ~38; it is clamped under downshift.
+    expect(nextQualityTier("low", 33.3, PAST_COOLDOWN, DEFAULT_QUALITY_THRESHOLDS, 33.3)).toBe(
+      "low",
+    );
+  });
+
   it("stays put during the cooldown", () => {
     expect(nextQualityTier("high", 40, 10)).toBe("high");
   });

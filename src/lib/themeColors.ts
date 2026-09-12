@@ -41,6 +41,8 @@ const CSS_VAR_PATTERN = /^var\((--[\w-]+)(?:,\s*(.+))?\)$/;
 
 /**
  * Parse `#rgb`, `#rrggbb` (alpha ignored) or `rgb()/rgba()` to an RGB triple.
+ * Handles `%` channels (`rgb(100% 0% 0%)`); any extra tokens after the third
+ * are ignored, so an alpha — percentage or not — does not shift the channels.
  * Returns `null` for anything else — callers fall back to their own default.
  */
 export function parseColorToRgb(color: string): Rgb | null {
@@ -63,9 +65,13 @@ export function parseColorToRgb(color: string): Rgb | null {
     }
     return null;
   }
-  const match = trimmed.match(/\d+/g);
-  if (match && match.length >= 3) {
-    return [parseInt(match[0], 10), parseInt(match[1], 10), parseInt(match[2], 10)];
+  const channels = Array.from(trimmed.matchAll(/(\d*\.?\d+)\s*(%?)/g));
+  if (channels.length >= 3) {
+    return channels.slice(0, 3).map(([, raw, unit]) => {
+      const value = parseFloat(raw);
+      const scaled = unit === "%" ? (value / 100) * 255 : value;
+      return Math.max(0, Math.min(255, Math.round(scaled)));
+    }) as Rgb;
   }
   return null;
 }

@@ -32,12 +32,15 @@ import { nextQualityTier, type ConcreteQuality, type VisualQuality } from "../..
 const EMA_ALPHA = 0.1;
 /** Ignore gaps longer than this (tab switch, GC pause) rather than degrading. */
 const MAX_SAMPLE_MS = 250;
+/** Slow upward drift for the observed cadence, so a stale floor can recover. */
+const REFRESH_DECAY = 0.002;
 
 let tier = $state<ConcreteQuality>("high");
 let subscribers = 0;
 let rafId = 0;
 let last = 0;
 let ema = 16.7;
+let refreshMs = 0;
 let lastChangeAt = 0;
 
 function frame(now: number): void {
@@ -45,11 +48,16 @@ function frame(now: number): void {
     const dt = now - last;
     if (dt > 0 && dt < MAX_SAMPLE_MS) {
       ema += (dt - ema) * EMA_ALPHA;
+      // Track the fastest observed frame time as the display cadence: snap down
+      // on a new minimum, drift up slowly so a stale value can adapt.
+      refreshMs = refreshMs === 0 || dt < refreshMs
+        ? dt
+        : refreshMs + (dt - refreshMs) * REFRESH_DECAY;
     }
   }
   last = now;
 
-  const next = nextQualityTier(tier, ema, now - lastChangeAt);
+  const next = nextQualityTier(tier, ema, now - lastChangeAt, undefined, refreshMs);
   if (next !== tier) {
     tier = next;
     lastChangeAt = now;
@@ -67,6 +75,7 @@ export function retainAutoQuality(): () => void {
   if (subscribers === 1) {
     last = 0;
     ema = 16.7;
+    refreshMs = 0;
     lastChangeAt = performance.now();
     rafId = requestAnimationFrame(frame);
   }

@@ -365,7 +365,11 @@ let basePixelRatio = 1;
 /** Apply the current quality tier to the renderer. */
 function applyQuality(): void {
     if (!renderer) return;
-    renderer.setPixelRatio(effectivePixelRatio(currentTier, basePixelRatio));
+    const ratio = effectivePixelRatio(currentTier, basePixelRatio);
+    renderer.setPixelRatio(ratio);
+    // The galaxy's point-size uniform is captured at build time, so a tier
+    // change has to push the new ratio through or the stars keep the old scale.
+    if (activeEngine instanceof GalaxyFlowEngine) activeEngine.setPixelRatio(ratio);
 }
 
 /**

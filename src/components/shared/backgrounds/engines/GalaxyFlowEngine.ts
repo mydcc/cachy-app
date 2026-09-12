@@ -970,6 +970,13 @@ export class GalaxyFlowEngine extends BaseEngine {
 		}
 	}
 
+	/** Sync the point-size uniform after the renderer's pixel ratio changes. */
+	public setPixelRatio(ratio: number): void {
+		if (this.galaxyMaterial) {
+			this.galaxyMaterial.uniforms.uPixelRatio.value = ratio;
+		}
+	}
+
 	public dispose() {
 		super.dispose();
 		for (const band of this.bands) (band.material as THREE.Material).dispose();

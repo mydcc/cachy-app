@@ -212,6 +212,13 @@ export class GalaxyEngine extends BaseEngine {
         }
     }
 
+    /** Sync the point-size uniform after the renderer's pixel ratio changes. */
+    public setPixelRatio(ratio: number): void {
+        if (this.galaxyMaterial) {
+            this.galaxyMaterial.uniforms.uPixelRatio.value = ratio;
+        }
+    }
+
     public dispose() {
         super.dispose();
         if (this.galaxyPoints) {

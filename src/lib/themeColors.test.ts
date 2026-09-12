@@ -45,6 +45,12 @@ describe("parseColorToRgb", () => {
   it("parses rgb() and rgba()", () => {
     expect(parseColorToRgb("rgb(10, 20, 30)")).toEqual([10, 20, 30]);
     expect(parseColorToRgb("rgba(10, 20, 30, 0.5)")).toEqual([10, 20, 30]);
+    expect(parseColorToRgb("rgb(10, 20, 30 / 50%)")).toEqual([10, 20, 30]);
+  });
+
+  it("scales percentage channels", () => {
+    expect(parseColorToRgb("rgb(100%, 0%, 0%)")).toEqual([255, 0, 0]);
+    expect(parseColorToRgb("rgb(50% 50% 0%)")).toEqual([128, 128, 0]);
   });
 
   it("returns null for non-colors", () => {
