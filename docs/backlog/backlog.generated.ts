@@ -3759,24 +3759,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0444-slotof-claims-unreadable-shapes.md"
   },
   {
-    "id": "BUG-0445",
-    "title": "The push guard matches a branch name from a later command in the same line",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "repo",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0445-push-guard-matches-across-chained-commands.md"
-  },
-  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
