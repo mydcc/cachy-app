@@ -94,6 +94,20 @@ Leave alone:
 - [ ] Destroying and re-creating the store still persists normally — the fix must not
       make a fresh instance inert
 
+## A second file shows the same symptom (hypothesis, not established)
+
+`src/tests/security/external_routes_ssrf.test.ts` fails the same way — green 4/4 in
+isolation, identical to `develop`, but 2 failed in a local full parallel run, while
+CI's own full run of the same commit passed. It leaks in the other direction from the
+journal file: a `vi.spyOn(global, "fetch")` rather than fake timers and a store
+singleton.
+
+Both are global state surviving across the worker pool, so the two may share one root
+(pool isolation, or a `restoreAllMocks` that does not run where it is assumed to).
+Worth checking *before* fixing either in isolation — but this is a hypothesis from two
+data points, not a diagnosis, and the `effectActive` disagreement above stands on its
+own regardless of how it resolves.
+
 ## Links
 
 - `src/stores/journal.svelte.ts:28,34,53-66,71,142,157`
