@@ -1372,6 +1372,7 @@ export type TranslationKey =
   | "settings.technicals.strongBuy"
   | "settings.technicals.strongSell"
   | "settings.technicals.title"
+  | "settings.technicals.alertOnThis"
   | "settings.technicals.summaryAction"
   | "settings.technicals.marketConfluence"
   | "settings.technicals.oscillatorsTitle"

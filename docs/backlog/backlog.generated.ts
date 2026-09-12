@@ -5396,7 +5396,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0395",
     "title": "Create an alert from the chart and from indicator settings",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5413,6 +5413,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0028"
     ],
     "size": "S",
+    "assignee": "claude-code",
     "estimate": "3",
     "file": "features/FEAT-0395-alert-entry-points.md"
   },

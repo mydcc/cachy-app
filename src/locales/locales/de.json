@@ -1578,6 +1578,7 @@
       "strongBuy": "Stark Kaufen",
       "strongSell": "Stark Verkaufen",
       "title": "Technische Analyse",
+      "alertOnThis": "Alarm auf diesen Indikator",
       "optimization": {
         "title": "Performance Optimierung",
         "preferredEngine": "Bevorzugte Engine",
