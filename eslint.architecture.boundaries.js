@@ -50,7 +50,6 @@ export const servicesToStoresAllowlist = [
   "src/services/soundChannel.svelte.ts",
   "src/services/syncService.ts",
   "src/services/technicalsService.ts",
-  "src/services/trackingService.ts",
   "src/services/tradeCalculator.svelte.ts",
   "src/services/tradeService.ts",
 ];
