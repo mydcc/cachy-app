@@ -356,7 +356,9 @@ export const app = {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target?.result as string;
-      const entries = csvService.parseCSVContent(text);
+      const entries = csvService.parseCSVContent(text, {
+        useUtcDateParsing: settingsState.useUtcDateParsing,
+      });
       if (entries.length > 0) {
         const t = get(_);
         const confirmed = await modalState.show(

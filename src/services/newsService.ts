@@ -346,7 +346,10 @@ export const newsService = {
 
         // Discord
         try {
-          let discordItems = await discordService.fetchDiscordNews();
+          let discordItems = await discordService.fetchDiscordNews({
+            botToken: settingsState.discordBotToken,
+            channels: settingsState.discordChannels,
+          });
           if (symbol) {
             discordItems = discordItems.filter(item => matchesSymbol(item.title, symbol));
           }

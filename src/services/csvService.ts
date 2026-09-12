@@ -16,7 +16,6 @@
  */
 
 import { get } from "svelte/store";
-import { settingsState } from "../stores/settings.svelte";
 import { _ } from "../locales/i18n";
 import {
   parseDecimal,
@@ -185,7 +184,10 @@ export const csvService = {
    * Returns a list of normalized trades.
    * Throws errors if format is invalid or limits are exceeded.
    */
-  parseCSVContent(text: string): JournalEntry[] {
+  parseCSVContent(
+    text: string,
+    options: { useUtcDateParsing: boolean },
+  ): JournalEntry[] {
     const lines = text.split("\n").filter((line) => line.trim() !== "");
 
     // Validation: Maximum 1000 trades per import
@@ -292,7 +294,7 @@ export const csvService = {
       throw new Error(msg);
     }
 
-    const { useUtcDateParsing } = settingsState;
+    const { useUtcDateParsing } = options;
 
     const entries = lines
       .slice(1)

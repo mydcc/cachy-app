@@ -7,8 +7,12 @@
  * (at your option) any later version.
  */
 
-import { settingsState } from "../stores/settings.svelte";
 import type { NewsItem } from "./newsService";
+
+export interface DiscordNewsConfig {
+    botToken?: string;
+    channels?: string[];
+}
 
 interface DiscordMessage {
     id: string;
@@ -28,8 +32,8 @@ let lastFetchTime = 0;
 const CACHE_DURATION_MS = 60000;
 
 export const discordService = {
-    async fetchDiscordNews(): Promise<NewsItem[]> {
-        const { discordBotToken, discordChannels } = settingsState;
+    async fetchDiscordNews(config: DiscordNewsConfig): Promise<NewsItem[]> {
+        const { botToken: discordBotToken, channels: discordChannels } = config;
 
         if (!discordBotToken || !discordChannels || discordChannels.length === 0) {
             return [];

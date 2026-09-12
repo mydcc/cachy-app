@@ -7,12 +7,21 @@
  * (at your option) any later version.
  */
 
-import { uiState } from "../stores/ui.svelte";
 export interface StorageStats {
   used: number;
   quota: number;
   percentUsed: number;
 }
+
+/**
+ * Called when a write failed because the storage quota was exceeded.
+ *
+ * Presentation belongs to the caller: `utils` is a leaf layer and must not
+ * import the store layer. The stores that want to surface a message pass
+ * `() => uiState.showError("storage.quotaExceeded")`; services pass their
+ * logger.
+ */
+export type StorageQuotaExceededHandler = () => void;
 
 /**
  * Helper utility for safe localStorage operations with quota handling
@@ -22,9 +31,15 @@ export class StorageHelper {
    * Safely saves to localStorage with automatic quota handling
    * @param key Storage key
    * @param data Data to save (as string)
+   * @param onQuotaExceeded Optional callback invoked once the quota is hit,
+   *   before the cleanup-and-retry. Keeps user notification in the caller.
    * @returns true if save was successful, false otherwise
    */
-  static safeSave(key: string, data: string): boolean {
+  static safeSave(
+    key: string,
+    data: string,
+    onQuotaExceeded?: StorageQuotaExceededHandler,
+  ): boolean {
     try {
       localStorage.setItem(key, data);
       return true;
@@ -32,8 +47,8 @@ export class StorageHelper {
       if (e instanceof Error && e.name === "QuotaExceededError") {
         console.error("[Storage] Quota exceeded for key:", key);
 
-        // 1. Notify user
-        uiState.showError("storage.quotaExceeded");
+        // 1. Notify the caller (utils owns no presentation)
+        onQuotaExceeded?.();
 
         // 2. Try to cleanup old cache
         this.cleanupCache();

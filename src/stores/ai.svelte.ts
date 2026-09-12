@@ -523,9 +523,9 @@ class AiManager {
       try {
         // Fetch in parallel for speed
         const [globalMetrics, coinMeta] = await Promise.all([
-          cmcService.getGlobalMetrics(),
+          cmcService.getGlobalMetrics(settings.cmcApiKey),
           trade.symbol
-            ? cmcService.getCoinMetadata(trade.symbol)
+            ? cmcService.getCoinMetadata(trade.symbol, settings.cmcApiKey)
             : Promise.resolve(null),
         ]);
 

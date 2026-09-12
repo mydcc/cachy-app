@@ -22,7 +22,7 @@
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
   import Tooltip from "./Tooltip.svelte";
-  import { trackClick } from "../../lib/actions";
+  import { trackClick } from "../../actions/tracking";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
 
   // Reactive state for finding a minimized Journal

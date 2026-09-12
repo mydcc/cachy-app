@@ -401,6 +401,7 @@ export async function initAlertEngine(
     // work when it does.
     try {
         await ruleSchema.load();
+        logger.log("alerts", "[RuleSchema] core loaded, schema v" + ruleSchema.schemaVersion());
     } catch (e) {
         logger.error("alerts", "[Cutover] Rule schema core failed to load — every alert stays on the legacy engine", e);
     }

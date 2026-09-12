@@ -24,7 +24,6 @@ import type { DuckAccessories } from "./DuckAccessories";
 import { applyStateAnimation, resetToIdle } from "./DuckAnimations";
 import type { DuckMeshRefs } from "./DuckAnimations";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
-import { toastService } from "../../services/toastService.svelte";
 import { _ } from "../../locales/i18n";
 import { get } from "svelte/store";
 import type { TranslationKey } from "../../locales/schema";
@@ -35,6 +34,20 @@ const SLEEP_AFTER_SECONDS = 300; // 5 Minuten Inaktivität
 
 /** One-time reward for completing the onboarding tour (FEAT-0301). */
 export const ONBOARDING_XP_REWARD = 25;
+
+/**
+ * Notification port for the duck's user-facing messages.
+ *
+ * `lib` is a domain layer and must not import the services toast. The owner
+ * (a component) passes the real implementation; tests and headless callers get
+ * the silent default.
+ */
+export interface DuckNotifier {
+    success(message: string): void;
+    warning(message: string): void;
+}
+
+const silentNotifier: DuckNotifier = { success() {}, warning() {} };
 
 /**
  * Pure XP/level transition for the onboarding reward — testable without a
@@ -83,9 +96,11 @@ export class DuckLogic {
     private totalFeeds = 0;
     private achievements: string[] = [];
     private onboardingCompleted = false;
+    private notifier: DuckNotifier;
 
-    constructor(scene: THREE.Scene) {
+    constructor(scene: THREE.Scene, notifier: DuckNotifier = silentNotifier) {
         this.scene = scene;
+        this.notifier = notifier;
         this.group = new THREE.Group();
         this.group.scale.set(1.5, 1.5, 1.5);
         this.group.position.set(-8.5, -6.5, 0);
@@ -176,7 +191,7 @@ export class DuckLogic {
                 if (ach) {
                     const name = get(_)(ach.nameKey as TranslationKey);
                     const desc = get(_)(ach.descriptionKey as TranslationKey);
-                    toastService.success(`🏆 ${name}: ${desc}`);
+                    this.notifier.success(`🏆 ${name}: ${desc}`);
                 }
             }
             // Celebration-Zustand triggern (höchste Prio)
@@ -210,7 +225,7 @@ export class DuckLogic {
                 if (this.fullness >= 100) {
                     this.transitionTo(DuckState.ANNOYED, 2.5);
                     const msg = get(_)(("duck.full") as TranslationKey);
-                    toastService.warning(msg);
+                    this.notifier.warning(msg);
                     return;
                 }
                 this.fullness = Math.min(100, this.fullness + 25);
@@ -297,7 +312,7 @@ export class DuckLogic {
                 if (this.recentPetTimestamps.length >= 5) {
                     this.transitionTo(DuckState.ANNOYED, 2.5);
                     const msg = get(_)(("duck.annoyed") as TranslationKey);
-                    toastService.warning(msg);
+                    this.notifier.warning(msg);
                 } else {
                     this.transitionTo(DuckState.PETTING, 1.5);
                 }
