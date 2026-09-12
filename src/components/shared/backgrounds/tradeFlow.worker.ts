@@ -27,6 +27,9 @@ import { VolumeNormalizer, marketHeat, clamp01 } from './engines/volumeScale';
 import { smoothingAlpha, TAU_SIGNAL, TAU_NEBULA, TAU_GYRO, TAU_NEBULA_FADE } from './engines/smoothing';
 import { pickVolatility, pickMood } from './indicatorSignal';
 import type { VolatilitySource, MoodSource } from './indicatorSignal';
+import { GLSL_NOISE3 } from './shaders/noise';
+import { effectivePixelRatio, type ConcreteQuality } from '../../../lib/three/quality';
+import { attachContextRecovery } from '../../../lib/three/webgl';
 
 // Camera/mode fields this worker itself reads; each engine also reads its
 // own settings (gridWidth, spread, size, ...) via BaseEngine's generic
@@ -209,32 +212,7 @@ const skyFragmentShader = `
     uniform float uDrift;
     varying vec3 vDir;
 
-    float hash(vec3 p) {
-        p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
-        p *= 17.0;
-        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-    }
-    float noise(vec3 x) {
-        vec3 i = floor(x);
-        vec3 f = fract(x);
-        f = f * f * (3.0 - 2.0 * f);
-        return mix(
-            mix(mix(hash(i + vec3(0.0, 0.0, 0.0)), hash(i + vec3(1.0, 0.0, 0.0)), f.x),
-                mix(hash(i + vec3(0.0, 1.0, 0.0)), hash(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
-            mix(mix(hash(i + vec3(0.0, 0.0, 1.0)), hash(i + vec3(1.0, 0.0, 1.0)), f.x),
-                mix(hash(i + vec3(0.0, 1.0, 1.0)), hash(i + vec3(1.0, 1.0, 1.0)), f.x), f.y),
-            f.z);
-    }
-    float fbm(vec3 p) {
-        float v = 0.0;
-        float a = 0.5;
-        for (int i = 0; i < 3; i++) {
-            v += a * noise(p);
-            p *= 2.03;
-            a *= 0.5;
-        }
-        return v;
-    }
+    ${GLSL_NOISE3}
     void main() {
         vec3 p = vDir * 1.8 + vec3(uTime * uDrift * 0.02, uTime * uDrift * 0.013, -uTime * uDrift * 0.017);
         float n = fbm(p);
@@ -287,13 +265,21 @@ self.onmessage = (event) => {
             init(data.canvas, data.width, data.height, data.pixelRatio, data.settings);
             break;
         case 'resize':
-            resize(data.width, data.height);
+            resize(data.width, data.height, data.pixelRatio);
             break;
         case 'updateSettings':
             updateSettings(data.settings);
             break;
         case 'updateLightSettings':
             updateLightSettings(data);
+            break;
+        case 'quality':
+            currentTier = (data?.tier as ConcreteQuality) ?? currentTier;
+            applyQuality();
+            break;
+        case 'setMotion':
+            motionReduced = !!data?.reduced;
+            ensureFrame();
             break;
         case 'updateColors':
             updateColors(data);
@@ -345,19 +331,65 @@ function init(canvas: OffscreenCanvas, width: number, height: number, pixelRatio
         alpha: true,
         powerPreference: "high-performance"
     });
-    renderer.setPixelRatio(pixelRatio);
+    basePixelRatio = pixelRatio;
+    applyQuality();
     renderer.setSize(width, height, false);
+
+    // Three already calls preventDefault/restore internally; we only need to
+    // stop and resume our own loop so it does not spin against a dead context.
+    attachContextRecovery(canvas, {
+        onLost: () => {
+            contextLost = true;
+            animating = false;
+        },
+        onRestored: () => {
+            contextLost = false;
+            ensureFrame();
+        },
+    });
 
     initAtmosphere();
     updateCamera();
     switchMode(settings.flowMode);
-    
-    requestAnimationFrame(animate);
+
+    ensureFrame();
 }
 
 let lastFrameTime = 0;
+let animating = false;
+let motionReduced = false;
+let contextLost = false;
+let currentTier: ConcreteQuality = 'high';
+let basePixelRatio = 1;
+
+/** Apply the current quality tier to the renderer. */
+function applyQuality(): void {
+    if (!renderer) return;
+    const ratio = effectivePixelRatio(currentTier, basePixelRatio);
+    renderer.setPixelRatio(ratio);
+    // The galaxy's point-size uniform is captured at build time, so a tier
+    // change has to push the new ratio through or the stars keep the old scale.
+    if (activeEngine instanceof GalaxyFlowEngine) activeEngine.setPixelRatio(ratio);
+    // setPixelRatio resizes and clears the buffer; with motion reduced the loop
+    // has already stopped, so the frozen frame would otherwise go blank.
+    ensureFrame();
+}
+
+/**
+ * Queue exactly one frame. With motion reduced or the context lost, the frame
+ * renders once and does not reschedule itself.
+ */
+function ensureFrame(): void {
+    if (animating || contextLost) return;
+    animating = true;
+    requestAnimationFrame(animate);
+}
 
 function animate(time: number) {
+    if (contextLost) {
+        animating = false;
+        return;
+    }
     const now = time * 0.001;
     // Real frame delta, clamped so a tab switch or GC pause cannot make
     // engines jump. Replaces the old fixed 0.016, which tied animation speed
@@ -481,6 +513,10 @@ function animate(time: number) {
     }
     
     renderer.render(scene, camera);
+    if (motionReduced) {
+        animating = false;
+        return;
+    }
     requestAnimationFrame(animate);
 }
 
@@ -508,10 +544,14 @@ function collectSentimentUniforms() {
     });
 }
 
-function resize(width: number, height: number) {
+function resize(width: number, height: number, pixelRatio?: number) {
     if (!camera || !renderer) return;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    if (typeof pixelRatio === 'number') {
+        basePixelRatio = pixelRatio;
+        applyQuality();
+    }
     renderer.setSize(width, height, false);
 }
 
@@ -654,6 +694,8 @@ function updateColors(data: ColorMessageData) {
             activeEngine.updateThemeColors(colorUp, colorDown, colorBg);
         }
     }
+
+    ensureFrame();
 }
 
 function switchMode(mode: string | undefined) {

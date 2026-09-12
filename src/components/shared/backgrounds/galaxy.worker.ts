@@ -20,6 +20,8 @@ import { GalaxyEngine } from './engines/GalaxyEngine';
 import { StarDustEngine } from './engines/StarDustEngine';
 import type { EngineContext } from './engines/BaseEngine';
 import { VolumeNormalizer } from './engines/volumeScale';
+import { effectivePixelRatio, type ConcreteQuality } from '../../../lib/three/quality';
+import { attachContextRecovery } from '../../../lib/three/webgl';
 
 // Settings shape as read by this worker. GalaxyEngine/StarDustEngine take
 // context.settings as `any` themselves (BaseEngine's own declared field type),
@@ -66,6 +68,36 @@ let starDustEngine: StarDustEngine;
 let settings: GalaxySettings;
 let isInitialized = false;
 
+// Quality / motion / context-loss state.
+let animating = false;
+let motionReduced = false;
+let contextLost = false;
+let currentTier: ConcreteQuality = 'high';
+let basePixelRatio = 1;
+
+/** Apply the current quality tier to the renderer. */
+function applyQuality(): void {
+    if (!renderer) return;
+    const ratio = effectivePixelRatio(currentTier, basePixelRatio);
+    renderer.setPixelRatio(ratio);
+    // The galaxy's point-size uniform is captured at build time, so a tier
+    // change has to push the new ratio through or the stars keep the old scale.
+    galaxyEngine?.setPixelRatio(ratio);
+    // setPixelRatio resizes and clears the buffer; with motion reduced the loop
+    // has already stopped, so the frozen frame would otherwise go blank.
+    ensureFrame();
+}
+
+/**
+ * Queue exactly one frame. With motion reduced or the context lost, the frame
+ * renders once and does not reschedule itself.
+ */
+function ensureFrame(): void {
+    if (animating || contextLost) return;
+    animating = true;
+    requestAnimationFrame(animate);
+}
+
 // Color state
 let colors: {
     inside: THREE.Color;
@@ -105,6 +137,14 @@ self.onmessage = (e: MessageEvent) => {
         case 'gyro':
             handleGyro(data);
             break;
+        case 'quality':
+            currentTier = (data?.tier as ConcreteQuality) ?? currentTier;
+            applyQuality();
+            break;
+        case 'setMotion':
+            motionReduced = !!data?.reduced;
+            ensureFrame();
+            break;
     }
 };
 
@@ -127,8 +167,22 @@ function init(data: InitMessageData) {
         alpha: true,
         powerPreference: "default"
     });
-    renderer.setPixelRatio(pixelRatio);
+    basePixelRatio = pixelRatio;
+    applyQuality();
     renderer.setSize(width, height, false);
+
+    // Three already prevents the default and restores the context; this only
+    // stops and resumes our own loop around the transition.
+    attachContextRecovery(canvas, {
+        onLost: () => {
+            contextLost = true;
+            animating = false;
+        },
+        onRestored: () => {
+            contextLost = false;
+            ensureFrame();
+        },
+    });
 
     const context: EngineContext = {
         scene,
@@ -147,15 +201,17 @@ function init(data: InitMessageData) {
     starDustEngine.init();
 
     isInitialized = true;
-    requestAnimationFrame(animate);
+    ensureFrame();
 }
 
 let targetGyroOffset = { x: 0, y: 0 };
 let currentGyroOffset = { x: 0, y: 0 };
 
 function animate(time: number) {
-    if (!isInitialized) return;
-    requestAnimationFrame(animate);
+    if (!isInitialized || contextLost) {
+        animating = false;
+        return;
+    }
 
     currentGyroOffset.x += (targetGyroOffset.x - currentGyroOffset.x) * 0.05;
     currentGyroOffset.y += (targetGyroOffset.y - currentGyroOffset.y) * 0.05;
@@ -176,14 +232,21 @@ function animate(time: number) {
     starDustEngine?.update();
 
     renderer.render(scene, camera);
+
+    if (motionReduced) {
+        animating = false;
+        return;
+    }
+    requestAnimationFrame(animate);
 }
 
 function resize(data: ResizeMessageData) {
     const { width, height, pixelRatio } = data;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    basePixelRatio = pixelRatio;
+    applyQuality();
     renderer.setSize(width, height, false);
-    renderer.setPixelRatio(pixelRatio);
 }
 
 function updateSettings(data: UpdateSettingsMessageData) {
@@ -214,6 +277,8 @@ function updateColors(data: UpdateColorsMessageData) {
     if (starDustEngine) {
         starDustEngine.updateColor(colors.inside);
     }
+
+    ensureFrame();
 }
 
 function handleGyro(data: { alpha: number; beta: number; gamma: number }) {

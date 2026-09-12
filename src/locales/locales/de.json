@@ -1226,6 +1226,14 @@
         "layout": "Layout",
         "background": "Hintergrund"
       },
+      "visualQuality": "Bildqualität",
+      "visualQualityDesc": "Renderauflösung der 3D-Hintergründe und -Effekte. Auto passt sich an die gemessene Bildrate an.",
+      "quality": {
+        "auto": "Auto",
+        "high": "Hoch",
+        "balanced": "Ausgeglichen",
+        "low": "Niedrig"
+      },
       "chatSize": "Chat Schriftgröße",
       "burningBorders": "Brennende Ränder",
       "burningBordersDesc": "Interaktiver Feuereffekt an Kanten",

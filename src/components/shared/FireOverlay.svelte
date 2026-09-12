@@ -21,6 +21,11 @@
     import { fireStore } from "../../stores/fireStore.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { fireVertexShader, fireFragmentShader } from "./FireShader";
+    import { getThemePalette } from "../../lib/themeColors";
+    import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
+    import { effectivePixelRatio } from "../../lib/three/quality";
+    import { attachContextRecovery } from "../../lib/three/webgl";
+    import { systemReducedMotion } from "../../lib/three/motionState.svelte";
     import { browser } from "$app/environment";
 
     let { layer = "tiles" as const, zIndex = 40 } = $props<{
@@ -52,8 +57,22 @@
         return false;
     });
 
+    // Quality + reduced motion (see `qualityController` / `lib/three/motionState`).
+    const reducedMotion = $derived(systemReducedMotion());
+
     $effect(() => {
-        if (isActive && typeof document !== "undefined" && !document.hidden) {
+        if (settingsState.visualQuality !== "auto") return;
+        return retainAutoQuality();
+    });
+
+    $effect(() => {
+        const tier = concreteQuality(settingsState.visualQuality);
+        if (!renderer) return;
+        renderer.setPixelRatio(effectivePixelRatio(tier, window.devicePixelRatio));
+    });
+
+    $effect(() => {
+        if (isActive && !reducedMotion && typeof document !== "undefined" && !document.hidden) {
             requestStartLoop?.();
         } else {
             requestStopLoop?.();
@@ -88,7 +107,12 @@
                 depth: false,
             });
             renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(
+                effectivePixelRatio(
+                    concreteQuality(settingsState.visualQuality),
+                    window.devicePixelRatio,
+                ),
+            );
             renderer.setClearColor(0x000000, 0);
 
             // Style the canvas directly
@@ -106,6 +130,13 @@
             console.error("Failed to initialize WebGL for FireOverlay", e);
             return;
         }
+
+        const detachRecovery = attachContextRecovery(renderer.domElement, {
+            onLost: () => requestStopLoop?.(),
+            onRestored: () => {
+                if (isActive) requestStartLoop?.();
+            },
+        });
 
         const geometry = new THREE.PlaneGeometry(1, 1);
 
@@ -169,7 +200,7 @@
 
         const startLoop = () => {
             if (isLoopRunning || !renderer || !browser) return;
-            if (document.hidden || !isActive) return;
+            if (document.hidden || !isActive || reducedMotion) return;
             isLoopRunning = true;
             frameId = requestAnimationFrame(animate);
         };
@@ -177,8 +208,8 @@
         const animate = () => {
             if (!isLoopRunning || !renderer) return;
 
-            // Pause if inactive or tab in background
-            if (document.hidden || !isActive) {
+            // Pause if inactive, tab in background, or motion is reduced
+            if (document.hidden || !isActive || reducedMotion) {
                 stopLoop();
                 return;
             }
@@ -261,8 +292,8 @@
                 dummy.updateMatrix();
                 mesh.setMatrixAt(i, dummy.matrix);
 
-                // Set color
-                tempColor.set(color || "#ff8800");
+                // Set color (the element carries its own; fall back to the theme accent)
+                tempColor.set(color || getThemePalette().accent);
                 mesh.setColorAt(i, tempColor);
 
                 // Set mode per instance
@@ -293,7 +324,11 @@
         requestStopLoop = stopLoop;
 
         if (isActive && !document.hidden) {
-            startLoop();
+            if (reducedMotion) {
+                renderer.render(scene, camera);
+            } else {
+                startLoop();
+            }
         }
 
         const handleVisibilityChange = () => {
@@ -324,6 +359,7 @@
             stopLoop();
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("resize", handleResize);
+            detachRecovery();
             // BUG-0414: forceContextLoss() lässt die Overlay-Region in Chromium
             // weiß aufblitzen (Präzedenz: 0f2ff27 entfernte es aus ThreeBackground
             // und TradeFlowBackground als "risky"). dispose() gibt die GL-
