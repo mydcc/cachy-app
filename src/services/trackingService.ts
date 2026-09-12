@@ -17,7 +17,17 @@
 
 // src/services/trackingService.ts
 
-import { settingsState } from "../stores/settings.svelte";
+/**
+ * BUG-0286 — the telemetry consent gate. The settings store owns the flag, but
+ * a service may not import a store; the store layer installs a live reader at
+ * module load instead. Reading through a provider keeps the opt-out immediate:
+ * a change in settings is honoured on the next push, not on the next reload.
+ */
+let isTelemetryConsented: () => boolean = () => true;
+
+export function setTelemetryConsentProvider(provider: () => boolean): void {
+  isTelemetryConsented = provider;
+}
 
 type TrackingEventData = Record<
   string,
@@ -58,14 +68,14 @@ export function isTelemetryEnabled(): boolean {
   return (
     typeof window !== "undefined" &&
     !isLocalHostname(window.location.hostname) &&
-    settingsState.enableTelemetry !== false
+    isTelemetryConsented()
   );
 }
 
 /**
- * Injects the Matomo Tag Manager container — unless the user opted out
- * (`settingsState.enableTelemetry === false`). Idempotent: safe to call at
- * startup and again whenever the toggle changes.
+ * Injects the Matomo Tag Manager container — unless the user opted out (the
+ * consent provider installed by the settings store reports `false`).
+ * Idempotent: safe to call at startup and again whenever the toggle changes.
  *
  * With telemetry off this is a no-op: no script element is created and no
  * request to `s.cachy.app` is made.
