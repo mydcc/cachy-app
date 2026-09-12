@@ -17,6 +17,7 @@
 
 import { Decimal } from "decimal.js";
 import { alertEngine } from "../../services/alertEngine/alertEngine";
+import { replayBeforeLegacyEvaluation } from "../../services/alertEngine/legacyReplayCoordinator";
 import type { MarketUpdatePayload, RawNumeric } from "./types";
 
 
@@ -59,6 +60,11 @@ export function applyUpdate(marketManager: import("../market.svelte").MarketMana
           // either fire spuriously or miss its cross for good. Numbers and the
           // reproduction are in docs/backlog/features/FEAT-0368-*.md.
           try {
+            // BUG-0441: the last moment a replay is still safe. If this symbol
+            // has an armed legacy alert whose history was not yet available at
+            // startup, replay it now — before this evaluation seeds the
+            // crossing baseline and closes the ordering window for good.
+            replayBeforeLegacyEvaluation(symbol);
             alertEngine.evaluate(symbol, newVal.toString(), Date.now());
           } catch (e) {
             import("../../services/logger").then(m => m.logger.error("alerts", `[Market] Alert evaluation failed for ${symbol}`, e)).catch(() => {});
