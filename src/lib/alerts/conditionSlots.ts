@@ -37,14 +37,22 @@
  * and every reader then hydrated blank and wrote its blank over the draft.
  *
  * **A slot is claimed by `slotOf()` based on operand shapes, not constraints.**
- * The price slot is claimed for `percent_change` with a constant RHS; indicators
- * for subjects of `kind: "indicator"`; candlesticks for patterns. Anything else —
- * a volume comparison, a window, a position or account condition, a nested group,
- * or an indicator/price with a right operand the reader's form cannot round-trip
- * — is unclaimed. An unclaimed condition is one no builder will replace or remove.
- * Unknown means keep: a shape this module doesn't recognise survives a tab switch
- * untouched rather than being deleted. **BUG-0444 will tighten this to enforce
- * that claimed shapes match what each reader can actually hydrate.**
+ * The price slot is claimed for `percent_change`/`cross` subjects with a constant
+ * RHS; indicators for any subject of `kind: "indicator"`; candlesticks for
+ * patterns. A volume comparison, a window, a position or account condition, and a
+ * nested group are unclaimed — no builder emits those shapes, so an unclaimed
+ * condition is one no builder will ever replace or remove. Unknown means keep: a
+ * shape this module doesn't recognise survives a tab switch untouched rather than
+ * being deleted by the builder that came closest to owning it.
+ *
+ * One category is **claimed but not always round-trippable**: an indicator
+ * condition whose right operand the form's `referenceFor` rejects (a window, or
+ * a `mark`-source price), or a `percent_change` compared with an operator other
+ * than `gte`/`lte`. `slotOf()` claims these today because it checks operand
+ * kinds, not the operator constraints each reader imposes on top of them — so
+ * the claiming builder hydrates blank and its mount-time write then deletes the
+ * member. BUG-0444 tracks tightening `slotOf()` (or `setSlotCondition()`'s clear
+ * path) so a claim always means the reader can actually hydrate it.
  */
 
 import type { Condition, Operand } from "../rules/types";
