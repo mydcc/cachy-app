@@ -1558,6 +1558,7 @@
       "strongBuy": "Strong Buy",
       "strongSell": "Strong Sell",
       "title": "Technicals Analysis",
+      "alertOnThis": "Alert on this indicator",
       "summaryAction": "Summary",
       "marketConfluence": "Market Confluence",
       "oscillatorsTitle": "Oscillators",

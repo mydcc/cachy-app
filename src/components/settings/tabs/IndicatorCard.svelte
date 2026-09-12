@@ -16,14 +16,36 @@
 -->
 
 <script lang="ts">
-    import Toggle from "../../shared/Toggle.svelte";
+    import type { Snippet } from "svelte";
 
-    let { title, enabled = $bindable(), children } = $props();
+    import Toggle from "../../shared/Toggle.svelte";
+    import IndicatorAlertAction from "./IndicatorAlertAction.svelte";
+
+    /*
+     * `alertKey` is the card's key on the indicator store, e.g. `rsi` or
+     * `bollingerBands` (FEAT-0395). Passing it is what offers the "alert on
+     * this indicator" action; whether the action actually appears is decided
+     * by the settings-to-core mapping, not here.
+     */
+    let {
+        title,
+        enabled = $bindable(),
+        alertKey = null,
+        children,
+    }: {
+        title: string;
+        enabled?: boolean;
+        alertKey?: string | null;
+        children: Snippet;
+    } = $props();
 </script>
 
 <div class="indicator-card">
     <div class="card-header">
         <span class="title">{title}</span>
+        {#if alertKey}
+            <IndicatorAlertAction settingsKey={alertKey} />
+        {/if}
         <Toggle bind:checked={enabled} />
     </div>
     <!-- ALWAYS show body now, as requested -->
