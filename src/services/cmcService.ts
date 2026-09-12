@@ -7,7 +7,6 @@
  * (at your option) any later version.
  */
 
-import { settingsState } from "../stores/settings.svelte";
 import { appFetch } from "../lib/appAuth";
 
 interface CacheEntry<T> {
@@ -49,9 +48,9 @@ class CmcService {
    */
   private async fetchFromProxy(
     endpoint: string,
-    params: Record<string, string> = {},
+    params: Record<string, string>,
+    apiKey: string | undefined,
   ) {
-    const apiKey = settingsState.cmcApiKey;
     if (!apiKey) throw new Error("CMC API Key missing");
 
     const query = new URLSearchParams(params);
@@ -73,7 +72,9 @@ class CmcService {
   /**
    * Get Global Market Metrics (BTC Dom, etc.)
    */
-  async getGlobalMetrics(): Promise<CmcGlobalMetrics | null> {
+  async getGlobalMetrics(
+    apiKey: string | undefined,
+  ): Promise<CmcGlobalMetrics | null> {
     if (
       this.globalCache &&
       Date.now() - this.globalCache.timestamp < CACHE_TTL_GLOBAL
@@ -84,6 +85,8 @@ class CmcService {
     try {
       const result = await this.fetchFromProxy(
         "/v1/global-metrics/quotes/latest",
+        {},
+        apiKey,
       );
       if (result.data) {
         const metrics = result.data.quote.USD; // Assuming USD
@@ -115,7 +118,10 @@ class CmcService {
    * but 'quotes/latest' gives tags + circulating supply + rank.
    * The plan listed 'quotes/latest' as allowed. Let's use that.
    */
-  async getCoinMetadata(symbol: string): Promise<CmcCoinMetadata | null> {
+  async getCoinMetadata(
+    symbol: string,
+    apiKey: string | undefined,
+  ): Promise<CmcCoinMetadata | null> {
     // Remove suffixes like USDT if present, CMC uses raw symbols usually
     // But our app uses BTCUSDT. We need to strip USDT.
     const rawSymbol = symbol.replace("USDT", "").replace("USDC", "");
@@ -133,6 +139,7 @@ class CmcService {
         {
           symbol: rawSymbol,
         },
+        apiKey,
       );
 
       // Result structure: { data: { "BTC": { ... } } }

@@ -21,7 +21,7 @@
     import { windowManager } from "../WindowManager.svelte";
     import type { DialogWindow } from "./DialogWindow.svelte";
     import { sanitizeHtml } from "$lib/utils/sanitizer";
-    import { trackClick } from "../../../lib/actions";
+    import { trackClick } from "../../../actions/tracking";
 
     interface Props {
         window: DialogWindow;

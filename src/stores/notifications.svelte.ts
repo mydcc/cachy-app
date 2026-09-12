@@ -38,6 +38,7 @@ import {
 } from "../lib/notificationPolicy";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
+import { uiState } from "./ui.svelte";
 
 /*
  * Permissive for the same reason the confirmation policy's schema is: a
@@ -106,6 +107,7 @@ class NotificationPolicyStore {
             const ok = StorageHelper.safeSave(
                 CONSTANTS.LOCAL_STORAGE_NOTIFICATION_POLICY_KEY,
                 JSON.stringify({ policy: this._policy }),
+                () => uiState.showError("storage.quotaExceeded"),
             );
             this._persistFailed = !ok;
         } catch {

@@ -157,7 +157,11 @@ export class JournalManager {
       const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
 
       if (current !== json) {
-        StorageHelper.safeSave(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, json);
+        StorageHelper.safeSave(
+          CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+          json,
+          () => uiState.showError("storage.quotaExceeded"),
+        );
       }
     } catch (e) {
       console.error("[Journal] Synchronous unload save failed:", e);
@@ -189,6 +193,7 @@ export class JournalManager {
             const success = StorageHelper.safeSave(
               CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
               json,
+              () => uiState.showError("storage.quotaExceeded"),
             );
 
             if (!success) {

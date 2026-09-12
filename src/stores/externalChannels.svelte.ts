@@ -48,6 +48,7 @@ import {
 } from "../lib/notifications/externalChannels";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
+import { uiState } from "./ui.svelte";
 
 /*
  * Permissive, for the same reason the notification policy's schema is: a blob
@@ -150,6 +151,7 @@ class ExternalChannelsStore {
             const ok = StorageHelper.safeSave(
                 CONSTANTS.LOCAL_STORAGE_EXTERNAL_CHANNELS_KEY,
                 JSON.stringify(this._config),
+                () => uiState.showError("storage.quotaExceeded"),
             );
             this._persistFailed = !ok;
         } catch {

@@ -17,10 +17,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { trackClick } from "./actions";
+import { trackClick } from "./tracking";
 import * as trackingService from "../services/trackingService";
 
-describe("actions.ts - trackClick", () => {
+describe("tracking.ts - trackClick", () => {
   let node: HTMLElement;
   let trackCustomEventSpy: ReturnType<typeof vi.spyOn>;
 

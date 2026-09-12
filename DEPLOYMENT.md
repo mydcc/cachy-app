@@ -110,8 +110,15 @@ The following steps apply to both environments (directory names per environment)
 2. Fill in the fields:
     - **Path:** `/www/wwwroot/cachy.app`
     - **Name:** `cachy-prod` (or `cachy-dev`)
-    - **Run Command:** Select `Custom Command` and enter: `node server.js` —
-      the Express wrapper that applies compression and security headers. It defaults `PORT` to 3001 instead of adapter-node's 3000, for hosts where 3000 is already taken.
+    - **Run Command:** Select `Custom Command` and enter:
+      `node --env-file=.env server.js` — the Express wrapper that applies
+      compression and security headers. The `--env-file` flag is not optional in
+      practice: Node does **not** read `.env` on its own, so a bare
+      `node server.js` (or `node build/index.js`) silently runs without
+      `NODE_ENV`, `ORIGIN`, `ADDRESS_HEADER` or `XFF_DEPTH` from §7 — which is
+      why `/api/health` then reports `"environment":"development"` on a
+      production box. It defaults `PORT` to 3001 instead of adapter-node's 3000,
+      for hosts where 3000 is already taken.
     - **Port:** `3001` (default for Production). _Ensure the port is open in the firewall or used internally._
     - **Node Version:** v22.19 or higher (matches `engines` in `package.json`).
 3. Submit the form.
@@ -120,6 +127,42 @@ The following steps apply to both environments (directory names per environment)
 
 1. Under **Mapping** (or "Domain" depending on version) in the Node projects list, add your domain (e.g., `cachy.app`).
 2. Apply for a free "Let's Encrypt" certificate and enable "Force HTTPS" (SSL tab).
+
+### Step 5: Reverse proxy headers (required behind nginx)
+
+aaPanel's nginx sits in front of the Node process. Its `location /` already sets
+`Host`, `X-Real-IP` and `X-Forwarded-For`, but it misses two headers that both
+matter:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;   # without it the app sees http
+    proxy_set_header X-Forwarded-Host $host;      # preserves the public host
+    # ... rest of aaPanel's location block ...
+}
+```
+
+- **`X-Forwarded-Proto`** tells the app the request arrived over HTTPS. Without
+  it, `event.url` resolves to `http://…`, which breaks redirects and the
+  cross-origin check on form submissions — the same reason `ORIGIN` exists (§7).
+- **`X-Forwarded-Host`** preserves the host the browser used.
+
+**`add_header` is not inherited by locations.** nginx drops every `add_header`
+declared at the `server` level for a `location` that declares its own. A
+`location /` carrying `add_header X-Cache …` therefore loses a server-level
+`Strict-Transport-Security`. Repeat the header inside the location, and add
+`always` so it also applies to error responses:
+
+```nginx
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+```
+
+**Prefer TLS 1.2 and newer.** Leave `TLSv1.1` out of `ssl_protocols`; it is
+deprecated and known-weak.
 
 ---
 
@@ -388,11 +431,18 @@ cp .env.example .env
 
 ```env
 PORT=3001
+HOST=127.0.0.1
 ORIGIN=https://cachy.app
 NODE_ENV=production
 ADDRESS_HEADER=X-Forwarded-For
 XFF_DEPTH=1
 ```
+
+> ⚠️ **`.env` is never read automatically.** Node only loads it when the start
+> command passes `--env-file=.env` (see §2 Step 3). A process started as a bare
+> `node server.js` runs with none of the values above — including `NODE_ENV`,
+> which is why `/api/health` then reports `"environment":"development"` on a
+> production box.
 
 > API authentication needs no secret: routes are guarded by self-issued client
 > tokens that the app obtains from your own server automatically
@@ -412,6 +462,13 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 > here is *not* directly reachable from the internet on its own `PORT` —
 > otherwise a caller could forge the header and spoof any IP, bypassing every
 > per-IP limit.
+>
+> The bundled server binds every interface unless `HOST` is set. Behind this
+> proxy shape, set `HOST=127.0.0.1` (see the sample above) so the app is
+> reachable only through nginx — or block the app `PORT` in the firewall.
+> Confirm from an external host that `http://<server-ip>:<PORT>/api/health` is
+> refused **before** enabling `ADDRESS_HEADER`; otherwise a caller can forge the
+> header and spoof any IP.
 
 ---
 

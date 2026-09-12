@@ -400,6 +400,28 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       expect(fired[0]?.active).toBe(false);
     });
 
+    it("does not treat a second init's window as a continuation of the first replay's baseline", async () => {
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      // First replay: always above target, no crossing — the alert stays
+      // armed and the engine's baseline ends the replay at 50200.
+      mockReadClosedCandles.mockReturnValue(closes(["50100.0", "50200.0"]));
+      await initAlertEngine(fakeLoader);
+      expect(alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id)?.active).toBe(true);
+
+      // `ensureLoaded()` caches the WASM instance, so this second call reuses
+      // the same engine. Without the guard, replaying this new window would
+      // compare its first close (49500) against the *first* replay's leftover
+      // baseline (50200) instead of against nothing — manufacturing a
+      // downward cross that never happened in the combined price history.
+      // That is the exact arbitrary-jump false fire BUG-0441's replay exists
+      // to prevent, reached through a second init instead of a live tick.
+      mockReadClosedCandles.mockReturnValue(closes(["49500.0", "49600.0"]));
+      await initAlertEngine(fakeLoader);
+
+      const alert = alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id);
+      expect(alert?.active).toBe(true);
+    });
+
     it("leaves an alert the rule engine covers out of the replay entirely", async () => {
       const { alertState, initAlertEngine } = await importFreshAlertsModule();
       // Same shape `seedCoveredRule()` writes in the FEAT-0387 block below,

@@ -15,13 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { settingsState } from "../stores/settings.svelte";
+export interface ImgbbUploadConfig {
+  apiKey?: string;
+  expiration?: number;
+}
 
 export const imgbbService = {
-  async uploadToImgbb(file: File): Promise<string> {
-    const settings = settingsState;
-    const apiKey = settings.imgbbApiKey;
-    const expiration = settings.imgbbExpiration;
+  async uploadToImgbb(file: File, config: ImgbbUploadConfig): Promise<string> {
+    const { apiKey, expiration } = config;
 
     if (!apiKey) {
       throw new Error(

@@ -18,7 +18,7 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { quizState } from "../../stores/quiz.svelte";
-  import { trackClick } from "../../lib/actions";
+    import { trackClick } from "../../actions/tracking";
 </script>
 
 <button

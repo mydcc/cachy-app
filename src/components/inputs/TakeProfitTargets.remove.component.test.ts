@@ -39,7 +39,7 @@ const settingsStateMock = vi.hoisted(() => ({ showTooltips: true, apiProvider: "
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settingsStateMock }));
 
 vi.mock("../../services/trackingService", () => ({ trackCustomEvent: vi.fn() }));
-vi.mock("../../lib/actions", () => ({ trackClick: () => ({ destroy() {} }) }));
+vi.mock("../../actions/tracking", () => ({ trackClick: () => ({ destroy() {} }) }));
 vi.mock("../../lib/actions/inputEnhancements", () => ({
     enhancedInput: () => ({ destroy() {} }),
 }));

@@ -11,6 +11,7 @@ import { untrack } from "svelte";
 import { browser } from "$app/environment";
 import { CONSTANTS, VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
+import { uiState } from "./ui.svelte";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 import { EntitlementStore } from "./entitlement.svelte";
 // Class A both sides, and no back edge: `paperTrading.svelte.ts` imports
@@ -2158,6 +2159,7 @@ export class SettingsManager {
         const success = StorageHelper.safeSave(
           CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
           newData,
+          () => uiState.showError("storage.quotaExceeded"),
         );
 
         if (!success) {
