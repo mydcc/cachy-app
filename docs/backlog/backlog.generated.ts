@@ -3738,6 +3738,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0435-presence-and-flip-declaration-semantics.md"
   },
   {
+    "id": "BUG-0444",
+    "title": "slotOf() claims shapes readers cannot round-trip (visit-time wipe)",
+    "type": "bug",
+    "status": "idea",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0443"
+    ],
+    "size": "M",
+    "estimate": "3",
+    "file": "bugs/BUG-0444-slotof-claims-unreadable-shapes.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
