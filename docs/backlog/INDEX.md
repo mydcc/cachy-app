@@ -2,9 +2,9 @@
 
 # Backlog index
 
-323 items. How to read and add them: [README.md](README.md).
+324 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 267 · ⛔ dropped 1
+Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 267 · ⛔ dropped 1
 
 ---
 
@@ -289,6 +289,7 @@ Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | ci |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | ci |
 | [BUG-0441](bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md) | A legacy alert whose target was crossed while the app was closed never fires | P2 | ✅ done | alerts |
+| [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | 📋 specced | journal |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -565,6 +566,7 @@ Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0441](bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md) | A legacy alert whose target was crossed while the app was closed never fires | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -720,4 +722,4 @@ Counts by status: 💡 idea 28 · 📋 specced 23 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0442**
+Next free number: **0443**
