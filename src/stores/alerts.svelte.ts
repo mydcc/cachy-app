@@ -34,7 +34,11 @@ import {
     readCoveredAlertIds,
     releaseCoverage,
 } from "../services/alertEngine/ruleCoverage";
-import { REPLAY_TIMEFRAMES, replayAlertHistoryOnce } from "../services/alertEngine/replayClosedCandles";
+import {
+    REPLAY_TIMEFRAMES,
+    hasAlertHistoryReplayed,
+    replayAlertHistoryOnce,
+} from "../services/alertEngine/replayClosedCandles";
 import { recordFiring, recordLegacyFiring } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
@@ -425,33 +429,40 @@ export async function initAlertEngine(
     // exactly as the unprimed replay behaved, and a hang cannot stall startup
     // on the network. (Network priming for a never-cached symbol is BUG-0441's
     // documented follow-up.)
-    try {
-        const armedSymbols = Array.from(
-            new Set(
-                alertState.definitions
-                    .filter(
-                        (alert) =>
-                            alert !== null &&
-                            typeof alert === "object" &&
-                            alert.active === true &&
-                            typeof alert.symbol === "string" &&
-                            alert.symbol.length > 0,
-                    )
-                    .map((alert) => alert.symbol),
-            ),
-        );
-        if (armedSymbols.length > 0) {
-            const { marketWatcher } = await import("../services/marketWatcher");
-            for (const symbol of armedSymbols) {
-                // Stop at the finest timeframe with cached history: the replay
-                // reads the same REPLAY_TIMEFRAMES in the same order.
-                for (const timeframe of REPLAY_TIMEFRAMES) {
-                    if (await marketWatcher.primeFromStorage(symbol, timeframe)) break;
+    //
+    // Skipped once the replay has already been attempted: a second init must
+    // not redo the IndexedDB reads and store writes for a replay that will not
+    // run again. Every timeframe with cache is primed, not just the finest, so
+    // the replay's own finest-first fall-through has data at each rung — a
+    // finest series that turns out to hold fewer than two usable closes falls
+    // through to a coarser one instead of finding it unprimed.
+    if (!hasAlertHistoryReplayed()) {
+        try {
+            const armedSymbols = Array.from(
+                new Set(
+                    alertState.definitions
+                        .filter(
+                            (alert) =>
+                                alert !== null &&
+                                typeof alert === "object" &&
+                                alert.active === true &&
+                                typeof alert.symbol === "string" &&
+                                alert.symbol.length > 0,
+                        )
+                        .map((alert) => alert.symbol),
+                ),
+            );
+            if (armedSymbols.length > 0) {
+                const { marketWatcher } = await import("../services/marketWatcher");
+                for (const symbol of armedSymbols) {
+                    for (const timeframe of REPLAY_TIMEFRAMES) {
+                        await marketWatcher.primeFromStorage(symbol, timeframe);
+                    }
                 }
             }
+        } catch (e) {
+            logger.error("alerts", "[BUG-0441] Priming replay history failed — replay stays best-effort", e);
         }
-    } catch (e) {
-        logger.error("alerts", "[BUG-0441] Priming replay history failed — replay stays best-effort", e);
     }
 
     try {
