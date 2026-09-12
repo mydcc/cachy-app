@@ -77,7 +77,7 @@ function at(card: SettingsCard, path: readonly string[]): unknown {
 function period(...path: readonly string[]): ParamReader {
     return (card) => {
         const raw = at(card, path);
-        const value = typeof raw === "string" ? Number(raw) : raw;
+        const value = typeof raw === "string" ? Number(raw) : raw; // audit: safe — period is a candle count, not a financial value
         if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
             return null;
         }
