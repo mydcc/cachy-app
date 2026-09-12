@@ -39,7 +39,7 @@
  */
 
 import type { CandlePatternName, Condition, TimeframeString } from "../rules/types";
-import { soleCondition } from "./soleCondition";
+import { conditionInSlot } from "./conditionSlots";
 
 /**
  * How many candles the pattern spans -- which is also how the tab groups them.
@@ -226,10 +226,12 @@ export const PATTERN_GLYPHS: Record<CandlePatternName, readonly GlyphCandle[]> =
 export function readPatternForm(conditions: Condition | null | undefined): {
     pattern: CandlePatternName | null;
 } {
-    // Through `soleCondition`, never off `conditions.kind` directly: the panel
-    // may hand back a one-element group, and reading the wrapper as "not a
-    // pattern" is how a seeded pattern would silently disappear.
-    const condition = soleCondition(conditions);
+    // Through `conditionInSlot`, never off `conditions.kind` directly: the
+    // panel hands back a group, and reading the wrapper as "not a pattern" is
+    // how a seeded pattern would silently disappear. The slot is fixed here, so
+    // this reader sees only the pattern this builder authored and can never
+    // overwrite another tab's condition (BUG-0443).
+    const condition = conditionInSlot(conditions, "candlesticks");
     if (condition?.kind === "pattern") {
         return { pattern: condition.pattern };
     }

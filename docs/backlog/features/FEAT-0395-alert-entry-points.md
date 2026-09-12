@@ -2,9 +2,7 @@
 id: FEAT-0395
 title: Create an alert from the chart and from indicator settings
 type: feature
-status: in-progress
-assignee: claude
-branch: worktree-feat-0395-dependencies-resolved-edf8ae
+status: ready
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -38,6 +36,24 @@ the parameters they are looking at are the ones they mean.
 
 Both land in the panel from `FEAT-0389` with a pre-filled draft; neither arms anything
 by itself. The plain-language sentence is still shown and still has to be confirmed.
+
+## State (checked against the tree, 2026-09-12)
+
+Partially shipped. The chart half landed as
+`37a75cfd feat(alerts): create a price alert from the chart (FEAT-0395) (#2935)`.
+The indicator half — "Alert on this indicator" in indicator settings — has no
+implementation in `src/components/` yet.
+
+The item carried a claim (`assignee: claude`, branch
+`worktree-feat-0395-dependencies-resolved-edf8ae`) after that merge. The branch
+exists neither locally nor on the remote and the worktree is gone, so the claim
+was released back to `ready` rather than left to block the item. The acceptance
+criteria are deliberately still unchecked: the chart entry point needs its
+criteria verified against the merged code before any of them is ticked.
+
+Remaining scope: the indicator entry point, plus verification of the four
+shared criteria (no arming without confirmation, draft editable before arming,
+keyboard reachable, both locales) for the chart path that already shipped.
 
 ## Acceptance criteria
 

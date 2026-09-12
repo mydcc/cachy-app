@@ -175,7 +175,7 @@
     // arm. That is what keeps the sentence in the footer and the rule the core
     // is handed from ever drifting apart.
     $effect(() => {
-        alertPanelState.setSingleCondition(buildCondition());
+        alertPanelState.setSlotCondition("price", buildCondition());
     });
 
     let conditionRefusals = $derived(
