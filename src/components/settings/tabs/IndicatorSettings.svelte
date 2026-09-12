@@ -380,7 +380,7 @@
 
         {:else if activeCategory === "volume"}
             <SettingsGrid cols={3} gap="gap-5" extraClass="max-w-7xl mx-auto pb-8">
-                <IndicatorCard title={$_("settings.technicals.volume")} bind:enabled={indicatorState.volume.enabled} alertKey="volume">
+                <IndicatorCard title={$_("settings.technicals.volume")} bind:enabled={indicatorState.volume.enabled}>
                     <div class="text-xs text-[var(--text-secondary)] italic">{$_("settings.technicals.volumeNoParams")}</div>
                 </IndicatorCard>
 
