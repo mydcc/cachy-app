@@ -49,6 +49,15 @@ export function applyUpdate(marketManager: import("../market.svelte").MarketMana
         current.lastPrice = newVal;
 
         if (newVal !== null) {
+          // Evaluated on every tick, deliberately. FEAT-0368 proposed a
+          // has-alerts-for-symbol guard plus a 100-250ms throttle here and was
+          // dropped after measuring: the whole call costs 1-10 µs, so even 500
+          // alerts over 50 symbols at 500 ticks/s aggregate is 0.5% of one core.
+          // The guard is also not behaviour-neutral — `AlertEngine::evaluate` is a
+          // cross detector whose `last_prices` baseline is seeded only by this very
+          // call, so skipping it freezes the baseline and makes an alert armed later
+          // either fire spuriously or miss its cross for good. Numbers and the
+          // reproduction are in docs/backlog/features/FEAT-0368-*.md.
           try {
             alertEngine.evaluate(symbol, newVal.toString(), Date.now());
           } catch (e) {
