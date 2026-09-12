@@ -71,14 +71,6 @@ baseline, a `PriceReached(t)` should fire when the first observed price is on or
 directional and should fire when the first observed price is already at or beyond `t`
 on the trigger side.
 
-Leave alone:
-
-- The per-tick evaluation cadence. That is [`FEAT-0368`](../features/FEAT-0368-alert-engine-evaluation-batching.md),
-  measured and dropped.
-- The `alert.active = false` fire-once hysteresis.
-- The rule engine path. `FEAT-0387` rules warm up from real candle history and do not
-  share this baseline.
-
 Touching `alert_engine.rs` means a WASM rebuild, so the PR has to ship a regenerated
 `static/wasm` artefact and prove it regenerated — an unchanged `.d.ts` proves nothing
 and the build is quiet on failure.
@@ -90,6 +82,14 @@ and the build is quiet on failure.
 - [ ] An alert armed below a price that is already above it fires on the first tick after a cold start
 - [ ] An already-warm baseline still fires only on a genuine crossing — no double fire, no fire on every tick while price sits past the target (the fire-once hysteresis must carry this)
 - [ ] `static/wasm` is rebuilt in the same PR and the rebuild is demonstrated, not asserted
+
+## Out of scope
+
+- The per-tick evaluation cadence. That is [`FEAT-0368`](../features/FEAT-0368-alert-engine-evaluation-batching.md),
+  measured and dropped.
+- The `alert.active = false` fire-once hysteresis.
+- The rule engine path. `FEAT-0387` rules warm up from real candle history and do not
+  share this baseline.
 
 ## Links
 
