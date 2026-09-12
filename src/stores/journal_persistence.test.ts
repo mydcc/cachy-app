@@ -218,67 +218,6 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
     journal.destroy();
   });
 
-  describe("BUG-0442 — destroy() has to disarm the store, not just tidy up after it", () => {
-    it("writes nothing when a mutation schedules a save after destroy", async () => {
-      const journal = new JournalManager();
-      journal.destroy();
-      const before = localStorageMock.setItem.mock.calls.length;
-
-      journal.addEntry(createTestEntry("after-destroy"));
-      await vi.advanceTimersByTimeAsync(1000);
-
-      // Fails without the fix: destroy() cleared the pending timer but left
-      // `effectActive` true, so scheduleSave() armed a fresh one and a store
-      // the app had torn down still wrote the journal to localStorage.
-      expect(localStorageMock.setItem.mock.calls.length).toBe(before);
-    });
-
-    it("writes nothing when flush() is called after destroy", async () => {
-      const journal = new JournalManager();
-      journal.addEntry(createTestEntry("pending-at-destroy"));
-      journal.destroy();
-      const before = localStorageMock.setItem.mock.calls.length;
-
-      await journal.flush();
-
-      // flush() reaches save() directly, bypassing the timer destroy() clears —
-      // so the timer is not what makes a destroyed store safe. The flag is.
-      expect(localStorageMock.setItem.mock.calls.length).toBe(before);
-    });
-
-    it("writes nothing on the synchronous unload path after destroy", () => {
-      const journal = new JournalManager();
-      journal.addEntry(createTestEntry("pending-at-destroy"));
-      journal.destroy();
-      const before = localStorageMock.setItem.mock.calls.length;
-
-      // destroy() removes the listeners, so this reaches saveSync() only if
-      // something re-registered them — and the assertion holds either way.
-      // The unload path must not be the hole the other two close.
-      window.dispatchEvent(new Event("pagehide"));
-      window.dispatchEvent(new Event("beforeunload"));
-
-      expect(localStorageMock.setItem.mock.calls.length).toBe(before);
-    });
-
-    it("still persists normally in a store created after another was destroyed", async () => {
-      const doomed = new JournalManager();
-      doomed.destroy();
-
-      const fresh = new JournalManager();
-      const before = localStorageMock.setItem.mock.calls.length;
-      fresh.addEntry(createTestEntry("fresh-instance"));
-      await vi.advanceTimersByTimeAsync(600);
-
-      // The fix must disarm one instance, not the class: `effectActive` is
-      // per-instance and set in the constructor, so a fresh store is live.
-      expect(localStorageMock.setItem.mock.calls.length).toBe(before + 1);
-      const saved = localStorageMock.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
-      expect(JSON.parse(saved!)).toHaveLength(1);
-      fresh.destroy();
-    });
-  });
-
   it("synchronously commits pending debounced mutations on pagehide/beforeunload event", () => {
     const journal = new JournalManager();
     journal.addEntry(createTestEntry("trade-unload"));

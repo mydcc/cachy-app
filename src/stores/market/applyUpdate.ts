@@ -17,7 +17,6 @@
 
 import { Decimal } from "decimal.js";
 import { alertEngine } from "../../services/alertEngine/alertEngine";
-import { replayBeforeLegacyEvaluation } from "../../services/alertEngine/legacyReplayCoordinator";
 import type { MarketUpdatePayload, RawNumeric } from "./types";
 
 
@@ -50,21 +49,7 @@ export function applyUpdate(marketManager: import("../market.svelte").MarketMana
         current.lastPrice = newVal;
 
         if (newVal !== null) {
-          // Evaluated on every tick, deliberately. FEAT-0368 proposed a
-          // has-alerts-for-symbol guard plus a 100-250ms throttle here and was
-          // dropped after measuring: the whole call costs 1-10 µs, so even 500
-          // alerts over 50 symbols at 500 ticks/s aggregate is 0.5% of one core.
-          // The guard is also not behaviour-neutral — `AlertEngine::evaluate` is a
-          // cross detector whose `last_prices` baseline is seeded only by this very
-          // call, so skipping it freezes the baseline and makes an alert armed later
-          // either fire spuriously or miss its cross for good. Numbers and the
-          // reproduction are in docs/backlog/features/FEAT-0368-*.md.
           try {
-            // BUG-0441: the last moment a replay is still safe. If this symbol
-            // has an armed legacy alert whose history was not yet available at
-            // startup, replay it now — before this evaluation seeds the
-            // crossing baseline and closes the ordering window for good.
-            replayBeforeLegacyEvaluation(symbol);
             alertEngine.evaluate(symbol, newVal.toString(), Date.now());
           } catch (e) {
             import("../../services/logger").then(m => m.logger.error("alerts", `[Market] Alert evaluation failed for ${symbol}`, e)).catch(() => {});

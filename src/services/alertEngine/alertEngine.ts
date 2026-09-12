@@ -177,17 +177,8 @@ class AlertEngineService {
     }
   }
 
-  /**
-   * Evaluates one price against the engine's alert set.
-   *
-   * Returns `true` only when the engine actually ran and returned without
-   * throwing. The return value is ignored on the hot path (`applyUpdate`) — it
-   * exists so BUG-0441's replay can tell a completed evaluation from a WASM
-   * refusal, which this method otherwise swallows, and report the latter as a
-   * failed replay instead of a clean one.
-   */
-  evaluate(symbol: string, currentPriceStr: string, timestamp: number): boolean {
-    if (!this.instance) return false;
+  evaluate(symbol: string, currentPriceStr: string, timestamp: number) {
+    if (!this.instance) return;
     try {
       const events: AlertEvent[] = this.instance.evaluate(symbol, currentPriceStr, timestamp);
       if (events && events.length > 0) {
@@ -196,10 +187,8 @@ class AlertEngineService {
             this.notifyFired(event);
         });
       }
-      return true;
     } catch (e) {
         logger.error('alerts', `[AlertEngine] Evaluation error for ${symbol}`, e);
-        return false;
     }
   }
 

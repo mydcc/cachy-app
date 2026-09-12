@@ -3718,46 +3718,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0435-presence-and-flip-declaration-semantics.md"
   },
   {
-    "id": "BUG-0441",
-    "title": "A legacy alert whose target was crossed while the app was closed never fires",
-    "type": "bug",
-    "status": "done",
-    "priority": "P2",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "alerts",
-    "data_class": "A",
-    "adr": "none",
-    "depends_on": [],
-    "branch": "worktree-alert-engine-batching-dc1192",
-    "start_date": "2026-09-12",
-    "file": "bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md"
-  },
-  {
-    "id": "BUG-0442",
-    "title": "A destroyed journal store can still write to localStorage",
-    "type": "bug",
-    "status": "done",
-    "priority": "P2",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "journal",
-    "data_class": "A",
-    "adr": "none",
-    "depends_on": [],
-    "branch": "fix/bug-0442-journal-destroy-disarm",
-    "start_date": "2026-09-12",
-    "file": "bugs/BUG-0442-destroyed-journal-store-still-writes.md"
-  },
-  {
     "id": "BUG-0443",
     "title": "A builder tab erases a rule it cannot read back",
     "type": "bug",
@@ -5194,7 +5154,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0368",
     "title": "Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates",
     "type": "feature",
-    "status": "dropped",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
