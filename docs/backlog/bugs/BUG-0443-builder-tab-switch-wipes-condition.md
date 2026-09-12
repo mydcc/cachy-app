@@ -2,8 +2,7 @@
 id: BUG-0443
 title: Switching builder tabs wipes the condition the trader just configured
 type: bug
-status: in-progress
-assignee: claude
+status: done
 branch: worktree-super-alert-epic-open-5b8b1b
 priority: P1
 milestone: M4
