@@ -81,15 +81,20 @@
     let conditionRefusals = $derived(refusalsForField(alertPanelState.refusals, "conditions"));
 
     // The document is the single source of truth, so the tab writes through on
-    // every edit rather than converting on arm. Null clears the condition,
-    // which is what keeps the arm button disabled -- an alert with no trigger
-    // is worse than no alert.
+    // every edit rather than converting on arm. Null clears this builder's
+    // condition, which is what keeps the arm button disabled -- an alert with no
+    // trigger is worse than no alert.
+    //
+    // Into this builder's own slot, never over the whole group: this effect also
+    // runs once on mount, before the trader has touched anything, and a whole-
+    // group write there discarded whatever another tab had authored (BUG-0443).
     $effect(() => {
         if (!entry) {
-            alertPanelState.setSingleCondition(null);
+            alertPanelState.setSlotCondition("indicators", null);
             return;
         }
-        alertPanelState.setSingleCondition(
+        alertPanelState.setSlotCondition(
+            "indicators",
             buildIndicatorCondition(
                 {
                     subject: { id: entry.id, params: { ...params }, output },

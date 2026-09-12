@@ -44,7 +44,7 @@ import {
     type CatalogueEntry,
     type OperandDimension,
 } from "./indicatorCatalogue";
-import { soleCondition } from "./soleCondition";
+import { conditionInSlot } from "./conditionSlots";
 
 /** How the two sides are related: a threshold, or a crossing. */
 export type Relation =
@@ -157,14 +157,17 @@ function referenceFor(operand: Operand): Reference | null {
  * The form a draft already carries, or `null` when the draft holds something
  * this tab does not edit.
  *
- * Read through `soleCondition`, never off `conditions.kind`: the panel may
- * hand back a one-element group, and reading the wrapper as "nothing here"
- * is how a seeded indicator condition would silently disappear.
+ * Read through `conditionInSlot`, never off `conditions.kind`: the panel hands
+ * back a group, and reading the wrapper as "nothing here" is how a seeded
+ * indicator condition would silently disappear. The slot argument is fixed
+ * here rather than passed in — this reader returns only what the indicators
+ * builder itself authored, so it can never hydrate from, and then overwrite,
+ * another tab's condition (BUG-0443).
  */
 export function readIndicatorForm(
     conditions: Condition | null | undefined,
 ): IndicatorForm | null {
-    const condition = soleCondition(conditions);
+    const condition = conditionInSlot(conditions, "indicators");
     if (!condition) return null;
     if (condition.kind !== "compare" && condition.kind !== "cross") return null;
     if (condition.left.kind !== "indicator") return null;
