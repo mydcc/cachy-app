@@ -7,7 +7,6 @@
  * (at your option) any later version.
  */
 
-import { settingsState } from "../stores/settings.svelte";
 import { rssParserService } from "./rssParserService";
 import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
@@ -20,6 +19,7 @@ import CryptoJS from "crypto-js";
 import { safeJsonParse } from "../utils/safeJson";
 import { CryptoPanicResponseSchema, NewsApiResponseSchema } from "../types/newsSchemas";
 import { appFetch } from "../lib/appAuth";
+import { readNewsSettings } from "./newsSettings";
 
 const isBrowser = typeof window !== "undefined";
 
@@ -189,6 +189,7 @@ export const newsService = {
   async fetchNews(symbol?: string): Promise<NewsItem[]> {
     const symbolKey = symbol || "global";
     const cacheKey = symbol ? CACHE_PREFIX_NEWS_COIN + symbolKey : CACHE_KEY_NEWS_GLOBAL;
+    const s = readNewsSettings() ?? {};
 
     // Check if a request for this symbol is already in progress
     return pendingNewsFetches.execute(symbolKey, async (): Promise<NewsItem[]> => {
@@ -225,14 +226,14 @@ export const newsService = {
           }
         }
 
-        const { cryptoPanicApiKey, newsApiKey } = settingsState;
+        const { cryptoPanicApiKey, newsApiKey } = s;
         let newsItems: NewsItem[] = [];
 
         // Prioritize CryptoPanic (wenn Quota nicht erschöpft)
         if (cryptoPanicApiKey && !isQuotaExhausted) {
           try {
             const params: Record<string, string> = {
-              filter: settingsState.cryptoPanicFilter || "important",
+              filter: s.cryptoPanicFilter || "important",
               public: "true",
             };
             if (symbol) {
@@ -256,7 +257,7 @@ export const newsService = {
                   source: "cryptopanic",
                   apiKey: cryptoPanicApiKey,
                   params,
-                  plan: settingsState.cryptoPanicPlan || "developer",
+                  plan: s.cryptoPanicPlan || "developer",
                 }),
                 signal: controller.signal,
               });
@@ -347,8 +348,8 @@ export const newsService = {
         // Discord
         try {
           let discordItems = await discordService.fetchDiscordNews({
-            botToken: settingsState.discordBotToken,
-            channels: settingsState.discordChannels,
+            botToken: s.discordBotToken,
+            channels: s.discordChannels,
           });
           if (symbol) {
             discordItems = discordItems.filter(item => matchesSymbol(item.title, symbol));
@@ -360,8 +361,8 @@ export const newsService = {
 
         // RSS Feeds
         const rssUrls = [
-          ...getPresetUrls(settingsState.rssPresets || []),
-          ...(settingsState.customRssFeeds || []).filter(
+          ...getPresetUrls(s.rssPresets || []),
+          ...(s.customRssFeeds || []).filter(
             (u) => u && u.trim().length > 0,
           ),
         ];
@@ -369,7 +370,7 @@ export const newsService = {
         if (rssUrls.length > 0) {
           try {
             let rssItems = await rssParserService.parseMultipleFeeds(rssUrls);
-            if (settingsState.rssFilterBySymbol && symbol) {
+            if (s.rssFilterBySymbol && symbol) {
               rssItems = rssItems.filter(
                 (item) =>
                   matchesSymbol(item.title, symbol) ||
@@ -438,6 +439,8 @@ export const newsService = {
     // Immer serverseitig, kein allowClientSideAi mehr
     return pendingSentimentFetches.execute(newsHash, async (): Promise<SentimentAnalysis | null> => {
       try {
+        const s = readNewsSettings() ?? {};
+
         // IDB Read
         const rawCached = await dbService.get("sentiment", newsHash);
 
@@ -460,7 +463,7 @@ export const newsService = {
           return cached.data;
         }
 
-        const { aiProvider, geminiApiKey, openaiApiKey } = settingsState;
+        const { aiProvider, geminiApiKey, openaiApiKey } = s;
         if (!aiProvider) return null;
 
         const headlines = news
@@ -471,7 +474,7 @@ export const newsService = {
         const payload = {
           headlines,
           provider: aiProvider,
-          model: aiProvider === "openai" ? (settingsState.openaiModel || "gpt-4o") : (settingsState.geminiModel || "gemini-1.5-flash"),
+          model: aiProvider === "openai" ? (s.openaiModel || "gpt-4o") : (s.geminiModel || "gemini-1.5-flash"),
           apiKey: aiProvider === "openai" ? openaiApiKey : geminiApiKey
         };
 
