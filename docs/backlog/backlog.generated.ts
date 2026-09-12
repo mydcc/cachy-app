@@ -3739,7 +3739,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0442",
     "title": "A destroyed journal store can still write to localStorage",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3751,6 +3751,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+    "branch": "fix/bug-0442-journal-destroy-disarm",
+    "start_date": "2026-09-12",
     "file": "bugs/BUG-0442-destroyed-journal-store-still-writes.md"
   },
   {
