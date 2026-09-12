@@ -21,6 +21,7 @@
   import { settingsState } from "../../../stores/settings.svelte";
   import { uiState } from "../../../stores/ui.svelte";
   import { themeBackground } from "../../../lib/themeBackgrounds";
+  import { readCssColor, isLightColor } from "../../../lib/themeColors";
   import { tradeState } from "../../../stores/trade.svelte";
   import { activeExchange } from "../../../services/exchange";
   import { marketState } from "../../../stores/market.svelte";
@@ -28,6 +29,8 @@
   import { readIndicatorSignal } from "./indicatorSignal";
   import { _ } from "../../../locales/i18n";
   import TradeFlowWorker from "./tradeFlow.worker?worker";
+  import { concreteQuality, retainAutoQuality } from "./qualityController.svelte";
+  import { prefersReducedMotion, resolveReducedMotion, subscribeReducedMotion } from "../../../lib/three/motion";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -49,48 +52,9 @@
   // THEME & COLOR RESOLUTION
   // ========================================
 
-  // The computed style is passed in rather than resolved per call: a single
-  // colour update reads half a dozen variables, and `getComputedStyle` forces a
-  // style recalc each time. `updateColors` fetches it once for the whole update.
-  const resolveColor = (
-    varName: string,
-    style: CSSStyleDeclaration,
-    fallback: string = "#000000",
-  ): string => {
-    const initialValue = varName.startsWith("--") ? style.getPropertyValue(varName) : varName;
-    const trimmed = initialValue.trim();
-    if (trimmed.startsWith("var(")) {
-      const match = trimmed.match(/^var\((--[\w-]+)(?:,\s*(.+))?\)$/);
-      if (match) return style.getPropertyValue(match[1]).trim() || match[2] || fallback;
-    }
-    return trimmed || fallback;
-  };
-
-  /** Hex or rgb() to an RGB triple. Used only to tell a light theme from a dark one. */
-  function parseColorToRgb(colorStr: string): [number, number, number] | null {
-    const trimmed = colorStr.trim();
-    if (trimmed.startsWith("#")) {
-      const hex = trimmed.slice(1);
-      if (hex.length === 3) {
-        return [
-          parseInt(hex[0] + hex[0], 16),
-          parseInt(hex[1] + hex[1], 16),
-          parseInt(hex[2] + hex[2], 16),
-        ];
-      } else if (hex.length >= 6) {
-        return [
-          parseInt(hex.slice(0, 2), 16),
-          parseInt(hex.slice(2, 4), 16),
-          parseInt(hex.slice(4, 6), 16),
-        ];
-      }
-    }
-    const match = trimmed.match(/\d+/g);
-    if (match && match.length >= 3) {
-      return [parseInt(match[0], 10), parseInt(match[1], 10), parseInt(match[2], 10)];
-    }
-    return null;
-  }
+  // CSS-variable resolution lives in `lib/themeColors.ts` (shared with the
+  // other renderers). A single colour update reads half a dozen variables, so
+  // `updateColors` still fetches the computed style once for the whole pass.
 
   /**
    * The galaxy mode's star palette, read from the same `--galaxy-*` theme
@@ -99,18 +63,12 @@
    * standalone background makes the same switch.
    */
   function resolveGalaxyPalette(style: CSSStyleDeclaration) {
-    const bgStr = resolveColor("--galaxy-bg", style) || "#0a0e27";
-    const rgb = parseColorToRgb(bgStr);
-    let light = false;
-    if (rgb) {
-      const [r, g, b] = [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255];
-      light = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 > 0.5;
-    }
+    const light = isLightColor(readCssColor("--galaxy-bg", "#0a0e27", style));
     return {
-      inside: resolveColor("--galaxy-stars-core", style) || "#6366f1",
-      out1: resolveColor("--galaxy-stars-edge", style) || "#8b5cf6",
-      out2: resolveColor("--galaxy-stars-edge-2", style) || "#8b5cf6",
-      out3: resolveColor("--galaxy-stars-edge-3", style) || "#6366f1",
+      inside: readCssColor("--galaxy-stars-core", "#6366f1", style),
+      out1: readCssColor("--galaxy-stars-edge", "#8b5cf6", style),
+      out2: readCssColor("--galaxy-stars-edge-2", "#8b5cf6", style),
+      out3: readCssColor("--galaxy-stars-edge-3", "#6366f1", style),
       // THREE.NormalBlending = 1, THREE.AdditiveBlending = 2.
       blending: light ? 1 : 2,
       cutoff: light ? 0.6 : 0.2,
@@ -129,8 +87,8 @@
     // applies to all of them, galaxy included.
     const s = settingsState.tradeFlowSettings;
     const custom = s.colorMode === "custom";
-    const colorUp = (custom ? s.customColorUp : resolveColor("--color-up", style)) || "#00ff88";
-    const colorDown = (custom ? s.customColorDown : resolveColor("--color-down", style)) || "#ff4444";
+    const colorUp = custom ? s.customColorUp : readCssColor("--color-up", "#00ff88", style);
+    const colorDown = custom ? s.customColorDown : readCssColor("--color-down", "#ff4444", style);
     // `--color-bg-primary` resolves to a CSS `radial-gradient` on the meteorite,
     // steel, insight and ever themes. three cannot parse that: `Color.set` warns
     // and keeps the previous colour, so the scene background would silently stay
@@ -439,6 +397,32 @@
     });
   });
 
+  // Visual quality — one tier shared by every renderer. The auto sampler runs
+  // only while `auto` is selected; a manual choice resolves straight through.
+  let systemReducedMotion = $state(prefersReducedMotion());
+  $effect(() => subscribeReducedMotion((reduced) => (systemReducedMotion = reduced)));
+
+  $effect(() => {
+    if (settingsState.visualQuality !== "auto") return;
+    return retainAutoQuality();
+  });
+
+  $effect(() => {
+    if (lifecycleState !== LifecycleState.READY || !worker) return;
+    const tier = concreteQuality(settingsState.visualQuality);
+    worker.postMessage({ type: "quality", data: { tier } });
+  });
+
+  // Reduced motion — OS preference unless the user overrides it.
+  $effect(() => {
+    if (lifecycleState !== LifecycleState.READY || !worker) return;
+    const reduced = resolveReducedMotion(
+      settingsState.reduceMotion,
+      systemReducedMotion,
+    );
+    worker.postMessage({ type: "setMotion", data: { reduced } });
+  });
+
   // Gyroscope — separate switch from the 3D galaxy's, and only meaningful for
   // the galaxy mode. While enabled, forward device tilt so the worker can steer
   // the camera; the effect's cleanup removes the listener on any change.
@@ -544,7 +528,8 @@
       type: 'resize',
       data: {
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight,
+        pixelRatio: Math.min(window.devicePixelRatio, 2),
       }
     });
   }

@@ -1226,6 +1226,21 @@
         "layout": "Layout",
         "background": "Hintergrund"
       },
+      "visualQuality": "Bildqualität",
+      "visualQualityDesc": "Renderauflösung der 3D-Hintergründe und -Effekte. Auto passt sich an die gemessene Bildrate an.",
+      "reduceMotion": "Bewegung reduzieren",
+      "reduceMotionDesc": "Friert die 3D-Hintergründe und -Effekte ein. System folgt der Betriebssystem-Einstellung.",
+      "quality": {
+        "auto": "Auto",
+        "high": "Hoch",
+        "balanced": "Ausgeglichen",
+        "low": "Niedrig"
+      },
+      "motion": {
+        "system": "System",
+        "reduce": "Reduziert",
+        "full": "Voll"
+      },
       "chatSize": "Chat Schriftgröße",
       "burningBorders": "Brennende Ränder",
       "burningBordersDesc": "Interaktiver Feuereffekt an Kanten",

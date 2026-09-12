@@ -32,6 +32,7 @@
 import * as THREE from 'three';
 import { BaseEngine } from './BaseEngine';
 import { clamp01, scaleToRange, PriceRangeTracker } from './volumeScale';
+import { GALAXY_ORBIT_UNIFORMS, GALAXY_ORBIT_FUNCTIONS } from '../shaders/galaxyPoints';
 
 /** Shockwave slots alive at once. Must match `MAX_PULSES` in the shader. */
 const MAX_PULSES = 8;
@@ -625,17 +626,7 @@ export class GalaxyFlowEngine extends BaseEngine {
                 precision mediump float;
                 uniform float uTime;
                 uniform float uRotationPhase;
-                uniform float uSize;
-                uniform float uPixelRatio;
-                uniform float uRadius;
-                uniform float uBranches;
-                uniform float uSpinSpeed;
-                uniform float uRandomnessPower;
-                uniform float uConcentrationPower;
-                uniform float uParticleCount;
-                uniform vec3 uColorOutside;
-                uniform vec3 uColorOutside2;
-                uniform vec3 uColorOutside3;
+                ${GALAXY_ORBIT_UNIFORMS}
 
                 uniform float uSentiment;
                 uniform float uSentimentTint;
@@ -647,32 +638,16 @@ export class GalaxyFlowEngine extends BaseEngine {
                 uniform float uPulseWidth;
                 uniform float uPulseLift;
 
-                attribute vec3 aRandom;
-                attribute float aScale;
-                attribute float aColorMix;
-                attribute float aIndex;
-
-                varying float vRadiusRatio;
-                varying vec3 vOutsideColor;
                 varying float vPulseSigned;
                 varying float vPulseAbs;
 
-                #define PI 3.14159265359
                 #define MAX_PULSES ${MAX_PULSES}
 
+                ${GALAXY_ORBIT_FUNCTIONS}
+
                 void main() {
-                    float particleId = aIndex;
-                    float radiusRatio = fract(particleId / uParticleCount);
-                    float radius = pow(radiusRatio, uConcentrationPower) * uRadius;
-
-                    float branchId = floor(mod(particleId, uBranches));
-                    float branchAngle = branchId * (2.0 * PI / uBranches);
-                    float spinAngle = radius * uSpinSpeed + uRotationPhase;
-                    float angle = branchAngle + spinAngle;
-
-                    vec3 particlePosition = vec3(cos(angle) * radius, 0.0, sin(angle) * radius);
-                    vec3 randomOffset = pow(abs(aRandom), vec3(uRandomnessPower)) * sign(aRandom) * radiusRatio;
-                    particlePosition += randomOffset;
+                    float radiusRatio;
+                    vec3 particlePosition = galaxyOrbitPosition(aIndex, uRotationPhase, radiusRatio);
 
                     // --- trade shockwaves ---
                     // Each live trade is a ring born at its own price radius.
@@ -712,9 +687,7 @@ export class GalaxyFlowEngine extends BaseEngine {
                     gl_PointSize = min(gl_PointSize, 128.0);
 
                     vRadiusRatio = radiusRatio;
-                    vOutsideColor = uColorOutside;
-                    if (aColorMix > 0.66) vOutsideColor = uColorOutside3;
-                    else if (aColorMix > 0.33) vOutsideColor = uColorOutside2;
+                    vOutsideColor = galaxyOutsideColor(aColorMix);
 
                     vec3 sentimentColor = uSentiment >= 0.0 ? uColorUp : uColorDown;
                     vOutsideColor = mix(vOutsideColor, sentimentColor, abs(uSentiment) * uSentimentTint);

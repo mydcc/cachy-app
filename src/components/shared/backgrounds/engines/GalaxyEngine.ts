@@ -17,6 +17,7 @@
 
 import * as THREE from 'three';
 import { BaseEngine } from './BaseEngine';
+import { GALAXY_ORBIT_UNIFORMS, GALAXY_ORBIT_FUNCTIONS } from '../shaders/galaxyPoints';
 
 export class GalaxyEngine extends BaseEngine {
     private galaxyPoints: THREE.Points | null = null;
@@ -111,42 +112,13 @@ export class GalaxyEngine extends BaseEngine {
             vertexShader: `
                 precision mediump float;
                 uniform float uTime;
-                uniform float uSize;
-                uniform float uPixelRatio;
-                uniform float uRadius;
-                uniform float uBranches;
-                uniform float uSpinSpeed;
-                uniform float uRandomnessPower;
-                uniform float uConcentrationPower;
                 uniform float uRotationSpeed;
-                uniform float uParticleCount;
-                uniform vec3 uColorOutside;
-                uniform vec3 uColorOutside2;
-                uniform vec3 uColorOutside3;
-
-                attribute vec3 aRandom;
-                attribute float aScale;
-                attribute float aColorMix;
-                attribute float aIndex;
-
-                varying float vRadiusRatio;
-                varying vec3 vOutsideColor;
-
-                #define PI 3.14159265359
+                ${GALAXY_ORBIT_UNIFORMS}
+                ${GALAXY_ORBIT_FUNCTIONS}
 
                 void main() {
-                    float particleId = aIndex;
-                    float radiusRatio = fract(particleId / uParticleCount);
-                    float radius = pow(radiusRatio, uConcentrationPower) * uRadius;
-
-                    float branchId = floor(mod(particleId, uBranches));
-                    float branchAngle = branchId * (2.0 * PI / uBranches);
-                    float spinAngle = radius * uSpinSpeed + uTime * uRotationSpeed;
-                    float angle = branchAngle + spinAngle;
-
-                    vec3 particlePosition = vec3(cos(angle) * radius, 0.0, sin(angle) * radius);
-                    vec3 randomOffset = pow(abs(aRandom), vec3(uRandomnessPower)) * sign(aRandom) * radiusRatio;
-                    particlePosition += randomOffset;
+                    float radiusRatio;
+                    vec3 particlePosition = galaxyOrbitPosition(aIndex, uTime * uRotationSpeed, radiusRatio);
 
                     vec4 modelPosition = modelMatrix * vec4(particlePosition, 1.0);
                     vec4 viewPosition = viewMatrix * modelPosition;
@@ -156,9 +128,7 @@ export class GalaxyEngine extends BaseEngine {
                     gl_PointSize *= (1.0 / -viewPosition.z);
 
                     vRadiusRatio = radiusRatio;
-                    vOutsideColor = uColorOutside;
-                    if (aColorMix > 0.66) vOutsideColor = uColorOutside3;
-                    else if (aColorMix > 0.33) vOutsideColor = uColorOutside2;
+                    vOutsideColor = galaxyOutsideColor(aColorMix);
                 }
             `,
             fragmentShader: `

@@ -21,6 +21,7 @@ import { untrack } from "svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { readCssColor, getThemePalette, invalidateThemePalette } from "../lib/themeColors";
 import type { Decimal } from "decimal.js";
 
 let idCounter = 0;
@@ -49,18 +50,10 @@ export interface BurnOptions {
 }
 
 
-// Global Theme State (Shared across all burn instances)
-let cachedThemeColor = "";
-let lastThemeCheck = 0;
-let cachedUpColor = "";
-let cachedDownColor = "";
-
+// The semantic palette is cached in `lib/themeColors.ts`; a theme class change
+// drops that cache so the next resolve re-reads the CSS variables.
 const themeObserver = typeof document !== 'undefined'
-    ? new MutationObserver(() => {
-        cachedThemeColor = "";
-        cachedUpColor = "";
-        cachedDownColor = "";
-    })
+    ? new MutationObserver(() => invalidateThemePalette())
     : null;
 
 if (themeObserver && typeof document !== 'undefined') {
@@ -68,7 +61,7 @@ if (themeObserver && typeof document !== 'undefined') {
 }
 
 export function resetBurnThemeCache() {
-    cachedThemeColor = "";
+    invalidateThemePalette();
 }
 
 class BurnColorResolver {
@@ -79,18 +72,8 @@ class BurnColorResolver {
     resolve(inputColor?: string, localMode?: string, inputSymbol?: string): string {
         const mode = localMode || settingsState.borderEffectColorMode;
 
-        // Common vars for theme color resolution
-        const getaccent = () => {
-            const now = Date.now();
-            if (!cachedThemeColor || now - lastThemeCheck > 500) {
-                cachedThemeColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || "#ff8800";
-                lastThemeCheck = now;
-            }
-            return cachedThemeColor;
-        };
-
         if (mode === "theme") {
-            return getaccent();
+            return getThemePalette().accent;
         }
 
         if (mode === "custom") {
@@ -98,7 +81,8 @@ class BurnColorResolver {
         }
 
         if (mode === "classic") {
-            return "#ff8800"; // Dummy
+            // The shader owns the classic fire core; the value is only a sentinel.
+            return "#ff8800";
         }
 
         // Interactive Mode Logic
@@ -106,9 +90,9 @@ class BurnColorResolver {
             // 1. Explicit color override (e.g. FlashCard Back)
             if (inputColor) {
                 if (inputColor.startsWith('var(')) {
-                    const varName = inputColor.match(/var\(([^)]+)\)/)?.[1];
+                    const varName = inputColor.match(/var\(\s*(--[\w-]+)/)?.[1];
                     if (varName) {
-                        return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || "#ff8800";
+                        return readCssColor(varName, getThemePalette().accent);
                     }
                 }
                 return inputColor;
@@ -123,13 +107,6 @@ class BurnColorResolver {
                 const key = normalizeSymbol(symbol, "bitunix");
                 const data = marketState.data[key];
 
-                // Cache colors if needed
-                if (!cachedUpColor || !cachedDownColor) {
-                    const style = getComputedStyle(document.documentElement);
-                    cachedUpColor = style.getPropertyValue('--success-color').trim() || "#00ff00";
-                    cachedDownColor = style.getPropertyValue('--danger-color').trim() || "#ff0000";
-                }
-
                 if (data && data.lastPrice) {
                     // Check for Symbol Change -> Reset Trend
                     if (symbol !== this.localLastSymbol) {
@@ -139,17 +116,19 @@ class BurnColorResolver {
                     }
                     // Check for Price Change -> Update Trend
                     else if (this.localLastPrice && !data.lastPrice.equals(this.localLastPrice)) {
-                        const isUp = data.lastPrice.gt(this.localLastPrice);
-                        this.localTrendColor = isUp ? cachedUpColor : cachedDownColor;
+                        const palette = getThemePalette();
+                        this.localTrendColor = data.lastPrice.gt(this.localLastPrice)
+                            ? palette.success
+                            : palette.danger;
                         this.localLastPrice = data.lastPrice;
                     }
                 }
 
                 // Return Trend Color if established, otherwise Accent (Idle/Init)
-                return this.localTrendColor || getaccent();
+                return this.localTrendColor || getThemePalette().accent;
             }
 
-            return getaccent(); // Fallback to accent
+            return getThemePalette().accent; // Fallback to accent
         }
 
         return inputColor ?? "#ffaa00";

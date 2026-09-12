@@ -20,6 +20,9 @@
     import { browser } from "$app/environment";
     import { settingsState } from "../../stores/settings.svelte";
     import GalaxyWorker from "./backgrounds/galaxy.worker?worker";
+    import { readCssColor, isLightColor } from "../../lib/themeColors";
+    import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
+    import { prefersReducedMotion, resolveReducedMotion, subscribeReducedMotion } from "../../lib/three/motion";
 
     // ========================================
     // STATE MANAGEMENT
@@ -45,62 +48,16 @@
     // THEME & COLOR RESOLUTION
     // ========================================
 
-    const resolveColor = (varName: string, fallback: string = "#000000"): string => {
-        if (!browser) return fallback;
-        const style = getComputedStyle(document.documentElement);
-        const initialValue = varName.startsWith("--") ? style.getPropertyValue(varName) : varName;
-        const trimmed = initialValue.trim();
-        if (trimmed.startsWith("var(")) {
-             const match = trimmed.match(/^var\((--[\w-]+)(?:,\s*(.+))?\)$/);
-             if (match) return style.getPropertyValue(match[1]).trim() || match[2] || fallback;
-        }
-        return trimmed || fallback;
-    };
-
-    function parseColorToRgb(colorStr: string): [number, number, number] | null {
-        const trimmed = colorStr.trim();
-        if (trimmed.startsWith("#")) {
-            const hex = trimmed.slice(1);
-            if (hex.length === 3) {
-                return [
-                    parseInt(hex[0] + hex[0], 16),
-                    parseInt(hex[1] + hex[1], 16),
-                    parseInt(hex[2] + hex[2], 16),
-                ];
-            } else if (hex.length >= 6) {
-                return [
-                    parseInt(hex.slice(0, 2), 16),
-                    parseInt(hex.slice(2, 4), 16),
-                    parseInt(hex.slice(4, 6), 16),
-                ];
-            }
-        }
-        const match = trimmed.match(/\d+/g);
-        if (match && match.length >= 3) {
-            return [parseInt(match[0], 10), parseInt(match[1], 10), parseInt(match[2], 10)];
-        }
-        return null;
-    }
-
+    // CSS-variable resolution lives in `lib/themeColors.ts`.
     function updateColors() {
         if (!worker || lifecycleState !== LifecycleState.READY) return;
 
-        const inside = resolveColor("--galaxy-stars-core") || "#6366f1";
-        const out1 = resolveColor("--galaxy-stars-edge") || "#8b5cf6";
-        const out2 = resolveColor("--galaxy-stars-edge-2") || "#8b5cf6";
-        const out3 = resolveColor("--galaxy-stars-edge-3") || "#6366f1";
-
-        const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
-
-        const rgb = parseColorToRgb(bgStr);
-        let light = false;
-        if (rgb) {
-            const r = rgb[0] / 255;
-            const g = rgb[1] / 255;
-            const b = rgb[2] / 255;
-            const max = Math.max(r, g, b), min = Math.min(r, g, b);
-            light = (max + min) / 2 > 0.5;
-        }
+        const style = getComputedStyle(document.documentElement);
+        const inside = readCssColor("--galaxy-stars-core", "#6366f1", style);
+        const out1 = readCssColor("--galaxy-stars-edge", "#8b5cf6", style);
+        const out2 = readCssColor("--galaxy-stars-edge-2", "#8b5cf6", style);
+        const out3 = readCssColor("--galaxy-stars-edge-3", "#6366f1", style);
+        const light = isLightColor(readCssColor("--galaxy-bg", "#0a0e27", style));
 
         worker.postMessage({
             type: 'updateColors',
@@ -196,6 +153,36 @@
             worker.postMessage({ type: 'generate' });
             prevStructureKey = key;
         }
+    });
+
+    // Quality + reduced motion (see `qualityController` / `lib/three/motion`).
+    let systemReducedMotion = $state(prefersReducedMotion());
+    $effect(() => subscribeReducedMotion((reduced) => (systemReducedMotion = reduced)));
+
+    $effect(() => {
+        if (settingsState.visualQuality !== "auto") return;
+        return retainAutoQuality();
+    });
+
+    $effect(() => {
+        if (!worker || lifecycleState !== LifecycleState.READY) return;
+        worker.postMessage({
+            type: "quality",
+            data: { tier: concreteQuality(settingsState.visualQuality) },
+        });
+    });
+
+    $effect(() => {
+        if (!worker || lifecycleState !== LifecycleState.READY) return;
+        worker.postMessage({
+            type: "setMotion",
+            data: {
+                reduced: resolveReducedMotion(
+                    settingsState.reduceMotion,
+                    systemReducedMotion,
+                ),
+            },
+        });
     });
 
     // Gyroscope Effect
