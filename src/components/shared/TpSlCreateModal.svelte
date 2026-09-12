@@ -232,7 +232,7 @@ import { Decimal } from "decimal.js";
       <select
         id="tpsl-create-trigger-type"
         bind:value={stopType}
-        class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)] text-xs"
+        class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)] text-xs"
       >
         <option value="MARK_PRICE">{$_("modals.createTpSl.markPrice")}</option>
         <option value="LAST_PRICE">{$_("modals.createTpSl.lastPrice")}</option>
@@ -281,7 +281,7 @@ import { Decimal } from "decimal.js";
             step="any"
             bind:value={tpPrice}
             disabled={positionWideLoading}
-            class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)]"
+            class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
           />
         </div>
       {/if}
@@ -319,7 +319,7 @@ import { Decimal } from "decimal.js";
             step="any"
             bind:value={slPrice}
             disabled={positionWideLoading}
-            class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)]"
+            class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
           />
         </div>
       {/if}
@@ -367,7 +367,7 @@ import { Decimal } from "decimal.js";
             step="any"
             bind:value={partialTpPrice}
             disabled={partialLoading}
-            class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)]"
+            class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
           />
         </div>
 
@@ -381,7 +381,7 @@ import { Decimal } from "decimal.js";
             step="any"
             bind:value={partialSlPrice}
             disabled={partialLoading}
-            class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)]"
+            class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
           />
         </div>
 
@@ -395,7 +395,7 @@ import { Decimal } from "decimal.js";
             step="any"
             bind:value={partialQty}
             disabled={partialLoading}
-            class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)]"
+            class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
           />
         </div>
 
