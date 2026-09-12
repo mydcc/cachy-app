@@ -15,6 +15,7 @@ import { uiState } from "./ui.svelte";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 import { setTelemetryConsentProvider } from "../services/trackingService";
 import { setLoggerConfigProvider } from "../services/loggerConfig";
+import { setNewsSettingsProvider } from "../services/newsSettings";
 import { EntitlementStore } from "./entitlement.svelte";
 // Class A both sides, and no back edge: `paperTrading.svelte.ts` imports
 // nothing from here, so reading the mode cannot cycle.
@@ -2393,6 +2394,10 @@ setTelemetryConsentProvider(() => settingsState.enableTelemetry !== false);
 // The logger needs debugMode/logSettings but may not import this store; hand it
 // a live reader instead of a copy, so toggling debug mode takes effect at once.
 setLoggerConfigProvider(() => settingsState);
+
+// newsService reads API keys and feed settings; expose them through a live
+// reader instead of the store import it used to carry.
+setNewsSettingsProvider(() => settingsState);
 
 // HMR: Cleanup on module disposal to prevent timers and effect leaks
 if (import.meta.hot) {
