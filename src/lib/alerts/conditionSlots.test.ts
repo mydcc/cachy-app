@@ -121,6 +121,53 @@ describe("slotOf", () => {
   });
 });
 
+describe("slotOf — known gap (BUG-0444)", () => {
+  // slotOf() checks operand *kinds*, not the operator constraints each reader
+  // imposes on top of them. These three shapes are claimed today even though
+  // no reader can round-trip them, which reproduces the BUG-0443 failure one
+  // step further out: the claiming builder hydrates blank and its mount-time
+  // write then deletes the member. BUG-0444 tracks tightening slotOf() to
+  // match reader constraints; when it lands, these three assertions flip from
+  // the claimed slot to null.
+  it("claims an indicator condition with a window RHS indicatorConditionForm rejects", () => {
+    expect(
+      slotOf({
+        kind: "compare",
+        left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } },
+        op: "gt",
+        right: { kind: "window", of: { kind: "price", field: "high" }, agg: "max", lookback: 20 },
+        timeframe: "1h",
+      }),
+    ).toBe("indicators");
+  });
+
+  it("claims an indicator condition with a mark-source price RHS referenceFor rejects", () => {
+    expect(
+      slotOf({
+        kind: "compare",
+        left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } },
+        op: "gt",
+        right: { kind: "price", field: "close", source: "mark" },
+        timeframe: "1h",
+      }),
+    ).toBe("indicators");
+  });
+
+  it("claims a percent_change comparison with an operator readPriceForm cannot render", () => {
+    // readPriceForm only round-trips gte/lte; slotOf checks only the operand
+    // kinds, not the operator.
+    expect(
+      slotOf({
+        kind: "compare",
+        left: { kind: "percent_change", field: "close", lookback: 3 },
+        op: "gt",
+        right: { kind: "constant", value: "5" },
+        timeframe: "4h",
+      }),
+    ).toBe("price");
+  });
+});
+
 describe("conditionMembers", () => {
   it("unwraps a group and wraps a bare condition", () => {
     expect(conditionMembers(group(PRICE_CROSS, PATTERN))).toEqual([PRICE_CROSS, PATTERN]);
