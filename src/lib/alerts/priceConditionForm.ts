@@ -80,7 +80,9 @@ function displayThreshold(raw: string): string {
  * draft that also holds an indicator condition still reads blank in this form
  * and the write-through leaves that indicator alone (BUG-0443).
  */
-export function readPriceForm(conditions: Condition): PriceFormState {
+export function readPriceForm(
+  conditions: Condition | null | undefined,
+): PriceFormState {
   const condition = conditionInSlot(conditions, "price");
   if (condition === null) return BLANK_PRICE_FORM;
 
