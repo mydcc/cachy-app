@@ -338,6 +338,19 @@ function stopCoverageResync(): void {
 }
 
 /**
+ * BUG-0441 follow-up: the replay in `initAlertEngine()` is only safe as the
+ * engine's *first* evaluation for a symbol — that is what lets its oldest
+ * close be compared against nothing rather than against an already-seeded
+ * baseline. Production calls `initAlertEngine()` once (`+layout.svelte`), but
+ * `ensureLoaded()` caches the WASM instance across calls, so a second call —
+ * HMR, a test, a future caller — would replay again into an engine some of
+ * whose symbols already hold a live baseline, reintroducing the exact
+ * arbitrary-jump false fire the replay exists to prevent. This flag makes a
+ * second call a no-op for the replay step instead of a silent hazard.
+ */
+let hasReplayedAlertHistory = false;
+
+/**
  * Brings the alert engine up at client startup. BUG-0382: without this, every
  * method on `alertEngine` early-returns on a null instance and no alert can
  * ever fire, even though the market hot path calls `evaluate()` on every tick.
@@ -437,16 +450,25 @@ export async function initAlertEngine(
     // lives in the WASM instance and does not survive a reload, while the
     // alerts do. Synchronous and never awaited, on purpose: see the import
     // above. `replayClosedCandles` never throws.
-    const replayed = replayClosedCandles({
-        alerts: alertsForLegacyEngine(alertState.definitions, covered),
-        readCandles: readClosedCandles,
-        evaluate: (symbol, close, timestampMs) => alertEngine.evaluate(symbol, close, timestampMs),
-    });
-    logger.log(
-        "alerts",
-        `[BUG-0441] Replayed ${replayed.candles} closes across ${replayed.symbols} symbol(s); ` +
-            `${replayed.skipped.length} without history, ${replayed.failed.length} failed`,
-    );
+    //
+    // Guarded by `hasReplayedAlertHistory`: `ensureLoaded()` above returns
+    // early on a cached instance, so a second `initAlertEngine()` call would
+    // otherwise replay into an engine that already has a live baseline for
+    // some symbols — see the flag's own comment for the false-fire this
+    // prevents.
+    if (!hasReplayedAlertHistory) {
+        hasReplayedAlertHistory = true;
+        const replayed = replayClosedCandles({
+            alerts: alertsForLegacyEngine(alertState.definitions, covered),
+            readCandles: readClosedCandles,
+            evaluate: (symbol, close, timestampMs) => alertEngine.evaluate(symbol, close, timestampMs),
+        });
+        logger.log(
+            "alerts",
+            `[BUG-0441] Replayed ${replayed.candles} closes across ${replayed.symbols} symbol(s); ` +
+                `${replayed.skipped.length} without history, ${replayed.failed.length} failed`,
+        );
+    }
 
     alertState.engineStatus = "ready";
 

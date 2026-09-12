@@ -106,7 +106,9 @@ Left alone:
       with the replay call removed (1 failed / 5 passed), GREEN with it (6 passed)
 - [x] The test passes with the fix
 - [x] An alert armed below a level the price crossed while the app was closed fires at
-      startup, anchored to the candle that crossed rather than to startup time
+      startup, anchored to the candle that crossed rather than to startup time —
+      **bounded**: only within the replay window (see "Known limitation" below), not
+      for every possible crossing regardless of age
 - [x] A price that was already past the level the whole time still does not fire —
       `FEAT-0390`'s requirement is preserved, not traded away
 - [x] No double fire: a live tick crossing again after the replay leaves exactly one
@@ -142,6 +144,46 @@ instance is null, so nothing can have been evaluated before it either.
 Two candles are required before anything is replayed. A single close cannot express a
 crossing, and a lone stale baseline paired with the next live tick spans an unknown gap
 — the same arbitrary jump, arriving through the front door.
+
+**A second `initAlertEngine()` call cannot re-replay (found in review, 2026-09-12).**
+`ensureLoaded()` caches the WASM instance across calls, so a second call — none exists
+in production today, but nothing stopped one — would have replayed into an engine that
+already holds a live baseline for some symbols: the exact arbitrary-jump false fire this
+whole fix exists to prevent. `hasReplayedAlertHistory` in `alerts.svelte.ts` makes the
+replay step a no-op on any call after the first. RED proven first (a still-armed alert
+flipped to fired by a second, unrelated window) then GREEN, in
+`alerts_engineWiring.test.ts`.
+
+## Known limitation (found in review, 2026-09-12)
+
+The window search stops at the **first** timeframe in `REPLAY_TIMEFRAMES` (`1m`, `5m`,
+`15m`) that has two usable closes — it does not check whether that timeframe's window
+actually straddles the target, nor does it fall through to a coarser timeframe when it
+doesn't. At `1m` the effective window is `REPLAY_MAX_CANDLES` (240) candles = 4 hours.
+
+Concretely: a trader charting `1m` who arms an alert Friday evening and whose target is
+crossed Saturday, with the app reopened Monday, gets a `1m` window that is entirely
+*past* the target (no straddling pair) — so no fire — even though the `5m` or `15m`
+series, never consulted because `1m` already had two closes, would have straddled it.
+This is exactly the overnight/weekend case the bug report opens with, at that specific
+window length.
+
+**Left as documentation, not fixed here**, because closing it properly means searching
+every timeframe for a straddling pair rather than stopping at the first non-empty one —
+and "straddling" is not a property the JS layer can check without calling `evaluate()`,
+which is stateful (it seeds the baseline and can flip `alert.active`). Probing a
+timeframe speculatively would need a rollback path the engine does not have. A real fix
+is a follow-up, not a comment; this bug's own acceptance criteria are met by the window
+that exists, worded to say so precisely.
+
+## Out of scope
+
+- Searching multiple timeframes for a straddling pair instead of stopping at the first
+  with usable history — see "Known limitation" above.
+- Widening `REPLAY_MAX_CANDLES` beyond 240. The cost is negligible (see the "closes
+  only" note above), but a longer window is a product decision about how old a
+  crossing should still count, not a bug fix.
+- Replaying highs and lows instead of closes — see "Closes only" above.
 
 ## Links
 
