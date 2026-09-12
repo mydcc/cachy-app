@@ -21,9 +21,10 @@ import { CityEngine } from './engines/CityEngine';
 import { RaindropsEngine } from './engines/RaindropsEngine';
 import { SonarEngine } from './engines/SonarEngine';
 import { BlockEngine } from './engines/BlockEngine';
-import { GalaxyFlowEngine } from './engines/GalaxyFlowEngine';
+import { GalaxyFlowEngine, galaxyCameraWorldPosition } from './engines/GalaxyFlowEngine';
 import { type BaseEngine, type EngineContext } from './engines/BaseEngine';
 import { VolumeNormalizer, marketHeat, clamp01 } from './engines/volumeScale';
+import { smoothingAlpha, TAU_SIGNAL, TAU_NEBULA, TAU_GYRO, TAU_NEBULA_FADE } from './engines/smoothing';
 import { pickVolatility, pickMood } from './indicatorSignal';
 import type { VolatilitySource, MoodSource } from './indicatorSignal';
 
@@ -32,8 +33,18 @@ import type { VolatilitySource, MoodSource } from './indicatorSignal';
 // `settings: any` context field, which this passes through unchanged.
 interface FlowSettings {
     flowMode?: string;
-    /** Galaxy-mode tunables; only `autoCenter` is read here, the engine reads the rest. */
-    galaxyFlow?: { autoCenter?: boolean; [key: string]: unknown };
+    /** Galaxy-mode tunables; the camera fields are read here, the engine reads the rest. */
+    galaxyFlow?: {
+        autoCenter?: boolean;
+        camPos?: { x: number; y: number; z: number };
+        enableGyroscope?: boolean;
+        galaxyRot?: { x: number; y: number; z: number };
+        [key: string]: unknown;
+    };
+    /** Overall reaction strength of the dynamic atmosphere. 1 = tuned default. */
+    atmosphereIntensity?: number;
+    /** Reaction-speed multiplier; scales the smoothing time constants and sky drift. */
+    atmosphereSpeed?: number;
     volatilitySource?: VolatilitySource;
     moodSource?: MoodSource;
     cameraPositionX?: number;
@@ -54,6 +65,11 @@ interface ColorMessageData {
     colorUp: string;
     colorDown: string;
     background: string;
+    /**
+     * Whether the active theme is a light one. The atmosphere sky switches to
+     * normal blending on light themes (additive washes out to white there).
+     */
+    light?: boolean;
     /** Star palette for the galaxy mode; absent for every other mode. */
     galaxy?: {
         inside: string;
@@ -70,6 +86,19 @@ let scene: THREE.Scene;
 let camera: THREE.PerspectiveCamera;
 let activeEngine: BaseEngine | null = null;
 let settings: FlowSettings;
+
+// The standalone galaxy frames a radius-5 disc from `camPos` (default z=5).
+// This scene is 12x larger (radius default 60), so the same camPos is scaled by
+// this factor: both galaxies share identical camera settings and framing, while
+// the tuned world proportions (particle size, pulse travel) stay untouched.
+const GALAXY_CAMERA_SCALE = 12;
+const GALAXY_FOV = 50;
+const GRID_FOV = 60;
+
+// Device-orientation offset in camPos units, smoothed like the standalone
+// galaxy's worker does. Applied only in galaxy mode.
+let targetGyroOffset = { x: 0, y: 0 };
+let currentGyroOffset = { x: 0, y: 0 };
 
 // One shared calibration window for whichever engine is active. Lives here so
 // a symbol change resets it exactly once via the 'resetVolume' message.
@@ -152,38 +181,66 @@ function computeActivity(nowMs: number): number {
 let ambientLight: THREE.AmbientLight | null = null;
 let dirLight: THREE.DirectionalLight | null = null;
 
-// Atmosphere nebula particles
-let nebulaPoints: THREE.Points | null = null;
-let nebulaMaterial: THREE.ShaderMaterial | null = null;
-const NEBULA_COUNT = 120;
+// Atmosphere sky: a large, world-anchored dome drawn behind everything. The
+// procedural clouds are sampled from the fragment's direction, so rotating the
+// view (or the dome, which the galaxy rotation drives) pans the field, and
+// moving the camera shifts it with real parallax. The point sprites this
+// replaces only reacted to camera distance.
+let sky: THREE.Mesh | null = null;
+let skyMaterial: THREE.ShaderMaterial | null = null;
+let isLightTheme = false;
+// Well inside the camera's far plane (1000); depthTest is off, so the radius
+// only controls how much parallax the dome shows.
+const SKY_RADIUS = 300;
 
-const nebulaVertexShader = `
-    attribute float aSize;
-    attribute float aPhase;
-    uniform float uTime;
-    varying float vAlpha;
+const skyVertexShader = `
+    varying vec3 vDir;
     void main() {
-        vec3 pos = position;
-        pos.x += sin(uTime * 0.05 + aPhase * 6.28) * 8.0;
-        pos.y += cos(uTime * 0.03 + aPhase * 3.14) * 4.0;
-        pos.z += sin(uTime * 0.04 + aPhase * 4.71) * 6.0;
-        vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
-        gl_PointSize = aSize * (600.0 / -mvPos.z);
-        gl_Position = projectionMatrix * mvPos;
-        vAlpha = smoothstep(800.0, 100.0, -mvPos.z);
+        vDir = normalize(position);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
 `;
 
-const nebulaFragmentShader = `
-    uniform vec3 uColor;
+const skyFragmentShader = `
+    uniform vec3 uColorA;
+    uniform vec3 uColorB;
     uniform float uOpacity;
-    varying float vAlpha;
+    uniform float uTime;
+    uniform float uDrift;
+    varying vec3 vDir;
+
+    float hash(vec3 p) {
+        p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
+        p *= 17.0;
+        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+    }
+    float noise(vec3 x) {
+        vec3 i = floor(x);
+        vec3 f = fract(x);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(
+            mix(mix(hash(i + vec3(0.0, 0.0, 0.0)), hash(i + vec3(1.0, 0.0, 0.0)), f.x),
+                mix(hash(i + vec3(0.0, 1.0, 0.0)), hash(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+            mix(mix(hash(i + vec3(0.0, 0.0, 1.0)), hash(i + vec3(1.0, 0.0, 1.0)), f.x),
+                mix(hash(i + vec3(0.0, 1.0, 1.0)), hash(i + vec3(1.0, 1.0, 1.0)), f.x), f.y),
+            f.z);
+    }
+    float fbm(vec3 p) {
+        float v = 0.0;
+        float a = 0.5;
+        for (int i = 0; i < 3; i++) {
+            v += a * noise(p);
+            p *= 2.03;
+            a *= 0.5;
+        }
+        return v;
+    }
     void main() {
-        vec2 c = gl_PointCoord - 0.5;
-        float d = length(c);
-        if (d > 0.5) discard;
-        float alpha = (1.0 - smoothstep(0.0, 0.5, d)) * vAlpha * uOpacity;
-        gl_FragColor = vec4(uColor, alpha * 0.35);
+        vec3 p = vDir * 1.8 + vec3(uTime * uDrift * 0.02, uTime * uDrift * 0.013, -uTime * uDrift * 0.017);
+        float n = fbm(p);
+        n = smoothstep(0.30, 0.85, n);
+        vec3 col = mix(uColorA, uColorB, n);
+        gl_FragColor = vec4(col, n * uOpacity);
     }
 `;
 
@@ -195,41 +252,31 @@ function initAtmosphere() {
     dirLight.position.set(0, 50, -30);
     scene.add(dirLight);
 
-    const positions = new Float32Array(NEBULA_COUNT * 3);
-    const sizes = new Float32Array(NEBULA_COUNT);
-    const phases = new Float32Array(NEBULA_COUNT);
-    for (let i = 0; i < NEBULA_COUNT; i++) {
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        const r = 40 + Math.random() * 120;
-        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-        positions[i * 3 + 1] = (Math.random() - 0.3) * 60;
-        positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta) - 40;
-        sizes[i] = 15 + Math.random() * 40;
-        phases[i] = Math.random();
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
-    geo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
-
-    nebulaMaterial = new THREE.ShaderMaterial({
+    const skyGeo = new THREE.SphereGeometry(SKY_RADIUS, 32, 16);
+    skyMaterial = new THREE.ShaderMaterial({
         uniforms: {
-            uTime: { value: 0 },
-            uColor: { value: new THREE.Color(0x222233) },
+            uColorA: { value: new THREE.Color(0x0a0e27) },
+            uColorB: { value: new THREE.Color(0x222233) },
             uOpacity: { value: 0.0 },
+            uTime: { value: 0 },
+            uDrift: { value: 1.0 },
         },
-        vertexShader: nebulaVertexShader,
-        fragmentShader: nebulaFragmentShader,
+        vertexShader: skyVertexShader,
+        fragmentShader: skyFragmentShader,
+        side: THREE.BackSide,
         transparent: true,
+        // depthWrite off (a backdrop must not occlude), depthTest ON so opaque
+        // scene geometry drawn before it correctly hides the dome behind it.
         depthWrite: false,
         blending: THREE.AdditiveBlending,
     });
 
-    nebulaPoints = new THREE.Points(geo, nebulaMaterial);
-    nebulaPoints.renderOrder = -1;
-    scene.add(nebulaPoints);
+    sky = new THREE.Mesh(skyGeo, skyMaterial);
+    // Rendered before every other transparent object (the engines' particles),
+    // so the dome always sits behind them.
+    sky.renderOrder = -2;
+    sky.frustumCulled = false;
+    scene.add(sky);
 }
 
 self.onmessage = (event) => {
@@ -253,6 +300,9 @@ self.onmessage = (event) => {
             break;
         case 'onTrade':
             onTrade(data);
+            break;
+        case 'gyro':
+            handleGyro(data);
             break;
         case 'indicator':
             indicatorVolatilityRel = typeof data?.volatilityRel === 'number' ? data.volatilityRel : null;
@@ -314,7 +364,25 @@ function animate(time: number) {
     // to the display's refresh rate (2x fast on 120 Hz).
     const dt = Math.min(now - lastFrameTime || 0.016, 0.1);
     lastFrameTime = now;
-    
+
+    // Framerate-independent smoothing. `atmosphereSpeed` scales every time
+    // constant, so the reaction pace is one control instead of a magic number.
+    const rawIntensity = typeof settings.atmosphereIntensity === 'number' ? settings.atmosphereIntensity : 1;
+    const atmoIntensity = Math.min(2, Math.max(0, rawIntensity));
+    const rawSpeed = typeof settings.atmosphereSpeed === 'number' ? settings.atmosphereSpeed : 1;
+    const atmoSpeed = Math.min(3, Math.max(0.1, rawSpeed));
+    const alphaSignal = smoothingAlpha(dt, TAU_SIGNAL / atmoSpeed);
+    const alphaSky = smoothingAlpha(dt, TAU_NEBULA / atmoSpeed);
+
+    // Smoothed gyroscope follow, same feel as the standalone galaxy. Only the
+    // galaxy reads camPos, so every other mode skips the per-frame camera work.
+    if (settings.flowMode === 'galaxy') {
+        const alphaGyro = smoothingAlpha(dt, TAU_GYRO / atmoSpeed);
+        currentGyroOffset.x += (targetGyroOffset.x - currentGyroOffset.x) * alphaGyro;
+        currentGyroOffset.y += (targetGyroOffset.y - currentGyroOffset.y) * alphaGyro;
+        applyGalaxyCamera();
+    }
+
     // Smoothing the mood. Which signal it chases is the user's choice; both are
     // in the same -1..+1 space, so everything downstream is unchanged.
     const moodTarget = pickMood(
@@ -322,11 +390,11 @@ function animate(time: number) {
         indicatorRsi,
         (settings?.moodSource as MoodSource) || 'sentiment'
     );
-    currentSentiment = currentSentiment + (moodTarget - currentSentiment) * 0.02;
+    currentSentiment += (moodTarget - currentSentiment) * alphaSignal;
 
     // Smoothing market activity (rate + volume + volatility)
     const activity = computeActivity(time);
-    currentActivity = currentActivity + (activity - currentActivity) * 0.02;
+    currentActivity += (activity - currentActivity) * alphaSignal;
 
     const atmoEnabled = settings.enableAtmosphere;
     const sentimentAbs = Math.abs(currentSentiment);
@@ -335,9 +403,9 @@ function animate(time: number) {
     if (atmoEnabled) {
       // Background color: subtle tint toward sentiment
       if (currentSentiment > 0.05) {
-        targetAtmosphereColor.copy(colorBg).lerp(colorUp, currentSentiment * 0.12);
+        targetAtmosphereColor.copy(colorBg).lerp(colorUp, Math.min(1, currentSentiment * 0.12 * atmoIntensity));
       } else if (currentSentiment < -0.05) {
-        targetAtmosphereColor.copy(colorBg).lerp(colorDown, sentimentAbs * 0.12);
+        targetAtmosphereColor.copy(colorBg).lerp(colorDown, Math.min(1, sentimentAbs * 0.12 * atmoIntensity));
       } else {
         targetAtmosphereColor.copy(colorBg);
       }
@@ -345,35 +413,37 @@ function animate(time: number) {
       // Ambient light: shift color + intensity with sentiment AND activity
       if (ambientLight) {
         const sentimentColor = currentSentiment > 0 ? colorUp : colorDown;
-        ambientLight.color.copy(colorBg).lerp(sentimentColor, sentimentAbs * 0.4);
-        ambientLight.intensity = 0.3 + sentimentAbs * 0.5 + currentActivity * 0.4;
+        ambientLight.color.copy(colorBg).lerp(sentimentColor, Math.min(1, sentimentAbs * 0.4 * atmoIntensity));
+        ambientLight.intensity = 0.3 + (sentimentAbs * 0.5 + currentActivity * 0.4) * atmoIntensity;
       }
 
       // Directional light: stronger with stronger sentiment AND activity
       if (dirLight) {
         const sentimentColor = currentSentiment > 0 ? colorUp : colorDown;
         dirLight.color.copy(sentimentColor);
-        dirLight.intensity = 0.1 + sentimentAbs * 0.6 + currentActivity * 0.5;
+        dirLight.intensity = 0.1 + (sentimentAbs * 0.6 + currentActivity * 0.5) * atmoIntensity;
       }
 
-      // Nebula: fade in with sentiment / activity, color follows market mood
-      if (nebulaMaterial) {
-        nebulaMaterial.uniforms.uTime.value = now;
-        const targetOpacity = clamp01(Math.max(sentimentAbs * 2.0, currentActivity * 1.5));
-        const curOp = nebulaMaterial.uniforms.uOpacity.value as number;
-        nebulaMaterial.uniforms.uOpacity.value = curOp + (targetOpacity - curOp) * 0.03;
+      // Sky: fade in with sentiment / activity, color follows market mood
+      if (skyMaterial) {
+        skyMaterial.uniforms.uTime.value = now;
+        skyMaterial.uniforms.uDrift.value = atmoSpeed;
+        const targetOpacity = clamp01(Math.max(sentimentAbs * 2.0, currentActivity * 1.5) * atmoIntensity);
+        const curOp = skyMaterial.uniforms.uOpacity.value as number;
+        skyMaterial.uniforms.uOpacity.value = curOp + (targetOpacity - curOp) * alphaSky;
         const nebulaColor = currentSentiment > 0 ? colorUp : colorDown;
-        (nebulaMaterial.uniforms.uColor.value as THREE.Color).lerp(nebulaColor, 0.02);
+        (skyMaterial.uniforms.uColorB.value as THREE.Color).lerp(nebulaColor, alphaSky);
+        (skyMaterial.uniforms.uColorA.value as THREE.Color).copy(colorBg);
       }
 
       // Fog: denser with stronger sentiment / activity for dramatic depth
       const baseDensity = 0.008;
-      const sentimentDensity = baseDensity + sentimentAbs * 0.015 + currentActivity * 0.02;
+      const sentimentDensity = baseDensity + (sentimentAbs * 0.015 + currentActivity * 0.02) * atmoIntensity;
       if (!scene.fog) {
         scene.fog = new THREE.FogExp2(currentAtmosphereColor.getHex(), sentimentDensity);
       } else {
         const fog = scene.fog as THREE.FogExp2;
-        fog.density += (sentimentDensity - fog.density) * 0.02;
+        fog.density += (sentimentDensity - fog.density) * alphaSignal;
         fog.color.copy(currentAtmosphereColor);
       }
     } else {
@@ -381,19 +451,20 @@ function animate(time: number) {
         // Reset atmosphere elements when disabled
         if (ambientLight) { ambientLight.intensity = 0.15; ambientLight.color.set(0x111111); }
         if (dirLight) { dirLight.intensity = 0.1; dirLight.color.set(0x222222); }
-        if (nebulaMaterial) {
-            nebulaMaterial.uniforms.uTime.value = now;
-            const curOp = nebulaMaterial.uniforms.uOpacity.value as number;
-            nebulaMaterial.uniforms.uOpacity.value = curOp * 0.95; // fade out
+        if (skyMaterial) {
+            skyMaterial.uniforms.uTime.value = now;
+            const curOp = skyMaterial.uniforms.uOpacity.value as number;
+            // Exponential decay, so the fade is framerate-independent too.
+            skyMaterial.uniforms.uOpacity.value = curOp * Math.exp(-dt / TAU_NEBULA_FADE);
         }
         if (scene.fog) {
             const fog = scene.fog as THREE.FogExp2;
-            fog.density += (0.005 - fog.density) * 0.02;
+            fog.density += (0.005 - fog.density) * alphaSignal;
             fog.color.copy(colorBg);
         }
     }
 
-    currentAtmosphereColor.lerp(targetAtmosphereColor, 0.02);
+    currentAtmosphereColor.lerp(targetAtmosphereColor, alphaSignal);
     scene.background = currentAtmosphereColor;
 
     if (activeEngine) {
@@ -468,32 +539,101 @@ function updateLightSettings(data: Record<string, unknown>) {
 
 function updateCamera() {
     if (!camera) return;
-    camera.position.set(settings.cameraPositionX || 0, settings.cameraHeight || 20, settings.cameraDistance || 40);
 
-    // Grid modes lay their content out in front of a fixed-rotation camera. The
-    // galaxy instead sits at the origin, so it aims the camera at itself — the
-    // same `autoCenter` behaviour the standalone Galaxy 3D background has, which
-    // is what keeps the position sliders usable there (a raw rotation would let
-    // the user push the galaxy out of frame with one slider).
-    if (settings.flowMode === 'galaxy' && settings.galaxyFlow?.autoCenter !== false) {
-        camera.lookAt(0, 0, 0);
-    } else {
-        // The VisualsTab rotation sliders are labelled in degrees (-180..180)
-        // and send their raw values, so convert here. Nullish (not falsy) so a
-        // deliberate 0 - the default - is honoured instead of hiding a pitch.
-        camera.rotation.set(
-            (settings.cameraRotationX ?? 0) * Math.PI / 180,
-            (settings.cameraRotationY ?? 0) * Math.PI / 180,
-            (settings.cameraRotationZ ?? 0) * Math.PI / 180
+    const galaxy = settings.flowMode === 'galaxy';
+    // Match the standalone galaxy's field of view so both backgrounds frame the
+    // scene identically; grid modes keep their wider view.
+    camera.fov = galaxy ? GALAXY_FOV : GRID_FOV;
+
+    // Rotate the sky with the galaxy's disc, so the atmosphere turns with it
+    // instead of staying frozen while the stars spin. Grid modes stay upright.
+    if (sky) {
+        const rot = galaxy ? settings.galaxyFlow?.galaxyRot : undefined;
+        sky.rotation.set(
+            (rot?.x ?? 0) * Math.PI / 180,
+            (rot?.y ?? 0) * Math.PI / 180,
+            (rot?.z ?? 0) * Math.PI / 180
         );
     }
+
+    if (galaxy) {
+        applyGalaxyCamera();
+        camera.updateProjectionMatrix();
+        return;
+    }
+
+    camera.position.set(settings.cameraPositionX || 0, settings.cameraHeight || 20, settings.cameraDistance || 40);
+
+    // The VisualsTab rotation sliders are labelled in degrees and send their raw
+    // values, so convert here. Nullish (not falsy) so a deliberate 0 - the
+    // default - is honoured instead of hiding a pitch.
+    camera.rotation.set(
+        (settings.cameraRotationX ?? 0) * Math.PI / 180,
+        (settings.cameraRotationY ?? 0) * Math.PI / 180,
+        (settings.cameraRotationZ ?? 0) * Math.PI / 180
+    );
     camera.updateProjectionMatrix();
+}
+
+/**
+ * Places the camera for the galaxy mode from the same `camPos` the standalone
+ * galaxy uses, scaled into this larger world, plus the smoothed gyroscope
+ * offset. `autoCenter` aims it at the core; otherwise it keeps a neutral
+ * orientation — matching the standalone galaxy, which has no camera rotation of
+ * its own (`galaxyRot` turns the disc instead).
+ */
+function applyGalaxyCamera(): void {
+    if (!camera) return;
+    const camPos = settings.galaxyFlow?.camPos ?? { x: 0, y: 2, z: 5 };
+    const pos = galaxyCameraWorldPosition(camPos, currentGyroOffset, GALAXY_CAMERA_SCALE);
+    camera.position.set(pos.x, pos.y, pos.z);
+    if (settings.galaxyFlow?.autoCenter !== false) {
+        camera.lookAt(0, 0, 0);
+    } else {
+        camera.rotation.set(0, 0, 0);
+    }
+}
+
+/** Mirrors the standalone galaxy's driver: tilt maps to a bounded, scaled offset. */
+function handleGyro(data: { alpha: number; beta: number; gamma: number }): void {
+    const maxAngle = 45;
+    const gx = Math.max(-maxAngle, Math.min(maxAngle, data.gamma)) / maxAngle;
+    // Assumes the phone is held at roughly 45 degrees.
+    const gy = Math.max(-maxAngle, Math.min(maxAngle, data.beta - 45)) / maxAngle;
+    targetGyroOffset.x = gx * 2.0;
+    targetGyroOffset.y = -gy * 2.0;
+}
+
+/**
+ * A value three can parse as a colour: non-empty and not a CSS gradient, which
+ * `Color.set` cannot read. Guards the silent-failure case in {@link updateColors}.
+ * `rgb()`/`hsl()`/hex/named colours are all valid and pass.
+ */
+function isPlainColor(value: unknown): value is string {
+    return typeof value === "string" && value.trim().length > 0 && !/gradient\(/i.test(value);
 }
 
 function updateColors(data: ColorMessageData) {
     colorUp.set(data.colorUp);
     colorDown.set(data.colorDown);
-    colorBg.set(data.background);
+    // three logs and *keeps the previous colour* for an unparseable string (a
+    // CSS gradient among them), which would silently leave the last theme's
+    // background in place — the light theme's, after switching to a dark one.
+    // Fall back to black rather than retain it.
+    colorBg.set(isPlainColor(data.background) ? data.background : "#000000");
+
+    // The atmosphere sky switches blending with the theme: additive clouds wash
+    // out to white on a light background, exactly like the galaxy stars would.
+    if (typeof data.light === "boolean") {
+        isLightTheme = data.light;
+        if (skyMaterial) {
+            const blending = isLightTheme ? THREE.NormalBlending : THREE.AdditiveBlending;
+            if (skyMaterial.blending !== blending) {
+                skyMaterial.blending = blending;
+                skyMaterial.needsUpdate = true;
+            }
+        }
+    }
 
     // Galaxy mode additionally carries the theme's star palette, resolved from
     // the same `--galaxy-*` variables the standalone background reads, so both

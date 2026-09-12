@@ -29,7 +29,10 @@ import {
 	pulseGeometry,
 	pulseTravelSpan,
 	priceAxisWorldRadius,
-	priceAxisPosition
+	priceAxisPosition,
+	galaxyCameraWorldPosition,
+	atrBandPrices,
+	atrBandOpacity
 } from './GalaxyFlowEngine';
 
 describe('tradePulseStrength', () => {
@@ -278,5 +281,65 @@ describe('pulseTravelSpan', () => {
 		const priceSpan = pulseTravelSpan(true);
 		expect(priceSpan).toBeGreaterThan(0);
 		expect(priceSpan).toBeLessThan(0.5);
+	});
+});
+
+describe('galaxyCameraWorldPosition', () => {
+	// Trade-flow world scale relative to the standalone galaxy's radius-5 disc.
+	const SCALE = 12;
+	const TRADEFLOW_RADIUS = 60;
+
+	it('scales the shared camPos into the trade-flow world', () => {
+		expect(galaxyCameraWorldPosition({ x: 0, y: 2, z: 5 }, { x: 0, y: 0 }, SCALE)).toEqual({
+			x: 0,
+			y: 24,
+			z: 60
+		});
+	});
+
+	it('frames the disc exactly like the standalone galaxy', () => {
+		const pos = galaxyCameraWorldPosition({ x: 0, y: 2, z: 5 }, { x: 0, y: 0 }, SCALE);
+		// Standalone: radius 5, camPos y 2 / z 5.
+		expect(pos.z / TRADEFLOW_RADIUS).toBeCloseTo(5 / 5);
+		expect(pos.y / TRADEFLOW_RADIUS).toBeCloseTo(2 / 5);
+	});
+
+	it('applies the gyroscope offset before scaling', () => {
+		const pos = galaxyCameraWorldPosition({ x: 0, y: 2, z: 5 }, { x: 1, y: -1 }, SCALE);
+		expect(pos.x).toBe(SCALE);
+		expect(pos.y).toBeCloseTo((2 - 1) * SCALE);
+		expect(pos.z).toBe(5 * SCALE);
+	});
+});
+
+describe('atrBandOpacity', () => {
+	it('reproduces the tuned default at strength 1', () => {
+		expect(atrBandOpacity(1)).toEqual([0.3, 0.16, 0.3]);
+	});
+
+	it('hides the rings at strength 0 and for invalid input', () => {
+		expect(atrBandOpacity(0)).toEqual([0, 0, 0]);
+		expect(atrBandOpacity(Number.NaN)).toEqual([0, 0, 0]);
+	});
+
+	it('brightens toward full opacity without exceeding it', () => {
+		const [outer, mid] = atrBandOpacity(10);
+		expect(outer).toBe(1);
+		expect(mid).toBe(1);
+	});
+});
+
+describe('atrBandPrices', () => {
+	it('places the rings at ±1 ATR at width 1', () => {
+		expect(atrBandPrices(100, 2, 1)).toEqual([98, 100, 102]);
+	});
+
+	it('scales the ring distance with the width multiple', () => {
+		expect(atrBandPrices(100, 2, 0.5)).toEqual([99, 100, 101]);
+	});
+
+	it('collapses onto the last price at width 0 or invalid input', () => {
+		expect(atrBandPrices(100, 2, 0)).toEqual([100, 100, 100]);
+		expect(atrBandPrices(100, 2, Number.NaN)).toEqual([100, 100, 100]);
 	});
 });
