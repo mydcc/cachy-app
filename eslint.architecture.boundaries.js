@@ -38,7 +38,6 @@ export const servicesToStoresAllowlist = [
   "src/services/marketAnalyst.ts",
   "src/services/marketWatcher.ts",
   "src/services/marketWatcher/historyFetcher.ts",
-  "src/services/newsService.ts",
   "src/services/notificationService.svelte.ts",
   "src/services/orderPlacementService.ts",
   "src/services/paperAccountFeed.ts",
