@@ -118,6 +118,38 @@ describe("replayClosedCandles", () => {
         expect(evaluate.mock.calls.map((c) => c[1])).toEqual(["10", "20"]);
     });
 
+    it("uses the symbol's own available timeframes when a provider is given, not a fixed probe list", () => {
+        // BUG-0441 review: a symbol charted at 1h has no 1m/5m/15m series, so
+        // probing a fixed list skips it even though history is right there.
+        const evaluate = vi.fn();
+        const readCandles = vi.fn((_symbol: string, timeframe: string) =>
+            timeframe === "1h" ? series(["10", "20"]) : [],
+        );
+
+        replayClosedCandles({
+            alerts: [alert("a1", "BTCUSDT")],
+            readCandles,
+            timeframesFor: () => ["1h"],
+            evaluate,
+        });
+
+        expect(readCandles.mock.calls.map((c) => c[1])).toEqual(["1h"]);
+        expect(evaluate.mock.calls.map((c) => c[1])).toEqual(["10", "20"]);
+    });
+
+    it("names the symbols it replayed so a per-symbol caller can mark them done", () => {
+        const evaluate = vi.fn();
+        const report = replayClosedCandles({
+            alerts: [alert("a1", "BTCUSDT"), alert("a2", "ETHUSDT")],
+            readCandles: (symbol) => (symbol === "BTCUSDT" ? series(["1", "2"]) : []),
+            evaluate,
+        });
+
+        expect(report.symbols).toBe(1);
+        expect(report.replayed).toEqual(["BTCUSDT"]);
+        expect(report.skipped).toEqual(["ETHUSDT"]);
+    });
+
     it("bounds the replay to the most recent window, keeping the newest closes", () => {
         const evaluate = vi.fn();
         const long = series(Array.from({ length: REPLAY_MAX_CANDLES + 50 }, (_, i) => String(i)));

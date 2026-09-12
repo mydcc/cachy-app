@@ -58,9 +58,11 @@ import type { EvaluationCandle } from "../../lib/rules/types";
  * to be the engine's first evaluation for a symbol, or its oldest close is
  * compared against a baseline already seeded by a live tick — an arbitrary
  * jump that can straddle a target in either direction and fire for nothing.
- * `initAlertEngine` therefore runs it in the same synchronous continuation as
- * the `setAlerts` push, with no `await` in between, so no WebSocket callback
- * can interleave.
+ * `legacyReplayCoordinator` enforces that: it runs the replay at startup when
+ * history is already present, again the moment a symbol's history becomes
+ * observable (`noteLegacyReplaySeriesObserved`, wired to the market store's
+ * kline write path), and — as a final guarantee before the ordering window
+ * closes — immediately before a symbol's first live evaluation.
  */
 
 /**
@@ -84,7 +86,7 @@ export const REPLAY_TIMEFRAMES = ["1m", "5m", "15m"] as const;
 export const REPLAY_MAX_CANDLES = 240;
 
 /** A legacy alert, reduced to what the replay needs to know about it. */
-interface ReplayableAlert {
+export interface ReplayableAlert {
     symbol: string;
     active: boolean;
 }
@@ -93,6 +95,15 @@ export interface ReplayClosedCandlesDeps {
     /** The alerts the legacy engine actually holds — uncovered ones only. */
     alerts: readonly ReplayableAlert[];
     readCandles: (symbol: string, timeframe: string) => EvaluationCandle[];
+    /**
+     * The timeframes this symbol actually has history in, finest first.
+     *
+     * BUG-0441 review: a symbol charted at `1h` holds no `1m`/`5m`/`15m`
+     * series, so probing a fixed list skips it even though history exists.
+     * Returning the store's own keys closes that gap; an empty result falls
+     * back to `timeframes` so a caller with a fixed list still works.
+     */
+    timeframesFor?: (symbol: string) => readonly string[];
     evaluate: (symbol: string, close: string, timestampMs: number) => void;
     timeframes?: readonly string[];
     maxCandles?: number;
@@ -101,6 +112,8 @@ export interface ReplayClosedCandlesDeps {
 export interface ReplayReport {
     /** Symbols that had usable history and were replayed. */
     symbols: number;
+    /** The same symbols, by name, so a per-symbol caller can mark them done. */
+    replayed: string[];
     /** Closes fed to the engine in total. */
     candles: number;
     /** Symbols with an armed alert but no usable history. */
@@ -131,9 +144,8 @@ function usableCloses(candles: EvaluationCandle[], maxCandles: number): Evaluati
  * the caller can log it — a silent replay would be BUG-0382's shape again.
  */
 export function replayClosedCandles(deps: ReplayClosedCandlesDeps): ReplayReport {
-    const timeframes = deps.timeframes ?? REPLAY_TIMEFRAMES;
     const maxCandles = deps.maxCandles ?? REPLAY_MAX_CANDLES;
-    const report: ReplayReport = { symbols: 0, candles: 0, skipped: [], failed: [] };
+    const report: ReplayReport = { symbols: 0, replayed: [], candles: 0, skipped: [], failed: [] };
 
     const symbols: string[] = [];
     for (const alert of deps.alerts ?? []) {
@@ -144,6 +156,12 @@ export function replayClosedCandles(deps: ReplayClosedCandlesDeps): ReplayReport
 
     for (const symbol of symbols) {
         try {
+            const available = deps.timeframesFor?.(symbol);
+            const timeframes =
+                available !== undefined && available.length > 0
+                    ? available
+                    : (deps.timeframes ?? REPLAY_TIMEFRAMES);
+
             let closes: EvaluationCandle[] = [];
             for (const timeframe of timeframes) {
                 closes = usableCloses(deps.readCandles(symbol, timeframe), maxCandles);
@@ -161,6 +179,7 @@ export function replayClosedCandles(deps: ReplayClosedCandlesDeps): ReplayReport
                 report.candles += 1;
             }
             report.symbols += 1;
+            report.replayed.push(symbol);
         } catch {
             // The symbol is left in whatever state its partial replay reached.
             // That is safe in the only direction that matters: a partial replay

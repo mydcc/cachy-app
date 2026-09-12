@@ -174,10 +174,18 @@ const mockStartRuleEvaluationLoop = vi.fn();
  * measuring exactly what it measured before the replay existed.
  */
 const mockReadClosedCandles = vi.fn((_symbol: string, _timeframe: string) => [] as unknown[]);
+/**
+ * BUG-0441 review: the replay discovers a symbol's timeframes instead of
+ * probing a fixed list. Defaults to "none", which makes the pure replay fall
+ * back to its default list — the same behaviour these tests measured before
+ * discovery existed.
+ */
+const mockReadAvailableKlineTimeframes = vi.fn((_symbol: string) => [] as string[]);
 vi.mock("../services/alertEngine/ruleLoopWiring", () => ({
   isSeriesObserved: mockIsSeriesObserved,
   ledgerSink: mockLedgerSink,
   readClosedCandles: mockReadClosedCandles,
+  readAvailableKlineTimeframes: mockReadAvailableKlineTimeframes,
   startRuleEvaluationLoop: mockStartRuleEvaluationLoop,
 }));
 
@@ -274,6 +282,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     mockLedgerSink.mockImplementation(() => {});
     mockStartRuleEvaluationLoop.mockImplementation(() => {});
     mockReadClosedCandles.mockReturnValue([]);
+    mockReadAvailableKlineTimeframes.mockReturnValue([]);
 
     localStorage.clear();
     localStorage.setItem(STORAGE_KEY, JSON.stringify([ARMED_BEFORE_RELOAD]));

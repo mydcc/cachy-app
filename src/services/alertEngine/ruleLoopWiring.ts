@@ -66,18 +66,82 @@ export function readClosedCandles(symbol: string, timeframe: string): Evaluation
       const candle = stored[i];
       if (candle === null || typeof candle !== "object") continue;
 
-      closed.push({
-        open_time_ms: candle.time,
-        open: candle.open.toString(),
-        high: candle.high.toString(),
-        low: candle.low.toString(),
-        close: candle.close.toString(),
-        volume: candle.volume?.toString(),
-      });
+      // BUG-0441 review: one malformed candle used to throw on the first
+      // `.toString()` and cost the whole series (`[]`), silently withholding
+      // every rule on it. Drop the unreadable candle and keep the rest — a gap
+      // between two real closes cannot manufacture a crossing.
+      const raw = candle as unknown as Record<string, unknown>;
+      const time = raw.time;
+      const open = raw.open;
+      const high = raw.high;
+      const low = raw.low;
+      const close = raw.close;
+      const volume = raw.volume;
+      if (
+        typeof time !== "number" ||
+        !Number.isFinite(time) ||
+        open === null ||
+        open === undefined ||
+        high === null ||
+        high === undefined ||
+        low === null ||
+        low === undefined ||
+        close === null ||
+        close === undefined
+      ) {
+        continue;
+      }
+
+      try {
+        closed.push({
+          open_time_ms: time,
+          open: String(open),
+          high: String(high),
+          low: String(low),
+          close: String(close),
+          volume: volume === null || volume === undefined ? undefined : String(volume),
+        });
+      } catch {
+        continue;
+      }
     }
     return closed;
   } catch (e) {
     logger.error("alerts", `[Cutover] Reading candles failed for ${symbol} ${timeframe}`, e);
+    return [];
+  }
+}
+
+/**
+ * BUG-0441 review — the timeframes this symbol actually holds history in,
+ * finest first.
+ *
+ * `readClosedCandles` needs a timeframe to read; the replay needs to know
+ * which ones exist. A symbol charted at `1h` has no `1m`/`5m`/`15m` series, so
+ * a fixed probe list skips it even though history is right there. This reads
+ * the store's own keys instead. Finest first because a coarser series says the
+ * same thing about *whether* a target was crossed but less about *when*; a
+ * label `safeTfToMs` cannot parse sorts last rather than being dropped.
+ */
+export function readAvailableKlineTimeframes(symbol: string): string[] {
+  try {
+    const klines = marketState.data[symbol]?.klines;
+    if (klines === null || klines === undefined || typeof klines !== "object") return [];
+
+    return Object.keys(klines)
+      .filter((timeframe) => {
+        const series = klines[timeframe];
+        return Array.isArray(series) && series.length >= 2;
+      })
+      .sort((a, b) => {
+        const aMs = safeTfToMs(a);
+        const bMs = safeTfToMs(b);
+        const aKey = Number.isFinite(aMs) ? aMs : Number.POSITIVE_INFINITY;
+        const bKey = Number.isFinite(bMs) ? bMs : Number.POSITIVE_INFINITY;
+        return aKey - bKey;
+      });
+  } catch (e) {
+    logger.error("alerts", `[Cutover] Timeframe discovery failed for ${symbol}`, e);
     return [];
   }
 }
