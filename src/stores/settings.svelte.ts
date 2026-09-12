@@ -24,7 +24,6 @@ import {
 } from "./settings/secretsLoader";
 import type { SwitchAuthorization } from "../lib/confirmationPolicy";
 import { normalizeQuality, type VisualQuality } from "../lib/three/quality";
-import { normalizeReduceMotion, type ReduceMotionPreference } from "../lib/three/motion";
 import type { AiAnalysisMode } from "../types/ai";
 import {
   accountForExchange,
@@ -508,11 +507,9 @@ export interface Settings {
   ambientToplineIntensity: AmbientToplineIntensity;
   ambientToplineBursts: boolean;
 
-  // Rendering quality & motion
+  // Rendering quality
   /** WebGL pixel-ratio tier; `auto` adapts to measured FPS. */
   visualQuality: VisualQuality;
-  /** Reduced-motion preference; `system` follows the OS. */
-  reduceMotion: ReduceMotionPreference;
 
   // Market & Performance Settings
   marketMode: MarketMode;
@@ -791,7 +788,6 @@ const defaultSettings: Settings = {
   ambientToplineBursts: true,
 
   visualQuality: "auto",
-  reduceMotion: "system",
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
@@ -1278,7 +1274,6 @@ export class SettingsManager {
   ambientToplineBursts = $state<boolean>(defaultSettings.ambientToplineBursts);
 
   visualQuality = $state<VisualQuality>(defaultSettings.visualQuality);
-  reduceMotion = $state<ReduceMotionPreference>(defaultSettings.reduceMotion);
 
   fireConfig = $state(defaultSettings.fireConfig);
 
@@ -2149,7 +2144,6 @@ export class SettingsManager {
       merged.ambientToplineBursts ?? defaultSettings.ambientToplineBursts;
 
     this.visualQuality = normalizeQuality(merged.visualQuality);
-    this.reduceMotion = normalizeReduceMotion(merged.reduceMotion);
 
     this.enableDockingCentered =
       merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
@@ -2328,7 +2322,6 @@ export class SettingsManager {
       ambientToplineIntensity: this.ambientToplineIntensity,
       ambientToplineBursts: this.ambientToplineBursts,
       visualQuality: this.visualQuality,
-      reduceMotion: this.reduceMotion,
       fireConfig: $state.snapshot(this.fireConfig),
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,

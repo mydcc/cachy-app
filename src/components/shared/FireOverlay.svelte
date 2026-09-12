@@ -25,7 +25,7 @@
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
     import { effectivePixelRatio } from "../../lib/three/quality";
     import { attachContextRecovery } from "../../lib/three/webgl";
-    import { prefersReducedMotion, resolveReducedMotion, subscribeReducedMotion } from "../../lib/three/motion";
+    import { systemReducedMotion } from "../../lib/three/motionState.svelte";
     import { browser } from "$app/environment";
 
     let { layer = "tiles" as const, zIndex = 40 } = $props<{
@@ -57,12 +57,8 @@
         return false;
     });
 
-    // Quality + reduced motion (see `qualityController` / `lib/three/motion`).
-    let systemReducedMotion = $state(prefersReducedMotion());
-    $effect(() => subscribeReducedMotion((reduced) => (systemReducedMotion = reduced)));
-    const reducedMotion = $derived(
-        resolveReducedMotion(settingsState.reduceMotion, systemReducedMotion),
-    );
+    // Quality + reduced motion (see `qualityController` / `lib/three/motionState`).
+    const reducedMotion = $derived(systemReducedMotion());
 
     $effect(() => {
         if (settingsState.visualQuality !== "auto") return;

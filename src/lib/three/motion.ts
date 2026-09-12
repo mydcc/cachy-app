@@ -16,22 +16,13 @@
  */
 
 /**
- * Reduced-motion resolution for the WebGL layer.
+ * Reduced-motion detection for the WebGL layer.
  *
- * The OS `prefers-reduced-motion` signal is the default; a manual user
- * override can force motion on or off regardless of the OS. When motion is
- * reduced, the renderers draw a single static frame and stop their loop
- * instead of animating — it keeps the art direction without the movement or
- * the battery cost.
+ * The OS `prefers-reduced-motion` signal is honoured automatically; there is
+ * no in-app override. When motion is reduced, the renderers draw a single
+ * static frame and stop their loop instead of animating — it keeps the art
+ * direction without the movement or the battery cost.
  */
-
-export type ReduceMotionPreference = "system" | "reduce" | "full";
-
-export const REDUCE_MOTION_VALUES: readonly ReduceMotionPreference[] = [
-  "system",
-  "reduce",
-  "full",
-];
 
 const PRESET_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -49,19 +40,6 @@ export function prefersReducedMotion(): boolean {
     return false;
   }
   return window.matchMedia(PRESET_QUERY).matches;
-}
-
-/**
- * Combine the user preference with the OS signal. `reduce`/`full` are explicit
- * overrides; `system` follows the OS.
- */
-export function resolveReducedMotion(
-  preference: ReduceMotionPreference,
-  systemPrefers: boolean = prefersReducedMotion(),
-): boolean {
-  if (preference === "reduce") return true;
-  if (preference === "full") return false;
-  return systemPrefers;
 }
 
 /**
@@ -86,11 +64,4 @@ export function subscribeReducedMotion(
     return () => mql.removeListener?.(handler);
   }
   return () => {};
-}
-
-/** Coerce a persisted/unknown value to a known preference. */
-export function normalizeReduceMotion(value: unknown): ReduceMotionPreference {
-  return REDUCE_MOTION_VALUES.includes(value as ReduceMotionPreference)
-    ? (value as ReduceMotionPreference)
-    : "system";
 }

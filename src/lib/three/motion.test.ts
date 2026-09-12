@@ -16,34 +16,20 @@
  */
 
 import { describe, it, expect, afterEach, vi } from "vitest";
-import {
-  resolveReducedMotion,
-  prefersReducedMotion,
-  subscribeReducedMotion,
-  normalizeReduceMotion,
-} from "./motion";
+import { prefersReducedMotion, subscribeReducedMotion } from "./motion";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("resolveReducedMotion", () => {
-  it("honours explicit overrides", () => {
-    expect(resolveReducedMotion("reduce", false)).toBe(true);
-    expect(resolveReducedMotion("reduce", true)).toBe(true);
-    expect(resolveReducedMotion("full", true)).toBe(false);
-    expect(resolveReducedMotion("full", false)).toBe(false);
-  });
-
-  it("follows the OS signal in system mode", () => {
-    expect(resolveReducedMotion("system", true)).toBe(true);
-    expect(resolveReducedMotion("system", false)).toBe(false);
-  });
-});
-
 describe("prefersReducedMotion", () => {
   it("is false without a window (SSR / node)", () => {
     expect(prefersReducedMotion()).toBe(false);
+  });
+
+  it("reflects the OS media query", () => {
+    vi.stubGlobal("window", { matchMedia: () => ({ matches: true }) });
+    expect(prefersReducedMotion()).toBe(true);
   });
 });
 
@@ -91,14 +77,5 @@ describe("subscribeReducedMotion", () => {
   it("is a no-op when matchMedia is unavailable", () => {
     vi.stubGlobal("window", {});
     expect(() => subscribeReducedMotion(() => {})()).not.toThrow();
-  });
-});
-
-describe("normalizeReduceMotion", () => {
-  it("keeps known values and defaults the rest", () => {
-    expect(normalizeReduceMotion("reduce")).toBe("reduce");
-    expect(normalizeReduceMotion("full")).toBe("full");
-    expect(normalizeReduceMotion("weird")).toBe("system");
-    expect(normalizeReduceMotion(undefined)).toBe("system");
   });
 });

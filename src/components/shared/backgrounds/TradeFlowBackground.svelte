@@ -30,7 +30,7 @@
   import { _ } from "../../../locales/i18n";
   import TradeFlowWorker from "./tradeFlow.worker?worker";
   import { concreteQuality, retainAutoQuality } from "./qualityController.svelte";
-  import { prefersReducedMotion, resolveReducedMotion, subscribeReducedMotion } from "../../../lib/three/motion";
+  import { systemReducedMotion } from "../../../lib/three/motionState.svelte";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -399,9 +399,6 @@
 
   // Visual quality — one tier shared by every renderer. The auto sampler runs
   // only while `auto` is selected; a manual choice resolves straight through.
-  let systemReducedMotion = $state(prefersReducedMotion());
-  $effect(() => subscribeReducedMotion((reduced) => (systemReducedMotion = reduced)));
-
   $effect(() => {
     if (settingsState.visualQuality !== "auto") return;
     return retainAutoQuality();
@@ -413,14 +410,10 @@
     worker.postMessage({ type: "quality", data: { tier } });
   });
 
-  // Reduced motion — OS preference unless the user overrides it.
+  // Reduced motion — follows the OS preference automatically.
   $effect(() => {
     if (lifecycleState !== LifecycleState.READY || !worker) return;
-    const reduced = resolveReducedMotion(
-      settingsState.reduceMotion,
-      systemReducedMotion,
-    );
-    worker.postMessage({ type: "setMotion", data: { reduced } });
+    worker.postMessage({ type: "setMotion", data: { reduced: systemReducedMotion() } });
   });
 
   // Gyroscope — separate switch from the 3D galaxy's, and only meaningful for

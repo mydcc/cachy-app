@@ -22,7 +22,7 @@
     import GalaxyWorker from "./backgrounds/galaxy.worker?worker";
     import { readCssColor, isLightColor } from "../../lib/themeColors";
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
-    import { prefersReducedMotion, resolveReducedMotion, subscribeReducedMotion } from "../../lib/three/motion";
+    import { systemReducedMotion } from "../../lib/three/motionState.svelte";
 
     // ========================================
     // STATE MANAGEMENT
@@ -155,10 +155,7 @@
         }
     });
 
-    // Quality + reduced motion (see `qualityController` / `lib/three/motion`).
-    let systemReducedMotion = $state(prefersReducedMotion());
-    $effect(() => subscribeReducedMotion((reduced) => (systemReducedMotion = reduced)));
-
+    // Quality + reduced motion (see `qualityController` / `lib/three/motionState`).
     $effect(() => {
         if (settingsState.visualQuality !== "auto") return;
         return retainAutoQuality();
@@ -176,12 +173,7 @@
         if (!worker || lifecycleState !== LifecycleState.READY) return;
         worker.postMessage({
             type: "setMotion",
-            data: {
-                reduced: resolveReducedMotion(
-                    settingsState.reduceMotion,
-                    systemReducedMotion,
-                ),
-            },
+            data: { reduced: systemReducedMotion() },
         });
     });
 

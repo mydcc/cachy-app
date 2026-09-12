@@ -21,7 +21,6 @@
     import { settingsState } from "../../../stores/settings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import type { VisualQuality } from "../../../lib/three/quality";
-    import type { ReduceMotionPreference } from "../../../lib/three/motion";
     import { locale, setLocale } from "../../../locales/i18n";
     import Toggle from "../../shared/Toggle.svelte";
     import Tooltip from "../../shared/Tooltip.svelte";
@@ -125,65 +124,36 @@
         </label>
     </div>
 
-    <!-- Performance & Motion -->
+    <!-- Rendering -->
     <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="field-group">
-                <label for="visual-quality-select"
-                    >{$_("settings.visuals.visualQuality")}</label
+        <div class="field-group">
+            <label for="visual-quality-select"
+                >{$_("settings.visuals.visualQuality")}</label
+            >
+            <select
+                id="visual-quality-select"
+                value={settingsState.visualQuality}
+                onchange={(e) =>
+                    (settingsState.visualQuality = e.currentTarget
+                        .value as VisualQuality)}
+                class="input-field w-full"
+            >
+                <option value="auto"
+                    >{$_("settings.visuals.quality.auto")}</option
                 >
-                <select
-                    id="visual-quality-select"
-                    value={settingsState.visualQuality}
-                    onchange={(e) =>
-                        (settingsState.visualQuality = e.currentTarget
-                            .value as VisualQuality)}
-                    class="input-field w-full"
+                <option value="high"
+                    >{$_("settings.visuals.quality.high")}</option
                 >
-                    <option value="auto"
-                        >{$_("settings.visuals.quality.auto")}</option
-                    >
-                    <option value="high"
-                        >{$_("settings.visuals.quality.high")}</option
-                    >
-                    <option value="balanced"
-                        >{$_("settings.visuals.quality.balanced")}</option
-                    >
-                    <option value="low"
-                        >{$_("settings.visuals.quality.low")}</option
-                    >
-                </select>
-                <span class="text-xs text-[var(--text-secondary)]">
-                    {$_("settings.visuals.visualQualityDesc")}
-                </span>
-            </div>
-
-            <div class="field-group">
-                <label for="reduce-motion-select"
-                    >{$_("settings.visuals.reduceMotion")}</label
+                <option value="balanced"
+                    >{$_("settings.visuals.quality.balanced")}</option
                 >
-                <select
-                    id="reduce-motion-select"
-                    value={settingsState.reduceMotion}
-                    onchange={(e) =>
-                        (settingsState.reduceMotion = e.currentTarget
-                            .value as ReduceMotionPreference)}
-                    class="input-field w-full"
+                <option value="low"
+                    >{$_("settings.visuals.quality.low")}</option
                 >
-                    <option value="system"
-                        >{$_("settings.visuals.motion.system")}</option
-                    >
-                    <option value="reduce"
-                        >{$_("settings.visuals.motion.reduce")}</option
-                    >
-                    <option value="full"
-                        >{$_("settings.visuals.motion.full")}</option
-                    >
-                </select>
-                <span class="text-xs text-[var(--text-secondary)]">
-                    {$_("settings.visuals.reduceMotionDesc")}
-                </span>
-            </div>
+            </select>
+            <span class="text-xs text-[var(--text-secondary)]">
+                {$_("settings.visuals.visualQualityDesc")}
+            </span>
         </div>
     </div>
 

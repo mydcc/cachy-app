@@ -1228,18 +1228,11 @@
       },
       "visualQuality": "Visual quality",
       "visualQualityDesc": "Render resolution of the 3D backgrounds and effects. Auto adapts to the measured frame rate.",
-      "reduceMotion": "Reduce motion",
-      "reduceMotionDesc": "Freeze the 3D backgrounds and effects. System follows your OS setting.",
       "quality": {
         "auto": "Auto",
         "high": "High",
         "balanced": "Balanced",
         "low": "Low"
-      },
-      "motion": {
-        "system": "System",
-        "reduce": "Reduce",
-        "full": "Full"
       },
       "chatSize": "Chat Size",
       "burningBorders": "Burning Borders",
