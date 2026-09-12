@@ -122,6 +122,15 @@ vi.mock("../services/toastService.svelte", () => ({
   toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
+// BUG-0441 reliability priming reads cached history through the market watcher,
+// which imports the market store — whose `MarketTelemetry` owns a 60-second
+// interval that would collide with this file's re-sync-timer spy (which selects
+// intervals by their 60_000 ms period). Priming has its own tests in
+// `historyFetcher.test.ts`; here it is mocked to the neutral "nothing cached".
+vi.mock("../services/marketWatcher", () => ({
+  marketWatcher: { primeFromStorage: vi.fn(async () => false) },
+}));
+
 // Returns the key itself, so assertions can name the string that reached the
 // user rather than depending on the German or English wording.
 vi.mock("../locales/i18n", () => ({

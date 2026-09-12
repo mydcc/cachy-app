@@ -124,6 +124,39 @@ function usableCloses(candles: EvaluationCandle[], maxCandles: number): Evaluati
 }
 
 /**
+ * BUG-0441 follow-up (review finding): the replay is only safe as the engine's
+ * *first* evaluation for a symbol, because its oldest close must be compared
+ * against nothing rather than against a baseline a live tick already seeded.
+ * `ensureLoaded()` caches the WASM instance, so a second `initAlertEngine()`
+ * call would replay into an engine some of whose symbols already hold a live
+ * baseline — the exact arbitrary-jump false fire this replay exists to prevent.
+ *
+ * The guard lives here, not in `alerts.svelte.ts`, because under dev HMR a
+ * replaced `alerts.svelte.ts` module resets its own module scope while the
+ * `alertEngine` WASM singleton it guards survives; a flag up there would allow
+ * a re-replay into a live baseline. This module is the replay's own state and
+ * is not hot-replaced when `alerts.svelte.ts` changes.
+ */
+let alertHistoryReplayed = false;
+
+/** Whether the one-shot history replay has already been attempted this session. */
+export function hasAlertHistoryReplayed(): boolean {
+    return alertHistoryReplayed;
+}
+
+/**
+ * Runs {@link replayClosedCandles} at most once per module lifetime —
+ * the guarded entry point `initAlertEngine()` should call. Returns `null` when
+ * the replay was already attempted, so a second `initAlertEngine()` call is a
+ * no-op for the replay step instead of a silent hazard.
+ */
+export function replayAlertHistoryOnce(deps: ReplayClosedCandlesDeps): ReplayReport | null {
+    if (alertHistoryReplayed) return null;
+    alertHistoryReplayed = true;
+    return replayClosedCandles(deps);
+}
+
+/**
  * Feeds each armed symbol's recent closed candles through `evaluate`.
  *
  * Never throws: one unreadable series or one refusing evaluation must not stop

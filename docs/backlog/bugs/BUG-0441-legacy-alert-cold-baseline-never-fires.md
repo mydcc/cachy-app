@@ -149,10 +149,24 @@ crossing, and a lone stale baseline paired with the next live tick spans an unkn
 `ensureLoaded()` caches the WASM instance across calls, so a second call — none exists
 in production today, but nothing stopped one — would have replayed into an engine that
 already holds a live baseline for some symbols: the exact arbitrary-jump false fire this
-whole fix exists to prevent. `hasReplayedAlertHistory` in `alerts.svelte.ts` makes the
-replay step a no-op on any call after the first. RED proven first (a still-armed alert
-flipped to fired by a second, unrelated window) then GREEN, in
-`alerts_engineWiring.test.ts`.
+whole fix exists to prevent. `replayAlertHistoryOnce()` in `replayClosedCandles.ts`
+makes the replay step a no-op on any call after the first. RED proven first (a
+still-armed alert flipped to fired by a second, unrelated window) then GREEN, in
+`alerts_engineWiring.test.ts`. The guard lives in the replay module rather than in
+`alerts.svelte.ts` on purpose: under dev HMR a replaced `alerts.svelte.ts` resets its
+own module scope while the guarded `alertEngine` WASM singleton survives, so a flag up
+there would allow exactly the re-replay the guard exists to stop.
+
+**The replay was a no-op on a cold start (found in review, 2026-09-12).** The replay
+reads candle history from `marketState`, but that history is filled asynchronously by
+the market watcher (IndexedDB, then REST), so at startup the store is empty and the
+replay skipped every armed symbol — and being once-only, it never retried. The bug's own
+"crossed while the app was closed" case is the returning-user case where the candles are
+already in IndexedDB, so `initAlertEngine` calls `marketWatcher.primeFromStorage()` for
+each armed symbol before `ensureLoaded()`, loading that history into the store so the
+replay's synchronous stretch sees it. It is IndexedDB-only and best-effort: a
+never-cached symbol still stays `skipped`. Network priming for those symbols is Out of
+scope below.
 
 ## Known limitation (found in review, 2026-09-12)
 
@@ -168,18 +182,31 @@ series, never consulted because `1m` already had two closes, would have straddle
 This is exactly the overnight/weekend case the bug report opens with, at that specific
 window length.
 
-**Left as documentation, not fixed here**, because closing it properly means searching
-every timeframe for a straddling pair rather than stopping at the first non-empty one —
-and "straddling" is not a property the JS layer can check without calling `evaluate()`,
-which is stateful (it seeds the baseline and can flip `alert.active`). Probing a
-timeframe speculatively would need a rollback path the engine does not have. A real fix
-is a follow-up, not a comment; this bug's own acceptance criteria are met by the window
-that exists, worded to say so precisely.
+**Left as documentation, not fixed here.** The obstacle is *not* that the JS layer
+cannot see a straddle: a legacy `AlertDefinition` carries its `condition` (a
+`price_reached` / `price_cross_up` / `price_cross_down` decimal target), so a
+window can be checked for a close on each side of it without calling `evaluate()`.
+The real obstacle is that a legacy alert has **no arming timestamp** — `AlertDefinition`
+is only `{ id, symbol, condition, active }`. The engine's semantics are "fire on the
+first crossing observed after arming", so a coarser window (e.g. `15m` reach = 240 ×
+15m = 60 h) would happily surface a crossing that happened *before* the trader armed
+the alert, firing for a move they never asked to be told about. The current
+finest-first, 240 × `1m` window already carries a weak version of that risk; falling
+through to a coarser timeframe would make it materially worse, which is a bad trade in
+a money path. A correct fix needs an arming timestamp on legacy definitions (and then
+"search the finest timeframe whose window starts at or after it and straddles the
+target"), which is a schema/creation-path change, not a loop bound. Tracked as a
+follow-up; this bug's own acceptance criteria are met by the window that exists, worded
+to say so precisely.
 
 ## Out of scope
 
 - Searching multiple timeframes for a straddling pair instead of stopping at the first
-  with usable history — see "Known limitation" above.
+  with usable history — unsafe without an arming timestamp (see "Known limitation"),
+  not merely unbuilt.
+- Priming replay history by fetching over the network for a symbol that was never
+  charted (so never cached in IndexedDB). The shipping replay primes from IndexedDB only
+  and stays best-effort; a network prime is a load/UX trade-off of its own.
 - Widening `REPLAY_MAX_CANDLES` beyond 240. The cost is negligible (see the "closes
   only" note above), but a longer window is a product decision about how old a
   crossing should still count, not a bug fix.
