@@ -411,12 +411,19 @@
     // never learn the user switched source.
     const _volSrc = s.volatilitySource;
     const _moodSrc = s.moodSource;
+    // Atmosphere shaping is read live in the worker's animate loop, so it needs
+    // the lightweight channel — the structural key never re-sends it, and the
+    // one-time init leaves it frozen at the default.
+    const _atmoI = s.atmosphereIntensity;
+    const _atmoS = s.atmosphereSpeed;
 
     worker.postMessage({
       type: 'updateLightSettings',
       data: {
         volatilitySource: _volSrc,
         moodSource: _moodSrc,
+        atmosphereIntensity: _atmoI,
+        atmosphereSpeed: _atmoS,
         volumeScale: _vol,
         persistenceDuration: _persist,
         speed: _speed,
