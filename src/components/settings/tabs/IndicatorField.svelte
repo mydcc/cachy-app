@@ -50,7 +50,7 @@
         {min}
         {max}
         {step}
-        class="input-field rounded-md settings-number-input text-xs outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-all bg-[var(--bg-secondary)] border border-[var(--input-border-color)] px-2.5 py-1.5"
+        class="input-field rounded-md settings-number-input text-xs outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-all bg-[var(--bg-secondary)] border border-[var(--border-color)] px-2.5 py-1.5"
         use:enhancedInput={{ min, max }}
     />
 </div>

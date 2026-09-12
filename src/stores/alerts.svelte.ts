@@ -34,11 +34,6 @@ import {
     readCoveredAlertIds,
     releaseCoverage,
 } from "../services/alertEngine/ruleCoverage";
-import {
-    configureLegacyReplay,
-    replayPendingLegacySymbolsAtStartup,
-    setPendingLegacyReplaySymbols,
-} from "../services/alertEngine/legacyReplayCoordinator";
 import { recordFiring, recordLegacyFiring } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
@@ -397,31 +392,6 @@ export async function initAlertEngine(
         logger.error("alerts", "[Cutover] Rule schema core failed to load — every alert stays on the legacy engine", e);
     }
 
-    // Imported once, here, rather than at module scope: the wiring — and the
-    // market store it reads — stays out of the import graph on the path this
-    // function returns early from. `ensureLoaded()` below is client-only for
-    // the same reason; the graph has to agree with the guard or SSR pulls in
-    // the whole client half anyway. `isSeriesObserved` (needed for coverage),
-    // `readClosedCandles` (needed for the BUG-0441 replay) and
-    // `startRuleEvaluationLoop` all come from the same module, so one import
-    // covers them.
-    //
-    // Ordered *before* `ensureLoaded()` rather than after it, which BUG-0441
-    // made a correctness requirement: awaiting anything between the engine
-    // becoming usable and the replay below would let a WebSocket tick seed the
-    // crossing baseline first, and the replay's oldest close would then be
-    // compared against the live price instead of against its own predecessor.
-    // With the last `await` here, everything from `ensureLoaded()`'s
-    // continuation through the replay runs in one synchronous stretch that no
-    // callback can interleave.
-    const {
-        isSeriesObserved,
-        ledgerSink,
-        readClosedCandles,
-        readAvailableKlineTimeframes,
-        startRuleEvaluationLoop,
-    } = await import("../services/alertEngine/ruleLoopWiring");
-
     try {
         await alertEngine.ensureLoaded(loadModule);
     } catch (e) {
@@ -431,6 +401,17 @@ export async function initAlertEngine(
         throw e;
     }
 
+    // Imported once, here, rather than at module scope: the wiring — and the
+    // market store it reads — stays out of the import graph on the path this
+    // function returns early from. `ensureLoaded()` above is client-only for
+    // the same reason; the graph has to agree with the guard or SSR pulls in
+    // the whole client half anyway. Both `isSeriesObserved` (needed for
+    // coverage, below) and `startRuleEvaluationLoop` (needed after) come from
+    // the same module, so one import covers both.
+    const { isSeriesObserved, ledgerSink, startRuleEvaluationLoop } = await import(
+        "../services/alertEngine/ruleLoopWiring"
+    );
+
     // FEAT-0387 cutover: real coverage only in live mode. A shadow run must
     // remove nothing from the legacy engine — that is what makes it a pure
     // addition rather than a second, quieter cutover.
@@ -439,40 +420,6 @@ export async function initAlertEngine(
             ? readCoveredAlertIds(isSeriesObserved)
             : new Set<string>();
     alertState.syncEngine(covered);
-
-    // BUG-0441: give the legacy engine the history it lost across a reload.
-    //
-    // This cannot be a single startup pass. The market store is empty right
-    // here — klines arrive later as the chart/watchlist subscribes — so a
-    // startup-only replay usually finds no history and lets the first live tick
-    // consume the crossing the fix exists to recover. `legacyReplayCoordinator`
-    // therefore also replays each symbol the moment its history becomes
-    // observable (the market store's kline write path) and immediately before
-    // its first live evaluation, the last point at which a replay is still the
-    // engine's *first* evaluation for that symbol. The second-init hazard the
-    // old `hasReplayedAlertHistory` flag covered is now the coordinator's
-    // `decided` set.
-    configureLegacyReplay({
-        readCandles: readClosedCandles,
-        timeframesFor: readAvailableKlineTimeframes,
-        evaluate: (symbol, close, timestampMs) => {
-            if (!alertEngine.evaluate(symbol, close, timestampMs)) {
-                throw new Error(`[BUG-0441] legacy replay evaluation failed for ${symbol}`);
-            }
-        },
-    });
-    setPendingLegacyReplaySymbols(
-        alertsForLegacyEngine(alertState.definitions, covered).map((alert) => alert.symbol),
-    );
-    const replayed = replayPendingLegacySymbolsAtStartup();
-    if (replayed !== null) {
-        logger.log(
-            "alerts",
-            `[BUG-0441] Replayed ${replayed.candles} closes across ${replayed.symbols} symbol(s); ` +
-                `${replayed.skipped.length} awaiting history, ${replayed.failed.length} failed`,
-        );
-    }
-
     alertState.engineStatus = "ready";
 
     // FEAT-0387 cutover: coverage above is a startup snapshot, but the market

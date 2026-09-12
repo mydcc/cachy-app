@@ -22,11 +22,9 @@
  * Enables granular control over console output via Settings.
  */
 
+import { settingsState } from "../stores/settings.svelte";
 import { browser } from "$app/environment";
 import { toastService } from "./toastService.svelte";
-import { readLoggerConfig } from "./loggerConfig";
-
-export type { LoggerConfig } from "./loggerConfig";
 
 export type LogCategory =
     | "technicals"
@@ -53,16 +51,22 @@ class LoggerService {
         if (!browser) return false;
         if (force) return true;
 
-        // Configured by the settings store; absent in tests and before it loads.
-        const settings = readLoggerConfig();
-        if (!settings) return category === "general";
+        // Use a safe access for settingsState to avoid circular dependency / initialization issues
+        let settings;
+        try {
+            settings = settingsState;
+            if (!settings) return category === "general";
+        } catch {
+            // settingsState not yet initialized
+            return category === "general";
+        }
 
         // If debugMode is on, let everything through
         if (settings.debugMode) return true;
 
         if (!settings.logSettings) return category === "general";
 
-        return !!settings.logSettings[category];
+        return !!(settings.logSettings as Partial<Record<LogCategory, boolean>>)[category];
     }
 
     log(category: LogCategory, message: string, data?: unknown, force = false) {

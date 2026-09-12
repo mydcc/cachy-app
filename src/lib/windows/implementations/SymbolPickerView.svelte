@@ -268,7 +268,7 @@
                 type="text"
                 bind:value={searchQuery}
                 placeholder={$_("symbolPicker.searchPlaceholder")}
-                class="input-field w-full px-4 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--input-border-color)]"
+                class="input-field w-full px-4 py-2 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
                 autocomplete="off"
             />
         </div>
@@ -280,7 +280,7 @@
                 <span class="uppercase tracking-wider opacity-60">{$_("symbolPicker.volumeLabel")}:</span>
                 <select
                     bind:value={minVolumeStr}
-                    class="bg-transparent border border-[var(--input-border-color)] rounded px-2 py-0.5 outline-none"
+                    class="bg-transparent border border-[var(--border-color)] rounded px-2 py-0.5 outline-none"
                 >
                     <option value="0">{$_("symbolPicker.volFilter.all")}</option>
                     <option value="1000000">1M+</option>

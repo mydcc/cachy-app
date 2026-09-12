@@ -111,7 +111,7 @@
             {$_("settings.data.title")}
         </h3>
         <button
-            class="px-4 py-2 bg-[var(--color-primary)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50"
+            class="px-4 py-2 bg-accent-paired rounded hover:opacity-90 transition-opacity disabled:opacity-50"
             onclick={scan}
             disabled={isScanning || isRepairing}
         >
@@ -130,7 +130,7 @@
         </div>
         <select
             bind:value={settingsState.repairTimeframe}
-            class="bg-[var(--bg-secondary)] border border-[var(--input-border-color)] rounded px-3 py-1.5 text-sm outline-none focus:border-[var(--accent-color)]"
+            class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded px-3 py-1.5 text-sm outline-none focus:border-[var(--accent-color)]"
             disabled={isRepairing}
         >
             {#each timeframes as tf}
@@ -154,7 +154,7 @@
             <div class="flex gap-2">
                 {#if missingAtrCount > 0 && !isRepairing}
                     <button
-                        class="px-4 py-2 bg-[var(--color-warning)] text-white rounded hover:opacity-90 transition-opacity"
+                        class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
                         onclick={repair}
                     >
                         {$_("settings.data.repair")} ({missingAtrCount})
@@ -182,7 +182,7 @@
             <div class="flex gap-2">
                 {#if missingMfeMaeCount > 0 && !isRepairing}
                     <button
-                        class="px-4 py-2 bg-[var(--color-warning)] text-white rounded hover:opacity-90 transition-opacity"
+                        class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
                         onclick={repairMfeMae}
                     >
                         {$_("settings.data.repair")} ({missingMfeMaeCount})
@@ -214,7 +214,7 @@
             <div class="flex gap-2">
                 {#if invalidSymbolCount > 0 && !isRepairing}
                     <button
-                        class="px-4 py-2 bg-[var(--color-warning)] text-white rounded hover:opacity-90 transition-opacity"
+                        class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
                         onclick={repairSymbols}
                     >
                         {$_("settings.data.correct")} ({invalidSymbolCount})
@@ -234,7 +234,7 @@
         {#if isRepairing}
             <div class="w-full bg-[var(--bg-tertiary)] rounded-full h-2.5 mt-2">
                 <div
-                    class="bg-[var(--color-success)] h-2.5 rounded-full transition-all duration-300"
+                    class="bg-success-paired h-2.5 rounded-full transition-all duration-300"
                     style="width: {(progress / totalToRepair) * 100}%"
                 ></div>
             </div>
