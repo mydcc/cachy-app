@@ -34,6 +34,7 @@ import { CONSTANTS } from "../lib/constants";
 import { clampVolume, DEFAULT_SOUND_VOLUME } from "../lib/notificationTones";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
+import { uiState } from "./ui.svelte";
 
 const StoredSoundSchema = z.object({
     volume: z.number().optional(),
@@ -122,6 +123,7 @@ class NotificationSoundStore {
             const ok = StorageHelper.safeSave(
                 CONSTANTS.LOCAL_STORAGE_NOTIFICATION_SOUND_KEY,
                 JSON.stringify({ volume: this._volume, muted: this._muted }),
+                () => uiState.showError("storage.quotaExceeded"),
             );
             this._persistFailed = !ok;
         } catch {

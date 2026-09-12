@@ -33,6 +33,7 @@ import { z } from "zod";
 import { CONSTANTS } from "../lib/constants";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
+import { uiState } from "./ui.svelte";
 
 /**
  * How the simulator should misbehave. A simulator that only succeeds trains
@@ -476,6 +477,7 @@ class PaperTradingManager {
                     positionMetadata: this._positionMetadata,
                     nextId: this._nextId,
                 }),
+                () => uiState.showError("storage.quotaExceeded"),
             );
         } catch {
             // Losing a simulated fill costs nothing real. Failing loudly here
