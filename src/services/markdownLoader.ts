@@ -20,18 +20,43 @@ import markedKatex from "marked-katex-extension";
 import { locale } from "../locales/i18n";
 import { get } from "svelte/store";
 import generatedChangelog from "../../CHANGELOG.md?raw";
+import generatedChangelogDe from "../../CHANGELOG.de.md?raw";
 
 /**
  * Placeholder in `changelog.{de,en}.md` where the curated release notes go.
  *
- * Releases from 1.0.0 on are maintained by hand in `CHANGELOG.md`. That file
- * is the single source of truth for them: nobody hand-copies entries into the
- * in-app changelog, so the two can never disagree.
+ * Releases from 1.0.0 on are maintained by hand. `CHANGELOG.md` is the source
+ * of truth for the English notes (and for the repo/GitHub history);
+ * `CHANGELOG.de.md` mirrors the same releases in German. A parity test keeps
+ * the two release lists in step.
  *
  * The surrounding localized file keeps what the notes themselves cannot
  * provide — the German and English framing around the marker.
  */
 export const GENERATED_RELEASES_MARKER = "<!-- CHANGELOG_GENERATED -->";
+
+/** Curated release notes per in-app language. */
+export const RELEASE_CHANGELOGS: Record<string, string> = {
+  en: generatedChangelog,
+  de: generatedChangelogDe,
+};
+
+/**
+ * Picks the release-notes source for a locale.
+ *
+ * German uses `CHANGELOG.de.md`; every other locale uses `CHANGELOG.md`. If the
+ * localized source has no releases yet, fall back to English so the page is
+ * never empty rather than showing a bare marker.
+ */
+export function releaseSourceForLocale(
+  lang: string | null | undefined,
+): string {
+  const localized = RELEASE_CHANGELOGS[lang ?? "en"];
+  if (localized && extractReleaseSections(localized)) {
+    return localized;
+  }
+  return generatedChangelog;
+}
 
 /**
  * Returns the release sections of the curated changelog, without its
@@ -128,6 +153,9 @@ export async function loadInstruction(
   const currentLocale = lang || get(locale);
   // Path relative to project root for module lookup
   const relativePath = `/src/lib/assets/content/${name}.${currentLocale}.md`;
+  // The changelog's release notes come from a language-specific source; every
+  // other content file is self-contained.
+  const releaseSource = releaseSourceForLocale(currentLocale);
 
   try {
     // Dynamically import the markdown file content
@@ -150,7 +178,7 @@ export async function loadInstruction(
         if (modules[fallbackPath]) {
           const content = mergeGeneratedReleases(
             (await modules[fallbackPath]()) as string,
-            generatedChangelog,
+            releaseSource,
           );
           const html = await marked(content);
           const firstLine = content.split("\n")[0];
@@ -163,7 +191,7 @@ export async function loadInstruction(
 
     const markdownContent = mergeGeneratedReleases(
       (await modules[relativePath]()) as string,
-      generatedChangelog,
+      releaseSource,
     );
     const htmlContent = await marked(markdownContent);
 
