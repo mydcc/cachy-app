@@ -40,6 +40,9 @@ const MAX_PULSES = 8;
 const MIN_PULSE_STRENGTH = 0.15;
 const MAX_PULSE_STRENGTH = 1.0;
 
+/** Lerp target for the dim middle ring. Hoisted so the per-frame colour update allocates nothing. */
+const WHITE = new THREE.Color(0xffffff);
+
 /**
  * How long a shockwave stays visible, in seconds.
  *
@@ -181,6 +184,41 @@ export function priceAxisWorldRadius(
 }
 
 /**
+ * Opacity of the three reference rings, in draw order
+ * `[-1 ATR, last price, +1 ATR]`. The middle ring is dimmest — it anchors the
+ * pair without competing with the bands it sits between.
+ */
+export const ATR_BAND_BASE_OPACITY = [0.3, 0.16, 0.3] as const;
+
+/**
+ * Prices the three reference rings are drawn at, for a given ATR width
+ * multiple. Pure so the width control is pinned by a test and the ring
+ * placement has one definition.
+ */
+export function atrBandPrices(
+	lastPrice: number,
+	atrAbs: number,
+	width: number
+): [number, number, number] {
+	const safeWidth = Number.isFinite(width) && width > 0 ? width : 0;
+	const span = atrAbs * safeWidth;
+	return [lastPrice - span, lastPrice, lastPrice + span];
+}
+
+/**
+ * Ring opacities for an opacity multiplier: 1 reproduces the tuned default,
+ * 0 hides the rings, and anything above 1 brightens up to full opacity.
+ */
+export function atrBandOpacity(strength: number): [number, number, number] {
+	const safeStrength = Number.isFinite(strength) && strength > 0 ? strength : 0;
+	return ATR_BAND_BASE_OPACITY.map((opacity) => clamp01(opacity * safeStrength)) as [
+		number,
+		number,
+		number
+	];
+}
+
+/**
  * How far a wave travels before it has fully faded. The two modes differ
  * because only one of them uses radius to carry information: a price-axis wave
  * that swept the whole disc would smear the very position it is there to show,
@@ -189,6 +227,23 @@ export function priceAxisWorldRadius(
  */
 export function pulseTravelSpan(priceAxis: boolean): number {
 	return priceAxis ? PULSE_TRAVEL_PRICE : PULSE_TRAVEL_CORE;
+}
+
+/**
+ * World-space camera position for the galaxy mode: the shared `camPos` scaled
+ * into this scene's larger world, plus the gyroscope offset. Pure so the
+ * standalone-equivalent framing is pinned by a test rather than by eye.
+ */
+export function galaxyCameraWorldPosition(
+	camPos: { x: number; y: number; z: number },
+	gyro: { x: number; y: number },
+	scale: number
+): { x: number; y: number; z: number } {
+	return {
+		x: (camPos.x + gyro.x) * scale,
+		y: (camPos.y + gyro.y) * scale,
+		z: camPos.z * scale
+	};
 }
 
 /** Galaxy tunables this engine reads off `context.settings.galaxyFlow`. */
@@ -203,7 +258,11 @@ export interface GalaxyFlowConfig {
 	concentrationPower: number;
 	rotationSpeed: number;
 	galaxyRot: { x: number; y: number; z: number };
+	/** Camera position in the standalone galaxy's units; scaled to world units by the worker. */
+	camPos: { x: number; y: number; z: number };
 	autoCenter: boolean;
+	/** Camera follows device motion. Read by the worker/component, not this engine. */
+	enableGyroscope: boolean;
 	/** Scales every trade shockwave. 0 = galaxy ignores trades entirely. */
 	marketReactivity: number;
 	/** How strongly rolling buy/sell sentiment tints the arms. */
@@ -220,6 +279,10 @@ export interface GalaxyFlowConfig {
 	 * price axis can be read rather than merely sensed. Requires `priceAxis`.
 	 */
 	atrBands: boolean;
+	/** Ring distance in ATR multiples around the last price. 1 = ±1 ATR. */
+	atrBandWidth: number;
+	/** Multiplier on the reference rings' opacity. 1 = the tuned default look. */
+	atrBandStrength: number;
 }
 
 /**
@@ -238,12 +301,16 @@ export const GALAXY_FLOW_FALLBACK: GalaxyFlowConfig = {
 	concentrationPower: 1.5,
 	rotationSpeed: 0.1,
 	galaxyRot: { x: 0, y: 0, z: 0 },
+	camPos: { x: 0, y: 2, z: 5 },
 	autoCenter: true,
+	enableGyroscope: false,
 	marketReactivity: 1.0,
 	sentimentTint: 0.35,
 	activityRotation: 1.0,
 	priceAxis: true,
-	atrBands: true
+	atrBands: true,
+	atrBandWidth: 1.0,
+	atrBandStrength: 1.0
 };
 
 /**
@@ -317,6 +384,18 @@ export class GalaxyFlowEngine extends BaseEngine {
 	private bands: THREE.LineLoop[] = [];
 
 	/**
+	 * Ring radii are a pure function of the price axis (last price, ATR, price
+	 * window), which only moves on a trade, an indicator update or a settings
+	 * change — not once per frame. Recomputing them every frame was wasted
+	 * `Math.pow` work and an array allocation; the flag defers that to the
+	 * events that actually change an input. Ring colours are still refreshed
+	 * every frame, because the mid ring follows the animated atmosphere tint.
+	 */
+	private bandsDirty = true;
+	/** Blending currently applied to the ring materials, so light themes switch them too. */
+	private bandBlending: THREE.Blending = THREE.AdditiveBlending;
+
+	/**
 	 * Rotation is accumulated as a phase instead of `uTime * speed` (which is
 	 * what the standalone galaxy does). Market activity changes the speed every
 	 * frame, and multiplying a growing clock by a changing speed makes the whole
@@ -351,9 +430,20 @@ export class GalaxyFlowEngine extends BaseEngine {
 	/** Structural fields that force a geometry rebuild when they change. */
 	private builtWith = { particleCount: -1, randomness: Number.NaN };
 
+	/**
+	 * Merged settings, resolved once per settings change rather than on every
+	 * frame. `update()` and `onTrade()` both read it on the hot path; the
+	 * two-object spread per call was pure per-frame and per-trade garbage.
+	 * Invalidated in `updateSettings()`, the only writer of `context.settings`
+	 * that galaxy tunables flow through (the lightweight channel carries no
+	 * `galaxyFlow` field).
+	 */
+	private cachedConfig: GalaxyFlowConfig | null = null;
+
 	public init(): void {
 		this.generate();
 		this.buildBands();
+		this.applyBandStrength(this.config().atrBandStrength);
 		this.isInitialized = true;
 	}
 
@@ -376,13 +466,12 @@ export class GalaxyFlowEngine extends BaseEngine {
 
 		this.bandGroup = new THREE.Group();
 		this.bandGroup.visible = false;
-		// Order: [-1 ATR, last price, +1 ATR]. The middle ring is dimmest — it
-		// anchors the pair without competing with the bands it sits between.
-		const opacities = [0.3, 0.16, 0.3];
+		// Order: [-1 ATR, last price, +1 ATR]. Per-ring opacity is defined once in
+		// `ATR_BAND_BASE_OPACITY`; `applyBandStrength` scales it from settings.
 		for (let i = 0; i < 3; i++) {
 			const material = new THREE.LineBasicMaterial({
 				transparent: true,
-				opacity: opacities[i],
+				opacity: ATR_BAND_BASE_OPACITY[i],
 				depthWrite: false,
 				blending: THREE.AdditiveBlending
 			});
@@ -405,16 +494,36 @@ export class GalaxyFlowEngine extends BaseEngine {
 	private updateBands(s: GalaxyFlowConfig): void {
 		if (!this.bandGroup) return;
 
+		if (this.bandsDirty) this.refreshBandGeometry(s);
+		if (!this.bandGroup.visible) return;
+
+		// Low band toward the sell colour, high band toward the buy colour, so
+		// the rings carry the same up/down language as everything else. Read
+		// live each frame: the mid ring follows the animated atmosphere tint.
+		const down = this.context.colorDown ?? new THREE.Color(0xff4444);
+		const up = this.context.colorUp ?? new THREE.Color(0x00ff88);
+		const mid = this.context.currentAtmosphere ?? WHITE;
+		(this.bands[0].material as THREE.LineBasicMaterial).color.copy(down);
+		(this.bands[1].material as THREE.LineBasicMaterial).color.copy(mid).lerp(WHITE, 0.6);
+		(this.bands[2].material as THREE.LineBasicMaterial).color.copy(up);
+	}
+
+	/**
+	 * Recomputes the ring radii for the current price axis. Split out of
+	 * {@link updateBands} so this — the expensive `Math.pow` part — runs only
+	 * when an axis input actually changed, while the cheap colour pass keeps
+	 * animating every frame.
+	 */
+	private refreshBandGeometry(s: GalaxyFlowConfig): void {
+		this.bandsDirty = false;
+		if (!this.bandGroup) return;
+
 		const active = s.priceAxis && s.atrBands && this.atrRel != null && this.lastPrice != null;
 		this.bandGroup.visible = active;
 		if (!active) return;
 
 		const atrAbs = (this.atrRel as number) * (this.lastPrice as number);
-		const prices = [
-			(this.lastPrice as number) - atrAbs,
-			this.lastPrice as number,
-			(this.lastPrice as number) + atrAbs
-		];
+		const prices = atrBandPrices(this.lastPrice as number, atrAbs, s.atrBandWidth);
 
 		for (let i = 0; i < this.bands.length; i++) {
 			const worldRadius = priceAxisWorldRadius(
@@ -424,20 +533,21 @@ export class GalaxyFlowEngine extends BaseEngine {
 			);
 			this.bands[i].scale.set(worldRadius, 1, worldRadius);
 		}
+	}
 
-		// Low band toward the sell colour, high band toward the buy colour, so
-		// the rings carry the same up/down language as everything else.
-		const down = this.context.colorDown ?? new THREE.Color(0xff4444);
-		const up = this.context.colorUp ?? new THREE.Color(0x00ff88);
-		const mid = this.context.currentAtmosphere ?? new THREE.Color(0xffffff);
-		(this.bands[0].material as THREE.LineBasicMaterial).color.copy(down);
-		(this.bands[1].material as THREE.LineBasicMaterial).color.copy(mid).lerp(new THREE.Color(0xffffff), 0.6);
-		(this.bands[2].material as THREE.LineBasicMaterial).color.copy(up);
+	/** Applies the user's opacity multiplier to the three ring materials. */
+	private applyBandStrength(strength: number): void {
+		const opacities = atrBandOpacity(strength);
+		for (let i = 0; i < this.bands.length; i++) {
+			(this.bands[i].material as THREE.LineBasicMaterial).opacity = opacities[i];
+		}
 	}
 
 	private config(): GalaxyFlowConfig {
+		if (this.cachedConfig) return this.cachedConfig;
 		const raw = (this.context.settings?.galaxyFlow ?? {}) as Partial<GalaxyFlowConfig>;
-		return { ...GALAXY_FLOW_FALLBACK, ...raw };
+		this.cachedConfig = { ...GALAXY_FLOW_FALLBACK, ...raw };
+		return this.cachedConfig;
 	}
 
 	public generate(): void {
@@ -478,7 +588,6 @@ export class GalaxyFlowEngine extends BaseEngine {
 		this.galaxyMaterial = new THREE.ShaderMaterial({
 			depthWrite: false,
 			blending: THREE.AdditiveBlending,
-			vertexColors: true,
 			uniforms: {
 				uTime: { value: 0 },
 				uRotationPhase: { value: this.rotationPhase },
@@ -598,6 +707,9 @@ export class GalaxyFlowEngine extends BaseEngine {
                     gl_PointSize = uSize * aScale * uPixelRatio * 100.0;
                     gl_PointSize *= (1.0 + pulseAbs * 1.5);
                     gl_PointSize *= (1.0 / -viewPosition.z);
+                    // A camera pushed close to the disc would otherwise blow a
+                    // single sprite up to full-screen, and the fill cost with it.
+                    gl_PointSize = min(gl_PointSize, 128.0);
 
                     vRadiusRatio = radiusRatio;
                     vOutsideColor = uColorOutside;
@@ -645,6 +757,11 @@ export class GalaxyFlowEngine extends BaseEngine {
 		});
 
 		this.galaxyPoints = new THREE.Points(this.galaxyGeometry, this.galaxyMaterial);
+		// Every position attribute is zero; the real placement happens in the
+		// vertex shader. Three would therefore cull against a zero-radius sphere
+		// at the origin and drop the whole disc once the camera is rotated away
+		// from it (auto-center off), so frustum culling is disabled outright.
+		this.galaxyPoints.frustumCulled = false;
 		this.applyRotation(s);
 		this.container.add(this.galaxyPoints);
 
@@ -717,6 +834,8 @@ export class GalaxyFlowEngine extends BaseEngine {
 		// already part of the range it is positioned against.
 		this.priceRange.push(trade.price);
 		if (Number.isFinite(trade.price) && trade.price > 0) this.lastPrice = trade.price;
+		// The axis may have moved even when this trade is too small to pulse.
+		this.bandsDirty = true;
 		const pricePos = this.axisPosition(trade.price);
 		if (strength <= 0) return;
 
@@ -742,6 +861,7 @@ export class GalaxyFlowEngine extends BaseEngine {
 		this.lastPrice = null;
 		this.pulses.fill(0);
 		this.nextPulseIdx = 0;
+		this.bandsDirty = true;
 	}
 
 	/**
@@ -753,6 +873,7 @@ export class GalaxyFlowEngine extends BaseEngine {
 			signal && typeof signal.volatilityRel === 'number' && Number.isFinite(signal.volatilityRel)
 				? signal.volatilityRel
 				: null;
+		this.bandsDirty = true;
 	}
 
 	/** Market heat (rate + notional + volatility), pushed by the worker each frame. */
@@ -765,6 +886,9 @@ export class GalaxyFlowEngine extends BaseEngine {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	public updateSettings(settings: any): void {
 		super.updateSettings(settings);
+		// New settings: drop the memoised merge and force a band re-scale.
+		this.cachedConfig = null;
+		this.bandsDirty = true;
 		const s = this.config();
 
 		// Particle count and randomness are baked into the buffers, so they
@@ -800,6 +924,7 @@ export class GalaxyFlowEngine extends BaseEngine {
 		}
 
 		this.applyRotation(s);
+		this.applyBandStrength(s.atrBandStrength);
 	}
 
 	private applyRotation(s: GalaxyFlowConfig): void {
@@ -851,6 +976,17 @@ export class GalaxyFlowEngine extends BaseEngine {
 			this.currentColors.out2.copy(this.targetColors.out2);
 			this.currentColors.out3.copy(this.targetColors.out3);
 			this.hasPalette = true;
+		}
+
+		// The reference rings have to follow the star blending too: additive
+		// rings vanish against a bright theme exactly the way additive stars do.
+		if (this.bands.length && this.bandBlending !== blending) {
+			this.bandBlending = blending;
+			for (const band of this.bands) {
+				const material = band.material as THREE.LineBasicMaterial;
+				material.blending = blending;
+				material.needsUpdate = true;
+			}
 		}
 
 		if (!this.galaxyMaterial) return;
