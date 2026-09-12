@@ -23,10 +23,17 @@
     import { onMount } from "svelte";
     import { browser } from "$app/environment";
     import * as THREE from "three";
+    import { settingsState } from "../../stores/settings.svelte";
     import { effectsState } from "../../stores/effects.svelte";
+    import { uiState } from "../../stores/ui.svelte";
     import { StressLogic } from "../../lib/physics/StressLogic";
     import { DuckLogic } from "../../lib/pets/DuckLogic";
     import { toastService } from "../../services/toastService.svelte";
+    import { getThemePalette, invalidateThemePalette } from "../../lib/themeColors";
+    import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
+    import { effectivePixelRatio } from "../../lib/three/quality";
+    import { attachContextRecovery } from "../../lib/three/webgl";
+    import { systemReducedMotion } from "../../lib/three/motionState.svelte";
 
     let container: HTMLDivElement;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -61,8 +68,8 @@
     const orbMaterial = new THREE.ShaderMaterial({
         uniforms: {
             uTime: { value: 0 },
-            uColorCore: { value: new THREE.Color("#00ff9d") },
-            uColorGlow: { value: new THREE.Color("#00aaff") },
+            uColorCore: { value: new THREE.Color(getThemePalette().accent) },
+            uColorGlow: { value: new THREE.Color(getThemePalette().info) },
             uIntensity: { value: 1.5 },
         },
         vertexShader: `
@@ -110,11 +117,19 @@
     );
 
     const boltMaterial = new THREE.LineBasicMaterial({
-        color: 0x00ffff,
+        color: new THREE.Color(getThemePalette().info),
         transparent: true,
         opacity: 0.8,
         blending: THREE.AdditiveBlending,
     });
+
+    // Hue of the spark, taken from the theme's info color; `updateBolt` jitters
+    // around it instead of a hard-coded cyan.
+    let boltHue = (() => {
+        const hsl = { h: 0, s: 1, l: 0.5 };
+        new THREE.Color(getThemePalette().info).getHSL(hsl);
+        return hsl.h;
+    })();
 
     function createBolt() {
         boltLine = new THREE.Line(boltGeometry, boltMaterial);
@@ -134,7 +149,7 @@
         }
         boltLine.geometry.attributes.position.needsUpdate = true;
         (boltLine.material as THREE.LineBasicMaterial).color.setHSL(
-            0.5 + Math.random() * 0.2,
+            boltHue + (Math.random() - 0.5) * 0.12,
             1,
             0.5 + Math.random() * 0.5,
         );
@@ -224,7 +239,7 @@
         const geom = new THREE.TetrahedronGeometry(0.2);
         for (let i = 0; i < SHARD_COUNT; i++) {
             const mat = new THREE.MeshBasicMaterial({
-                color: 0x00ff9d,
+                color: new THREE.Color(getThemePalette().accent),
                 transparent: true,
                 opacity: 0.8,
             });
@@ -364,9 +379,45 @@
         }
     }
 
+    // Quality + reduced motion (see `qualityController` / `lib/three/motionState`).
+    const reducedMotion = $derived(systemReducedMotion());
+
+    $effect(() => {
+        if (settingsState.visualQuality !== "auto") return;
+        return retainAutoQuality();
+    });
+
+    $effect(() => {
+        const tier = concreteQuality(settingsState.visualQuality);
+        if (!renderer) return;
+        renderer.setPixelRatio(effectivePixelRatio(tier, window.devicePixelRatio));
+    });
+
+    // Keep the effect palette in step with the theme. The shared palette cache
+    // is dropped first so the materials re-read the CSS variables. The coin
+    // (gold), the matrix rain (green) and the duck stay intentionally literal.
+    $effect(() => {
+        void uiState.currentTheme;
+        invalidateThemePalette();
+        const palette = getThemePalette();
+        orbMaterial.uniforms.uColorCore.value.set(palette.accent);
+        orbMaterial.uniforms.uColorGlow.value.set(palette.info);
+        boltMaterial.color.set(palette.info);
+        const hsl = { h: 0, s: 1, l: 0.5 };
+        new THREE.Color(palette.info).getHSL(hsl);
+        boltHue = hsl.h;
+        shards.forEach((shard) =>
+            (shard.material as THREE.MeshBasicMaterial).color.set(palette.accent),
+        );
+    });
+
     $effect(() => {
         const origin = effectsState.projectileEvents[0];
         if (origin) {
+            if (reducedMotion) {
+                effectsState.consumeProjectileEvent();
+                return;
+            }
             launch(origin);
             effectsState.consumeProjectileEvent();
             if (!animationId) {
@@ -379,6 +430,10 @@
     $effect(() => {
         const smash = effectsState.smashEvents[0];
         if (smash && camera && stressLogic) {
+            if (reducedMotion) {
+                effectsState.consumeSmashEvent();
+                return;
+            }
             const { rect } = smash;
             const x =
                 ((rect.left + rect.width / 2) / window.innerWidth) * 2 - 1;
@@ -407,6 +462,10 @@
     $effect(() => {
         const duck = effectsState.duckEvents[0];
         if (duck && duckLogic) {
+            if (reducedMotion) {
+                effectsState.consumeDuckEvent();
+                return;
+            }
             duckLogic.handleEvent(duck);
             effectsState.consumeDuckEvent();
 
@@ -419,6 +478,10 @@
 
     function animate() {
         if (!renderer || !scene || !camera) return;
+        if (reducedMotion) {
+            animationId = null;
+            return;
+        }
 
         const anyShardVisible = shards.some((s) => s.visible);
         const physicsActive = !!(stressLogic && stressLogic["physicsBodies"]?.length);
@@ -492,10 +555,27 @@
         );
         camera.position.z = 20;
         renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(
+            effectivePixelRatio(
+                concreteQuality(settingsState.visualQuality),
+                window.devicePixelRatio,
+            ),
+        );
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.domElement.style.pointerEvents = "none";
         container.appendChild(renderer.domElement);
+
+        const detachRecovery = attachContextRecovery(renderer.domElement, {
+            onLost: () => {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+            },
+            onRestored: () => {
+                if (camera && scene) renderer?.render(scene, camera);
+            },
+        });
 
         createOrb();
         createBolt();
@@ -530,6 +610,7 @@
             if (animationId) cancelAnimationFrame(animationId);
             window.removeEventListener("resize", onWindowResize);
             document.removeEventListener("click", onDocumentClick);
+            detachRecovery();
             renderer?.dispose();
         };
     });

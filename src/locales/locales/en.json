@@ -1226,6 +1226,14 @@
         "layout": "Layout",
         "background": "Background"
       },
+      "visualQuality": "Visual quality",
+      "visualQualityDesc": "Render resolution of the 3D backgrounds and effects. Auto adapts to the measured frame rate.",
+      "quality": {
+        "auto": "Auto",
+        "high": "High",
+        "balanced": "Balanced",
+        "low": "Low"
+      },
       "chatSize": "Chat Size",
       "burningBorders": "Burning Borders",
       "burningBordersDesc": "Interactive fire effect on element edges",

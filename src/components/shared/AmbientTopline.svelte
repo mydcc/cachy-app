@@ -23,6 +23,11 @@
     import { marketState } from "../../stores/market.svelte";
     import { tradeState } from "../../stores/trade.svelte";
     import { activeExchange } from "../../services/exchange";
+    import { getThemePalette, invalidateThemePalette } from "../../lib/themeColors";
+    import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
+    import { effectivePixelRatio } from "../../lib/three/quality";
+    import { attachContextRecovery } from "../../lib/three/webgl";
+    import { systemReducedMotion } from "../../lib/three/motionState.svelte";
 
     let container: HTMLDivElement;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -50,6 +55,20 @@
             default:
                 return { coreExp: 42.0, corePower: 2.2, emissionRate: 8.0, emissionPower: 0.85, height: 24 };
         }
+    });
+
+    // Rendering quality & motion.
+    const reducedMotion = $derived(systemReducedMotion());
+
+    $effect(() => {
+        if (settingsState.visualQuality !== "auto") return;
+        return retainAutoQuality();
+    });
+
+    $effect(() => {
+        const tier = concreteQuality(settingsState.visualQuality);
+        if (!renderer) return;
+        renderer.setPixelRatio(effectivePixelRatio(tier, window.devicePixelRatio));
     });
 
     // Dynamic Real-time Market Sentiment (-1.0 Bearish to +1.0 Bullish) & Trade Activity
@@ -139,23 +158,20 @@
         return () => cleanup();
     });
 
-    // Resolve theme colors dynamically from CSS variables (Strictly no hardcoded hex)
-    function resolveThemeColor(varName: string, fallback: string = "#ff8800"): THREE.Color {
-        if (!browser || typeof document === "undefined") return new THREE.Color(fallback);
-        try {
-            const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-            return new THREE.Color(raw || fallback);
-        } catch {
-            return new THREE.Color(fallback);
-        }
-    }
+    // Theme colors are resolved through the shared `lib/themeColors` palette,
+    // which reads the CSS variables once and caches them. A theme swap is
+    // caught by the MutationObserver installed in `onMount`.
 
     // Wake-up or pause render loop reactively
     $effect(() => {
-        if (isEnabled && typeof document !== "undefined" && !document.hidden) {
+        if (isEnabled && !reducedMotion && typeof document !== "undefined" && !document.hidden) {
             requestStartLoop?.();
         } else {
             requestStopLoop?.();
+            // Reduced motion still shows the aura — one static frame.
+            if (isEnabled && reducedMotion && renderer) {
+                renderer.render(scene, camera);
+            }
         }
     });
 
@@ -184,7 +200,12 @@
                 depth: false,
                 powerPreference: "low-power",
             });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(
+                effectivePixelRatio(
+                    concreteQuality(settingsState.visualQuality),
+                    window.devicePixelRatio,
+                ),
+            );
             renderer.setSize(container.clientWidth || window.innerWidth, intensityConfig.height, false);
             renderer.setClearColor(0x000000, 0);
 
@@ -202,6 +223,13 @@
             console.error("[AmbientTopline] Failed to initialize WebGL renderer", e);
             return;
         }
+
+        const detachRecovery = attachContextRecovery(renderer.domElement, {
+            onLost: () => requestStopLoop?.(),
+            onRestored: () => {
+                if (isEnabled) requestStartLoop?.();
+            },
+        });
 
         const vertexShader = `
             varying vec2 vUv;
@@ -274,9 +302,9 @@
                 uCorePower: { value: intensityConfig.corePower },
                 uEmissionRate: { value: intensityConfig.emissionRate },
                 uEmissionPower: { value: intensityConfig.emissionPower },
-                uColorBullish: { value: resolveThemeColor("--success-color", "#22c55e") },
-                uColorBearish: { value: resolveThemeColor("--danger-color", "#ef4444") },
-                uColorNeutral: { value: resolveThemeColor("--accent-color", "#ff8800") },
+                uColorBullish: { value: new THREE.Color(getThemePalette().success) },
+                uColorBearish: { value: new THREE.Color(getThemePalette().danger) },
+                uColorNeutral: { value: new THREE.Color(getThemePalette().accent) },
             },
             transparent: true,
             blending: THREE.AdditiveBlending,
@@ -306,7 +334,7 @@
 
         const startLoop = () => {
             if (isLoopRunning || !renderer || !browser) return;
-            if (document.hidden || !isEnabled) return;
+            if (document.hidden || !isEnabled || reducedMotion) return;
             isLoopRunning = true;
             frameId = requestAnimationFrame(animate);
         };
@@ -314,7 +342,7 @@
         const animate = () => {
             if (!isLoopRunning || !renderer) return;
 
-            if (document.hidden || !isEnabled) {
+            if (document.hidden || !isEnabled || reducedMotion) {
                 stopLoop();
                 return;
             }
@@ -323,9 +351,10 @@
 
             const now = performance.now();
             if (now - lastThemeUpdate > 1000) {
-                material.uniforms.uColorBullish.value = resolveThemeColor("--success-color", "#22c55e");
-                material.uniforms.uColorBearish.value = resolveThemeColor("--danger-color", "#ef4444");
-                material.uniforms.uColorNeutral.value = resolveThemeColor("--accent-color", "#ff8800");
+                const palette = getThemePalette();
+                material.uniforms.uColorBullish.value.set(palette.success);
+                material.uniforms.uColorBearish.value.set(palette.danger);
+                material.uniforms.uColorNeutral.value.set(palette.accent);
                 lastThemeUpdate = now;
             }
 
@@ -346,7 +375,11 @@
         requestStopLoop = stopLoop;
 
         if (isEnabled && !document.hidden) {
-            startLoop();
+            if (reducedMotion) {
+                renderer.render(scene, camera);
+            } else {
+                startLoop();
+            }
         }
 
         const handleVisibilityChange = () => {
@@ -373,6 +406,14 @@
             typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncWidth) : null;
         resizeObserver?.observe(container);
 
+        // A theme swap changes the CSS variables behind them, so drop the
+        // cached palette; the next 1s refresh re-reads them.
+        const themeObserver = new MutationObserver(() => invalidateThemePalette());
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class", "style", "data-mode"],
+        });
+
         return () => {
             requestStartLoop = null;
             requestStopLoop = null;
@@ -380,6 +421,8 @@
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("resize", handleResize);
             resizeObserver?.disconnect();
+            themeObserver.disconnect();
+            detachRecovery();
             // BUG-0428: wie BUG-0414 (Präzedenz 0f2ff27) — forceContextLoss()
             // lässt die Overlay-Region in Chromium beim Teardown weiß
             // aufblitzen. dispose() genügt; Kontext geht mit dem Canvas.

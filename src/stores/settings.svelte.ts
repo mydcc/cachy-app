@@ -23,6 +23,7 @@ import {
   apiKeyHasMaterial,
 } from "./settings/secretsLoader";
 import type { SwitchAuthorization } from "../lib/confirmationPolicy";
+import { normalizeQuality, type VisualQuality } from "../lib/three/quality";
 import type { AiAnalysisMode } from "../types/ai";
 import {
   accountForExchange,
@@ -506,6 +507,10 @@ export interface Settings {
   ambientToplineIntensity: AmbientToplineIntensity;
   ambientToplineBursts: boolean;
 
+  // Rendering quality
+  /** WebGL pixel-ratio tier; `auto` adapts to measured FPS. */
+  visualQuality: VisualQuality;
+
   // Market & Performance Settings
   marketMode: MarketMode;
   analyzeAllFavorites: boolean; // if false, only top 4
@@ -781,6 +786,8 @@ const defaultSettings: Settings = {
   ambientToplineMode: "symbol_orderflow",
   ambientToplineIntensity: "standard",
   ambientToplineBursts: true,
+
+  visualQuality: "auto",
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
@@ -1265,6 +1272,8 @@ export class SettingsManager {
     defaultSettings.ambientToplineIntensity,
   );
   ambientToplineBursts = $state<boolean>(defaultSettings.ambientToplineBursts);
+
+  visualQuality = $state<VisualQuality>(defaultSettings.visualQuality);
 
   fireConfig = $state(defaultSettings.fireConfig);
 
@@ -2134,6 +2143,8 @@ export class SettingsManager {
     this.ambientToplineBursts =
       merged.ambientToplineBursts ?? defaultSettings.ambientToplineBursts;
 
+    this.visualQuality = normalizeQuality(merged.visualQuality);
+
     this.enableDockingCentered =
       merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
     this.dockingPosition =
@@ -2310,6 +2321,7 @@ export class SettingsManager {
       ambientToplineMode: this.ambientToplineMode,
       ambientToplineIntensity: this.ambientToplineIntensity,
       ambientToplineBursts: this.ambientToplineBursts,
+      visualQuality: this.visualQuality,
       fireConfig: $state.snapshot(this.fireConfig),
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,
