@@ -120,8 +120,9 @@ export function readClosedCandles(symbol: string, timeframe: string): Evaluation
  * which ones exist. A symbol charted at `1h` has no `1m`/`5m`/`15m` series, so
  * a fixed probe list skips it even though history is right there. This reads
  * the store's own keys instead. Finest first because a coarser series says the
- * same thing about *whether* a target was crossed but less about *when*; a
- * label `safeTfToMs` cannot parse sorts last rather than being dropped.
+ * same thing about *whether* a target was crossed but less about *when*. A
+ * label `safeTfToMs` cannot parse falls back to its 1m default and sorts among
+ * the minute timeframes; store keys always parse, so that is cosmetic.
  */
 export function readAvailableKlineTimeframes(symbol: string): string[] {
   try {
@@ -133,13 +134,7 @@ export function readAvailableKlineTimeframes(symbol: string): string[] {
         const series = klines[timeframe];
         return Array.isArray(series) && series.length >= 2;
       })
-      .sort((a, b) => {
-        const aMs = safeTfToMs(a);
-        const bMs = safeTfToMs(b);
-        const aKey = Number.isFinite(aMs) ? aMs : Number.POSITIVE_INFINITY;
-        const bKey = Number.isFinite(bMs) ? bMs : Number.POSITIVE_INFINITY;
-        return aKey - bKey;
-      });
+      .sort((a, b) => safeTfToMs(a) - safeTfToMs(b));
   } catch (e) {
     logger.error("alerts", `[Cutover] Timeframe discovery failed for ${symbol}`, e);
     return [];

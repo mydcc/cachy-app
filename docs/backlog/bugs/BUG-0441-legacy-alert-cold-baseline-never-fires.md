@@ -205,7 +205,15 @@ has not resolved — the tick seeds the baseline and the crossing is lost exactl
 before. There is no bounded retry after that, because a replay then would no longer be
 the symbol's first evaluation.
 
-**Left as documentation, not fixed here**, because closing either properly means probing
+A narrower sibling of that second residual: the "history becomes observable" hook replays
+on the *first* batch that yields two usable closes, which can be a 2–3 candle WebSocket
+dribble that lands before the full REST history resolves. Once decided, the wider,
+informative window is never replayed, so a true crossing inside it is lost. The root
+cause is the same — a replay must be the symbol's first evaluation — so the same
+no-rollback-path constraint applies; noted here so it reads as a decision, not an
+oversight.
+
+**Left as documentation, not fixed here**, because closing any of these properly means probing
 stateful `evaluate()` speculatively (it seeds the baseline and can flip `alert.active`),
 which would need a rollback path the engine does not have. A real fix is a follow-up,
 not a comment; this bug's own acceptance criteria are met by the coverage that exists,
