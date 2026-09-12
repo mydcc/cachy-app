@@ -2,7 +2,9 @@
 id: FEAT-0030
 title: Combine several conditions into one alert
 type: feature
-status: idea
+status: in-progress
+assignee: claude
+branch: worktree-super-alert-system-overview-157ec6
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -33,13 +35,13 @@ unintelligible logic is worse than three separate alerts.
 
 ## Acceptance criteria
 
-- [ ] Conditions combine with AND and OR, and the resulting logic is displayed
+- [x] Conditions combine with AND and OR, and the resulting logic is displayed
       in plain language in both locales
-- [ ] A validity window expires the alert without firing
-- [ ] A combined alert fires exactly once when all conditions hold
-- [ ] Conditions that hold at different times do not fire unless the
+- [x] A validity window expires the alert without firing
+- [x] A combined alert fires exactly once when all conditions hold
+- [x] Conditions that hold at different times do not fire unless the
       simultaneity rule stated in this item says they should
-- [ ] The evaluation cost stays bounded with many alerts armed
+- [x] The evaluation cost stays bounded with many alerts armed
 
 ## Answered while planning the Super-Alert work (2026-09-04)
 

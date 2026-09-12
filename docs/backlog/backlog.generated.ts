@@ -2462,9 +2462,11 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0440",
     "title": "Replace the shadow sink with one that announces, counts and retires",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "assignee": "mydcc",
+    "resolved_at": "2026-09-11",
+    "branch": "worktree-super-alert-firing-sink-11441b",
     "milestone": "M4",
     "editions": [
       "community",
@@ -3716,6 +3718,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0435-presence-and-flip-declaration-semantics.md"
   },
   {
+    "id": "BUG-0443",
+    "title": "A builder tab erases a rule it cannot read back",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "estimate": "2",
+    "file": "bugs/BUG-0443-builder-tab-erases-a-rule-it-cannot-read.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -3817,7 +3839,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0030",
     "title": "Combine several conditions into one alert",
     "type": "feature",
-    "status": "idea",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-super-alert-system-overview-157ec6",
     "priority": "P2",
     "milestone": "M4",
     "editions": [

@@ -2,9 +2,11 @@
 id: FEAT-0440
 title: Replace the shadow sink with one that announces, counts and retires
 type: feature
-status: in-progress
+status: done
 priority: P1
 assignee: mydcc
+resolved_at: 2026-09-11
+branch: worktree-super-alert-firing-sink-11441b
 milestone: M4
 editions: [community, pro, private]
 area: alerts

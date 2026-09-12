@@ -552,7 +552,54 @@
       },
       "firedWithNote": "{message} — {note}",
       "expired": "Abgelaufen",
-      "expiredHint": "Gültigkeitszeitraum vorbei — abgelaufen, ohne ausgelöst zu haben."
+      "expiredHint": "Gültigkeitszeitraum vorbei — abgelaufen, ohne ausgelöst zu haben.",
+      "combo": {
+        "logicLabel": "Wie die Bedingungen verknüpft sind",
+        "op": {
+          "all": "Alle davon",
+          "any": "Mindestens eine"
+        },
+        "opHint": {
+          "all": "Löst aus, wenn jede Bedingung in derselben Auswertung zutrifft.",
+          "any": "Löst aus, wenn mindestens eine Bedingung zutrifft."
+        },
+        "rowLabel": "Bedingung {index}",
+        "addRow": "Bedingung hinzufügen",
+        "removeRow": "Bedingung {index} entfernen",
+        "limitHint": "Höchstens {max} Bedingungen pro Regel.",
+        "empty": "Noch keine Bedingung. Füge eine hinzu, um zu kombinieren.",
+        "lockedTitle": "Diese Regel lässt sich hier nicht bearbeiten",
+        "lockedBody": "Sie nutzt eine Struktur, die der Combo-Builder nicht anbietet — eine verschachtelte Gruppe, eine Bedingung anderer Art oder eine Verknüpfung, die dieser Builder zurückhält. Sie bleibt unverändert erhalten.",
+        "indicatorLabel": "Indikator",
+        "outputLabel": "Linie",
+        "relationLabel": "Beziehung",
+        "referenceLabel": "Verglichen mit",
+        "relation": {
+          "compare": "ist",
+          "cross": "kreuzt"
+        },
+        "compareOp": {
+          "gt": "größer als",
+          "gte": "größer oder gleich",
+          "lt": "kleiner als",
+          "lte": "kleiner oder gleich",
+          "eq": "gleich",
+          "neq": "ungleich"
+        },
+        "reference": {
+          "constant": "Ein Wert",
+          "price": "Preis",
+          "indicator": "Anderer Indikator"
+        },
+        "priceField": {
+          "open": "Eröffnung",
+          "high": "Hoch",
+          "low": "Tief",
+          "close": "Schluss",
+          "hl2": "Median (HL2)",
+          "hlc3": "Typisch (HLC3)"
+        }
+      }
     },
     "generalInputs": {
       "header": "Allgemein",
@@ -2451,7 +2498,7 @@
       "soundMute": "Stumm",
       "soundPreview": "Ton anhören",
       "soundReady": "Der Ton-Kanal ist bereit.",
-      "soundLocked": "Dein Browser lässt Ton erst zu, nachdem du die Seite angeklickt hast. Bis dahin meldet sich dieser Kanal nicht — die anderen schon. Ein Klick auf \u201eTon anhören\u201c schaltet ihn frei.",
+      "soundLocked": "Dein Browser lässt Ton erst zu, nachdem du die Seite angeklickt hast. Bis dahin meldet sich dieser Kanal nicht — die anderen schon. Ein Klick auf „Ton anhören“ schaltet ihn frei.",
       "soundUnsupported": "Dieser Browser kann keinen Ton abspielen.",
       "soundMuted": "Dieser Kanal ist stummgeschaltet. Die anderen Kanäle melden sich weiterhin.",
       "permissionDenied": "Dein Browser blockiert Benachrichtigungen für diese Seite. Erlaube sie in den Website-Einstellungen, um diesen Kanal zu nutzen.",
