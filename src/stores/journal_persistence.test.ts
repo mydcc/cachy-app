@@ -81,12 +81,12 @@ function createTestEntry(id: string, pnl = "100", isPaper = false): JournalEntry
 
 describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
   beforeEach(() => {
-    // The module above also instantiates a singleton at import time, on the
-    // real clock: its 500ms auto-save can otherwise fire mid-test and add a
-    // second write to the debounced one under test (load-dependent CI flake).
     journalState.destroy();
     vi.clearAllTimers();
     vi.useFakeTimers();
+    // Clear timers again after switching to fake timers to ensure no
+    // scheduled real-clock callbacks are queued on the fake timer
+    vi.clearAllTimers();
     vi.clearAllMocks();
     localStorageMock.clear();
     mockSettings.journalPaperTrades = true;
