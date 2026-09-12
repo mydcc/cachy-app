@@ -277,10 +277,6 @@ self.onmessage = (event) => {
             currentTier = (data?.tier as ConcreteQuality) ?? currentTier;
             applyQuality();
             break;
-        case 'setMotion':
-            motionReduced = !!data?.reduced;
-            ensureFrame();
-            break;
         case 'updateColors':
             updateColors(data);
             break;
@@ -357,7 +353,6 @@ function init(canvas: OffscreenCanvas, width: number, height: number, pixelRatio
 
 let lastFrameTime = 0;
 let animating = false;
-let motionReduced = false;
 let contextLost = false;
 let currentTier: ConcreteQuality = 'high';
 let basePixelRatio = 1;
@@ -513,10 +508,6 @@ function animate(time: number) {
     }
     
     renderer.render(scene, camera);
-    if (motionReduced) {
-        animating = false;
-        return;
-    }
     requestAnimationFrame(animate);
 }
 

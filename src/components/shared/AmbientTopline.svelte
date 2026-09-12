@@ -27,7 +27,6 @@
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
     import { effectivePixelRatio } from "../../lib/three/quality";
     import { attachContextRecovery } from "../../lib/three/webgl";
-    import { systemReducedMotion } from "../../lib/three/motionState.svelte";
 
     let container: HTMLDivElement;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -57,8 +56,7 @@
         }
     });
 
-    // Rendering quality & motion.
-    const reducedMotion = $derived(systemReducedMotion());
+    // Rendering quality.
 
     $effect(() => {
         if (settingsState.visualQuality !== "auto") return;
@@ -164,14 +162,10 @@
 
     // Wake-up or pause render loop reactively
     $effect(() => {
-        if (isEnabled && !reducedMotion && typeof document !== "undefined" && !document.hidden) {
+        if (isEnabled && typeof document !== "undefined" && !document.hidden) {
             requestStartLoop?.();
         } else {
             requestStopLoop?.();
-            // Reduced motion still shows the aura — one static frame.
-            if (isEnabled && reducedMotion && renderer) {
-                renderer.render(scene, camera);
-            }
         }
     });
 
@@ -334,7 +328,7 @@
 
         const startLoop = () => {
             if (isLoopRunning || !renderer || !browser) return;
-            if (document.hidden || !isEnabled || reducedMotion) return;
+            if (document.hidden || !isEnabled) return;
             isLoopRunning = true;
             frameId = requestAnimationFrame(animate);
         };
@@ -342,7 +336,7 @@
         const animate = () => {
             if (!isLoopRunning || !renderer) return;
 
-            if (document.hidden || !isEnabled || reducedMotion) {
+            if (document.hidden || !isEnabled) {
                 stopLoop();
                 return;
             }
@@ -375,11 +369,7 @@
         requestStopLoop = stopLoop;
 
         if (isEnabled && !document.hidden) {
-            if (reducedMotion) {
-                renderer.render(scene, camera);
-            } else {
-                startLoop();
-            }
+            startLoop();
         }
 
         const handleVisibilityChange = () => {

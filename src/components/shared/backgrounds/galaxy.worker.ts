@@ -70,7 +70,6 @@ let isInitialized = false;
 
 // Quality / motion / context-loss state.
 let animating = false;
-let motionReduced = false;
 let contextLost = false;
 let currentTier: ConcreteQuality = 'high';
 let basePixelRatio = 1;
@@ -140,10 +139,6 @@ self.onmessage = (e: MessageEvent) => {
         case 'quality':
             currentTier = (data?.tier as ConcreteQuality) ?? currentTier;
             applyQuality();
-            break;
-        case 'setMotion':
-            motionReduced = !!data?.reduced;
-            ensureFrame();
             break;
     }
 };
@@ -233,10 +228,6 @@ function animate(time: number) {
 
     renderer.render(scene, camera);
 
-    if (motionReduced) {
-        animating = false;
-        return;
-    }
     requestAnimationFrame(animate);
 }
 
