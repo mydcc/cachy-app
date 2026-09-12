@@ -85,6 +85,7 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
     // real clock: its 500ms auto-save can otherwise fire mid-test and add a
     // second write to the debounced one under test (load-dependent CI flake).
     journalState.destroy();
+    vi.clearAllTimers();
     vi.useFakeTimers();
     vi.clearAllMocks();
     localStorageMock.clear();

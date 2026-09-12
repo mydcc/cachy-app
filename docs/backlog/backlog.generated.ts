@@ -1563,6 +1563,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0430-macd-seeding-mismatch.md"
   },
   {
+    "id": "BUG-0443",
+    "title": "Switching builder tabs wipes the condition the trader just configured",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "worktree-super-alert-epic-open-5b8b1b",
+    "priority": "P1",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [],
+    "file": "bugs/BUG-0443-builder-tab-switch-wipes-condition.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -3718,10 +3738,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0435-presence-and-flip-declaration-semantics.md"
   },
   {
-    "id": "BUG-0443",
-    "title": "A builder tab erases a rule it cannot read back",
+    "id": "BUG-0444",
+    "title": "slotOf() claims shapes readers cannot round-trip (visit-time wipe)",
     "type": "bug",
-    "status": "specced",
+    "status": "idea",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3732,10 +3752,12 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "area": "alerts",
     "data_class": "A",
     "adr": "none",
-    "depends_on": [],
-    "size": "S",
-    "estimate": "2",
-    "file": "bugs/BUG-0443-builder-tab-erases-a-rule-it-cannot-read.md"
+    "depends_on": [
+      "BUG-0443"
+    ],
+    "size": "M",
+    "estimate": "3",
+    "file": "bugs/BUG-0444-slotof-claims-unreadable-shapes.md"
   },
   {
     "id": "FEAT-0019",
@@ -5358,9 +5380,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0395",
     "title": "Create an alert from the chart and from indicator settings",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "claude",
-    "branch": "worktree-feat-0395-dependencies-resolved-edf8ae",
+    "status": "ready",
     "priority": "P2",
     "milestone": "M4",
     "editions": [

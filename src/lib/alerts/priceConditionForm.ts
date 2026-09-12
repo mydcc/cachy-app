@@ -31,7 +31,7 @@
 
 import Decimal from "decimal.js";
 import type { Condition } from "../rules/types";
-import { soleCondition } from "./soleCondition";
+import { conditionInSlot } from "./conditionSlots";
 
 export type PriceConditionKind =
   "rises_above" | "falls_below" | "rise_reaches" | "fall_reaches";
@@ -74,9 +74,16 @@ function displayThreshold(raw: string): string {
  * indicator comparison, a multi-condition group from the Combo tab — reads as
  * blank, because showing "rises above" for a rule that says nothing of the
  * sort is worse than showing an empty form.
+ *
+ * Blank here means "this builder has authored nothing", not "the draft is
+ * empty": `conditionInSlot` returns only the price builder's own member, so a
+ * draft that also holds an indicator condition still reads blank in this form
+ * and the write-through leaves that indicator alone (BUG-0443).
  */
-export function readPriceForm(conditions: Condition): PriceFormState {
-  const condition = soleCondition(conditions);
+export function readPriceForm(
+  conditions: Condition | null | undefined,
+): PriceFormState {
+  const condition = conditionInSlot(conditions, "price");
   if (condition === null) return BLANK_PRICE_FORM;
 
   if (

@@ -83,7 +83,8 @@
     // on arm. Null clears the condition, which is what disables the arm button
     // -- an empty pattern rule would be an alarm with no trigger.
     $effect(() => {
-        alertPanelState.setSingleCondition(
+        alertPanelState.setSlotCondition(
+            "candlesticks",
             chosen
                 ? buildPatternCondition(chosen, alertPanelState.draft.trigger_timeframe)
                 : null,

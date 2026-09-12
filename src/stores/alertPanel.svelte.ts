@@ -48,6 +48,14 @@ import type {
   RuleRefusal,
   TimeframeString,
 } from "../lib/rules/types";
+import { untrack } from "svelte";
+
+import {
+  conditionMembers,
+  slotIndices,
+  slotOf,
+  type BuilderSlot,
+} from "../lib/alerts/conditionSlots";
 import { logger } from "../services/logger";
 import { generateId } from "../utils/utils";
 
@@ -213,14 +221,17 @@ class AlertPanelStore {
   }
 
   /**
-   * Replace the draft's condition with the single one a builder produced.
+   * Replace the draft's conditions with the single one a *seed* produced.
+   *
+   * Only for paths that own the whole draft: an entry point outside the panel
+   * (FEAT-0395) seeds straight after `reset()`, so there is nothing else in the
+   * group to lose. A builder tab must never call this — it would throw away
+   * another tab's work on mount (BUG-0443). Builders call
+   * `setSlotCondition()`.
    *
    * Wrapped in an `all` group rather than assigned to `conditions` directly:
    * the shape stays the one the Combo tab (FEAT-0030) extends, so moving from
-   * one condition to several is adding a member rather than rewriting the
-   * tree. A builder that produced nothing usable passes `null`, which empties
-   * the group and disables the arm button — never leaves a stale condition
-   * behind that the trader has since edited away.
+   * one condition to several is adding a member rather than rewriting the tree.
    */
   setSingleCondition(condition: Condition | null) {
     this.draft.conditions = {
@@ -228,6 +239,63 @@ class AlertPanelStore {
       op: "all",
       of: condition ? [condition] : [],
     };
+  }
+
+  /**
+   * Write what one builder produced into that builder's own slot (BUG-0443).
+   *
+   * Replaces the slot's existing member in place, appends when the slot is
+   * empty, and removes it when `condition` is `null`. Three consequences, each
+   * load-bearing:
+   *
+   * - Another tab's condition is never touched, so switching tabs cannot
+   *   discard a rule the trader is still building.
+   * - Replacing in place rather than removing and appending keeps the group's
+   *   order stable, so the plain-language sentence does not reshuffle itself
+   *   while the trader types.
+   * - `null` still empties this slot, which is what disables the arm button
+   *   when a trader clears their own condition. A deliberate clear is not a
+   *   wipe, and the arm button must keep reading the difference.
+   */
+  setSlotCondition(slot: BuilderSlot, condition: Condition | null) {
+    if (condition && slotOf(condition) !== slot) {
+      // Not fatal: the write still lands, and the panel stays up. But a builder
+      // emitting a shape its own slot does not claim means `slotOf` and that
+      // builder disagree, and the next tab switch will drop the condition.
+      logger.error(
+        "alerts",
+        `builder slot "${slot}" produced a condition it does not own; see slotOf()`,
+      );
+    }
+
+    // `untrack` because this read is bookkeeping, not a subscription. Builders
+    // call this from a write-through `$effect`, so a tracked read of the group
+    // they are about to write would make that effect depend on its own output
+    // and loop until Svelte gives up (`effect_update_depth_exceeded`). The
+    // effect should depend on the form fields it reads and nothing else; every
+    // *reader* of `draft.conditions` — the sentence, the arm button — still
+    // updates, because untracking affects this read, not the write.
+    const members = untrack(() => [...conditionMembers(this.draft.conditions)]);
+    const claimed = slotIndices({ kind: "group", op: "all", of: members }, slot);
+
+    // An ambiguous slot is not this builder's to write. More than one member
+    // claiming it means a combo (FEAT-0030) that a single-condition builder
+    // cannot represent; it hydrated blank for exactly that reason, so letting
+    // its mount-time write land would drop a leg the trader still has.
+    if (claimed.length > 1) return;
+
+    const at = claimed.length === 1 ? claimed[0] : -1;
+
+    if (condition === null) {
+      if (at === -1) return;
+      members.splice(at, 1);
+    } else if (at === -1) {
+      members.push(condition);
+    } else {
+      members[at] = condition;
+    }
+
+    this.draft.conditions = { kind: "group", op: "all", of: members };
   }
 
   /**
