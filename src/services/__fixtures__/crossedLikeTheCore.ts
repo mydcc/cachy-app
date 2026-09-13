@@ -46,7 +46,12 @@ export function crossedLikeTheCore(
     : previousSign > 0 && currentSign <= 0;
 }
 
-/** The sign of `a - b` for two numbers, without the subtraction's rounding. */
+/**
+ * The sign of `a - b` for two numbers, without the subtraction's rounding.
+ * A `NaN` operand has no sign; returning 0 for it would read as a value
+ * sitting exactly on the level and could manufacture a cross.
+ */
 export function signOf(a: number, b: number): number {
+  if (Number.isNaN(a) || Number.isNaN(b)) return NaN;
   return a < b ? -1 : a > b ? 1 : 0;
 }

@@ -49,7 +49,7 @@ export function indicatorFormOf(condition: Condition): IndicatorForm | null {
     // A cumulative indicator against anything but its window is a document the
     // core refuses (FEAT-0446 group 4) — saved before that rule, or from
     // elsewhere. The builder cannot offer it, so it does not claim it: the rule
-    // stays as it is, and the evaluation loop reports it (BUG-0467).
+    // stays as it is, and the evaluation loop reports it (BUG-0468).
     if (entry.cumulative && reference.kind !== "window") return null;
 
     return {

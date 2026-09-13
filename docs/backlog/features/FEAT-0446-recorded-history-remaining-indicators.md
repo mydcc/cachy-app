@@ -303,7 +303,7 @@ Put to the product owner with measurements on the recorded fixture, and decided:
 - Stored OBV rules armed before BUG-0451 are unaffected by the refusal alone: the alert
   path still computes no OBV, so they are reported unevaluable before the core is asked.
   Once OBV is computed they reach the core and are refused, and
-  `BUG-0467` (PR #3269) makes that a
+  `BUG-0468` (PR #3269) makes that a
   report instead of a log line on every close. Wiring OBV in depends on it.
 - **The builder gained the shape (decided 2026-09-13: for every indicator, not OBV
   alone).** The Indicators and Combo tabs offer "its own high or low" over N candles

@@ -1,5 +1,5 @@
 ---
-id: BUG-0467
+id: BUG-0468
 title: A stored rule the core refuses is logged on every close and never reported
 type: bug
 status: done
@@ -15,7 +15,7 @@ branch: fix/bug-0467-refused-rule-silent
 start_date: 2026-09-13
 ---
 
-# BUG-0467 — A stored rule the core refuses is logged on every close and never reported
+# BUG-0468 — A stored rule the core refuses is logged on every close and never reported
 
 ## Symptom
 
