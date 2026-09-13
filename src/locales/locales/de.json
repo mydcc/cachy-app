@@ -497,7 +497,8 @@
           "conversion": "Wandlungslinie",
           "base": "Basislinie",
           "span_a": "Span A",
-          "span_b": "Span B"
+          "span_b": "Span B",
+          "direction": "Richtung (+1 unter dem Kurs, −1 darüber)"
         },
         "param": {
           "period": "Periode",

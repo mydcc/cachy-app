@@ -1093,8 +1093,29 @@ export const JSIndicators = {
   },
 
   psar(high: NumberArray, low: NumberArray, start: number = 0.02, increment: number = 0.02, max: number = 0.2): Float64Array {
+    // By name rather than `this`: a detached call must not throw (BUG-0449).
+    return JSIndicators.psarLines(high, low, start, increment, max).value;
+  },
+
+  /**
+   * The Parabolic SAR and the side it stands on, from one state machine.
+   *
+   * `direction` is +1 while the SAR trails below the price (long) and -1 while
+   * it stands above (short), `NaN` where the SAR has no value. The chart draws
+   * `value`; an alert on "the SAR flips" reads `direction` crossing 0, which the
+   * close crossing the SAR misses when one candle reverses it and closes back
+   * beyond it (FEAT-0446 group 4).
+   */
+  psarLines(
+    high: NumberArray,
+    low: NumberArray,
+    start: number = 0.02,
+    increment: number = 0.02,
+    max: number = 0.2,
+  ): { value: Float64Array; direction: Float64Array } {
     const result = new Float64Array(high.length).fill(NaN);
-    if (high.length < 2) return result;
+    const direction = new Float64Array(high.length).fill(NaN);
+    if (high.length < 2) return { value: result, direction };
 
     let isLong = true;
     let af = start;
@@ -1103,6 +1124,7 @@ export const JSIndicators = {
 
     // Initial guess setup
     result[0] = sar;
+    direction[0] = 1;
 
     for (let i = 1; i < high.length; i++) {
       // Apply SAR Logic
@@ -1154,9 +1176,10 @@ export const JSIndicators = {
       }
       sar = nextSar;
       result[i] = sar;
+      direction[i] = isLong ? 1 : -1;
     }
 
-    return result;
+    return { value: result, direction };
   },
 
   // --- Incremental Helpers (O(1) Updates) ---

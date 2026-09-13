@@ -83,6 +83,10 @@ export const INDICATOR_WARMUP: IndicatorWarmup[] = [
   { label: "Ichimoku base", needs: 26, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "base" } },
   { label: "Ichimoku span A", needs: 52, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "span_a" } },
   { label: "Ichimoku span B", needs: 78, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "span_b" } },
+  // A SAR from the first candle's low, stepped from the second; WASM's
+  // `initialize` needs two candles to step once.
+  { label: "Parabolic SAR", needs: 2, ref: { id: "parabolic_sar", params: { start: 0.02, increment: 0.02, max: 0.2 }, output: "value" } },
+  { label: "Parabolic SAR direction", needs: 2, ref: { id: "parabolic_sar", params: { start: 0.02, increment: 0.02, max: 0.2 }, output: "direction" } },
   { label: "MACD line", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "macd" } },
   { label: "MACD signal", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "signal" } },
   { label: "MACD histogram", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "histogram" } },

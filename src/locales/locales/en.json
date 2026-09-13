@@ -497,7 +497,8 @@
           "conversion": "Conversion line",
           "base": "Base line",
           "span_a": "Span A",
-          "span_b": "Span B"
+          "span_b": "Span B",
+          "direction": "Direction (+1 below price, −1 above)"
         },
         "param": {
           "period": "Period",
