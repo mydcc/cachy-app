@@ -5931,7 +5931,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0467",
     "title": "User-managed AI providers with per-provider endpoints and API formats",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M8",
     "editions": [
@@ -5945,6 +5945,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "XL",
     "estimate": "20",
+    "assignee": "opencode",
     "file": "features/FEAT-0467-multi-provider-management.md"
   },
   {
