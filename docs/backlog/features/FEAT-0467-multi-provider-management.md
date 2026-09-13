@@ -2,7 +2,7 @@
 id: FEAT-0467
 title: User-managed AI providers with per-provider endpoints and API formats
 type: feature
-status: ready
+status: in-progress
 priority: P2
 milestone: M8
 editions: [community, pro, private]
@@ -12,9 +12,13 @@ adr: ADR-0019
 depends_on: []
 size: XL
 estimate: 20
+assignee: opencode
 ---
 
 # FEAT-0467 — User-managed AI providers with per-provider endpoints and API formats
+
+> **State:** `in-progress`, claimed by `opencode`. Branch:
+> `feat/0467-slice-1-provider-registry` (Slice 1: provider registry).
 
 ## Problem
 
