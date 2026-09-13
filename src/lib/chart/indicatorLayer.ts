@@ -729,10 +729,17 @@ export class IndicatorLayer {
                 };
             }
             case "stochRsi": {
-                const rsiPeriod = s.stochRsi.rsiLength || s.stochRsi.length || 14;
-                const sr = JSIndicators.stochRsi(sourced(s.stochRsi.source), rsiPeriod, s.stochRsi.kPeriod, s.stochRsi.dPeriod, 3);
+                // The card's `length` is the stochastic lookback and `kPeriod` the
+                // %K smoothing, as the Technicals panel and the alert seed read
+                // them. This used `kPeriod` as the lookback and smoothed by a
+                // fixed 3 (BUG-0460).
+                const rsiPeriod = s.stochRsi.rsiLength ?? 14;
+                const stochPeriod = s.stochRsi.length ?? 14;
+                const kSmoothing = s.stochRsi.kPeriod ?? 3;
+                const dPeriod = s.stochRsi.dPeriod ?? 3;
+                const sr = JSIndicators.stochRsi(sourced(s.stochRsi.source), rsiPeriod, stochPeriod, dPeriod, kSmoothing);
                 return {
-                    params: `${rsiPeriod} ${s.stochRsi.kPeriod} ${s.stochRsi.dPeriod}`,
+                    params: `${rsiPeriod} ${stochPeriod} ${kSmoothing} ${dPeriod}`,
                     lines: [line(sr.k, "--accent-color", "#2962ff"), line(sr.d, "--warning-color", "#ffb300")],
                 };
             }
@@ -793,10 +800,13 @@ export class IndicatorLayer {
             }
             case "stochastic": {
                 const kPeriod = s.stochastic.kPeriod ?? 14;
+                const kSmoothing = s.stochastic.kSmoothing ?? 3;
                 const dPeriod = s.stochastic.dPeriod ?? 3;
-                const k = JSIndicators.stoch(a.highs, a.lows, a.closes, kPeriod);
+                // %K smoothed by the card's K smoothing, as the Technicals panel,
+                // WASM and the alert seed compute it; it was drawn raw (BUG-0460).
+                const k = JSIndicators.sma(JSIndicators.stoch(a.highs, a.lows, a.closes, kPeriod), kSmoothing);
                 return {
-                    params: `${kPeriod} ${dPeriod}`,
+                    params: `${kPeriod} ${kSmoothing} ${dPeriod}`,
                     lines: [line(k, "--accent-color", "#2962ff"), line(JSIndicators.sma(k, dPeriod), "--warning-color", "#ffb300")],
                 };
             }
