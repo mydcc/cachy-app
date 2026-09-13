@@ -142,6 +142,8 @@ const NOT_IN_WASM: Record<string, string> = {
     "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
   "Stoch RSI %D":
     "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
+  "Bollinger bandwidth":
+    "WASM reports the three bands, not their width; the bands it is derived from are compared above",
   "Ichimoku conversion":
     "no WASM implementation; indicatorSeries.test.ts checks every Ichimoku line against Decimal window midpoints and against the lines the chart draws",
   "Ichimoku base":
