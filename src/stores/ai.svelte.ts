@@ -13,9 +13,12 @@ import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
-import { flavorOf } from "./settings/aiProviders";
+import {
+  activeUserProvider,
+  flavorOf,
+  type AiApiFlavor,
+} from "./settings/aiProviders";
 import { parseStreamChunk, appendToolCallFragment } from "../lib/ai/streamAdapters";
-import { activeUserProvider } from "./settings/aiProviders";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
 import { tradeState } from "./trade.svelte";
@@ -80,6 +83,26 @@ export interface PendingAction {
 
 const LOCAL_STORAGE_KEY = "cachy_ai_history";
 const MAX_MESSAGES = 50;
+
+/** Server route per wire format. Built-ins keep their own route. */
+const ROUTE_BY_FLAVOR: Record<AiApiFlavor, string> = {
+  "openai-chat": "/api/ai/openai",
+  "openai-responses": "/api/ai/openai-responses",
+  "anthropic-messages": "/api/ai/anthropic",
+  "google-generate": "/api/ai/gemini",
+};
+
+/** Built-in label closest to a user provider's flavor, for stored messages. */
+function builtinLabelForFlavor(flavor: AiApiFlavor): AiProvider {
+  switch (flavor) {
+    case "anthropic-messages":
+      return "anthropic";
+    case "google-generate":
+      return "gemini";
+    default:
+      return "openai";
+  }
+}
 
 class AiManager {
   messages = $state<AiMessage[]>([]);
@@ -203,13 +226,6 @@ class AiManager {
         settings.userProviders,
         settings.activeProviderId,
       );
-      // Other wire formats land in a later slice; refuse rather than send a
-      // request the parser cannot read.
-      if (userProvider && userProvider.flavor !== "openai-chat") {
-        throw new Error(
-          `"${userProvider.label}" speaks ${userProvider.flavor}, which is not supported yet. Use an OpenAI-compatible endpoint.`,
-        );
-      }
 
       // ADR-0019: credentials are Class A. Until browser-direct transport
       // lands (Slice 5) a user provider is only reachable through the server
@@ -221,12 +237,18 @@ class AiManager {
         );
       }
 
-      // A user provider is sent through the OpenAI-compatible route; the
-      // built-ins keep their own route and parser.
+      // The wire format drives the route, the system-prompt shape and the
+      // stream parser. Built-ins resolve their flavor from `settings.aiProvider`
+      // and keep their own routes (OpenRouter adds headers the others do not).
+      const streamFlavor: AiApiFlavor = userProvider
+        ? userProvider.flavor
+        : flavorOf(settings.aiProvider) ?? "openai-chat";
+
       const provider: AiProvider = userProvider
-        ? "openai"
+        ? builtinLabelForFlavor(userProvider.flavor)
         : settings.aiProvider || "gemini";
-      const systemPrompt = provider === "anthropic"
+
+      const systemPrompt = streamFlavor === "anthropic-messages"
         ? JSON.stringify(promptParts)
         : `${promptParts.staticInstruction}\n\n${promptParts.dynamicContext}`;
 
@@ -237,7 +259,9 @@ class AiManager {
         ...this.messages.map((m) => ({ role: m.role, content: m.content })),
       ];
 
-      const endpoint = `/api/ai/${provider}`;
+      const endpoint = userProvider
+        ? ROUTE_BY_FLAVOR[userProvider.flavor]
+        : `/api/ai/${provider}`;
 
       let apiKey = "";
       let model = "";
@@ -261,23 +285,19 @@ class AiManager {
         apiKey = settings.openaiApiKey;
         model = settings.openaiModel;
         baseUrl = settings.openaiBaseUrl;
-      }
-      if (provider === "gemini") {
+      } else if (provider === "gemini") {
         apiKey = settings.geminiApiKey;
         model = settings.geminiModel;
         baseUrl = settings.geminiBaseUrl;
-      }
-      if (provider === "anthropic") {
+      } else if (provider === "anthropic") {
         apiKey = settings.anthropicApiKey;
         model = settings.anthropicModel;
         baseUrl = settings.anthropicBaseUrl;
-      }
-      if (provider === "openrouter") {
+      } else if (provider === "openrouter") {
         apiKey = settings.openrouterApiKey;
         model = settings.openrouterModel;
         baseUrl = settings.openrouterBaseUrl;
-      }
-      if (provider === "ollama") {
+      } else if (provider === "ollama") {
         // Local (or self-hosted) instance — no API key required.
         model = settings.ollamaModel;
         baseUrl = settings.ollamaBaseUrl;
@@ -393,7 +413,6 @@ class AiManager {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
-      const streamFlavor = flavorOf(provider) ?? "openai-chat";
 
 
       while (true) {
