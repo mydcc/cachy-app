@@ -219,7 +219,9 @@ still pending when the trader arms a second alert B on it, the replay's historic
 can straddle B's target and fire it at once — even though B was armed at the current
 price and the trader never saw that crossing. Skipping the replay for a symbol whose
 armed set changed would take alert A down with it, which is the population this fix
-targets, so that is not a trade worth making either.
+targets, so that is not a trade worth making either. This variant is tracked separately as
+[`BUG-0448`](BUG-0448-mid-session-arm-fires-historical-crossing.md), so it is work rather
+than only a note.
 
 **Left as documentation, not fixed here**, because closing any of these properly means either
 probing stateful `evaluate()` speculatively (it seeds the baseline and can flip
@@ -249,4 +251,6 @@ to say so precisely.
 - `technicals-wasm/src/rule/evaluate.rs` — `rises_above_does_not_fire_when_the_price_was_already_above`,
   the semantics this fix had to preserve
 - `src/stores/alerts.svelte.ts:62` — `cachy_alerts_v1` persistence
+- [`BUG-0448`](BUG-0448-mid-session-arm-fires-historical-crossing.md) — the mid-session
+  false-fire variant, tracked as its own item
 - [`FEAT-0368`](../features/FEAT-0368-alert-engine-evaluation-batching.md) — where this was found

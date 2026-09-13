@@ -3835,6 +3835,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0445-push-guard-matches-across-chained-commands.md"
   },
   {
+    "id": "BUG-0448",
+    "title": "An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",

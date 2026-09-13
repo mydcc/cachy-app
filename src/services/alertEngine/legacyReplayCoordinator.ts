@@ -146,3 +146,13 @@ export function replayBeforeLegacyEvaluation(symbol: string): void {
     attempt(symbol);
     decided.add(symbol);
 }
+
+// HMR: the module-level `decided` set otherwise survives a hot reload, so a
+// symbol whose ordering window closed before the edit would never replay in the
+// new module instance and its crossing would be lost for the rest of the
+// session. `resetLegacyReplayState` clears source, pending and decided together.
+if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+        resetLegacyReplayState();
+    });
+}

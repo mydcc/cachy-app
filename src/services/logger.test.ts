@@ -55,6 +55,9 @@ describe('LoggerService', () => {
     });
 
     afterEach(() => {
+        // The provider is module-global; reset it so the map installed above
+        // cannot leak into other test files sharing this module graph.
+        setLoggerConfigProvider(() => undefined);
         vi.restoreAllMocks();
     });
 
