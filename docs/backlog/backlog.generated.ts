@@ -5928,6 +5928,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0461-multi-broker-journal-sync.md"
   },
   {
+    "id": "FEAT-0467",
+    "title": "User-managed AI providers with per-provider endpoints and API formats",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "M8",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "ADR-0019",
+    "depends_on": [],
+    "size": "XL",
+    "estimate": "20",
+    "file": "features/FEAT-0467-multi-provider-management.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
