@@ -325,6 +325,12 @@ async function ensurePRsAreLinked(item: BacklogItem, issueNumber: number, openPR
             continue;
         }
 
+        // Only an explicit `prepend` writes. `opted-out` and any decision added
+        // later leave the body as it is: the loop used to prepend for everything
+        // it did not name, which is how `[no issue]` bodies got a `Fixes #N`
+        // (BUG-0469).
+        if (decision.action !== 'prepend') continue;
+
         console.log(`[PR Auto-Link] Prepending the closing reference for #${issueNumber} to PR #${pr.number} for ${item.id}`);
         const updatedBody = `Fixes #${issueNumber}\n\n${pr.body || ''}`;
         const res = await fetch(pr.url, {

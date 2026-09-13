@@ -198,6 +198,20 @@ describe("decideLink", () => {
     it("treats an absent body as linkable", () => {
         expect(decideLink(null, 2009)).toEqual({ action: "prepend", issueNumber: 2009 });
     });
+
+    it("leaves a body that opts out with [no issue] alone", () => {
+        // BUG-0469: the five stacked FEAT-0446 PRs declared `[no issue]` on
+        // line 1 because each only advanced the epic, and the sync prepended
+        // `Fixes #3225` to all of them anyway. The presence gate honours the
+        // marker, so the linker must too, or the two disagree about one body.
+        const body = "[no issue] — advances FEAT-0446 (group 4); the item stays in progress.\n\nBody.";
+        expect(decideLink(body, 3225)).toEqual({ action: "opted-out" });
+        expect(checkBodyHasClosingRef(body)).toEqual({ ok: true, declared: null, optedOut: true });
+    });
+
+    it("reads the marker the way the presence gate does, in any case", () => {
+        expect(decideLink("Tooling only.\n\n[No Issue]", 3225)).toEqual({ action: "opted-out" });
+    });
 });
 
 describe("the two incidents on 2026-08-16", () => {
