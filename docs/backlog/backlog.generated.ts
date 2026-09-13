@@ -3975,6 +3975,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0457-chart-header-values-ignore-source.md"
   },
   {
+    "id": "BUG-0460",
+    "title": "The chart's Stochastic and Stoch RSI lines ignore their cards' smoothing",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0460-chart-stochastic-params",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0460-chart-stochastic-lines-ignore-card.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",

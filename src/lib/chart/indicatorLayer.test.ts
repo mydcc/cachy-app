@@ -749,3 +749,57 @@ describe("IndicatorLayer — pane headers on a live tick", () => {
         }
     });
 });
+
+/**
+ * BUG-0460. The chart's Stochastic and Stoch RSI panes read their cards
+ * differently from the Technicals panel and the alert seed: %K was drawn
+ * unsmoothed, and Stoch RSI took its smoothing as its lookback.
+ */
+describe("IndicatorLayer — oscillator lines follow their cards", () => {
+    function paneLines(key: string): number[][] {
+        const env = makeChart();
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
+        layer.setAvailableHeight(1400);
+        const rows = makeRows(120).map((r, i) => ({ ...r, high: r.close + (i % 3) * 1.5, low: r.close - (i % 7) * 0.8 }));
+        layer.render(rows);
+        const panes = onPanesChanged.mock.calls.at(-1)![0] as { key: string; paneIndex: number }[];
+        const pane = panes.find((p) => p.key === key)!;
+        return ((env.panes[pane.paneIndex] as unknown as MockPane).series as ISeriesApi<"Line">[]).map((s) =>
+            ((s.setData as ReturnType<typeof vi.fn>).mock.calls[0][0] as { value: number }[]).map((d) => d.value),
+        );
+    }
+
+    function tail(values: ArrayLike<number>, n: number): number[] {
+        return Array.from(values).filter(Number.isFinite).slice(-n);
+    }
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("draws the Stochastic %K smoothed by the card's K smoothing, and %D over that", () => {
+        Object.assign(indicatorState, makeState({ volume: { enabled: false, showInChart: false }, stochastic: on({ kPeriod: 14, kSmoothing: 3, dPeriod: 3 }) }));
+        const [k, d] = paneLines("stochastic");
+
+        const rows = makeRows(120).map((r, i) => ({ ...r, high: r.close + (i % 3) * 1.5, low: r.close - (i % 7) * 0.8 }));
+        const cols = (f: "high" | "low" | "close") => Float64Array.from(rows, (r) => r[f]);
+        const smoothedK = JSIndicators.sma(JSIndicators.stoch(cols("high"), cols("low"), cols("close"), 14), 3);
+        const expectedD = JSIndicators.sma(smoothedK, 3);
+
+        expect(tail(k, 5)).toEqual(tail(smoothedK, 5));
+        expect(tail(d, 5)).toEqual(tail(expectedD, 5));
+    });
+
+    it("draws Stoch RSI over the card's stochastic length, smoothing %K by its K period", () => {
+        Object.assign(indicatorState, makeState({ volume: { enabled: false, showInChart: false }, stochRsi: on({ length: 14, rsiLength: 14, kPeriod: 3, dPeriod: 3, source: "close" }) }));
+        const [k, d] = paneLines("stochRsi");
+
+        const rows = makeRows(120).map((r, i) => ({ ...r, high: r.close + (i % 3) * 1.5, low: r.close - (i % 7) * 0.8 }));
+        // stochRsi(data, rsiPeriod, stochLookback, dPeriod, kSmoothing)
+        const expected = JSIndicators.stochRsi(getSourceData(rows, "close"), 14, 14, 3, 3);
+
+        expect(tail(k, 5)).toEqual(tail(expected.k, 5));
+        expect(tail(d, 5)).toEqual(tail(expected.d, 5));
+    });
+});
