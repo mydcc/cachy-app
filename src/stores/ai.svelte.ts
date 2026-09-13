@@ -18,8 +18,13 @@ import {
   flavorOf,
   type AiApiFlavor,
 } from "./settings/aiProviders";
-import { parseStreamChunk, appendToolCallFragment } from "../lib/ai/streamAdapters";
+import {
+  parseStreamChunk,
+  appendToolCallFragment,
+  type StreamUsage,
+} from "../lib/ai/streamAdapters";
 import { buildDirectRequest } from "../lib/ai/directRequest";
+import { peekCachedModel } from "../services/aiModelsService";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
 import { tradeState } from "./trade.svelte";
@@ -65,6 +70,11 @@ export interface AiMessage {
   content: string;
   timestamp: number;
   provider?: AiProvider;
+  /**
+   * Token usage the provider reported, when it reports any. `costUsd` is only
+   * set when a price for the model is known (e.g. OpenRouter's catalog).
+   */
+  usage?: StreamUsage & { costUsd?: number };
 }
 
 export interface AiAction {
@@ -103,6 +113,21 @@ function builtinLabelForFlavor(flavor: AiApiFlavor): AiProvider {
     default:
       return "openai";
   }
+}
+
+/** Estimated USD cost from token counts and a per-1M-token price, if known. */
+function estimateCostUsd(
+  usage: StreamUsage,
+  price: { inputPrice?: number; outputPrice?: number } | undefined,
+): number | undefined {
+  if (!price || (price.inputPrice == null && price.outputPrice == null)) {
+    return undefined;
+  }
+  const inputCost =
+    ((usage.inputTokens ?? 0) / 1_000_000) * (price.inputPrice ?? 0);
+  const outputCost =
+    ((usage.outputTokens ?? 0) / 1_000_000) * (price.outputPrice ?? 0);
+  return inputCost + outputCost;
 }
 
 class AiManager {
@@ -442,6 +467,7 @@ class AiManager {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
+      const streamUsage: StreamUsage = {};
 
 
       while (true) {
@@ -458,8 +484,20 @@ class AiManager {
             const dataStr = trimmed.slice(6);
             try {
               const data = JSON.parse(dataStr);
-              const { text: delta, toolCallFragment: toolCallData } =
-                parseStreamChunk(streamFlavor, data);
+              const {
+                text: delta,
+                toolCallFragment: toolCallData,
+                usage,
+              } = parseStreamChunk(streamFlavor, data);
+
+              if (usage) {
+                if (usage.inputTokens != null) {
+                  streamUsage.inputTokens = usage.inputTokens;
+                }
+                if (usage.outputTokens != null) {
+                  streamUsage.outputTokens = usage.outputTokens;
+                }
+              }
 
               if (toolCallData) {
                   // Buffer tool call chunks (delta flavors append, the
@@ -483,6 +521,20 @@ class AiManager {
               // Ignore parse errors
             }
           }
+        }
+      }
+
+      // Attach the usage the provider reported. Cost is added only when a
+      // price for the model is cached (OpenRouter and similar); otherwise the
+      // token counts stand alone.
+      if (streamUsage.inputTokens != null || streamUsage.outputTokens != null) {
+        const price = peekCachedModel(provider, { apiKey, baseUrl }, model);
+        const costUsd = estimateCostUsd(streamUsage, price);
+        const idx = this.messages.findIndex((m) => m.id === aiMsgId);
+        if (idx !== -1) {
+          this.messages[idx].usage = costUsd != null
+            ? { ...streamUsage, costUsd }
+            : { ...streamUsage };
         }
       }
 

@@ -27,14 +27,34 @@
 
 import type { AiApiFlavor } from "../../stores/settings/aiProviders";
 
+/** Token counts a provider reports for a request, when it reports any. */
+export interface StreamUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
 export interface StreamDelta {
   /** Assistant text in this chunk, "" when the chunk carries none. */
   text: string;
   /** A fragment of tool-call JSON arguments, or null. Concatenate across chunks. */
   toolCallFragment: string | null;
+  /** Usage counters, present only on the chunk that carries them. */
+  usage?: StreamUsage;
 }
 
 const EMPTY: StreamDelta = { text: "", toolCallFragment: null };
+
+/** Builds a usage delta, or undefined when both counts are absent. */
+function usageOf(
+  inputTokens: number | undefined,
+  outputTokens: number | undefined,
+): StreamUsage | undefined {
+  if (inputTokens == null && outputTokens == null) return undefined;
+  return {
+    inputTokens: inputTokens ?? undefined,
+    outputTokens: outputTokens ?? undefined,
+  };
+}
 // Frozen so a caller that mutates the returned object cannot corrupt every
 // future empty delta (the same reference is returned for all empty chunks).
 Object.freeze(EMPTY);
@@ -93,14 +113,25 @@ interface OpenAiChatChunk {
       tool_calls?: Array<{ function?: { arguments?: string } }>;
     };
   }>;
+  // Present on the final chunk when the request asked for usage
+  // (`stream_options: { include_usage: true }`).
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
 function parseOpenAiChat(data: OpenAiChatChunk): StreamDelta {
   const delta = data.choices?.[0]?.delta;
-  if (!delta) return EMPTY;
+  const usage = usageOf(
+    data.usage?.prompt_tokens,
+    data.usage?.completion_tokens,
+  );
+  if (!delta) {
+    // Some providers send a final usage-only chunk with an empty `choices`.
+    return usage ? { text: "", toolCallFragment: null, usage } : EMPTY;
+  }
   return {
     text: normalizeChatContent(delta.content),
     toolCallFragment: delta.tool_calls?.[0]?.function?.arguments ?? null,
+    ...(usage ? { usage } : {}),
   };
 }
 
@@ -124,6 +155,9 @@ function normalizeChatContent(
 interface OpenAiResponsesChunk {
   type?: string;
   delta?: string;
+  response?: {
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
 }
 
 function parseOpenAiResponses(data: OpenAiResponsesChunk): StreamDelta {
@@ -133,6 +167,13 @@ function parseOpenAiResponses(data: OpenAiResponsesChunk): StreamDelta {
   if (data.type === "response.function_call_arguments.delta") {
     return { text: "", toolCallFragment: data.delta ?? null };
   }
+  if (data.type === "response.completed") {
+    const usage = usageOf(
+      data.response?.usage?.input_tokens,
+      data.response?.usage?.output_tokens,
+    );
+    return usage ? { text: "", toolCallFragment: null, usage } : EMPTY;
+  }
   return EMPTY;
 }
 
@@ -141,9 +182,23 @@ function parseOpenAiResponses(data: OpenAiResponsesChunk): StreamDelta {
 interface AnthropicChunk {
   type?: string;
   delta?: { type?: string; text?: string; partial_json?: string };
+  // `message_start` carries input tokens, `message_delta` the running output.
+  message?: { usage?: { input_tokens?: number; output_tokens?: number } };
+  usage?: { input_tokens?: number; output_tokens?: number };
 }
 
 function parseAnthropic(data: AnthropicChunk): StreamDelta {
+  if (data.type === "message_start") {
+    const usage = usageOf(
+      data.message?.usage?.input_tokens,
+      data.message?.usage?.output_tokens,
+    );
+    return usage ? { text: "", toolCallFragment: null, usage } : EMPTY;
+  }
+  if (data.type === "message_delta") {
+    const usage = usageOf(data.usage?.input_tokens, data.usage?.output_tokens);
+    return usage ? { text: "", toolCallFragment: null, usage } : EMPTY;
+  }
   if (data.type !== "content_block_delta") return EMPTY;
   if (data.delta?.type === "text_delta") {
     return { text: data.delta.text ?? "", toolCallFragment: null };
@@ -165,16 +220,27 @@ interface GoogleChunk {
       }>;
     };
   }>;
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
 }
 
 function parseGoogle(data: GoogleChunk): StreamDelta {
+  const usage = usageOf(
+    data.usageMetadata?.promptTokenCount,
+    data.usageMetadata?.candidatesTokenCount,
+  );
   const part = data.candidates?.[0]?.content?.parts?.[0];
-  if (!part) return EMPTY;
+  if (!part) {
+    return usage ? { text: "", toolCallFragment: null, usage } : EMPTY;
+  }
 
   // A complete `args` snapshot per chunk, not a delta: merge with
   // appendToolCallFragment (last wins), never with `+=`.
   const args = part.functionCall?.args;
   const toolCallFragment = args?.actions ? JSON.stringify(args) : null;
 
-  return { text: part.text ?? "", toolCallFragment };
+  return {
+    text: part.text ?? "",
+    toolCallFragment,
+    ...(usage ? { usage } : {}),
+  };
 }

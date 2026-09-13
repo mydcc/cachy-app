@@ -97,6 +97,20 @@ async function fetchFromServer(
 }
 
 /**
+ * The cached entry for a model, if the list was already fetched, without any
+ * network call. Used to attach a cost estimate to a chat message when the
+ * provider's catalog carried prices (e.g. OpenRouter).
+ */
+export function peekCachedModel(
+  provider: string,
+  opts: ModelFetchOptions,
+  modelId: string,
+): AiModelInfo | undefined {
+  const cached = readCache(provider, cacheScope(provider, opts));
+  return cached?.models.find((m) => m.id === modelId);
+}
+
+/**
  * Resolves the model list for a provider — from cache when fresh, from the
  * network otherwise, falling back to a stale cache entry if the network call
  * fails so a temporary outage doesn't empty the dropdown.
