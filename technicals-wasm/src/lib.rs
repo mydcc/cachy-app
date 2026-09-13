@@ -1792,7 +1792,10 @@ impl TechnicalsCalculator {
         }
         for (len, s) in &self.wr_states {
             if s.initialized && self.price_history_highs.len() >= *len {
-                let start = self.price_history_highs.len() - *len;
+                // The window is `len` candles including the one being updated,
+                // which is not in the history yet: `len - 1` come from it
+                // (BUG-0455: this read `len`, a window one candle too long).
+                let start = self.price_history_highs.len() + 1 - *len;
                 let mut max_h = h;
                 let mut min_l = l;
                 for i in start..self.price_history_highs.len() {
@@ -1931,13 +1934,16 @@ impl TechnicalsCalculator {
                 );
                 let sum_tr = s.sum_tr - s.tr_buffer.front().unwrap() + tr;
 
-                // Find Max High and Min Low (including current)
+                // Max High and Min Low over the same `len` candles the true
+                // ranges cover: the buffers hold `len` candles of history, so
+                // the current one replaces the oldest, exactly as `sum_tr`
+                // drops the front (BUG-0455: both buffers were read whole).
                 let mut max_h = h;
                 let mut min_l = l;
-                for &val in &s.highs {
+                for &val in s.highs.iter().skip(1) {
                     max_h = max_h.max(val);
                 }
-                for &val in &s.lows {
+                for &val in s.lows.iter().skip(1) {
                     min_l = min_l.min(val);
                 }
 
@@ -2580,6 +2586,96 @@ mod tests {
         assert!(
             json.contains(r#""SMA3":"0.3""#),
             "SMA3 should be exactly 0.3, got {}",
+            json
+        );
+    }
+
+    /// Five candles whose highs and lows step by one, so a window one candle
+    /// too long reaches a lower low and changes the answer.
+    fn stepping_candles() -> (Vec<String>, Vec<String>, Vec<String>) {
+        (
+            series(&["50", "15", "16", "17", "18"]),
+            series(&["100", "20", "21", "22", "23"]),
+            series(&["0", "10", "11", "12", "13"]),
+        )
+    }
+
+    fn value_of(json: &str, key: &str) -> f64 {
+        let parsed: serde_json::Value = serde_json::from_str(json).unwrap();
+        for group in ["oscillators", "volatility"] {
+            if let Some(v) = parsed[group][key].as_str() {
+                return v.parse().unwrap();
+            }
+        }
+        panic!("{} missing from {}", key, json);
+    }
+
+    /// BUG-0455: Williams %R over `n` reads the highest high and lowest low of
+    /// the last `n` candles *including* the one being updated. `update` is
+    /// handed that candle outside the history, so only `n - 1` come from it.
+    #[test]
+    fn test_williams_r_reads_exactly_its_period() {
+        let mut calc = TechnicalsCalculator::new();
+        let (closes, highs, lows) = stepping_candles();
+        let volumes = series(&["1", "1", "1", "1", "1"]);
+        calc.initialize(
+            closes,
+            highs,
+            lows,
+            volumes,
+            &[0.0; 5],
+            r#"{"wr":[{"length":3}]}"#,
+        );
+
+        let json = calc.update(
+            "18".into(),
+            "24".into(),
+            "14".into(),
+            "19".into(),
+            "1".into(),
+            "0".into(),
+        );
+
+        // Last three candles: highest 24, lowest 12. Four would reach 11.
+        let wr = value_of(&json, "WR3");
+        assert!(
+            (wr - (-41.666_666_666_666_67)).abs() < 1e-9,
+            "WR3 should be (24 - 19) / (24 - 12) * -100, got {}",
+            json
+        );
+    }
+
+    /// BUG-0455: the choppiness range spans the same `n` candles as the
+    /// true-range sum. The high and low buffers hold `n` candles of history,
+    /// so the one being updated replaces the oldest rather than joining it.
+    #[test]
+    fn test_choppiness_range_spans_exactly_its_period() {
+        let mut calc = TechnicalsCalculator::new();
+        let (closes, highs, lows) = stepping_candles();
+        let volumes = series(&["1", "1", "1", "1", "1"]);
+        calc.initialize(
+            closes,
+            highs,
+            lows,
+            volumes,
+            &[0.0; 5],
+            r#"{"chop":[{"length":3}]}"#,
+        );
+
+        let json = calc.update(
+            "18".into(),
+            "24".into(),
+            "14".into(),
+            "19".into(),
+            "1".into(),
+            "0".into(),
+        );
+
+        // Three true ranges of 10 over a range of 24 - 12: 100·log10(30/12)/log10(3).
+        let chop = value_of(&json, "CHOP3");
+        assert!(
+            (chop - 83.404_376_714_646_97).abs() < 1e-9,
+            "CHOP3 should be 100 * log10(30 / 12) / log10(3), got {}",
             json
         );
     }
