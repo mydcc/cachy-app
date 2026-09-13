@@ -20,6 +20,7 @@
     import { settingsState, type AiProvider } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
     import AiModelPicker from "../AiModelPicker.svelte";
+    import AiProviderManager from "../AiProviderManager.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
 
@@ -113,11 +114,13 @@
                         {#each aiProviders as provider}
                             <button
                                 class="segmented-btn {settingsState.aiProvider ===
-                                provider.value
+                                provider.value && !settingsState.activeProviderId
                                     ? 'active'
                                     : ''}"
-                                onclick={() =>
-                                    (settingsState.aiProvider = provider.value)}
+                                onclick={() => {
+                                    settingsState.aiProvider = provider.value;
+                                    settingsState.activeProviderId = "";
+                                }}
                             >
                                 {provider.label}
                             </button>
@@ -275,6 +278,8 @@
                         </div>
                     {/if}
                 </div>
+
+                <AiProviderManager />
             </section>
         {/if}
 
