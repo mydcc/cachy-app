@@ -4009,6 +4009,27 @@
       "file": "bugs/BUG-0460-chart-stochastic-lines-ignore-card.md"
     },
     {
+      "id": "BUG-0465",
+      "title": "Direct market-data subscriptions are silenced by a provider teardown until the symbol changes",
+      "type": "bug",
+      "status": "done",
+      "assignee": "opencode",
+      "shipped": "1.6.0-beta.291",
+      "priority": "P2",
+      "milestone": "M2",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "C",
+      "adr": "ADR-0007",
+      "depends_on": [],
+      "size": "M",
+      "file": "bugs/BUG-0465-market-data-channel-lost-on-reconnect.md"
+    },
+    {
       "id": "FEAT-0019",
       "title": "Let the assistant research the web when it needs to",
       "type": "feature",
