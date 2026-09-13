@@ -28,17 +28,18 @@
   plain-language sentence and still requires its own arm press (ADR-0012
   decision 5).
 
-  BUG-0453: on a card whose line is drawn over another price than the close
-  (`hl2`, `hlc3`, …) the button stays, refuses, and names the reason. An alert
-  is always computed over the close, so opening a draft there would arm an alert
-  on a different line from the one on screen; hiding the button instead would
-  leave the trader looking for it.
+  BUG-0453: on a card whose line is drawn over another price than the one
+  the alert path computes for that indicator (`hl2`, `hlc3`, …) the button
+  stays, refuses, and names the reason. Opening a draft there would arm an
+  alert on a different line from the one on screen; hiding the button
+  instead would leave the trader looking for it.
 -->
 
 <script lang="ts">
     import { openAlertPanelWith } from "../../../lib/alerts/openAlertPanel";
     import {
         cardAlertAvailability,
+        cardAlertSource,
         seedFromIndicatorSettings,
     } from "../../../lib/alerts/indicatorSettingsSeed";
     import { indicatorState } from "../../../stores/indicator.svelte";
@@ -62,10 +63,12 @@
         const card = cardOf(settingsKey);
         return card === null ? "not-alertable" : cardAlertAvailability(settingsKey, card);
     });
-    let refused = $derived(availability === "source-not-close");
+    let refused = $derived(availability === "source-mismatch");
     let label = $derived(
         refused
-            ? $_("settings.technicals.alertSourceNotClose")
+            ? $_("settings.technicals.alertSourceMismatch", {
+                  values: { source: cardAlertSource(settingsKey) ?? "close" },
+              })
             : $_("settings.technicals.alertOnThis"),
     );
 

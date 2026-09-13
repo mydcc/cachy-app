@@ -17,9 +17,10 @@ depends_on: [BUG-0453]
 ## Problem
 
 The RSI, CCI, Momentum and EMA settings cards let a trader draw the indicator over `open`,
-`high`, `low`, `hl2` or `hlc3` instead of the close. An alert cannot follow: every
-indicator on the alert path is computed over the close, and the core registry has no
-parameter to name another price.
+`high`, `low`, `hl2` or `hlc3` instead of the close. An alert cannot follow: each
+indicator on the alert path is computed over one fixed price — the close, or for CCI the
+typical price (`alertPathSourceOf`, FEAT-0446 group 2) — and the core registry has no
+parameter to name another.
 
 Since [`BUG-0453`](../bugs/BUG-0453-card-alert-ignores-price-source.md) the card's alert
 action refuses on such a card and says why, so no alert lands on the wrong line. But a

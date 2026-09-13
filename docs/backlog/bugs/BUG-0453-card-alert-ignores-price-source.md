@@ -62,14 +62,16 @@ change and is reversible; B is the real capability and deserves its own review.
 ## Decided and done: A (2026-09-13)
 
 - `cardAlertAvailability(key, card)` in `indicatorSettingsSeed.ts` answers `armable`,
-  `not-alertable` or `source-not-close`. A falsy source (`undefined`, `null`, `""`, `0`,
+  `not-alertable` or `source-not-close` (since FEAT-0446 group 2: `source-mismatch`,
+  compared with each indicator's own price from `alertPathSourceOf`). A falsy source (`undefined`, `null`, `""`, `0`,
   `false`) is the close, matching the chart's own `src()` fallback; any other value,
   including one the module does not recognise, is not.
 - `indicatorRefsFrom` asks `cardAlertAvailability` before it builds refs, so the seed is
   `null` through the same decision the button uses — they cannot disagree.
 - `IndicatorAlertAction.svelte` keeps the button on such a card with `aria-disabled`,
   dimmed, and names the reason as its label and tooltip
-  (`settings.technicals.alertSourceNotClose`, both locales). It stays focusable, so the
+  (`settings.technicals.alertSourceNotClose`, both locales; since FEAT-0446 group 2
+  `alertSourceMismatch`, naming the price to choose). It stays focusable, so the
   reason is reachable by keyboard, and pressing it opens nothing.
 - It is generic over the card's `source` field, not a list of cards: MACD, Stoch RSI and
   Bollinger carry a stored source without a selector, and are covered by the same rule.

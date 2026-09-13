@@ -65,14 +65,84 @@ export type SeriesResult =
 
 function column(
   candles: readonly EvaluationCandle[],
-  field: "close" | "volume",
+  field: "high" | "low" | "close" | "volume",
 ): Float64Array {
   const out = new Float64Array(candles.length);
   for (let i = 0; i < candles.length; i++) {
-    const raw = field === "volume" ? candles[i].volume : candles[i].close;
+    const raw = candles[i][field];
     out[i] = raw === undefined ? Number.NaN : Number(raw); // audit: safe — intermediate f64 for indicator math
   }
   return out;
+}
+
+/**
+ * The typical price, `(high + low + close) / 3`.
+ *
+ * What CCI is defined over, what the WASM core computes it over, and what the
+ * CCI settings card defaults to (`hlc3`) — see `alertPathSourceOf`.
+ */
+function typicalPrice(candles: readonly EvaluationCandle[]): Float64Array {
+  const high = column(candles, "high");
+  const low = column(candles, "low");
+  const close = column(candles, "close");
+  const out = new Float64Array(candles.length);
+  for (let i = 0; i < candles.length; i++) out[i] = (high[i] + low[i] + close[i]) / 3;
+  return out;
+}
+
+/**
+ * Where the `period` candles ending at each index have no range: the highest
+ * of `upper` equals the lowest of `lower`. `false` before a full window.
+ */
+function rangelessWindows(upper: Float64Array, lower: Float64Array, period: number): boolean[] {
+  const out: boolean[] = new Array(upper.length).fill(false);
+  for (let i = period - 1; i < upper.length; i++) {
+    let highest = upper[i];
+    let lowest = lower[i];
+    for (let k = i - period + 1; k < i; k++) {
+      if (upper[k] > highest) highest = upper[k];
+      if (lower[k] < lowest) lowest = lower[k];
+    }
+    out[i] = highest === lowest;
+  }
+  return out;
+}
+
+/**
+ * Where no money flowed either way over the `period` typical-price changes
+ * ending at each index — MFI's `0 / 0`. Decided from the inputs rather than
+ * from the running sums `JSIndicators.mfi` slides, which need not return to
+ * exactly zero.
+ */
+function moneylessWindows(typical: Float64Array, volume: Float64Array, period: number): boolean[] {
+  const out: boolean[] = new Array(typical.length).fill(false);
+  for (let i = period; i < typical.length; i++) {
+    let flowed = false;
+    for (let k = i - period + 1; k <= i && !flowed; k++) {
+      flowed = typical[k] !== typical[k - 1] && typical[k] * volume[k] !== 0;
+    }
+    out[i] = !flowed;
+  }
+  return out;
+}
+
+/**
+ * `NaN` wherever `undefinedAt` holds. An indicator divided by a zero range has
+ * no value there, and the chart's stand-in (0 for %R, choppiness and CCI, 50 for
+ * MFI) is not a reading of the market: "%R above -20" would fire on a halted
+ * one. `NaN` becomes `null` becomes indeterminate — the same decision as the
+ * Bollinger bandwidth over a zero middle band.
+ */
+function withoutUndefined(values: Float64Array, undefinedAt: boolean[]): Float64Array {
+  for (let i = 0; i < values.length; i++) if (undefinedAt[i]) values[i] = Number.NaN;
+  return values;
+}
+
+/** A single-line indicator refuses any output but its one line. */
+function singleLine(id: string, output: string): SeriesResult | undefined {
+  return output === DEFAULT_OUTPUT
+    ? undefined
+    : { supported: false, reason: `${id} has no output '${output}'` };
 }
 
 function whole(value: unknown): number | undefined {
@@ -184,6 +254,70 @@ export function computeIndicatorSeries(
       // The close against the close a full period back: nothing accumulates, so
       // the value at a candle does not depend on where the rolling buffer starts.
       return { supported: true, values: wire(JSIndicators.mom(close, period)) };
+    }
+
+    case "williams_r":
+    case "cci":
+    case "atr":
+    case "choppiness":
+    case "mfi": {
+      const period = whole(params.period);
+      if (period === undefined) {
+        return { supported: false, reason: `${indicator.id} needs a whole period` };
+      }
+      const refused = singleLine(indicator.id, output);
+      if (refused) return refused;
+      const high = column(candles, "high");
+      const low = column(candles, "low");
+      const typical = typicalPrice(candles);
+      const lines: Record<string, () => Float64Array> = {
+        williams_r: () =>
+          withoutUndefined(
+            JSIndicators.williamsR(high, low, close, period),
+            rangelessWindows(high, low, period),
+          ),
+        // Over the typical price, the price `alertPathSourceOf("cci")` names.
+        cci: () =>
+          withoutUndefined(
+            JSIndicators.cci(typical, period),
+            rangelessWindows(typical, typical, period),
+          ),
+        // A zero ATR is a reading — no movement at all — so it is kept.
+        atr: () => JSIndicators.atr(high, low, close, period),
+        choppiness: () =>
+          withoutUndefined(
+            JSIndicators.choppiness(high, low, close, period),
+            rangelessWindows(high, low, period),
+          ),
+        mfi: () => {
+          const volume = column(candles, "volume");
+          return withoutUndefined(
+            JSIndicators.mfi(high, low, close, volume, period, typical),
+            moneylessWindows(typical, volume, period),
+          );
+        },
+      };
+      return { supported: true, values: wire(lines[indicator.id]()) };
+    }
+
+    case "ao": {
+      const fast = whole(params.fast_period);
+      const slow = whole(params.slow_period);
+      if (fast === undefined || slow === undefined) {
+        return { supported: false, reason: "ao needs whole fast and slow periods" };
+      }
+      const refused = singleLine("ao", output);
+      if (refused) return refused;
+      const high = column(candles, "high");
+      const low = column(candles, "low");
+      const values = JSIndicators.ao(high, low, fast, slow);
+      // `calculateAwesomeOscillator` writes 0 rather than NaN before its slower
+      // average has a full window. On the chart that is a flat line; here it
+      // would be a real value, so "AO above 0" would answer false and "AO
+      // crosses above 0" could fire at the end of warmup. No value is null.
+      const warm = Math.max(fast, slow) - 1;
+      for (let i = 0; i < Math.min(warm, values.length); i++) values[i] = Number.NaN;
+      return { supported: true, values: wire(values) };
     }
 
     case "volume_ma": {

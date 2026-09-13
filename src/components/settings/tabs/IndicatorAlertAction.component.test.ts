@@ -125,25 +125,45 @@ describe("reaching the action without a mouse", () => {
 });
 
 /**
- * BUG-0453. The chart draws the card's line over its source; an alert is
- * always computed over the close. Hiding the button would leave the trader
- * wondering where it went, so it stays, refuses, and says why.
+ * BUG-0453. The chart draws the card's line over its source; an alert computes
+ * the indicator over one fixed price (the close, or CCI's typical price).
+ * Hiding the button would leave the trader wondering where it went, so it
+ * stays, refuses, and says which price to choose.
  */
-describe("a card whose source is not the close", () => {
+describe("a card whose source is not the price the alert path computes over", () => {
+    const reason = (source: string) =>
+        en.settings.technicals.alertSourceMismatch.replaceAll("{source}", source);
+
     afterEach(() => {
         indicatorState.rsi.source = "close";
+        indicatorState.cci.source = "hlc3";
     });
 
-    it("keeps the action visible but refuses it, and names the reason", () => {
+    it("keeps the action visible but refuses it, and names the price to choose", () => {
         indicatorState.rsi.source = "hl2";
         const button = render("rsi")!;
 
         expect(button).not.toBeNull();
         expect(button.getAttribute("aria-disabled")).toBe("true");
-        expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertSourceNotClose);
-        expect(button.getAttribute("title")).toBe(en.settings.technicals.alertSourceNotClose);
+        expect(button.getAttribute("aria-label")).toBe(reason("close"));
+        expect(button.getAttribute("title")).toBe(reason("close"));
         // Still a focusable native button, so a keyboard user can reach the reason.
         expect(button.disabled).toBe(false);
+    });
+
+    it("names the typical price on a CCI card set to the close", () => {
+        indicatorState.cci.source = "close";
+        const button = render("cci")!;
+
+        expect(button.getAttribute("aria-disabled")).toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(reason("hlc3"));
+    });
+
+    it("arms a CCI card on its default typical price", () => {
+        const button = render("cci")!;
+
+        expect(button.getAttribute("aria-disabled")).not.toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertOnThis);
     });
 
     it("does not open the panel when pressed", () => {
@@ -164,11 +184,11 @@ describe("a card whose source is not the close", () => {
         expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertOnThis);
     });
 
-    it("has the reason in both shipped locales", () => {
-        expect(en.settings.technicals.alertSourceNotClose.trim()).not.toBe("");
-        expect(de.settings.technicals.alertSourceNotClose.trim()).not.toBe("");
-        expect(de.settings.technicals.alertSourceNotClose).not.toBe(
-            en.settings.technicals.alertSourceNotClose,
+    it("has the reason, with its placeholder, in both shipped locales", () => {
+        expect(en.settings.technicals.alertSourceMismatch).toContain("{source}");
+        expect(de.settings.technicals.alertSourceMismatch).toContain("{source}");
+        expect(de.settings.technicals.alertSourceMismatch).not.toBe(
+            en.settings.technicals.alertSourceMismatch,
         );
     });
 });

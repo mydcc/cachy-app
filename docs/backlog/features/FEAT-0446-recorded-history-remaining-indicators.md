@@ -59,7 +59,7 @@ The other sixteen are thresholds or crosses in the shape already covered.
       `INDICATOR_CATALOGUE` is only the computable subset, so this criterion names the
       registry mirror on purpose)
 - [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
-      path genuinely cannot compute — 13 today, each stating the real reason — and the
+      path genuinely cannot compute — 7 today, each stating the real reason — and the
       test that rejects a stale entry keeps it that way
 - [ ] OBV's condition shape is decided and documented before it is wired in (see "Found:
       OBV depends on the loaded window")
@@ -130,7 +130,7 @@ list in `indicatorCatalogue.test.ts`. Three guards already fail if any of those 
 | Group | Indicators | Why together |
 |---|---|---|
 | 1 — single line from close | `momentum` | no high/low column yet on the alert path; smallest step. **Wired (2026-09-13).** OBV was planned here and moved to group 4 |
-| 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once. `cci` is unblocked by [`BUG-0453`](../bugs/BUG-0453-card-alert-ignores-price-source.md): its card defaults to `hlc3`, so the card's alert action refuses until [`FEAT-0454`](FEAT-0454-alert-on-indicator-price-source.md); the Indicators tab offers CCI over the close |
+| 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once. **Wired (2026-09-13).** CCI over the typical price, see "Decided: group 2" |
 | 3 — several output lines | `stochastic`, `stoch_rsi`, `adx`, `super_trend` | output-line mapping, like MACD and Bollinger |
 | 4 — shape decisions first | `parabolic_sar`, `ichimoku`, `obv` | SAR flips side; Ichimoku displaces forward; OBV's level depends on the loaded window — each needs its condition shape decided and written down before it is asserted |
 
@@ -163,6 +163,54 @@ fixed anchor. The recorded-history suite cannot catch this — its fixture alway
 at candle 0 — so `indicatorSeries.test.ts` pins the property the wired indicators do
 have instead ("gives momentum the same value at a candle however much history precedes
 it").
+
+## Decided: group 2 (2026-09-13)
+
+**CCI is computed over the typical price.** CCI is defined over `(high + low + close) / 3`,
+the WASM core computes it so, and the CCI card defaults to `hlc3`. The first plan read it
+over the close, which would have matched none of the three. `alertPathSourceOf` in
+`alertPathIndicators.ts` now names each indicator's price — close for all but CCI — and is
+read by both `computeIndicatorSeries` and the settings seed, so the card rule from
+BUG-0453 compares a card's source with *that indicator's* price. A CCI card on `hlc3` is
+armable; on `close` it refuses and names `hlc3`. The availability value became
+`source-mismatch` and the string `settings.technicals.alertSourceMismatch` with a
+`{source}` placeholder.
+
+**A window with no range has no value on the alert path.** Williams %R, choppiness and CCI
+divide by a range, and MFI by its total money flow. Over a flat window the chart draws 0 (and
+50 for MFI) and WASM −50 for %R. None of those is a reading, and "%R above −20" would fire
+on a halted market. The series is null there, which the core reads as indeterminate — the
+Bollinger bandwidth decision again. The condition is decided from the inputs (the window's
+highest and lowest, whether any money flowed), not from the running sums. MFI at 100 when
+money only flowed in is a real reading and is kept, and so is a zero ATR.
+
+**AO is checked against `Decimal`, not WASM.** The WASM calculator has no awesome
+oscillator. `crossPathParity.test.ts` names it in `NOT_IN_WASM` rather than skipping it,
+and `indicatorSeries.test.ts` compares it with the fast minus the slow `Decimal` average of
+the median price over the recorded fixture, within 1e-9. Its chart function writes 0 before
+the slow average is full; the series makes that null.
+
+**Recursion is not window-free, and that is accepted.** Williams %R and CCI recompute each
+window and agree exactly however much history precedes a candle; choppiness, MFI and AO
+slide sums and agree to rounding (both pinned). ATR is Wilder-smoothed, so like RSI and EMA
+already on the path it forgets its start geometrically rather than not at all: below 1e-9
+after roughly 360 candles, against a 2000-candle default buffer.
+
+## Progress (2026-09-13, group 2)
+
+- Williams %R, CCI, ATR, choppiness, MFI and AO wired into the alert path and back in the
+  panel, each with a warmup entry, a parity location (AO: `NOT_IN_WASM` and a `Decimal`
+  check) and a recorded-history expectation: %R(14) above −20 (150 flips), CCI(20) crossing
+  above +100 (100), ATR(14) at its 50-candle high (62), choppiness(14) below 38.2 (46),
+  MFI(14) above 80 (26), AO crossing above zero (44)
+- Measuring parity surfaced three defects, each fixed in its own PR first:
+  [`BUG-0455`](../bugs/BUG-0455-wasm-williams-r-choppiness-window.md) (the WASM %R and
+  choppiness range read fifteen candles for fourteen, up to 41 and 30 points off) and
+  [`BUG-0456`](../bugs/BUG-0456-js-atr-first-true-range-zero.md) (the JavaScript ATR seeded
+  Wilder's average with a zero true range for the first candle). The parity shape guard now
+  covers ATR as well as the MACD histogram
+- [`BUG-0457`](../bugs/BUG-0457-chart-header-values-ignore-source.md) filed: the chart pane
+  headers recompute RSI, MACD, Stoch RSI, CCI and Momentum over the close on every live tick
 
 ## Progress (2026-09-13, group 1)
 

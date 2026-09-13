@@ -223,18 +223,12 @@ describe("what the alert panel offers", () => {
         expect(hidden).toEqual(
             [
                 "adx",
-                "ao",
-                "atr",
-                "cci",
-                "choppiness",
                 "ichimoku",
-                "mfi",
                 "obv",
                 "parabolic_sar",
                 "stoch_rsi",
                 "stochastic",
                 "super_trend",
-                "williams_r",
             ].sort(),
         );
         for (const id of hidden) {

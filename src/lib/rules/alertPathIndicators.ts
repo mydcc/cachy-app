@@ -38,4 +38,33 @@ export const ALERT_PATH_INDICATORS: ReadonlySet<string> = new Set([
   "hma",
   "volume_ma",
   "momentum",
+  "williams_r",
+  "cci",
+  "atr",
+  "choppiness",
+  "mfi",
+  "ao",
 ]);
+
+/** A price an indicator on the alert path is computed over. */
+export type AlertPathSource = "close" | "hlc3";
+
+/**
+ * The price each single-price indicator on the alert path is computed over,
+ * where it is not the close.
+ *
+ * CCI is defined over the typical price, `(high + low + close) / 3`: the WASM
+ * core computes it so, and the CCI settings card defaults to `hlc3`. Every other
+ * single-price indicator reads the close.
+ *
+ * Two readers again: `computeIndicatorSeries` feeds each indicator this price,
+ * and the settings seed refuses a card whose line is drawn over another one
+ * (BUG-0453) — so "which price does the alert use" has one answer.
+ */
+const SOURCE_BY_INDICATOR: Readonly<Record<string, AlertPathSource>> = {
+  cci: "hlc3",
+};
+
+export function alertPathSourceOf(indicatorId: string): AlertPathSource {
+  return SOURCE_BY_INDICATOR[indicatorId] ?? "close";
+}

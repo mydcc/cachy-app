@@ -44,6 +44,7 @@ import {
     type CatalogueEntry,
 } from "./indicatorCatalogue";
 import { buildIndicatorCondition, defaultForm } from "./indicatorConditionForm";
+import { alertPathSourceOf, type AlertPathSource } from "../rules/alertPathIndicators";
 import type { IndicatorRef, ParamValue } from "../rules/types";
 import {
     DEFAULT_RULE_TIMEFRAME,
@@ -254,26 +255,32 @@ export function isAlertableIndicator(settingsKey: string): boolean {
 }
 
 /**
- * The price every indicator on the alert path is computed over.
+ * The price an alert armed from this card is computed over, or `null` for a
+ * card with no mapping.
  *
- * `computeIndicatorSeries` reads the close, and the registry has no parameter
- * that could carry anything else (BUG-0453).
+ * Read from `alertPathSourceOf`, the table `computeIndicatorSeries` uses, so
+ * the seed cannot believe one price while the series is computed over another.
+ * Close for every card but CCI's (BUG-0453, FEAT-0446 group 2). A card's lines
+ * share one indicator, so the first line speaks for the card.
  */
-const ALERT_PATH_SOURCE = "close";
+export function cardAlertSource(settingsKey: string): AlertPathSource | null {
+    const first = SETTINGS_MAPPINGS[settingsKey]?.[0];
+    return first ? alertPathSourceOf(first.id) : null;
+}
 
 /**
  * Whether a card's line is drawn over the price the alert path computes over.
  *
  * Mirrors the chart's own fallback (`indicatorLayer.ts`, `src`): a falsy source
- * (`undefined`, `null`, `""`, `0`, `false`) is the close, because that is what
- * the chart draws for one. Any other non-empty value is not, including a value
- * this module does not recognise: that is only reachable through a hand-edited
- * store, and guessing "close" would arm an alert on a line the trader may not be
- * looking at.
+ * (`undefined`, `null`, `""`, `0`, `false`) is drawn over the close, because
+ * that is what the chart draws for one. Any other value must name the alert
+ * path's price exactly, including a value this module does not recognise: that
+ * is only reachable through a hand-edited store, and guessing would arm an
+ * alert on a line the trader may not be looking at.
  */
-function drawnOverAlertPathSource(card: SettingsCard): boolean {
-    const source = card.source;
-    return !source || source === ALERT_PATH_SOURCE;
+function drawnOverAlertPathSource(settingsKey: string, card: SettingsCard): boolean {
+    const drawn = card.source || "close";
+    return drawn === cardAlertSource(settingsKey);
 }
 
 /**
@@ -282,21 +289,21 @@ function drawnOverAlertPathSource(card: SettingsCard): boolean {
  * - `armable` — the action seeds a draft for exactly the line the card draws
  * - `not-alertable` — the card has no alert action at all (no mapping, or an
  *   indicator the alert path cannot compute)
- * - `source-not-close` — the card draws its line over another price (`hl2`,
- *   `hlc3`, …) and an alert would be computed over the close instead, so the
+ * - `source-mismatch` — the card draws its line over another price than the
+ *   one the alert path computes that indicator over (`cardAlertSource`), so the
  *   action refuses and says why (BUG-0453)
  *
  * Unlike `isAlertableIndicator` this reads the card, because the source is a
  * setting the trader changes, not a property of the indicator.
  */
-export type CardAlertAvailability = "armable" | "not-alertable" | "source-not-close";
+export type CardAlertAvailability = "armable" | "not-alertable" | "source-mismatch";
 
 export function cardAlertAvailability(
     settingsKey: string,
     card: SettingsCard,
 ): CardAlertAvailability {
     if (!isAlertableIndicator(settingsKey)) return "not-alertable";
-    if (!drawnOverAlertPathSource(card)) return "source-not-close";
+    if (!drawnOverAlertPathSource(settingsKey, card)) return "source-mismatch";
     return "armable";
 }
 
