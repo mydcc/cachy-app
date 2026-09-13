@@ -6528,6 +6528,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0456-js-atr-first-true-range-zero.md"
   },
   {
+    "id": "BUG-0462",
+    "title": "The panel's Parabolic SAR ignores its increment setting",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0462-wasm-psar-increment",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0462-wasm-psar-ignores-increment.md"
+  },
+  {
     "id": "BUG-0466",
     "title": "Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions",
     "type": "bug",
