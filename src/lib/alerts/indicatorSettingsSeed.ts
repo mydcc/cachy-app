@@ -40,6 +40,7 @@ import { Decimal } from "decimal.js";
 
 import {
     catalogueEntry,
+    registryEntry,
     type CatalogueEntry,
 } from "./indicatorCatalogue";
 import { buildIndicatorCondition, defaultForm } from "./indicatorConditionForm";
@@ -239,13 +240,31 @@ const SETTINGS_MAPPINGS: Readonly<Record<string, readonly LineMapping[]>> = {
     volumeMa: [{ id: "volume_ma", params: { period: period("length") } }],
 };
 
-/** Whether a settings card can arm an alert at all. */
+/**
+ * Whether a settings card can arm an alert at all.
+ *
+ * A mapping is not enough: the indicator must also be one the alert path can
+ * compute, or the button would open a draft for an alert that never fires
+ * (BUG-0451). Derived from the same catalogue the seed resolves through, so the
+ * button and the seed cannot disagree.
+ */
 export function isAlertableIndicator(settingsKey: string): boolean {
-    return settingsKey in SETTINGS_MAPPINGS;
+    const mappings = SETTINGS_MAPPINGS[settingsKey];
+    return mappings !== undefined && mappings.some((mapping) => catalogueEntry(mapping.id) !== null);
 }
 
-/** Every settings key with an alert action, for the mapping's own tests. */
+/** Every settings key with an alert action. */
 export function alertableIndicatorKeys(): readonly string[] {
+    return Object.keys(SETTINGS_MAPPINGS).filter(isAlertableIndicator);
+}
+
+/**
+ * Every settings key the mapping covers, armable today or not, for the
+ * mapping's own validity tests — so a mapping for an indicator not yet on the
+ * alert path is still checked against the registry, and is correct on the day
+ * it is wired in.
+ */
+export function mappedIndicatorKeys(): readonly string[] {
     return Object.keys(SETTINGS_MAPPINGS);
 }
 
@@ -291,11 +310,23 @@ export function indicatorRefsFrom(
     settingsKey: string,
     card: SettingsCard,
 ): readonly IndicatorRef[] {
+    return mappedIndicatorRefs(settingsKey, card).filter((ref) => catalogueEntry(ref.id) !== null);
+}
+
+/**
+ * The refs a card's mapping produces against the full registry, whether or not
+ * the alert path can compute them. For the mapping's validity tests only; what
+ * a trader can arm comes from `indicatorRefsFrom`.
+ */
+export function mappedIndicatorRefs(
+    settingsKey: string,
+    card: SettingsCard,
+): readonly IndicatorRef[] {
     const mappings = SETTINGS_MAPPINGS[settingsKey];
     if (!mappings) return [];
     const refs: IndicatorRef[] = [];
     for (const mapping of mappings) {
-        const entry = catalogueEntry(mapping.id);
+        const entry = registryEntry(mapping.id);
         if (!entry) continue;
         refs.push(refFor(mapping, entry, card));
     }
