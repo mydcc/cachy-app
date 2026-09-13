@@ -68,6 +68,12 @@ After fix: member survives the tab switch.
   resolves its id, so a condition on an id the panel stopped offering stays
   unclaimed and survives a tab switch. The window/mark-RHS and `percent_change`
   operator cases above are still open; the AC below stay for those.
+- 2026-09-13: the indicators half is closed with FEAT-0446 group 4 (OBV). `slotOf()`
+  now claims an indicator condition exactly when `indicatorFormOf()` — the parser
+  `readIndicatorForm()` itself uses, in `indicatorFormLeaf.ts` — can read it, so the
+  window-over-another-operand and mark-source-price RHS cases are unclaimed, and so is
+  OBV against anything but its own window. The `percent_change` operator case in the
+  price builder is still open, and still pinned in `conditionSlots.test.ts`.
 
 ## Related
 

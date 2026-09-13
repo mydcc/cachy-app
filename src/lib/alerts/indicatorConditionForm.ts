@@ -47,6 +47,7 @@ import {
     type OperandDimension,
 } from "./indicatorCatalogue";
 import { conditionInSlot } from "./conditionSlots";
+import { indicatorFormOf } from "./indicatorFormLeaf";
 
 /** How the two sides are related: a threshold, or a crossing. */
 export type Relation =
@@ -184,8 +185,11 @@ export function compatibleIndicators(
     subject: OperandDimension,
     catalogue: readonly CatalogueEntry[],
 ): readonly CatalogueEntry[] {
-    return catalogue.filter((entry) =>
-        entry.outputs.some((output) => output.dimension === subject),
+    // A cumulative indicator is never the second side: the core accepts it
+    // only against a window over itself (FEAT-0446 group 4), so
+    // "volume MA > OBV" is refused on arm.
+    return catalogue.filter(
+        (entry) => !entry.cumulative && entry.outputs.some((output) => output.dimension === subject),
     );
 }
 
@@ -235,39 +239,6 @@ export function buildIndicatorCondition(
         : { kind: "cross", left, direction: form.relation.direction, right, timeframe };
 }
 
-function referenceFor(operand: Operand, subject: IndicatorRef): Reference | null {
-    switch (operand.kind) {
-        case "constant":
-            return { kind: "constant", value: operand.value };
-        case "price":
-            // A price with a source (mark vs last) cannot be round-tripped through
-            // this tab, so don't try.
-            if (operand.source) return null;
-            return { kind: "price", field: operand.field };
-        case "indicator":
-            return { kind: "indicator", indicator: operand.indicator };
-        case "window":
-            // Only a window over the subject itself is this tab's; compared as
-            // documents, so a window over the same indicator with other
-            // parameters or another line is not mistaken for it.
-            if (operand.of.kind !== "indicator") return null;
-            if (JSON.stringify(canonicalRef(operand.of.indicator)) !== JSON.stringify(canonicalRef(subject))) {
-                return null;
-            }
-            return { kind: "window", agg: operand.agg, lookback: operand.lookback };
-        default:
-            // A volume or a percent change on the right is a document this tab
-            // did not write and cannot render without lying about it.
-            return null;
-    }
-}
-
-/** A ref with sorted parameters and its output spelled, for comparison only. */
-function canonicalRef(ref: IndicatorRef): unknown {
-    const params = Object.entries(ref.params ?? {}).sort(([a], [b]) => a.localeCompare(b));
-    return [ref.id, params, ref.output ?? "value"];
-}
-
 /**
  * The form a draft already carries, or `null` when the draft holds something
  * this tab does not edit.
@@ -283,23 +254,5 @@ export function readIndicatorForm(
     conditions: Condition | null | undefined,
 ): IndicatorForm | null {
     const condition = conditionInSlot(conditions, "indicators");
-    if (!condition) return null;
-    if (condition.kind !== "compare" && condition.kind !== "cross") return null;
-    if (condition.left.kind !== "indicator") return null;
-    // Only an indicator this build knows: a document naming something the
-    // registry dropped would otherwise render as an empty picker that silently
-    // rewrites the rule on the first edit.
-    if (!catalogueEntry(condition.left.indicator.id)) return null;
-
-    const reference = referenceFor(condition.right, condition.left.indicator);
-    if (!reference) return null;
-
-    return {
-        subject: condition.left.indicator,
-        relation:
-            condition.kind === "compare"
-                ? { kind: "compare", op: condition.op }
-                : { kind: "cross", direction: condition.direction },
-        reference,
-    };
+    return condition ? indicatorFormOf(condition) : null;
 }

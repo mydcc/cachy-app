@@ -87,6 +87,8 @@ export const INDICATOR_WARMUP: IndicatorWarmup[] = [
   // `initialize` needs two candles to step once.
   { label: "Parabolic SAR", needs: 2, ref: { id: "parabolic_sar", params: { start: 0.02, increment: 0.02, max: 0.2 }, output: "value" } },
   { label: "Parabolic SAR direction", needs: 2, ref: { id: "parabolic_sar", params: { start: 0.02, increment: 0.02, max: 0.2 }, output: "direction" } },
+  // A running total from zero at the first candle.
+  { label: "OBV", needs: 1, ref: { id: "obv", params: {}, output: "value" } },
   { label: "MACD line", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "macd" } },
   { label: "MACD signal", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "signal" } },
   { label: "MACD histogram", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "histogram" } },

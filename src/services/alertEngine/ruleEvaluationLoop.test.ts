@@ -290,7 +290,7 @@ describe("RuleEvaluationLoop", () => {
     });
 
     /**
-     * BUG-0467. The core validates every document it evaluates, so a stored
+     * BUG-0468. The core validates every document it evaluates, so a stored
      * rule it no longer accepts — armed under an older, looser core — is
      * refused on every close. That is not transient: the same document and the
      * same core refuse it forever. Logging it every close and telling the

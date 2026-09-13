@@ -62,7 +62,7 @@
  * path) so a claim always means the reader can actually hydrate it.
  */
 
-import { catalogueEntry } from "./indicatorCatalogue";
+import { indicatorFormOf } from "./indicatorFormLeaf";
 import type { Condition, Operand } from "../rules/types";
 
 /** The builder tabs that author conditions. `combo` (FEAT-0030) spans slots. */
@@ -83,9 +83,9 @@ export function slotOf(condition: Condition): BuilderSlot | null {
 
   const subject: Operand = condition.left;
   if (subject.kind === "indicator") {
-    // Claim only what the reader can hydrate: an id outside the catalogue reads
-    // as `null` in `readIndicatorForm`, and a claim on it would wipe the member.
-    return catalogueEntry(subject.indicator.id) !== null ? "indicators" : null;
+    // Claim exactly what the reader can hydrate, by asking the reader's own
+    // parser: a claim on anything else would wipe the member on mount.
+    return indicatorFormOf(condition) !== null ? "indicators" : null;
   }
 
   // The price builder always compares its subject against a typed number; the
