@@ -3934,6 +3934,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0453-card-alert-ignores-price-source.md"
   },
   {
+    "id": "BUG-0455",
+    "title": "The WASM Williams %R and choppiness read a high/low window one candle too long",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0455-wasm-wr-chop-window",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0455-wasm-williams-r-choppiness-window.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
