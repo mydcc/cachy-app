@@ -170,6 +170,22 @@ export function computeIndicatorSeries(
       return { supported: true, values: wire(JSIndicators[id](close, period)) };
     }
 
+    case "momentum": {
+      const period = whole(params.period);
+      if (period === undefined) {
+        return { supported: false, reason: "momentum needs a whole period" };
+      }
+      if (output !== DEFAULT_OUTPUT) {
+        return {
+          supported: false,
+          reason: `momentum has no output '${output}'`,
+        };
+      }
+      // The close against the close a full period back: nothing accumulates, so
+      // the value at a candle does not depend on where the rolling buffer starts.
+      return { supported: true, values: wire(JSIndicators.mom(close, period)) };
+    }
+
     case "volume_ma": {
       const period = whole(params.period);
       if (period === undefined) {

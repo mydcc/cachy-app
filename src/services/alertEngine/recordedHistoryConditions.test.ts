@@ -402,6 +402,7 @@ const EMA20 = indicator("ema", { period: 20 });
 const WMA20 = indicator("wma", { period: 20 });
 const VWMA20 = indicator("vwma", { period: 20 });
 const HMA20 = indicator("hma", { period: 20 });
+const MOMENTUM10 = indicator("momentum", { period: 10 });
 
 interface Expectation {
   name: string;
@@ -584,6 +585,22 @@ const EXPECTATIONS: Expectation[] = [
       920, 921, 938, 939, 953, 954, 964, 965, 970, 971, 991, 992, 994, 995
     ],
   },
+  // FEAT-0446 group 1 — wired into the alert path in the same change.
+  {
+    name: "momentum turning positive — Momentum(10) crossing above zero",
+    condition: cross(MOMENTUM10, "above", constant("0")),
+    flips: [
+      44, 45, 47, 48, 50, 51, 52, 53, 57, 58, 68, 69, 72, 73, 76, 77, 80, 81,
+      96, 97, 102, 103, 105, 106, 123, 124, 141, 142, 153, 154, 174, 175, 193, 194, 213, 214,
+      218, 219, 236, 237, 242, 243, 259, 260, 284, 285, 299, 300, 302, 303, 317, 318, 320, 321,
+      322, 323, 325, 326, 333, 334, 345, 346, 357, 358, 390, 391, 414, 415, 472, 473, 492, 493,
+      499, 500, 510, 511, 525, 526, 529, 530, 534, 535, 546, 547, 576, 577, 581, 582, 590, 591,
+      592, 593, 615, 616, 647, 648, 656, 657, 673, 674, 678, 679, 699, 700, 720, 721, 742, 743,
+      757, 758, 795, 796, 797, 798, 809, 810, 814, 815, 818, 819, 821, 822, 840, 841, 843, 844,
+      847, 848, 853, 854, 856, 857, 878, 879, 883, 884, 898, 899, 904, 905, 910, 911, 936, 937,
+      939, 940, 960, 961, 974, 975, 983, 984, 986, 987
+    ],
+  },
 ];
 
 /** Every indicator id the expectations read, derived from the conditions. */
@@ -693,8 +710,8 @@ describe("indicator conditions against recorded market history", () => {
    * inert starts firing — and its expectation belongs in the same change. The
    * test below enforces that ordering rather than trusting it.
    *
-   * Parabolic SAR and Ichimoku carry an extra note: each needs a condition-shape
-   * decision before its expectation can be written (FEAT-0446).
+   * Parabolic SAR, Ichimoku and OBV carry an extra note: each needs a
+   * condition-shape decision before its expectation can be written (FEAT-0446).
    */
   const NOT_ON_ALERT_PATH = "no JavaScript implementation on the alert path; an alert on it cannot fire";
   const SCOPED_OUT: Record<string, string> = {
@@ -704,12 +721,11 @@ describe("indicator conditions against recorded market history", () => {
     cci: NOT_ON_ALERT_PATH,
     adx: NOT_ON_ALERT_PATH,
     ao: NOT_ON_ALERT_PATH,
-    momentum: NOT_ON_ALERT_PATH,
     atr: NOT_ON_ALERT_PATH,
     choppiness: NOT_ON_ALERT_PATH,
     super_trend: NOT_ON_ALERT_PATH,
     mfi: NOT_ON_ALERT_PATH,
-    obv: NOT_ON_ALERT_PATH,
+    obv: `${NOT_ON_ALERT_PATH}; accumulates from the first candle it is given, so its level depends on how much history the rolling buffer holds`,
     parabolic_sar: `${NOT_ON_ALERT_PATH}; flips side rather than crossing a level, so the condition shape needs deciding first`,
     ichimoku: `${NOT_ON_ALERT_PATH}; five lines and a forward displacement, which must match the chart`,
   };

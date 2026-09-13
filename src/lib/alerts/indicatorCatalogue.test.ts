@@ -229,7 +229,6 @@ describe("what the alert panel offers", () => {
                 "choppiness",
                 "ichimoku",
                 "mfi",
-                "momentum",
                 "obv",
                 "parabolic_sar",
                 "stoch_rsi",
