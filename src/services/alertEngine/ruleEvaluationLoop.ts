@@ -340,29 +340,45 @@ export class RuleEvaluationLoop {
 
     const firings: RuleFiring[] = [];
     for (const rule of rules) {
-      // Read per rule, not once per series: two rules on the same trigger
-      // timeframe can still read different timeframes, and the reader is the
-      // only thing that knows which series each one needs.
-      const ctx = this.contextFor(rule, symbol, timeframe);
-      // Undefined means the rule cannot be honestly evaluated at all — not that
-      // it did not fire. Skipping is the safe direction; `contextFor` has
-      // already said so out loud.
-      if (ctx === undefined) continue;
-
-      const markCandles = this.markCandlesFor(rule, symbol);
-      if (markCandles) {
-        ctx.mark_candles = markCandles;
+      // One rule's failure is contained to that rule. Without this, a throw
+      // escaped to `observeCandles` and every rule ordered after it on the
+      // same close went unevaluated — an HMA alert silenced its neighbours on
+      // every candle (BUG-0449).
+      try {
+        const firing = this.evaluateRule(rule, symbol, timeframe, anchorMs);
+        if (firing === undefined) continue;
+        firings.push(firing);
+        this.onFiring(firing);
+      } catch (e) {
+        logger.error("alerts", `[RuleEngine] Evaluating rule ${rule.id} failed for ${symbol} ${timeframe}`, e);
       }
-
-      const verdict = ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
-      if (verdict === undefined) continue;
-      if (verdict.verdict !== "fires") continue;
-
-      const firing = { rule, verdict, anchorMs };
-      firings.push(firing);
-      this.onFiring(firing);
     }
     return firings;
+  }
+
+  private evaluateRule(
+    rule: RuleDocument,
+    symbol: string,
+    timeframe: string,
+    anchorMs: number,
+  ): RuleFiring | undefined {
+    // Read per rule, not once per series: two rules on the same trigger
+    // timeframe can still read different timeframes, and the reader is the
+    // only thing that knows which series each one needs.
+    const ctx = this.contextFor(rule, symbol, timeframe);
+    // Undefined means the rule cannot be honestly evaluated at all — not that
+    // it did not fire. Skipping is the safe direction; `contextFor` has
+    // already said so out loud.
+    if (ctx === undefined) return undefined;
+
+    const markCandles = this.markCandlesFor(rule, symbol);
+    if (markCandles) {
+      ctx.mark_candles = markCandles;
+    }
+
+    const verdict = ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
+    if (verdict === undefined || verdict.verdict !== "fires") return undefined;
+    return { rule, verdict, anchorMs };
   }
 
   /**
