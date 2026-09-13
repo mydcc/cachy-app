@@ -1559,6 +1559,7 @@
       "strongSell": "Strong Sell",
       "title": "Technicals Analysis",
       "alertOnThis": "Alert on this indicator",
+      "alertSourceNotClose": "Alerts compute this indicator over the close. Set Source to close to alert on it.",
       "summaryAction": "Summary",
       "marketConfluence": "Market Confluence",
       "oscillatorsTitle": "Oscillators",

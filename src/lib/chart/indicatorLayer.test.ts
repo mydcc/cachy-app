@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { IChartApi, ISeriesApi, IPaneApi, Time } from "lightweight-charts";
 import { IndicatorLayer } from "./indicatorLayer";
-import type { ChartRow } from "./seriesMap";
+import { getSourceData, zipToLine, type ChartRow } from "./seriesMap";
+import { JSIndicators } from "../../utils/indicators";
 
 function makeSeries() {
     return {
@@ -488,6 +489,43 @@ describe("IndicatorLayer", () => {
 
         // Volume + upper/middle/lower bands.
         expect(addSeries.mock.calls.length).toBe(4);
+    });
+
+    it("draws the bollinger bands over the card's configured source", () => {
+        const layer = new IndicatorLayer(env.chart, getColor);
+        layer.setAvailableHeight(1000);
+        const addSeries = env.chart.addSeries as ReturnType<typeof vi.fn>;
+        const rows = makeRows(60);
+
+        const bandValues = () => {
+            addSeries.mockClear();
+            layer.render(rows);
+            const bandSeries = addSeries.mock.results
+                .map((r, i) => ({
+                    series: r.value as { setData: ReturnType<typeof vi.fn> },
+                    opts: addSeries.mock.calls[i][1] as Record<string, unknown> | undefined,
+                }))
+                .filter(({ opts }) => opts !== undefined && "lineWidth" in opts);
+            return bandSeries.map(({ series }) =>
+                (series.setData.mock.calls[0][0] as Array<{ value: number }>).map((p) => p.value),
+            );
+        };
+
+        Object.assign(indicatorState, makeState({
+            bollingerBands: on({ length: 20, stdDev: 2, source: "close" }),
+        }));
+        const overClose = bandValues();
+
+        Object.assign(indicatorState, makeState({
+            bollingerBands: on({ length: 20, stdDev: 2, source: "hl2" }),
+        }));
+        const overHl2 = bandValues();
+
+        expect(overHl2).not.toEqual(overClose);
+        const expected = JSIndicators.bb(getSourceData(rows, "hl2"), 20, 2);
+        expect(overHl2[0]).toEqual(zipToLine(expected.upper, rows).map((p) => p.value));
+        expect(overHl2[1]).toEqual(zipToLine(expected.middle, rows).map((p) => p.value));
+        expect(overHl2[2]).toEqual(zipToLine(expected.lower, rows).map((p) => p.value));
     });
 
     it("draws no pivot price lines when hidden via showInChart", () => {

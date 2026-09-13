@@ -253,6 +253,53 @@ export function isAlertableIndicator(settingsKey: string): boolean {
     return mappings !== undefined && mappings.some((mapping) => catalogueEntry(mapping.id) !== null);
 }
 
+/**
+ * The price every indicator on the alert path is computed over.
+ *
+ * `computeIndicatorSeries` reads the close, and the registry has no parameter
+ * that could carry anything else (BUG-0453).
+ */
+const ALERT_PATH_SOURCE = "close";
+
+/**
+ * Whether a card's line is drawn over the price the alert path computes over.
+ *
+ * Mirrors the chart's own fallback (`indicatorLayer.ts`, `src`): a falsy source
+ * (`undefined`, `null`, `""`, `0`, `false`) is the close, because that is what
+ * the chart draws for one. Any other non-empty value is not, including a value
+ * this module does not recognise: that is only reachable through a hand-edited
+ * store, and guessing "close" would arm an alert on a line the trader may not be
+ * looking at.
+ */
+function drawnOverAlertPathSource(card: SettingsCard): boolean {
+    const source = card.source;
+    return !source || source === ALERT_PATH_SOURCE;
+}
+
+/**
+ * What a settings card's alert action may do right now.
+ *
+ * - `armable` — the action seeds a draft for exactly the line the card draws
+ * - `not-alertable` — the card has no alert action at all (no mapping, or an
+ *   indicator the alert path cannot compute)
+ * - `source-not-close` — the card draws its line over another price (`hl2`,
+ *   `hlc3`, …) and an alert would be computed over the close instead, so the
+ *   action refuses and says why (BUG-0453)
+ *
+ * Unlike `isAlertableIndicator` this reads the card, because the source is a
+ * setting the trader changes, not a property of the indicator.
+ */
+export type CardAlertAvailability = "armable" | "not-alertable" | "source-not-close";
+
+export function cardAlertAvailability(
+    settingsKey: string,
+    card: SettingsCard,
+): CardAlertAvailability {
+    if (!isAlertableIndicator(settingsKey)) return "not-alertable";
+    if (!drawnOverAlertPathSource(card)) return "source-not-close";
+    return "armable";
+}
+
 /** Every settings key with an alert action. */
 export function alertableIndicatorKeys(): readonly string[] {
     return Object.keys(SETTINGS_MAPPINGS).filter(isAlertableIndicator);
@@ -302,14 +349,16 @@ function refFor(mapping: LineMapping, entry: CatalogueEntry, card: SettingsCard)
 /**
  * The refs a settings card configures, in the order the panel shows them.
  *
- * Empty when the card has no alert action. Never partially filled: a
- * parameter the card cannot supply takes the registry default, so the result
- * is always a document the core accepts.
+ * Empty unless `cardAlertAvailability` answers `armable`, so the button and the
+ * refs cannot disagree about whether the card is armable. Never partially
+ * filled: a parameter the card cannot supply takes the registry default, so the
+ * result is always a document the core accepts.
  */
 export function indicatorRefsFrom(
     settingsKey: string,
     card: SettingsCard,
 ): readonly IndicatorRef[] {
+    if (cardAlertAvailability(settingsKey, card) !== "armable") return [];
     return mappedIndicatorRefs(settingsKey, card).filter((ref) => catalogueEntry(ref.id) !== null);
 }
 
@@ -336,8 +385,9 @@ export function mappedIndicatorRefs(
 /**
  * The seed the indicator entry point hands to `openAlertPanelWith`.
  *
- * `null` when the card has no alert action, which is what keeps the button
- * and the seed from disagreeing about which cards are armable.
+ * `null` unless `cardAlertAvailability` answers `armable` — `indicatorRefsFrom`
+ * asks it — so the button and the seed cannot disagree about which cards are
+ * armable.
  *
  * The condition is the tab's own default shape with the configured indicator
  * substituted for the default one: `> 0` against a constant, left for the

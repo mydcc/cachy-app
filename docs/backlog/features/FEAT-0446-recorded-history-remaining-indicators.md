@@ -130,7 +130,7 @@ list in `indicatorCatalogue.test.ts`. Three guards already fail if any of those 
 | Group | Indicators | Why together |
 |---|---|---|
 | 1 — single line from close | `momentum` | no high/low column yet on the alert path; smallest step. **Wired (2026-09-13).** OBV was planned here and moved to group 4 |
-| 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once. `cci` waits for [`BUG-0453`](../bugs/BUG-0453-card-alert-ignores-price-source.md): its card defaults to `hlc3` |
+| 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once. `cci` is unblocked by [`BUG-0453`](../bugs/BUG-0453-card-alert-ignores-price-source.md): its card defaults to `hlc3`, so the card's alert action refuses until [`FEAT-0454`](FEAT-0454-alert-on-indicator-price-source.md); the Indicators tab offers CCI over the close |
 | 3 — several output lines | `stochastic`, `stoch_rsi`, `adx`, `super_trend` | output-line mapping, like MACD and Bollinger |
 | 4 — shape decisions first | `parabolic_sar`, `ichimoku`, `obv` | SAR flips side; Ichimoku displaces forward; OBV's level depends on the loaded window — each needs its condition shape decided and written down before it is asserted |
 
