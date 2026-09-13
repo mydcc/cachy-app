@@ -1555,7 +1555,8 @@
         "placeholder": "Modell-ID eingeben...",
         "connectionOk": "Verbindung erfolgreich, Modellliste aktuell.",
         "notInList": "Das gespeicherte Modell wurde in der aktuellen Liste des Anbieters nicht gefunden. Es könnte abgeschaltet sein — bitte ein anderes wählen.",
-        "deprecated": "läuft bald aus"
+        "deprecated": "läuft bald aus",
+        "free": "kostenlos"
       },
       "ollamaBaseUrl": "Ollama Server-Adresse",
       "ollamaBaseUrlDesc": "Lokale Ollama-Installation, z. B. http://localhost:11434. Verlässt nie dein Gerät.",
