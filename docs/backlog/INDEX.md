@@ -2,9 +2,9 @@
 
 # Backlog index
 
-345 items. How to read and add them: [README.md](README.md).
+346 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 285 · ⛔ dropped 1
+Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 286 · ⛔ dropped 1
 
 ---
 
@@ -306,6 +306,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0458](bugs/BUG-0458-js-supertrend-never-has-a-value.md) | The JavaScript SuperTrend never has a value | P2 | ✅ done | indicators |
 | [BUG-0459](bugs/BUG-0459-adx-seeds-off-wilder.md) | Both ADX engines seed Wilder's averages differently from the definition | P2 | ✅ done | indicators |
 | [BUG-0460](bugs/BUG-0460-chart-stochastic-lines-ignore-card.md) | The chart's Stochastic and Stoch RSI lines ignore their cards' smoothing | P2 | ✅ done | chart |
+| [BUG-0467](bugs/BUG-0467-refused-stored-rule-is-silent.md) | A stored rule the core refuses is logged on every close and never reported | P2 | ✅ done | alerts |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -603,6 +604,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0459](bugs/BUG-0459-adx-seeds-off-wilder.md) | Both ADX engines seed Wilder's averages differently from the definition | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0460](bugs/BUG-0460-chart-stochastic-lines-ignore-card.md) | The chart's Stochastic and Stoch RSI lines ignore their cards' smoothing | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0465](bugs/BUG-0465-market-data-channel-lost-on-reconnect.md) | Direct market-data subscriptions are silenced by a provider teardown until the symbol changes | P2 | ✅ done | M2 | community, pro, private | C | ADR-0007 | — |
+| [BUG-0467](bugs/BUG-0467-refused-stored-rule-is-silent.md) | A stored rule the core refuses is logged on every close and never reported | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -764,4 +766,4 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0467**
+Next free number: **0468**
