@@ -1620,6 +1620,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0449-hma-alert-throws-and-silences-series.md"
   },
   {
+    "id": "BUG-0451",
+    "title": "The alert panel offers fourteen indicators whose alerts can never fire",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0451-panel-offers-inert-indicators",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
