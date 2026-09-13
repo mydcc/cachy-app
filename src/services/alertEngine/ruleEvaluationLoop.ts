@@ -344,13 +344,23 @@ export class RuleEvaluationLoop {
       // escaped to `observeCandles` and every rule ordered after it on the
       // same close went unevaluated — an HMA alert silenced its neighbours on
       // every candle (BUG-0449).
+      let firing: RuleFiring | undefined;
       try {
-        const firing = this.evaluateRule(rule, symbol, timeframe, anchorMs);
-        if (firing === undefined) continue;
-        firings.push(firing);
-        this.onFiring(firing);
+        firing = this.evaluateRule(rule, symbol, timeframe, anchorMs);
       } catch (e) {
         logger.error("alerts", `[RuleEngine] Evaluating rule ${rule.id} failed for ${symbol} ${timeframe}`, e);
+        continue;
+      }
+      if (firing === undefined) continue;
+      firings.push(firing);
+
+      // The sink is contained per rule too, but reported as itself: a firing
+      // consumer that throws is not an evaluation failure, and logging it as
+      // one would send whoever reads it looking in the wrong place.
+      try {
+        this.onFiring(firing);
+      } catch (e) {
+        logger.error("alerts", `[RuleEngine] Firing sink failed for rule ${rule.id} for ${symbol} ${timeframe}`, e);
       }
     }
     return firings;
