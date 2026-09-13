@@ -6468,6 +6468,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0456-js-atr-first-true-range-zero.md"
   },
   {
+    "id": "BUG-0464",
+    "title": "The condition test oracles define a cross differently from the core",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0464-oracle-cross-ties",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0464-test-oracles-cross-convention.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",

@@ -91,6 +91,7 @@ import {
   RECORDED_STEP_MS,
   RECORDED_TIMEFRAME,
 } from "../__fixtures__/recordedSeries";
+import { crossedLikeTheCore } from "../__fixtures__/crossedLikeTheCore";
 import { assertableFrom } from "./indicatorWarmup";
 
 const WASM_JS = pathToFileURL(resolve(process.cwd(), "static/wasm/technicals_wasm.js")).href;
@@ -261,13 +262,12 @@ function oracleFor(condition: Condition): Oracle {
       const cl = l[i];
       const cr = r[i];
       if (pl === null || pr === null || cl === null || cr === null) return null;
-      const prevLeft = new Decimal(pl);
-      const prevRight = new Decimal(pr);
-      const curLeft = new Decimal(cl);
-      const curRight = new Decimal(cr);
-      return above
-        ? prevLeft.lte(prevRight) && curLeft.gt(curRight)
-        : prevLeft.gte(prevRight) && curLeft.lt(curRight);
+      // The core's convention, not TradingView's: see `crossedLikeTheCore`.
+      return crossedLikeTheCore(
+        new Decimal(pl).comparedTo(pr),
+        new Decimal(cl).comparedTo(cr),
+        above ? "above" : "below",
+      );
     };
   }
 
