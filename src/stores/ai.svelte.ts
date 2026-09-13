@@ -13,6 +13,8 @@ import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
+import { flavorOf } from "./settings/aiProviders";
+import { parseStreamChunk } from "../lib/ai/streamAdapters";
 import { activeUserProvider } from "./settings/aiProviders";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
@@ -407,29 +409,8 @@ class AiManager {
             const dataStr = trimmed.slice(6);
             try {
               const data = JSON.parse(dataStr);
-              let delta = "";
-              let toolCallData = null;
-
-              if (provider === "openai" || provider === "openrouter" || provider === "ollama") {
-                delta = data.choices?.[0]?.delta?.content || "";
-                if (data.choices?.[0]?.delta?.tool_calls) {
-                  toolCallData = data.choices[0].delta.tool_calls[0]?.function?.arguments;
-                }
-              } else if (provider === "gemini") {
-                delta = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                if (data.candidates?.[0]?.content?.parts?.[0]?.functionCall) {
-                  const fc = data.candidates[0].content.parts[0].functionCall;
-                  if (fc.args && fc.args.actions) {
-                      toolCallData = JSON.stringify(fc.args);
-                  }
-                }
-              } else if (provider === "anthropic") {
-                if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
-                  delta = data.delta?.text || "";
-                } else if (data.type === "content_block_delta" && data.delta?.type === "input_json_delta") {
-                  toolCallData = data.delta?.partial_json;
-                }
-              }
+              const { text: delta, toolCallFragment: toolCallData } =
+                parseStreamChunk(flavorOf(provider) ?? "openai-chat", data);
 
               if (toolCallData) {
                   // Buffer tool call chunks
