@@ -176,11 +176,10 @@ export function computeIndicatorSeries(
           reason: `${indicator.id} has no output '${output}'`,
         };
       }
-      const fn = JSIndicators[indicator.id] as (
-        d: Float64Array,
-        p: number,
-      ) => Float64Array;
-      return { supported: true, values: wire(fn(close, period)) };
+      // Called through the object, never detached: `hma` builds on `this.wma`,
+      // and a detached call threw on every close (BUG-0449).
+      const id = indicator.id as "ema" | "sma" | "wma" | "hma";
+      return { supported: true, values: wire(JSIndicators[id](close, period)) };
     }
 
     case "volume_ma": {

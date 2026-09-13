@@ -1600,6 +1600,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md"
   },
   {
+    "id": "BUG-0449",
+    "title": "An HMA alert throws on every close and silences every rule after it on the same series",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0449-hma-alert-throws",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0449-hma-alert-throws-and-silences-series.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
