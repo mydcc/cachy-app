@@ -3893,6 +3893,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md"
   },
   {
+    "id": "BUG-0452",
+    "title": "The WASM momentum is a change over one candle more than its period",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0452-wasm-momentum-off-by-one",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0452-wasm-momentum-off-by-one.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",

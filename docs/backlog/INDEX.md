@@ -2,9 +2,9 @@
 
 # Backlog index
 
-333 items. How to read and add them: [README.md](README.md).
+334 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 275 · ⛔ dropped 1
+Counts by status: 💡 idea 28 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 276 · ⛔ dropped 1
 
 ---
 
@@ -298,6 +298,7 @@ Counts by status: 💡 idea 28 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | 💡 idea | alerts |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | 📋 specced | repo |
 | [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 📋 specced | alerts |
+| [BUG-0452](bugs/BUG-0452-wasm-momentum-off-by-one.md) | The WASM momentum is a change over one candle more than its period | P2 | ✅ done | indicators |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -583,6 +584,7 @@ Counts by status: 💡 idea 28 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0452](bugs/BUG-0452-wasm-momentum-off-by-one.md) | The WASM momentum is a change over one candle more than its period | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -740,4 +742,4 @@ Counts by status: 💡 idea 28 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0452**
+Next free number: **0453**
