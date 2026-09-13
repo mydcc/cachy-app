@@ -45,6 +45,11 @@ import {
   type LegacyCredentialShape,
 } from "./settings/accounts";
 import {
+  redactUserProviders,
+  sanitizeUserProviders,
+  type ProviderConfig,
+} from "./settings/aiProviders";
+import {
   resolveApiProvider,
   resolveGeminiModel,
   resolveAnthropicModel,
@@ -393,6 +398,14 @@ export interface Settings {
   openrouterApiKey: string;
   openrouterModel: string;
   openrouterBaseUrl: string;
+  /**
+   * User-created AI providers (FEAT-0467). Class A when a key is set: the
+   * credentials are encrypted into `encryptedProviderConfigs` before they
+   * reach storage, and the serialized `userProviders` block stays redacted.
+   */
+  userProviders: ProviderConfig[];
+  activeProviderId: string;
+  encryptedProviderConfigs?: EncryptedBlob;
   analysisDepth: AnalysisDepth;
   aiConfirmActions: boolean;
   aiAllowSettingsChanges: boolean;
@@ -629,6 +642,8 @@ const defaultSettings: Settings = {
   openrouterApiKey: "",
   openrouterModel: "",
   openrouterBaseUrl: "",
+  userProviders: [],
+  activeProviderId: "",
   analysisDepth: "standard",
   aiConfirmActions: false,
   aiAllowSettingsChanges: false,
@@ -965,6 +980,8 @@ export class SettingsManager {
   openrouterApiKey = $state<string>(defaultSettings.openrouterApiKey);
   openrouterModel = $state<string>(defaultSettings.openrouterModel);
   openrouterBaseUrl = $state<string>(defaultSettings.openrouterBaseUrl);
+  userProviders = $state<ProviderConfig[]>(defaultSettings.userProviders);
+  activeProviderId = $state<string>(defaultSettings.activeProviderId);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
@@ -1424,6 +1441,14 @@ export class SettingsManager {
   private apiKeyDecryptPending = false;
 
   /**
+   * True while the obfuscation-mode background decryption of
+   * `encryptedProviderConfigs` is in flight (FEAT-0467). Same role as
+   * `apiKeyDecryptPending`: a save must not read the not-yet-refilled
+   * providers as "the user cleared the keys".
+   */
+  private providerConfigDecryptPending = false;
+
+  /**
    * Set by `load()` when legacy plaintext exchange credentials were found in
    * storage (pre-BUG-0280 blobs). The constructor fires one immediate save
    * so the migration to device-key ciphertext happens on first launch, not
@@ -1433,6 +1458,7 @@ export class SettingsManager {
 
   // Security State
   encryptedAccountKeys = $state<Settings["encryptedAccountKeys"]>(undefined);
+  encryptedProviderConfigs = $state<Settings["encryptedProviderConfigs"]>(undefined);
   encryptedSecrets = $state<Settings["encryptedSecrets"]>(undefined);
   isEncrypted = $state(false);
   isLocked = $state(false);
@@ -1579,6 +1605,26 @@ export class SettingsManager {
         }
       }
 
+      // 1b. Decrypt User Provider Configs (FEAT-0467)
+      if (this.encryptedProviderConfigs) {
+        const blob = this.encryptedProviderConfigs;
+        tasks.push(
+          (async () => {
+            try {
+              const json = await cryptoService.decrypt(blob);
+              if (aborted) return;
+              this.userProviders = sanitizeUserProviders(JSON.parse(json));
+            } catch (e) {
+              failures++;
+              console.error(
+                "[Settings] Failed to decrypt user provider configs",
+                e,
+              );
+            }
+          })(),
+        );
+      }
+
       // 2. Decrypt Generic Secrets
       if (this.encryptedSecrets) {
         const decryptTasks = Object.entries(this.encryptedSecrets)
@@ -1617,6 +1663,7 @@ export class SettingsManager {
       // Credentials go, names and ids stay — locking hides the keys, it does
       // not forget which accounts exist.
       this.accounts = redactAccounts(this.accounts);
+      this.userProviders = redactUserProviders(this.userProviders);
 
       // Clear generic secrets from memory
       for (const key of SENSITIVE_KEYS) {
@@ -1675,7 +1722,15 @@ export class SettingsManager {
       // Only commit state after all encryptions succeed (atomic update)
       await Promise.all(tasks);
 
+      let providerBlob: EncryptedBlob | undefined = undefined;
+      if (this.userProviders.some((p) => p.apiKey.length > 0)) {
+        providerBlob = await cryptoService.encrypt(
+          JSON.stringify(this.userProviders),
+        );
+      }
+
       this.encryptedAccountKeys = accountBlobs;
+      this.encryptedProviderConfigs = providerBlob;
       this.encryptedSecrets = newSecrets;
       this.isEncrypted = true;
       this.isLocked = false;
@@ -1725,6 +1780,7 @@ export class SettingsManager {
       this.isEncrypted = apiKeyResult.isEncrypted;
       this.isLocked = apiKeyResult.isLocked;
       this.encryptedAccountKeys = apiKeyResult.encryptedAccountKeys;
+      this.encryptedProviderConfigs = merged.encryptedProviderConfigs;
       this.accounts = apiKeyResult.accounts;
       this.activeAccountId = apiKeyResult.activeAccountId;
 
@@ -1758,6 +1814,13 @@ export class SettingsManager {
         ) &&
         this.accounts.some((account) => apiKeyHasMaterial(account.keys));
 
+      const hasPlaintextProviderKeys =
+        !this.isEncrypted &&
+        !merged.encryptedProviderConfigs &&
+        sanitizeUserProviders(merged.userProviders).some(
+          (provider) => provider.apiKey.length > 0,
+        );
+
       // FEAT-0333: a profile stored in the venue-indexed shape converted in
       // memory just now. Persist it at once rather than waiting for whatever
       // save happens next — until it lands, `localStorage` holds a second,
@@ -1767,7 +1830,7 @@ export class SettingsManager {
         !parsed.accounts && Boolean(parsed.apiKeys || parsed.encryptedApiKeys);
 
       this.needsCredentialRewrite =
-        hasPlaintextCredentials || convertedFromLegacyShape;
+        hasPlaintextCredentials || convertedFromLegacyShape || hasPlaintextProviderKeys;
 
       // Security: Load Encrypted Secrets (Generic) and the device-key-
       // encrypted exchange keys (BUG-0280). Both decrypt against the device
@@ -1807,6 +1870,33 @@ export class SettingsManager {
               })
               .finally(() => {
                 this.apiKeyDecryptPending = false;
+              }),
+          );
+        }
+
+        if (merged.encryptedProviderConfigs) {
+          this.providerConfigDecryptPending = true;
+          const providerBlob = merged.encryptedProviderConfigs;
+          backgroundTasks.push(
+            this.secretsLoader
+              .decryptProviderConfigsWithDeviceKey(providerBlob)
+              .then((providers) => {
+                // Credentials typed-but-unsaved win over stored ciphertext.
+                if (
+                  providers &&
+                  !this.userProviders.some((p) => p.apiKey.length > 0)
+                ) {
+                  this.userProviders = providers;
+                }
+              })
+              .catch((e) => {
+                console.error(
+                  "[Settings] Failed to initialize provider config decryption",
+                  e,
+                );
+              })
+              .finally(() => {
+                this.providerConfigDecryptPending = false;
               }),
           );
         }
@@ -1931,6 +2021,8 @@ export class SettingsManager {
     this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
     this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
     this.openrouterBaseUrl = merged.openrouterBaseUrl ?? defaultSettings.openrouterBaseUrl;
+    this.userProviders = sanitizeUserProviders(merged.userProviders);
+    this.activeProviderId = merged.activeProviderId ?? defaultSettings.activeProviderId;
     this.analysisDepth = merged.analysisDepth;
     this.aiConfirmActions = merged.aiConfirmActions;
     this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
@@ -2199,6 +2291,17 @@ export class SettingsManager {
         !this.apiKeyDecryptPending,
       );
 
+      // FEAT-0467: the serialized `userProviders` block carries redacted
+      // credentials; encrypt the live ones separately, same treatment as the
+      // exchange accounts above.
+      await this.secretsLoader.applyProviderConfigEncryption(
+        data,
+        $state.snapshot(this.userProviders),
+        canEncrypt,
+        encryptionPassword,
+        !this.providerConfigDecryptPending,
+      );
+
       const current = localStorage.getItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
       );
@@ -2294,6 +2397,11 @@ export class SettingsManager {
       openrouterApiKey: this.openrouterApiKey,
       openrouterModel: this.openrouterModel,
       openrouterBaseUrl: this.openrouterBaseUrl,
+      userProviders: redactUserProviders($state.snapshot(this.userProviders)),
+      activeProviderId: this.activeProviderId,
+      encryptedProviderConfigs: this.encryptedProviderConfigs
+        ? $state.snapshot(this.encryptedProviderConfigs)
+        : undefined,
       analysisDepth: this.analysisDepth,
       aiConfirmActions: this.aiConfirmActions,
       aiAllowSettingsChanges: this.aiAllowSettingsChanges,
