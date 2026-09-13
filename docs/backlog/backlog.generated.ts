@@ -4059,7 +4059,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0465-market-data-channel-lost-on-reconnect.md"
   },
   {
-    "id": "BUG-0467",
+    "id": "BUG-0468",
     "title": "A stored rule the core refuses is logged on every close and never reported",
     "type": "bug",
     "status": "done",
@@ -4077,7 +4077,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "claude-code",
     "branch": "fix/bug-0467-refused-rule-silent",
     "start_date": "2026-09-13",
-    "file": "bugs/BUG-0467-refused-stored-rule-is-silent.md"
+    "file": "bugs/BUG-0468-refused-stored-rule-is-silent.md"
   },
   {
     "id": "FEAT-0019",
