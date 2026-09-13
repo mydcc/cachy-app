@@ -152,9 +152,17 @@ export function flavorOf(id: string): AiApiFlavor | undefined {
   return PRESETS_BY_ID.get(id)?.flavor;
 }
 
+/** Coerce an untrusted value to a string; non-strings become "". */
+function text(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 /** True for an absolute http(s) URL. Format only — reserved hosts are a
- *  server-side concern enforced by `src/lib/server/urlValidator.ts`. */
-export function isValidHttpUrl(value: string): boolean {
+ *  server-side concern enforced by `src/lib/server/urlValidator.ts`.
+ *  Accepts `unknown` so registry input that came back from storage cannot
+ *  throw here. */
+export function isValidHttpUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
   try {
     const url = new URL(value.trim());
     return url.protocol === "http:" || url.protocol === "https:";
@@ -184,20 +192,24 @@ export interface ValidateProviderConfigOptions {
  *
  * `baseUrl` is optional: an empty value means the preset default. It is only
  * checked for shape, never for reachability — the server owns that.
+ *
+ * Fields are read defensively: a missing or non-string value is reported as
+ * the corresponding error instead of throwing, because a config can come back
+ * from persisted storage rather than only from the typed UI.
  */
 export function validateProviderConfig(
   cfg: ProviderConfig,
   options: ValidateProviderConfigOptions = {},
 ): ProviderConfigError[] {
   const errors: ProviderConfigError[] = [];
-  const id = cfg.id.trim();
+  const id = text(cfg.id).trim();
 
   if (!id) errors.push("id");
-  if (!cfg.label.trim()) errors.push("label");
+  if (!text(cfg.label).trim()) errors.push("label");
   if (!AI_API_FLAVORS.includes(cfg.flavor)) errors.push("flavor");
-  if (!options.allowEmptyModel && !cfg.model.trim()) errors.push("model");
+  if (!options.allowEmptyModel && !text(cfg.model).trim()) errors.push("model");
 
-  const baseUrl = cfg.baseUrl.trim();
+  const baseUrl = text(cfg.baseUrl).trim();
   if (baseUrl && !isValidHttpUrl(baseUrl)) errors.push("baseUrl");
 
   if (id && options.existingIds?.includes(id)) errors.push("duplicateId");
@@ -227,9 +239,9 @@ export function providerConfigFromLegacy(
     id,
     label: preset?.label ?? id,
     flavor: preset?.flavor ?? DEFAULT_AI_API_FLAVOR,
-    baseUrl: legacy.baseUrl?.trim() || preset?.defaultBaseUrl || "",
-    model: legacy.model?.trim() || preset?.defaultModel || "",
-    apiKey: legacy.apiKey ?? "",
+    baseUrl: text(legacy.baseUrl).trim() || preset?.defaultBaseUrl || "",
+    model: text(legacy.model).trim() || preset?.defaultModel || "",
+    apiKey: text(legacy.apiKey),
     allowServerRelay: false,
   };
 }
@@ -239,6 +251,6 @@ export function providerConfigFromLegacy(
  * Command Code mark them `-free` / `:free`. Used to label the picker, never to
  * filter a model out.
  */
-export function isFreeModelId(id: string): boolean {
-  return /[-:]free$/i.test(id.trim());
+export function isFreeModelId(id: unknown): boolean {
+  return typeof id === "string" && /[-:]free$/i.test(id.trim());
 }

@@ -157,3 +157,43 @@ describe("isValidHttpUrl", () => {
     expect(isValidHttpUrl("not a url")).toBe(false);
   });
 });
+
+describe("registry input hardening (non-string fields)", () => {
+  it("reports missing or non-string fields instead of throwing", () => {
+    const broken = {
+      id: undefined,
+      label: 42,
+      flavor: undefined,
+      baseUrl: 123,
+      model: null,
+      apiKey: undefined,
+      allowServerRelay: false,
+    } as unknown as ProviderConfig;
+
+    expect(() => validateProviderConfig(broken)).not.toThrow();
+    const errors = validateProviderConfig(broken);
+    expect(errors).toContain("id");
+    expect(errors).toContain("label");
+    expect(errors).toContain("flavor");
+    expect(errors).toContain("model");
+  });
+
+  it("treats non-string URLs and model ids as invalid without throwing", () => {
+    expect(isValidHttpUrl(undefined)).toBe(false);
+    expect(isValidHttpUrl(123)).toBe(false);
+    expect(isFreeModelId(undefined)).toBe(false);
+    expect(isFreeModelId(42)).toBe(false);
+  });
+
+  it("builds a legacy config from non-string stored values without throwing", () => {
+    const cfg = providerConfigFromLegacy("openai", {
+      apiKey: undefined,
+      model: 123,
+      baseUrl: null,
+    } as unknown as Parameters<typeof providerConfigFromLegacy>[1]);
+
+    expect(cfg.baseUrl).toBe("https://api.openai.com/v1");
+    expect(cfg.model).toBe("gpt-4o");
+    expect(cfg.apiKey).toBe("");
+  });
+});
