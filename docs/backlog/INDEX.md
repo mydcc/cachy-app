@@ -2,9 +2,9 @@
 
 # Backlog index
 
-325 items. How to read and add them: [README.md](README.md).
+329 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 270
+Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 272 · ⛔ dropped 1
 
 ---
 
@@ -239,6 +239,7 @@ Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | ✅ done | backend |
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | technicals |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | repo |
+| [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | 📋 specced | repo |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -289,8 +290,11 @@ Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0419](bugs/BUG-0419-mode-switch-does-not-rotate-the-session.md) | A read started before a mode switch can still land after it | P2 | ✅ done | trade-panel |
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | ci |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | ci |
+| [BUG-0441](bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md) | A legacy alert whose target was crossed while the app was closed never fires | P2 | ✅ done | alerts |
+| [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | ✅ done | journal |
 | [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | 💡 idea | alerts |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | 📋 specced | repo |
+| [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 📋 specced | alerts |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -324,7 +328,7 @@ Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | ✅ done | indicators |
 | [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | ✅ done | ui |
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | indicators |
-| [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | alerts |
+| [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | ⛔ dropped | alerts |
 | [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | ui |
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | ✅ done | journal |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | security |
@@ -469,6 +473,7 @@ Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0430](bugs/BUG-0430-macd-seeding-mismatch.md) | MACD seeded differently in WASM than everywhere else | P1 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) | Switching builder tabs wipes the condition the trader just configured | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | — |
+| [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -567,8 +572,11 @@ Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0431](bugs/BUG-0431-closing-trailer-autofix-fights-flip-gate.md) | The closing-reference auto-fix inserts a trailer the flip gate then rejects | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0434](bugs/BUG-0434-test-type-safety-net-is-not-armed.md) | The exhaustive WindowType record cannot fail the build because tsconfig excludes test files | P2 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0441](bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md) | A legacy alert whose target was crossed while the app was closed never fires | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -631,7 +639,7 @@ Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 | [FEAT-0364](features/FEAT-0364-technicals-panel-pivots-derived-cache.md) | Cache pivots transformation in TechnicalsPanel with derived rune instead of template execution | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0366](features/FEAT-0366-ambient-topline-scoped-reactivity.md) | Scope AmbientTopline reactivity to active symbols instead of reading whole marketState.data | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0367](features/FEAT-0367-wasm-technicals-worker-offload.md) | Offload WASM technicals calculations and boundary string serialization to Web Worker | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0368](features/FEAT-0368-alert-engine-evaluation-batching.md) | Batch or debounce synchronous AlertEngine evaluation on high-frequency price updates | P2 | ⛔ dropped | none | community, pro, private | none | none | — |
 | [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | none | community, pro, private | C | none | — |
@@ -724,4 +732,4 @@ Counts by status: 💡 idea 28 · 📋 specced 24 · 🟢 ready 2 · 🟡 in-pro
 
 ---
 
-Next free number: **0446**
+Next free number: **0449**

@@ -38,7 +38,7 @@
     <select
         {id}
         bind:value
-        class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] w-full outline-none focus:ring-1 focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] transition-shadow"
+        class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)] border border-[var(--input-border-color)] w-full outline-none focus:ring-1 focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] transition-shadow"
     >
         {#each options as opt}
             <option value={typeof opt === "string" ? opt : opt.value}>{typeof opt === "string" ? opt.toUpperCase() : opt.label}</option>

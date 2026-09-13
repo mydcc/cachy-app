@@ -555,7 +555,7 @@
                                                 max={MAX_INTERVAL_MINUTES}
                                                 value={info.intervalMinutes}
                                                 onchange={(e) => handleIntervalChange(slot as FileTargetSlot, e)}
-                                                class="w-14 px-1.5 py-0.5 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-[10px]"
+                                                class="w-14 px-1.5 py-0.5 rounded border border-[var(--input-border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] text-[10px]"
                                             />
                                             {$_("settings.system.fileTargetIntervalMinutes")}
                                         </label>

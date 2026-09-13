@@ -487,7 +487,7 @@
           {/if}
         </div>
         <textarea
-          class="w-full p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] text-xs focus:outline-none focus:border-[var(--accent-color)] min-h-[90px] resize-y"
+          class="w-full p-3 rounded-lg bg-[var(--bg-secondary)] border border-[var(--input-border-color)] text-xs focus:outline-none focus:border-[var(--accent-color)] min-h-[90px] resize-y"
           placeholder={$_("journal.placeholder.notes")}
           bind:value={localNotes}
           onfocus={() => (isEditingNotes = true)}
