@@ -426,7 +426,10 @@ export function calculateIndicatorsFromArrays(
           if (shouldCalculate('atr')) {
               const len = settings?.atr?.length || 14;
               const res = JSIndicators.atr(highsNum, lowsNum, closesNum, len);
-              volatility.atr = res[res.length - 1];
+              const last = res[res.length - 1];
+              // Absent rather than NaN until a full period of true ranges exists
+              // (BUG-0456): the first candle has none, so that is `len + 1` candles.
+              if (Number.isFinite(last)) volatility.atr = last;
           }
 
           if (shouldCalculate('bollingerBands')) {

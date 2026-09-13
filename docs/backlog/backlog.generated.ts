@@ -6364,6 +6364,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0450-wma-sliding-sum-drift.md"
   },
   {
+    "id": "BUG-0456",
+    "title": "The JavaScript ATR counts a true range of zero for the first candle",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0456-js-atr-first-true-range",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0456-js-atr-first-true-range-zero.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
