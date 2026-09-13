@@ -512,6 +512,19 @@ export function computeIndicatorSeries(
       });
     }
 
+    case "obv": {
+      const refused = singleLine("obv", output);
+      if (refused) return refused;
+      // A running total from the first candle handed in, so its level moves
+      // with the rolling buffer's start. That is safe here only because the
+      // core refuses OBV against anything but a window over itself
+      // (`CumulativeNeedsOwnWindow`), where the shift cancels.
+      return {
+        supported: true,
+        values: wire(JSIndicators.obv(close, column(candles, "volume"))),
+      };
+    }
+
     case "volume_ma": {
       const period = whole(params.period);
       if (period === undefined) {

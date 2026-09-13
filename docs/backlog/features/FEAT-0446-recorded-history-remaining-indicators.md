@@ -2,7 +2,7 @@
 id: FEAT-0446
 title: Prove the remaining panel indicators against recorded history
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -53,14 +53,12 @@ The other sixteen are thresholds or crosses in the shape already covered.
 
 ## Acceptance criteria
 
-- [ ] Every id in `REGISTRY_CATALOGUE` has at least one recorded-history expectation —
-      22 of 23; the other 1 cannot fire today, see "Found: 14 indicators are not on the
-      alert path" and "Decided: hide now, wire in groups" (since BUG-0451 the panel's
-      `INDICATOR_CATALOGUE` is only the computable subset, so this criterion names the
-      registry mirror on purpose)
-- [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
-      path genuinely cannot compute — 1 today, stating the real reason — and the
-      test that rejects a stale entry keeps it that way
+- [x] Every id in `REGISTRY_CATALOGUE` has at least one recorded-history expectation —
+      23 of 23 since group 4 (since BUG-0451 the panel's `INDICATOR_CATALOGUE` was only
+      the computable subset, which is now all of them)
+- [x] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
+      path genuinely cannot compute — none today — and the test that rejects a stale
+      entry keeps it that way
 - [x] OBV's condition shape is decided and documented before it is wired in (see "Found:
       OBV depends on the loaded window" and "Decided: group 4")
 - [x] Parabolic SAR's condition shape is decided and documented before it is asserted
@@ -294,7 +292,7 @@ Put to the product owner with measurements on the recorded fixture, and decided:
   the candle's own high, whichever is further; on the fixture the two differ on 142 of 940
   values. The contract is this app's chart.
 
-**OBV: the core refuses it against anything but its own window (enforced; not wired yet).**
+**OBV (wired): the core refuses it against anything but its own window.**
 - `RefusalCode::CumulativeNeedsOwnWindow`: a compare or cross reading OBV is accepted only
   when the other side is a window over the same OBV (`obv >= window(max, N, obv)` for a
   new N-candle high). A number, another volume line, the candle's volume, OBV against
@@ -305,7 +303,7 @@ Put to the product owner with measurements on the recorded fixture, and decided:
 - Stored OBV rules armed before BUG-0451 are unaffected by the refusal alone: the alert
   path still computes no OBV, so they are reported unevaluable before the core is asked.
   Once OBV is computed they reach the core and are refused, and
-  `BUG-0467` (PR #3269) makes that a
+  `BUG-0468` (PR #3269) makes that a
   report instead of a log line on every close. Wiring OBV in depends on it.
 - **The builder gained the shape (decided 2026-09-13: for every indicator, not OBV
   alone).** The Indicators and Combo tabs offer "its own high or low" over N candles
@@ -327,9 +325,17 @@ Put to the product owner with measurements on the recorded fixture, and decided:
 - Parabolic SAR wired, with its new `direction` output. Recorded-history expectations: the
   SAR flipping short (39 flips) and the close crossing below the SAR (38). The one flip only
   `direction` catches is candle 967, pinned in both
-- `SCOPED_OUT` is down to OBV
-- The core refuses OBV against anything but a window over itself; the builder support that
-  makes that shape reachable from the panel is still open (above)
+- The core refuses OBV against anything but a window over itself, and the Indicators and
+  Combo tabs build "its own high or low" for every indicator
+- OBV wired in and back in the panel, where it is offered only its own window and its card
+  seeds "OBV at its 20-candle high". Recorded-history expectation: OBV at its 20-candle
+  high (56 flips). Its level shifts with the buffer's start (pinned) and its place in its
+  own window does not (pinned)
+- The indicators builder now claims a condition exactly when it can read it
+  (`indicatorFormOf`), which closes the indicators half of BUG-0444 and leaves a saved OBV
+  rule against a number untouched rather than rewritten
+- `SCOPED_OUT` is empty and the panel offers all 23 registry indicators; every acceptance
+  criterion is met
 
 ## Progress (2026-09-13, group 3)
 

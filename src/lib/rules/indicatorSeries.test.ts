@@ -316,6 +316,65 @@ describe("computeIndicatorSeries", () => {
     expect(trimmed.values.slice(10)).toEqual(full.values.slice(25 + 10));
   });
 
+  /**
+   * FEAT-0446 group 4. WASM has no OBV (`NOT_IN_WASM`), so it is checked here
+   * against its definition: from zero, add the candle's volume on a higher
+   * close, subtract it on a lower one.
+   */
+  it("computes OBV as a running total of signed volume, to within 1e-6 on recorded history", () => {
+    const shown = computeIndicatorSeries(
+      { indicator: { id: "obv", params: {} }, timeframe: "1h" },
+      RECORDED_CANDLES,
+    );
+    expect(shown.supported).toBe(true);
+    if (!shown.supported) return;
+
+    let total = new Decimal(0);
+    const wrong: string[] = [];
+    for (let i = 0; i < RECORDED_CANDLES.length; i++) {
+      if (i > 0) {
+        const change = new Decimal(RECORDED_CANDLES[i].close).comparedTo(RECORDED_CANDLES[i - 1].close);
+        total = total.plus(new Decimal(RECORDED_CANDLES[i].volume ?? "0").times(change));
+      }
+      const value = shown.values[i];
+      if ((value === null || new Decimal(value).minus(total).abs().gt("1e-6")) && wrong.length < 3) {
+        wrong.push(`candle ${i}: ${value} vs ${total.toFixed(6)}`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  /**
+   * Why the core accepts OBV only against its own window: a later buffer start
+   * moves the whole line by a constant, and the constant cancels between OBV
+   * and an extreme of its own recent values.
+   */
+  it("shifts OBV with a later start, but not its place in its own window", () => {
+    const TRIM = 100;
+    const WINDOW = 20;
+    const read = (from: number) => {
+      const result = computeIndicatorSeries(
+        { indicator: { id: "obv", params: {} }, timeframe: "1h" },
+        RECORDED_CANDLES.slice(from, 600),
+      );
+      if (!result.supported) throw new Error(result.reason);
+      return result.values.map((v) => new Decimal(v!));
+    };
+    const full = read(0);
+    const trimmed = read(TRIM);
+
+    const shift = full[TRIM].minus(trimmed[0]);
+    expect(shift.isZero()).toBe(false);
+    const atHigh = (line: Decimal[], i: number) => line[i].gte(Decimal.max(...line.slice(i - WINDOW + 1, i + 1)));
+    let changed = 0;
+    for (let i = 0; i < trimmed.length; i++) {
+      // Constant up to the f64 rounding of two running sums.
+      expect(full[TRIM + i].minus(trimmed[i]).minus(shift).abs().lte("1e-6"), `candle ${i}`).toBe(true);
+      if (i >= WINDOW - 1 && atHigh(full, TRIM + i) !== atHigh(trimmed, i)) changed++;
+    }
+    expect(changed).toBe(0);
+  });
+
   it("refuses an indicator it cannot compute instead of returning nulls", () => {
     const result = computeIndicatorSeries(
       {

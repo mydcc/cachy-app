@@ -439,6 +439,7 @@ const ICHIMOKU_SPAN_B = indicator("ichimoku", ICHIMOKU_PARAMS, "span_b");
 const SAR_PARAMS = { start: 0.02, increment: 0.02, max: 0.2 };
 const SAR = indicator("parabolic_sar", SAR_PARAMS, "value");
 const SAR_DIRECTION = indicator("parabolic_sar", SAR_PARAMS, "direction");
+const OBV = indicator("obv", {});
 
 interface Expectation {
   name: string;
@@ -801,6 +802,21 @@ const EXPECTATIONS: Expectation[] = [
     ],
   },
   {
+    // The one shape the core accepts for OBV. Its level depends on where the
+    // buffer starts; its position against its own window does not.
+    name: "OBV breaking out — OBV at its 20-candle high",
+    condition: compare(OBV, "gte", windowOf("max", 20, OBV)),
+    flips: [
+      33, 34, 36, 37, 38, 39, 47, 48, 53, 55, 80, 82, 84, 87, 125, 128, 152, 154,
+      155, 157, 158, 160, 176, 178, 222, 223, 245, 247, 272, 274, 319, 321, 344, 348, 361, 362,
+      370, 371, 372, 374, 384, 386, 390, 391, 393, 395, 414, 419, 423, 425, 427, 429, 435, 438,
+      439, 440, 442, 444, 451, 453, 455, 460, 534, 536, 537, 538, 549, 550, 598, 599, 600, 601,
+      603, 605, 609, 613, 660, 663, 664, 667, 673, 674, 679, 681, 683, 684, 720, 721, 728, 730,
+      768, 770, 773, 779, 781, 783, 784, 785, 827, 829, 845, 846, 847, 848, 858, 859, 914, 916,
+      967, 969, 993, 994
+    ],
+  },
+  {
     name: "awesome oscillator crossing above zero",
     condition: cross(AO, "above", constant("0")),
     flips: [
@@ -942,13 +958,12 @@ describe("indicator conditions against recorded market history", () => {
    * inert starts firing — and its expectation belongs in the same change. The
    * test below enforces that ordering rather than trusting it.
    *
-   * Parabolic SAR, Ichimoku and OBV carry an extra note: each needs a
-   * condition-shape decision before its expectation can be written (FEAT-0446).
+   * Empty since FEAT-0446 group 4 wired in the last three (Ichimoku, Parabolic
+   * SAR, OBV). It stays, with its two tests, so an indicator added to the core
+   * without an alert-path implementation has to be named here with its reason:
+   * "no JavaScript implementation on the alert path; an alert on it cannot fire".
    */
-  const NOT_ON_ALERT_PATH = "no JavaScript implementation on the alert path; an alert on it cannot fire";
-  const SCOPED_OUT: Record<string, string> = {
-    obv: `${NOT_ON_ALERT_PATH}; accumulates from the first candle it is given, so its level depends on how much history the rolling buffer holds`,
-  };
+  const SCOPED_OUT: Record<string, string> = {};
 
   it("accounts for every indicator the core accepts", () => {
     const registry = JSON.parse(core.rule_indicator_registry()) as

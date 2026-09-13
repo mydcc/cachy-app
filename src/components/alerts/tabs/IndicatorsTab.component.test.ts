@@ -370,10 +370,17 @@ describe("FEAT-0028: IndicatorsTab", () => {
     // saved while it still was. The tab cannot hydrate it, and "cannot hydrate"
     // must not be written back as "nothing here": mounting would delete an
     // alert the trader still has.
-    it("keeps a saved condition on an indicator the panel no longer offers", () => {
+    it.each([
+      // Outside the registry: every registry indicator is offered since
+      // FEAT-0446 group 4.
+      ["an indicator the panel does not offer", { id: "vwap", params: {} }],
+      // Offered, but not against a number: the core refuses it, the builder
+      // cannot offer it, and mounting must not rewrite it.
+      ["OBV against a number, which the builder cannot offer", { id: "obv", params: {} }],
+    ])("keeps a saved condition on %s", (_what, indicator) => {
       const saved: Condition = {
         kind: "compare",
-        left: { kind: "indicator", indicator: { id: "obv", params: {} } },
+        left: { kind: "indicator", indicator },
         op: "gt",
         right: { kind: "constant", value: "1000" },
         timeframe: alertPanelState.draft.trigger_timeframe,

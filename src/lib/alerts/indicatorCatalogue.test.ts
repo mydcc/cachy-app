@@ -296,9 +296,8 @@ describe("what the alert panel offers", () => {
         // Pinned by name, so wiring one into the alert path is a visible change
         // here, alongside the recorded-history expectation FEAT-0446 requires
         // for it in the same change.
-        expect(hidden).toEqual(
-            ["obv"].sort(),
-        );
+        // Empty since FEAT-0446 group 4: every registry indicator computes.
+        expect(hidden).toEqual([]);
         for (const id of hidden) {
             expect(catalogueEntry(id), id).toBeNull();
         }

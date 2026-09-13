@@ -352,7 +352,7 @@ export class RuleEvaluationLoop {
         // A refusal is the core saying this document is not a rule it accepts,
         // and it will say so on every close: the same document, the same core.
         // That is an alert that can never fire, not a transient failure, so the
-        // trader is told once instead of the log hearing it forever (BUG-0467).
+        // trader is told once instead of the log hearing it forever (BUG-0468).
         if (isRuleRefusedError(e)) {
           this.reportUnevaluable(rule, `the rule core refuses this rule: ${e.message}`);
         } else {

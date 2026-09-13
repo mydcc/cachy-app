@@ -125,15 +125,47 @@ describe("slotOf", () => {
     // `readIndicatorForm` cannot hydrate one. Claiming it would make the tab
     // hydrate blank and its mount-time write delete an alert that was saved
     // while the indicator was still offered.
+    // `vwap` is outside the registry altogether; since FEAT-0446 group 4 every
+    // registry indicator is offered.
     const hidden: Condition = {
       kind: "compare",
-      left: { kind: "indicator", indicator: { id: "obv", params: {} } },
+      left: { kind: "indicator", indicator: { id: "vwap", params: {} } },
       op: "gt",
       right: { kind: "constant", value: "1000" },
       timeframe: "1h",
     };
     expect(slotOf(hidden)).toBeNull();
     expect(conditionInSlot(group(hidden), "indicators")).toBeNull();
+  });
+
+  it("leaves unclaimed what the builder offers but cannot hydrate", () => {
+    const rsi = { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } } as const;
+    const obv = { kind: "indicator", indicator: { id: "obv", params: {} } } as const;
+    const cannotHydrate = [
+      // A window over another operand: the builder's windows are over the subject.
+      {
+        kind: "compare",
+        left: rsi,
+        op: "gte",
+        right: { kind: "window", of: { kind: "price", field: "close" }, agg: "max", lookback: 20 },
+        timeframe: "1h",
+      },
+      // OBV against a number, saved before the core refused it (FEAT-0446
+      // group 4): the builder cannot offer it, so claiming it would rewrite it.
+      { kind: "compare", left: obv, op: "gt", right: { kind: "constant", value: "1000" }, timeframe: "1h" },
+    ] as unknown as Condition[];
+    for (const condition of cannotHydrate) {
+      expect(slotOf(condition), JSON.stringify(condition)).toBeNull();
+    }
+
+    const obvAtItsHigh = {
+      kind: "compare",
+      left: obv,
+      op: "gte",
+      right: { kind: "window", of: obv, agg: "max", lookback: 20 },
+      timeframe: "1h",
+    } as unknown as Condition;
+    expect(slotOf(obvAtItsHigh)).toBe("indicators");
   });
 
   it("still claims an indicator the panel offers", () => {
@@ -145,14 +177,15 @@ describe("slotOf", () => {
 });
 
 describe("slotOf — known gap (BUG-0444)", () => {
-  // slotOf() checks operand *kinds*, not the operator constraints each reader
-  // imposes on top of them. These three shapes are claimed today even though
-  // no reader can round-trip them, which reproduces the BUG-0443 failure one
-  // step further out: the claiming builder hydrates blank and its mount-time
-  // write then deletes the member. BUG-0444 tracks tightening slotOf() to
-  // match reader constraints; when it lands, these three assertions flip from
-  // the claimed slot to null.
-  it("claims an indicator condition with a window RHS indicatorConditionForm rejects", () => {
+  // slotOf() checked operand *kinds*, not the constraints each reader imposes
+  // on top of them, so shapes no reader can round-trip were claimed: the
+  // claiming builder hydrated blank and its mount-time write deleted the member
+  // (BUG-0443 one step further out).
+  //
+  // The indicators half is closed (FEAT-0446 group 4): slotOf asks the reader's
+  // own parser, `indicatorFormOf`, so the first two shapes are unclaimed now.
+  // The price half is still open and still pinned as the gap it is.
+  it("leaves unclaimed an indicator condition with a window RHS over another operand", () => {
     expect(
       slotOf({
         kind: "compare",
@@ -161,10 +194,10 @@ describe("slotOf — known gap (BUG-0444)", () => {
         right: { kind: "window", of: { kind: "price", field: "high" }, agg: "max", lookback: 20 },
         timeframe: "1h",
       }),
-    ).toBe("indicators");
+    ).toBeNull();
   });
 
-  it("claims an indicator condition with a mark-source price RHS referenceFor rejects", () => {
+  it("leaves unclaimed an indicator condition with a mark-source price RHS", () => {
     expect(
       slotOf({
         kind: "compare",
@@ -173,7 +206,7 @@ describe("slotOf — known gap (BUG-0444)", () => {
         right: { kind: "price", field: "close", source: "mark" },
         timeframe: "1h",
       }),
-    ).toBe("indicators");
+    ).toBeNull();
   });
 
   it("claims a percent_change comparison with an operator readPriceForm cannot render", () => {
