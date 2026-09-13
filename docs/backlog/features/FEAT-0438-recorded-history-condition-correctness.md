@@ -2,7 +2,7 @@
 id: FEAT-0438
 title: Prove every indicator condition against recorded history
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -12,6 +12,8 @@ adr: ADR-0012
 depends_on: [FEAT-0028]
 size: M
 estimate: 5
+assignee: claude-code
+start_date: 2026-09-13
 ---
 
 # FEAT-0438 — Prove every indicator condition against recorded history
@@ -55,18 +57,21 @@ not merely that it flipped somewhere.
 
 ## Acceptance criteria
 
-- [ ] A 1000-candle OHLCV fixture is committed under `src/services/__fixtures__`, with
+- [x] A 1000-candle OHLCV fixture is committed under `src/services/__fixtures__`, with
       its symbol, timeframe, and capture date recorded in the file
-- [ ] Every condition shipped by FEAT-0028 (MACD cross and histogram sign change, DEA
+- [x] Every condition shipped by FEAT-0028 (MACD cross and histogram sign change, DEA
       zero crossing, RSI thresholds, Bollinger touch and squeeze, volume anomalies, MA
       crosses) has a test asserting the exact candle index at which it flips
-- [ ] Each indicator is asserted only after `needs × 3` candles of history, using the
-      `MAPPING.needs` table rather than a per-test constant
-- [ ] Every condition has at least one true and one false candle in the fixture — a
+- [x] Each indicator is asserted only after `needs × 3` candles of history, using the
+      shared `INDICATOR_WARMUP` table rather than a per-test constant
+- [x] Every condition has at least one true and one false candle in the fixture — a
       condition that is never true in the fixture fails the suite rather than passing
       vacuously
-- [ ] A condition added to FEAT-0028 without a fixture expectation fails the suite
-- [ ] The fixture is public market data only (Class C): no symbol watchlist, account,
+- [x] An indicator added to the core without either a fixture expectation or a
+      `SCOPED_OUT` entry fails the suite. A new *condition* on an already-covered
+      indicator is not enumerable from the core registry, so it is not caught here —
+      that stays a FEAT-0028 review responsibility
+- [x] The fixture is public market data only (Class C): no symbol watchlist, account,
       or identity data of any kind
 
 ## Out of scope
@@ -77,11 +82,76 @@ not merely that it flipped somewhere.
 - Corrected-candle double-firing — already covered by
   `correctedCandle.integration.test.ts`.
 
-## Open questions
+## Decided: BTCUSDT on `1h`
 
-- Which symbol and timeframe. A single liquid pair on `1h` (1000 candles ≈ 42 days) gives
-  every indicator its warmup and keeps the fixture one file. A second fixture on a thin
-  pair would test volume anomalies harder, at the cost of a second thing to maintain.
+One file, 1000 candles, 2026-08-02 to 2026-09-12. The series trends 62.5k to 81.7k with
+a pullback, and carries a volume range of 91 to 17909 against a median of 851 — a 200×
+spike, which is a shape the generated walk does not produce and which is exactly what a
+volume-anomaly condition needs to meet. The thin-pair second fixture is not taken: one
+series that every indicator can warm up on is worth more than two that must be kept in
+step.
+
+## Progress (2026-09-13)
+
+### The trap this had to avoid
+
+The obvious reading of "assert the exact candle index" is a snapshot: run the evaluator,
+copy the indices, assert them. That proves the evaluator still does what it did — and if
+it fires one candle late, firing one candle late becomes the specification.
+
+So the literals in `EXPECTATIONS` are pinned against an **oracle** that re-derives the
+*condition* — the `compare`/`cross` decisions and the windowed min/max — as plain
+`Decimal` arithmetic in the test file, independently of the Rust evaluator. Three things
+must coincide: the oracle's flips equal the literals, the evaluator's flips equal the
+literals, and the two agree at *every* candle rather than only at the flips. A fixture
+swap breaks the first; an evaluator regression breaks the second and third.
+
+What the oracle does **not** re-derive is the indicator series underneath: it reads the
+normative `computeIndicatorSeries`, the same function that decides production firing
+("one normative path", `indicatorSeries.ts`). A second RSI/MACD implementation here would
+itself need verifying and would test a path the application never takes; that layer is
+covered by `crossPathParity.test.ts` (JS ↔ WASM) and the indicator unit tests. This suite
+proves the condition semantics, not the indicator math.
+
+### One table, not two
+
+`MAPPING.needs` moved out of `crossPathParity.test.ts` into
+`src/services/alertEngine/indicatorWarmup.ts`, and both suites import it. What stayed
+behind is the part only the parity test knows — which group and key a value arrives under
+in the WASM result — and an entry added to the shared table without a location fails that
+file by name.
+
+Adding SMA(50) and SMA(200) for a real golden cross then broke a parity test, correctly:
+`TechnicalsCalculator.initialize` decides once from the history it is handed, so an
+SMA(200) seeded with 120 candles stays silent for the whole run rather than starting
+late. That test asserted `divergence.size === MAPPING.length` at a hardcoded 120 candles,
+which SMA(200) cannot satisfy on a 400-candle fixture at any seeding point: it needs
+`startIndex >= 200`, which leaves at most 200 samples, and the test demands more than
+200. The expectation now comes from the table (`needs <= START`) instead of the row
+count; SMA(200)'s parity coverage is the 250-candle sweep.
+
+### What the fixture is worth
+
+Twelve conditions, 40 tests, roughly 70 seconds. The agreement and non-vacuity
+assertions passed on the first run — the evaluator and the oracle agree at every candle
+of recorded history for all twelve — so what this change adds is proof rather than a
+repair.
+
+### The gap this turned up, and did not close
+
+`rule_indicator_registry()` accepts 23 indicators and `indicatorCatalogue.ts` offers all
+of them. This suite covers five. The other eighteen — ADX, Stochastic, Ichimoku,
+Parabolic SAR and the rest — are reachable from the Indicators tab today, and nothing
+says they fire on the right candle.
+
+Closing that is not this item's scope; its criteria enumerate the FEAT-0028 conditions.
+What is in scope is refusing to let the gap be invisible: they are named one by one in
+`SCOPED_OUT`, with a reason each, and the coverage test asserts
+`registry ⊆ covered ∪ SCOPED_OUT`. An indicator added to the core lands in neither set
+and fails the suite, which is what criterion 5 actually asks for. A second test rejects a
+`SCOPED_OUT` entry for something that *is* covered, because a list of gaps that outlives
+the gap reads as missing coverage that is not missing.
+[`FEAT-0446`](FEAT-0446-recorded-history-remaining-indicators.md) owns emptying it.
 
 ## Links
 

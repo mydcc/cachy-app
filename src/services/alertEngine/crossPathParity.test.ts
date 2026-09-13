@@ -57,6 +57,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { CANDLE_SERIES } from "../../lib/rules/__fixtures__/candleSeries";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import type { IndicatorRef } from "../../lib/rules/types";
+import { INDICATOR_WARMUP } from "./indicatorWarmup";
 
 const WASM_JS = pathToFileURL(resolve(process.cwd(), "static/wasm/technicals_wasm.js")).href;
 const WASM_BINARY = resolve(process.cwd(), "static/wasm/technicals_wasm_bg.wasm");
@@ -84,31 +85,42 @@ const WASM_BINARY = resolve(process.cwd(), "static/wasm/technicals_wasm_bg.wasm"
 const TOLERANCE = 1e-9;
 
 /**
- * Where each indicator lands in the WASM result, and how much history it needs.
+ * Where each indicator lands in the WASM result.
  *
- * `needs` is not decoration. `TechnicalsCalculator.initialize` decides once,
- * from the history it is handed, whether an indicator is initialised at all —
- * an EMA(50) seeded with 40 candles stays silent rather than starting late. So
- * a sweep from 40 candles legitimately cannot compare it, and the test says so
- * by name instead of quietly comparing nine things and claiming ten.
+ * How much history each one needs is not here: it is in `indicatorWarmup.ts`,
+ * shared with the recorded-history suite FEAT-0438 adds. Two tables of warmup
+ * numbers that must agree and are maintained apart do not stay agreeing.
+ *
+ * What stays here is the part only this test knows — the group and key a value
+ * arrives under in the WASM result. An indicator added to the shared table
+ * without a location fails this file by name rather than being skipped.
  */
-const MAPPING: Array<{ label: string; group: string; key: string; needs: number; ref: IndicatorRef }> = [
-  { label: "SMA(20)", group: "movingAverages", key: "SMA20", needs: 20, ref: { id: "sma", params: { period: 20 } } },
-  { label: "EMA(50)", group: "movingAverages", key: "EMA50", needs: 50, ref: { id: "ema", params: { period: 50 } } },
-  { label: "VolumeMA(20)", group: "movingAverages", key: "VolMa20", needs: 20, ref: { id: "volume_ma", params: { period: 20 } } },
-  { label: "RSI(14)", group: "oscillators", key: "RSI14", needs: 15, ref: { id: "rsi", params: { period: 14 } } },
-  { needs: 34, label: "MACD line", group: "oscillators", key: "12-26-9.macd", ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "macd" } },
-  { needs: 34, label: "MACD signal", group: "oscillators", key: "12-26-9.signal", ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "signal" } },
-  { needs: 34, label: "MACD histogram", group: "oscillators", key: "12-26-9.histogram", ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "histogram" } },
-  { needs: 20, label: "Bollinger upper", group: "volatility", key: "BB20_upper", ref: { id: "bollinger", params: { period: 20, std_dev: 2 }, output: "upper" } },
-  { needs: 20, label: "Bollinger lower", group: "volatility", key: "BB20_lower", ref: { id: "bollinger", params: { period: 20, std_dev: 2 }, output: "lower" } },
-  { needs: 20, label: "Bollinger basis", group: "volatility", key: "BB20_basis", ref: { id: "bollinger", params: { period: 20, std_dev: 2 }, output: "middle" } },
-];
+const WASM_LOCATION: Record<string, { group: string; key: string }> = {
+  "SMA(20)": { group: "movingAverages", key: "SMA20" },
+  "SMA(50)": { group: "movingAverages", key: "SMA50" },
+  "SMA(200)": { group: "movingAverages", key: "SMA200" },
+  "EMA(50)": { group: "movingAverages", key: "EMA50" },
+  "VolumeMA(20)": { group: "movingAverages", key: "VolMa20" },
+  "RSI(14)": { group: "oscillators", key: "RSI14" },
+  "MACD line": { group: "oscillators", key: "12-26-9.macd" },
+  "MACD signal": { group: "oscillators", key: "12-26-9.signal" },
+  "MACD histogram": { group: "oscillators", key: "12-26-9.histogram" },
+  "Bollinger upper": { group: "volatility", key: "BB20_upper" },
+  "Bollinger lower": { group: "volatility", key: "BB20_lower" },
+  "Bollinger basis": { group: "volatility", key: "BB20_basis" },
+};
+
+const MAPPING: Array<{ label: string; group: string; key: string; needs: number; ref: IndicatorRef }> =
+  INDICATOR_WARMUP.map((w) => {
+    const at = WASM_LOCATION[w.label];
+    if (!at) throw new Error(`crossPathParity: no WASM location for "${w.label}"`);
+    return { label: w.label, needs: w.needs, ref: w.ref, group: at.group, key: at.key };
+  });
 
 /** The settings payload `wasmCalculator.ts` builds, reduced to what is compared. */
 const WASM_SETTINGS = JSON.stringify({
   ema: [{ length: 50 }],
-  sma: [{ length: 20 }],
+  sma: [{ length: 20 }, { length: 50 }, { length: 200 }],
   wma: [], vwma: [], hma: [], supertrend: [], psar: [],
   rsi: [{ length: 14 }],
   macd: [{ fast: 12, slow: 26, signal: 9 }],
@@ -222,9 +234,18 @@ describe("WASM and JS compute the same indicators", () => {
     });
   }
 
-  it("compares every indicator on a real number of candles, not a handful", () => {
-    const divergence = worstDivergence(120);
-    expect(divergence.size).toBe(MAPPING.length);
+  it("compares every indicator it can seed on a real number of candles, not a handful", () => {
+    // 120 is the seeding history, and `initialize` decides once: an indicator
+    // needing more than that stays silent for the whole run rather than
+    // starting late. So the expectation comes from the warmup table, not from
+    // `MAPPING.length` — SMA(200) on a 400-candle fixture cannot satisfy both
+    // "seeded with at least 200 candles" and "compared on more than 200 of
+    // them" at the same time. It is covered by the 250-candle sweep above.
+    const START = 120;
+    const divergence = worstDivergence(START);
+    const comparable = MAPPING.filter((m) => m.needs <= START).map((m) => m.label);
+
+    expect([...divergence.keys()].sort()).toEqual(comparable.sort());
 
     for (const [label, { samples }] of divergence) {
       expect(samples, label).toBeGreaterThan(200);
