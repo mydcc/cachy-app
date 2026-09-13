@@ -52,10 +52,14 @@ compute.
   settings card's button and its seed cannot disagree. The card mapping itself stays
   complete and is still validated against the registry for every card, so it is correct
   on the day an indicator is wired in.
+- `slotOf()` in `conditionSlots.ts` claims an indicator condition only while its id
+  resolves through the catalogue. A draft saved on a now-hidden id is unclaimed —
+  "unknown means keep" — so the Indicators tab's mount-time write cannot delete it.
 
-Existing alerts on those indicators are not touched: they stay in the store and are
-still reported as unevaluable. Wiring the fourteen into the alert path is tracked in
-FEAT-0446 and adds each one back to the panel in the same change.
+Existing alerts on those indicators are not touched: they stay in the store, are still
+reported as unevaluable, and a draft that holds one survives a tab switch. Wiring the
+fourteen into the alert path is tracked in FEAT-0446 and adds each one back to the panel
+in the same change.
 
 ## Acceptance criteria
 
@@ -65,11 +69,14 @@ FEAT-0446 and adds each one back to the panel in the same change.
       lookups
 - [x] A settings card shows the create-alert action exactly when a seed exists
 - [x] The card mapping is still validated against the registry for every card
+- [x] A draft holding one of the hidden indicators survives a tab switch instead of
+      being claimed and cleared by the indicators builder
 
 ## Links
 
 - `src/lib/rules/alertPathIndicators.ts`
 - `src/lib/alerts/indicatorCatalogue.ts` — `REGISTRY_CATALOGUE`, `INDICATOR_CATALOGUE`
 - `src/lib/alerts/indicatorSettingsSeed.ts` — `isAlertableIndicator`
+- `src/lib/alerts/conditionSlots.ts` — `slotOf`, the claim that now follows the catalogue
 - [`FEAT-0446`](../features/FEAT-0446-recorded-history-remaining-indicators.md) — found here; wiring the fourteen
 - [`BUG-0449`](BUG-0449-hma-alert-throws-and-silences-series.md) — stacked on it: the "each one computes" check needs HMA fixed

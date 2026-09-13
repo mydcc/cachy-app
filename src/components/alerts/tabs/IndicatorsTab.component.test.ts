@@ -255,5 +255,28 @@ describe("FEAT-0028: IndicatorsTab", () => {
       expect(selectByLabel(el, "dashboard.alerts.indicators.relationLabel").value).toBe("cross");
       expect(selectByLabel(el, "dashboard.alerts.indicators.outputLabel").value).toBe("macd");
     });
+
+    // BUG-0451 — the draft can hold an indicator the panel no longer offers,
+    // saved while it still was. The tab cannot hydrate it, and "cannot hydrate"
+    // must not be written back as "nothing here": mounting would delete an
+    // alert the trader still has.
+    it("keeps a saved condition on an indicator the panel no longer offers", () => {
+      const saved: Condition = {
+        kind: "compare",
+        left: { kind: "indicator", indicator: { id: "obv", params: {} } },
+        op: "gt",
+        right: { kind: "constant", value: "1000" },
+        timeframe: alertPanelState.draft.trigger_timeframe,
+      };
+      alertPanelState.setSingleCondition(saved);
+
+      render();
+
+      expect(alertPanelState.draft.conditions).toEqual({
+        kind: "group",
+        op: "all",
+        of: [saved],
+      });
+    });
   });
 });
