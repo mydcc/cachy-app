@@ -46,7 +46,7 @@
 import { Decimal } from "decimal.js";
 
 import { calculateADXSeries, JSIndicators } from "../../utils/indicators";
-import { ALERT_PATH_INDICATORS } from "./alertPathIndicators";
+import { ALERT_PATH_INDICATORS, ICHIMOKU_DISPLACEMENT } from "./alertPathIndicators";
 import type { IndicatorRequest } from "./indicatorRequests";
 import { DEFAULT_OUTPUT } from "./indicatorRequests";
 import type { DecimalString, EvaluationCandle } from "./types";
@@ -444,6 +444,38 @@ export function computeIndicatorSeries(
         value: () => lines.value,
         upper: () => lines.upper,
         lower: () => lines.lower,
+      });
+    }
+
+    case "ichimoku": {
+      const conversionPeriod = whole(params.conversion_period);
+      const basePeriod = whole(params.base_period);
+      const spanBPeriod = whole(params.span_b_period);
+      if (conversionPeriod === undefined || basePeriod === undefined || spanBPeriod === undefined) {
+        return {
+          supported: false,
+          reason: "ichimoku needs whole conversion_period, base_period and span_b_period",
+        };
+      }
+      // The cloud as the chart draws it at a candle: both spans displaced
+      // forward by `ICHIMOKU_DISPLACEMENT`. The core has no displacement
+      // parameter, so a card set to another one refuses to arm
+      // (`cardAlertAvailability`, "displacement-mismatch"). The lagging span is
+      // the close of a later candle and is not a core output.
+      const lines = JSIndicators.ichimoku(
+        column(candles, "high"),
+        column(candles, "low"),
+        close,
+        conversionPeriod,
+        basePeriod,
+        spanBPeriod,
+        ICHIMOKU_DISPLACEMENT,
+      );
+      return lineNamed("ichimoku", output, {
+        conversion: () => lines.conversion,
+        base: () => lines.base,
+        span_a: () => lines.spanA,
+        span_b: () => lines.spanB,
       });
     }
 

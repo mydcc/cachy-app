@@ -54,18 +54,19 @@ The other sixteen are thresholds or crosses in the shape already covered.
 ## Acceptance criteria
 
 - [ ] Every id in `REGISTRY_CATALOGUE` has at least one recorded-history expectation —
-      20 of 23; the other 3 cannot fire today, see "Found: 14 indicators are not on the
+      21 of 23; the other 2 cannot fire today, see "Found: 14 indicators are not on the
       alert path" and "Decided: hide now, wire in groups" (since BUG-0451 the panel's
       `INDICATOR_CATALOGUE` is only the computable subset, so this criterion names the
       registry mirror on purpose)
 - [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
-      path genuinely cannot compute — 3 today, each stating the real reason — and the
+      path genuinely cannot compute — 2 today, each stating the real reason — and the
       test that rejects a stale entry keeps it that way
 - [ ] OBV's condition shape is decided and documented before it is wired in (see "Found:
       OBV depends on the loaded window")
 - [ ] Parabolic SAR's condition shape is decided and documented before it is asserted
-- [ ] Ichimoku's displacement handling is asserted against the chart's own values, not
-      only against the evaluator
+- [x] Ichimoku's displacement handling is asserted against the chart's own values, not
+      only against the evaluator (`indicatorLayer.test.ts`, "the Ichimoku lines an alert
+      reads are the lines drawn")
 - [x] Each indicator is asserted only after `needs × 3` candles, with its entry added to
       `INDICATOR_WARMUP` — which also requires a `WASM_LOCATION` entry in
       `crossPathParity.test.ts`, so parity coverage grows with it (done for every
@@ -93,6 +94,14 @@ Prime spacing keeps a sample from lining up with a period and hiding behind it.
 
 Measured on the same machine: the suite alone went from 92.7 s to 64.8 s; the alert,
 rules and indicator suites together from 143 s with a timeout to 69.6 s green.
+
+**Group 4: only the last 128 candles cross into the core.** The context still carried
+every candle before the evaluated one, as JSON, on every evaluation. With 30 conditions
+the suite took 169 s on its own and two walks timed out under parallel load. Handing the
+core the last 128 candles took it to 53 s. That is only the same thing if no verdict
+reads further back, so it is asserted: at every 41st candle and the last one, each
+expectation's verdict from the tail must equal its verdict from the whole history. With
+a tail of 30 it fails on the 60-candle squeeze.
 
 ## Found: 14 indicators are not on the alert path
 
@@ -133,7 +142,7 @@ list in `indicatorCatalogue.test.ts`. Three guards already fail if any of those 
 | 1 — single line from close | `momentum` | no high/low column yet on the alert path; smallest step. **Wired (2026-09-13).** OBV was planned here and moved to group 4 |
 | 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once. **Wired (2026-09-13).** CCI over the typical price, see "Decided: group 2" |
 | 3 — several output lines | `stochastic`, `stoch_rsi`, `adx`, `super_trend` | output-line mapping, like MACD and Bollinger. **Wired (2026-09-13).** See "Decided: group 3" |
-| 4 — shape decisions first | `parabolic_sar`, `ichimoku`, `obv` | SAR flips side; Ichimoku displaces forward; OBV's level depends on the loaded window — each needs its condition shape decided and written down before it is asserted |
+| 4 — shape decisions first | `parabolic_sar`, `ichimoku`, `obv` | SAR flips side; Ichimoku displaces forward; OBV's level depends on the loaded window — each needs its condition shape decided and written down before it is asserted. **Decided (2026-09-13)**, see "Decided: group 4"; one PR each. **Ichimoku wired** |
 
 The suite enforces the ordering either way: "scopes out only indicators the alert path
 genuinely cannot compute" fails the moment one of the fourteen becomes computable, so
@@ -249,6 +258,33 @@ card has 14 and 14 and arms.
 - SuperTrend below 1e-9 after about 250, and below 1e-3 after about 120 (its trend
   resynchronises at the first band cross).
 - All are well inside the 2000-candle default buffer. Accepted, as for RSI and EMA.
+
+## Decided: group 4 (2026-09-13)
+
+Put to the product owner with measurements on the recorded fixture, and decided:
+
+| Indicator | Decision | Measured |
+|---|---|---|
+| Parabolic SAR | A new `direction` output (+1 / −1) in the core, so the flip is an exact condition. `value` stays, so "close crosses SAR" stays possible | 79 flips; "close crosses SAR" catches 77 and never fires without one. It misses a flip reversed within one candle (967 / 968) |
+| Ichimoku | Read the cloud where the chart draws it, displaced by 26. A card displaced by another number refuses to arm. No core change | TradingView displaces by 25; the close's side of the cloud differs on 19 of 922 candles between the two |
+| OBV | Only against itself: an OBV condition may compare only with a window of its own OBV. The core refuses OBV against a number | 100 candles less history shifts the whole line by 9330, 500 by 80,014. Against its own window: 0 differences |
+
+**Ichimoku (wired).**
+- `span_a` and `span_b` are the displaced spans at the evaluated candle, as the chart draws them. `ICHIMOKU_DISPLACEMENT` in `alertPathIndicators.ts` is read by the series and by the settings seed.
+- `cardAlertAvailability` answers `displacement-mismatch` for a card displaced by anything but 26; a missing displacement is drawn at 26 and agrees. The button names the displacement to set (`settings.technicals.alertIchimokuDisplacementMismatch`).
+- The lagging span is the close of a later candle and is not a core output.
+- The lines were 0 before their windows were full; that is fixed first in [`BUG-0463`](../bugs/BUG-0463-ichimoku-lines-zero-before-window.md).
+- Every line is a window midpoint, so it does not depend on where the buffer starts; pinned exactly.
+
+**A cross on an exact tie keeps the core's convention.** Ichimoku's conversion and base lines tie on 44 candles of the fixture, which exposed that both condition oracles defined a cross as TradingView does, not as the core does. The core stays and the oracles follow it: [`BUG-0464`](../bugs/BUG-0464-test-oracles-cross-convention.md).
+
+**The warmup table is keyed by output line.** `warmupFor` matched id and parameters only, so a condition on span B (78 candles) took the conversion line's 9 and would have been asserted from candle 27. It now matches the output too; the Bollinger bandwidth, read by the squeeze expectation, got its own entry, and `indicatorWarmup.test.ts` pins that no entry promises a value before the series has one.
+
+## Progress (2026-09-13, group 4)
+
+- Ichimoku wired into the alert path and back in the panel. Recorded-history expectations: the TK cross, conversion crossing above base (25 flips), and the close crossing below span B (12)
+- `BUG-0462` (PR #3259) found probing the Parabolic SAR: the panel read the start factor as the increment, up to 3263 from the chart's line
+- `SCOPED_OUT` is down to OBV and the Parabolic SAR
 
 ## Progress (2026-09-13, group 3)
 

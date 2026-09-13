@@ -305,18 +305,33 @@ function fullSeries(request: IndicatorRequest): (DecimalString | null)[] {
  * causally" below asserts that rather than assuming it. Recomputing per candle
  * made the suite quadratic: sixteen conditions ran past the per-test timeout
  * under CI parallelism (FEAT-0446, "Decided: runtime").
+ *
+ * And only the last `CONTEXT_TAIL` candles of it. Every candle up to `index`
+ * crossed into the core as JSON on every evaluation, which was quadratic too:
+ * with 30 conditions the suite took 169 s on its own and timed out under
+ * parallel load. The core reads a condition relative to the last close, so the
+ * tail carries everything a verdict can depend on — which "reaches the same
+ * verdict from the last candles as from the whole history" below asserts.
  */
-function contextAt(rule: RuleDocument, index: number): EvaluationContext {
-  const candles = RECORDED_CANDLES.slice(0, index + 1);
+function contextAt(rule: RuleDocument, index: number, tail = CONTEXT_TAIL): EvaluationContext {
+  const start = Math.max(0, index + 1 - tail);
+  const candles = RECORDED_CANDLES.slice(start, index + 1);
   const indicators: EvaluationIndicatorSeries[] = collectIndicators(rule).map((request) => ({
     indicator: request.indicator,
     timeframe: request.timeframe,
-    values: fullSeries(request).slice(0, index + 1),
+    values: fullSeries(request).slice(start, index + 1),
   }));
   return indicators.length > 0
     ? { candles: { [TF]: candles }, indicators }
     : { candles: { [TF]: candles } };
 }
+
+/**
+ * How many closed candles the walk hands the core. Twice the longest lookback
+ * an expectation reads (the squeeze's 60-candle window), plus room for the
+ * previous close a cross compares against.
+ */
+const CONTEXT_TAIL = 128;
 
 /** Indices where a boolean series changes value, ignoring leading `null`s. */
 function flipsOf(at: (i: number) => boolean | null, from: number): number[] {
@@ -417,6 +432,10 @@ const ADX14 = indicator("adx", { period: 14 }, "adx");
 const PLUS_DI14 = indicator("adx", { period: 14 }, "plus_di");
 const MINUS_DI14 = indicator("adx", { period: 14 }, "minus_di");
 const SUPER_TREND = indicator("super_trend", { period: 10, factor: 3 }, "value");
+const ICHIMOKU_PARAMS = { conversion_period: 9, base_period: 26, span_b_period: 52 };
+const ICHIMOKU_CONVERSION = indicator("ichimoku", ICHIMOKU_PARAMS, "conversion");
+const ICHIMOKU_BASE = indicator("ichimoku", ICHIMOKU_PARAMS, "base");
+const ICHIMOKU_SPAN_B = indicator("ichimoku", ICHIMOKU_PARAMS, "span_b");
 
 interface Expectation {
   name: string;
@@ -730,6 +749,28 @@ const EXPECTATIONS: Expectation[] = [
     ],
   },
   {
+    name: "Ichimoku TK cross — conversion line crossing above the base line",
+    // The two lines are midpoints of windows that often share their extremes,
+    // so they tie on 44 candles: this is the condition that pins the core's
+    // convention on a tie against recorded history (BUG-0464). Candle 228 is a
+    // touch from below that falls back.
+    condition: cross(ICHIMOKU_CONVERSION, "above", ICHIMOKU_BASE),
+    flips: [
+      113, 114, 126, 127, 176, 177, 196, 197, 228, 229, 245, 246, 274, 275, 286, 287, 313, 314,
+      325, 326, 347, 348, 357, 358, 415, 416, 486, 487, 512, 513, 582, 583, 595, 596, 660, 661,
+      705, 706, 759, 760, 825, 826, 858, 859, 906, 907, 967, 968, 998, 999
+    ],
+  },
+  {
+    // Reads span B where the chart draws it: 26 candles after its window.
+    name: "price falling through the cloud's span B — close crossing below span B",
+    condition: cross(closePrice, "below", ICHIMOKU_SPAN_B),
+    flips: [
+      580, 581, 582, 583, 595, 596, 634, 635, 684, 685, 702, 703, 723, 724, 772, 773, 848, 849,
+      916, 917, 920, 921, 970, 971
+    ],
+  },
+  {
     name: "awesome oscillator crossing above zero",
     condition: cross(AO, "above", constant("0")),
     flips: [
@@ -796,6 +837,30 @@ describe("indicator conditions against recorded market history", () => {
     expect(leaks).toEqual([]);
   });
 
+  it("reaches the same verdict from the last candles as from the whole history", () => {
+    // What makes `CONTEXT_TAIL` safe, asserted rather than assumed: at every
+    // 41st candle and the last one, every expectation's verdict from the tail
+    // equals its verdict from every candle before it.
+    const samples = RECORDED_CANDLES.map((_, i) => i).filter(
+      (i) => i % 41 === 0 || i === RECORDED_CANDLES.length - 1,
+    );
+    const differing: string[] = [];
+    let compared = 0;
+    for (const e of EXPECTATIONS) {
+      const rule = ruleWith(e.condition);
+      for (const i of samples) {
+        const fromTail = ruleSchema.evaluate(rule, contextAt(rule, i));
+        const fromAll = ruleSchema.evaluate(rule, contextAt(rule, i, Infinity));
+        if (JSON.stringify(fromTail) !== JSON.stringify(fromAll)) {
+          differing.push(`${e.name} at ${i}: ${JSON.stringify(fromTail)} vs ${JSON.stringify(fromAll)}`);
+        }
+        if (i >= CONTEXT_TAIL) compared++;
+      }
+    }
+    expect(differing).toEqual([]);
+    expect(compared).toBeGreaterThan(EXPECTATIONS.length * 10);
+  });
+
   for (const expectation of EXPECTATIONS) {
     describe(expectation.name, () => {
       // Derived from the condition itself rather than hand-listed beside it: a
@@ -854,7 +919,6 @@ describe("indicator conditions against recorded market history", () => {
   const SCOPED_OUT: Record<string, string> = {
     obv: `${NOT_ON_ALERT_PATH}; accumulates from the first candle it is given, so its level depends on how much history the rolling buffer holds`,
     parabolic_sar: `${NOT_ON_ALERT_PATH}; flips side rather than crossing a level, so the condition shape needs deciding first`,
-    ichimoku: `${NOT_ON_ALERT_PATH}; five lines and a forward displacement, which must match the chart`,
   };
 
   it("accounts for every indicator the core accepts", () => {
