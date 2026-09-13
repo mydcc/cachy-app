@@ -52,6 +52,7 @@ import {
     indicatorsInGroup,
     type CatalogueEntry,
 } from "./indicatorCatalogue";
+import { MAX_WINDOW_LOOKBACK, MIN_WINDOW_LOOKBACK } from "./indicatorConditionForm";
 import { ALERT_PATH_INDICATORS } from "../rules/alertPathIndicators";
 import { computeIndicatorSeries } from "../rules/indicatorSeries";
 
@@ -200,6 +201,37 @@ describe("indicator catalogue against the core registry", () => {
      * the core refuses it against anything but a window over itself. Checked
      * against the artefact, since that is what arms a trader's rule.
      */
+    it("refuses a window span outside exactly the bounds the builder offers", () => {
+        // Only the span's own refusal is asserted. A long window over an
+        // indicator can also exceed the rule's total warmup, which the core
+        // refuses separately and the panel shows as that refusal.
+        const rsi = { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } };
+        const valid = (lookback: number): boolean => {
+            try {
+                core.rule_validate(
+                    JSON.stringify({
+                        ...template,
+                        name: "window span",
+                        conditions: {
+                            kind: "compare",
+                            left: rsi,
+                            op: "gte",
+                            right: { kind: "window", of: rsi, agg: "max", lookback },
+                            timeframe: "1h",
+                        },
+                    }),
+                );
+                return true;
+            } catch (e) {
+                return !JSON.stringify(e).includes("invalid_window_lookback");
+            }
+        };
+        expect(valid(MIN_WINDOW_LOOKBACK)).toBe(true);
+        expect(valid(MAX_WINDOW_LOOKBACK)).toBe(true);
+        expect(valid(MIN_WINDOW_LOOKBACK - 1)).toBe(false);
+        expect(valid(MAX_WINDOW_LOOKBACK + 1)).toBe(false);
+    });
+
     it("refuses a cumulative indicator against a number, and accepts it at its own window extreme", () => {
         expect(cumulativeIds()).toEqual(["obv"]);
         const obv = { kind: "indicator", indicator: { id: "obv", params: {} } };

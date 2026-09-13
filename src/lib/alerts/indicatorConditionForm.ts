@@ -36,8 +36,10 @@ import type {
     Operand,
     PriceField,
     TimeframeString,
+    WindowAgg,
 } from "../rules/types";
 import {
+    INDICATOR_CATALOGUE,
     catalogueEntry,
     defaultRef,
     dimensionOf,
@@ -54,15 +56,101 @@ export type Relation =
 /**
  * What the indicator is measured against.
  *
- * Three kinds and not the full `Operand` union: a window aggregate is
- * ADR-0016's composition and belongs to the squeeze and divergence work, and
- * `percent_change` is the Price tab's. A tab that offers every operand offers
- * mostly nonsense.
+ * Four kinds and not the full `Operand` union: `percent_change` is the Price
+ * tab's, and a tab that offers every operand offers mostly nonsense.
+ *
+ * `window` is always a window over the subject itself — "RSI at its 20-candle
+ * high" (ADR-0016). A window over some other operand is a composition this tab
+ * does not build and does not read back. For a cumulative indicator it is the
+ * only reference the core accepts (FEAT-0446 group 4).
  */
 export type Reference =
     | { kind: "constant"; value: DecimalString }
     | { kind: "price"; field: PriceField }
-    | { kind: "indicator"; indicator: IndicatorRef };
+    | { kind: "indicator"; indicator: IndicatorRef }
+    | { kind: "window"; agg: WindowAgg; lookback: number };
+
+/**
+ * The window spans the core accepts, `2..=500` closes (`InvalidWindowLookback`,
+ * `MAX_WINDOW_LOOKBACK` in `condition.rs`). Pinned against the artefact by
+ * `indicatorCatalogue.test.ts`, so the input's bounds cannot drift from the
+ * refusal behind them.
+ */
+export const MIN_WINDOW_LOOKBACK = 2;
+export const MAX_WINDOW_LOOKBACK = 500;
+
+/**
+ * The window a freshly chosen window reference starts from.
+ *
+ * A factory, not a shared constant: every form gets its own object, so an
+ * in-place edit to one draft can never reach another.
+ */
+export function defaultWindowReference(): Reference {
+    return { kind: "window", agg: "max", lookback: 20 };
+}
+
+/**
+ * The lookback typed so far, when it is already a span the core accepts, else
+ * `null`.
+ *
+ * For writing through on every keystroke. "1" on the way to "100", an emptied
+ * field and a fraction are all states a trader passes through, so they leave
+ * the draft on its last valid span instead of writing a refused one.
+ */
+export function exactWindowLookback(raw: string): number | null {
+    if (raw.trim() === "") return null;
+    const value = Number(raw);
+    if (!Number.isInteger(value)) return null;
+    if (value < MIN_WINDOW_LOOKBACK || value > MAX_WINDOW_LOOKBACK) return null;
+    return value;
+}
+
+/**
+ * The lookback a committed input settles on: truncated to a whole span and
+ * clamped into the range the core accepts, or `previous` when the field holds
+ * no number at all.
+ */
+export function committedWindowLookback(raw: string, previous: number): number {
+    const value = raw.trim() === "" ? Number.NaN : Math.trunc(Number(raw));
+    if (Number.isNaN(value)) return previous;
+    return Math.min(MAX_WINDOW_LOOKBACK, Math.max(MIN_WINDOW_LOOKBACK, value));
+}
+
+const ALL_COMPARE_OPS: readonly CompareOp[] = ["gt", "gte", "lt", "lte", "eq", "neq"];
+
+/**
+ * The comparisons worth offering against `reference`.
+ *
+ * Against a window only the two that can be both true and false: the window
+ * includes the candle being evaluated, so a value is never above its own
+ * highest or below its own lowest, and "equal" to either is "at" it
+ * (FEAT-0028, "A strict comparison against a window can never fire").
+ */
+export function compareOpsFor(reference: Reference): readonly CompareOp[] {
+    if (reference.kind !== "window") return ALL_COMPARE_OPS;
+    return reference.agg === "max" ? ["gte", "lt"] : ["lte", "gt"];
+}
+
+/**
+ * The reference kinds a subject may be measured against, in the order the tab
+ * lists them.
+ *
+ * A cumulative indicator gets only its own window: its level depends on how
+ * much history is loaded, and the core refuses anything else. Every other
+ * indicator keeps what it had — a number, a price where it is one, another
+ * indicator in its unit — and gains its window.
+ */
+export function referenceKindsFor(
+    entry: CatalogueEntry,
+    dimension: OperandDimension,
+): readonly Reference["kind"][] {
+    if (entry.cumulative) return ["window"];
+    const kinds: Reference["kind"][] = ["constant"];
+    if (dimension === "price") kinds.push("price");
+    if (compatibleIndicators(dimension, INDICATOR_CATALOGUE).length > 0) kinds.push("indicator");
+    kinds.push("window");
+    return kinds;
+}
 
 export interface IndicatorForm {
     readonly subject: IndicatorRef;
@@ -83,7 +171,8 @@ export function isReferenceCompatible(
     subject: OperandDimension,
     reference: Reference,
 ): boolean {
-    if (reference.kind === "constant") return true;
+    // A window over the subject is in the subject's own unit by construction.
+    if (reference.kind === "constant" || reference.kind === "window") return true;
     if (reference.kind === "price") return subject === "price";
     const entry = catalogueEntry(reference.indicator.id);
     if (!entry) return false;
@@ -102,6 +191,15 @@ export function compatibleIndicators(
 
 /** The form a freshly chosen indicator starts from: its defaults, above zero. */
 export function defaultForm(entry: CatalogueEntry): IndicatorForm {
+    // A cumulative indicator has no threshold to start from: the core takes
+    // it only against its own window, so it starts at its 20-candle high.
+    if (entry.cumulative) {
+        return {
+            subject: defaultRef(entry),
+            relation: { kind: "compare", op: "gte" },
+            reference: defaultWindowReference(),
+        };
+    }
     return {
         subject: defaultRef(entry),
         relation: { kind: "compare", op: "gt" },
@@ -112,7 +210,7 @@ export function defaultForm(entry: CatalogueEntry): IndicatorForm {
     };
 }
 
-function operandFor(reference: Reference): Operand {
+function operandFor(reference: Reference, subject: Operand): Operand {
     switch (reference.kind) {
         case "constant":
             return { kind: "constant", value: reference.value };
@@ -120,6 +218,8 @@ function operandFor(reference: Reference): Operand {
             return { kind: "price", field: reference.field };
         case "indicator":
             return { kind: "indicator", indicator: reference.indicator };
+        case "window":
+            return { kind: "window", of: subject, agg: reference.agg, lookback: reference.lookback };
     }
 }
 
@@ -129,13 +229,13 @@ export function buildIndicatorCondition(
     timeframe: TimeframeString,
 ): Condition {
     const left: Operand = { kind: "indicator", indicator: form.subject };
-    const right = operandFor(form.reference);
+    const right = operandFor(form.reference, left);
     return form.relation.kind === "compare"
         ? { kind: "compare", left, op: form.relation.op, right, timeframe }
         : { kind: "cross", left, direction: form.relation.direction, right, timeframe };
 }
 
-function referenceFor(operand: Operand): Reference | null {
+function referenceFor(operand: Operand, subject: IndicatorRef): Reference | null {
     switch (operand.kind) {
         case "constant":
             return { kind: "constant", value: operand.value };
@@ -146,11 +246,26 @@ function referenceFor(operand: Operand): Reference | null {
             return { kind: "price", field: operand.field };
         case "indicator":
             return { kind: "indicator", indicator: operand.indicator };
+        case "window":
+            // Only a window over the subject itself is this tab's; compared as
+            // documents, so a window over the same indicator with other
+            // parameters or another line is not mistaken for it.
+            if (operand.of.kind !== "indicator") return null;
+            if (JSON.stringify(canonicalRef(operand.of.indicator)) !== JSON.stringify(canonicalRef(subject))) {
+                return null;
+            }
+            return { kind: "window", agg: operand.agg, lookback: operand.lookback };
         default:
-            // A window, a volume or a percent change on the right is a document
-            // this tab did not write and cannot render without lying about it.
+            // A volume or a percent change on the right is a document this tab
+            // did not write and cannot render without lying about it.
             return null;
     }
+}
+
+/** A ref with sorted parameters and its output spelled, for comparison only. */
+function canonicalRef(ref: IndicatorRef): unknown {
+    const params = Object.entries(ref.params ?? {}).sort(([a], [b]) => a.localeCompare(b));
+    return [ref.id, params, ref.output ?? "value"];
 }
 
 /**
@@ -176,7 +291,7 @@ export function readIndicatorForm(
     // rewrites the rule on the first edit.
     if (!catalogueEntry(condition.left.indicator.id)) return null;
 
-    const reference = referenceFor(condition.right);
+    const reference = referenceFor(condition.right, condition.left.indicator);
     if (!reference) return null;
 
     return {

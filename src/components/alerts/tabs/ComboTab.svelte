@@ -37,9 +37,15 @@
         type CatalogueEntry,
     } from "../../../lib/alerts/indicatorCatalogue";
     import {
+        MAX_WINDOW_LOOKBACK,
+        MIN_WINDOW_LOOKBACK,
+        committedWindowLookback,
+        compareOpsFor,
         compatibleIndicators,
         defaultForm,
+        defaultWindowReference,
         isReferenceCompatible,
+        referenceKindsFor,
         type Reference,
         type Relation,
     } from "../../../lib/alerts/indicatorConditionForm";
@@ -57,12 +63,11 @@
         type ComboForm,
         type ComboRow,
     } from "../../../lib/alerts/comboConditionForm";
-    import type { CompareOp, CrossDirection, LogicOp, ParamValue, PriceField } from "../../../lib/rules/types";
+    import type { CompareOp, CrossDirection, LogicOp, ParamValue, PriceField, WindowAgg } from "../../../lib/rules/types";
     import type { TranslationKey } from "../../../locales/schema";
 
     let { symbol: _symbol }: { symbol: string } = $props();
 
-    const COMPARE_OPS: readonly CompareOp[] = ["gt", "gte", "lt", "lte", "eq", "neq"];
     const CROSS_DIRECTIONS: readonly CrossDirection[] = ["above", "below", "any"];
     const PRICE_FIELDS: readonly PriceField[] = ["open", "high", "low", "close", "hl2", "hlc3"];
 
@@ -138,12 +143,20 @@
     }
 
     function setReference(row: ComboRow, reference: Reference): void {
-        form = replaceRow(form, row.id, { form: { ...row.form, reference } });
+        // A comparison that cannot fire against the new reference moves to one
+        // that can: `>` against a window's highest is never true.
+        const ops = compareOpsFor(reference);
+        const relation =
+            row.form.relation.kind === "compare" && !ops.includes(row.form.relation.op)
+                ? ({ kind: "compare", op: ops[0] } as Relation)
+                : row.form.relation;
+        form = replaceRow(form, row.id, { form: { ...row.form, reference, relation } });
     }
 
     function chooseReferenceKind(row: ComboRow, kind: Reference["kind"]): void {
         if (kind === "constant") return setReference(row, { kind: "constant", value: "0" });
         if (kind === "price") return setReference(row, { kind: "price", field: "close" });
+        if (kind === "window") return setReference(row, defaultWindowReference());
         const dimension = dimensionFor(row);
         const first = compatibleIndicators(dimension, INDICATOR_CATALOGUE)[0];
         if (!first) return;
@@ -251,7 +264,7 @@
                             setRelation(
                                 row,
                                 e.currentTarget.value === "compare"
-                                    ? { kind: "compare", op: "gt" }
+                                    ? { kind: "compare", op: compareOpsFor(row.form.reference)[0] }
                                     : { kind: "cross", direction: "above" },
                             )}
                     >
@@ -271,7 +284,7 @@
                                     op: e.currentTarget.value as CompareOp,
                                 })}
                         >
-                            {#each COMPARE_OPS as op (op)}
+                            {#each compareOpsFor(row.form.reference) as op (op)}
                                 <option value={op}>
                                     {$_(key(`dashboard.alerts.combo.compareOp.${op}`))}
                                 </option>
@@ -305,13 +318,44 @@
                         onchange={(e) =>
                             chooseReferenceKind(row, e.currentTarget.value as Reference["kind"])}
                     >
-                        <option value="constant">{$_("dashboard.alerts.combo.reference.constant")}</option>
-                        <option value="price">{$_("dashboard.alerts.combo.reference.price")}</option>
-                        <option value="indicator">{$_("dashboard.alerts.combo.reference.indicator")}</option>
+                        {#if entry}
+                            {#each referenceKindsFor(entry, dimensionFor(row)) as kind (kind)}
+                                <option value={kind}>{$_(key(`dashboard.alerts.combo.reference.${kind}`))}</option>
+                            {/each}
+                        {/if}
                     </select>
                 </label>
 
-                {#if row.form.reference.kind === "constant"}
+                {#if row.form.reference.kind === "window"}
+                    {@const window = row.form.reference}
+                    <label class="field">
+                        <span class="visually-hidden">{$_("dashboard.alerts.indicators.windowAggLabel")}</span>
+                        <select
+                            value={window.agg}
+                            onchange={(e) => setReference(row, { ...window, agg: e.currentTarget.value as WindowAgg })}
+                        >
+                            <option value="max">{$_("dashboard.alerts.indicators.windowAgg.max")}</option>
+                            <option value="min">{$_("dashboard.alerts.indicators.windowAgg.min")}</option>
+                        </select>
+                    </label>
+                    <label class="field narrow">
+                        <span>{$_("dashboard.alerts.indicators.lookbackLabel")}</span>
+                        <input
+                            type="number"
+                            min={MIN_WINDOW_LOOKBACK}
+                            max={MAX_WINDOW_LOOKBACK}
+                            step="1"
+                            value={window.lookback}
+                            onchange={(e) => {
+                                const lookback = committedWindowLookback(e.currentTarget.value, window.lookback);
+                                // Written back to the field too: a clamp onto the span the
+                                // row already holds changes no state, so nothing re-renders.
+                                e.currentTarget.value = String(lookback);
+                                setReference(row, { ...window, lookback });
+                            }}
+                        />
+                    </label>
+                {:else if row.form.reference.kind === "constant"}
                     <label class="field narrow">
                         <span class="visually-hidden">{$_("dashboard.alerts.combo.reference.constant")}</span>
                         <input
