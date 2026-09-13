@@ -293,12 +293,17 @@ class UiManager {
   async toggleJournalModal(show: boolean) {
     if (show) {
       const { default: JournalContent } = await import("../components/shared/JournalContent.svelte");
+      // Never open larger than the viewport; the window is responsive and
+      // will maximize below the mobile breakpoint, but between that and the
+      // default 1200px a narrow laptop would otherwise clip the window.
+      const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
+      const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800;
       windowManager.toggle("journal", () => {
         const win = new ModalWindow(JournalContent, get(_)("journal.windowTitle"), {
           id: "journal",
           windowType: "journal",
-          width: 1200,
-          height: 800,
+          width: Math.min(1200, viewportWidth),
+          height: Math.min(800, viewportHeight),
           allowFontSize: false,
           allowMinimize: true,
           allowMaximize: true,

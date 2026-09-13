@@ -115,6 +115,15 @@ export abstract class WindowBase {
     showHeaderIndicators = $state(false);
     allowFeedDuck = $state(true);
     isResponsive = $state(false);
+    /** Opt-in: keep this floating window inside the viewport. */
+    clampToViewport = $state(false);
+    /**
+     * Intended floating size, captured before any viewport clamp. Lets a
+     * viewport shrink be undone when it grows back instead of leaving the
+     * window permanently smaller.
+     */
+    private _desiredWidth: number | null = null;
+    private _desiredHeight: number | null = null;
     /** Width threshold in pixels for automatic mobile maximization. */
     edgeToEdgeBreakpoint = 768;
     /**
@@ -303,6 +312,15 @@ export abstract class WindowBase {
 
         // Setup Responsive maximization for mobile
         this.updateResponsiveState();
+
+        // Re-clamp a restored/saved geometry to the current viewport, so an
+        // opted-in window never opens wider or taller than the screen.
+        if (this.clampToViewport) {
+            this.updateSize(this.width, this.height);
+            // The size may have shrunk; re-clamp the position so a freshly
+            // centered window is not left offset off-screen.
+            this.updatePosition(this.x, this.y);
+        }
     }
 
     /**
@@ -348,6 +366,11 @@ export abstract class WindowBase {
      */
     public handleViewportResize() {
         this.updateResponsiveState();
+        // Re-clamp an opted-in window to the viewport -- both on shrink and,
+        // via the desired size, back up on growth.
+        if (this.clampToViewport) {
+            this.applyViewportClamp();
+        }
         // No-ops while maximized (updatePosition's own early return), and
         // otherwise brings a window that's now partly or fully off-screen
         // back into view without requiring a manual drag.
@@ -453,6 +476,7 @@ export abstract class WindowBase {
         this.allowFeedDuck = f.allowFeedDuck ?? true;
         this.isResponsive = f.isResponsive ?? false;
         this.edgeToEdgeBreakpoint = f.edgeToEdgeBreakpoint ?? 768;
+        this.clampToViewport = f.clampToViewport ?? false;
 
         this.showIcon = f.showIcon ?? true;
         this.hasContextMenu = f.hasContextMenu ?? false;
@@ -548,6 +572,30 @@ export abstract class WindowBase {
             newHeight = Math.round((newWidth / this.aspectRatio) + HEADER_HEIGHT);
         }
 
+        // Keep the intended size, then clamp for display. Storing the
+        // unclamped value is what lets a viewport shrink be undone when it
+        // grows back.
+        this._desiredWidth = Math.round(newWidth);
+        this._desiredHeight = Math.round(newHeight);
+        this.applyViewportClamp();
+    }
+
+    /**
+     * Caps an opted-in window to the viewport, using the desired (unclamped)
+     * size so the window grows back when the viewport does. No-op for windows
+     * that did not opt in, and while maximized.
+     */
+    private applyViewportClamp() {
+        if (this.isMaximized) return;
+
+        let newWidth = this._desiredWidth ?? this.width;
+        let newHeight = this._desiredHeight ?? this.height;
+
+        if (this.clampToViewport && typeof window !== 'undefined') {
+            newWidth = Math.min(newWidth, window.innerWidth);
+            newHeight = Math.min(newHeight, window.innerHeight);
+        }
+
         this.width = Math.round(newWidth);
         this.height = Math.round(newHeight);
     }
@@ -604,6 +652,15 @@ export abstract class WindowBase {
             // double-click). Re-clamp through updatePosition so the restored
             // geometry keeps at least 38% of the window inside the viewport.
             this.updatePosition(this.x, this.y);
+
+            // Opted-in windows are capped to the viewport here too, so a
+            // window restored on a smaller screen does not come back larger
+            // than it. applyViewportClamp uses the desired size, so growing
+            // the viewport again still restores it.
+            if (this.clampToViewport) {
+                this.applyViewportClamp();
+                this.updatePosition(this.x, this.y);
+            }
 
             // The responsive rule maximized this window and the viewport is
             // still small -- this restore is deliberately undoing that, so

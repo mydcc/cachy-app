@@ -5889,6 +5889,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0446-recorded-history-remaining-indicators.md"
   },
   {
+    "id": "FEAT-0461",
+    "title": "Generalize the journal history sync to Bitget and further venues",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "L",
+    "file": "features/FEAT-0461-multi-broker-journal-sync.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
