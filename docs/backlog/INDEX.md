@@ -2,9 +2,9 @@
 
 # Backlog index
 
-341 items. How to read and add them: [README.md](README.md).
+342 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 282 · ⛔ dropped 1
+Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 283 · ⛔ dropped 1
 
 ---
 
@@ -304,6 +304,7 @@ Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0457](bugs/BUG-0457-chart-header-values-ignore-source.md) | Chart pane headers recompute sourced indicators over the close on every live tick | P2 | ✅ done | chart |
 | [BUG-0458](bugs/BUG-0458-js-supertrend-never-has-a-value.md) | The JavaScript SuperTrend never has a value | P2 | ✅ done | indicators |
 | [BUG-0459](bugs/BUG-0459-adx-seeds-off-wilder.md) | Both ADX engines seed Wilder's averages differently from the definition | P2 | ✅ done | indicators |
+| [BUG-0460](bugs/BUG-0460-chart-stochastic-lines-ignore-card.md) | The chart's Stochastic and Stoch RSI lines ignore their cards' smoothing | P2 | ✅ done | chart |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -597,6 +598,7 @@ Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0457](bugs/BUG-0457-chart-header-values-ignore-source.md) | Chart pane headers recompute sourced indicators over the close on every live tick | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0458](bugs/BUG-0458-js-supertrend-never-has-a-value.md) | The JavaScript SuperTrend never has a value | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0459](bugs/BUG-0459-adx-seeds-off-wilder.md) | Both ADX engines seed Wilder's averages differently from the definition | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0460](bugs/BUG-0460-chart-stochastic-lines-ignore-card.md) | The chart's Stochastic and Stoch RSI lines ignore their cards' smoothing | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -756,4 +758,4 @@ Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0460**
+Next free number: **0461**
