@@ -8,11 +8,19 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseStreamChunk } from "./streamAdapters";
+import { parseStreamChunk, appendToolCallFragment } from "./streamAdapters";
 
 const EMPTY = { text: "", toolCallFragment: null };
 
 describe("parseStreamChunk", () => {
+  it("returns a frozen empty delta that callers cannot corrupt", () => {
+    const first = parseStreamChunk("openai-chat", null);
+    expect(first).toEqual(EMPTY);
+    expect(Object.isFrozen(first)).toBe(true);
+    // A caller mutating its copy must not affect the next empty delta.
+    expect(parseStreamChunk("openai-chat", null)).toEqual(EMPTY);
+  });
+
   it("returns the empty delta for non-object payloads", () => {
     expect(parseStreamChunk("openai-chat", null)).toEqual(EMPTY);
     expect(parseStreamChunk("openai-chat", "ping")).toEqual(EMPTY);
@@ -38,6 +46,40 @@ describe("parseStreamChunk", () => {
       expect(
         parseStreamChunk("openai-chat", { choices: [{ delta: { role: "assistant" } }] }),
       ).toEqual(EMPTY);
+    });
+
+    it("joins text from content-part arrays", () => {
+      expect(
+        parseStreamChunk("openai-chat", {
+          choices: [
+            {
+              delta: {
+                content: [
+                  { type: "text", text: "he" },
+                  { type: "text", text: "llo" },
+                ],
+              },
+            },
+          ],
+        }),
+      ).toEqual({ text: "hello", toolCallFragment: null });
+    });
+
+    it("skips non-text parts in content-part arrays", () => {
+      expect(
+        parseStreamChunk("openai-chat", {
+          choices: [
+            {
+              delta: {
+                content: [
+                  { type: "image_url", image_url: "https://x/y.png" },
+                  { type: "text", text: "hi" },
+                ],
+              },
+            },
+          ],
+        }),
+      ).toEqual({ text: "hi", toolCallFragment: null });
     });
   });
 
@@ -117,6 +159,28 @@ describe("parseStreamChunk", () => {
           candidates: [{ content: { parts: [{ functionCall: { args: { other: 1 } } }] } }],
         }),
       ).toEqual(EMPTY);
+    });
+  });
+
+  describe("appendToolCallFragment", () => {
+    it("concatenates delta fragments for delta-based flavors", () => {
+      const buffer = appendToolCallFragment("openai-chat", "", '{"a"');
+      expect(appendToolCallFragment("openai-chat", buffer, ': 1}')).toBe('{"a": 1}');
+      expect(appendToolCallFragment("openai-responses", '{"x"', '{"x"')).toBe('{"x"{"x"');
+      expect(appendToolCallFragment("anthropic-messages", '{"y"', ': 2}')).toBe('{"y": 2}');
+    });
+
+    it("keeps the latest snapshot for google-generate so the buffer stays parseable", () => {
+      const first = JSON.stringify({ actions: [{ action: "setLeverage", value: 5 }] });
+      const second = JSON.stringify({ actions: [{ action: "setLeverage", value: 10 }] });
+      const buffer = appendToolCallFragment("google-generate", "", first);
+      const merged = appendToolCallFragment("google-generate", buffer, second);
+      expect(merged).toBe(second);
+      expect(() => JSON.parse(merged)).not.toThrow();
+    });
+
+    it("ignores null fragments", () => {
+      expect(appendToolCallFragment("openai-chat", '{"a"', null)).toBe('{"a"');
     });
   });
 });

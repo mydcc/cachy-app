@@ -14,7 +14,7 @@ import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
 import { flavorOf } from "./settings/aiProviders";
-import { parseStreamChunk } from "../lib/ai/streamAdapters";
+import { parseStreamChunk, appendToolCallFragment } from "../lib/ai/streamAdapters";
 import { activeUserProvider } from "./settings/aiProviders";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
@@ -393,6 +393,7 @@ class AiManager {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
+      const streamFlavor = flavorOf(provider) ?? "openai-chat";
 
 
       while (true) {
@@ -410,12 +411,17 @@ class AiManager {
             try {
               const data = JSON.parse(dataStr);
               const { text: delta, toolCallFragment: toolCallData } =
-                parseStreamChunk(flavorOf(provider) ?? "openai-chat", data);
+                parseStreamChunk(streamFlavor, data);
 
               if (toolCallData) {
-                  // Buffer tool call chunks
-                  if (!this._toolCallBuffer) this._toolCallBuffer = "";
-                  this._toolCallBuffer += toolCallData;
+                  // Buffer tool call chunks (delta flavors append, the
+                  // Google snapshot flavor keeps the latest — see
+                  // appendToolCallFragment).
+                  this._toolCallBuffer = appendToolCallFragment(
+                    streamFlavor,
+                    this._toolCallBuffer,
+                    toolCallData,
+                  );
               }
 
               if (delta) {

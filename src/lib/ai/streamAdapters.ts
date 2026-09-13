@@ -35,6 +35,28 @@ export interface StreamDelta {
 }
 
 const EMPTY: StreamDelta = { text: "", toolCallFragment: null };
+// Frozen so a caller that mutates the returned object cannot corrupt every
+// future empty delta (the same reference is returned for all empty chunks).
+Object.freeze(EMPTY);
+
+/**
+ * Merge a tool-call fragment into the running buffer.
+ *
+ * Delta-based flavors (`openai-chat`, `openai-responses`,
+ * `anthropic-messages`) stream argument JSON in pieces, so fragments
+ * concatenate. `google-generate` instead sends the complete `args` object per
+ * chunk — concatenating those snapshots would yield `{...}{...}`, which no
+ * JSON parser accepts — so the latest snapshot wins.
+ */
+export function appendToolCallFragment(
+  flavor: AiApiFlavor,
+  buffer: string,
+  fragment: string | null,
+): string {
+  if (!fragment) return buffer;
+  if (flavor === "google-generate") return fragment;
+  return buffer + fragment;
+}
 
 /**
  * Normalize one SSE payload for `flavor`. Unknown events and malformed shapes
@@ -66,7 +88,8 @@ export function parseStreamChunk(
 interface OpenAiChatChunk {
   choices?: Array<{
     delta?: {
-      content?: string | null;
+      // Newer models may send content-part arrays instead of a plain string.
+      content?: string | null | Array<{ type?: string; text?: string }>;
       tool_calls?: Array<{ function?: { arguments?: string } }>;
     };
   }>;
@@ -76,9 +99,23 @@ function parseOpenAiChat(data: OpenAiChatChunk): StreamDelta {
   const delta = data.choices?.[0]?.delta;
   if (!delta) return EMPTY;
   return {
-    text: delta.content ?? "",
+    text: normalizeChatContent(delta.content),
     toolCallFragment: delta.tool_calls?.[0]?.function?.arguments ?? null,
   };
+}
+
+/** Plain strings pass through; content-part arrays contribute their text parts. */
+function normalizeChatContent(
+  content: string | null | undefined | Array<{ type?: string; text?: string }>,
+): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((part) => part && (part.type === "text" || typeof part.text === "string"))
+      .map((part) => part.text ?? "")
+      .join("");
+  }
+  return "";
 }
 
 // --- OpenAI Responses -------------------------------------------------------
@@ -134,6 +171,8 @@ function parseGoogle(data: GoogleChunk): StreamDelta {
   const part = data.candidates?.[0]?.content?.parts?.[0];
   if (!part) return EMPTY;
 
+  // A complete `args` snapshot per chunk, not a delta: merge with
+  // appendToolCallFragment (last wins), never with `+=`.
   const args = part.functionCall?.args;
   const toolCallFragment = args?.actions ? JSON.stringify(args) : null;
 
