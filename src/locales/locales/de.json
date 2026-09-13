@@ -1520,7 +1520,7 @@
       "systemPromptPlaceholder": "Du bist ein professioneller Krypto-Trading-Assistent...",
       "customProviders": {
         "title": "Eigene Provider",
-        "desc": "Füge beliebige OpenAI-kompatible Endpunkte hinzu — OpenCode Zen, Command Code, LiteLLM oder ein selbst gehostetes Gateway. Zugangsdaten bleiben auf diesem Gerät verschlüsselt.",
+        "desc": "Füge beliebige OpenAI-kompatible Endpunkte hinzu — OpenCode Zen, Command Code, LiteLLM oder ein selbst gehostetes Gateway. Zugangsdaten werden auf diesem Gerät verschlüsselt und verlassen es nur, wenn du das Relay für diesen Provider aktivierst.",
         "add": "Provider hinzufügen",
         "empty": "Noch keine eigenen Provider.",
         "name": "Name",
@@ -1538,7 +1538,7 @@
         "active": "Aktiv",
         "delete": "Provider löschen",
         "relay": "Server-Relay erlauben",
-        "relayDesc": "Nur aktivieren, wenn der Provider Browser-Anfragen blockiert. Dein Schlüssel läuft dann über den Cachy-Server."
+        "relayDesc": "Vorerst erforderlich: Der Provider wird über den Cachy-Server erreicht, Schlüssel und Prompt laufen darüber. Browser-direkter Transport ist geplant. Ohne diese Option ist der Provider nicht nutzbar."
       },
       "provider": {
         "openai": "OpenAI",

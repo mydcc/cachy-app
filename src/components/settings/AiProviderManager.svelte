@@ -36,9 +36,10 @@
     buildUserProvider,
     type AiApiFlavor,
   } from "../../stores/settings/aiProviders";
+  import type { TranslationKey } from "../../locales/schema";
   import AiModelPicker from "./AiModelPicker.svelte";
 
-  const FLAVOR_LABEL_KEYS: Record<AiApiFlavor, string> = {
+  const FLAVOR_LABEL_KEYS: Record<AiApiFlavor, TranslationKey> = {
     "openai-chat": "settings.ai.customProviders.flavorOpenaiChat",
     "openai-responses": "settings.ai.customProviders.flavorOpenaiResponses",
     "anthropic-messages": "settings.ai.customProviders.flavorAnthropicMessages",
@@ -174,7 +175,7 @@
               />
             </div>
 
-            {#if provider.flavor === "openai-chat"}
+            {#if provider.flavor === "openai-chat" && provider.allowServerRelay}
               <AiModelPicker
                 provider="openai"
                 apiKey={provider.apiKey}

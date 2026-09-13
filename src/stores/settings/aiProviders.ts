@@ -312,6 +312,9 @@ export function sanitizeUserProviders(raw: unknown): ProviderConfig[] {
     const candidate = entry as Record<string, unknown>;
     const id = text(candidate.id).trim();
     if (!id || seen.has(id)) continue;
+    // A stored id that names a built-in would shadow it for
+    // `activeUserProvider`; drop it at the boundary.
+    if (isBuiltinProvider(id)) continue;
     seen.add(id);
 
     const flavor = AI_API_FLAVORS.includes(candidate.flavor as AiApiFlavor)

@@ -1492,7 +1492,7 @@
       "systemPromptPlaceholder": "You are a professional crypto trading assistant...",
       "customProviders": {
         "title": "Custom providers",
-        "desc": "Add any OpenAI-compatible endpoint — OpenCode Zen, Command Code, LiteLLM or a self-hosted gateway. Credentials stay encrypted on this device.",
+        "desc": "Add any OpenAI-compatible endpoint — OpenCode Zen, Command Code, LiteLLM or a self-hosted gateway. Credentials are encrypted on this device and only leave it when you enable the relay for this provider.",
         "add": "Add provider",
         "empty": "No custom providers yet.",
         "name": "Name",
@@ -1510,7 +1510,7 @@
         "active": "Active",
         "delete": "Delete provider",
         "relay": "Allow server relay",
-        "relayDesc": "Only enable if the provider rejects browser requests. Your key then passes through the Cachy server."
+        "relayDesc": "Required for now: the provider is reached through the Cachy server, so your key and prompt transit it. Browser-direct transport is planned. With this off, the provider cannot be used."
       },
       "provider": {
         "openai": "OpenAI",

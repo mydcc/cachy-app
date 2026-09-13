@@ -247,7 +247,7 @@ describe("user provider management", () => {
     expect(activeUserProvider(undefined, "custom")).toBeUndefined();
   });
 
-  it("sanitizes stored providers, dropping junk and duplicates", () => {
+  it("sanitizes stored providers, dropping junk, duplicates and built-in ids", () => {
     const out = sanitizeUserProviders([
       {
         id: "a",
@@ -259,6 +259,7 @@ describe("user provider management", () => {
         allowServerRelay: true,
       },
       { id: "a", label: "duplicate id" },
+      { id: "openai", label: "would shadow the built-in" },
       { label: "no id" },
       null,
       42,
