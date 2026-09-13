@@ -20,9 +20,12 @@ import { describe, expect, it } from "vitest";
 import { catalogueEntry, defaultRef, registryEntry } from "./indicatorCatalogue";
 import {
     buildIndicatorCondition,
+    committedWindowLookback,
     compareOpsFor,
     compatibleIndicators,
     defaultForm,
+    defaultWindowReference,
+    exactWindowLookback,
     isReferenceCompatible,
     readIndicatorForm,
     referenceKindsFor,
@@ -281,5 +284,39 @@ describe("an indicator against its own window", () => {
         expect(referenceKindsFor(ema, "price")).toEqual(["constant", "price", "indicator", "window"]);
         // And still starts from a threshold of zero, as before.
         expect(defaultForm(rsi).reference).toEqual({ kind: "constant", value: "0" });
+    });
+
+    it("hands every fresh form its own window reference, never a shared object", () => {
+        const first = defaultForm(obv).reference;
+        const second = defaultForm(obv).reference;
+        expect(first).toEqual(second);
+        expect(first).not.toBe(second);
+        expect(defaultWindowReference()).not.toBe(defaultWindowReference());
+    });
+});
+
+describe("reading a window lookback out of the input", () => {
+    it("writes through while typing only a whole span the core accepts", () => {
+        expect(exactWindowLookback("20")).toBe(20);
+        expect(exactWindowLookback("2")).toBe(2);
+        expect(exactWindowLookback("500")).toBe(500);
+        // Mid-typing states: "1" on the way to "100", an emptied field, a
+        // fraction, one past the bound. None may reach the draft.
+        for (const raw of ["", "1", "0", "501", "20.5", "-3", "abc"]) {
+            expect(exactWindowLookback(raw), raw).toBeNull();
+        }
+    });
+
+    it("settles a committed value on the nearest whole span the core accepts", () => {
+        expect(committedWindowLookback("501", 20)).toBe(500);
+        expect(committedWindowLookback("0", 20)).toBe(2);
+        expect(committedWindowLookback("-3", 20)).toBe(2);
+        expect(committedWindowLookback("20.9", 20)).toBe(20);
+        expect(committedWindowLookback("50", 20)).toBe(50);
+    });
+
+    it("keeps the previous span when the committed field is empty or not a number", () => {
+        expect(committedWindowLookback("", 30)).toBe(30);
+        expect(committedWindowLookback("abc", 30)).toBe(30);
     });
 });

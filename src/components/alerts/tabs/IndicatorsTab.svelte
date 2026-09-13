@@ -45,13 +45,15 @@
         type OperandDimension,
     } from "../../../lib/alerts/indicatorCatalogue";
     import {
-        DEFAULT_WINDOW_REFERENCE,
         MAX_WINDOW_LOOKBACK,
         MIN_WINDOW_LOOKBACK,
         buildIndicatorCondition,
+        committedWindowLookback,
         compareOpsFor,
         compatibleIndicators,
         defaultForm,
+        defaultWindowReference,
+        exactWindowLookback,
         isReferenceCompatible,
         readIndicatorForm,
         referenceKindsFor,
@@ -162,7 +164,7 @@
             return;
         }
         if (kind === "window") {
-            setReference(DEFAULT_WINDOW_REFERENCE);
+            setReference(defaultWindowReference());
             return;
         }
         const first = referenceIndicators[0];
@@ -325,7 +327,17 @@
                     step="1"
                     aria-label={$_("dashboard.alerts.indicators.lookbackLabel")}
                     value={String(window.lookback)}
-                    oninput={(e) => setReference({ ...window, lookback: Number(e.currentTarget.value) })}
+                    oninput={(e) => {
+                        const lookback = exactWindowLookback(e.currentTarget.value);
+                        if (lookback !== null) setReference({ ...window, lookback });
+                    }}
+                    onchange={(e) => {
+                        const lookback = committedWindowLookback(e.currentTarget.value, window.lookback);
+                        // Written back to the field too: a clamp onto the span the
+                        // draft already holds changes no state, so nothing re-renders.
+                        e.currentTarget.value = String(lookback);
+                        setReference({ ...window, lookback });
+                    }}
                 />
             {:else if reference.kind === "constant"}
                 <input

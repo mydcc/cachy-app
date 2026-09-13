@@ -79,8 +79,42 @@ export type Reference =
 export const MIN_WINDOW_LOOKBACK = 2;
 export const MAX_WINDOW_LOOKBACK = 500;
 
-/** The window a freshly chosen window reference starts from. */
-export const DEFAULT_WINDOW_REFERENCE: Reference = { kind: "window", agg: "max", lookback: 20 };
+/**
+ * The window a freshly chosen window reference starts from.
+ *
+ * A factory, not a shared constant: every form gets its own object, so an
+ * in-place edit to one draft can never reach another.
+ */
+export function defaultWindowReference(): Reference {
+    return { kind: "window", agg: "max", lookback: 20 };
+}
+
+/**
+ * The lookback typed so far, when it is already a span the core accepts, else
+ * `null`.
+ *
+ * For writing through on every keystroke. "1" on the way to "100", an emptied
+ * field and a fraction are all states a trader passes through, so they leave
+ * the draft on its last valid span instead of writing a refused one.
+ */
+export function exactWindowLookback(raw: string): number | null {
+    if (raw.trim() === "") return null;
+    const value = Number(raw);
+    if (!Number.isInteger(value)) return null;
+    if (value < MIN_WINDOW_LOOKBACK || value > MAX_WINDOW_LOOKBACK) return null;
+    return value;
+}
+
+/**
+ * The lookback a committed input settles on: truncated to a whole span and
+ * clamped into the range the core accepts, or `previous` when the field holds
+ * no number at all.
+ */
+export function committedWindowLookback(raw: string, previous: number): number {
+    const value = raw.trim() === "" ? Number.NaN : Math.trunc(Number(raw));
+    if (Number.isNaN(value)) return previous;
+    return Math.min(MAX_WINDOW_LOOKBACK, Math.max(MIN_WINDOW_LOOKBACK, value));
+}
 
 const ALL_COMPARE_OPS: readonly CompareOp[] = ["gt", "gte", "lt", "lte", "eq", "neq"];
 
@@ -163,7 +197,7 @@ export function defaultForm(entry: CatalogueEntry): IndicatorForm {
         return {
             subject: defaultRef(entry),
             relation: { kind: "compare", op: "gte" },
-            reference: DEFAULT_WINDOW_REFERENCE,
+            reference: defaultWindowReference(),
         };
     }
     return {
