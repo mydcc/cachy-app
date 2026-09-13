@@ -56,6 +56,14 @@ class CloudService {
   private messageSubscribers = new Set<(msgs: GlobalMessage[]) => void>();
   private statusSubscribers = new Set<(status: CloudStatus) => void>();
 
+  /**
+   * `tables` is a module-level query builder, so its `onInsert` registration
+   * outlives a single connection. Without this guard every reconnect attaches
+   * another handler and each message is appended (and notified) once per
+   * handler ever installed.
+   */
+  private insertListenerAttached = false;
+
   private notifyMessageSubscribers(msgs: GlobalMessage[]) {
     for (const cb of this.messageSubscribers) {
       try {
@@ -161,27 +169,39 @@ class CloudService {
       this.notifyStatusSubscribers(this.status());
     }
 
-    // Handle row updates with robustness
-    try {
-      // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables.
-      // Same reasoning as canDeleteMyMessages() below: the accessor name `tables` exposes depends
-      // on the generated bindings' state, which can predate a schema change, so this is a runtime
-      // feature check `any` can't be typed away without hiding that uncertainty.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
+    // Handle row updates with robustness. Attach once: `tables` is a
+    // module-level builder, so a reconnect must not install a second handler.
+    if (!this.insertListenerAttached) {
+      try {
+        // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables.
+        // Same reasoning as canDeleteMyMessages() below: the accessor name `tables` exposes depends
+        // on the generated bindings' state, which can predate a schema change, so this is a runtime
+        // feature check `any` can't be typed away without hiding that uncertainty.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
 
-      if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- callback shape depends on the untyped handle above
-        globalMessageTable.onInsert((ctx: any, row: any) => {
-          logger.debug('network', 'New Message Received:', row);
-          this.messages = [...this.messages, row];
-          this.notifyMessageSubscribers([...this.messages]);
-        });
-      } else {
-        logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
+        if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- callback shape depends on the untyped handle above
+          globalMessageTable.onInsert((ctx: any, row: any) => {
+            logger.debug('network', 'New Message Received:', row);
+            // A reconnect replays the table, so the same row can arrive again.
+            // The module table has no primary key; `sender:sentAt` is the same
+            // composite the chat store uses for its local key.
+            const key = `${row.sender}:${row.sentAt}`;
+            const alreadySeen = this.messages.some(
+              (existing) => `${existing.sender}:${existing.sentAt}` === key,
+            );
+            if (alreadySeen) return;
+            this.messages = [...this.messages, row];
+            this.notifyMessageSubscribers([...this.messages]);
+          });
+          this.insertListenerAttached = true;
+        } else {
+          logger.warn('network', 'SpacetimeDB: globalMessage table handle not found or not initialized yet.');
+        }
+      } catch (e) {
+        logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
       }
-    } catch (e) {
-      logger.error('network', 'Error setting up SpacetimeDB table listeners:', e);
     }
   }
 
