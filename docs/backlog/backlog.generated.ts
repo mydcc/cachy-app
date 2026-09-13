@@ -5889,6 +5889,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0446-recorded-history-remaining-indicators.md"
   },
   {
+    "id": "FEAT-0461",
+    "title": "Generalize the journal history sync to Bitget and further venues",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "L",
+    "file": "features/FEAT-0461-multi-broker-journal-sync.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
@@ -6487,6 +6505,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "branch": "fix/bug-0463-ichimoku-warmup-zeros",
     "start_date": "2026-09-13",
     "file": "bugs/BUG-0463-ichimoku-lines-zero-before-window.md"
+  },
+  {
+    "id": "BUG-0464",
+    "title": "The condition test oracles define a cross differently from the core",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0464-oracle-cross-ties",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0464-test-oracles-cross-convention.md"
   },
   {
     "id": "FEAT-0022",

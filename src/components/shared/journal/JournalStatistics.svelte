@@ -284,4 +284,13 @@
     .stat-value.neutral {
         color: var(--text-primary);
     }
+
+    /* The header (minimal) variant packs six figures into the window bar.
+       On mobile the window is edge-to-edge and the figures collide with the
+       window controls, so drop them -- the overview tab still shows them. */
+    @media (max-width: 768px) {
+        .stats-minimal {
+            display: none;
+        }
+    }
 </style>

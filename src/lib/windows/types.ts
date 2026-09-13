@@ -70,6 +70,13 @@ export interface WindowFlags {
     isResponsive?: boolean;
     /** Screen width at which the window should switch to full-screen/edge-to-edge. */
     edgeToEdgeBreakpoint?: number;
+    /**
+     * Keeps a floating window within the viewport: on open, on restore and on
+     * viewport resize its size is min-clamped to the screen. Opt-in, because
+     * applying it to every responsive window permanently shrinks them on a
+     * transient viewport change.
+     */
+    clampToViewport?: boolean;
 
     /** Whether to show the app icon in the header. */
     showIcon?: boolean;

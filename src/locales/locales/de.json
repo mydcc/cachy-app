@@ -759,7 +759,6 @@
     "viewScreenshot": "Screenshot ansehen",
     "closeLightbox": "Schließen",
     "closeJournalAriaLabel": "Journal schließen",
-    "searchSymbolPlaceholder": "Symbol suchen...",
     "filterAll": "Alle",
     "filterOpen": "Offen",
     "filterWon": "Gewonnen",
@@ -783,6 +782,7 @@
     "totalPL": "Gesamt P/L",
     "noData": "Keine Daten",
     "syncBitunix": "Bitunix Sync",
+    "syncRequiresPro": "Pro aktivieren, um den Verlauf zu synchronisieren",
     "exportCsvTitle": "Als CSV exportieren",
     "importCsvTitle": "Trades aus CSV-Datei importieren",
     "export": "Exportieren",
@@ -870,6 +870,9 @@
       "overview": "Übersicht & Charts",
       "table": "Trade Journal",
       "deepDive": "Deep-Dive Analyse",
+      "overviewShort": "Charts",
+      "tableShort": "Journal",
+      "deepDiveShort": "Deep Dive",
       "compact": "Kompakt",
       "standard": "Standard",
       "feesExecution": "Gebühren & Ausführung",
@@ -883,7 +886,9 @@
       "quickYtd": "YTD",
       "quickAll": "Alle",
       "reset": "Filter zurücksetzen",
-      "filterTags": "Nach Tag filtern..."
+      "filterTags": "Nach Tag filtern...",
+      "allSymbols": "Alle Symbole",
+      "searchNotesTags": "Notizen oder Tags suchen..."
     },
     "drawer": {
       "title": "Trade-Details",

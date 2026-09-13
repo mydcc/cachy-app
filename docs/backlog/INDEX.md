@@ -2,9 +2,9 @@
 
 # Backlog index
 
-343 items. How to read and add them: [README.md](README.md).
+345 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 284 · ⛔ dropped 1
+Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 285 · ⛔ dropped 1
 
 ---
 
@@ -344,6 +344,7 @@ Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | security |
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | ✅ done | trade-panel |
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | trade-panel |
+| [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | exchange |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -373,6 +374,7 @@ Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0450](bugs/BUG-0450-wma-sliding-sum-drift.md) | The JavaScript WMA drifts from the exact value in proportion to series length | P3 | ✅ done | indicators |
 | [BUG-0456](bugs/BUG-0456-js-atr-first-true-range-zero.md) | The JavaScript ATR counts a true range of zero for the first candle | P3 | ✅ done | indicators |
 | [BUG-0463](bugs/BUG-0463-ichimoku-lines-zero-before-window.md) | Ichimoku lines are zero until their windows are full | P3 | ✅ done | indicators |
+| [BUG-0464](bugs/BUG-0464-test-oracles-cross-convention.md) | The condition test oracles define a cross differently from the core | P3 | ✅ done | alerts |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -681,6 +683,7 @@ Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | 🟡 in-progress | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | 📋 specced | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | 🟡 in-progress | M4 | community, pro, private | C | ADR-0012 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) |
+| [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | none | pro, private | A | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -711,6 +714,7 @@ Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0450](bugs/BUG-0450-wma-sliding-sum-drift.md) | The JavaScript WMA drifts from the exact value in proportion to series length | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0456](bugs/BUG-0456-js-atr-first-true-range-zero.md) | The JavaScript ATR counts a true range of zero for the first candle | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0463](bugs/BUG-0463-ichimoku-lines-zero-before-window.md) | Ichimoku lines are zero until their windows are full | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0464](bugs/BUG-0464-test-oracles-cross-convention.md) | The condition test oracles define a cross differently from the core | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -760,4 +764,4 @@ Counts by status: 💡 idea 29 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0464**
+Next free number: **0465**
