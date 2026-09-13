@@ -24,6 +24,7 @@
     import { imgbbService } from "../../services/imgbbService";
     import { calculator } from "../../lib/calculator";
     import { _ } from "../../locales/i18n";
+    import type { TranslationKey } from "../../locales/schema";
     import { icons } from "../../lib/constants";
     import { browser } from "$app/environment";
     import { getComputedColor } from "../../utils/colors";
@@ -220,7 +221,7 @@
         action: true,
     });
 
-    type ColumnLabelKey = Parameters<typeof _>[0];
+    type ColumnLabelKey = TranslationKey;
     /** Localized name for each column key shown in the settings popover. */
     const columnLabels: Record<string, ColumnLabelKey> = {
         date: "journal.table.date",
