@@ -1680,12 +1680,15 @@ export const indicators = {
     close: (number | string | Decimal)[],
     period: number, smoothingPeriod: number = 14,
   ): Decimal | null {
-    if (close.length < period * 2) return null;
+    // The first ADX is at `period + smoothingPeriod - 1`; before that every
+    // line is NaN, so the last entry is too (BUG-0459).
+    if (close.length < period + smoothingPeriod) return null;
     const h = high.map(toNumFast);
     const l = low.map(toNumFast);
     const c = close.map(toNumFast);
     const res = calculateADXSeries(h, l, c, period, smoothingPeriod);
-    return new Decimal(res.adx[res.adx.length - 1]);
+    const last = res.adx[res.adx.length - 1];
+    return Number.isFinite(last) ? new Decimal(last) : null;
   },
 
   calculateAO(

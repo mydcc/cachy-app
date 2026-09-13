@@ -387,5 +387,34 @@ describe("indicators wrappers", () => {
        expect(res?.macd.toNumber()).toBe(0);
     });
   });
+
+  /**
+   * The first ADX is at `period + smoothingPeriod - 1`, so a card whose
+   * smoothing is longer than its DI length has no value for longer than
+   * `period * 2` candles. The old guard let those return `Decimal(NaN)`
+   * instead of null (BUG-0459).
+   */
+  describe("calculateADX", () => {
+    const series = (n: number) =>
+      Array.from({ length: n }, (_, i) => 100 + i);
+    const lowOf = (n: number) => series(n).map((v) => v - 1);
+    const closeOf = (n: number) => series(n).map((v) => v - 0.5);
+
+    it("has no value before its first candle, even when the two lengths differ", () => {
+      // ADX(14) smoothed by 30 first exists at candle 44; 28 candles is past
+      // the old `period * 2` guard yet still inside the warmup.
+      expect(indicators.calculateADX(series(28), lowOf(28), closeOf(28), 14, 30)).toBeNull();
+    });
+
+    it("gives a finite value once its first candle exists", () => {
+      const res = indicators.calculateADX(series(46), lowOf(46), closeOf(46), 14, 30);
+      expect(res).not.toBeNull();
+      expect(res?.isFinite()).toBe(true);
+    });
+
+    it("still gives a value for the default 14/14 from 28 candles", () => {
+      expect(indicators.calculateADX(series(28), lowOf(28), closeOf(28), 14)?.isFinite()).toBe(true);
+    });
+  });
 });
 
