@@ -20,6 +20,10 @@ import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
 import { resolveProviderEndpoint } from "../../../../../lib/server/aiEndpoint";
+import {
+  isUrlAllowedAsync,
+  safeFetch,
+} from "../../../../../lib/server/urlValidator";
 
 interface OpenAiModel {
   id: string;
@@ -50,13 +54,17 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     "v1/models",
   );
 
+  if (!(await isUrlAllowedAsync(targetUrl))) {
+    return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+  }
+
   const headers: Record<string, string> = {};
   if (apiKey) {
     headers.Authorization = `Bearer ${apiKey}`;
   }
 
   try {
-    const response = await fetch(targetUrl, { headers });
+    const response = await safeFetch(targetUrl, { headers });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
