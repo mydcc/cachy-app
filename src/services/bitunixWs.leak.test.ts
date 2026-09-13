@@ -36,10 +36,13 @@ global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
  */
 type WsInternals = {
   syntheticSubs: Map<string, number>;
-  pendingSubscriptions: Set<string>;
+  pendingSubscriptions: Map<string, number>;
+  tradeListeners: Map<string, Set<(trade: unknown) => void>>;
+  isDestroyed: boolean;
   wsPublic: WebSocket | null;
   cleanup: (which: "public" | "private") => void;
   destroy: () => void;
+  replayTradeSubscriptions: () => void;
 };
 
 const internals = bitunixWs as unknown as WsInternals;
@@ -49,6 +52,8 @@ describe('BitunixWebSocketService Leak', () => {
         // Reset state
         internals.syntheticSubs.clear();
         internals.pendingSubscriptions.clear();
+        internals.tradeListeners.clear();
+        internals.isDestroyed = false;
         internals.wsPublic = new MockWebSocket();
         vi.clearAllMocks();
     });
@@ -105,5 +110,30 @@ describe('BitunixWebSocketService Leak', () => {
 
         expect(internals.syntheticSubs.size).toBe(0);
         expect(internals.pendingSubscriptions.size).toBe(0);
+    });
+
+    it('replays trade subscriptions after destroy() while the consumer listener survives', () => {
+        const cleanup = bitunixWs.subscribeTrade('BTCUSDT', () => {});
+        expect(internals.pendingSubscriptions.has('trade:BTCUSDT')).toBe(true);
+
+        // destroy() intentionally clears the venue's replay buffer (FEAT-0319)…
+        internals.destroy();
+        expect(internals.pendingSubscriptions.has('trade:BTCUSDT')).toBe(false);
+
+        // …but `tradeListeners` is a consumer registry and survives, so without
+        // a replay the wire channel would stay lost until the consumer happens
+        // to re-subscribe (which only a symbol change does).
+        expect(internals.tradeListeners.has('BTCUSDT')).toBe(true);
+
+        internals.isDestroyed = false; // connect() clears this before replaying
+        internals.wsPublic = new MockWebSocket(); // simulate the reconnected socket
+        internals.replayTradeSubscriptions();
+        expect(internals.pendingSubscriptions.has('trade:BTCUSDT')).toBe(true);
+
+        // Idempotent: a second replay must not raise the ref count.
+        internals.replayTradeSubscriptions();
+        expect(internals.pendingSubscriptions.get('trade:BTCUSDT')).toBe(1);
+
+        cleanup();
     });
 });
