@@ -220,6 +220,35 @@
         action: true,
     });
 
+    type ColumnLabelKey = Parameters<typeof _>[0];
+    /** Localized name for each column key shown in the settings popover. */
+    const columnLabels: Record<string, ColumnLabelKey> = {
+        date: "journal.table.date",
+        symbol: "journal.table.symbol",
+        type: "journal.table.type",
+        entry: "journal.table.entry",
+        exit: "journal.table.exit",
+        sl: "journal.table.sl",
+        slAtr: "journal.table.slAtr",
+        atr: "journal.table.atr",
+        size: "journal.table.size",
+        entryFee: "journal.table.entryFee",
+        exitFee: "journal.table.exitFee",
+        totalFees: "journal.table.totalFees",
+        funding: "journal.table.funding",
+        pnl: "journal.table.pnl",
+        rr: "journal.table.rr",
+        mae: "journal.table.mae",
+        mfe: "journal.table.mfe",
+        efficiency: "journal.table.efficiency",
+        duration: "journal.table.duration",
+        status: "journal.table.status",
+        screenshot: "journal.table.screenshot",
+        tags: "journal.table.tags",
+        notes: "journal.table.notes",
+        action: "journal.table.action",
+    };
+
     function applyColumnPreset(preset: "compact" | "standard" | "fees" | "all") {
         if (preset === "compact") {
             columnVisibility = {
@@ -389,10 +418,12 @@
         return Array.from(set).sort();
     });
 
-    /** Distinct symbols present in the journal, for the filter dropdown. */
+    /** Distinct symbols in the active mode, for the filter dropdown. */
     let availableSymbols = $derived.by(() => {
         const set = new Set<string>();
         for (const entry of journalState.entries) {
+            if (tradeMode === "live" && entry.isPaper) continue;
+            if (tradeMode === "paper" && !entry.isPaper) continue;
             const symbol = entry.symbol?.trim();
             if (symbol) set.add(symbol);
         }
@@ -400,6 +431,14 @@
     });
 
     let selectedSymbol = $state("");
+
+    // Drop a symbol selection the active mode no longer offers, so the table
+    // cannot end up silently empty after switching Live/Paper/All.
+    $effect(() => {
+        if (selectedSymbol && !availableSymbols.includes(selectedSymbol)) {
+            selectedSymbol = "";
+        }
+    });
 
     let processedTrades = $derived.by(() => {
         // Invariant expressions hoisted out of the filter loop so they are
@@ -763,7 +802,7 @@
                                         type="checkbox"
                                         bind:checked={columnVisibility[col]}
                                     />
-                                    <span class="truncate">{col}</span>
+                                    <span class="truncate">{$_(columnLabels[col] as ColumnLabelKey)}</span>
                                 </label>
                             {/each}
                         </div>

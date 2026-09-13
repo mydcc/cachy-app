@@ -117,6 +117,13 @@ export abstract class WindowBase {
     isResponsive = $state(false);
     /** Opt-in: keep this floating window inside the viewport. */
     clampToViewport = $state(false);
+    /**
+     * Intended floating size, captured before any viewport clamp. Lets a
+     * viewport shrink be undone when it grows back instead of leaving the
+     * window permanently smaller.
+     */
+    private _desiredWidth: number | null = null;
+    private _desiredHeight: number | null = null;
     /** Width threshold in pixels for automatic mobile maximization. */
     edgeToEdgeBreakpoint = 768;
     /**
@@ -359,10 +366,10 @@ export abstract class WindowBase {
      */
     public handleViewportResize() {
         this.updateResponsiveState();
-        // Re-clamp an opted-in window that the viewport has grown around
-        // (or shrunk under) since it was last sized.
+        // Re-clamp an opted-in window to the viewport -- both on shrink and,
+        // via the desired size, back up on growth.
         if (this.clampToViewport) {
-            this.updateSize(this.width, this.height);
+            this.applyViewportClamp();
         }
         // No-ops while maximized (updatePosition's own early return), and
         // otherwise brings a window that's now partly or fully off-screen
@@ -565,10 +572,25 @@ export abstract class WindowBase {
             newHeight = Math.round((newWidth / this.aspectRatio) + HEADER_HEIGHT);
         }
 
-        // Opted-in windows never exceed the viewport. Applied after the
-        // aspect-ratio step so opening, restoring a saved geometry and a live
-        // viewport shrink all pass through the same clamp -- otherwise the
-        // journal (opened at 1200px) stayed wider than a narrow screen.
+        // Keep the intended size, then clamp for display. Storing the
+        // unclamped value is what lets a viewport shrink be undone when it
+        // grows back.
+        this._desiredWidth = Math.round(newWidth);
+        this._desiredHeight = Math.round(newHeight);
+        this.applyViewportClamp();
+    }
+
+    /**
+     * Caps an opted-in window to the viewport, using the desired (unclamped)
+     * size so the window grows back when the viewport does. No-op for windows
+     * that did not opt in, and while maximized.
+     */
+    private applyViewportClamp() {
+        if (this.isMaximized) return;
+
+        let newWidth = this._desiredWidth ?? this.width;
+        let newHeight = this._desiredHeight ?? this.height;
+
         if (this.clampToViewport && typeof window !== 'undefined') {
             newWidth = Math.min(newWidth, window.innerWidth);
             newHeight = Math.min(newHeight, window.innerHeight);
