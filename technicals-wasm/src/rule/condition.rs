@@ -564,7 +564,14 @@ impl Condition {
     ///
     /// New, so no stored rule relied on it: before FEAT-0446 group 4 the alert
     /// path computed no OBV, and every OBV rule was already unevaluable.
+    ///
+    /// Stays out of a pair with an indicator the registry does not know, as
+    /// `check_dimensions` does: `IndicatorRef::validate` has already refused it
+    /// precisely, and one bad document gets one refusal.
     fn check_cumulative(left: &Operand, right: &Operand, field: &str, out: &mut Vec<RuleRefusal>) {
+        if left.reads_unregistered_indicator() || right.reads_unregistered_indicator() {
+            return;
+        }
         let (l, r) = (left.cumulative_reading(), right.cumulative_reading());
         if l.is_none() && r.is_none() {
             return;
@@ -665,6 +672,17 @@ impl Operand {
                 _ => None,
             },
             _ => None,
+        }
+    }
+
+    /// Whether this operand reads an indicator id or output the registry does
+    /// not know, bare or through a window. `IndicatorRef::output_dimension` is
+    /// `None` exactly then, since every registered output carries a dimension.
+    fn reads_unregistered_indicator(&self) -> bool {
+        match self {
+            Self::Indicator { indicator } => indicator.output_dimension().is_none(),
+            Self::Window { of, .. } => of.reads_unregistered_indicator(),
+            _ => false,
         }
     }
 
