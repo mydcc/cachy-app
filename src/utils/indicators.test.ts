@@ -241,8 +241,35 @@ describe("JSIndicators", () => {
       // A different displacement must actually move the spans.
       const withWider = JSIndicators.ichimoku(high, low, close, 3, 5, 10, 10);
 
-      expect(withWider.spanA[10]).toBe(withMatch.spanA[5]);
-      expect(withWider.spanB[10]).toBe(withMatch.spanB[5]);
+      // Compared past both windows, where the spans have values to move.
+      expect(withMatch.spanB[20]).not.toBeNaN();
+      expect(withWider.spanA[25]).toBe(withMatch.spanA[20]);
+      expect(withWider.spanB[25]).toBe(withMatch.spanB[20]);
+    });
+
+    /**
+     * BUG-0463. Each line used to be 0 until its window was full, and the chart
+     * draws any finite number: the lines dropped to zero at the start of the
+     * loaded history, and the cloud displaced from them stood at half the price.
+     */
+    it("has no line before its window is full, rather than a zero", () => {
+      const len = 30;
+      const high = Array.from({ length: len }, (_, i) => 110 + i);
+      const low = Array.from({ length: len }, (_, i) => 100 + i);
+      const close = Array.from({ length: len }, (_, i) => 105 + i);
+
+      const res = JSIndicators.ichimoku(high, low, close, 3, 5, 10, 5);
+      const firstValue = (line: Float64Array) => line.findIndex((v) => !Number.isNaN(v));
+
+      expect(firstValue(res.conversion)).toBe(2);
+      expect(firstValue(res.base)).toBe(4);
+      // Both spans are drawn `displacement` candles after the candle whose
+      // windows they come from: span A needs the base line's, span B its own.
+      expect(firstValue(res.spanA)).toBe(4 + 5);
+      expect(firstValue(res.spanB)).toBe(9 + 5);
+      for (const [name, line] of Object.entries(res)) {
+        expect(Array.from(line).filter((v) => v === 0), name).toEqual([]);
+      }
     });
   });
 

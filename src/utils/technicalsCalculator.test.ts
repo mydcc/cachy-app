@@ -85,3 +85,32 @@ describe("technicalsCalculator reproduction", () => {
       expect(result.volatility?.bb?.middle).toBeGreaterThan(0);
   });
 });
+
+/**
+ * BUG-0463. With less history than the cloud needs, span B used to be 0: the
+ * cloud's bottom sat at zero and a rising market read "Buy" off a cloud that did
+ * not exist yet. The panel shows no Ichimoku until both spans have a value.
+ */
+describe("Ichimoku in the panel", () => {
+  const rising = (length: number) =>
+    Array.from({ length }, (_, i) => ({
+      time: i * 60000,
+      open: new Decimal(100 + i),
+      high: new Decimal(105 + i),
+      low: new Decimal(95 + i),
+      close: new Decimal(102 + i),
+      volume: new Decimal(1000),
+    }));
+  const settings = {
+    ichimoku: { conversionPeriod: 9, basePeriod: 26, spanBPeriod: 52, displacement: 26 },
+  } as unknown as IndicatorSettings;
+
+  it("shows nothing before span B has a value, rather than a reading off a zero", () => {
+    // Span B is drawn 26 candles after its 52-candle window: first at candle 77.
+    expect(calculateAllIndicators(rising(77), settings).advanced?.ichimoku).toBeUndefined();
+  });
+
+  it("reads the cloud once both spans have a value", () => {
+    expect(calculateAllIndicators(rising(78), settings).advanced?.ichimoku).toMatchObject({ action: "Buy" });
+  });
+});
