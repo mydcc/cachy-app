@@ -20,6 +20,10 @@ import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { AiRequestSchema } from "../../../../types/ai";
 import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
+import {
+  isUrlAllowedAsync,
+  safeFetch,
+} from "../../../../lib/server/urlValidator";
 
 interface GeminiPart {
   text: string;
@@ -105,6 +109,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       `v1beta/models/${encodedModel}:streamGenerateContent?alt=sse`,
     );
 
+    if (!(await isUrlAllowedAsync(url))) {
+      return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+    }
+
     // Special handling for Gemma models which don't support systemInstruction
     if (selectedModel.includes("gemma") && systemInstruction) {
       const sysText = systemInstruction.parts[0].text;
@@ -143,7 +151,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       headers["x-goog-api-key"] = apiKey;
     }
 
-    const response = await fetch(url, {
+    const response = await safeFetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify(payload),
