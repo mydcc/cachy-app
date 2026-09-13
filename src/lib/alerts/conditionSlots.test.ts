@@ -119,6 +119,29 @@ describe("slotOf", () => {
       expect(slotOf(condition), JSON.stringify(condition)).toBeNull();
     }
   });
+
+  it("leaves an indicator the panel does not offer unclaimed, so a saved alert survives", () => {
+    // BUG-0451 hides fourteen registry ids from the panel, and
+    // `readIndicatorForm` cannot hydrate one. Claiming it would make the tab
+    // hydrate blank and its mount-time write delete an alert that was saved
+    // while the indicator was still offered.
+    const hidden: Condition = {
+      kind: "compare",
+      left: { kind: "indicator", indicator: { id: "obv", params: {} } },
+      op: "gt",
+      right: { kind: "constant", value: "1000" },
+      timeframe: "1h",
+    };
+    expect(slotOf(hidden)).toBeNull();
+    expect(conditionInSlot(group(hidden), "indicators")).toBeNull();
+  });
+
+  it("still claims an indicator the panel offers", () => {
+    // The boundary of the check above: the same shape with an offered id stays
+    // the indicators builder's to hydrate and write.
+    expect(slotOf(INDICATOR_VS_CONSTANT)).toBe("indicators");
+    expect(slotOf(INDICATOR_VS_INDICATOR)).toBe("indicators");
+  });
 });
 
 describe("slotOf — known gap (BUG-0444)", () => {
