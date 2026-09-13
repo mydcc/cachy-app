@@ -332,6 +332,50 @@ describe("JSIndicators", () => {
         .toBeCloseTo(10 / 3, 12);
     });
   });
+
+  /**
+   * BUG-0458. The final bands started as NaN and every later candle compared
+   * against them, so no candle ever had a value and the trend never left "up".
+   */
+  describe("superTrend", () => {
+    //                 0   1   2    3
+    const high = [10, 11, 12, 14];
+    const low = [8, 9, 10, 9.6];
+    const close = [9, 10, 11, 10.1];
+    // True ranges from candle 1: 2, 2, 4.4. ATR(2): 2 at candle 2, 3.2 at candle 3.
+
+    it("has no value until a full period of true ranges exists", () => {
+      const res = JSIndicators.superTrend(high, low, close, 2, 0.5);
+      for (const line of [res.value, res.upper, res.lower]) {
+        expect(Array.from(line.slice(0, 2)).every(Number.isNaN)).toBe(true);
+      }
+    });
+
+    it("starts from the basic bands on its first candle with an ATR, in an uptrend", () => {
+      const res = JSIndicators.superTrend(high, low, close, 2, 0.5);
+      // hl2 11 ± 0.5 × 2
+      expect(res.upper[2]).toBeCloseTo(12, 12);
+      expect(res.lower[2]).toBeCloseTo(10, 12);
+      expect(res.trend[2]).toBe(1);
+      expect(res.value[2]).toBeCloseTo(10, 12);
+    });
+
+    it("flips on a close through the band of the same candle, not the one before", () => {
+      const res = JSIndicators.superTrend(high, low, close, 2, 0.5);
+      // hl2 11.8 − 0.5 × 3.2 = 10.2 tightens the lower band; the close of 10.1
+      // is below it, though not below the previous candle's 10.
+      expect(res.lower[3]).toBeCloseTo(10.2, 12);
+      expect(res.upper[3]).toBeCloseTo(12, 12);
+      expect(res.trend[3]).toBe(-1);
+      expect(res.value[3]).toBeCloseTo(12, 12);
+    });
+
+    it("answers null from calculateSuperTrend until a full period of true ranges exists", () => {
+      expect(indicators.calculateSuperTrend(high.slice(0, 2), low.slice(0, 2), close.slice(0, 2), 2, 0.5)).toBeNull();
+      expect(indicators.calculateSuperTrend(high.slice(0, 3), low.slice(0, 3), close.slice(0, 3), 2, 0.5)?.value.toNumber())
+        .toBeCloseTo(10, 12);
+    });
+  });
 });
 
 describe("indicators wrappers", () => {

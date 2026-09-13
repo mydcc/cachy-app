@@ -357,10 +357,13 @@ export function calculateIndicatorsFromArrays(
           const res = JSIndicators.superTrend(highsNum, lowsNum, closesNum, per, fac);
           const idx = res.value.length - 1;
 
-          advancedInfo.superTrend = {
-              value: res.value[idx],
-              trend: res.trend[idx] === 1 ? "bull" : "bear"
-          };
+          // Absent rather than NaN until the ATR has a full period (BUG-0458).
+          if (Number.isFinite(res.value[idx])) {
+              advancedInfo.superTrend = {
+                  value: res.value[idx],
+                  trend: res.trend[idx] === 1 ? "bull" : "bear"
+              };
+          }
       }
 
       if (shouldCalculate('ichimoku')) {
