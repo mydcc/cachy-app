@@ -68,6 +68,7 @@ interface RegistryEntry {
     id: string;
     params: RegistryParam[];
     outputs: { name: string; dimension: string }[];
+    cumulative: boolean;
 }
 interface RuleCore {
     rule_indicator_registry(): string;
@@ -95,6 +96,9 @@ beforeAll(async () => {
     };
     template = JSON.parse(mod.rule_from_alert_json(JSON.stringify(alert), "1h", 1_700_000_000_000));
 });
+
+/** The ids the registry marks cumulative — read from it, not copied. */
+const cumulativeIds = (): string[] => registry.filter((entry) => entry.cumulative).map((entry) => entry.id);
 
 const registryEntry = (id: string): RegistryEntry | undefined =>
     registry.find((entry) => entry.id === id);
@@ -134,6 +138,13 @@ describe("indicator catalogue against the core registry", () => {
     );
 
     it.each(REGISTRY_CATALOGUE.map((entry) => [entry.id, entry] as const))(
+        "%s: is cumulative exactly when the registry says so",
+        (id, entry: CatalogueEntry) => {
+            expect(entry.cumulative === true).toBe(registryEntry(id)!.cumulative);
+        },
+    );
+
+    it.each(REGISTRY_CATALOGUE.map((entry) => [entry.id, entry] as const))(
         "%s: every default lies inside the registry's bounds",
         (id, entry: CatalogueEntry) => {
             const spec = registryEntry(id)!;
@@ -162,22 +173,55 @@ describe("indicator catalogue against the core registry", () => {
             // but "does the core take this document". A parameter this
             // catalogue spells differently from the registry is refused here
             // rather than at the moment a trader presses arm.
+            const subject = { kind: "indicator", indicator: defaultRef(entry) };
             const document = {
                 ...template,
                 name: `catalogue ${id}`,
                 conditions: {
                     kind: "compare",
-                    left: { kind: "indicator", indicator: defaultRef(entry) },
+                    left: subject,
+                    op: cumulativeIds().includes(id) ? "gte" : "gt",
                     // Constant is dimensionless, so it is the one right-hand
-                    // side legal against a percent, a price and a volume alike.
-                    op: "gt",
-                    right: { kind: "constant", value: "1" },
+                    // side legal against a percent, a price and a volume alike —
+                    // except for a cumulative indicator, which the core accepts
+                    // only against a window over itself.
+                    right: cumulativeIds().includes(id)
+                        ? { kind: "window", of: subject, agg: "max", lookback: 20 }
+                        : { kind: "constant", value: "1" },
                     timeframe: "1h",
                 },
             };
             expect(() => core.rule_validate(JSON.stringify(document))).not.toThrow();
         },
     );
+
+    /**
+     * FEAT-0446 group 4. OBV's level depends on how much history is loaded, so
+     * the core refuses it against anything but a window over itself. Checked
+     * against the artefact, since that is what arms a trader's rule.
+     */
+    it("refuses a cumulative indicator against a number, and accepts it at its own window extreme", () => {
+        expect(cumulativeIds()).toEqual(["obv"]);
+        const obv = { kind: "indicator", indicator: { id: "obv", params: {} } };
+        const documentWith = (right: unknown) => ({
+            ...template,
+            name: "obv",
+            conditions: { kind: "compare", left: obv, op: "gte", right, timeframe: "1h" },
+        });
+        const refusalOf = (document: unknown): string | null => {
+            try {
+                core.rule_validate(JSON.stringify(document));
+                return null;
+            } catch (e) {
+                return JSON.stringify(e);
+            }
+        };
+
+        expect(refusalOf(documentWith({ kind: "constant", value: "1000000" }))).toContain(
+            "cumulative_needs_own_window",
+        );
+        expect(refusalOf(documentWith({ kind: "window", of: obv, agg: "max", lookback: 20 }))).toBeNull();
+    });
 
     it("resolves every offered id through catalogueEntry", () => {
         for (const entry of INDICATOR_CATALOGUE) {

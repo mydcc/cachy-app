@@ -3491,6 +3491,7 @@ export type TranslationKey =
   | "rules.refusal.operandDimensionMismatch"
   | "rules.refusal.nestedWindow"
   | "rules.refusal.invalidWindowLookback"
+  | "rules.refusal.cumulativeNeedsOwnWindow"
   | "rules.refusal.ruleWarmupTooDeep"
   | "rules.refusal.invalidNote"
   | "rules.refusal.duplicateTriggerMethod"

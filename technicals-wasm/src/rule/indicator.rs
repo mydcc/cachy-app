@@ -425,6 +425,17 @@ pub fn spec_for(id: &str) -> Option<&'static IndicatorSpec> {
     REGISTRY.iter().find(|s| s.id == id)
 }
 
+/// Indicators whose level is a running total from the first candle they are
+/// handed, so it depends on how much history is loaded rather than on the market
+/// alone. A condition may read one only against a window over itself
+/// (`RefusalCode::CumulativeNeedsOwnWindow`, FEAT-0446 group 4).
+const CUMULATIVE: &[&str] = &["obv"];
+
+/// Whether `id` names a cumulative indicator; see `CUMULATIVE`.
+pub fn is_cumulative(id: &str) -> bool {
+    CUMULATIVE.contains(&id)
+}
+
 /// A parameter value: a whole count, or a decimal multiplier.
 ///
 /// There is no string variant, and that is a security property rather than a
@@ -694,6 +705,10 @@ pub fn registry_json() -> String {
                 "id": spec.id,
                 "params": params,
                 "outputs": outputs,
+                // So a builder offers a cumulative indicator only the one
+                // pairing the core accepts, from the same list that refuses
+                // the others, rather than from a copy of it.
+                "cumulative": is_cumulative(spec.id),
             })
         })
         .collect();
@@ -1062,6 +1077,7 @@ mod tests {
 
         for (entry, spec) in entries.iter().zip(REGISTRY.iter()) {
             assert_eq!(entry["id"], spec.id);
+            assert_eq!(entry["cumulative"], spec.id == "obv", "{}", spec.id);
 
             let params = entry["params"].as_array().expect("params is an array");
             assert_eq!(params.len(), spec.params.len());

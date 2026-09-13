@@ -1445,6 +1445,110 @@ mod tests {
         );
     }
 
+    fn obv() -> Operand {
+        Operand::Indicator {
+            indicator: IndicatorRef {
+                id: "obv".to_string(),
+                params: BTreeMap::new(),
+                output: "value".to_string(),
+            },
+        }
+    }
+
+    fn refused_as_self_relative(doc: &RuleDocument) -> bool {
+        doc.validate()
+            .err()
+            .is_some_and(|e| e.has(RefusalCode::CumulativeNeedsOwnWindow))
+    }
+
+    /// FEAT-0446 group 4. OBV accumulates from the first candle it is handed,
+    /// and the alert path hands it a rolling buffer, so its level moves with
+    /// every trimmed candle: 9330 for 100 candles less history on the recorded
+    /// fixture. Only a claim about OBV against its own window survives that
+    /// shift, because the constant cancels.
+    #[test]
+    fn obv_against_anything_but_its_own_window_is_refused() {
+        let refused = [
+            ("a number", compare(obv(), Operand::Constant { value: d("1000000") })),
+            ("a number, flipped", compare(Operand::Constant { value: d("1000000") }, obv())),
+            (
+                "another volume line",
+                compare(
+                    obv(),
+                    Operand::Indicator {
+                        indicator: IndicatorRef {
+                            id: "volume_ma".to_string(),
+                            params: BTreeMap::from([("period".to_string(), ParamValue::Count(20))]),
+                            output: "value".to_string(),
+                        },
+                    },
+                ),
+            ),
+            ("the candle's volume", compare(obv(), Operand::Volume {})),
+            (
+                "its window against a number",
+                compare(window(WindowAgg::Max, 20, obv()), Operand::Constant { value: d("5") }),
+            ),
+            ("itself", compare(obv(), obv())),
+            (
+                "its window against its window",
+                compare(window(WindowAgg::Max, 20, obv()), window(WindowAgg::Min, 20, obv())),
+            ),
+            (
+                "a window of volume",
+                compare(obv(), window(WindowAgg::Max, 20, Operand::Volume {})),
+            ),
+        ];
+        for (what, condition) in refused {
+            assert!(
+                refused_as_self_relative(&with(condition)),
+                "OBV against {what} has to be refused"
+            );
+        }
+    }
+
+    #[test]
+    fn obv_at_its_own_window_extreme_is_accepted_either_way_round() {
+        let accepted = [
+            compare(obv(), window(WindowAgg::Max, 20, obv())),
+            compare(window(WindowAgg::Min, 50, obv()), obv()),
+            Condition::Cross {
+                left: obv(),
+                direction: CrossDirection::Below,
+                right: window(WindowAgg::Min, 20, obv()),
+                timeframe: tf("4h"),
+            },
+        ];
+        for condition in accepted {
+            let doc = with(condition.clone());
+            assert!(doc.validate().is_ok(), "{condition:?} has to be accepted: {:?}", doc.validate());
+        }
+    }
+
+    /// Nested in a group, the refusal still applies to the member.
+    #[test]
+    fn obv_against_a_number_inside_a_group_is_refused() {
+        let doc = with(Condition::Group {
+            op: LogicOp::All,
+            of: vec![
+                compare(close(), Operand::Constant { value: d("1") }),
+                compare(obv(), Operand::Constant { value: d("1") }),
+            ],
+        });
+        assert!(refused_as_self_relative(&doc));
+    }
+
+    /// The refusal is scoped to what accumulates: every other indicator keeps
+    /// comparing against a number.
+    #[test]
+    fn a_non_cumulative_indicator_against_a_number_is_untouched() {
+        let doc = with(compare(
+            Operand::Indicator { indicator: rsi(14) },
+            Operand::Constant { value: d("30") },
+        ));
+        assert!(doc.validate().is_ok());
+    }
+
     #[test]
     fn a_window_shorter_than_two_closes_or_longer_than_the_cap_is_refused() {
         for lookback in [0, 1, MAX_WINDOW_LOOKBACK + 1] {
