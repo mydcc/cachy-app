@@ -18,6 +18,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RuleEvaluationLoop } from "./ruleEvaluationLoop";
+import { RuleRefusedError } from "../../lib/rules/ruleSchema";
 import { logger } from "../logger";
 import type { RuleDocument, Verdict } from "../../lib/rules/types";
 
@@ -286,6 +287,54 @@ describe("RuleEvaluationLoop", () => {
         expect.stringContaining("reads-4h"),
         expect.any(Error),
       );
+    });
+
+    /**
+     * BUG-0467. The core validates every document it evaluates, so a stored
+     * rule it no longer accepts — armed under an older, looser core — is
+     * refused on every close. That is not transient: the same document and the
+     * same core refuse it forever. Logging it every close and telling the
+     * trader nothing made a dead alert look like a live one.
+     */
+    it("reports a rule the core refuses as unevaluable, once, and evaluates the rules after it", () => {
+      const refusal = new RuleRefusedError([
+        {
+          code: "invalid_window_lookback",
+          field: "conditions.right.lookback",
+          detail: "a window of fewer than two closes is the operand itself",
+          i18n_key: "rules.refusal.invalidWindowLookback",
+        },
+      ]);
+      gateEvaluate.mockImplementation(((document: RuleDocument) => {
+        if (document.id === "refused") throw refusal;
+        return FIRES;
+      }) as never);
+      const onUnevaluable = vi.fn();
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ id: "refused", name: "old alert" }), rule({ id: "after" })],
+        onFiring: vi.fn(),
+        onUnevaluable,
+      });
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      const first = loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+      const second = loop.observeCandles("BTCUSDT", "1m", [{ time: 121_000 }]);
+
+      expect(first.map((f) => f.rule.id)).toEqual(["after"]);
+      expect(second.map((f) => f.rule.id)).toEqual(["after"]);
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+      expect(onUnevaluable).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ruleId: "refused",
+          name: "old alert",
+          symbol: "BTCUSDT",
+          reason: expect.stringContaining("invalid_window_lookback"),
+        }),
+      );
+      // Reported instead of logged as a failed evaluation on every close.
+      expect(logger.error).not.toHaveBeenCalledWith("alerts", expect.stringContaining("refused"), expect.anything());
+      expect(loop.unevaluableRules().map((r) => r.ruleId)).toEqual(["refused"]);
     });
 
     it("contains a firing sink that throws for one rule, not the rules after it", () => {

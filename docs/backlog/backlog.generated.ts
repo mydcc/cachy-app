@@ -4038,6 +4038,48 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0460-chart-stochastic-lines-ignore-card.md"
   },
   {
+    "id": "BUG-0465",
+    "title": "Direct market-data subscriptions are silenced by a provider teardown until the symbol changes",
+    "type": "bug",
+    "status": "done",
+    "assignee": "opencode",
+    "shipped": "1.6.0-beta.291",
+    "priority": "P2",
+    "milestone": "M2",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "C",
+    "adr": "ADR-0007",
+    "depends_on": [],
+    "size": "M",
+    "file": "bugs/BUG-0465-market-data-channel-lost-on-reconnect.md"
+  },
+  {
+    "id": "BUG-0467",
+    "title": "A stored rule the core refuses is logged on every close and never reported",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0467-refused-rule-silent",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0467-refused-stored-rule-is-silent.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -6547,6 +6589,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "branch": "fix/bug-0464-oracle-cross-ties",
     "start_date": "2026-09-13",
     "file": "bugs/BUG-0464-test-oracles-cross-convention.md"
+  },
+  {
+    "id": "BUG-0466",
+    "title": "Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions",
+    "type": "bug",
+    "status": "done",
+    "assignee": "opencode",
+    "shipped": "1.6.0-beta.292",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "cloud",
+    "data_class": "B",
+    "adr": "ADR-0001",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0466-chat-cloud-subscription-lifecycle.md"
   },
   {
     "id": "FEAT-0022",

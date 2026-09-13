@@ -56,10 +56,21 @@ class ChatManager {
 
   private effectCleanup: (() => void) | null = null;
 
+  /**
+   * The status and message subscriptions are not `$effect`s, so `effectCleanup`
+   * does not release them. Without this list a destroyed store (hot reload)
+   * stays attached to the live cloud service.
+   */
+  private cloudUnsubscribers: Array<() => void> = [];
+
   constructor() {
     if (browser) {
-      cloudService.subscribeStatus((status) => this.applyStatus(status));
-      cloudService.subscribeMessages((rows) => this.applyRows(rows));
+      this.cloudUnsubscribers.push(
+        cloudService.subscribeStatus((status) => this.applyStatus(status)),
+      );
+      this.cloudUnsubscribers.push(
+        cloudService.subscribeMessages((rows) => this.applyRows(rows)),
+      );
 
       // Connect when Global Chat is enabled and configured, and stay out of the
       // way otherwise. ADR-0001 keeps this off by default; nothing here may
@@ -89,6 +100,8 @@ class ChatManager {
       this.effectCleanup();
       this.effectCleanup = null;
     }
+    for (const unsubscribe of this.cloudUnsubscribers) unsubscribe();
+    this.cloudUnsubscribers = [];
   }
 
   private applyStatus(status: CloudStatus) {
