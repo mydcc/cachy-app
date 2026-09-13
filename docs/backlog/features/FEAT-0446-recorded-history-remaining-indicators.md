@@ -61,8 +61,8 @@ The other sixteen are thresholds or crosses in the shape already covered.
 - [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
       path genuinely cannot compute — 1 today, stating the real reason — and the
       test that rejects a stale entry keeps it that way
-- [ ] OBV's condition shape is decided and documented before it is wired in (see "Found:
-      OBV depends on the loaded window")
+- [x] OBV's condition shape is decided and documented before it is wired in (see "Found:
+      OBV depends on the loaded window" and "Decided: group 4")
 - [x] Parabolic SAR's condition shape is decided and documented before it is asserted
       (see "Decided: group 4")
 - [x] Ichimoku's displacement handling is asserted against the chart's own values, not
@@ -294,6 +294,23 @@ Put to the product owner with measurements on the recorded fixture, and decided:
   the candle's own high, whichever is further; on the fixture the two differ on 142 of 940
   values. The contract is this app's chart.
 
+**OBV: the core refuses it against anything but its own window (enforced; not wired yet).**
+- `RefusalCode::CumulativeNeedsOwnWindow`: a compare or cross reading OBV is accepted only
+  when the other side is a window over the same OBV (`obv >= window(max, N, obv)` for a
+  new N-candle high). A number, another volume line, the candle's volume, OBV against
+  itself and a window against a window are refused, also inside groups.
+- Which indicators this applies to is one list in the core (`CUMULATIVE` in
+  `indicator.rs`), exported in the registry JSON as `cumulative` and mirrored by the
+  catalogue, pinned by `indicatorCatalogue.test.ts`.
+- Stored OBV rules armed before BUG-0451 are unaffected by the refusal alone: the alert
+  path still computes no OBV, so they are reported unevaluable before the core is asked.
+  Once OBV is computed they reach the core and are refused, and
+  `BUG-0467` (PR #3269) makes that a
+  report instead of a log line on every close. Wiring OBV in depends on it.
+- **Open before OBV can be offered:** the Indicators tab builds a condition against a
+  number, a price or another indicator, never against a window, and the card's seed starts
+  from a number. So the panel cannot yet build the one OBV condition the core accepts.
+
 **A cross on an exact tie keeps the core's convention.** Ichimoku's conversion and base lines tie on 44 candles of the fixture, which exposed that both condition oracles defined a cross as TradingView does, not as the core does. The core stays and the oracles follow it: [`BUG-0464`](../bugs/BUG-0464-test-oracles-cross-convention.md).
 
 **The warmup table is keyed by output line.** `warmupFor` matched id and parameters only, so a condition on span B (78 candles) took the conversion line's 9 and would have been asserted from candle 27. It now matches the output too; the Bollinger bandwidth, read by the squeeze expectation, got its own entry, and `indicatorWarmup.test.ts` pins that no entry promises a value before the series has one.
@@ -306,6 +323,8 @@ Put to the product owner with measurements on the recorded fixture, and decided:
   SAR flipping short (39 flips) and the close crossing below the SAR (38). The one flip only
   `direction` catches is candle 967, pinned in both
 - `SCOPED_OUT` is down to OBV
+- The core refuses OBV against anything but a window over itself; the builder support that
+  makes that shape reachable from the panel is still open (above)
 
 ## Progress (2026-09-13, group 3)
 

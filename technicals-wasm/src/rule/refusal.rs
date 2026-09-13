@@ -125,6 +125,13 @@ pub enum RefusalCode {
     /// condition comparing a value against itself, which is a rule that cannot
     /// discriminate rather than one that is wrong.
     InvalidWindowLookback,
+    /// A cumulative indicator (OBV) compared against anything but a window over
+    /// itself. Its level is a running total from the first candle it is handed,
+    /// and the alert path hands it a rolling buffer, so "OBV above 1,000,000"
+    /// fires or stays quiet on how much history happens to be loaded. Only the
+    /// indicator against its own window extreme is independent of that
+    /// (FEAT-0446 group 4).
+    CumulativeNeedsOwnWindow,
     /// A document needing more closed candles than the app will ever hold.
     ///
     /// This is the refusal that keeps an over-deep rule from being *silent*
@@ -184,6 +191,7 @@ impl RefusalCode {
             Self::OperandDimensionMismatch => "operandDimensionMismatch",
             Self::NestedWindow => "nestedWindow",
             Self::InvalidWindowLookback => "invalidWindowLookback",
+            Self::CumulativeNeedsOwnWindow => "cumulativeNeedsOwnWindow",
             Self::RuleWarmupTooDeep => "ruleWarmupTooDeep",
             Self::InvalidNote => "invalidNote",
             Self::DuplicateTriggerMethod => "duplicateTriggerMethod",
@@ -321,6 +329,7 @@ mod tests {
         RefusalCode::OperandDimensionMismatch,
         RefusalCode::NestedWindow,
         RefusalCode::InvalidWindowLookback,
+        RefusalCode::CumulativeNeedsOwnWindow,
         RefusalCode::RuleWarmupTooDeep,
         RefusalCode::InvalidNote,
         RefusalCode::DuplicateTriggerMethod,

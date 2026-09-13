@@ -40,7 +40,7 @@ use std::fmt;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use super::indicator::IndicatorRef;
+use super::indicator::{is_cumulative, IndicatorRef};
 use super::pattern::CandlePattern;
 use super::refusal::{RefusalCode, RuleRefusal};
 use super::timeframe::Timeframe;
@@ -449,6 +449,7 @@ impl Condition {
                 left.validate(&format!("{field}.left"), out);
                 right.validate(&format!("{field}.right"), out);
                 Self::check_dimensions(left, right, field, out);
+                Self::check_cumulative(left, right, field, out);
             }
             Self::Cross {
                 left,
@@ -460,6 +461,7 @@ impl Condition {
                 left.validate(&format!("{field}.left"), out);
                 right.validate(&format!("{field}.right"), out);
                 Self::check_dimensions(left, right, field, out);
+                Self::check_cumulative(left, right, field, out);
             }
             Self::Pattern { timeframe, .. } => {
                 Self::check_timeframe(*timeframe, trigger, field, out);
@@ -550,6 +552,44 @@ impl Condition {
         ));
     }
 
+    /// Refuse a cumulative indicator compared against anything but a window
+    /// over the same indicator.
+    ///
+    /// OBV's level is a running total from the first candle it is handed, and
+    /// the alert path reads a rolling buffer, so a constant shift appears with
+    /// every candle trimmed from the front. The shift cancels only between the
+    /// indicator and an extreme of its own recent values — "OBV at its 20-candle
+    /// high" — so that is the one pairing accepted. A window against a window
+    /// cancels too, but is not a claim anyone makes, and is refused with the rest.
+    ///
+    /// New, so no stored rule relied on it: before FEAT-0446 group 4 the alert
+    /// path computed no OBV, and every OBV rule was already unevaluable.
+    ///
+    /// Stays out of a pair with an indicator the registry does not know, as
+    /// `check_dimensions` does: `IndicatorRef::validate` has already refused it
+    /// precisely, and one bad document gets one refusal.
+    fn check_cumulative(left: &Operand, right: &Operand, field: &str, out: &mut Vec<RuleRefusal>) {
+        if left.reads_unregistered_indicator() || right.reads_unregistered_indicator() {
+            return;
+        }
+        let (l, r) = (left.cumulative_reading(), right.cumulative_reading());
+        if l.is_none() && r.is_none() {
+            return;
+        }
+        if let (Some((l_ref, l_windowed)), Some((r_ref, r_windowed))) = (l, r) {
+            if l_ref == r_ref && l_windowed != r_windowed {
+                return;
+            }
+        }
+        out.push(RuleRefusal::new(
+            RefusalCode::CumulativeNeedsOwnWindow,
+            field,
+            "a cumulative indicator's level depends on how much history is loaded, so it \
+             can only be compared with a window over itself: `obv >= window(max, N, obv)` \
+             for a new N-candle high, `obv <= window(min, N, obv)` for a new low",
+        ));
+    }
+
     fn check_timeframe(tf: Timeframe, trigger: Timeframe, field: &str, out: &mut Vec<RuleRefusal>) {
         if let Err(e) = tf.check_against_trigger(trigger, &format!("{field}.timeframe")) {
             out.push(e);
@@ -622,6 +662,30 @@ impl Condition {
 }
 
 impl Operand {
+    /// The cumulative indicator this operand reads, and whether through a
+    /// window, or `None` when it reads none. See `Condition::check_cumulative`.
+    fn cumulative_reading(&self) -> Option<(&IndicatorRef, bool)> {
+        match self {
+            Self::Indicator { indicator } if is_cumulative(&indicator.id) => Some((indicator, false)),
+            Self::Window { of, .. } => match of.as_ref() {
+                Self::Indicator { indicator } if is_cumulative(&indicator.id) => Some((indicator, true)),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// Whether this operand reads an indicator id or output the registry does
+    /// not know, bare or through a window. `IndicatorRef::output_dimension` is
+    /// `None` exactly then, since every registered output carries a dimension.
+    fn reads_unregistered_indicator(&self) -> bool {
+        match self {
+            Self::Indicator { indicator } => indicator.output_dimension().is_none(),
+            Self::Window { of, .. } => of.reads_unregistered_indicator(),
+            _ => false,
+        }
+    }
+
     pub fn validate(&self, field: &str, out: &mut Vec<RuleRefusal>) {
         match self {
             Self::Indicator { indicator } => indicator.validate(&format!("{field}.indicator"), out),

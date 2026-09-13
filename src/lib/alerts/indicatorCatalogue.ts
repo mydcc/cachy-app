@@ -89,9 +89,16 @@ export interface CatalogueEntry {
     readonly group: IndicatorGroup;
     readonly params: readonly CatalogueParam[];
     readonly outputs: readonly CatalogueOutput[];
+    /**
+     * A running total whose level depends on how much history is loaded. The
+     * core accepts it only against a window over itself (FEAT-0446 group 4),
+     * so a builder must not offer it a number. Mirrors the registry's
+     * `cumulative`, pinned by `indicatorCatalogue.test.ts`.
+     */
+    readonly cumulative?: true;
 }
 
-const period = (name: string, value: number): CatalogueParam => ({
+const period =(name: string, value: number): CatalogueParam => ({
     name,
     kind: "period",
     default: value,
@@ -260,7 +267,7 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
 
     // Volume. Both are denominated in size, so the core refuses either against
     // a price and the picker never offers the pairing.
-    { id: "obv", group: "volume", params: [], outputs: value("volume") },
+    { id: "obv", group: "volume", params: [], outputs: value("volume"), cumulative: true },
     {
         id: "volume_ma",
         group: "volume",

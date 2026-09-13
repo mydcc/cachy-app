@@ -140,16 +140,22 @@ describe("a rule built from the panel's own settings", () => {
             const refs = mappedIndicatorRefs(key, cardFor(key));
             expect(refs.length, `${key} produced no refs`).toBeGreaterThan(0);
             for (const ref of refs) {
+                const subject = { kind: "indicator", indicator: ref };
+                const cumulative = registryEntry(ref.id)?.cumulative === true;
                 const document = {
                     ...template,
                     name: `seed ${key}`,
                     conditions: {
                         kind: "compare",
-                        left: { kind: "indicator", indicator: ref },
+                        left: subject,
                         // Constant is dimensionless, so it is legal against a
-                        // price, a percent and a volume alike.
-                        op: "gt",
-                        right: { kind: "constant", value: "1" },
+                        // price, a percent and a volume alike. A cumulative
+                        // indicator is the exception: the core takes it only
+                        // against a window over itself.
+                        op: cumulative ? "gte" : "gt",
+                        right: cumulative
+                            ? { kind: "window", of: subject, agg: "max", lookback: 20 }
+                            : { kind: "constant", value: "1" },
                         timeframe: "1h",
                     },
                 };
