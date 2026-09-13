@@ -20,6 +20,10 @@ import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
 import { resolveProviderEndpoint } from "../../../../../lib/server/aiEndpoint";
+import {
+  isUrlAllowedAsync,
+  safeFetch,
+} from "../../../../../lib/server/urlValidator";
 
 interface AnthropicModel {
   id: string;
@@ -44,6 +48,10 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     "v1/models?limit=100",
   );
 
+  if (!(await isUrlAllowedAsync(targetUrl))) {
+    return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+  }
+
   const headers: Record<string, string> = {
     "anthropic-version": "2023-06-01",
   };
@@ -52,7 +60,7 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
   }
 
   try {
-    const response = await fetch(targetUrl, { headers });
+    const response = await safeFetch(targetUrl, { headers });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
