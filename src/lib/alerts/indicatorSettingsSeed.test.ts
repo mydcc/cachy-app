@@ -306,8 +306,9 @@ describe("the seed the entry point hands to the panel", () => {
         // shows but whose seed is null is a button that does nothing.
         for (const key of MAPPED) {
             const seed = seedFromIndicatorSettings(key, cardFor(key), "BTCUSDT");
-            expect(isAlertableIndicator(key), key).toBe(seed !== null);
-            expect(cardAlertAvailability(key, cardFor(key)) === "armable", key).toBe(seed !== null);
+            const availability = cardAlertAvailability(key, cardFor(key));
+            expect(isAlertableIndicator(key), key).toBe(availability !== "not-alertable");
+            expect(availability === "armable", key).toBe(seed !== null);
         }
         expect(KEYS.length).toBeGreaterThan(0);
         expect(KEYS.length).toBeLessThan(MAPPED.length);
@@ -335,6 +336,7 @@ describe("a card whose price source the alert path does not compute over", () =>
     it.each(NOT_CLOSE)("seeds no alert from a card set to %s", (source) => {
         for (const key of SOURCED) {
             const card = { ...cardFor(key), source };
+            expect(isAlertableIndicator(key), key).toBe(true);
             expect(cardAlertAvailability(key, card), key).toBe("source-not-close");
             expect(indicatorRefsFrom(key, card), key).toEqual([]);
             expect(seedFromIndicatorSettings(key, card, "BTCUSDT"), key).toBeNull();
@@ -353,6 +355,8 @@ describe("a card whose price source the alert path does not compute over", () =>
         ["missing", undefined],
         ["null", null],
         ["empty", ""],
+        ["zero", 0],
+        ["false", false],
     ])("reads a %s source as the close, which is what the chart draws for it", (_label, source) => {
         const card = { length: 21, source };
         expect(cardAlertAvailability("rsi", card)).toBe("armable");

@@ -43,6 +43,9 @@ Carry the source as an optional parameter rather than as a panel setting:
   already armed? It must not.
 - Does the WASM Technicals calculator gain the same parameter in the same change? It has
   the same gap today (`wasmCalculator.ts` passes no source).
+- An alert armed from a non-close card before [`BUG-0453`](../bugs/BUG-0453-card-alert-ignores-price-source.md)
+  keeps computing over the close and carries no source, so it cannot be retargeted
+  automatically. Decide whether to surface or re-ask those when this lands.
 
 ## Acceptance criteria
 

@@ -62,16 +62,20 @@ change and is reversible; B is the real capability and deserves its own review.
 ## Decided and done: A (2026-09-13)
 
 - `cardAlertAvailability(key, card)` in `indicatorSettingsSeed.ts` answers `armable`,
-  `not-alertable` or `source-not-close`. A missing or empty source is the close, as the
-  chart draws it; any other value, including one the module does not recognise, is not.
-- `indicatorRefsFrom` returns nothing for a `source-not-close` card, so the seed is `null`
-  through the same check the button uses — they cannot disagree.
+  `not-alertable` or `source-not-close`. A falsy source (`undefined`, `null`, `""`, `0`,
+  `false`) is the close, matching the chart's own `src()` fallback; any other value,
+  including one the module does not recognise, is not.
+- `indicatorRefsFrom` asks `cardAlertAvailability` before it builds refs, so the seed is
+  `null` through the same decision the button uses — they cannot disagree.
 - `IndicatorAlertAction.svelte` keeps the button on such a card with `aria-disabled`,
   dimmed, and names the reason as its label and tooltip
   (`settings.technicals.alertSourceNotClose`, both locales). It stays focusable, so the
   reason is reachable by keyboard, and pressing it opens nothing.
 - It is generic over the card's `source` field, not a list of cards: MACD, Stoch RSI and
   Bollinger carry a stored source without a selector, and are covered by the same rule.
+  Bollinger's chart line now honours that stored source too (`indicatorLayer.ts`), so a
+  hand-edited non-close value draws the line it names and the rule refuses it — the chart
+  and the rule agree instead of the chart silently drawing the close.
 
 Not changed: alerts already armed from such a card before this keep computing over the
 close. Their documents carry no source, so there is nothing to tell them apart by.

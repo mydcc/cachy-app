@@ -264,15 +264,16 @@ const ALERT_PATH_SOURCE = "close";
 /**
  * Whether a card's line is drawn over the price the alert path computes over.
  *
- * A missing or empty source is the close, because that is what the chart draws
- * for one (`indicatorLayer.ts`, `src`). Anything else is not, including a value
+ * Mirrors the chart's own fallback (`indicatorLayer.ts`, `src`): a falsy source
+ * (`undefined`, `null`, `""`, `0`, `false`) is the close, because that is what
+ * the chart draws for one. Any other non-empty value is not, including a value
  * this module does not recognise: that is only reachable through a hand-edited
  * store, and guessing "close" would arm an alert on a line the trader may not be
  * looking at.
  */
 function drawnOverAlertPathSource(card: SettingsCard): boolean {
     const source = card.source;
-    return source === undefined || source === null || source === "" || source === ALERT_PATH_SOURCE;
+    return !source || source === ALERT_PATH_SOURCE;
 }
 
 /**
@@ -348,17 +349,16 @@ function refFor(mapping: LineMapping, entry: CatalogueEntry, card: SettingsCard)
 /**
  * The refs a settings card configures, in the order the panel shows them.
  *
- * Empty when the card has no alert action, and when its line is drawn over a
- * price the alert path does not compute over — a ref would name the indicator
- * but not the line (BUG-0453). Never partially filled: a parameter the card
- * cannot supply takes the registry default, so the result is always a document
- * the core accepts.
+ * Empty unless `cardAlertAvailability` answers `armable`, so the button and the
+ * refs cannot disagree about whether the card is armable. Never partially
+ * filled: a parameter the card cannot supply takes the registry default, so the
+ * result is always a document the core accepts.
  */
 export function indicatorRefsFrom(
     settingsKey: string,
     card: SettingsCard,
 ): readonly IndicatorRef[] {
-    if (!drawnOverAlertPathSource(card)) return [];
+    if (cardAlertAvailability(settingsKey, card) !== "armable") return [];
     return mappedIndicatorRefs(settingsKey, card).filter((ref) => catalogueEntry(ref.id) !== null);
 }
 
@@ -385,9 +385,9 @@ export function mappedIndicatorRefs(
 /**
  * The seed the indicator entry point hands to `openAlertPanelWith`.
  *
- * `null` unless `cardAlertAvailability` answers `armable` — through
- * `indicatorRefsFrom`, which applies the same two checks — so the button and
- * the seed cannot disagree about which cards are armable.
+ * `null` unless `cardAlertAvailability` answers `armable` — `indicatorRefsFrom`
+ * asks it — so the button and the seed cannot disagree about which cards are
+ * armable.
  *
  * The condition is the tab's own default shape with the configured indicator
  * substituted for the default one: `> 0` against a constant, left for the
