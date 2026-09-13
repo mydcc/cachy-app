@@ -212,7 +212,12 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
         id: "parabolic_sar",
         group: "trend",
         params: [factor("start", "0.02"), factor("increment", "0.02"), factor("max", "0.2")],
-        outputs: value("price"),
+        // `direction` is +1 while the SAR trails below the price and -1 while it
+        // stands above, so "the SAR flips" is a cross of 0 (FEAT-0446 group 4).
+        outputs: [
+            { name: "value", dimension: "price" },
+            { name: "direction", dimension: "unitless" },
+        ],
     },
     {
         id: "ichimoku",

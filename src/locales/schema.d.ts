@@ -454,6 +454,7 @@ export type TranslationKey =
   | "dashboard.alerts.indicators.output.base"
   | "dashboard.alerts.indicators.output.span_a"
   | "dashboard.alerts.indicators.output.span_b"
+  | "dashboard.alerts.indicators.output.direction"
   | "dashboard.alerts.indicators.param.period"
   | "dashboard.alerts.indicators.param.fast_period"
   | "dashboard.alerts.indicators.param.slow_period"

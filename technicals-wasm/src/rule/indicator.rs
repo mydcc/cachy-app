@@ -386,7 +386,15 @@ pub const REGISTRY: &[IndicatorSpec] = &[
                 },
             },
         ],
-        outputs: VALUE_PRICE,
+        // `direction` is +1 while the SAR trails below the price and -1 while
+        // it stands above. The flip a trader means is the SAR changing side,
+        // which "the close crosses the SAR" misses when one candle reverses it
+        // and closes back beyond it; "direction crosses 0" is that flip exactly
+        // (FEAT-0446 group 4). Unitless, so it pairs with a constant.
+        outputs: &[
+            ("value", Dimension::Price),
+            ("direction", Dimension::Unitless),
+        ],
     },
     IndicatorSpec {
         id: "ichimoku",
@@ -796,6 +804,31 @@ mod tests {
             ..bandwidth.clone()
         };
         assert_eq!(upper.output_dimension(), Some(Dimension::Price));
+    }
+
+    /// FEAT-0446 group 4: the SAR's side is its own line, unitless, so "the SAR
+    /// flips" is a cross of 0 rather than a cross of the price.
+    #[test]
+    fn parabolic_sar_declares_its_side_beside_its_price() {
+        let ratio = |s: &str| ParamValue::Ratio(Decimal::from_str(s).unwrap());
+        let direction = indicator(
+            "parabolic_sar",
+            &[
+                ("start", ratio("0.02")),
+                ("increment", ratio("0.02")),
+                ("max", ratio("0.2")),
+            ],
+            "direction",
+        );
+        assert!(refusals(&direction).is_empty());
+        assert_eq!(direction.output_dimension(), Some(Dimension::Unitless));
+
+        let value = IndicatorRef {
+            output: "value".to_string(),
+            ..direction.clone()
+        };
+        assert!(refusals(&value).is_empty());
+        assert_eq!(value.output_dimension(), Some(Dimension::Price));
     }
 
     #[test]

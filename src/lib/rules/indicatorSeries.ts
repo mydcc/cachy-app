@@ -479,6 +479,39 @@ export function computeIndicatorSeries(
       });
     }
 
+    case "parabolic_sar": {
+      const start = factor(params.start);
+      const increment = factor(params.increment);
+      const max = factor(params.max);
+      if (start === undefined || increment === undefined || max === undefined) {
+        return {
+          supported: false,
+          reason: "parabolic_sar needs a positive start, increment and max",
+        };
+      }
+      // `value` is the SAR the chart draws; `direction` is the side it stands
+      // on, so "the SAR flips" is `direction` crossing 0 — exactly, where the
+      // close crossing the SAR misses a reversal the same candle closes back
+      // across.
+      const lines = JSIndicators.psarLines(
+        column(candles, "high"),
+        column(candles, "low"),
+        start,
+        increment,
+        max,
+      );
+      // The first candle's SAR is the seed, its own low, and exists only once a
+      // second candle does: with one candle `psarLines` has no value at all. A
+      // value that appears at a candle when a later one closes is not causal,
+      // so the seed has none here.
+      lines.value[0] = Number.NaN;
+      lines.direction[0] = Number.NaN;
+      return lineNamed("parabolic_sar", output, {
+        value: () => lines.value,
+        direction: () => lines.direction,
+      });
+    }
+
     case "volume_ma": {
       const period = whole(params.period);
       if (period === undefined) {

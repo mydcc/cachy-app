@@ -125,6 +125,7 @@ const WASM_LOCATION: Record<string, { group: string; key: string }> = {
   "-DI(14)": { group: "oscillators", key: "ADX14_minus" },
   "SuperTrend upper": { group: "volatility", key: "SuperTrend_10-3_upper" },
   "SuperTrend lower": { group: "volatility", key: "SuperTrend_10-3_lower" },
+  "Parabolic SAR": { group: "volatility", key: "PSAR" },
 };
 
 /**
@@ -142,6 +143,8 @@ const NOT_IN_WASM: Record<string, string> = {
     "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
   "Stoch RSI %D":
     "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
+  "Parabolic SAR direction":
+    "WASM reports the SAR, not the side it stands on; indicatorSeries.test.ts checks both lines against a Decimal replay of Wilder's SAR",
   "Bollinger bandwidth":
     "WASM reports the three bands, not their width; the bands it is derived from are compared above",
   "Ichimoku conversion":
@@ -167,7 +170,7 @@ const MAPPING: Array<{ label: string; group: string; key: string; needs: number;
 const WASM_SETTINGS = JSON.stringify({
   ema: [{ length: 20 }, { length: 50 }],
   sma: [{ length: 20 }, { length: 50 }, { length: 200 }],
-  wma: [{ length: 20 }], vwma: [{ length: 20 }], hma: [{ length: 20 }], supertrend: [{ length: 10, multiplier: 3 }], psar: [],
+  wma: [{ length: 20 }], vwma: [{ length: 20 }], hma: [{ length: 20 }], supertrend: [{ length: 10, multiplier: 3 }], psar: [{ start: 0.02, increment: 0.02, max: 0.2 }],
   rsi: [{ length: 14 }],
   macd: [{ fast: 12, slow: 26, signal: 9 }],
   stoch: [{ k: 14, d: 3, smooth: 3 }], cci: [{ length: 20 }], adx: [{ length: 14 }], mom: [{ length: 10 }], wr: [{ length: 14 }], mfi: [{ length: 14 }],

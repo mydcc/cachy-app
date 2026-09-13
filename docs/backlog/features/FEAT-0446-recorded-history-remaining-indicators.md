@@ -54,16 +54,17 @@ The other sixteen are thresholds or crosses in the shape already covered.
 ## Acceptance criteria
 
 - [ ] Every id in `REGISTRY_CATALOGUE` has at least one recorded-history expectation —
-      21 of 23; the other 2 cannot fire today, see "Found: 14 indicators are not on the
+      22 of 23; the other 1 cannot fire today, see "Found: 14 indicators are not on the
       alert path" and "Decided: hide now, wire in groups" (since BUG-0451 the panel's
       `INDICATOR_CATALOGUE` is only the computable subset, so this criterion names the
       registry mirror on purpose)
 - [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
-      path genuinely cannot compute — 2 today, each stating the real reason — and the
+      path genuinely cannot compute — 1 today, stating the real reason — and the
       test that rejects a stale entry keeps it that way
 - [ ] OBV's condition shape is decided and documented before it is wired in (see "Found:
       OBV depends on the loaded window")
-- [ ] Parabolic SAR's condition shape is decided and documented before it is asserted
+- [x] Parabolic SAR's condition shape is decided and documented before it is asserted
+      (see "Decided: group 4")
 - [x] Ichimoku's displacement handling is asserted against the chart's own values, not
       only against the evaluator (`indicatorLayer.test.ts`, "the Ichimoku lines an alert
       reads are the lines drawn")
@@ -142,7 +143,7 @@ list in `indicatorCatalogue.test.ts`. Three guards already fail if any of those 
 | 1 — single line from close | `momentum` | no high/low column yet on the alert path; smallest step. **Wired (2026-09-13).** OBV was planned here and moved to group 4 |
 | 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once. **Wired (2026-09-13).** CCI over the typical price, see "Decided: group 2" |
 | 3 — several output lines | `stochastic`, `stoch_rsi`, `adx`, `super_trend` | output-line mapping, like MACD and Bollinger. **Wired (2026-09-13).** See "Decided: group 3" |
-| 4 — shape decisions first | `parabolic_sar`, `ichimoku`, `obv` | SAR flips side; Ichimoku displaces forward; OBV's level depends on the loaded window — each needs its condition shape decided and written down before it is asserted. **Decided (2026-09-13)**, see "Decided: group 4"; one PR each. **Ichimoku wired** |
+| 4 — shape decisions first | `parabolic_sar`, `ichimoku`, `obv` | SAR flips side; Ichimoku displaces forward; OBV's level depends on the loaded window — each needs its condition shape decided and written down before it is asserted. **Decided (2026-09-13)**, see "Decided: group 4"; one PR each. **Ichimoku and Parabolic SAR wired** |
 
 The suite enforces the ordering either way: "scopes out only indicators the alert path
 genuinely cannot compute" fails the moment one of the fourteen becomes computable, so
@@ -276,6 +277,23 @@ Put to the product owner with measurements on the recorded fixture, and decided:
 - The lines were 0 before their windows were full; that is fixed first in [`BUG-0463`](../bugs/BUG-0463-ichimoku-lines-zero-before-window.md).
 - Every line is a window midpoint, so it does not depend on where the buffer starts; pinned exactly.
 
+**Parabolic SAR (wired).**
+- The core's `parabolic_sar` has two outputs now: `value` (price) and `direction` (unitless:
+  +1 while the SAR trails below the price, −1 while it stands above). "The SAR flips short"
+  is `direction` crossing below 0. Existing documents without an output still read `value`.
+- `JSIndicators.psarLines` computes both from the one state machine the chart's `psar`
+  now delegates to.
+- The first candle's SAR is the seed (its own low) and has no value on the alert path: it
+  only exists once a second candle does, which the causality test caught.
+- Parity: the SAR is in `WASM_LOCATION` at 1e-9; WASM has no side, so `direction` is in
+  `NOT_IN_WASM` and both lines are checked against Wilder's rules replayed in `Decimal`.
+- Start-dependence: the SAR resynchronises at its first reversal after the buffer's
+  start, within 50 candles on the fixture, and is exact after that.
+- This is Cachy's (Wilder's) SAR, the one the chart draws. TradingView's `ta.sar` checks
+  the reversal before clamping to the previous two candles and reverses to the extreme or
+  the candle's own high, whichever is further; on the fixture the two differ on 142 of 940
+  values. The contract is this app's chart.
+
 **A cross on an exact tie keeps the core's convention.** Ichimoku's conversion and base lines tie on 44 candles of the fixture, which exposed that both condition oracles defined a cross as TradingView does, not as the core does. The core stays and the oracles follow it: [`BUG-0464`](../bugs/BUG-0464-test-oracles-cross-convention.md).
 
 **The warmup table is keyed by output line.** `warmupFor` matched id and parameters only, so a condition on span B (78 candles) took the conversion line's 9 and would have been asserted from candle 27. It now matches the output too; the Bollinger bandwidth, read by the squeeze expectation, got its own entry, and `indicatorWarmup.test.ts` pins that no entry promises a value before the series has one.
@@ -284,7 +302,10 @@ Put to the product owner with measurements on the recorded fixture, and decided:
 
 - Ichimoku wired into the alert path and back in the panel. Recorded-history expectations: the TK cross, conversion crossing above base (25 flips), and the close crossing below span B (12)
 - `BUG-0462` (PR #3259) found probing the Parabolic SAR: the panel read the start factor as the increment, up to 3263 from the chart's line
-- `SCOPED_OUT` is down to OBV and the Parabolic SAR
+- Parabolic SAR wired, with its new `direction` output. Recorded-history expectations: the
+  SAR flipping short (39 flips) and the close crossing below the SAR (38). The one flip only
+  `direction` catches is candle 967, pinned in both
+- `SCOPED_OUT` is down to OBV
 
 ## Progress (2026-09-13, group 3)
 
