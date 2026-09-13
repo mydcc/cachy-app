@@ -1,0 +1,244 @@
+/*
+ * Copyright (C) 2026 MYDCT
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * AI provider registry — FEAT-0467, ADR-0019.
+ *
+ * Pure module: no I/O, no store reads, no Svelte runes, so the registry, the
+ * validation and the migration off the legacy per-provider settings fields can
+ * be tested without a DOM.
+ *
+ * A provider is a *wire format* plus an endpoint. "Which provider" used to be
+ * the fixed `AiProvider` union plus a settings field per provider; here the
+ * built-ins are presets of one registry shape so a user can add their own
+ * OpenAI-, Anthropic- or Google-compatible entry without a new code path.
+ *
+ * Credentials are Class A (ADR-0001). `ProviderConfig.apiKey` is the in-memory
+ * value only; encryption at rest is layered on in a later slice, mirroring the
+ * named exchange accounts.
+ */
+
+import type { AiProvider } from "../settings.svelte";
+
+/**
+ * The wire format a provider speaks. Everything provider-specific — request
+ * mapping, streaming parse, model listing — is keyed on this, not on the
+ * vendor.
+ */
+export type AiApiFlavor =
+  | "openai-chat"
+  | "openai-responses"
+  | "anthropic-messages"
+  | "google-generate";
+
+export const AI_API_FLAVORS: readonly AiApiFlavor[] = [
+  "openai-chat",
+  "openai-responses",
+  "anthropic-messages",
+  "google-generate",
+];
+
+/** Flavor used when a config does not name one explicitly. */
+export const DEFAULT_AI_API_FLAVOR: AiApiFlavor = "openai-chat";
+
+/** A provider entry, built-in or user-created. */
+export interface ProviderConfig {
+  /** Stable identity. Never reused, never rewritten by a migration. */
+  id: string;
+  /** User-facing label. */
+  label: string;
+  flavor: AiApiFlavor;
+  /** Base URL of the provider. Empty means "use the preset default". */
+  baseUrl: string;
+  model: string;
+  /** In-memory credential; encrypted at rest in a later slice (ADR-0019). */
+  apiKey: string;
+  /**
+   * Opt-in server relay for providers that do not answer a browser
+   * cross-origin request. Off by default; the key must not transit Cachy
+   * infrastructure unless the user turned this on (ADR-0019).
+   */
+  allowServerRelay: boolean;
+}
+
+/** A built-in provider definition. User providers are plain `ProviderConfig`s. */
+export interface BuiltinProviderPreset {
+  id: AiProvider;
+  label: string;
+  flavor: AiApiFlavor;
+  defaultBaseUrl: string;
+  defaultModel: string;
+  /** Whether the provider cannot be used without the user's own key. */
+  requiresKey: boolean;
+  /** Reached directly from the browser and typically local (ADR-0011). */
+  localFirst: boolean;
+}
+
+/**
+ * The built-in providers. Order is presentation order in Settings → AI.
+ * Defaults mirror the values the send path and model routes already use.
+ */
+export const BUILTIN_AI_PROVIDERS: readonly BuiltinProviderPreset[] = [
+  {
+    id: "ollama",
+    label: "Ollama",
+    flavor: "openai-chat",
+    defaultBaseUrl: "",
+    defaultModel: "",
+    requiresKey: false,
+    localFirst: true,
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    flavor: "openai-chat",
+    defaultBaseUrl: "https://openrouter.ai/api/v1",
+    defaultModel: "",
+    requiresKey: true,
+    localFirst: false,
+  },
+  {
+    id: "openai",
+    label: "OpenAI",
+    flavor: "openai-chat",
+    defaultBaseUrl: "https://api.openai.com/v1",
+    defaultModel: "gpt-4o",
+    requiresKey: true,
+    localFirst: false,
+  },
+  {
+    id: "gemini",
+    label: "Google Gemini",
+    flavor: "google-generate",
+    defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    defaultModel: "gemini-1.5-flash",
+    requiresKey: true,
+    localFirst: false,
+  },
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    flavor: "anthropic-messages",
+    defaultBaseUrl: "https://api.anthropic.com/v1",
+    defaultModel: "claude-sonnet-5",
+    requiresKey: true,
+    localFirst: false,
+  },
+];
+
+const PRESETS_BY_ID = new Map<string, BuiltinProviderPreset>(
+  BUILTIN_AI_PROVIDERS.map((p) => [p.id, p]),
+);
+
+/** The built-in preset for an id, or `undefined` for a user-created provider. */
+export function builtinPreset(id: string): BuiltinProviderPreset | undefined {
+  return PRESETS_BY_ID.get(id);
+}
+
+/** The wire format of a provider id, when it is a built-in. */
+export function flavorOf(id: string): AiApiFlavor | undefined {
+  return PRESETS_BY_ID.get(id)?.flavor;
+}
+
+/** True for an absolute http(s) URL. Format only — reserved hosts are a
+ *  server-side concern enforced by `src/lib/server/urlValidator.ts`. */
+export function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** Error codes for `validateProviderConfig`; the UI translates them. */
+export type ProviderConfigError =
+  | "id"
+  | "label"
+  | "flavor"
+  | "model"
+  | "baseUrl"
+  | "duplicateId";
+
+export interface ValidateProviderConfigOptions {
+  /** Ids already in use; the config's own id must not appear twice. */
+  existingIds?: readonly string[];
+  /** Structural migration tolerates an empty model and base URL. */
+  allowEmptyModel?: boolean;
+}
+
+/**
+ * Validate a provider config. Returns the list of problems, empty when valid.
+ *
+ * `baseUrl` is optional: an empty value means the preset default. It is only
+ * checked for shape, never for reachability — the server owns that.
+ */
+export function validateProviderConfig(
+  cfg: ProviderConfig,
+  options: ValidateProviderConfigOptions = {},
+): ProviderConfigError[] {
+  const errors: ProviderConfigError[] = [];
+  const id = cfg.id.trim();
+
+  if (!id) errors.push("id");
+  if (!cfg.label.trim()) errors.push("label");
+  if (!AI_API_FLAVORS.includes(cfg.flavor)) errors.push("flavor");
+  if (!options.allowEmptyModel && !cfg.model.trim()) errors.push("model");
+
+  const baseUrl = cfg.baseUrl.trim();
+  if (baseUrl && !isValidHttpUrl(baseUrl)) errors.push("baseUrl");
+
+  if (id && options.existingIds?.includes(id)) errors.push("duplicateId");
+
+  return errors;
+}
+
+/** The legacy per-provider settings fields a built-in config is built from. */
+export interface LegacyAiProviderFields {
+  apiKey: string;
+  model: string;
+  baseUrl: string;
+}
+
+/**
+ * Build a `ProviderConfig` for a built-in from its legacy settings fields,
+ * falling back to the preset's default endpoint and model. This is the
+ * read-only bridge the settings store migrates through; it does not mutate
+ * anything.
+ */
+export function providerConfigFromLegacy(
+  id: AiProvider,
+  legacy: LegacyAiProviderFields,
+): ProviderConfig {
+  const preset = builtinPreset(id);
+  return {
+    id,
+    label: preset?.label ?? id,
+    flavor: preset?.flavor ?? DEFAULT_AI_API_FLAVOR,
+    baseUrl: legacy.baseUrl?.trim() || preset?.defaultBaseUrl || "",
+    model: legacy.model?.trim() || preset?.defaultModel || "",
+    apiKey: legacy.apiKey ?? "",
+    allowServerRelay: false,
+  };
+}
+
+/**
+ * Free-tier model ids, as published by aggregators: OpenCode Zen and
+ * Command Code mark them `-free` / `:free`. Used to label the picker, never to
+ * filter a model out.
+ */
+export function isFreeModelId(id: string): boolean {
+  return /[-:]free$/i.test(id.trim());
+}
