@@ -34,7 +34,8 @@ With default settings, on the chart test's candles, the last five values:
 - Stoch RSI %K: `66.7 41.9 41.9 75.2 100` drawn, for `58.6 41.9 25.5 50.8 75.5`
 
 Stoch RSI is the worse case: a 3-candle lookback swings between 0 and 100 far more often
-than the 14-candle one the card sets. Both are enabled by default on their cards.
+than the 14-candle one the card sets. Either pane shows only when its card is set to show
+in the chart.
 
 ## Evidence
 
