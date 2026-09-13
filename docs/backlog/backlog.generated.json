@@ -6252,6 +6252,26 @@
       "file": "bugs/BUG-0437-unwired-bitunix-ws-schemas.md"
     },
     {
+      "id": "BUG-0450",
+      "title": "The JavaScript WMA drifts from the exact value in proportion to series length",
+      "type": "bug",
+      "status": "done",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "indicators",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "branch": "fix/bug-0450-sliding-sum-drift",
+      "start_date": "2026-09-13",
+      "file": "bugs/BUG-0450-wma-sliding-sum-drift.md"
+    },
+    {
       "id": "FEAT-0022",
       "title": "Make settings findable with a search box",
       "type": "feature",
@@ -7187,5 +7207,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 332
+  "count": 333
 }
