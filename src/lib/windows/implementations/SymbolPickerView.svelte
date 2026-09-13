@@ -16,13 +16,14 @@
 -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import { CONSTANTS, icons } from "../../../lib/constants";
     const majorsSet = new Set(CONSTANTS.MAJORS);
     import { _ } from "../../../locales/i18n";
     import { tradeState } from "../../../stores/trade.svelte";
     import { app } from "../../../services/app";
     import { activeExchange } from "../../../services/exchange";
+    import { marketWatcher } from "../../../services/marketWatcher";
     import { uiState } from "../../../stores/ui.svelte";
     import { marketState } from "../../../stores/market.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -138,30 +139,36 @@
         return result;
     });
 
-    // Lazy Subscription Management
+    // Lazy Subscription Management. Every channel goes through MarketWatcher:
+    // the ledger owns the wire subscription and replays it after a reconnect
+    // (FEAT-0227). A direct `marketData.subscribe` bypassed that and was
+    // silently dropped by `ConnectionManager.killAll()` — the picker then sat
+    // on stale snapshot prices until the filter changed.
+    //
+    // The diff is incremental and the teardown lives in `onDestroy`, not in the
+    // `$effect` return: an effect cleanup runs on *every* re-run, so on
+    // `[A, B] -> [B, C]` it would unregister B, and the body would then skip
+    // re-registering it (B is still in `previousSubs`) — quietly dropping an
+    // overlapping ticker until it left and re-entered the visible set.
     let previousSubs = new Set<string>();
 
     $effect(() => {
         // Subscribe to top 50 visible symbols
-        const visible = sortedAndFilteredSymbols.slice(0, 50);
-        const newSubs = new Set(visible);
+        const newSubs = new Set(sortedAndFilteredSymbols.slice(0, 50));
 
-        // Diffing. Resolve the adapter once per run: an exchange switch
-        // between subscribe and cleanup would otherwise unsubscribe on the
-        // wrong venue and leak the subscription on the old one.
-        const { marketData } = activeExchange();
-        previousSubs.forEach((s) => {
-            if (!newSubs.has(s)) marketData.unsubscribe(s, "ticker");
-        });
-        newSubs.forEach((s) => {
-            if (!previousSubs.has(s)) marketData.subscribe(s, "ticker");
-        });
+        for (const s of previousSubs) {
+            if (!newSubs.has(s)) marketWatcher.unregister(s, "ticker");
+        }
+        for (const s of newSubs) {
+            if (!previousSubs.has(s)) marketWatcher.register(s, "ticker");
+        }
 
         previousSubs = newSubs;
+    });
 
-        return () => {
-            previousSubs.forEach((s) => marketData.unsubscribe(s, "ticker"));
-        };
+    onDestroy(() => {
+        for (const s of previousSubs) marketWatcher.unregister(s, "ticker");
+        previousSubs = new Set();
     });
 
     function getChangePercent(s: string) {
