@@ -307,9 +307,14 @@ Put to the product owner with measurements on the recorded fixture, and decided:
   Once OBV is computed they reach the core and are refused, and
   `BUG-0467` (PR #3269) makes that a
   report instead of a log line on every close. Wiring OBV in depends on it.
-- **Open before OBV can be offered:** the Indicators tab builds a condition against a
-  number, a price or another indicator, never against a window, and the card's seed starts
-  from a number. So the panel cannot yet build the one OBV condition the core accepts.
+- **The builder gained the shape (decided 2026-09-13: for every indicator, not OBV
+  alone).** The Indicators and Combo tabs offer "its own high or low" over N candles
+  (`Reference` kind `window`, always over the subject). Against a window only the two
+  comparisons that can be both true and false are offered (`≥`/`<` the highest, `≤`/`>`
+  the lowest), since the window includes the evaluated candle. A cumulative indicator is
+  offered nothing but its window and starts at its 20-candle high (`defaultForm`), which
+  the card's seed inherits. This also makes squeeze and breakout conditions buildable for
+  every indicator.
 
 **A cross on an exact tie keeps the core's convention.** Ichimoku's conversion and base lines tie on 44 candles of the fixture, which exposed that both condition oracles defined a cross as TradingView does, not as the core does. The core stays and the oracles follow it: [`BUG-0464`](../bugs/BUG-0464-test-oracles-cross-convention.md).
 

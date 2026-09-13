@@ -539,8 +539,16 @@
         "reference": {
           "constant": "a value",
           "price": "the price",
-          "indicator": "another indicator"
+          "indicator": "another indicator",
+          "window": "its own high or low"
         },
+        "windowAggLabel": "Extreme",
+        "windowAgg": {
+          "max": "highest",
+          "min": "lowest"
+        },
+        "lookbackLabel": "Candles",
+        "windowHint": "The window includes the current candle: \"≥ highest\" means a new high over that many candles, \"≤ lowest\" a new low. This is not divergence between swing points.",
         "subjectLabel": "Indicator",
         "outputLabel": "Line",
         "paramsLabel": "Parameters",
@@ -590,7 +598,8 @@
         "reference": {
           "constant": "A value",
           "price": "Price",
-          "indicator": "Another indicator"
+          "indicator": "Another indicator",
+          "window": "Its own high or low"
         },
         "priceField": {
           "open": "Open",

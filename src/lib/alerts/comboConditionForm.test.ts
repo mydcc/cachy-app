@@ -130,6 +130,22 @@ describe("readComboForm", () => {
         expect(read?.rows.map((row) => row.form)).toEqual(form.rows.map((row) => row.form));
     });
 
+    it("round-trips a row measured against its own window", () => {
+        // FEAT-0446 group 4: the combo rows share the Indicators tab's form, so
+        // a window reference built in one row reads back as that row.
+        const one = formWith(1);
+        const row = one.rows[0];
+        const windowed = replaceRow(one, row.id, {
+            form: {
+                ...row.form,
+                relation: { kind: "compare", op: "gte" },
+                reference: { kind: "window", agg: "max", lookback: 50 },
+            },
+        });
+        const read = readComboForm(buildComboCondition(windowed, TRIGGER), TRIGGER);
+        expect(read?.rows[0].form).toEqual(windowed.rows[0].form);
+    });
+
     it("reports a row's own timeframe as its own, not as the trigger's", () => {
         const one = formWith(1);
         const coarser = replaceRow(one, one.rows[0].id, { timeframe: "4h" });
