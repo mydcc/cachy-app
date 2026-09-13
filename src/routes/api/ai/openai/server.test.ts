@@ -253,4 +253,34 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306) & SSRF guard 
     const body = await res.json();
     expect(body.models.map((m: { id: string }) => m.id)).toEqual(["gpt-4o"]);
   });
+
+  it("treats an explicitly pasted OpenAI endpoint as the vendor catalog", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: "gpt-4o" },
+            { id: "text-embedding-3-small" },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+    globalThis.fetch = fetchMock;
+
+    const request = new Request(
+      "http://localhost/api/ai/openai/models?baseUrl=https://api.openai.com/v1",
+      { method: "GET", headers: { "x-app-access-token": issueToken() } },
+    );
+
+    const res = await GET_MODELS({
+      url: new URL(request.url),
+      request,
+      getClientAddress: () => "127.0.0.1",
+    } as unknown as Parameters<typeof GET_MODELS>[0]);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.models.map((m: { id: string }) => m.id)).toEqual(["gpt-4o"]);
+  });
 });
