@@ -152,13 +152,25 @@ location / {
 - **`X-Forwarded-Host`** preserves the host the browser used.
 
 **`add_header` is not inherited by locations.** nginx drops every `add_header`
-declared at the `server` level for a `location` that declares its own. A
-`location /` carrying `add_header X-Cache …` therefore loses a server-level
-`Strict-Transport-Security`. Repeat the header inside the location, and add
-`always` so it also applies to error responses:
+declared at the `server` level for a `location` that declares its own (such as aaPanel's default `location /` with `add_header X-Cache` or custom cache rules). When `add_header` is present in `location /`, all server-level security headers (HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy) are ignored unless explicitly repeated inside the location block with `always`:
 
 ```nginx
-add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+location / {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+
+    # Security Headers (Must be present inside location block if any add_header directive is used inside it)
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Cross-Origin-Opener-Policy "same-origin-allow-popups" always;
+    # Note: Content-Security-Policy can also be added here or passed through from the Node app if proxy_hide_header is not set.
+}
 ```
 
 **Prefer TLS 1.2 and newer.** Leave `TLSv1.1` out of `ssl_protocols`; it is
