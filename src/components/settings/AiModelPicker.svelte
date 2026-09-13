@@ -18,6 +18,7 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { getModels, type AiModelInfo } from "../../services/aiModelsService";
+  import { isFreeModelId } from "../../stores/settings/aiProviders";
   import type { AiProvider } from "../../stores/settings.svelte";
 
   interface Props {
@@ -80,6 +81,7 @@
 
   function formatModelLabel(m: AiModelInfo): string {
     let label = m.label;
+    if (isFreeModelId(m.id)) label += ` · ${$_("settings.ai.model.free")}`;
     if (m.contextWindow) label += ` · ${Math.round(m.contextWindow / 1000)}K`;
     if (m.inputPrice !== undefined) label += ` · $${m.inputPrice.toFixed(2)}/1M`;
     if (m.deprecated) label += ` · ${$_("settings.ai.model.deprecated")}`;

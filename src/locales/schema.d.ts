@@ -1357,6 +1357,7 @@ export type TranslationKey =
   | "settings.ai.model.connectionOk"
   | "settings.ai.model.notInList"
   | "settings.ai.model.deprecated"
+  | "settings.ai.model.free"
   | "settings.ai.ollamaBaseUrl"
   | "settings.ai.ollamaBaseUrlDesc"
   | "settings.ai.customBaseUrl"

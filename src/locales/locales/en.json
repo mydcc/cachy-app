@@ -1527,7 +1527,8 @@
         "placeholder": "Enter model ID...",
         "connectionOk": "Connection successful, model list up to date.",
         "notInList": "The saved model was not found in the provider's current list. It may have been retired — please pick another one.",
-        "deprecated": "retiring soon"
+        "deprecated": "retiring soon",
+        "free": "free"
       },
       "ollamaBaseUrl": "Ollama Server Address",
       "ollamaBaseUrlDesc": "Local Ollama install, e.g. http://localhost:11434. Never leaves your device.",
