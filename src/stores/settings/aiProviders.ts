@@ -31,6 +31,7 @@
  */
 
 import type { AiProvider } from "../settings.svelte";
+import { generateId } from "../../utils/utils";
 
 /**
  * The wire format a provider speaks. Everything provider-specific — request
@@ -253,4 +254,56 @@ export function providerConfigFromLegacy(
  */
 export function isFreeModelId(id: unknown): boolean {
   return typeof id === "string" && /[-:]free$/i.test(id.trim());
+}
+
+/** True when `id` names one of the built-in presets. */
+export function isBuiltinProvider(id: string): boolean {
+  return PRESETS_BY_ID.has(id);
+}
+
+/**
+ * An id for a provider the user is creating. User ids cannot collide with the
+ * built-in preset ids because those are exactly the five reserved words.
+ */
+export function newProviderId(existing: readonly ProviderConfig[]): string {
+  const taken = new Set<string>([...existing.map((p) => p.id), ...PRESETS_BY_ID.keys()]);
+  let id = generateId();
+  while (taken.has(id)) id = generateId();
+  return id;
+}
+
+/** A blank user provider with an id that cannot collide. */
+export function buildUserProvider(existing: readonly ProviderConfig[]): ProviderConfig {
+  return {
+    id: newProviderId(existing),
+    label: "",
+    flavor: DEFAULT_AI_API_FLAVOR,
+    baseUrl: "",
+    model: "",
+    apiKey: "",
+    allowServerRelay: false,
+  };
+}
+
+/**
+ * Providers with credentials blanked, for the serialization that `toJSON()`
+ * emits. Only `apiKey` is cleared; everything the UI binds to survives.
+ */
+export function redactUserProviders(
+  providers: readonly ProviderConfig[],
+): ProviderConfig[] {
+  return providers.map((provider) => ({ ...provider, apiKey: "" }));
+}
+
+/**
+ * The active provider when it is a user provider. Returns `undefined` for a
+ * built-in id (or a dangling one), so the caller falls back to the built-in
+ * settings fields.
+ */
+export function activeUserProvider(
+  providers: readonly ProviderConfig[] | undefined | null,
+  activeProviderId: string | undefined | null,
+): ProviderConfig | undefined {
+  if (!activeProviderId) return undefined;
+  return providers?.find((provider) => provider.id === activeProviderId);
 }

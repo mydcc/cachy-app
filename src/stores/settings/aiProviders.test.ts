@@ -10,11 +10,16 @@
 import { describe, it, expect } from "vitest";
 import {
   BUILTIN_AI_PROVIDERS,
+  activeUserProvider,
+  buildUserProvider,
   builtinPreset,
   flavorOf,
+  isBuiltinProvider,
   isFreeModelId,
   isValidHttpUrl,
+  newProviderId,
   providerConfigFromLegacy,
+  redactUserProviders,
   validateProviderConfig,
   type ProviderConfig,
 } from "./aiProviders";
@@ -195,5 +200,49 @@ describe("registry input hardening (non-string fields)", () => {
     expect(cfg.baseUrl).toBe("https://api.openai.com/v1");
     expect(cfg.model).toBe("gpt-4o");
     expect(cfg.apiKey).toBe("");
+  });
+});
+
+describe("user provider management", () => {
+  it("distinguishes built-in ids from user ids", () => {
+    expect(isBuiltinProvider("openai")).toBe(true);
+    expect(isBuiltinProvider("custom-gateway")).toBe(false);
+  });
+
+  it("generates a new provider id that is not a built-in or an existing id", () => {
+    const id = newProviderId([{ ...validConfig, id: "existing" }]);
+    expect(id.length).toBeGreaterThan(0);
+    expect(isBuiltinProvider(id)).toBe(false);
+    expect(id).not.toBe("existing");
+  });
+
+  it("builds a blank user provider with the default flavor and relay off", () => {
+    const provider = buildUserProvider([]);
+    expect(provider.label).toBe("");
+    expect(provider.baseUrl).toBe("");
+    expect(provider.model).toBe("");
+    expect(provider.apiKey).toBe("");
+    expect(provider.flavor).toBe("openai-chat");
+    expect(provider.allowServerRelay).toBe(false);
+    expect(isBuiltinProvider(provider.id)).toBe(false);
+  });
+
+  it("redacts credentials without mutating the source or losing other fields", () => {
+    const source = [{ ...validConfig, apiKey: "sk-secret" }];
+    const redacted = redactUserProviders(source);
+
+    expect(redacted[0].apiKey).toBe("");
+    expect(redacted[0].label).toBe(validConfig.label);
+    expect(redacted[0].baseUrl).toBe(validConfig.baseUrl);
+    expect(source[0].apiKey).toBe("sk-secret"); // untouched
+  });
+
+  it("resolves the active user provider, and nothing for built-in or dangling ids", () => {
+    const providers = [validConfig];
+    expect(activeUserProvider(providers, "custom")).toBe(providers[0]);
+    expect(activeUserProvider(providers, "openai")).toBeUndefined();
+    expect(activeUserProvider(providers, "missing")).toBeUndefined();
+    expect(activeUserProvider(providers, "")).toBeUndefined();
+    expect(activeUserProvider(undefined, "custom")).toBeUndefined();
   });
 });
