@@ -58,9 +58,9 @@ The other sixteen are thresholds or crosses in the shape already covered.
       alert path" and "Decided: hide now, wire in groups" (since BUG-0451 the panel's
       `INDICATOR_CATALOGUE` is only the computable subset, so this criterion names the
       registry mirror on purpose)
-- [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` is empty, and the test that
-      rejects a stale entry keeps it that way — 14 entries left, each now stating the real
-      reason
+- [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
+      path genuinely cannot compute — 14 today, each stating the real reason — and the
+      test that rejects a stale entry keeps it that way
 - [ ] Parabolic SAR's condition shape is decided and documented before it is asserted
 - [ ] Ichimoku's displacement handling is asserted against the chart's own values, not
       only against the evaluator
