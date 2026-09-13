@@ -288,6 +288,30 @@ describe("RuleEvaluationLoop", () => {
       );
     });
 
+    it("contains a firing sink that throws for one rule, not the rules after it", () => {
+      const onFiring = vi.fn(() => {
+        throw new Error("sink unavailable");
+      });
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ id: "boom" }), rule({ id: "after" })],
+        onFiring,
+      });
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      const firings = loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      // Both rules were evaluated and reported; only the sink failed. The log
+      // names the sink, so it is not read as an evaluation failure.
+      expect(firings.map((f) => f.rule.id)).toEqual(["boom", "after"]);
+      expect(onFiring).toHaveBeenCalledTimes(2);
+      expect(logger.error).toHaveBeenCalledWith(
+        "alerts",
+        expect.stringContaining("Firing sink failed"),
+        expect.any(Error),
+      );
+    });
+
     it("never throws when a reader fails", () => {
       const loop = new RuleEvaluationLoop({
         readCandles: () => [],
