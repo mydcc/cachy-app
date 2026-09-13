@@ -2,9 +2,9 @@
 
 # Backlog index
 
-344 items. How to read and add them: [README.md](README.md).
+345 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 284 · ⛔ dropped 1
+Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 285 · ⛔ dropped 1
 
 ---
 
@@ -51,6 +51,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | ✅ done | exchange |
 | [FEAT-0229](features/FEAT-0229-refuse-unsupported-verbs-locally.md) | Refuse an order verb the venue cannot do before it leaves the client | P1 | ✅ done | exchange |
 | [FEAT-0251](features/FEAT-0251-journal-redesign-and-fee-breakdown.md) | Journal UI/UX redesign and entry/exit fee breakdown | P1 | ✅ done | ui |
+| [BUG-0465](bugs/BUG-0465-market-data-channel-lost-on-reconnect.md) | Direct market-data subscriptions are silenced by a provider teardown until the symbol changes | P2 | ✅ done | exchange |
 | [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) | Move each venue's socket and subscription ref-counting behind its adapter | P2 | ✅ done | exchange |
 | [FEAT-0228](features/FEAT-0228-venue-modules-in-proxy-routes.md) | Move the venue branches out of the proxy routes into per-venue modules | P2 | ✅ done | exchange |
 | [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | ✅ done | exchange |
@@ -601,6 +602,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0458](bugs/BUG-0458-js-supertrend-never-has-a-value.md) | The JavaScript SuperTrend never has a value | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0459](bugs/BUG-0459-adx-seeds-off-wilder.md) | Both ADX engines seed Wilder's averages differently from the definition | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0460](bugs/BUG-0460-chart-stochastic-lines-ignore-card.md) | The chart's Stochastic and Stoch RSI lines ignore their cards' smoothing | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0465](bugs/BUG-0465-market-data-channel-lost-on-reconnect.md) | Direct market-data subscriptions are silenced by a provider teardown until the symbol changes | P2 | ✅ done | M2 | community, pro, private | C | ADR-0007 | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
