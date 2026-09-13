@@ -635,3 +635,117 @@ describe("IndicatorLayer", () => {
         expect(onPanesChanged).toHaveBeenCalledWith([]);
     });
 });
+
+describe("IndicatorLayer — pane headers on a live tick", () => {
+    type PaneInfo = { key: string; paneIndex: number; value: string };
+    const TICK = { open: 104, high: 131, low: 97, close: 99, volume: 5400 };
+
+    /**
+     * Candles whose range varies from bar to bar. With a constant range the
+     * typical price is the close shifted by a constant, and every oscillator
+     * here is shift-invariant, so a header over the wrong price could not be
+     * told apart from one over the right price.
+     */
+    function unevenRows(n: number): ChartRow[] {
+        return makeRows(n).map((r, i) => ({ ...r, high: r.close + (i % 3) * 1.5, low: r.close - (i % 7) * 0.8 }));
+    }
+
+    function withTick(rows: ChartRow[]): ChartRow[] {
+        const copy = rows.map((r) => ({ ...r }));
+        Object.assign(copy[copy.length - 1], TICK);
+        return copy;
+    }
+
+    function everyPaneState(source: string) {
+        return makeState({
+            volume: { enabled: true, showInChart: true },
+            rsi: on({ length: 14, source }),
+            macd: on({ fastLength: 12, slowLength: 26, signalLength: 9, source }),
+            stochRsi: on({ length: 14, rsiLength: 14, kPeriod: 3, dPeriod: 3, source }),
+            cci: on({ length: 20, source }),
+            momentum: on({ length: 10, source }),
+            williamsR: on({ length: 14 }),
+            obv: on({ smoothingLength: 0 }),
+            mfi: on({ length: 14 }),
+            adx: on({ adxSmoothing: 14, diLength: 14 }),
+            ao: on({ fastLength: 5, slowLength: 34 }),
+            choppiness: on({ length: 14 }),
+            stochastic: on({ kPeriod: 14, dPeriod: 3 }),
+        });
+    }
+
+    function reportedPanes(onPanesChanged: ReturnType<typeof vi.fn>): PaneInfo[] {
+        return onPanesChanged.mock.calls[onPanesChanged.mock.calls.length - 1][0];
+    }
+
+    function headersAfterTick(rows: ChartRow[]): PaneInfo[] {
+        const env = makeChart();
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
+        layer.setAvailableHeight(1400);
+        layer.render(rows.map((r) => ({ ...r })));
+        layer.updateHeaderValues(TICK);
+        return reportedPanes(onPanesChanged);
+    }
+
+    function fullRender(rows: ChartRow[]) {
+        const env = makeChart();
+        const onPanesChanged = vi.fn();
+        const layer = new IndicatorLayer(env.chart, getColor, null, onPanesChanged);
+        layer.setAvailableHeight(1400);
+        layer.render(rows);
+        return { panes: reportedPanes(onPanesChanged), chartPanes: env.panes };
+    }
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("shows CCI of the typical price after a tick when the card is on its default hlc3", () => {
+        Object.assign(indicatorState, makeState({ volume: { enabled: false, showInChart: false }, cci: on({ length: 20, source: "hlc3" }) }));
+        const rows = unevenRows(80);
+
+        const [cci] = headersAfterTick(rows);
+
+        const ticked = withTick(rows);
+        const overTypical = JSIndicators.cci(getSourceData(ticked, "hlc3"), 20).at(-1)!.toFixed(2);
+        const overClose = JSIndicators.cci(getSourceData(ticked, "close"), 20).at(-1)!.toFixed(2);
+        expect(overTypical).not.toBe(overClose);
+        expect(cci.value).toBe(overTypical);
+    });
+
+    it.each(["hlc3", "hl2", "close"])(
+        "reads every pane header after a tick exactly as a full render of the same candles does (source %s)",
+        (source) => {
+            Object.assign(indicatorState, everyPaneState(source));
+            const rows = unevenRows(80);
+
+            const afterTick = headersAfterTick(rows);
+            const rendered = fullRender(withTick(rows)).panes;
+
+            expect(afterTick.map((p) => p.key)).toHaveLength(13);
+            expect(afterTick.map((p) => [p.key, p.value])).toEqual(rendered.map((p) => [p.key, p.value]));
+        },
+    );
+
+    it("gives every indicator pane a header value, whether rendered or ticked", () => {
+        Object.assign(indicatorState, everyPaneState("hlc3"));
+        const rows = unevenRows(80);
+
+        const blank = (panes: PaneInfo[]) => panes.filter((p) => p.key !== "volume" && p.value === "").map((p) => p.key);
+
+        expect(blank(fullRender(rows).panes)).toEqual([]);
+        expect(blank(headersAfterTick(rows))).toEqual([]);
+    });
+
+    it("reports as a pane's header the last value of the first line that pane draws", () => {
+        Object.assign(indicatorState, everyPaneState("hlc3"));
+        const { panes, chartPanes } = fullRender(unevenRows(80));
+
+        for (const pane of panes.filter((p) => p.key !== "volume")) {
+            const [line] = (chartPanes[pane.paneIndex] as unknown as MockPane).series as ISeriesApi<"Line">[];
+            const data = (line.setData as ReturnType<typeof vi.fn>).mock.calls[0][0] as { value: number }[];
+            expect([pane.key, pane.value]).toEqual([pane.key, data.at(-1)!.value.toFixed(2)]);
+        }
+    });
+});

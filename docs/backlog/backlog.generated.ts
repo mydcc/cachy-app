@@ -3957,7 +3957,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0457",
     "title": "Chart pane headers recompute sourced indicators over the close on every live tick",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3969,6 +3969,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0457-chart-header-source",
+    "start_date": "2026-09-13",
     "file": "bugs/BUG-0457-chart-header-values-ignore-source.md"
   },
   {
