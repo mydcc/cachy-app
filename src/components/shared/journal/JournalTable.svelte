@@ -389,7 +389,7 @@
                     {#if visibility.symbol}
                         <th
                             onclick={() => handleMainSort("symbol")}
-                            class="sortable sticky-col col-symbol"
+                                    class="sortable col-symbol"
                         >
                             {$_("journal.table.symbol")}
                             <span class="sort-icon">{sortField === "symbol" ? (sortDirection === "asc" ? "↑" : "↓") : ""}</span>
@@ -505,14 +505,14 @@
                     {#if visibility.pnl}
                         <th
                             onclick={() => handleMainSort("totalNetProfit")}
-                            class="sortable text-right sticky-col-right col-pnl"
+                            class="sortable text-right col-pnl"
                         >
                             {$_("journal.table.pnl")}
                             <span class="sort-icon">{sortField === "totalNetProfit" ? (sortDirection === "asc" ? "↑" : "↓") : ""}</span>
                         </th>
                     {/if}
                     {#if visibility.action}
-                        <th class="text-center sticky-col-right col-action">
+                        <th class="text-center col-action">
                             {$_("journal.table.action")}
                         </th>
                     {/if}
@@ -542,7 +542,7 @@
                                 </td>
                             {/if}
                             {#if visibility.symbol}
-                                <td class="sticky-col col-symbol font-bold whitespace-nowrap">
+                                <td class="col-symbol font-bold whitespace-nowrap">
                                     <div class="flex items-center gap-1.5">
                                         {#if isGroup}
                                             <button
@@ -757,7 +757,7 @@
                             {/if}
                             {#if visibility.pnl}
                                 <td
-                                    class="sticky-col-right col-pnl font-mono text-xs font-bold text-right whitespace-nowrap"
+                                    class="col-pnl font-mono text-xs font-bold text-right whitespace-nowrap"
                                     class:text-[var(--success-color)]={netPnl.gte(0)}
                                     class:text-[var(--danger-color)]={netPnl.lt(0)}
                                 >
@@ -765,7 +765,7 @@
                                 </td>
                             {/if}
                             {#if visibility.action}
-                                <td class="sticky-col-right col-action text-center whitespace-nowrap">
+                                <td class="col-action text-center whitespace-nowrap">
                                     <div class="flex items-center justify-center gap-1">
                                         {#if entryItem}
                                             <button
@@ -804,7 +804,7 @@
                                         </td>
                                     {/if}
                                     {#if visibility.symbol}
-                                        <td class="sticky-col col-symbol font-mono text-xs text-[var(--text-secondary)]">
+                                        <td class="col-symbol font-mono text-xs text-[var(--text-secondary)]">
                                             <div class="flex items-center gap-1">
                                                 <span>↳ #{subTrade.id}</span>
                                                 {#if subTrade.isPaper}
@@ -989,12 +989,12 @@
                                         </td>
                                     {/if}
                                     {#if visibility.pnl}
-                                        <td class="sticky-col-right col-pnl font-mono text-xs font-bold text-right" class:text-[var(--success-color)]={subPnl.gte(0)} class:text-[var(--danger-color)]={subPnl.lt(0)}>
+                                        <td class="col-pnl font-mono text-xs font-bold text-right" class:text-[var(--success-color)]={subPnl.gte(0)} class:text-[var(--danger-color)]={subPnl.lt(0)}>
                                             {subPnl.gte(0) ? "+" : ""}{formatDynamicDecimal(subPnl, 2)}
                                         </td>
                                     {/if}
                                     {#if visibility.action}
-                                        <td class="sticky-col-right col-action text-center">
+                                        <td class="col-action text-center">
                                             <button
                                                 class="action-icon-btn"
                                                 onclick={() => onOpenTradeDetail?.(subTrade)}
@@ -1187,13 +1187,6 @@
         left: 0;
         z-index: 10;
         box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.2);
-    }
-
-    .sticky-col.col-symbol,
-    .sticky-col-right.col-pnl,
-    .sticky-col-right.col-action {
-        position: static;
-        box-shadow: none;
     }
 
     .journal-table thead th.sticky-col {

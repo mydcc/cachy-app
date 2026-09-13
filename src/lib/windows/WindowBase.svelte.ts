@@ -653,6 +653,15 @@ export abstract class WindowBase {
             // geometry keeps at least 38% of the window inside the viewport.
             this.updatePosition(this.x, this.y);
 
+            // Opted-in windows are capped to the viewport here too, so a
+            // window restored on a smaller screen does not come back larger
+            // than it. applyViewportClamp uses the desired size, so growing
+            // the viewport again still restores it.
+            if (this.clampToViewport) {
+                this.applyViewportClamp();
+                this.updatePosition(this.x, this.y);
+            }
+
             // The responsive rule maximized this window and the viewport is
             // still small -- this restore is deliberately undoing that, so
             // suppress re-maximizing until the viewport actually grows past
