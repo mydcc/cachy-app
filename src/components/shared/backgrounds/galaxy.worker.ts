@@ -70,7 +70,6 @@ let isInitialized = false;
 
 // Quality / motion / context-loss state.
 let animating = false;
-let motionReduced = false;
 let contextLost = false;
 let currentTier: ConcreteQuality = 'high';
 let basePixelRatio = 1;
@@ -83,14 +82,13 @@ function applyQuality(): void {
     // The galaxy's point-size uniform is captured at build time, so a tier
     // change has to push the new ratio through or the stars keep the old scale.
     galaxyEngine?.setPixelRatio(ratio);
-    // setPixelRatio resizes and clears the buffer; with motion reduced the loop
-    // has already stopped, so the frozen frame would otherwise go blank.
+    // setPixelRatio resizes and clears the buffer, so queue a repaint.
     ensureFrame();
 }
 
 /**
- * Queue exactly one frame. With motion reduced or the context lost, the frame
- * renders once and does not reschedule itself.
+ * Queue exactly one frame. With the context lost the loop stays stopped;
+ * otherwise the frame reschedules itself.
  */
 function ensureFrame(): void {
     if (animating || contextLost) return;
@@ -140,10 +138,6 @@ self.onmessage = (e: MessageEvent) => {
         case 'quality':
             currentTier = (data?.tier as ConcreteQuality) ?? currentTier;
             applyQuality();
-            break;
-        case 'setMotion':
-            motionReduced = !!data?.reduced;
-            ensureFrame();
             break;
     }
 };
@@ -233,10 +227,6 @@ function animate(time: number) {
 
     renderer.render(scene, camera);
 
-    if (motionReduced) {
-        animating = false;
-        return;
-    }
     requestAnimationFrame(animate);
 }
 
