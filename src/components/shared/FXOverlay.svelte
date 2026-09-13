@@ -33,7 +33,6 @@
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
     import { effectivePixelRatio } from "../../lib/three/quality";
     import { attachContextRecovery } from "../../lib/three/webgl";
-    import { systemReducedMotion } from "../../lib/three/motionState.svelte";
 
     let container: HTMLDivElement;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -379,8 +378,7 @@
         }
     }
 
-    // Quality + reduced motion (see `qualityController` / `lib/three/motionState`).
-    const reducedMotion = $derived(systemReducedMotion());
+    // Quality (see `qualityController`).
 
     $effect(() => {
         if (settingsState.visualQuality !== "auto") return;
@@ -414,10 +412,6 @@
     $effect(() => {
         const origin = effectsState.projectileEvents[0];
         if (origin) {
-            if (reducedMotion) {
-                effectsState.consumeProjectileEvent();
-                return;
-            }
             launch(origin);
             effectsState.consumeProjectileEvent();
             if (!animationId) {
@@ -430,10 +424,6 @@
     $effect(() => {
         const smash = effectsState.smashEvents[0];
         if (smash && camera && stressLogic) {
-            if (reducedMotion) {
-                effectsState.consumeSmashEvent();
-                return;
-            }
             const { rect } = smash;
             const x =
                 ((rect.left + rect.width / 2) / window.innerWidth) * 2 - 1;
@@ -462,10 +452,6 @@
     $effect(() => {
         const duck = effectsState.duckEvents[0];
         if (duck && duckLogic) {
-            if (reducedMotion) {
-                effectsState.consumeDuckEvent();
-                return;
-            }
             duckLogic.handleEvent(duck);
             effectsState.consumeDuckEvent();
 
@@ -478,10 +464,6 @@
 
     function animate() {
         if (!renderer || !scene || !camera) return;
-        if (reducedMotion) {
-            animationId = null;
-            return;
-        }
 
         const anyShardVisible = shards.some((s) => s.visible);
         const physicsActive = !!(stressLogic && stressLogic["physicsBodies"]?.length);

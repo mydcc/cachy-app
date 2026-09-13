@@ -30,7 +30,6 @@
   import { _ } from "../../../locales/i18n";
   import TradeFlowWorker from "./tradeFlow.worker?worker";
   import { concreteQuality, retainAutoQuality } from "./qualityController.svelte";
-  import { systemReducedMotion } from "../../../lib/three/motionState.svelte";
 
   // ========================================
   // LIFECYCLE STATE MANAGEMENT
@@ -408,12 +407,6 @@
     if (lifecycleState !== LifecycleState.READY || !worker) return;
     const tier = concreteQuality(settingsState.visualQuality);
     worker.postMessage({ type: "quality", data: { tier } });
-  });
-
-  // Reduced motion — follows the OS preference automatically.
-  $effect(() => {
-    if (lifecycleState !== LifecycleState.READY || !worker) return;
-    worker.postMessage({ type: "setMotion", data: { reduced: systemReducedMotion() } });
   });
 
   // Gyroscope — separate switch from the 3D galaxy's, and only meaningful for

@@ -25,7 +25,6 @@
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
     import { effectivePixelRatio } from "../../lib/three/quality";
     import { attachContextRecovery } from "../../lib/three/webgl";
-    import { systemReducedMotion } from "../../lib/three/motionState.svelte";
     import { browser } from "$app/environment";
 
     let { layer = "tiles" as const, zIndex = 40 } = $props<{
@@ -57,8 +56,7 @@
         return false;
     });
 
-    // Quality + reduced motion (see `qualityController` / `lib/three/motionState`).
-    const reducedMotion = $derived(systemReducedMotion());
+    // Quality (see `qualityController`).
 
     $effect(() => {
         if (settingsState.visualQuality !== "auto") return;
@@ -72,7 +70,7 @@
     });
 
     $effect(() => {
-        if (isActive && !reducedMotion && typeof document !== "undefined" && !document.hidden) {
+        if (isActive && typeof document !== "undefined" && !document.hidden) {
             requestStartLoop?.();
         } else {
             requestStopLoop?.();
@@ -200,7 +198,7 @@
 
         const startLoop = () => {
             if (isLoopRunning || !renderer || !browser) return;
-            if (document.hidden || !isActive || reducedMotion) return;
+            if (document.hidden || !isActive) return;
             isLoopRunning = true;
             frameId = requestAnimationFrame(animate);
         };
@@ -208,8 +206,8 @@
         const animate = () => {
             if (!isLoopRunning || !renderer) return;
 
-            // Pause if inactive, tab in background, or motion is reduced
-            if (document.hidden || !isActive || reducedMotion) {
+            // Pause if inactive or the tab is in the background
+            if (document.hidden || !isActive) {
                 stopLoop();
                 return;
             }
@@ -324,11 +322,7 @@
         requestStopLoop = stopLoop;
 
         if (isActive && !document.hidden) {
-            if (reducedMotion) {
-                renderer.render(scene, camera);
-            } else {
-                startLoop();
-            }
+            startLoop();
         }
 
         const handleVisibilityChange = () => {
