@@ -37,12 +37,13 @@
         type CatalogueEntry,
     } from "../../../lib/alerts/indicatorCatalogue";
     import {
-        DEFAULT_WINDOW_REFERENCE,
         MAX_WINDOW_LOOKBACK,
         MIN_WINDOW_LOOKBACK,
+        committedWindowLookback,
         compareOpsFor,
         compatibleIndicators,
         defaultForm,
+        defaultWindowReference,
         isReferenceCompatible,
         referenceKindsFor,
         type Reference,
@@ -155,7 +156,7 @@
     function chooseReferenceKind(row: ComboRow, kind: Reference["kind"]): void {
         if (kind === "constant") return setReference(row, { kind: "constant", value: "0" });
         if (kind === "price") return setReference(row, { kind: "price", field: "close" });
-        if (kind === "window") return setReference(row, DEFAULT_WINDOW_REFERENCE);
+        if (kind === "window") return setReference(row, defaultWindowReference());
         const dimension = dimensionFor(row);
         const first = compatibleIndicators(dimension, INDICATOR_CATALOGUE)[0];
         if (!first) return;
@@ -345,7 +346,13 @@
                             max={MAX_WINDOW_LOOKBACK}
                             step="1"
                             value={window.lookback}
-                            onchange={(e) => setReference(row, { ...window, lookback: Number(e.currentTarget.value) })}
+                            onchange={(e) => {
+                                const lookback = committedWindowLookback(e.currentTarget.value, window.lookback);
+                                // Written back to the field too: a clamp onto the span the
+                                // row already holds changes no state, so nothing re-renders.
+                                e.currentTarget.value = String(lookback);
+                                setReference(row, { ...window, lookback });
+                            }}
                         />
                     </label>
                 {:else if row.form.reference.kind === "constant"}

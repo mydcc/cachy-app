@@ -258,6 +258,32 @@ describe("FEAT-0028: IndicatorsTab", () => {
       );
     });
 
+    it("keeps the draft on a span the core accepts while typing, and clamps on commit", () => {
+      const el = render();
+      choose(el, "atr");
+      setSelect(selectByLabel(el, "dashboard.alerts.indicators.referenceLabel"), "window");
+      const lookback = el.querySelector<HTMLInputElement>(
+        `input[aria-label="${getNestedTranslation("dashboard.alerts.indicators.lookbackLabel")}"]`,
+      )!;
+      const writtenLookback = (): unknown => {
+        const condition = writtenCondition();
+        return condition?.kind === "compare" && condition.right.kind === "window" && condition.right.lookback;
+      };
+
+      // Emptied, a fraction, one past the bound: states on the way, never written.
+      for (const typed of ["", "20.5", "501"]) {
+        lookback.value = typed;
+        lookback.dispatchEvent(new Event("input", { bubbles: true }));
+        flushSync();
+        expect(writtenLookback(), typed).toBe(20);
+      }
+
+      lookback.dispatchEvent(new Event("change", { bubbles: true }));
+      flushSync();
+      expect(writtenLookback()).toBe(500);
+      expect(lookback.value).toBe("500");
+    });
+
     it("renders a saved window condition back into the form", () => {
       const rsi = { kind: "indicator", indicator: { id: "rsi", params: { period: 14 }, output: "value" } } as const;
       alertPanelState.setSlotCondition("indicators", {

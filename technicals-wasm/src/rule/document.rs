@@ -1538,6 +1538,33 @@ mod tests {
         assert!(refused_as_self_relative(&doc));
     }
 
+    /// An OBV output the registry does not know is already refused, precisely,
+    /// by `IndicatorRef::validate`. The cumulative guard stays out of it, the
+    /// way the dimension guard does, so one bad document gets one refusal.
+    #[test]
+    fn an_unknown_obv_output_gets_only_the_unknown_output_refusal() {
+        let histogram = || Operand::Indicator {
+            indicator: IndicatorRef {
+                id: "obv".to_string(),
+                params: BTreeMap::new(),
+                output: "histogram".to_string(),
+            },
+        };
+        let conditions = [
+            ("bare", compare(histogram(), Operand::Constant { value: d("1") })),
+            (
+                "windowed",
+                compare(window(WindowAgg::Max, 20, histogram()), Operand::Constant { value: d("1") }),
+            ),
+            ("against a valid OBV", compare(obv(), window(WindowAgg::Max, 20, histogram()))),
+        ];
+        for (what, condition) in conditions {
+            let refusals = with(condition).validate().unwrap_err().refusals;
+            let codes: Vec<_> = refusals.iter().map(|r| r.code).collect();
+            assert_eq!(codes, [RefusalCode::UnknownIndicatorOutput], "{what}: {refusals:?}");
+        }
+    }
+
     /// The refusal is scoped to what accumulates: every other indicator keeps
     /// comparing against a number.
     #[test]
