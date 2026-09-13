@@ -70,6 +70,7 @@ const config = {
         "frame-ancestors": ["self"],
         "connect-src": [
           "self",
+          "https:",
           "https://s.cachy.app",
           "https://chat.cachy.app",
           "wss://chat.cachy.app",

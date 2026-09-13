@@ -72,6 +72,11 @@ describe('SECURITY_HEADERS', () => {
     expect(csp).toContain('https://api.mailgun.net');
   });
 
+  it('CSP connect-src allows https provider endpoints for browser-direct AI providers (FEAT-0467)', () => {
+    const csp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
+    expect(csp).toContain("connect-src 'self' https:");
+  });
+
   it('Permissions-Policy delegates 3D metaverse permissions instead of blocking them', () => {
     const pp = SECURITY_HEADERS.find(([name]) => name === 'Permissions-Policy')?.[1];
     expect(pp).toContain('camera=(self "https://space.cachy.app")');
