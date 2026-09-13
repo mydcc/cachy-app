@@ -107,6 +107,7 @@ vi.mock('../lib/spacetimedb', () => {
 
 // Import service AFTER mocks
 import { cloudService } from './cloudService';
+import { tables } from '../lib/spacetimedb';
 
 describe('CloudService', () => {
   beforeEach(() => {
@@ -116,10 +117,12 @@ describe('CloudService', () => {
       connected: boolean;
       messages: unknown[];
       conn: unknown;
+      insertListenerAttached: boolean;
     };
     internals.connected = false;
     internals.messages = [];
     internals.conn = null;
+    internals.insertListenerAttached = false;
 
     // Reset callback holders
     mockCallbacks.onConnect = undefined;
@@ -237,6 +240,31 @@ describe('CloudService', () => {
 
       unsubMsg2();
       unsubStatus2();
+    });
+  });
+
+  describe('reconnect lifecycle', () => {
+    const host = 'http://localhost:3000';
+
+    it('attaches the table listener once, not once per connection', async () => {
+      await cloudService.connect(host, 'cachy-server', 'mock-token');
+      mockCallbacks.onDisconnect!({});
+      await cloudService.connect(host, 'cachy-server', 'mock-token');
+
+      const onInsert = (tables as unknown as {
+        globalMessage: { onInsert: ReturnType<typeof vi.fn> };
+      }).globalMessage.onInsert;
+      expect(onInsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores a row re-delivered after reconnect', async () => {
+      await cloudService.connect(host, 'cachy-server', 'mock-token');
+      const row = { sender: 'abc', text: 'hi', sentAt: 5 };
+      mockCallbacks.onInsert!({}, row);
+      mockCallbacks.onInsert!({}, row);
+
+      const messages = (cloudService as unknown as { messages: unknown[] }).messages;
+      expect(messages).toHaveLength(1);
     });
   });
 });
