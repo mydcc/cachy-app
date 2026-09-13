@@ -7,29 +7,43 @@
  * (at your option) any later version.
  */
 
+// @vitest-environment node
+
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { issueToken } from "../../../../lib/server/clientToken";
+import dns from "node:dns";
+import { issueToken, _resetForTests } from "../../../../lib/server/clientToken";
 
 const { POST } = await import("./+server");
 const { GET: GET_MODELS } = await import("./models/+server");
 
-describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306)", () => {
+const event = (request: Request) =>
+  ({ request, getClientAddress: () => "127.0.0.1" }) as unknown as Parameters<
+    typeof POST
+  >[0];
+
+const sseResponse = () =>
+  new Response(
+    new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("data: ok\n\n"));
+        controller.close();
+      },
+    }),
+    { status: 200, headers: { "content-type": "text/event-stream" } },
+  );
+
+describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306) & SSRF guard (BUG-0291)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    _resetForTests();
+    // Deterministic public DNS so the SSRF guard's async check passes in CI.
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+    ] as unknown as dns.LookupAddress[]);
   });
 
   it("routes completions to default OpenAI endpoint when baseUrl is omitted", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        new ReadableStream({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode("data: ok\n\n"));
-            controller.close();
-          },
-        }),
-        { status: 200, headers: { "content-type": "text/event-stream" } },
-      ),
-    );
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse());
     globalThis.fetch = fetchMock;
 
     const request = new Request("http://localhost/api/ai/openai", {
@@ -45,10 +59,7 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306)", () => {
       }),
     });
 
-    const res = await POST({
-      request,
-      getClientAddress: () => "127.0.0.1",
-    } as unknown as Parameters<typeof POST>[0]);
+    const res = await POST(event(request));
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
@@ -62,18 +73,36 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306)", () => {
     );
   });
 
-  it("routes completions to custom baseUrl (OmniRoute / local gateway) appending /chat/completions", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        new ReadableStream({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode("data: ok\n\n"));
-            controller.close();
-          },
-        }),
-        { status: 200, headers: { "content-type": "text/event-stream" } },
-      ),
+  it("routes completions to a public custom baseUrl (aggregator / gateway) appending /chat/completions", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse());
+    globalThis.fetch = fetchMock;
+
+    const request = new Request("http://localhost/api/ai/openai", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-app-access-token": issueToken(),
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "hello" }],
+        model: "llama-3.3-70b",
+        baseUrl: "https://gateway.example.com/v1",
+      }),
+    });
+
+    const res = await POST(event(request));
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://gateway.example.com/v1/chat/completions",
+      expect.objectContaining({
+        method: "POST",
+      }),
     );
+  });
+
+  it("rejects a reserved/loopback custom baseUrl with 403 (BUG-0291)", async () => {
+    const fetchMock = vi.fn();
     globalThis.fetch = fetchMock;
 
     const request = new Request("http://localhost/api/ai/openai", {
@@ -89,38 +118,26 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306)", () => {
       }),
     });
 
-    const res = await POST({
-      request,
-      getClientAddress: () => "127.0.0.1",
-    } as unknown as Parameters<typeof POST>[0]);
+    const res = await POST(event(request));
 
-    expect(res.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/v1/chat/completions",
-      expect.objectContaining({
-        method: "POST",
-      }),
-    );
+    expect(res.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("routes models listing to custom baseUrl when provided", async () => {
+  it("routes models listing to a public custom baseUrl when provided", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          data: [{ id: "gpt-4o-custom" }],
-        }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      ),
+      new Response(JSON.stringify({ data: [{ id: "gpt-4o-custom" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
     );
     globalThis.fetch = fetchMock;
 
     const request = new Request(
-      "http://localhost/api/ai/openai/models?baseUrl=http://127.0.0.1:8000",
+      "http://localhost/api/ai/openai/models?baseUrl=https://gateway.example.com",
       {
         method: "GET",
-        headers: {
-          "x-app-access-token": issueToken(),
-        },
+        headers: { "x-app-access-token": issueToken() },
       },
     );
 
@@ -134,10 +151,34 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306)", () => {
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/v1/models",
+      "https://gateway.example.com/v1/models",
       expect.objectContaining({
         headers: {},
       }),
     );
+  });
+
+  it("rejects a reserved models baseUrl with 403 (BUG-0291)", async () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+
+    const request = new Request(
+      "http://localhost/api/ai/openai/models?baseUrl=http://169.254.169.254",
+      {
+        method: "GET",
+        headers: { "x-app-access-token": issueToken() },
+      },
+    );
+
+    const url = new URL(request.url);
+
+    const res = await GET_MODELS({
+      url,
+      request,
+      getClientAddress: () => "127.0.0.1",
+    } as unknown as Parameters<typeof GET_MODELS>[0]);
+
+    expect(res.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
