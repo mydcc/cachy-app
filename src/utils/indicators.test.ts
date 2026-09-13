@@ -302,6 +302,36 @@ describe("JSIndicators", () => {
       expect(res[19]).toBeGreaterThan(190);
     });
   });
+
+  /**
+   * BUG-0456. The first candle has no previous close, so it has no true range.
+   * Counting it as 0 dragged the first period's average down and every Wilder
+   * step after it, decaying only over hundreds of candles.
+   */
+  describe("atr", () => {
+    //                 0   1   2   3   4
+    const high = [12, 13, 16, 14, 20];
+    const low = [8, 9, 11, 13, 14];
+    const close = [10, 12, 14, 13, 19];
+    // True ranges from candle 1: 4, 5, 1, 7.
+
+    it("has no value until a full period of true ranges exists", () => {
+      const res = JSIndicators.atr(high, low, close, 3);
+      expect(Array.from(res.slice(0, 3)).every(Number.isNaN)).toBe(true);
+    });
+
+    it("seeds from the first period's true ranges, then smooths by Wilder's rule", () => {
+      const res = JSIndicators.atr(high, low, close, 3);
+      expect(res[3]).toBeCloseTo((4 + 5 + 1) / 3, 12);
+      expect(res[4]).toBeCloseTo((((4 + 5 + 1) / 3) * 2 + 7) / 3, 12);
+    });
+
+    it("answers null from calculateATR until a full period of true ranges exists", () => {
+      expect(indicators.calculateATR(high.slice(0, 3), low.slice(0, 3), close.slice(0, 3), 3)).toBeNull();
+      expect(indicators.calculateATR(high.slice(0, 4), low.slice(0, 4), close.slice(0, 4), 3)?.toNumber())
+        .toBeCloseTo(10 / 3, 12);
+    });
+  });
 });
 
 describe("indicators wrappers", () => {

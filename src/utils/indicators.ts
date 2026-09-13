@@ -547,7 +547,11 @@ export const JSIndicators = {
     } else {
         tr = new Float64Array(len);
     }
-    tr.fill(0);
+    // The first candle has no previous close, so it has no true range. NaN,
+    // not 0: `smma` starts after leading NaNs, so the first ATR is the mean of
+    // the first `period` real true ranges — the WASM core's seed. A 0 here
+    // dragged that mean and every Wilder step after it down (BUG-0456).
+    tr[0] = NaN;
 
     for (let i = 1; i < len; i++) {
       tr[i] = Math.max(
@@ -1845,7 +1849,8 @@ export const indicators = {
     close: (number | string | Decimal)[],
     period: number = 14,
   ): Decimal | null {
-    if (close.length < period) return null;
+    // A full period of true ranges needs one candle more: the first has none.
+    if (close.length < period + 1) return null;
     const h = high.map(toNumFast);
     const l = low.map(toNumFast);
     const c = close.map(toNumFast);
