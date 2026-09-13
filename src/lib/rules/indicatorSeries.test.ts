@@ -469,6 +469,7 @@ describe("computeIndicatorSeries — high, low and close", () => {
 
   const STOCHASTIC = { k_period: 14, k_smoothing: 3, d_period: 3 };
   const ICHIMOKU = { conversion_period: 9, base_period: 26, span_b_period: 52 };
+  const SAR = { start: "0.02", increment: "0.02", max: "0.2" };
 
   it("computes CCI over the typical price, the price alertPathSourceOf names", () => {
     const high = column("high");
@@ -617,6 +618,7 @@ describe("computeIndicatorSeries — high, low and close", () => {
       // The chart draws a lagging span too; it is the close of a later candle,
       // not a core output, and no alert reads it.
       ["ichimoku", ICHIMOKU, "lagging"],
+      ["parabolic_sar", SAR, "trend"],
     ] as const)("refuses a %s line it does not produce", (id, params, output) => {
       const result = computeIndicatorSeries({ indicator: { id, params, output }, timeframe: "1h" }, moving);
       expect(result.supported).toBe(false);
@@ -768,6 +770,74 @@ describe("computeIndicatorSeries — high, low and close", () => {
         }
       }
       expect(wrong).toEqual([]);
+    });
+
+    describe("the Parabolic SAR", () => {
+      it("draws the chart's SAR, and the side it stands on, from the second candle", () => {
+        const high = column("high");
+        const low = column("low");
+        const chart = JSIndicators.psar(high, low, 0.02, 0.02, 0.2);
+        const value = series({ id: "parabolic_sar", params: SAR, output: "value" }, moving);
+        const direction = series({ id: "parabolic_sar", params: SAR, output: "direction" }, moving);
+
+        // The first candle's SAR is its own low, a seed that only exists once a
+        // second candle does; no alert reads it.
+        expect(value[0]).toBeNull();
+        expect(direction[0]).toBeNull();
+        expect(value.slice(1)).toEqual(asWire(chart).slice(1));
+        expect(new Set(direction.slice(1))).toEqual(new Set(["1", "-1"]));
+      });
+
+      /**
+       * WASM reports the SAR but not its side (`NOT_IN_WASM`), so both lines are
+       * checked here against Wilder's rules replayed in `Decimal`: the SAR steps
+       * towards the extreme point by the factor, never enters the previous two
+       * candles' range, and reverses to the extreme point when the price
+       * penetrates it.
+       */
+      it("follows Wilder's rules, to within 1e-9 on recorded history", () => {
+        const high = RECORDED_CANDLES.map((c) => new Decimal(c.high));
+        const low = RECORDED_CANDLES.map((c) => new Decimal(c.low));
+        const [start, step, cap] = [new Decimal("0.02"), new Decimal("0.02"), new Decimal("0.2")];
+        const sars: Decimal[] = [low[0]];
+        const sides: number[] = [1];
+        let long = true;
+        let factor = start;
+        let extreme = high[0];
+        for (let i = 1; i < RECORDED_CANDLES.length; i++) {
+          let sar = sars[i - 1].plus(factor.times(extreme.minus(sars[i - 1])));
+          const back = i > 1 ? [i - 1, i - 2] : [i - 1];
+          sar = long
+            ? Decimal.min(sar, ...back.map((k) => low[k]))
+            : Decimal.max(sar, ...back.map((k) => high[k]));
+          if (long && low[i].lt(sar)) {
+            [long, sar, extreme, factor] = [false, extreme, low[i], start];
+          } else if (!long && high[i].gt(sar)) {
+            [long, sar, extreme, factor] = [true, extreme, high[i], start];
+          } else if (long && high[i].gt(extreme)) {
+            [extreme, factor] = [high[i], Decimal.min(factor.plus(step), cap)];
+          } else if (!long && low[i].lt(extreme)) {
+            [extreme, factor] = [low[i], Decimal.min(factor.plus(step), cap)];
+          }
+          sars.push(sar);
+          sides.push(long ? 1 : -1);
+        }
+
+        const value = series({ id: "parabolic_sar", params: SAR, output: "value" }, RECORDED_CANDLES);
+        const direction = series({ id: "parabolic_sar", params: SAR, output: "direction" }, RECORDED_CANDLES);
+        const wrong: string[] = [];
+        for (let i = 1; i < RECORDED_CANDLES.length; i++) {
+          if (value[i] === null || new Decimal(value[i]!).minus(sars[i]).abs().gt("1e-9")) {
+            if (wrong.length < 4) wrong.push(`candle ${i}: SAR ${value[i]} vs ${sars[i].toFixed(6)}`);
+          }
+          if (direction[i] !== String(sides[i]) && wrong.length < 4) {
+            wrong.push(`candle ${i}: direction ${direction[i]} vs ${sides[i]}`);
+          }
+        }
+        expect(wrong).toEqual([]);
+        // Exercised: the fixture turns the SAR both ways many times.
+        expect(sides.filter((s, i) => i > 0 && s !== sides[i - 1]).length).toBeGreaterThan(70);
+      });
     });
   });
 

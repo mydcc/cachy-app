@@ -436,6 +436,9 @@ const ICHIMOKU_PARAMS = { conversion_period: 9, base_period: 26, span_b_period: 
 const ICHIMOKU_CONVERSION = indicator("ichimoku", ICHIMOKU_PARAMS, "conversion");
 const ICHIMOKU_BASE = indicator("ichimoku", ICHIMOKU_PARAMS, "base");
 const ICHIMOKU_SPAN_B = indicator("ichimoku", ICHIMOKU_PARAMS, "span_b");
+const SAR_PARAMS = { start: 0.02, increment: 0.02, max: 0.2 };
+const SAR = indicator("parabolic_sar", SAR_PARAMS, "value");
+const SAR_DIRECTION = indicator("parabolic_sar", SAR_PARAMS, "direction");
 
 interface Expectation {
   name: string;
@@ -771,6 +774,33 @@ const EXPECTATIONS: Expectation[] = [
     ],
   },
   {
+    // The flip itself: the SAR changing side. Includes the one-candle reversal
+    // at 967 that the close never crosses (next expectation).
+    name: "Parabolic SAR flipping short — direction crossing below 0",
+    condition: cross(SAR_DIRECTION, "below", constant("0")),
+    flips: [
+      20, 21, 43, 44, 74, 75, 80, 81, 92, 93, 103, 104, 114, 115, 132, 133, 185, 186,
+      199, 200, 225, 226, 249, 250, 270, 271, 275, 276, 351, 352, 380, 381, 392, 393, 408, 409,
+      462, 463, 480, 481, 524, 525, 543, 544, 554, 555, 583, 584, 608, 609, 623, 624, 676, 677,
+      688, 689, 717, 718, 723, 724, 747, 748, 788, 789, 842, 843, 863, 864, 887, 888, 918, 919,
+      942, 943, 967, 968, 977, 978
+    ],
+  },
+  {
+    // The same flips as above but one: at 967 the SAR turns short and the close
+    // ends above it, so the close never crosses. The difference between the two
+    // shapes, pinned where it happens.
+    name: "price closing below the Parabolic SAR — close crossing below the SAR",
+    condition: cross(closePrice, "below", SAR),
+    flips: [
+      20, 21, 43, 44, 74, 75, 80, 81, 92, 93, 103, 104, 114, 115, 132, 133, 185, 186,
+      199, 200, 225, 226, 249, 250, 270, 271, 275, 276, 351, 352, 380, 381, 392, 393, 408, 409,
+      462, 463, 480, 481, 524, 525, 543, 544, 554, 555, 583, 584, 608, 609, 623, 624, 676, 677,
+      688, 689, 717, 718, 723, 724, 747, 748, 788, 789, 842, 843, 863, 864, 887, 888, 918, 919,
+      942, 943, 977, 978
+    ],
+  },
+  {
     name: "awesome oscillator crossing above zero",
     condition: cross(AO, "above", constant("0")),
     flips: [
@@ -918,7 +948,6 @@ describe("indicator conditions against recorded market history", () => {
   const NOT_ON_ALERT_PATH = "no JavaScript implementation on the alert path; an alert on it cannot fire";
   const SCOPED_OUT: Record<string, string> = {
     obv: `${NOT_ON_ALERT_PATH}; accumulates from the first candle it is given, so its level depends on how much history the rolling buffer holds`,
-    parabolic_sar: `${NOT_ON_ALERT_PATH}; flips side rather than crossing a level, so the condition shape needs deciding first`,
   };
 
   it("accounts for every indicator the core accepts", () => {

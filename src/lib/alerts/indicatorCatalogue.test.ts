@@ -221,7 +221,7 @@ describe("what the alert panel offers", () => {
         // here, alongside the recorded-history expectation FEAT-0446 requires
         // for it in the same change.
         expect(hidden).toEqual(
-            ["obv", "parabolic_sar"].sort(),
+            ["obv"].sort(),
         );
         for (const id of hidden) {
             expect(catalogueEntry(id), id).toBeNull();

@@ -221,13 +221,14 @@ describe("carrying the configured parameters rather than the defaults", () => {
         expect(typeof ref.params.std_dev).toBe("string");
     });
 
-    // BUG-0451. Parabolic SAR has no JavaScript implementation on the alert
-    // path, so its card offers no alert action rather than seeding an alert
-    // that would be armed and never fire.
+    // BUG-0451. OBV has no JavaScript implementation on the alert path, so its
+    // card offers no alert action rather than seeding an alert that would be
+    // armed and never fire. (The Parabolic SAR served here until FEAT-0446
+    // group 4 wired it in.)
     it("offers no alert action on a card whose indicator an alert cannot fire on", () => {
-        const card = { start: 0.02, increment: 0.02, max: 0.2 };
-        expect(indicatorRefsFrom("parabolicSar", card)).toEqual([]);
-        expect(seedFromIndicatorSettings("parabolicSar", card, "BTCUSDT")).toBeNull();
+        const card = { smoothingLength: 0 };
+        expect(indicatorRefsFrom("obv", card)).toEqual([]);
+        expect(seedFromIndicatorSettings("obv", card, "BTCUSDT")).toBeNull();
     });
 });
 
@@ -394,7 +395,7 @@ describe("a card whose price source is not the one the alert path computes over"
 
     it("answers not-alertable for a card with no alert action, whatever its source", () => {
         expect(cardAlertAvailability("pivots", { source: "hl2" })).toBe("not-alertable");
-        expect(cardAlertAvailability("parabolicSar", {})).toBe("not-alertable");
+        expect(cardAlertAvailability("obv", {})).toBe("not-alertable");
     });
 });
 

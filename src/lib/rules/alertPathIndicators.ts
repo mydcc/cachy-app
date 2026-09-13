@@ -49,6 +49,7 @@ export const ALERT_PATH_INDICATORS: ReadonlySet<string> = new Set([
   "adx",
   "super_trend",
   "ichimoku",
+  "parabolic_sar",
 ]);
 
 /**
