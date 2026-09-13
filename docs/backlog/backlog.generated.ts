@@ -3838,7 +3838,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0444",
     "title": "slotOf() claims shapes readers cannot round-trip (visit-time wipe)",
     "type": "bug",
-    "status": "idea",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3852,6 +3852,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0443"
     ],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0444-price-round-trip",
+    "start_date": "2026-09-14",
     "size": "M",
     "estimate": "3",
     "file": "bugs/BUG-0444-slotof-claims-unreadable-shapes.md"
