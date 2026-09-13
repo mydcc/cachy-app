@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import dns from 'node:dns';
 import { POST } from './+server';
 import { GET as GET_MODELS } from './models/+server';
 import * as clientToken from '../../../../lib/server/clientToken';
@@ -19,6 +20,9 @@ describe('POST /api/ai/gemini', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
+        vi.spyOn(dns.promises, 'lookup').mockResolvedValue([
+            { address: '93.184.216.34', family: 4 },
+        ] as unknown as dns.LookupAddress[]);
     });
 
     it('should return 401 if x-api-key header is missing', async () => {
@@ -122,7 +126,7 @@ describe('POST /api/ai/gemini', () => {
         vi.unstubAllGlobals();
     });
 
-    it('should not attach x-goog-api-key when using baseUrl fallback without apiKey', async () => {
+    it('should not attach x-goog-api-key when using a public baseUrl fallback without apiKey', async () => {
         const fetchSpy = vi.fn().mockResolvedValue(
             new Response('data: {"candidates":[]}\n\n', {
                 status: 200,
@@ -136,7 +140,7 @@ describe('POST /api/ai/gemini', () => {
             method: 'POST',
             body: JSON.stringify({
                 messages: [{ role: 'user', content: 'Hello' }],
-                baseUrl: 'http://localhost:8080',
+                baseUrl: 'https://gemini-gateway.example.com',
             }),
             headers: {
                 'Content-Type': 'application/json',
@@ -155,12 +159,41 @@ describe('POST /api/ai/gemini', () => {
 
         vi.unstubAllGlobals();
     });
+
+    it('rejects a reserved/loopback baseUrl with 403 (BUG-0291)', async () => {
+        const fetchSpy = vi.fn();
+        vi.stubGlobal('fetch', fetchSpy);
+
+        const request = new Request('http://localhost/api/ai/gemini', {
+            method: 'POST',
+            body: JSON.stringify({
+                messages: [{ role: 'user', content: 'Hello' }],
+                baseUrl: 'http://localhost:8080',
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        const response = await POST({
+            request,
+            getClientAddress,
+        } as unknown as RequestEvent);
+
+        expect(response.status).toBe(403);
+        expect(fetchSpy).not.toHaveBeenCalled();
+
+        vi.unstubAllGlobals();
+    });
 });
 
 describe('GET /api/ai/gemini/models', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
+        vi.spyOn(dns.promises, 'lookup').mockResolvedValue([
+            { address: '93.184.216.34', family: 4 },
+        ] as unknown as dns.LookupAddress[]);
     });
 
     it('passes apiKey via x-goog-api-key header and omits key query parameter (FEAT-0377)', async () => {

@@ -20,6 +20,10 @@ import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { AiRequestSchema } from "../../../../types/ai";
 import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
+import {
+  isUrlAllowedAsync,
+  safeFetch,
+} from "../../../../lib/server/urlValidator";
 
 interface AnthropicMessageParam {
   role: "user" | "assistant";
@@ -89,6 +93,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       "v1/messages",
     );
 
+    if (!(await isUrlAllowedAsync(targetUrl))) {
+      return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+    }
+
     const headers: Record<string, string> = {
       "anthropic-version": "2023-06-01",
       "content-type": "application/json",
@@ -97,7 +105,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       headers["x-api-key"] = apiKey;
     }
 
-    const response = await fetch(targetUrl, {
+    const response = await safeFetch(targetUrl, {
       method: "POST",
       headers,
       body: JSON.stringify({
