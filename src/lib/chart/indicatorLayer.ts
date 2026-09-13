@@ -632,7 +632,8 @@ export class IndicatorLayer {
 
         // Bollinger Bands
         if (isShownInChart("bollingerBands") && s.bollingerBands.length) {
-            const bb = JSIndicators.bb(a.closes, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
+            const bbSource = getSourceData(rows, this.src(s.bollingerBands.source));
+            const bb = JSIndicators.bb(bbSource, s.bollingerBands.length, s.bollingerBands.stdDev ?? 2);
             this.addLine(rows, bb.upper, P0, "--accent-color", "#2962ff");
             this.addLine(rows, bb.middle, P0, "--text-tertiary", "#9aa0a6");
             this.addLine(rows, bb.lower, P0, "--accent-color", "#2962ff");
