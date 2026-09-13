@@ -116,6 +116,7 @@ function buildOpenAiChat(params: DirectChatParams): DirectRequest {
       messages: params.messages,
       max_tokens: DEFAULT_MAX_TOKENS,
       stream: true,
+      stream_options: { include_usage: true },
     }),
   };
 }

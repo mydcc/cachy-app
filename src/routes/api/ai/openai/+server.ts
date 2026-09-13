@@ -74,6 +74,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         tools: tools && tools.length > 0 ? tools : undefined,
         max_tokens: 2000,
         stream: true, // Enable streaming
+        stream_options: { include_usage: true },
       }),
     });
 

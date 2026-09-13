@@ -49,6 +49,19 @@
 
     let contextSummary = $derived(aiState.contextSummary);
 
+    /** Compact token/cost footer; omits whatever the provider did not report. */
+    function formatUsage(usage: {
+        inputTokens?: number;
+        outputTokens?: number;
+        costUsd?: number;
+    }): string {
+        const parts: string[] = [];
+        if (usage.inputTokens != null) parts.push(`↑${usage.inputTokens}`);
+        if (usage.outputTokens != null) parts.push(`↓${usage.outputTokens}`);
+        if (usage.costUsd != null) parts.push(`$${usage.costUsd.toFixed(4)}`);
+        return parts.join(" · ");
+    }
+
     // Scroll to bottom on new messages
     $effect(() => {
         if (
@@ -300,6 +313,11 @@
                             minute: "2-digit",
                         })}</span
                     >
+                    {#if msg.role === "assistant" && msg.usage}
+                        <span class="text-[0.65rem] opacity-50 mt-0.5">
+                            {formatUsage(msg.usage)}
+                        </span>
+                    {/if}
                 </div>
             {/each}
 
