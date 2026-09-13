@@ -168,9 +168,24 @@ vi.mock("../lib/rules/ruleSchema", () => ({
 const mockIsSeriesObserved = vi.fn(() => false);
 const mockLedgerSink = vi.fn();
 const mockStartRuleEvaluationLoop = vi.fn();
+/**
+ * BUG-0441's replay source. Defaults to "no history", which is the neutral
+ * answer: the replay then feeds nothing and every test in this file keeps
+ * measuring exactly what it measured before the replay existed.
+ */
+const mockReadClosedCandles = vi.fn((_symbol: string, _timeframe: string) => [] as unknown[]);
+/**
+ * BUG-0441 review: the replay discovers a symbol's timeframes instead of
+ * probing a fixed list. Defaults to "none", which makes the pure replay fall
+ * back to its default list — the same behaviour these tests measured before
+ * discovery existed.
+ */
+const mockReadAvailableKlineTimeframes = vi.fn((_symbol: string) => [] as string[]);
 vi.mock("../services/alertEngine/ruleLoopWiring", () => ({
   isSeriesObserved: mockIsSeriesObserved,
   ledgerSink: mockLedgerSink,
+  readClosedCandles: mockReadClosedCandles,
+  readAvailableKlineTimeframes: mockReadAvailableKlineTimeframes,
   startRuleEvaluationLoop: mockStartRuleEvaluationLoop,
 }));
 
@@ -266,6 +281,8 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     mockIsSeriesObserved.mockReturnValue(false);
     mockLedgerSink.mockImplementation(() => {});
     mockStartRuleEvaluationLoop.mockImplementation(() => {});
+    mockReadClosedCandles.mockReturnValue([]);
+    mockReadAvailableKlineTimeframes.mockReturnValue([]);
 
     localStorage.clear();
     localStorage.setItem(STORAGE_KEY, JSON.stringify([ARMED_BEFORE_RELOAD]));
@@ -335,6 +352,146 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     const stillArmed = alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id);
     expect(stillArmed?.active).toBe(true);
+  });
+
+  describe("BUG-0441 — a crossing that happened while the app was closed", () => {
+    /** Closed candles, oldest first, shaped like `readClosedCandles` returns them. */
+    const closes = (values: string[]) =>
+      values.map((close, i) => ({
+        open_time_ms: 1757000000000 + i * 60_000,
+        open: close,
+        high: close,
+        low: close,
+        close,
+        volume: "1",
+      }));
+
+    it("fires the alert, because the crossing is in the candle history", async () => {
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      // ARMED_BEFORE_RELOAD targets 50000.0. The trader armed it below that
+      // level, the app was closed, and price walked through it overnight.
+      mockReadClosedCandles.mockReturnValue(closes(["49800.0", "49900.0", "50100.0", "50200.0"]));
+
+      await initAlertEngine(fakeLoader);
+
+      // Fails without the fix: the baseline lives in the WASM instance and is
+      // empty after a reload, so the first live tick consumed the crossing by
+      // seeding the baseline past the target, and the alarm stayed armed for
+      // a crossing that had already happened.
+      const fired = alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id);
+      expect(fired?.active).toBe(false);
+    });
+
+    it("does not fire when the price was already past the level the whole time", async () => {
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      // FEAT-0390's sharpest requirement, and the reason the replay reads
+      // history rather than firing on "first tick is already past the target":
+      // a price that never crossed has not reached anything.
+      mockReadClosedCandles.mockReturnValue(closes(["50100.0", "50200.0", "50300.0"]));
+
+      await initAlertEngine(fakeLoader);
+
+      const stillArmed = alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id);
+      expect(stillArmed?.active).toBe(true);
+    });
+
+    it("does not fire twice when a live tick crosses again after the replay", async () => {
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      const { alertEngine } = await import("../services/alertEngine/alertEngine");
+      mockReadClosedCandles.mockReturnValue(closes(["49800.0", "50100.0"]));
+
+      await initAlertEngine(fakeLoader);
+      alertEngine.evaluate("BTCUSDT", "49700.0", 10);
+      alertEngine.evaluate("BTCUSDT", "50500.0", 11);
+
+      const fired = alertState.definitions.filter((a) => a.id === ARMED_BEFORE_RELOAD.id);
+      expect(fired).toHaveLength(1);
+      expect(fired[0]?.active).toBe(false);
+    });
+
+    it("does not treat a second init's window as a continuation of the first replay's baseline", async () => {
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      // First replay: always above target, no crossing — the alert stays
+      // armed and the engine's baseline ends the replay at 50200.
+      mockReadClosedCandles.mockReturnValue(closes(["50100.0", "50200.0"]));
+      await initAlertEngine(fakeLoader);
+      expect(alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id)?.active).toBe(true);
+
+      // `ensureLoaded()` caches the WASM instance, so this second call reuses
+      // the same engine. Without the guard, replaying this new window would
+      // compare its first close (49500) against the *first* replay's leftover
+      // baseline (50200) instead of against nothing — manufacturing a
+      // downward cross that never happened in the combined price history.
+      // That is the exact arbitrary-jump false fire BUG-0441's replay exists
+      // to prevent, reached through a second init instead of a live tick.
+      mockReadClosedCandles.mockReturnValue(closes(["49500.0", "49600.0"]));
+      await initAlertEngine(fakeLoader);
+
+      const alert = alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id);
+      expect(alert?.active).toBe(true);
+    });
+
+    it("leaves an alert the rule engine covers out of the replay entirely", async () => {
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      // Same shape `seedCoveredRule()` writes in the FEAT-0387 block below,
+      // inlined because that helper belongs to that describe's scope.
+      localStorage.setItem(
+        "cachy_rules_v1",
+        JSON.stringify([
+          {
+            id: ARMED_BEFORE_RELOAD.id,
+            symbol: ARMED_BEFORE_RELOAD.symbol,
+            trigger_timeframe: "1m",
+            enabled: true,
+          },
+        ]),
+      );
+      localStorage.setItem(
+        "cachy_rule_origin_v1",
+        JSON.stringify({
+          schema_version: 1,
+          entries: {
+            [ARMED_BEFORE_RELOAD.id]: {
+              alertId: ARMED_BEFORE_RELOAD.id,
+              migratedAtMs: 1_757_030_400_000,
+            },
+          },
+        }),
+      );
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
+      mockReadClosedCandles.mockReturnValue(closes(["49800.0", "50100.0"]));
+
+      await initAlertEngine(fakeLoader);
+
+      // A covered alert is not in the legacy engine at all, so replaying its
+      // symbol must not fire it — that would be the double fire the cutover
+      // exists to make unconstructable, reached through startup.
+      const stillArmed = alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id);
+      expect(stillArmed?.active).toBe(true);
+    });
+
+    it("starts up normally when no history is available", async () => {
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      mockReadClosedCandles.mockReturnValue([]);
+
+      await initAlertEngine(fakeLoader);
+
+      const stillArmed = alertState.definitions.find((a) => a.id === ARMED_BEFORE_RELOAD.id);
+      expect(stillArmed?.active).toBe(true);
+      expect(alertState.engineStatus).toBe("ready");
+    });
+
+    it("still reaches ready when reading history throws", async () => {
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      mockReadClosedCandles.mockImplementation(() => {
+        throw new Error("market store gone");
+      });
+
+      await initAlertEngine(fakeLoader);
+
+      expect(alertState.engineStatus).toBe("ready");
+    });
   });
 
   describe("FEAT-0387 — the rule engine's own core must load before it is trusted", () => {

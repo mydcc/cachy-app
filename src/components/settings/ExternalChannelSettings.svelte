@@ -78,7 +78,7 @@
   }
 
   const FIELD_CLASS =
-    "mt-1 w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)]";
+    "mt-1 w-full rounded-lg border border-[var(--input-border-color)] bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)]";
 </script>
 
 <section class="settings-section">

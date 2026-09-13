@@ -18,16 +18,16 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { newsService, type NewsItem } from "./newsService";
+import { setNewsSettingsProvider } from "./newsSettings";
 import { dbService } from "./dbService";
 import { appFetch } from "../lib/appAuth";
 
-vi.mock("../stores/settings.svelte", () => ({
-    settingsState: {
-        aiProvider: "gemini",
-        geminiApiKey: "test-key",
-        openaiApiKey: "",
-        geminiModel: "gemini-1.5-flash"
-    }
+// The settings store normally installs this reader; supply the same values here.
+setNewsSettingsProvider(() => ({
+    aiProvider: "gemini",
+    geminiApiKey: "test-key",
+    openaiApiKey: "",
+    geminiModel: "gemini-1.5-flash"
 }));
 
 vi.mock("./dbService", () => ({

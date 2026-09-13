@@ -24,6 +24,7 @@ import { isUnsafeObjectKey } from "../utils/utils";
 import { SymbolCache } from "./market/symbolCache";
 import { KlineBufferManager } from "./market/klineBuffers";
 import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
+import { noteLegacyReplaySeriesObserved } from "../services/alertEngine/legacyReplayCoordinator";
 import { MarketTelemetry } from "./market/telemetry.svelte";
 import { applyUpdate } from "./market/applyUpdate";
 import { updatePrice, updateTicker, updateDepth, updateKline } from "./market/legacyUpdates";
@@ -349,6 +350,17 @@ export class MarketManager {
       ruleEvaluationLoop.observeCandles(symbol, timeframe, klines);
     } catch (e) {
       import("../services/logger").then(m => m.logger.error("alerts", `[Cutover] Rule loop failed for ${symbol} ${timeframe}`, e)).catch(() => {});
+    }
+
+    // BUG-0441: the history the legacy replay needs arrives here, not at
+    // startup. Replaying the moment it lands — still before any live tick for
+    // this symbol — is what lets an alarm whose target was crossed while the
+    // app was closed fire at all, instead of being skipped by a startup pass
+    // that ran against an empty store.
+    try {
+      noteLegacyReplaySeriesObserved(symbol);
+    } catch (e) {
+      import("../services/logger").then(m => m.logger.error("alerts", `[BUG-0441] Legacy replay hook failed for ${symbol}`, e)).catch(() => {});
     }
   }
 
