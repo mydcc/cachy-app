@@ -38,14 +38,21 @@
  *
  * **A slot is claimed by `slotOf()` based on operand shapes, not constraints.**
  * The price slot is claimed for `percent_change`/`cross` subjects with a constant
- * RHS; indicators for any subject of `kind: "indicator"`; candlesticks for
- * patterns. A volume comparison, a window, a position or account condition, and a
- * nested group are unclaimed — no builder emits those shapes, so an unclaimed
- * condition is one no builder will ever replace or remove. Unknown means keep: a
- * shape this module doesn't recognise survives a tab switch untouched rather than
- * being deleted by the builder that came closest to owning it.
+ * RHS; indicators for a subject of `kind: "indicator"` whose id the panel offers;
+ * candlesticks for patterns. A volume comparison, a window, a position or account
+ * condition, and a nested group are unclaimed — no builder emits those shapes, so
+ * an unclaimed condition is one no builder will ever replace or remove. Unknown
+ * means keep: a shape this module doesn't recognise survives a tab switch
+ * untouched rather than being deleted by the builder that came closest to owning
+ * it.
  *
- * One category is **claimed but not always round-trippable**: an indicator
+ * An indicator id the panel does not offer — the fourteen BUG-0451 hides — is
+ * unclaimed on purpose: `readIndicatorForm` cannot hydrate it, so claiming it
+ * would mean the builder hydrates blank and its mount-time write deletes the
+ * member. Unclaimed, an alert saved while it was still offered survives the tab
+ * switch and stays listed as unevaluable.
+ *
+ * One category remains **claimed but not always round-trippable**: an indicator
  * condition whose right operand the form's `referenceFor` rejects (a window, or
  * a `mark`-source price), or a `percent_change` compared with an operator other
  * than `gte`/`lte`. `slotOf()` claims these today because it checks operand
@@ -55,6 +62,7 @@
  * path) so a claim always means the reader can actually hydrate it.
  */
 
+import { catalogueEntry } from "./indicatorCatalogue";
 import type { Condition, Operand } from "../rules/types";
 
 /** The builder tabs that author conditions. `combo` (FEAT-0030) spans slots. */
@@ -74,7 +82,11 @@ export function slotOf(condition: Condition): BuilderSlot | null {
   if (condition.kind !== "compare" && condition.kind !== "cross") return null;
 
   const subject: Operand = condition.left;
-  if (subject.kind === "indicator") return "indicators";
+  if (subject.kind === "indicator") {
+    // Claim only what the reader can hydrate: an id outside the catalogue reads
+    // as `null` in `readIndicatorForm`, and a claim on it would wipe the member.
+    return catalogueEntry(subject.indicator.id) !== null ? "indicators" : null;
+  }
 
   // The price builder always compares its subject against a typed number; the
   // same subject against another operand is a shape it has no form for.

@@ -32,7 +32,7 @@ import type { Condition } from "../rules/types";
 const rsi = catalogueEntry("rsi")!;
 const ema = catalogueEntry("ema")!;
 const bollinger = catalogueEntry("bollinger")!;
-const obv = catalogueEntry("obv")!;
+const volumeMa = catalogueEntry("volume_ma")!;
 
 describe("building a condition from the form", () => {
     it("writes a compare condition with the indicator on the left", () => {
@@ -148,7 +148,7 @@ describe("reading the form back out of a draft", () => {
         expect(
             readIndicatorForm({
                 kind: "compare",
-                left: { kind: "indicator", indicator: defaultRef(obv) },
+                left: { kind: "indicator", indicator: defaultRef(volumeMa) },
                 op: "gt",
                 right: { kind: "window", of: { kind: "volume" }, agg: "max", lookback: 20 },
                 timeframe: "1h",
@@ -206,7 +206,7 @@ describe("the dimension gate the picker applies", () => {
 
     it("offers only indicators that have a line in the subject's dimension", () => {
         const forVolume = compatibleIndicators("volume", INDICATOR_CATALOGUE).map((e) => e.id);
-        expect(forVolume).toEqual(["obv", "volume_ma"]);
+        expect(forVolume).toEqual(["volume_ma"]);
         expect(compatibleIndicators("price", INDICATOR_CATALOGUE).map((e) => e.id)).toContain("ema");
         expect(compatibleIndicators("percent", INDICATOR_CATALOGUE).map((e) => e.id)).toContain(
             "rsi",

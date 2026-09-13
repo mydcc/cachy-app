@@ -1600,6 +1600,46 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md"
   },
   {
+    "id": "BUG-0449",
+    "title": "An HMA alert throws on every close and silences every rule after it on the same series",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0449-hma-alert-throws",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0449-hma-alert-throws-and-silences-series.md"
+  },
+  {
+    "id": "BUG-0451",
+    "title": "The alert panel offers fourteen indicators whose alerts can never fire",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0451-panel-offers-inert-indicators",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -3853,6 +3893,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md"
   },
   {
+    "id": "BUG-0452",
+    "title": "The WASM momentum is a change over one candle more than its period",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0452-wasm-momentum-off-by-one",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0452-wasm-momentum-off-by-one.md"
+  },
+  {
+    "id": "BUG-0453",
+    "title": "An alert armed from an indicator card ignores the card's price source",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0453-card-alert-ignores-price-source.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -5683,7 +5761,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0446",
     "title": "Prove the remaining panel indicators against recorded history",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5699,6 +5777,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "M",
     "estimate": "5",
+    "assignee": "claude-code",
+    "start_date": "2026-09-13",
     "file": "features/FEAT-0446-recorded-history-remaining-indicators.md"
   },
   {
@@ -6239,6 +6319,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0437-unwired-bitunix-ws-schemas.md"
+  },
+  {
+    "id": "BUG-0450",
+    "title": "The JavaScript WMA drifts from the exact value in proportion to series length",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bug-0450-sliding-sum-drift",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0450-wma-sliding-sum-drift.md"
   },
   {
     "id": "FEAT-0022",

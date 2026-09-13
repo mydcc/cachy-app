@@ -44,9 +44,16 @@ export const INDICATOR_WARMUP: IndicatorWarmup[] = [
   { label: "SMA(20)", needs: 20, ref: { id: "sma", params: { period: 20 } } },
   { label: "SMA(50)", needs: 50, ref: { id: "sma", params: { period: 50 } } },
   { label: "SMA(200)", needs: 200, ref: { id: "sma", params: { period: 200 } } },
+  { label: "EMA(20)", needs: 20, ref: { id: "ema", params: { period: 20 } } },
   { label: "EMA(50)", needs: 50, ref: { id: "ema", params: { period: 50 } } },
+  { label: "WMA(20)", needs: 20, ref: { id: "wma", params: { period: 20 } } },
+  { label: "VWMA(20)", needs: 20, ref: { id: "vwma", params: { period: 20 } } },
+  // WMA(√20) over WMA(20)-derived values: 20 + floor(√20) − 1.
+  { label: "HMA(20)", needs: 23, ref: { id: "hma", params: { period: 20 } } },
   { label: "VolumeMA(20)", needs: 20, ref: { id: "volume_ma", params: { period: 20 } } },
   { label: "RSI(14)", needs: 15, ref: { id: "rsi", params: { period: 14 } } },
+  // The change against the close a full period back, so one candle more than the period.
+  { label: "Momentum(10)", needs: 11, ref: { id: "momentum", params: { period: 10 } } },
   { label: "MACD line", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "macd" } },
   { label: "MACD signal", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "signal" } },
   { label: "MACD histogram", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "histogram" } },
