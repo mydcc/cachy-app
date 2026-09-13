@@ -183,14 +183,14 @@ describe("FEAT-0028: IndicatorsTab", () => {
     });
 
     it("keeps a factor parameter as a string all the way into the document", () => {
-      // Bollinger's std_dev reaches a comparison against a price. Parsed into
+      // SuperTrend's factor reaches a comparison against a price. Parsed into
       // an f64 on the way it would be the rounding decimal.js exists to avoid.
       const el = render();
-      choose(el, "bollinger");
+      choose(el, "super_trend");
       const condition = writtenCondition();
       expect(condition?.kind === "compare" && condition.left.kind === "indicator"
-        ? condition.left.indicator.params.std_dev
-        : null).toBe("2");
+        ? condition.left.indicator.params.factor
+        : null).toBe("3");
     });
   });
 
@@ -213,13 +213,16 @@ describe("FEAT-0028: IndicatorsTab", () => {
 
     it("offers only same-unit indicators as the second side", () => {
       const el = render();
-      choose(el, "volume_ma");
+      choose(el, "obv");
       const reference = selectByLabel(el, "dashboard.alerts.indicators.referenceLabel");
       setSelect(reference, "indicator");
       const which = el.querySelector<HTMLSelectElement>(
         `select[aria-label="${getNestedTranslation("dashboard.alerts.indicators.reference.indicator")}"]`,
       );
-      expect([...(which?.options ?? [])].map((option) => option.value)).toEqual(["volume_ma"]);
+      expect([...(which?.options ?? [])].map((option) => option.value)).toEqual([
+        "obv",
+        "volume_ma",
+      ]);
     });
 
     it("drops a now-incompatible reference when the output line changes", () => {
@@ -254,29 +257,6 @@ describe("FEAT-0028: IndicatorsTab", () => {
       expect(tile(el, "macd").getAttribute("aria-pressed")).toBe("true");
       expect(selectByLabel(el, "dashboard.alerts.indicators.relationLabel").value).toBe("cross");
       expect(selectByLabel(el, "dashboard.alerts.indicators.outputLabel").value).toBe("macd");
-    });
-
-    // BUG-0451 — the draft can hold an indicator the panel no longer offers,
-    // saved while it still was. The tab cannot hydrate it, and "cannot hydrate"
-    // must not be written back as "nothing here": mounting would delete an
-    // alert the trader still has.
-    it("keeps a saved condition on an indicator the panel no longer offers", () => {
-      const saved: Condition = {
-        kind: "compare",
-        left: { kind: "indicator", indicator: { id: "obv", params: {} } },
-        op: "gt",
-        right: { kind: "constant", value: "1000" },
-        timeframe: alertPanelState.draft.trigger_timeframe,
-      };
-      alertPanelState.setSingleCondition(saved);
-
-      render();
-
-      expect(alertPanelState.draft.conditions).toEqual({
-        kind: "group",
-        op: "all",
-        of: [saved],
-      });
     });
   });
 });

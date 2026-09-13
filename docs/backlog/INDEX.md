@@ -2,9 +2,9 @@
 
 # Backlog index
 
-335 items. How to read and add them: [README.md](README.md).
+330 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 276 · ⛔ dropped 1
+Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 2 · ✅ done 272 · ⛔ dropped 1
 
 ---
 
@@ -147,7 +147,7 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | ✅ done | alerts |
 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | 🟡 in-progress | alerts |
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | 📋 specced | alerts |
-| [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | 🟡 in-progress | alerts |
+| [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | 📋 specced | alerts |
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | trade-panel |
 | [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P3 | 📋 specced | alerts |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
@@ -241,8 +241,6 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | technicals |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | repo |
 | [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | 📋 specced | repo |
-| [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | alerts |
-| [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -298,8 +296,6 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | 💡 idea | alerts |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | 📋 specced | repo |
 | [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 📋 specced | alerts |
-| [BUG-0452](bugs/BUG-0452-wasm-momentum-off-by-one.md) | The WASM momentum is a change over one candle more than its period | P2 | ✅ done | indicators |
-| [BUG-0453](bugs/BUG-0453-card-alert-ignores-price-source.md) | An alert armed from an indicator card ignores the card's price source | P2 | 📋 specced | alerts |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -365,7 +361,6 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | tooling |
 | [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | ✅ done | backend |
 | [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | ✅ done | backend |
-| [BUG-0450](bugs/BUG-0450-wma-sliding-sum-drift.md) | The JavaScript WMA drifts from the exact value in proportion to series length | P3 | ✅ done | indicators |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -480,8 +475,6 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0430](bugs/BUG-0430-macd-seeding-mismatch.md) | MACD seeded differently in WASM than everywhere else | P1 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) | Switching builder tabs wipes the condition the trader just configured | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | — |
 | [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -585,8 +578,6 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0452](bugs/BUG-0452-wasm-momentum-off-by-one.md) | The WASM momentum is a change over one candle more than its period | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0453](bugs/BUG-0453-card-alert-ignores-price-source.md) | An alert armed from an indicator card ignores the card's price source | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -667,7 +658,7 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) |
 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | 🟡 in-progress | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | 📋 specced | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
-| [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | 🟡 in-progress | M4 | community, pro, private | C | ADR-0012 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) |
+| [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | 📋 specced | M4 | community, pro, private | C | ADR-0012 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -695,7 +686,6 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0427](bugs/BUG-0427-worktree-cleanup-misses-squash-merges.md) | worktree-cleanup.sh refuses squash-merged branches as unmerged | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0433](bugs/BUG-0433-leverage-f64-schemas.md) | Raw leverage fields in Zod schemas accept native numbers | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0450](bugs/BUG-0450-wma-sliding-sum-drift.md) | The JavaScript WMA drifts from the exact value in proportion to series length | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -744,4 +734,4 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0454**
+Next free number: **0449**

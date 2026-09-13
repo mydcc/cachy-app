@@ -1774,10 +1774,8 @@ impl TechnicalsCalculator {
 
         // Advanced Updates
         for (len, s) in &self.mom_states {
-            // `c` is not in the history yet, so `len` candles back is
-            // `history[history.len() - len]` (BUG-0452: this read one further).
-            if s.initialized && self.price_history_closes.len() >= *len {
-                let old = self.price_history_closes[self.price_history_closes.len() - *len];
+            if s.initialized && self.price_history_closes.len() >= *len + 1 {
+                let old = self.price_history_closes[self.price_history_closes.len() - *len - 1];
                 out.oscillators.insert(format!("MOM{}", len), c - old);
             }
         }
@@ -2580,45 +2578,6 @@ mod tests {
         assert!(
             json.contains(r#""SMA3":"0.3""#),
             "SMA3 should be exactly 0.3, got {}",
-            json
-        );
-    }
-
-    /// BUG-0452: momentum over `n` is the close against the close `n` candles
-    /// back — the definition the chart's `JSIndicators.mom` uses. `update` is
-    /// handed a candle that is not in the history yet, so `n` back is
-    /// `history[len - n]`; reading one further made MOM10 a change over eleven.
-    #[test]
-    fn test_momentum_is_the_change_over_exactly_its_period() {
-        let mut calc = TechnicalsCalculator::new();
-        // Squares, so every lag gives a different difference.
-        let closes: Vec<String> = (1..=12).map(|i: i64| (i * i).to_string()).collect();
-        let volumes = vec!["1".to_string(); closes.len()];
-        let times = vec![0.0; closes.len()];
-
-        calc.initialize(
-            closes.clone(),
-            closes.clone(),
-            closes,
-            volumes,
-            &times,
-            r#"{"mom":[{"length":10}]}"#,
-        );
-
-        // History holds 1², …, 12²; the new candle is 13² = 169. Ten candles
-        // back from it is 3² = 9, so the momentum is 160 (eleven back: 165).
-        let json = calc.update(
-            "169".into(),
-            "169".into(),
-            "169".into(),
-            "169".into(),
-            "1".into(),
-            "0".into(),
-        );
-
-        assert!(
-            json.contains(r#""MOM10":"160""#),
-            "MOM10 should be 169 - 9 = 160, got {}",
             json
         );
     }

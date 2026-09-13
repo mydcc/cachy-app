@@ -41,13 +41,11 @@ import { pathToFileURL } from "node:url";
 
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { catalogueEntry, registryEntry } from "./indicatorCatalogue";
+import { catalogueEntry } from "./indicatorCatalogue";
 import {
     alertableIndicatorKeys,
     indicatorRefsFrom,
     isAlertableIndicator,
-    mappedIndicatorKeys,
-    mappedIndicatorRefs,
     mappingLines,
     seedFromIndicatorSettings,
 } from "./indicatorSettingsSeed";
@@ -89,17 +87,11 @@ beforeAll(async () => {
 const cardFor = (key: string): Record<string, unknown> =>
     (indicatorState as unknown as Record<string, Record<string, unknown>>)[key];
 
-/** Cards a trader can arm an alert from today. */
 const KEYS = alertableIndicatorKeys();
-/**
- * Every card the mapping covers. The validity checks run over these, so a
- * mapping for an indicator not yet on the alert path does not rot unchecked.
- */
-const MAPPED = mappedIndicatorKeys();
 
 describe("the settings keys the mapping claims", () => {
     it("every mapped key is a real card on the indicator store", () => {
-        for (const key of MAPPED) {
+        for (const key of KEYS) {
             const card = cardFor(key);
             expect(card, `${key} is not a card on indicatorState`).toBeDefined();
             expect(typeof card, `${key} is not an object on indicatorState`).toBe("object");
@@ -117,12 +109,7 @@ describe("the settings keys the mapping claims", () => {
         }
     });
 
-    it("resolves every mapped id through the registry, and every armable one through the catalogue", () => {
-        for (const key of MAPPED) {
-            for (const ref of mappedIndicatorRefs(key, cardFor(key))) {
-                expect(registryEntry(ref.id), `${key} -> ${ref.id}`).not.toBeNull();
-            }
-        }
+    it("resolves every mapped id through the catalogue", () => {
         for (const key of KEYS) {
             for (const ref of indicatorRefsFrom(key, cardFor(key))) {
                 expect(catalogueEntry(ref.id), `${key} -> ${ref.id}`).not.toBeNull();
@@ -132,10 +119,10 @@ describe("the settings keys the mapping claims", () => {
 });
 
 describe("a rule built from the panel's own settings", () => {
-    it.each(MAPPED.map((key) => [key] as const))(
+    it.each(KEYS.map((key) => [key] as const))(
         "%s: every configured line is accepted by the core",
         (key) => {
-            const refs = mappedIndicatorRefs(key, cardFor(key));
+            const refs = indicatorRefsFrom(key, cardFor(key));
             expect(refs.length, `${key} produced no refs`).toBeGreaterThan(0);
             for (const ref of refs) {
                 const document = {
@@ -159,7 +146,7 @@ describe("a rule built from the panel's own settings", () => {
         },
     );
 
-    it.each(MAPPED.map((key) => [key] as const))(
+    it.each(KEYS.map((key) => [key] as const))(
         "%s: names exactly the parameters the core declares",
         (key) => {
             /*
@@ -171,7 +158,7 @@ describe("a rule built from the panel's own settings", () => {
              * document. This is the only check that sees that.
              */
             for (const line of mappingLines(key)) {
-                const entry = registryEntry(line.id)!;
+                const entry = catalogueEntry(line.id)!;
                 expect(
                     [...line.params].sort(),
                     `${key} -> ${line.id} declares parameters the core does not`,
@@ -219,13 +206,13 @@ describe("carrying the configured parameters rather than the defaults", () => {
         expect(typeof ref.params.std_dev).toBe("string");
     });
 
-    // BUG-0451. Parabolic SAR has no JavaScript implementation on the alert
-    // path, so its card offers no alert action rather than seeding an alert
-    // that would be armed and never fire.
-    it("offers no alert action on a card whose indicator an alert cannot fire on", () => {
-        const card = { start: 0.02, increment: 0.02, max: 0.2 };
-        expect(indicatorRefsFrom("parabolicSar", card)).toEqual([]);
-        expect(seedFromIndicatorSettings("parabolicSar", card, "BTCUSDT")).toBeNull();
+    it("carries Parabolic SAR's three factors as strings", () => {
+        const [ref] = indicatorRefsFrom("parabolicSar", {
+            start: 0.02,
+            increment: 0.02,
+            max: 0.2,
+        });
+        expect(ref.params).toEqual({ start: "0.02", increment: "0.02", max: "0.2" });
     });
 });
 
@@ -301,13 +288,9 @@ describe("the seed the entry point hands to the panel", () => {
     });
 
     it("agrees with the button about which cards are armable", () => {
-        // Over every mapped card, not only the armable ones: a card whose button
-        // shows but whose seed is null is a button that does nothing.
-        for (const key of MAPPED) {
-            const seed = seedFromIndicatorSettings(key, cardFor(key), "BTCUSDT");
-            expect(isAlertableIndicator(key), key).toBe(seed !== null);
+        for (const key of KEYS) {
+            expect(isAlertableIndicator(key)).toBe(true);
+            expect(seedFromIndicatorSettings(key, cardFor(key), "BTCUSDT")).not.toBeNull();
         }
-        expect(KEYS.length).toBeGreaterThan(0);
-        expect(KEYS.length).toBeLessThan(MAPPED.length);
     });
 });

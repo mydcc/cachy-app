@@ -61,17 +61,8 @@ alertPanelState.activeTab = "indicators"
 
 After fix: member survives the tab switch.
 
-## Progress
-
-- 2026-09-13: the "id not in the catalogue" case of this class is closed with
-  BUG-0451. `slotOf()` claims an indicator condition only while `catalogueEntry()`
-  resolves its id, so a condition on an id the panel stopped offering stays
-  unclaimed and survives a tab switch. The window/mark-RHS and `percent_change`
-  operator cases above are still open; the AC below stay for those.
-
 ## Related
 
 - Code review feedback on PR #3209 (BUG-0443)
 - Blocks: FEAT-0030 (combined alerts, Combo tab)
 - Dependency: BUG-0443 (slot model, cross-tab wipe fix)
-- Closed in part by: BUG-0451 (the id-not-in-catalogue case)

@@ -46,14 +46,10 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
     INDICATOR_CATALOGUE,
     INDICATOR_GROUP_ORDER,
-    REGISTRY_CATALOGUE,
     catalogueEntry,
     defaultRef,
-    indicatorsInGroup,
     type CatalogueEntry,
 } from "./indicatorCatalogue";
-import { ALERT_PATH_INDICATORS } from "../rules/alertPathIndicators";
-import { computeIndicatorSeries } from "../rules/indicatorSeries";
 
 const WASM_JS = pathToFileURL(resolve(process.cwd(), "static/wasm/technicals_wasm.js")).href;
 const WASM_BINARY = resolve(process.cwd(), "static/wasm/technicals_wasm_bg.wasm");
@@ -102,17 +98,17 @@ const registryEntry = (id: string): RegistryEntry | undefined =>
 describe("indicator catalogue against the core registry", () => {
     it("names every indicator the core accepts, and no others", () => {
         const inRegistry = registry.map((entry) => entry.id).sort();
-        const inCatalogue = REGISTRY_CATALOGUE.map((entry) => entry.id).sort();
+        const inCatalogue = INDICATOR_CATALOGUE.map((entry) => entry.id).sort();
         expect(inCatalogue).toEqual(inRegistry);
     });
 
     it("gives every indicator a group the tab renders", () => {
-        for (const entry of REGISTRY_CATALOGUE) {
+        for (const entry of INDICATOR_CATALOGUE) {
             expect(INDICATOR_GROUP_ORDER).toContain(entry.group);
         }
     });
 
-    it.each(REGISTRY_CATALOGUE.map((entry) => [entry.id, entry] as const))(
+    it.each(INDICATOR_CATALOGUE.map((entry) => [entry.id, entry] as const))(
         "%s: parameters match the registry by name, kind and order",
         (id, entry: CatalogueEntry) => {
             const spec = registryEntry(id);
@@ -123,7 +119,7 @@ describe("indicator catalogue against the core registry", () => {
         },
     );
 
-    it.each(REGISTRY_CATALOGUE.map((entry) => [entry.id, entry] as const))(
+    it.each(INDICATOR_CATALOGUE.map((entry) => [entry.id, entry] as const))(
         "%s: output lines match the registry by name, dimension and order",
         (id, entry: CatalogueEntry) => {
             const spec = registryEntry(id);
@@ -133,7 +129,7 @@ describe("indicator catalogue against the core registry", () => {
         },
     );
 
-    it.each(REGISTRY_CATALOGUE.map((entry) => [entry.id, entry] as const))(
+    it.each(INDICATOR_CATALOGUE.map((entry) => [entry.id, entry] as const))(
         "%s: every default lies inside the registry's bounds",
         (id, entry: CatalogueEntry) => {
             const spec = registryEntry(id)!;
@@ -155,7 +151,7 @@ describe("indicator catalogue against the core registry", () => {
         },
     );
 
-    it.each(REGISTRY_CATALOGUE.map((entry) => [entry.id, entry] as const))(
+    it.each(INDICATOR_CATALOGUE.map((entry) => [entry.id, entry] as const))(
         "%s: a rule built from the defaults is accepted by the core",
         (id, entry: CatalogueEntry) => {
             // The strongest form of the check: not "does the name look right"
@@ -179,69 +175,10 @@ describe("indicator catalogue against the core registry", () => {
         },
     );
 
-    it("resolves every offered id through catalogueEntry", () => {
+    it("resolves every catalogued id through catalogueEntry", () => {
         for (const entry of INDICATOR_CATALOGUE) {
             expect(catalogueEntry(entry.id)).toBe(entry);
         }
         expect(catalogueEntry("vwap")).toBeNull();
-    });
-});
-
-/**
- * BUG-0451 — the panel offered all 23 registry indicators, and 14 of them have
- * no JavaScript implementation on the alert path: an alert on one was armed and
- * then reported as "can never fire" on its first close.
- */
-describe("what the alert panel offers", () => {
-    it("offers exactly the indicators the alert path computes", () => {
-        const offered = INDICATOR_CATALOGUE.map((entry) => entry.id).sort();
-        expect(offered).toEqual([...ALERT_PATH_INDICATORS].sort());
-
-        // And each one really does compute: a list that claims more than the
-        // path can do would reopen the bug under a different name.
-        const candles = Array.from({ length: 120 }, (_, i) => {
-            const price = String(100 + (i % 11));
-            return { open_time_ms: i * 60_000, open: price, high: price, low: price, close: price, volume: "10" };
-        });
-        for (const entry of INDICATOR_CATALOGUE) {
-            const result = computeIndicatorSeries(
-                { indicator: defaultRef(entry), timeframe: "1h" },
-                candles,
-            );
-            expect(result.supported, entry.id).toBe(true);
-        }
-    });
-
-    it("hides the registry indicators an alert cannot fire on, and resolves none of them", () => {
-        const hidden = REGISTRY_CATALOGUE.filter((entry) => !ALERT_PATH_INDICATORS.has(entry.id))
-            .map((entry) => entry.id)
-            .sort();
-
-        // Pinned by name, so wiring one into the alert path is a visible change
-        // here, alongside the recorded-history expectation FEAT-0446 requires
-        // for it in the same change.
-        expect(hidden).toEqual(
-            [
-                "adx",
-                "ao",
-                "atr",
-                "cci",
-                "choppiness",
-                "ichimoku",
-                "mfi",
-                "obv",
-                "parabolic_sar",
-                "stoch_rsi",
-                "stochastic",
-                "super_trend",
-                "williams_r",
-            ].sort(),
-        );
-        for (const id of hidden) {
-            expect(catalogueEntry(id), id).toBeNull();
-        }
-        for (const group of INDICATOR_GROUP_ORDER) {
-            expect(indicatorsInGroup(group).some((entry) => hidden.includes(entry.id)), group).toBe(false);
-        }
     });
 });

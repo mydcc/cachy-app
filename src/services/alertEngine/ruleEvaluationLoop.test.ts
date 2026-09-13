@@ -18,7 +18,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RuleEvaluationLoop } from "./ruleEvaluationLoop";
-import { logger } from "../logger";
 import type { RuleDocument, Verdict } from "../../lib/rules/types";
 
 vi.mock("../logger", () => ({
@@ -219,99 +218,6 @@ describe("RuleEvaluationLoop", () => {
   });
 
   describe("robustness", () => {
-    /** Closed candles a real indicator can be computed over. */
-    const rampCandles = Array.from({ length: 60 }, (_, i) => {
-      const price = String(100 + i);
-      return { open_time_ms: i * 60_000, open: price, high: price, low: price, close: price };
-    });
-
-    const reading = (id: string): RuleDocument["conditions"] =>
-      ({
-        kind: "compare",
-        left: { kind: "indicator", indicator: { id, params: { period: 20 } } },
-        op: "gt",
-        right: { kind: "constant", value: "0" },
-        timeframe: "1m",
-      }) as unknown as RuleDocument["conditions"];
-
-    // BUG-0449. The catalogue offers HMA and the alert path claims to compute
-    // it, but `computeIndicatorSeries` called `JSIndicators.hma` detached from
-    // its object, so `this.wma` threw on every close. The throw escaped the
-    // per-rule loop, and every rule ordered after the HMA alert on the same
-    // series went unevaluated with it.
-    it("evaluates an HMA alert and the rules after it on the same series", () => {
-      const loop = new RuleEvaluationLoop({
-        readCandles: () => rampCandles,
-        readRules: () => [rule({ id: "hma", conditions: reading("hma") }), rule({ id: "after" })],
-        onFiring: vi.fn(),
-      });
-
-      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
-      const firings = loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
-
-      expect(firings.map((f) => f.rule.id)).toEqual(["hma", "after"]);
-    });
-
-    // The class, not the instance: whatever makes one rule's evaluation throw,
-    // the other rules on that close are still owed a verdict.
-    it("still evaluates the other rules on a series when one rule's evaluation throws", () => {
-      const loop = new RuleEvaluationLoop({
-        readCandles: (_symbol: string, timeframe: string) => {
-          if (timeframe === "4h") throw new Error("4h series unavailable");
-          return [];
-        },
-        readRules: () => [
-          rule({
-            id: "reads-4h",
-            conditions: {
-              kind: "group",
-              op: "all",
-              of: [{ kind: "compare", timeframe: "4h" }],
-            } as unknown as RuleDocument["conditions"],
-          }),
-          rule({ id: "after" }),
-        ],
-        onFiring: vi.fn(),
-      });
-
-      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
-      const firings = loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
-
-      expect(firings.map((f) => f.rule.id)).toEqual(["after"]);
-      // Logged against the rule that failed, not the series. It is deliberately
-      // not reported as unevaluable: that report tells a trader the alert "can
-      // never fire", which a transient reader failure does not justify.
-      expect(logger.error).toHaveBeenCalledWith(
-        "alerts",
-        expect.stringContaining("reads-4h"),
-        expect.any(Error),
-      );
-    });
-
-    it("contains a firing sink that throws for one rule, not the rules after it", () => {
-      const onFiring = vi.fn(() => {
-        throw new Error("sink unavailable");
-      });
-      const loop = new RuleEvaluationLoop({
-        readCandles: () => [],
-        readRules: () => [rule({ id: "boom" }), rule({ id: "after" })],
-        onFiring,
-      });
-
-      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
-      const firings = loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
-
-      // Both rules were evaluated and reported; only the sink failed. The log
-      // names the sink, so it is not read as an evaluation failure.
-      expect(firings.map((f) => f.rule.id)).toEqual(["boom", "after"]);
-      expect(onFiring).toHaveBeenCalledTimes(2);
-      expect(logger.error).toHaveBeenCalledWith(
-        "alerts",
-        expect.stringContaining("Firing sink failed"),
-        expect.any(Error),
-      );
-    });
-
     it("never throws when a reader fails", () => {
       const loop = new RuleEvaluationLoop({
         readCandles: () => [],

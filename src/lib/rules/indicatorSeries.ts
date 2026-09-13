@@ -46,7 +46,6 @@
 import { Decimal } from "decimal.js";
 
 import { JSIndicators } from "../../utils/indicators";
-import { ALERT_PATH_INDICATORS } from "./alertPathIndicators";
 import type { IndicatorRequest } from "./indicatorRequests";
 import { DEFAULT_OUTPUT } from "./indicatorRequests";
 import type { DecimalString, EvaluationCandle } from "./types";
@@ -62,6 +61,19 @@ import type { DecimalString, EvaluationCandle } from "./types";
 export type SeriesResult =
   | { supported: true; values: (DecimalString | null)[] }
   | { supported: false; reason: string };
+
+/** Registry identities this path can compute today. */
+const SUPPORTED = new Set([
+  "rsi",
+  "macd",
+  "bollinger",
+  "ema",
+  "sma",
+  "wma",
+  "vwma",
+  "hma",
+  "volume_ma",
+]);
 
 function column(
   candles: readonly EvaluationCandle[],
@@ -126,7 +138,7 @@ export function computeIndicatorSeries(
   const output = indicator.output ?? DEFAULT_OUTPUT;
   const params = indicator.params ?? {};
 
-  if (!ALERT_PATH_INDICATORS.has(indicator.id)) {
+  if (!SUPPORTED.has(indicator.id)) {
     return {
       supported: false,
       reason: `indicator '${indicator.id}' has no JavaScript implementation on the alert path`,
@@ -164,26 +176,11 @@ export function computeIndicatorSeries(
           reason: `${indicator.id} has no output '${output}'`,
         };
       }
-      // Called through the object, never detached: `hma` builds on `this.wma`,
-      // and a detached call threw on every close (BUG-0449).
-      const id = indicator.id as "ema" | "sma" | "wma" | "hma";
-      return { supported: true, values: wire(JSIndicators[id](close, period)) };
-    }
-
-    case "momentum": {
-      const period = whole(params.period);
-      if (period === undefined) {
-        return { supported: false, reason: "momentum needs a whole period" };
-      }
-      if (output !== DEFAULT_OUTPUT) {
-        return {
-          supported: false,
-          reason: `momentum has no output '${output}'`,
-        };
-      }
-      // The close against the close a full period back: nothing accumulates, so
-      // the value at a candle does not depend on where the rolling buffer starts.
-      return { supported: true, values: wire(JSIndicators.mom(close, period)) };
+      const fn = JSIndicators[indicator.id] as (
+        d: Float64Array,
+        p: number,
+      ) => Float64Array;
+      return { supported: true, values: wire(fn(close, period)) };
     }
 
     case "volume_ma": {
