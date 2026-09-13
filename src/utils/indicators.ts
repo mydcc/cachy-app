@@ -104,13 +104,27 @@ export const JSIndicators = {
       const dropVal = data[i - period];
       const addVal = data[i];
 
-      // WMA_t = WMA_{t-1} + n*P_t - Sum_{t-1}
-      wmaSum = wmaSum + period * addVal - sum;
+      if ((i - startIdx) % period === 0) {
+        // Resynchronise both sums from the window itself once per period.
+        // The O(1) update below feeds `sum`'s rounding error into `wmaSum` on
+        // every step, so without this the drift grew with series length —
+        // 2.9e-8 at BTC scale over 5000 candles, amplified again by HMA
+        // (BUG-0450). One resync per period keeps the whole loop O(n) and the
+        // error at one window's worth, wherever in the series it is.
+        sum = 0;
+        wmaSum = 0;
+        for (let k = 0; k < period; k++) {
+          const v = data[i - period + 1 + k];
+          sum += v;
+          wmaSum += v * (k + 1);
+        }
+      } else {
+        // WMA_t = WMA_{t-1} + n*P_t - Sum_{t-1}
+        wmaSum = wmaSum + period * addVal - sum;
+        sum = sum - dropVal + addVal;
+      }
 
       result[i] = wmaSum / denominator;
-
-      // Update sum for next iteration
-      sum = sum - dropVal + addVal;
     }
     return result;
   },

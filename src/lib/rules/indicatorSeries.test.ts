@@ -19,6 +19,10 @@ import { describe, expect, it } from "vitest";
 
 import { collectIndicators, indicatorKey } from "./indicatorRequests";
 import { computeIndicatorSeries } from "./indicatorSeries";
+import { Decimal } from "decimal.js";
+
+import { INDICATOR_CATALOGUE, defaultRef } from "../alerts/indicatorCatalogue";
+import { JSIndicators } from "../../utils/indicators";
 import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
 import type {
   Condition,
@@ -220,6 +224,94 @@ describe("computeIndicatorSeries", () => {
     expect(result.supported).toBe(true);
     if (!result.supported) return;
     expect(Number(result.values.at(-1))).toBeCloseTo(7, 10);
+  });
+
+  /**
+   * BUG-0449. HMA shipped on this path with no test at all, and threw on every
+   * call. So this walks the catalogue the panel offers rather than a hand list:
+   * any indicator the path says it supports has to produce numbers, and a new
+   * one cannot join the supported set without being exercised here.
+   */
+  it("computes every catalogue line it claims to support, without throwing", () => {
+    const long = candles(
+      Array.from({ length: 300 }, (_, i) => 100 + 10 * Math.sin(i / 7) + i / 10),
+      Array.from({ length: 300 }, (_, i) => 1_000 + (i % 13) * 50),
+    );
+    const claimed: string[] = [];
+
+    for (const entry of INDICATOR_CATALOGUE) {
+      for (const line of entry.outputs) {
+        const ref = { ...defaultRef(entry), output: line.name };
+        const result = computeIndicatorSeries({ indicator: ref, timeframe: "1h" }, long);
+        if (!result.supported) continue;
+
+        const label = `${entry.id}.${line.name}`;
+        claimed.push(label);
+        expect(result.values, label).toHaveLength(long.length);
+        expect(result.values.some((v) => v !== null), label).toBe(true);
+      }
+    }
+
+    // Guards the loop above against passing by skipping everything.
+    expect(claimed).toContain("hma.value");
+  });
+
+  it("computes HMA as the same function the chart calls", () => {
+    const series = Array.from({ length: 60 }, (_, i) => 100 + (i % 9) * 3);
+    const result = computeIndicatorSeries(
+      { indicator: { id: "hma", params: { period: 16 } }, timeframe: "1h" },
+      candles(series),
+    );
+
+    expect(result.supported).toBe(true);
+    if (!result.supported) return;
+    const expected = JSIndicators.hma(Float64Array.from(series), 16);
+    expect(result.values).toEqual(
+      Array.from(expected, (v) => (Number.isFinite(v) ? new Decimal(v).toFixed() : null)),
+    );
+  });
+
+  it("computes momentum as the same function the chart calls", () => {
+    const series = Array.from({ length: 40 }, (_, i) => 100 + (i % 7) * 2.5);
+    const result = computeIndicatorSeries(
+      { indicator: { id: "momentum", params: { period: 10 } }, timeframe: "1h" },
+      candles(series),
+    );
+
+    expect(result.supported).toBe(true);
+    if (!result.supported) return;
+    const expected = JSIndicators.mom(Float64Array.from(series), 10);
+    expect(result.values).toEqual(
+      Array.from(expected, (v) => (Number.isFinite(v) ? new Decimal(v).toFixed() : null)),
+    );
+    // The change over the period: nothing before a full period back exists.
+    expect(result.values.slice(0, 10)).toEqual(Array(10).fill(null));
+    expect(result.values[10]).toBe(new Decimal(series[10]).minus(series[0]).toFixed());
+  });
+
+  /**
+   * The live loop reads a rolling buffer: the oldest candle is dropped as a new
+   * one closes, and scrolling the chart back loads more. A value that depended
+   * on where that buffer starts would let an alert fire or stay quiet on how far
+   * the trader scrolled. OBV has exactly that property — it accumulates from
+   * the first candle it is given — which is why it is not wired in with
+   * momentum (FEAT-0446, "Found: OBV depends on the loaded window").
+   */
+  it("gives momentum the same value at a candle however much history precedes it", () => {
+    const series = Array.from({ length: 80 }, (_, i) => 100 + ((i * 13) % 17) - (i % 5));
+    const full = computeIndicatorSeries(
+      { indicator: { id: "momentum", params: { period: 10 } }, timeframe: "1h" },
+      candles(series),
+    );
+    const trimmed = computeIndicatorSeries(
+      { indicator: { id: "momentum", params: { period: 10 } }, timeframe: "1h" },
+      candles(series).slice(25),
+    );
+
+    expect(full.supported && trimmed.supported).toBe(true);
+    if (!full.supported || !trimmed.supported) return;
+    // From the first candle the trimmed buffer has a full period for, onwards.
+    expect(trimmed.values.slice(10)).toEqual(full.values.slice(25 + 10));
   });
 
   it("refuses an indicator it cannot compute instead of returning nulls", () => {
