@@ -345,10 +345,14 @@ export function calculateIndicatorsFromArrays(
           const pdi = res.pdi[idx];
           const mdi = res.mdi[idx];
 
-          const trend = val > 25 ? "Strong Trend" : "Weak Trend";
-          const dir = pdi > mdi ? "Bullish" : "Bearish";
+          // Absent until the ADX has its first value (BUG-0459). Too little
+          // history used to read as an ADX of 0, a "Weak Trend".
+          if (Number.isFinite(val)) {
+              const trend = val > 25 ? "Strong Trend" : "Weak Trend";
+              const dir = pdi > mdi ? "Bullish" : "Bearish";
 
-          advancedInfo.adx = { value: val, pdi, mdi, trend, dir };
+              advancedInfo.adx = { value: val, pdi, mdi, trend, dir };
+          }
       }
 
       if (shouldCalculate('superTrend')) {

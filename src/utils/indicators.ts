@@ -430,95 +430,22 @@ export const JSIndicators = {
     return result;
   },
 
+  /**
+   * Wilder's ADX line. One implementation with `calculateADXSeries`, which also
+   * returns the two directional indicators: the two were separate copies before
+   * and both seeded from a first candle that has no movement (BUG-0459).
+   */
   adx(
     high: NumberArray,
     low: NumberArray,
     close: NumberArray,
     period: number,
     out?: Float64Array,
-    pool?: BufferPool,
   ): Float64Array {
-    const len = close.length;
-    const result = (out && out.length === len) ? out : new Float64Array(len);
-    result.fill(NaN);
-
-    if (len < period * 2) return result;
-
-    let upMove: Float64Array;
-    let downMove: Float64Array;
-    let tr: Float64Array;
-    let plusDI_S: Float64Array;
-    let minusDI_S: Float64Array;
-    let tr_S: Float64Array;
-    let dx: Float64Array;
-    let pooled = false;
-
-    if (pool) {
-      upMove = pool.acquire(len);
-      downMove = pool.acquire(len);
-      tr = pool.acquire(len);
-      // We can reuse buffers sequentially if we are careful, but adx needs parallel vectors
-      // plusDI_S, minusDI_S, tr_S needed simultaneously for DX calc.
-      // So we need separate buffers.
-      plusDI_S = pool.acquire(len);
-      minusDI_S = pool.acquire(len);
-      tr_S = pool.acquire(len);
-      dx = pool.acquire(len);
-      pooled = true;
-    } else {
-      upMove = new Float64Array(len);
-      downMove = new Float64Array(len);
-      tr = new Float64Array(len);
-      plusDI_S = new Float64Array(len); // Allocated by smma if not passed? No, we pass logic.
-      minusDI_S = new Float64Array(len);
-      tr_S = new Float64Array(len);
-      dx = new Float64Array(len);
-    }
-
-    // Fill with 0 (since acquire might be dirty)
-    upMove.fill(0);
-    downMove.fill(0);
-    tr.fill(0);
-    // Others are filled by their producers (smma) or calc loops
-
-    for (let i = 1; i < len; i++) {
-      const up = high[i] - high[i - 1];
-      const down = low[i - 1] - low[i];
-      upMove[i] = up > down && up > 0 ? up : 0;
-      downMove[i] = down > up && down > 0 ? down : 0;
-
-      tr[i] = Math.max(
-        high[i] - low[i],
-        Math.abs(high[i] - close[i - 1]),
-        Math.abs(low[i] - close[i - 1]),
-      );
-    }
-
-    this.smma(upMove, period, plusDI_S);
-    this.smma(downMove, period, minusDI_S);
-    this.smma(tr, period, tr_S);
-
-    // dx
-    for (let i = 0; i < len; i++) {
-      const pDI = (plusDI_S[i] / (tr_S[i] || 1)) * 100;
-      const mDI = (minusDI_S[i] / (tr_S[i] || 1)) * 100;
-      const sum = pDI + mDI;
-      dx[i] = sum === 0 ? 0 : (Math.abs(pDI - mDI) / sum) * 100;
-    }
-
-    const res = this.smma(dx, period, result);
-
-    if (pooled && pool) {
-        pool.release(upMove);
-        pool.release(downMove);
-        pool.release(tr);
-        pool.release(plusDI_S);
-        pool.release(minusDI_S);
-        pool.release(tr_S);
-        pool.release(dx);
-    }
-
-    return res;
+    const { adx } = calculateADXSeries(high, low, close, period, period);
+    if (!out || out.length !== adx.length) return adx;
+    out.set(adx);
+    return out;
   },
 
   atr(
@@ -2016,6 +1943,18 @@ export const indicators = {
   },
 };
 
+/**
+ * Wilder's directional movement, as TradingView's `ta.dmi` computes it.
+ *
+ * The first candle has no previous candle, so it has no true range and no
+ * directional movement: NaN, not 0. `smma` starts after leading NaNs, so each
+ * smoothing starts from the mean of the first `period` real values, at candle
+ * `period`, and the ADX from the mean of the first `smoothingPeriod` DX values,
+ * at candle `period + smoothingPeriod - 1`. A 0 there dragged every average
+ * after it and gave the ADX one candle too early (BUG-0459).
+ *
+ * NaN wherever a line has no value yet.
+ */
 export function calculateADXSeries(
   high: NumberArray,
   low: NumberArray,
@@ -2023,20 +1962,10 @@ export function calculateADXSeries(
   period: number, smoothingPeriod: number = 14
 ): { adx: Float64Array; pdi: Float64Array; mdi: Float64Array } {
   const len = close.length;
-  const adx = new Float64Array(len);
-  const pdi = new Float64Array(len);
-  const mdi = new Float64Array(len);
-
-  if (len < period * 2) return { adx, pdi, mdi };
-
   const upMove = new Float64Array(len);
   const downMove = new Float64Array(len);
   const tr = new Float64Array(len);
-
-  const plusDM_S = new Float64Array(len);
-  const minusDM_S = new Float64Array(len);
-  const tr_S = new Float64Array(len);
-  const dx = new Float64Array(len);
+  upMove[0] = downMove[0] = tr[0] = NaN;
 
   for (let i = 1; i < len; i++) {
     const up = high[i] - high[i - 1];
@@ -2051,22 +1980,23 @@ export function calculateADXSeries(
     );
   }
 
-  JSIndicators.smma(upMove, period, plusDM_S);
-  JSIndicators.smma(downMove, period, minusDM_S);
-  JSIndicators.smma(tr, period, tr_S);
+  const plusDM_S = JSIndicators.smma(upMove, period);
+  const minusDM_S = JSIndicators.smma(downMove, period);
+  const tr_S = JSIndicators.smma(tr, period);
 
+  const pdi = new Float64Array(len);
+  const mdi = new Float64Array(len);
+  const dx = new Float64Array(len);
   for (let i = 0; i < len; i++) {
-    const trVal = tr_S[i] || 1;
-    const pVal = (plusDM_S[i] / trVal) * 100;
-    const mVal = (minusDM_S[i] / trVal) * 100;
-    pdi[i] = pVal;
-    mdi[i] = mVal;
+    // No true range over the window means no direction either way, as in WASM.
+    const trVal = tr_S[i] === 0 ? 1 : tr_S[i];
+    pdi[i] = (plusDM_S[i] / trVal) * 100;
+    mdi[i] = (minusDM_S[i] / trVal) * 100;
 
-    const sum = pVal + mVal;
-    dx[i] = sum === 0 ? 0 : (Math.abs(pVal - mVal) / sum) * 100;
+    const sum = pdi[i] + mdi[i];
+    dx[i] = sum === 0 ? 0 : (Math.abs(pdi[i] - mdi[i]) / sum) * 100;
   }
 
-  JSIndicators.smma(dx, smoothingPeriod || period, adx);
-
+  const adx = JSIndicators.smma(dx, smoothingPeriod || period);
   return { adx, pdi, mdi };
 }
