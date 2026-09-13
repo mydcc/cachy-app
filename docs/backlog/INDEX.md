@@ -2,9 +2,9 @@
 
 # Backlog index
 
-346 items. How to read and add them: [README.md](README.md).
+347 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 4 · ✅ done 285 · ⛔ dropped 1
+Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 4 · ✅ done 286 · ⛔ dropped 1
 
 ---
 
