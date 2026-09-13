@@ -30,6 +30,7 @@
  * that asserts it anyway is asserting absence and calling it agreement.
  */
 
+import { DEFAULT_OUTPUT } from "../../lib/rules/indicatorRequests";
 import type { IndicatorRef, ParamValue } from "../../lib/rules/types";
 
 export interface IndicatorWarmup {
@@ -76,27 +77,38 @@ export const INDICATOR_WARMUP: IndicatorWarmup[] = [
   { label: "SuperTrend(10,3)", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "value" } },
   { label: "SuperTrend upper", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "upper" } },
   { label: "SuperTrend lower", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "lower" } },
+  // Midpoints of 9-, 26- and 52-candle windows; both spans displaced 26 candles
+  // forward, as the chart draws them (ICHIMOKU_DISPLACEMENT).
+  { label: "Ichimoku conversion", needs: 9, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "conversion" } },
+  { label: "Ichimoku base", needs: 26, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "base" } },
+  { label: "Ichimoku span A", needs: 52, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "span_a" } },
+  { label: "Ichimoku span B", needs: 78, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "span_b" } },
   { label: "MACD line", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "macd" } },
   { label: "MACD signal", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "signal" } },
   { label: "MACD histogram", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "histogram" } },
   { label: "Bollinger upper", needs: 20, ref: { id: "bollinger", params: { period: 20, std_dev: 2 }, output: "upper" } },
   { label: "Bollinger lower", needs: 20, ref: { id: "bollinger", params: { period: 20, std_dev: 2 }, output: "lower" } },
   { label: "Bollinger basis", needs: 20, ref: { id: "bollinger", params: { period: 20, std_dev: 2 }, output: "middle" } },
+  { label: "Bollinger bandwidth", needs: 20, ref: { id: "bollinger", params: { period: 20, std_dev: 2 }, output: "bandwidth" } },
 ];
 
 /**
  * The warmup for one indicator reference, or `undefined` when the table does
  * not carry that parameterisation.
  *
- * Matched on id and parameters only. `output` picks a line out of an indicator
- * that is already computed — MACD's signal is not available earlier or later
- * than its histogram — so an entry differing only in `output` shares a warmup
- * and the first match is the right one.
+ * Matched on id, parameters and output line. The lines of one indicator can
+ * warm up at different candles: Ichimoku's conversion line has a value after
+ * 9 candles and its displaced span B after 78. This used to match on id and
+ * parameters alone, on the belief that every line shares one warmup, so a
+ * condition on span B took the conversion line's 9 and would have been asserted
+ * from candle 27, inside the span's warmup. A line without its own entry now
+ * finds none, and `assertableFrom` refuses it.
  */
 export function warmupFor(ref: IndicatorRef): number | undefined {
   const entry = INDICATOR_WARMUP.find(
     (w) =>
       w.ref.id === ref.id &&
+      (w.ref.output ?? DEFAULT_OUTPUT) === (ref.output ?? DEFAULT_OUTPUT) &&
       JSON.stringify(sortedParams(w.ref.params)) === JSON.stringify(sortedParams(ref.params)),
   );
   return entry?.needs;

@@ -427,3 +427,33 @@ describe("an ADX card whose DI length and smoothing differ", () => {
         expect(cardAlertAvailability("rsi", { length: 14, diLength: 3 })).toBe("armable");
     });
 });
+
+/**
+ * FEAT-0446 group 4. The core's Ichimoku has no displacement; the alert path
+ * reads the cloud 26 candles forward, where the chart draws it for a card at 26.
+ */
+describe("an Ichimoku card displaced by another number of candles", () => {
+    it("arms the default card, displaced by 26", () => {
+        const card = { ...cardFor("ichimoku"), displacement: 26 };
+        expect(cardAlertAvailability("ichimoku", card)).toBe("armable");
+        expect(indicatorRefsFrom("ichimoku", card).map((r) => r.id)).toContain("ichimoku");
+    });
+
+    it("seeds no alert on another displacement, and says so", () => {
+        const card = { ...cardFor("ichimoku"), displacement: 30 };
+        expect(isAlertableIndicator("ichimoku")).toBe(true);
+        expect(cardAlertAvailability("ichimoku", card)).toBe("displacement-mismatch");
+        expect(indicatorRefsFrom("ichimoku", card)).toEqual([]);
+        expect(seedFromIndicatorSettings("ichimoku", card, "BTCUSDT")).toBeNull();
+    });
+
+    it("reads a missing displacement as 26, which is what the chart draws for it", () => {
+        const card = { conversionPeriod: 9, basePeriod: 26, spanBPeriod: 52 };
+        expect(cardAlertAvailability("ichimoku", card)).toBe("armable");
+        expect(cardAlertAvailability("ichimoku", { ...card, displacement: 0 })).toBe("armable");
+    });
+
+    it("leaves every other card alone", () => {
+        expect(cardAlertAvailability("rsi", { length: 14, displacement: 3 })).toBe("armable");
+    });
+});

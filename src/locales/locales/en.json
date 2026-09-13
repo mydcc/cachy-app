@@ -1589,6 +1589,7 @@
       "alertOnThis": "Alert on this indicator",
       "alertSourceMismatch": "Alerts compute this indicator over {source}. Set Source to {source} to alert on it.",
       "alertAdxLengthMismatch": "Alerts compute ADX with one length. Set DI Length and Smoothing to the same value to alert on it.",
+      "alertIchimokuDisplacementMismatch": "Alerts read the cloud displaced by {displacement} candles. Set Displacement to {displacement} to alert on it.",
       "summaryAction": "Summary",
       "marketConfluence": "Market Confluence",
       "oscillatorsTitle": "Oscillators",

@@ -468,6 +468,7 @@ describe("computeIndicatorSeries — high, low and close", () => {
     Float64Array.from(moving, (c) => Number(c[field]));
 
   const STOCHASTIC = { k_period: 14, k_smoothing: 3, d_period: 3 };
+  const ICHIMOKU = { conversion_period: 9, base_period: 26, span_b_period: 52 };
 
   it("computes CCI over the typical price, the price alertPathSourceOf names", () => {
     const high = column("high");
@@ -613,6 +614,9 @@ describe("computeIndicatorSeries — high, low and close", () => {
       ["stoch_rsi", STOCH_RSI, "value"],
       ["adx", { period: 14 }, "value"],
       ["super_trend", { period: 10, factor: 3 }, "trend"],
+      // The chart draws a lagging span too; it is the close of a later candle,
+      // not a core output, and no alert reads it.
+      ["ichimoku", ICHIMOKU, "lagging"],
     ] as const)("refuses a %s line it does not produce", (id, params, output) => {
       const result = computeIndicatorSeries({ indicator: { id, params, output }, timeframe: "1h" }, moving);
       expect(result.supported).toBe(false);
@@ -721,6 +725,50 @@ describe("computeIndicatorSeries — high, low and close", () => {
       expect(shownD.findIndex((v) => v !== null)).toBe(31);
       expect(wrong).toEqual([]);
     });
+
+    /**
+     * WASM has no Ichimoku, so this is its cross-path check (`NOT_IN_WASM`),
+     * beside the chart comparison in `indicatorLayer.test.ts`. Each line is the
+     * midpoint of its window's highest high and lowest low, recomputed in
+     * `Decimal`; both spans are read 26 candles after the candle whose windows
+     * they come from.
+     */
+    it("is the displaced midpoint of each window, to within 1e-9 on recorded history", () => {
+      const high = RECORDED_CANDLES.map((c) => new Decimal(c.high));
+      const low = RECORDED_CANDLES.map((c) => new Decimal(c.low));
+      const midpoint = (end: number, n: number): Decimal | null => {
+        if (end - n + 1 < 0) return null;
+        const highest = Decimal.max(...high.slice(end - n + 1, end + 1));
+        const lowest = Decimal.min(...low.slice(end - n + 1, end + 1));
+        return highest.plus(lowest).div(2);
+      };
+      const DISPLACEMENT = 26;
+      const reference: Record<string, (i: number) => Decimal | null> = {
+        conversion: (i) => midpoint(i, 9),
+        base: (i) => midpoint(i, 26),
+        span_a: (i) => {
+          const conversion = midpoint(i - DISPLACEMENT, 9);
+          const base = midpoint(i - DISPLACEMENT, 26);
+          return conversion && base ? conversion.plus(base).div(2) : null;
+        },
+        span_b: (i) => midpoint(i - DISPLACEMENT, 52),
+      };
+
+      const wrong: string[] = [];
+      for (const [output, expectedAt] of Object.entries(reference)) {
+        const shown = series({ id: "ichimoku", params: ICHIMOKU, output }, RECORDED_CANDLES);
+        for (let i = 0; i < RECORDED_CANDLES.length; i++) {
+          const expected = expectedAt(i);
+          const value = shown[i];
+          const off =
+            expected === null
+              ? value !== null
+              : value === null || new Decimal(value).minus(expected).abs().gt("1e-9");
+          if (off && wrong.length < 4) wrong.push(`candle ${i}: ${output} ${value} vs ${expected?.toFixed(6) ?? "no value"}`);
+        }
+      }
+      expect(wrong).toEqual([]);
+    });
   });
 
   /**
@@ -742,6 +790,11 @@ describe("computeIndicatorSeries — high, low and close", () => {
       // Group 3: windows and two sliding averages over them, so to rounding.
       [{ id: "stochastic", params: STOCHASTIC, output: "k" }, 16, false],
       [{ id: "stochastic", params: STOCHASTIC, output: "d" }, 18, false],
+      // Group 4: Ichimoku's lines are window midpoints, displaced or not, so exactly.
+      [{ id: "ichimoku", params: ICHIMOKU, output: "conversion" }, 9, true],
+      [{ id: "ichimoku", params: ICHIMOKU, output: "base" }, 26, true],
+      [{ id: "ichimoku", params: ICHIMOKU, output: "span_a" }, 52, true],
+      [{ id: "ichimoku", params: ICHIMOKU, output: "span_b" }, 78, true],
     ];
     const history = RECORDED_CANDLES.slice(0, 400);
 

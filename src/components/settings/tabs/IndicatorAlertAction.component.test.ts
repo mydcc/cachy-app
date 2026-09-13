@@ -235,6 +235,48 @@ describe("an ADX card whose two lengths differ", () => {
     });
 });
 
+/**
+ * FEAT-0446 group 4. Alerts read the Ichimoku cloud displaced by 26 candles; a
+ * card displaced by another number draws a cloud no alert reads.
+ */
+describe("an Ichimoku card displaced by another number of candles", () => {
+    const reason = en.settings.technicals.alertIchimokuDisplacementMismatch.replaceAll("{displacement}", "26");
+
+    afterEach(() => {
+        indicatorState.ichimoku.displacement = 26;
+    });
+
+    it("keeps the action visible but refuses it, and names the displacement to set", () => {
+        indicatorState.ichimoku.displacement = 30;
+        const button = render("ichimoku")!;
+
+        expect(button).not.toBeNull();
+        expect(button.getAttribute("aria-disabled")).toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(reason);
+        button.click();
+        settle();
+        expect(uiState.showAlertsModal).toBe(false);
+    });
+
+    it("arms the card once it is displaced by 26 again", () => {
+        indicatorState.ichimoku.displacement = 30;
+        const button = render("ichimoku")!;
+        indicatorState.ichimoku.displacement = 26;
+        settle();
+
+        expect(button.getAttribute("aria-disabled")).not.toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertOnThis);
+    });
+
+    it("has the reason, with its placeholder, in both shipped locales", () => {
+        expect(en.settings.technicals.alertIchimokuDisplacementMismatch).toContain("{displacement}");
+        expect(de.settings.technicals.alertIchimokuDisplacementMismatch).toContain("{displacement}");
+        expect(de.settings.technicals.alertIchimokuDisplacementMismatch).not.toBe(
+            en.settings.technicals.alertIchimokuDisplacementMismatch,
+        );
+    });
+});
+
 describe("what pressing it does", () => {
     it("opens the Indicators tab on a draft carrying the configured period", () => {
         indicatorState.rsi.length = 21;

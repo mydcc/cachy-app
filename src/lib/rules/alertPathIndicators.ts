@@ -48,7 +48,23 @@ export const ALERT_PATH_INDICATORS: ReadonlySet<string> = new Set([
   "stoch_rsi",
   "adx",
   "super_trend",
+  "ichimoku",
 ]);
+
+/**
+ * How many candles forward the alert path displaces Ichimoku's two spans.
+ *
+ * The chart draws span A and span B this many candles after the candle whose
+ * windows they come from (`indicatorLayer.ts`, `displacement || 26`), so the
+ * cloud a condition reads at a candle is the cloud on screen above it. The
+ * core's `ichimoku` has no displacement parameter; a settings card set to
+ * another value refuses to arm rather than alert on a cloud that is not drawn
+ * (FEAT-0446 group 4).
+ *
+ * 26, not TradingView's 25: TradingView plots the spans `displacement - 1`
+ * candles ahead. The contract is this app's chart.
+ */
+export const ICHIMOKU_DISPLACEMENT = 26;
 
 /** A price an indicator on the alert path is computed over. */
 export type AlertPathSource = "close" | "hlc3";

@@ -3,6 +3,7 @@ import type { IChartApi, ISeriesApi, IPaneApi, Time } from "lightweight-charts";
 import { IndicatorLayer } from "./indicatorLayer";
 import { getSourceData, zipToLine, type ChartRow } from "./seriesMap";
 import { JSIndicators } from "../../utils/indicators";
+import { computeIndicatorSeries } from "../rules/indicatorSeries";
 
 function makeSeries() {
     return {
@@ -801,5 +802,83 @@ describe("IndicatorLayer — oscillator lines follow their cards", () => {
 
         expect(tail(k, 5)).toEqual(tail(expected.k, 5));
         expect(tail(d, 5)).toEqual(tail(expected.d, 5));
+    });
+});
+
+/**
+ * FEAT-0446 group 4. An Ichimoku alert reads the cloud the chart draws above
+ * the candle it is evaluated on, displaced forward by ICHIMOKU_DISPLACEMENT.
+ * Compared line against drawn line, candle by candle, rather than against the
+ * function both happen to call.
+ */
+describe("IndicatorLayer — the Ichimoku lines an alert reads are the lines drawn", () => {
+    const rows = makeRows(160).map((r, i) => ({
+        ...r,
+        high: r.close + ((i * 7) % 11),
+        low: r.close - ((i * 5) % 13),
+    }));
+    const candles = rows.map((r, i) => ({
+        open_time_ms: i * 3_600_000,
+        open: String(r.open),
+        high: String(r.high),
+        low: String(r.low),
+        close: String(r.close),
+        volume: String(r.volume),
+    }));
+
+    function drawnLines(card: Record<string, unknown>): Map<number, number>[] {
+        Object.assign(indicatorState, makeState({ volume: { enabled: false, showInChart: false }, ichimoku: on(card) }));
+        const env = makeChart();
+        const layer = new IndicatorLayer(env.chart, getColor, null, vi.fn());
+        layer.setAvailableHeight(1400);
+        layer.render(rows);
+        const byTime = new Map(rows.map((r, i) => [r.time as unknown as number, i]));
+        return ((env.panes[0] as unknown as MockPane).series as ISeriesApi<"Line">[]).map((s) => {
+            const data = (s.setData as ReturnType<typeof vi.fn>).mock.calls[0][0] as { time: number; value: number }[];
+            return new Map(data.map((d) => [byTime.get(d.time)!, d.value]));
+        });
+    }
+
+    function alertLine(output: string): (number | null)[] {
+        const result = computeIndicatorSeries(
+            {
+                indicator: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output },
+                timeframe: "1h",
+            },
+            candles,
+        );
+        if (!result.supported) throw new Error(result.reason);
+        return result.values.map((v) => (v === null ? null : Number(v)));
+    }
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("reads conversion, base and both displaced spans exactly where the chart draws them", () => {
+        // Drawn in this order; the fifth line is the lagging span, which is the
+        // close of a later candle and no alert reads.
+        const [conversion, base, spanA, spanB] = drawnLines({ conversionPeriod: 9, basePeriod: 26, spanBPeriod: 52, displacement: 26 });
+
+        for (const [output, drawn] of [
+            ["conversion", conversion],
+            ["base", base],
+            ["span_a", spanA],
+            ["span_b", spanB],
+        ] as const) {
+            const read = alertLine(output);
+            const wrong = read
+                .map((value, i) => [i, value, drawn.get(i) ?? null] as const)
+                .filter(([, value, shown]) => value !== shown);
+            expect(wrong, output).toEqual([]);
+            expect(read.filter((v) => v !== null).length, output).toBeGreaterThan(80);
+        }
+    });
+
+    it("draws another cloud for a card displaced by another number, which is why that card refuses", () => {
+        const [, , spanA30] = drawnLines({ conversionPeriod: 9, basePeriod: 26, spanBPeriod: 52, displacement: 30 });
+        const read = alertLine("span_a");
+        const differing = read.filter((value, i) => value !== null && spanA30.has(i) && spanA30.get(i) !== value);
+        expect(differing.length).toBeGreaterThan(0);
     });
 });
