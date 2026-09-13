@@ -470,7 +470,7 @@
                 if (hasEndDate && tradeDateMs > endDateMs) return false;
             }
             if (query) {
-                if (trade.symbol.toLowerCase().includes(query)) return true;
+                if ((trade.symbol?.toLowerCase() ?? "").includes(query)) return true;
                 if (trade.notes && trade.notes.toLowerCase().includes(query)) return true;
                 if (trade.tags && trade.tags.some((t) => t.toLowerCase().includes(query))) return true;
                 return false;
