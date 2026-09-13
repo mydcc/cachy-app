@@ -398,6 +398,9 @@ pub struct PsarState {
     pub af: Decimal,
     pub is_long: bool,
     pub max_af: Decimal,
+    /// The factor a trend starts from, and restarts from at every reversal.
+    pub start_af: Decimal,
+    /// What the factor grows by at each new extreme.
     pub inc_af: Decimal,
     pub prev_high: Decimal,
     pub prev_low: Decimal,
@@ -434,7 +437,9 @@ fn psar_step(
     prev2_high: Decimal,
     prev2_low: Decimal,
 ) -> (PsarState, Decimal) {
-    let start = st.inc_af; // JS calls it `start`; same value as initial AF
+    // Two settings, not one: reading `start` for both drew another SAR than
+    // the chart wherever a trader set them apart (BUG-0462).
+    let start = st.start_af;
     let increment = st.inc_af;
     let max = st.max_af;
 
@@ -1489,7 +1494,8 @@ impl TechnicalsCalculator {
                 af: s.start,
                 is_long: true,
                 max_af: s.max,
-                inc_af: s.start,
+                start_af: s.start,
+                inc_af: s.increment,
                 prev_high: Decimal::ZERO,
                 prev_low: Decimal::ZERO,
                 prev2_high: Decimal::ZERO,
@@ -2983,7 +2989,37 @@ mod tests {
         let n = 40usize;
         let highs: Vec<String> = (0..n).map(|i| format!("{}", 100 + (i * 5) % 31)).collect();
         let lows: Vec<String> = (0..n).map(|i| format!("{}", 90 + (i * 3) % 27)).collect();
-        let closes: Vec<String> = (0..n).map(|i| format!("{}", 95 + (i * 7) % 29)).collect();
+        assert_psar_matches_reference_replay(highs, lows, ("131", "129"), "0.02", "0.02", "0.2");
+    }
+
+    /// BUG-0462: the calculator used `start` as the increment too, so a
+    /// setting where the two differ drew another SAR than the chart.
+    ///
+    /// The increment only acts while a trend makes new extremes, so these
+    /// candles rise for 25 closes and then fall: the replay above reverses on
+    /// almost every candle and cannot tell the two settings apart.
+    #[test]
+    fn test_psar_reads_start_and_increment_separately() {
+        let highs: Vec<String> =
+            (0..40i64).map(|i| format!("{}", if i < 25 { 100 + 2 * i } else { 150 - 3 * (i - 25) })).collect();
+        let lows: Vec<String> =
+            (0..40i64).map(|i| format!("{}", if i < 25 { 96 + 2 * i } else { 146 - 3 * (i - 25) })).collect();
+        // The updated candle carries the fall on, so it does not reverse: a
+        // reversal lands on the extreme point, which no factor moves.
+        assert_psar_matches_reference_replay(highs.clone(), lows.clone(), ("104", "100"), "0.01", "0.02", "0.2");
+        assert_psar_matches_reference_replay(highs, lows, ("104", "100"), "0.02", "0.01", "0.2");
+    }
+
+    fn assert_psar_matches_reference_replay(
+        highs: Vec<String>,
+        lows: Vec<String>,
+        (update_high, update_low): (&str, &str),
+        start: &str,
+        increment: &str,
+        max: &str,
+    ) {
+        let n = highs.len();
+        let closes: Vec<String> = lows.clone();
         let vols: Vec<String> = vec!["1000".to_string(); n];
         let times = vec![0.0; n];
 
@@ -2994,9 +3030,9 @@ mod tests {
             lows.clone(),
             vols,
             &times,
-            r#"{"psar":[{"start":0.02,"increment":0.02,"max":0.2}]}"#,
+            &format!(r#"{{"psar":[{{"start":{start},"increment":{increment},"max":{max}}}]}}"#),
         );
-        let json = calc.update("130".into(), "131".into(), "129".into(), "130".into(), "1000".into(), "1".into());
+        let json = calc.update(update_low.into(), update_high.into(), update_low.into(), update_low.into(), "1000".into(), "1".into());
         let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
         let got: f64 = parsed["volatility"]["PSAR"]
             .as_str()
@@ -3005,9 +3041,10 @@ mod tests {
             .unwrap();
 
         // f64 reference replay (JSIndicators.psar), extended by the updated candle.
-        let h: Vec<f64> = highs.iter().chain(std::iter::once(&"131".to_string())).map(|s| s.parse().unwrap()).collect();
-        let l: Vec<f64> = lows.iter().chain(std::iter::once(&"129".to_string())).map(|s| s.parse().unwrap()).collect();
-        let (start, inc, max) = (0.02f64, 0.02f64, 0.2f64);
+        let h: Vec<f64> = highs.iter().map(String::as_str).chain(std::iter::once(update_high)).map(|s| s.parse().unwrap()).collect();
+        let l: Vec<f64> = lows.iter().map(String::as_str).chain(std::iter::once(update_low)).map(|s| s.parse().unwrap()).collect();
+        let (start, inc, max): (f64, f64, f64) =
+            (start.parse().unwrap(), increment.parse().unwrap(), max.parse().unwrap());
         let mut is_long = true;
         let mut af = start;
         let mut ep = h[0];
@@ -3040,7 +3077,7 @@ mod tests {
         let tolerance = sar.abs() * 1e-9 + 1e-9;
         assert!(
             (got - sar).abs() <= tolerance,
-            "PSAR replay diverged from reference: got {}, expected {}",
+            "PSAR({start}, {increment}, {max}) replay diverged from reference: got {}, expected {}",
             got,
             sar
         );

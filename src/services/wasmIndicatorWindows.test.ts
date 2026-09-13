@@ -282,3 +282,30 @@ describe("ADX against Wilder's definition, in both engines", () => {
   });
 });
 
+/**
+ * BUG-0462. The Parabolic SAR has no closed-form definition to recompute: it is
+ * a state machine, and the contract is the chart's, `JSIndicators.psar`. So the
+ * panel's SAR is checked against that function here, for the settings a trader
+ * can set apart. The calculator read `start` as the increment too; with the
+ * defaults, where both are 0.02, nothing could show it.
+ */
+describe("Parabolic SAR in the panel against the chart's line", () => {
+  const h = Float64Array.from(RECORDED_CANDLES, (k) => Number(k.high));
+  const l = Float64Array.from(RECORDED_CANDLES, (k) => Number(k.low));
+
+  it.each([
+    [0.02, 0.02, 0.2],
+    [0.01, 0.02, 0.2],
+    [0.02, 0.01, 0.2],
+  ])("draws the same SAR with start %s, increment %s and maximum %s", (start, increment, max) => {
+    const chart = JSIndicators.psar(h, l, start, increment, max);
+    const { wrong, compared } = walkWasm({ psar: [{ start, increment, max }] }, (out, i) => {
+      const shown = out.volatility?.PSAR;
+      if (shown !== undefined && Math.abs(Number(shown) - chart[i]) <= TOLERANCE.toNumber()) return null;
+      return `candle ${i}: SAR ${shown}, chart ${chart[i]}`;
+    });
+
+    expect(wrong).toEqual([]);
+    expect(compared).toBe(RECORDED_CANDLES.length - SEED);
+  });
+});
