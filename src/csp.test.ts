@@ -54,6 +54,13 @@ describe("Content-Security-Policy Configuration (BUG-0270)", () => {
     expect(connectSrc).toContain("https://api.mailgun.net");
   });
 
+  it("svelte.config.js connect-src allows https provider endpoints for browser-direct AI providers (FEAT-0467)", () => {
+    // User-configured AI providers are arbitrary hosts, so the policy allows any
+    // HTTPS origin. Without it the browser blocks the direct request before it
+    // leaves the page and every provider would have to use the server relay.
+    expect(connectSrc).toContain("https:");
+  });
+
   it("src/app.html inline scripts must include nonce='%sveltekit.nonce%'", () => {
     const appHtmlPath = path.resolve(__dirname, "app.html");
     const appHtml = fs.readFileSync(appHtmlPath, "utf-8");

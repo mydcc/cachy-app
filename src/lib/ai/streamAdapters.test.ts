@@ -184,3 +184,80 @@ describe("parseStreamChunk", () => {
     });
   });
 });
+
+describe("stream usage", () => {
+  it("reads OpenAI chat usage from the final, choices-empty chunk", () => {
+    expect(
+      parseStreamChunk("openai-chat", {
+        choices: [],
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
+    ).toEqual({
+      text: "",
+      toolCallFragment: null,
+      usage: { inputTokens: 10, outputTokens: 5 },
+    });
+  });
+
+  it("reads usage alongside a chat delta", () => {
+    expect(
+      parseStreamChunk("openai-chat", {
+        choices: [{ delta: { content: "x" } }],
+        usage: { prompt_tokens: 1 },
+      }),
+    ).toEqual({
+      text: "x",
+      toolCallFragment: null,
+      usage: { inputTokens: 1 },
+    });
+  });
+
+  it("reads Responses usage from the completed event", () => {
+    expect(
+      parseStreamChunk("openai-responses", {
+        type: "response.completed",
+        response: { usage: { input_tokens: 3, output_tokens: 4 } },
+      }),
+    ).toEqual({
+      text: "",
+      toolCallFragment: null,
+      usage: { inputTokens: 3, outputTokens: 4 },
+    });
+  });
+
+  it("reads Anthropic usage from message_start and message_delta", () => {
+    expect(
+      parseStreamChunk("anthropic-messages", {
+        type: "message_start",
+        message: { usage: { input_tokens: 7 } },
+      }),
+    ).toEqual({
+      text: "",
+      toolCallFragment: null,
+      usage: { inputTokens: 7 },
+    });
+    expect(
+      parseStreamChunk("anthropic-messages", {
+        type: "message_delta",
+        usage: { output_tokens: 9 },
+      }),
+    ).toEqual({
+      text: "",
+      toolCallFragment: null,
+      usage: { outputTokens: 9 },
+    });
+  });
+
+  it("reads Google usageMetadata alongside the text part", () => {
+    expect(
+      parseStreamChunk("google-generate", {
+        candidates: [{ content: { parts: [{ text: "x" }] } }],
+        usageMetadata: { promptTokenCount: 2, candidatesTokenCount: 3 },
+      }),
+    ).toEqual({
+      text: "x",
+      toolCallFragment: null,
+      usage: { inputTokens: 2, outputTokens: 3 },
+    });
+  });
+});
