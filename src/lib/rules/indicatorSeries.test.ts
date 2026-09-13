@@ -23,7 +23,7 @@ import { computeIndicatorSeries } from "./indicatorSeries";
 import { Decimal } from "decimal.js";
 
 import { INDICATOR_CATALOGUE, defaultRef } from "../alerts/indicatorCatalogue";
-import { JSIndicators } from "../../utils/indicators";
+import { calculateADXSeries, JSIndicators } from "../../utils/indicators";
 import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
 import { RECORDED_CANDLES } from "../../services/__fixtures__/recordedSeries";
 import type {
@@ -467,6 +467,8 @@ describe("computeIndicatorSeries — high, low and close", () => {
   const column = (field: "high" | "low" | "close" | "volume") =>
     Float64Array.from(moving, (c) => Number(c[field]));
 
+  const STOCHASTIC = { k_period: 14, k_smoothing: 3, d_period: 3 };
+
   it("computes CCI over the typical price, the price alertPathSourceOf names", () => {
     const high = column("high");
     const low = column("low");
@@ -573,12 +575,161 @@ describe("computeIndicatorSeries — high, low and close", () => {
   });
 
   /**
+   * FEAT-0446 group 3 — the indicators an alert reads one of several lines of.
+   */
+  describe("several output lines", () => {
+    const STOCH_RSI = { rsi_period: 14, stoch_period: 14, k_period: 3, d_period: 3 };
+
+    it("computes Stochastic, Stoch RSI, ADX and SuperTrend as the functions the chart and panel call", () => {
+      const high = column("high");
+      const low = column("low");
+      const close = column("close");
+
+      const k = JSIndicators.sma(JSIndicators.stoch(high, low, close, 14), 3);
+      expect(series({ id: "stochastic", params: STOCHASTIC, output: "k" }, moving)).toEqual(asWire(k));
+      expect(series({ id: "stochastic", params: STOCHASTIC, output: "d" }, moving)).toEqual(
+        asWire(JSIndicators.sma(k, 3)),
+      );
+
+      // stochRsi(data, rsiPeriod, stochLookback, dPeriod, kSmoothing) — BUG-0460.
+      const stochRsi = JSIndicators.stochRsi(close, 14, 14, 3, 3);
+      expect(series({ id: "stoch_rsi", params: STOCH_RSI, output: "k" }, moving)).toEqual(asWire(stochRsi.k));
+      expect(series({ id: "stoch_rsi", params: STOCH_RSI, output: "d" }, moving)).toEqual(asWire(stochRsi.d));
+
+      const adx = calculateADXSeries(high, low, close, 14, 14);
+      expect(series({ id: "adx", params: { period: 14 }, output: "adx" }, moving)).toEqual(asWire(adx.adx));
+      expect(series({ id: "adx", params: { period: 14 }, output: "plus_di" }, moving)).toEqual(asWire(adx.pdi));
+      expect(series({ id: "adx", params: { period: 14 }, output: "minus_di" }, moving)).toEqual(asWire(adx.mdi));
+
+      const superTrend = JSIndicators.superTrend(high, low, close, 10, 3);
+      const ST = { period: 10, factor: "3" };
+      expect(series({ id: "super_trend", params: ST, output: "value" }, moving)).toEqual(asWire(superTrend.value));
+      expect(series({ id: "super_trend", params: ST, output: "upper" }, moving)).toEqual(asWire(superTrend.upper));
+      expect(series({ id: "super_trend", params: ST, output: "lower" }, moving)).toEqual(asWire(superTrend.lower));
+    });
+
+    it.each([
+      ["stochastic", STOCHASTIC, "value"],
+      ["stoch_rsi", STOCH_RSI, "value"],
+      ["adx", { period: 14 }, "value"],
+      ["super_trend", { period: 10, factor: 3 }, "trend"],
+    ] as const)("refuses a %s line it does not produce", (id, params, output) => {
+      const result = computeIndicatorSeries({ indicator: { id, params, output }, timeframe: "1h" }, moving);
+      expect(result.supported).toBe(false);
+      if (result.supported) return;
+      expect(result.reason).toContain(`no output '${output}'`);
+    });
+
+    /**
+     * A stochastic divides by its window's range. The chart draws 50 where there
+     * is none, and 50 is not a reading: "%K crossing above 50" would fire on a
+     * halted market. So it is null there, like %R, and so is every average that
+     * reaches over such a window.
+     */
+    describe("a window with no range", () => {
+      // Thirty identical candles, then the moving market.
+      const flatThenMoving = [
+        ...bars(Array.from({ length: 30 }, () => [100, 100, 100, 5] as const)),
+        ...moving.slice(0, 50).map((c, i) => ({ ...c, open_time_ms: (30 + i) * 3_600_000 })),
+      ];
+
+      it("has no Stochastic over it, and none while %K or %D still averages over it", () => {
+        const k = series({ id: "stochastic", params: STOCHASTIC, output: "k" }, flatThenMoving);
+        const d = series({ id: "stochastic", params: STOCHASTIC, output: "d" }, flatThenMoving);
+        // Raw %K windows 13–29 are flat; %K averages three of them, %D three %K.
+        expect(k.slice(0, 32)).toEqual(Array(32).fill(null));
+        expect(k.slice(32).every((v) => v !== null)).toBe(true);
+        expect(d.slice(0, 34)).toEqual(Array(34).fill(null));
+        expect(d.slice(34).every((v) => v !== null)).toBe(true);
+        expect(k).not.toContain("50");
+      });
+
+      it("has no Stoch RSI while the RSI does not move over its window", () => {
+        // A flat market's RSI sits at 100 from candle 14 until the first move at 30.
+        const k = series({ id: "stoch_rsi", params: STOCH_RSI, output: "k" }, flatThenMoving);
+        const d = series({ id: "stoch_rsi", params: STOCH_RSI, output: "d" }, flatThenMoving);
+        expect(k.slice(0, 32)).toEqual(Array(32).fill(null));
+        expect(k.slice(32).every((v) => v !== null)).toBe(true);
+        expect(d.slice(0, 34)).toEqual(Array(34).fill(null));
+        expect(d.slice(34).every((v) => v !== null)).toBe(true);
+      });
+
+      it("reads no movement as no trend and no direction, rather than no value", () => {
+        // Unlike a range, a zero ADX is a reading: nothing is trending, which
+        // is true of a halted market. WASM reports the same zeros.
+        const flat = bars(Array.from({ length: 60 }, () => [100, 100, 100, 5] as const));
+        for (const output of ["adx", "plus_di", "minus_di"]) {
+          expect(series({ id: "adx", params: { period: 14 }, output }, flat).at(-1), output).toBe("0");
+        }
+      });
+    });
+
+    /**
+     * WASM has no Stoch RSI, so this is its cross-path check
+     * (`crossPathParity.test.ts`, `NOT_IN_WASM`): Wilder's RSI, its 14-candle
+     * stochastic and both 3-averages, recomputed in `Decimal` over the recorded
+     * fixture.
+     */
+    it("is the smoothed stochastic of Wilder's RSI, to within 1e-9 on recorded history", () => {
+      const closes = RECORDED_CANDLES.map((c) => new Decimal(c.close));
+      const rsi: (Decimal | null)[] = closes.map(() => null);
+      let gain = new Decimal(0);
+      let loss = new Decimal(0);
+      for (let i = 1; i < closes.length; i++) {
+        const change = closes[i].minus(closes[i - 1]);
+        const up = change.gt(0) ? change : new Decimal(0);
+        const down = change.lt(0) ? change.neg() : new Decimal(0);
+        if (i <= 14) {
+          gain = gain.plus(up);
+          loss = loss.plus(down);
+          if (i < 14) continue;
+          gain = gain.div(14);
+          loss = loss.div(14);
+        } else {
+          gain = gain.times(13).plus(up).div(14);
+          loss = loss.times(13).plus(down).div(14);
+        }
+        rsi[i] = loss.isZero() ? new Decimal(100) : new Decimal(100).minus(new Decimal(100).div(gain.div(loss).plus(1)));
+      }
+      const mean = (values: (Decimal | null)[], end: number, n: number): Decimal | null => {
+        const span = values.slice(end - n + 1, end + 1);
+        if (end - n + 1 < 0 || span.some((v) => v === null)) return null;
+        return (span as Decimal[]).reduce((a, b) => a.plus(b), new Decimal(0)).div(n);
+      };
+      const raw = rsi.map((_, i) => {
+        const span = rsi.slice(i - 13, i + 1);
+        if (i < 13 || span.some((v) => v === null)) return null;
+        const highest = Decimal.max(...(span as Decimal[]));
+        const lowest = Decimal.min(...(span as Decimal[]));
+        return (rsi[i] as Decimal).minus(lowest).div(highest.minus(lowest)).times(100);
+      });
+      const k = raw.map((_, i) => mean(raw, i, 3));
+      const d = k.map((_, i) => mean(k, i, 3));
+
+      const shownK = series({ id: "stoch_rsi", params: STOCH_RSI, output: "k" }, RECORDED_CANDLES);
+      const shownD = series({ id: "stoch_rsi", params: STOCH_RSI, output: "d" }, RECORDED_CANDLES);
+      const wrong: string[] = [];
+      for (let i = 0; i < RECORDED_CANDLES.length; i++) {
+        for (const [label, expected, shown] of [["%K", k[i], shownK[i]], ["%D", d[i], shownD[i]]] as const) {
+          const off =
+            expected === null
+              ? shown !== null
+              : shown === null || new Decimal(shown).minus(expected).abs().gt("1e-9");
+          if (off && wrong.length < 3) wrong.push(`candle ${i}: ${label} ${shown} vs ${expected?.toFixed(12)}`);
+        }
+      }
+      expect(shownD.findIndex((v) => v !== null)).toBe(31);
+      expect(wrong).toEqual([]);
+    });
+  });
+
+  /**
    * The alert path reads a rolling buffer (FEAT-0446, "Found: OBV depends on the
    * loaded window"). A windowed indicator must not care where it starts. %R and
-   * CCI recompute each window, so they agree exactly; choppiness, MFI and AO
-   * slide running sums, so they agree to rounding. ATR is recursive and is left
-   * out on purpose: like RSI and EMA it forgets its start geometrically rather
-   * than not at all.
+   * CCI recompute each window, so they agree exactly; choppiness, MFI, AO and
+   * the Stochastic slide running sums, so they agree to rounding. ATR, ADX,
+   * Stoch RSI and SuperTrend are recursive and are left out on purpose: like RSI
+   * and EMA they forget their start geometrically rather than not at all.
    */
   it("gives the windowed indicators the same value at a candle however much history precedes it", () => {
     const TRIM = 100;
@@ -588,6 +739,9 @@ describe("computeIndicatorSeries — high, low and close", () => {
       [{ id: "choppiness", params: { period: 14 } }, 15, false],
       [{ id: "mfi", params: { period: 14 } }, 15, false],
       [{ id: "ao", params: { fast_period: 5, slow_period: 34 } }, 34, false],
+      // Group 3: windows and two sliding averages over them, so to rounding.
+      [{ id: "stochastic", params: STOCHASTIC, output: "k" }, 16, false],
+      [{ id: "stochastic", params: STOCHASTIC, output: "d" }, 18, false],
     ];
     const history = RECORDED_CANDLES.slice(0, 400);
 

@@ -62,6 +62,20 @@ export const INDICATOR_WARMUP: IndicatorWarmup[] = [
   // Money flow is a change between typical prices, so the first candle carries none.
   { label: "MFI(14)", needs: 15, ref: { id: "mfi", params: { period: 14 } } },
   { label: "AO(5,34)", needs: 34, ref: { id: "ao", params: { fast_period: 5, slow_period: 34 } } },
+  // %D: a 3-average of %K, itself a 3-average of a 14-candle stochastic. 14 + 2 + 2.
+  { label: "Stochastic %K", needs: 18, ref: { id: "stochastic", params: { k_period: 14, k_smoothing: 3, d_period: 3 }, output: "k" } },
+  { label: "Stochastic %D", needs: 18, ref: { id: "stochastic", params: { k_period: 14, k_smoothing: 3, d_period: 3 }, output: "d" } },
+  // The RSI's first value at 14, a 14-candle stochastic of it, then 3 and 3: 15 + 13 + 2 + 2.
+  { label: "Stoch RSI %K", needs: 32, ref: { id: "stoch_rsi", params: { rsi_period: 14, stoch_period: 14, k_period: 3, d_period: 3 }, output: "k" } },
+  { label: "Stoch RSI %D", needs: 32, ref: { id: "stoch_rsi", params: { rsi_period: 14, stoch_period: 14, k_period: 3, d_period: 3 }, output: "d" } },
+  // Wilder: DI from candle 14, the ADX a 14-average of DX from there (BUG-0459).
+  { label: "ADX(14)", needs: 28, ref: { id: "adx", params: { period: 14 }, output: "adx" } },
+  { label: "+DI(14)", needs: 28, ref: { id: "adx", params: { period: 14 }, output: "plus_di" } },
+  { label: "-DI(14)", needs: 28, ref: { id: "adx", params: { period: 14 }, output: "minus_di" } },
+  // An ATR from candle 10 (the first candle has no true range), seeding the bands (BUG-0458).
+  { label: "SuperTrend(10,3)", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "value" } },
+  { label: "SuperTrend upper", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "upper" } },
+  { label: "SuperTrend lower", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "lower" } },
   { label: "MACD line", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "macd" } },
   { label: "MACD signal", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "signal" } },
   { label: "MACD histogram", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "histogram" } },

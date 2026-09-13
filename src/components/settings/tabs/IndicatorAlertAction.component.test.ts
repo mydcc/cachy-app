@@ -193,6 +193,48 @@ describe("a card whose source is not the price the alert path computes over", ()
     });
 });
 
+/**
+ * FEAT-0446 group 3. The ADX card keeps a DI length and a smoothing apart; the
+ * core computes ADX with one length. Where they differ, no alert computes the
+ * pane on screen, so the action refuses and says what to change.
+ */
+describe("an ADX card whose two lengths differ", () => {
+    afterEach(() => {
+        indicatorState.adx.diLength = 14;
+        indicatorState.adx.adxSmoothing = 14;
+    });
+
+    it("keeps the action visible but refuses it, and names the settings to align", () => {
+        indicatorState.adx.diLength = 10;
+        const button = render("adx")!;
+
+        expect(button).not.toBeNull();
+        expect(button.getAttribute("aria-disabled")).toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertAdxLengthMismatch);
+        button.click();
+        settle();
+        expect(uiState.showAlertsModal).toBe(false);
+    });
+
+    it("arms the card once both lengths are the same", () => {
+        indicatorState.adx.diLength = 10;
+        const button = render("adx")!;
+        indicatorState.adx.adxSmoothing = 10;
+        settle();
+
+        expect(button.getAttribute("aria-disabled")).not.toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertOnThis);
+    });
+
+    it("has the reason in both shipped locales", () => {
+        expect(en.settings.technicals.alertAdxLengthMismatch).toBeTruthy();
+        expect(de.settings.technicals.alertAdxLengthMismatch).toBeTruthy();
+        expect(de.settings.technicals.alertAdxLengthMismatch).not.toBe(
+            en.settings.technicals.alertAdxLengthMismatch,
+        );
+    });
+});
+
 describe("what pressing it does", () => {
     it("opens the Indicators tab on a draft carrying the configured period", () => {
         indicatorState.rsi.length = 21;

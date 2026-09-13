@@ -397,3 +397,33 @@ describe("a card whose price source is not the one the alert path computes over"
         expect(cardAlertAvailability("parabolicSar", {})).toBe("not-alertable");
     });
 });
+
+/**
+ * FEAT-0446 group 3. The core's ADX has one period, carried from the card's
+ * smoothing. The chart draws the pane over the DI length. A card that sets the
+ * two apart would seed an alert on a line nobody is looking at.
+ */
+describe("an ADX card whose DI length and smoothing differ", () => {
+    it("arms the default card, whose two lengths agree", () => {
+        expect(cardAlertAvailability("adx", cardFor("adx"))).toBe("armable");
+        expect(indicatorRefsFrom("adx", cardFor("adx")).map((r) => [r.id, r.params])).toEqual([["adx", { period: 14 }]]);
+    });
+
+    it("seeds no alert when they differ, and says so", () => {
+        const card = { ...cardFor("adx"), diLength: 10, adxSmoothing: 14 };
+        expect(isAlertableIndicator("adx")).toBe(true);
+        expect(cardAlertAvailability("adx", card)).toBe("length-mismatch");
+        expect(indicatorRefsFrom("adx", card)).toEqual([]);
+        expect(seedFromIndicatorSettings("adx", card, "BTCUSDT")).toBeNull();
+    });
+
+    it("reads a missing DI length as the smoothing, which is what the chart draws for it", () => {
+        const card = { adxSmoothing: 20 };
+        expect(cardAlertAvailability("adx", card)).toBe("armable");
+        expect(indicatorRefsFrom("adx", card).map((r) => [r.id, r.params])).toEqual([["adx", { period: 20 }]]);
+    });
+
+    it("leaves every other card alone", () => {
+        expect(cardAlertAvailability("rsi", { length: 14, diLength: 3 })).toBe("armable");
+    });
+});

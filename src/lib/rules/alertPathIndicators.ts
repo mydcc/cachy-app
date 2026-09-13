@@ -44,6 +44,10 @@ export const ALERT_PATH_INDICATORS: ReadonlySet<string> = new Set([
   "choppiness",
   "mfi",
   "ao",
+  "stochastic",
+  "stoch_rsi",
+  "adx",
+  "super_trend",
 ]);
 
 /** A price an indicator on the alert path is computed over. */

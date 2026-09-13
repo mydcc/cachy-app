@@ -54,12 +54,12 @@ The other sixteen are thresholds or crosses in the shape already covered.
 ## Acceptance criteria
 
 - [ ] Every id in `REGISTRY_CATALOGUE` has at least one recorded-history expectation —
-      9 of 23; the other 14 cannot fire today, see "Found: 14 indicators are not on the
+      20 of 23; the other 3 cannot fire today, see "Found: 14 indicators are not on the
       alert path" and "Decided: hide now, wire in groups" (since BUG-0451 the panel's
       `INDICATOR_CATALOGUE` is only the computable subset, so this criterion names the
       registry mirror on purpose)
 - [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
-      path genuinely cannot compute — 7 today, each stating the real reason — and the
+      path genuinely cannot compute — 3 today, each stating the real reason — and the
       test that rejects a stale entry keeps it that way
 - [ ] OBV's condition shape is decided and documented before it is wired in (see "Found:
       OBV depends on the loaded window")
@@ -69,7 +69,8 @@ The other sixteen are thresholds or crosses in the shape already covered.
 - [x] Each indicator is asserted only after `needs × 3` candles, with its entry added to
       `INDICATOR_WARMUP` — which also requires a `WASM_LOCATION` entry in
       `crossPathParity.test.ts`, so parity coverage grows with it (done for every
-      indicator asserted so far: EMA(20), WMA(20), VWMA(20), HMA(20))
+      indicator asserted so far: EMA(20), WMA(20), VWMA(20), HMA(20), and every indicator
+      wired in by groups 1–3)
 
 ## Out of scope
 
@@ -131,7 +132,7 @@ list in `indicatorCatalogue.test.ts`. Three guards already fail if any of those 
 |---|---|---|
 | 1 — single line from close | `momentum` | no high/low column yet on the alert path; smallest step. **Wired (2026-09-13).** OBV was planned here and moved to group 4 |
 | 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once. **Wired (2026-09-13).** CCI over the typical price, see "Decided: group 2" |
-| 3 — several output lines | `stochastic`, `stoch_rsi`, `adx`, `super_trend` | output-line mapping, like MACD and Bollinger |
+| 3 — several output lines | `stochastic`, `stoch_rsi`, `adx`, `super_trend` | output-line mapping, like MACD and Bollinger. **Wired (2026-09-13).** See "Decided: group 3" |
 | 4 — shape decisions first | `parabolic_sar`, `ichimoku`, `obv` | SAR flips side; Ichimoku displaces forward; OBV's level depends on the loaded window — each needs its condition shape decided and written down before it is asserted |
 
 The suite enforces the ordering either way: "scopes out only indicators the alert path
@@ -195,6 +196,75 @@ window and agree exactly however much history precedes a candle; choppiness, MFI
 slide sums and agree to rounding (both pinned). ATR is Wilder-smoothed, so like RSI and EMA
 already on the path it forgets its start geometrically rather than not at all: below 1e-9
 after roughly 360 candles, against a 2000-candle default buffer.
+
+## Decided: group 3 (2026-09-13)
+
+**Each engine was measured before it was trusted, and three defects were fixed first.**
+Probing JavaScript ↔ WASM parity found:
+- [`BUG-0458`](../bugs/BUG-0458-js-supertrend-never-has-a-value.md): the JavaScript SuperTrend
+  never had a value.
+- [`BUG-0459`](../bugs/BUG-0459-adx-seeds-off-wilder.md): both ADX engines seeded Wilder's
+  averages off the definition, WASM by 11.8 points at 40 candles.
+- [`BUG-0460`](../bugs/BUG-0460-chart-stochastic-lines-ignore-card.md): the chart drew
+  Stochastic and Stoch RSI from other parameters than their cards.
+
+This group depends on all three.
+
+**The lines are the core's outputs, computed by the chart's and panel's functions.**
+- `stochastic`: `k` is `sma(stoch(k_period), k_smoothing)`, and `d` is its `d_period`
+  average.
+- `stoch_rsi`: `k` and `d` come from `JSIndicators.stochRsi(close, rsi_period, stoch_period,
+  d_period, k_period)`.
+- `adx`: `adx`, `plus_di` and `minus_di` come from `calculateADXSeries` with one period for
+  both smoothings.
+- `super_trend`: `value` is the band the trend stands on, with `upper` and `lower` beside it.
+  A close crossing `value` is the flip.
+
+**A stochastic over a window with no range has no value, and neither does an average reaching
+over one.** This is the group 2 rule for %R. The chart's 50 is not a reading, and "%K above
+50" would fire on a halted market. The raw line is computed with the 50 and nulled
+afterwards, because a NaN inside a sliding sum would stay in it. For Stoch RSI the range is
+the RSI's. A zero ADX and zero DIs on a market with no movement are kept: "no trend, no
+direction" is a true reading, as a zero ATR is, and WASM reports the same zeros.
+
+**An ADX card whose DI length and smoothing differ refuses to arm.** The core's `adx` has
+one period, carried from the smoothing. The chart draws the pane over the DI length, and
+WASM draws the panel over the smoothing. Where they differ, no alert computes the line on
+screen. `cardAlertAvailability` answers `length-mismatch` (through `ONE_LENGTH_CARDS`), and
+the button names both settings (`settings.technicals.alertAdxLengthMismatch`). The default
+card has 14 and 14 and arms.
+
+**Parity.**
+- Stochastic, ADX and both SuperTrend bands are in `WASM_LOCATION` at 1e-9.
+- The SuperTrend line is compared as the band WASM's trend names, on both trends.
+- Stoch RSI has no WASM implementation. It is named in `NOT_IN_WASM` and checked against a
+  `Decimal` stochastic of Wilder's RSI.
+- ADX joins the seed-gap shape guard.
+
+**Start-dependence, measured on the fixture.**
+- The Stochastic's windows and sliding averages agree to 1e-9 however much history precedes
+  a candle; this is pinned.
+- Stoch RSI and ADX are Wilder-smoothed: below 1e-9 about 350 candles after the buffer's
+  start, like ATR.
+- SuperTrend below 1e-9 after about 250, and below 1e-3 after about 120 (its trend
+  resynchronises at the first band cross).
+- All are well inside the 2000-candle default buffer. Accepted, as for RSI and EMA.
+
+## Progress (2026-09-13, group 3)
+
+- Stochastic, Stoch RSI, ADX and SuperTrend wired into the alert path and back in the panel,
+  each with warmup entries and a parity location or its named replacement. Recorded-history
+  expectations:
+
+  | condition | flips |
+  |---|---|
+  | Stochastic %K crossing above %D | 224 |
+  | Stoch RSI %K below 20 | 83 |
+  | ADX(14) above 25 | 40 |
+  | +DI crossing above −DI | 78 |
+  | the close crossing below SuperTrend(10, 3) | 24 |
+
+- `SCOPED_OUT` is down to the three shape decisions of group 4: OBV, Parabolic SAR, Ichimoku
 
 ## Progress (2026-09-13, group 2)
 
