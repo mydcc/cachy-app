@@ -2,9 +2,15 @@
 
 # Backlog index
 
+<<<<<<< HEAD
 346 items. How to read and add them: [README.md](README.md).
 
 Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 286 · ⛔ dropped 1
+=======
+349 items. How to read and add them: [README.md](README.md).
+
+Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 4 · ✅ done 288 · ⛔ dropped 1
+>>>>>>> origin/develop
 
 ---
 
@@ -194,6 +200,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | ai |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | ai |
 | [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | ✅ done | ai |
+| [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | 🟡 in-progress | ai |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | ai |
 
 ### M9
@@ -375,6 +382,9 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | ✅ done | backend |
 | [BUG-0450](bugs/BUG-0450-wma-sliding-sum-drift.md) | The JavaScript WMA drifts from the exact value in proportion to series length | P3 | ✅ done | indicators |
 | [BUG-0456](bugs/BUG-0456-js-atr-first-true-range-zero.md) | The JavaScript ATR counts a true range of zero for the first candle | P3 | ✅ done | indicators |
+| [BUG-0462](bugs/BUG-0462-wasm-psar-ignores-increment.md) | The panel's Parabolic SAR ignores its increment setting | P3 | ✅ done | indicators |
+| [BUG-0463](bugs/BUG-0463-ichimoku-lines-zero-before-window.md) | Ichimoku lines are zero until their windows are full | P3 | ✅ done | indicators |
+| [BUG-0464](bugs/BUG-0464-test-oracles-cross-convention.md) | The condition test oracles define a cross differently from the core | P3 | ✅ done | alerts |
 | [BUG-0466](bugs/BUG-0466-chat-cloud-subscription-lifecycle.md) | Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions | P3 | ✅ done | cloud |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
@@ -687,6 +697,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | 📋 specced | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | 🟡 in-progress | M4 | community, pro, private | C | ADR-0012 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) |
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | none | pro, private | A | none | — |
+| [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | 🟡 in-progress | M8 | community, pro, private | A | ADR-0019 | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -716,6 +727,9 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0437](bugs/BUG-0437-unwired-bitunix-ws-schemas.md) | Bitunix order/position/ticker validation schemas are never wired | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0450](bugs/BUG-0450-wma-sliding-sum-drift.md) | The JavaScript WMA drifts from the exact value in proportion to series length | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0456](bugs/BUG-0456-js-atr-first-true-range-zero.md) | The JavaScript ATR counts a true range of zero for the first candle | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0462](bugs/BUG-0462-wasm-psar-ignores-increment.md) | The panel's Parabolic SAR ignores its increment setting | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0463](bugs/BUG-0463-ichimoku-lines-zero-before-window.md) | Ichimoku lines are zero until their windows are full | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0464](bugs/BUG-0464-test-oracles-cross-convention.md) | The condition test oracles define a cross differently from the core | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0466](bugs/BUG-0466-chat-cloud-subscription-lifecycle.md) | Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions | P3 | ✅ done | none | community, pro, private | B | ADR-0001 | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |

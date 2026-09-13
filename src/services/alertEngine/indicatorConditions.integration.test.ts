@@ -52,6 +52,7 @@ import { CANDLE_SERIES, SERIES_TIMEFRAME } from "../../lib/rules/__fixtures__/ca
 import { collectIndicators } from "../../lib/rules/indicatorRequests";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleSchema } from "../../lib/rules/ruleSchema";
+import { crossedLikeTheCore, signOf } from "../__fixtures__/crossedLikeTheCore";
 import type {
   Condition,
   EvaluationContext,
@@ -194,7 +195,7 @@ function crossAboveOracle(left: Operand, right: Operand): Oracle {
     if (i === 0) return null;
     const [pl, pr, cl, cr] = [l[i - 1], r[i - 1], l[i], r[i]];
     if (pl === null || pr === null || cl === null || cr === null) return null;
-    return pl <= pr && cl > cr;
+    return crossedLikeTheCore(signOf(pl, pr), signOf(cl, cr), "above");
   };
 }
 

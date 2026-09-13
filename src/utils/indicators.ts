@@ -847,25 +847,19 @@ export const JSIndicators = {
     const spanA = new Float64Array(len).fill(NaN);
     const spanB = new Float64Array(len).fill(NaN);
 
+    // A line has no value until its window is full. These used to be 0, which
+    // the chart draws as a line at zero and halves the span A built from it
+    // (BUG-0463); NaN is skipped, and carries into span A by itself.
     for (let i = 0; i < len; i++) {
       if (i >= conversionPeriod - 1) {
         conversion[i] = (convHigh[i] + convLow[i]) / 2;
-      } else {
-        conversion[i] = 0;
       }
-
       if (i >= basePeriod - 1) {
         base[i] = (baseHigh[i] + baseLow[i]) / 2;
-      } else {
-        base[i] = 0;
       }
-
       spanA[i] = (conversion[i] + base[i]) / 2;
-
       if (i >= spanBPeriod - 1) {
         spanB[i] = (spanBHigh[i] + spanBLow[i]) / 2;
-      } else {
-        spanB[i] = 0;
       }
     }
 

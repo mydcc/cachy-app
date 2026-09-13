@@ -5949,6 +5949,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0461-multi-broker-journal-sync.md"
   },
   {
+    "id": "FEAT-0467",
+    "title": "User-managed AI providers with per-provider endpoints and API formats",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "M8",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "ADR-0019",
+    "depends_on": [],
+    "size": "XL",
+    "estimate": "20",
+    "assignee": "opencode",
+    "file": "features/FEAT-0467-multi-provider-management.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
@@ -6526,6 +6547,69 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "branch": "fix/bug-0456-js-atr-first-true-range",
     "start_date": "2026-09-13",
     "file": "bugs/BUG-0456-js-atr-first-true-range-zero.md"
+  },
+  {
+    "id": "BUG-0462",
+    "title": "The panel's Parabolic SAR ignores its increment setting",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0462-wasm-psar-increment",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0462-wasm-psar-ignores-increment.md"
+  },
+  {
+    "id": "BUG-0463",
+    "title": "Ichimoku lines are zero until their windows are full",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0463-ichimoku-warmup-zeros",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0463-ichimoku-lines-zero-before-window.md"
+  },
+  {
+    "id": "BUG-0464",
+    "title": "The condition test oracles define a cross differently from the core",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0464-oracle-cross-ties",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0464-test-oracles-cross-convention.md"
   },
   {
     "id": "BUG-0466",
