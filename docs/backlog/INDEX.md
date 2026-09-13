@@ -2,9 +2,9 @@
 
 # Backlog index
 
-347 items. How to read and add them: [README.md](README.md).
+348 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 4 · ✅ done 286 · ⛔ dropped 1
+Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 4 · ✅ done 287 · ⛔ dropped 1
 
 ---
 
@@ -376,6 +376,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0450](bugs/BUG-0450-wma-sliding-sum-drift.md) | The JavaScript WMA drifts from the exact value in proportion to series length | P3 | ✅ done | indicators |
 | [BUG-0456](bugs/BUG-0456-js-atr-first-true-range-zero.md) | The JavaScript ATR counts a true range of zero for the first candle | P3 | ✅ done | indicators |
 | [BUG-0462](bugs/BUG-0462-wasm-psar-ignores-increment.md) | The panel's Parabolic SAR ignores its increment setting | P3 | ✅ done | indicators |
+| [BUG-0463](bugs/BUG-0463-ichimoku-lines-zero-before-window.md) | Ichimoku lines are zero until their windows are full | P3 | ✅ done | indicators |
 | [BUG-0466](bugs/BUG-0466-chat-cloud-subscription-lifecycle.md) | Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions | P3 | ✅ done | cloud |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
@@ -718,6 +719,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0450](bugs/BUG-0450-wma-sliding-sum-drift.md) | The JavaScript WMA drifts from the exact value in proportion to series length | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0456](bugs/BUG-0456-js-atr-first-true-range-zero.md) | The JavaScript ATR counts a true range of zero for the first candle | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0462](bugs/BUG-0462-wasm-psar-ignores-increment.md) | The panel's Parabolic SAR ignores its increment setting | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0463](bugs/BUG-0463-ichimoku-lines-zero-before-window.md) | Ichimoku lines are zero until their windows are full | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0466](bugs/BUG-0466-chat-cloud-subscription-lifecycle.md) | Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions | P3 | ✅ done | none | community, pro, private | B | ADR-0001 | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |

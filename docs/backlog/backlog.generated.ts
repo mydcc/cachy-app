@@ -6549,6 +6549,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0462-wasm-psar-ignores-increment.md"
   },
   {
+    "id": "BUG-0463",
+    "title": "Ichimoku lines are zero until their windows are full",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0463-ichimoku-warmup-zeros",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0463-ichimoku-lines-zero-before-window.md"
+  },
+  {
     "id": "BUG-0466",
     "title": "Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions",
     "type": "bug",
