@@ -1192,35 +1192,51 @@ impl TechnicalsCalculator {
                 pdm_smooth /= Decimal::from(s.length);
                 ndm_smooth /= Decimal::from(s.length);
 
-                // 2. Smoothing loop
-                let _dx_sum = Decimal::ZERO;
-                for i in (s.length + 1)..len {
-                    let h = highs[i];
-                    let l = lows[i];
-                    let pc = closes[i - 1];
-                    let tr = std::cmp::max(h - l, std::cmp::max((h - pc).abs(), (l - pc).abs()));
-                    let up = h - highs[i - 1];
-                    let down = lows[i - 1] - l;
-                    let pdm = if up > down && up > Decimal::ZERO {
-                        up
-                    } else {
-                        Decimal::ZERO
-                    };
-                    let ndm = if down > up && down > Decimal::ZERO {
-                        down
-                    } else {
-                        Decimal::ZERO
-                    };
+                // 2. Smoothing loop, from the seed candle itself: it already has
+                // a DX, and the first ADX is the mean of the first `length` DX
+                // values, as Wilder and TradingView's `ta.dmi` define it. This
+                // loop used to start one candle later and seed the ADX with a
+                // single DX (BUG-0459).
+                let mut dx_sum = Decimal::ZERO;
+                for i in s.length..len {
+                    if i > s.length {
+                        let h = highs[i];
+                        let l = lows[i];
+                        let pc = closes[i - 1];
+                        let tr =
+                            std::cmp::max(h - l, std::cmp::max((h - pc).abs(), (l - pc).abs()));
+                        let up = h - highs[i - 1];
+                        let down = lows[i - 1] - l;
+                        let pdm = if up > down && up > Decimal::ZERO {
+                            up
+                        } else {
+                            Decimal::ZERO
+                        };
+                        let ndm = if down > up && down > Decimal::ZERO {
+                            down
+                        } else {
+                            Decimal::ZERO
+                        };
 
-                    tr_smooth = (tr_smooth * (Decimal::from(s.length) - Decimal::ONE) + tr)
-                        / Decimal::from(s.length);
-                    pdm_smooth = (pdm_smooth * (Decimal::from(s.length) - Decimal::ONE) + pdm)
-                        / Decimal::from(s.length);
-                    ndm_smooth = (ndm_smooth * (Decimal::from(s.length) - Decimal::ONE) + ndm)
-                        / Decimal::from(s.length);
+                        tr_smooth = (tr_smooth * (Decimal::from(s.length) - Decimal::ONE) + tr)
+                            / Decimal::from(s.length);
+                        pdm_smooth = (pdm_smooth * (Decimal::from(s.length) - Decimal::ONE)
+                            + pdm)
+                            / Decimal::from(s.length);
+                        ndm_smooth = (ndm_smooth * (Decimal::from(s.length) - Decimal::ONE)
+                            + ndm)
+                            / Decimal::from(s.length);
+                    }
 
-                    let pdi = dec!(100.0) * pdm_smooth / tr_smooth;
-                    let ndi = dec!(100.0) * ndm_smooth / tr_smooth;
+                    // Same zero-range rule as `update`: no true range, no direction.
+                    let (pdi, ndi) = if tr_smooth == Decimal::ZERO {
+                        (Decimal::ZERO, Decimal::ZERO)
+                    } else {
+                        (
+                            dec!(100.0) * pdm_smooth / tr_smooth,
+                            dec!(100.0) * ndm_smooth / tr_smooth,
+                        )
+                    };
                     let di_sum = pdi + ndi;
                     let dx = if di_sum == Decimal::ZERO {
                         Decimal::ZERO
@@ -1228,12 +1244,11 @@ impl TechnicalsCalculator {
                         dec!(100.0) * (pdi - ndi).abs() / di_sum
                     };
 
-                    // ADX Smoothing: ADX is EMA/RMA of DX? Usually RMA.
-                    // But we need to accumulate DX to get first ADX.
-                    // Let's just track ADX via smoothing: adx = (adx * (n-1) + dx) / n
-                    if i == s.length * 2 - 1 {
-                        dx_smooth = dx;
-                    } else if i >= s.length * 2 {
+                    if i < s.length * 2 - 1 {
+                        dx_sum += dx;
+                    } else if i == s.length * 2 - 1 {
+                        dx_smooth = (dx_sum + dx) / Decimal::from(s.length);
+                    } else {
                         dx_smooth = (dx_smooth * (Decimal::from(s.length) - Decimal::ONE) + dx)
                             / Decimal::from(s.length);
                     }

@@ -38,6 +38,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { Decimal } from "decimal.js";
 
+import { calculateADXSeries, JSIndicators } from "../utils/indicators";
 import { RECORDED_CANDLES } from "./__fixtures__/recordedSeries";
 
 const WASM_JS = pathToFileURL(resolve(process.cwd(), "static/wasm/technicals_wasm.js")).href;
@@ -178,3 +179,106 @@ describe("WASM windowed indicators against their definitions", () => {
     expect(compared).toBe(RECORDED_CANDLES.length - SEED);
   });
 });
+
+/**
+ * Wilder's ADX over the whole fixture, by its definition (and TradingView's
+ * `ta.dmi`): the first candle has no true range or directional movement; each
+ * is smoothed from the mean of the first `period` of them, at candle `period`;
+ * the ADX is smoothed from the mean of the first `period` DX values, at candle
+ * `2 × period − 1`. `undefined` where a line has no value yet.
+ */
+function wilderAdx(period: number): { adx: (Decimal | undefined)[]; plusDi: (Decimal | undefined)[]; minusDi: (Decimal | undefined)[] } {
+  const n = RECORDED_CANDLES.length;
+  const adx: (Decimal | undefined)[] = new Array(n).fill(undefined);
+  const plusDi: (Decimal | undefined)[] = new Array(n).fill(undefined);
+  const minusDi: (Decimal | undefined)[] = new Array(n).fill(undefined);
+  const p = new Decimal(period);
+
+  let tr = new Decimal(0);
+  let plusDm = new Decimal(0);
+  let minusDm = new Decimal(0);
+  let dxSum = new Decimal(0);
+  for (let i = 1; i < n; i++) {
+    const up = high(i).minus(high(i - 1));
+    const down = low(i - 1).minus(low(i));
+    const plus = up.gt(down) && up.gt(0) ? up : new Decimal(0);
+    const minus = down.gt(up) && down.gt(0) ? down : new Decimal(0);
+
+    if (i <= period) {
+      tr = tr.plus(trueRange(i));
+      plusDm = plusDm.plus(plus);
+      minusDm = minusDm.plus(minus);
+      if (i < period) continue;
+      tr = tr.div(p);
+      plusDm = plusDm.div(p);
+      minusDm = minusDm.div(p);
+    } else {
+      tr = tr.times(period - 1).plus(trueRange(i)).div(p);
+      plusDm = plusDm.times(period - 1).plus(plus).div(p);
+      minusDm = minusDm.times(period - 1).plus(minus).div(p);
+    }
+
+    plusDi[i] = plusDm.div(tr).times(100);
+    minusDi[i] = minusDm.div(tr).times(100);
+    const sum = plusDi[i]!.plus(minusDi[i]!);
+    const dx = sum.isZero() ? new Decimal(0) : plusDi[i]!.minus(minusDi[i]!).abs().div(sum).times(100);
+
+    if (i < 2 * period - 1) {
+      dxSum = dxSum.plus(dx);
+    } else if (i === 2 * period - 1) {
+      adx[i] = dxSum.plus(dx).div(p);
+    } else {
+      adx[i] = adx[i - 1]!.times(period - 1).plus(dx).div(p);
+    }
+  }
+  return { adx, plusDi, minusDi };
+}
+
+describe("ADX against Wilder's definition, in both engines", () => {
+  const PERIOD = 14;
+  const reference = wilderAdx(PERIOD);
+
+  it("smooths the ADX from the mean of its first period of DX values, and the DIs from candle one", () => {
+    const { wrong, compared } = walkWasm({ adx: [{ length: PERIOD }] }, (out, i) =>
+      within(out.oscillators?.[`ADX${PERIOD}`], reference.adx[i]!, "ADX", i) ??
+      within(out.oscillators?.[`ADX${PERIOD}_plus`], reference.plusDi[i]!, "+DI", i) ??
+      within(out.oscillators?.[`ADX${PERIOD}_minus`], reference.minusDi[i]!, "-DI", i),
+    );
+
+    expect(wrong).toEqual([]);
+    expect(compared).toBe(RECORDED_CANDLES.length - SEED);
+  });
+
+  /**
+   * The JavaScript engine is checked here too, against the same reference:
+   * the two disagreed with each other and with the definition in different
+   * ways (BUG-0459), and one reference says which one is wrong where.
+   */
+  it("computes the same three lines in JavaScript, and nothing before them", () => {
+    const h = Float64Array.from(RECORDED_CANDLES, (k) => Number(k.high));
+    const l = Float64Array.from(RECORDED_CANDLES, (k) => Number(k.low));
+    const c = Float64Array.from(RECORDED_CANDLES, (k) => Number(k.close));
+    const series = calculateADXSeries(h, l, c, PERIOD, PERIOD);
+    const lines: Array<[string, ArrayLike<number>, (Decimal | undefined)[]]> = [
+      ["adx", JSIndicators.adx(h, l, c, PERIOD), reference.adx],
+      ["series adx", series.adx, reference.adx],
+      ["series +DI", series.pdi, reference.plusDi],
+      ["series -DI", series.mdi, reference.minusDi],
+    ];
+
+    const wrong: string[] = [];
+    for (const [label, values, expected] of lines) {
+      for (let i = 0; i < RECORDED_CANDLES.length; i++) {
+        const want = expected[i];
+        const got = values[i];
+        const off =
+          want === undefined ? !Number.isNaN(got) : !(Math.abs(got - want.toNumber()) <= TOLERANCE.toNumber());
+        if (off && wrong.length < 6) {
+          wrong.push(`candle ${i}: ${label} ${got}, expected ${want?.toFixed(12) ?? "no value"}`);
+        }
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+});
+
