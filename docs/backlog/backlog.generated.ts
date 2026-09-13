@@ -5703,7 +5703,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0446",
     "title": "Prove the remaining panel indicators against recorded history",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -5719,6 +5719,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "M",
     "estimate": "5",
+    "assignee": "claude-code",
+    "start_date": "2026-09-13",
     "file": "features/FEAT-0446-recorded-history-remaining-indicators.md"
   },
   {

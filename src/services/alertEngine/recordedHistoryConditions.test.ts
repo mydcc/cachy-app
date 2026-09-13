@@ -73,7 +73,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { Decimal } from "decimal.js";
 
-import { collectIndicators } from "../../lib/rules/indicatorRequests";
+import { collectIndicators, type IndicatorRequest } from "../../lib/rules/indicatorRequests";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type {
@@ -282,20 +282,37 @@ function ruleWith(conditions: Condition): RuleDocument {
   return { ...template, name: "recorded history", conditions };
 }
 
-/** The context the live loop would hold at candle `index`. */
+const fullSeriesCache = new Map<string, (DecimalString | null)[]>();
+
+/** One requested series over the whole fixture, computed once. */
+function fullSeries(request: IndicatorRequest): (DecimalString | null)[] {
+  const key = JSON.stringify(request);
+  const hit = fullSeriesCache.get(key);
+  if (hit) return hit;
+  const series = computeIndicatorSeries(request, RECORDED_CANDLES);
+  if (!series.supported) throw new Error(series.reason);
+  fullSeriesCache.set(key, series.values);
+  return series.values;
+}
+
+/**
+ * The context the live loop would hold at candle `index`.
+ *
+ * The indicator values are a slice of the series computed once over the whole
+ * fixture, not a fresh computation over the first `index + 1` candles. The two
+ * are the same thing exactly when `computeIndicatorSeries` is causal — a value
+ * at `i` depends on nothing after `i` — and "computes every indicator it reads
+ * causally" below asserts that rather than assuming it. Recomputing per candle
+ * made the suite quadratic: sixteen conditions ran past the per-test timeout
+ * under CI parallelism (FEAT-0446, "Decided: runtime").
+ */
 function contextAt(rule: RuleDocument, index: number): EvaluationContext {
   const candles = RECORDED_CANDLES.slice(0, index + 1);
-  const indicators: EvaluationIndicatorSeries[] = [];
-
-  for (const request of collectIndicators(rule)) {
-    const series = computeIndicatorSeries(request, candles);
-    if (!series.supported) throw new Error(series.reason);
-    indicators.push({
-      indicator: request.indicator,
-      timeframe: request.timeframe,
-      values: series.values,
-    });
-  }
+  const indicators: EvaluationIndicatorSeries[] = collectIndicators(rule).map((request) => ({
+    indicator: request.indicator,
+    timeframe: request.timeframe,
+    values: fullSeries(request).slice(0, index + 1),
+  }));
   return indicators.length > 0
     ? { candles: { [TF]: candles }, indicators }
     : { candles: { [TF]: candles } };
@@ -378,8 +395,13 @@ const BB_UPPER = indicator("bollinger", BB_PARAMS, "upper");
 const BB_LOWER = indicator("bollinger", BB_PARAMS, "lower");
 const BB_BANDWIDTH = indicator("bollinger", BB_PARAMS, "bandwidth");
 const VOLUME_MA20 = indicator("volume_ma", { period: 20 });
+const SMA20 = indicator("sma", { period: 20 });
 const SMA50 = indicator("sma", { period: 50 });
 const SMA200 = indicator("sma", { period: 200 });
+const EMA20 = indicator("ema", { period: 20 });
+const WMA20 = indicator("wma", { period: 20 });
+const VWMA20 = indicator("vwma", { period: 20 });
+const HMA20 = indicator("hma", { period: 20 });
 
 interface Expectation {
   name: string;
@@ -503,6 +525,65 @@ const EXPECTATIONS: Expectation[] = [
       791, 792
     ],
   },
+  // FEAT-0446 — the moving averages the alert path already computes and the
+  // panel already offers, which FEAT-0028 shipped no condition for.
+  {
+    name: "price crossing above EMA(20)",
+    condition: cross(closePrice, "above", EMA20),
+    flips: [
+      79, 80, 95, 96, 105, 106, 123, 124, 173, 174, 188, 189, 192, 193, 198, 199, 220, 221,
+      238, 239, 240, 241, 242, 243, 244, 245, 262, 263, 271, 272, 281, 282, 283, 284, 299, 300,
+      306, 307, 317, 318, 319, 320, 322, 323, 344, 345, 356, 357, 411, 412, 481, 482, 491, 492,
+      499, 500, 510, 511, 525, 526, 529, 530, 532, 533, 562, 563, 573, 574, 576, 577, 592, 593,
+      625, 626, 657, 658, 659, 660, 677, 678, 698, 699, 705, 706, 718, 719, 744, 745, 754, 755,
+      756, 757, 762, 763, 764, 765, 823, 824, 825, 826, 832, 833, 844, 845, 853, 854, 883, 884,
+      898, 899, 907, 908, 911, 912, 936, 937, 960, 961, 963, 964, 967, 968, 987, 988, 990, 991,
+      992, 993
+    ],
+  },
+  {
+    name: "price crossing below WMA(20)",
+    condition: cross(closePrice, "below", WMA20),
+    flips: [
+      67, 68, 74, 75, 92, 93, 100, 101, 106, 107, 108, 109, 133, 134, 160, 161, 185, 186,
+      189, 190, 196, 197, 199, 200, 225, 226, 241, 242, 248, 249, 269, 270, 274, 275, 282, 283,
+      285, 286, 301, 302, 303, 304, 305, 306, 315, 316, 318, 319, 321, 322, 325, 326, 330, 331,
+      335, 336, 351, 352, 381, 382, 386, 387, 388, 389, 391, 392, 403, 404, 470, 471, 480, 481,
+      496, 497, 501, 502, 524, 525, 526, 527, 530, 531, 554, 555, 556, 557, 575, 576, 579, 580,
+      621, 622, 653, 654, 674, 675, 687, 688, 703, 704, 713, 714, 716, 717, 722, 723, 747, 748,
+      753, 754, 761, 762, 763, 764, 790, 791, 793, 794, 799, 800, 822, 823, 824, 825, 830, 831,
+      839, 840, 841, 842, 848, 849, 860, 861, 879, 880, 885, 886, 900, 901, 906, 907, 917, 918,
+      921, 922, 938, 939, 964, 965, 972, 973, 996, 997
+    ],
+  },
+  {
+    name: "volume-weighted average above the plain one — VWMA(20) over SMA(20)",
+    condition: compare(VWMA20, "gt", SMA20),
+    flips: [
+      71, 77, 95, 102, 104, 113, 147, 153, 173, 176, 188, 215, 222, 223, 225, 242, 243, 246,
+      250, 251, 267, 270, 275, 342, 353, 357, 379, 391, 392, 393, 402, 405, 414, 415, 432, 437,
+      479, 486, 499, 524, 569, 580, 581, 604, 633, 644, 656, 658, 674, 679, 699, 710, 713, 745,
+      748, 775, 794, 796, 799, 822, 823, 824, 847, 858, 874, 875, 878, 916, 926, 927, 942, 963,
+      964, 967, 991
+    ],
+  },
+  {
+    name: "price crossing below HMA(20)",
+    condition: cross(closePrice, "below", HMA20),
+    flips: [
+      70, 71, 73, 74, 88, 89, 100, 101, 109, 110, 118, 119, 129, 130, 146, 147, 157, 158,
+      180, 181, 190, 191, 196, 197, 217, 218, 224, 225, 241, 242, 243, 244, 248, 249, 267, 268,
+      274, 275, 286, 287, 295, 296, 305, 306, 312, 313, 321, 322, 325, 326, 330, 331, 335, 336,
+      350, 351, 363, 364, 366, 367, 376, 377, 386, 387, 388, 389, 392, 393, 398, 399, 425, 426,
+      440, 441, 444, 445, 462, 463, 475, 476, 480, 481, 496, 497, 501, 502, 516, 517, 521, 522,
+      523, 524, 531, 532, 539, 540, 554, 555, 567, 568, 570, 571, 578, 579, 597, 598, 606, 607,
+      613, 614, 621, 622, 634, 635, 649, 650, 655, 656, 663, 664, 674, 675, 685, 686, 703, 704,
+      713, 714, 722, 723, 731, 732, 736, 737, 740, 741, 747, 748, 760, 761, 770, 771, 772, 773,
+      783, 784, 799, 800, 815, 816, 821, 822, 824, 825, 830, 831, 839, 840, 841, 842, 848, 849,
+      860, 861, 873, 874, 881, 882, 885, 886, 896, 897, 901, 902, 906, 907, 910, 911, 916, 917,
+      920, 921, 938, 939, 953, 954, 964, 965, 970, 971, 991, 992, 994, 995
+    ],
+  },
 ];
 
 /** Every indicator id the expectations read, derived from the conditions. */
@@ -531,6 +612,34 @@ describe("indicator conditions against recorded market history", () => {
       if (step !== RECORDED_STEP_MS) gaps.push(`index ${i}: ${step}ms`);
     }
     expect(gaps).toEqual([]);
+  });
+
+  it("computes every indicator it reads causally, so a slice of the full series is the series at that candle", () => {
+    const requests = new Map<string, IndicatorRequest>();
+    for (const e of EXPECTATIONS) {
+      for (const r of collectIndicators(ruleWith(e.condition))) requests.set(JSON.stringify(r), r);
+    }
+
+    // Every 41st candle and the last one: prime-spaced so no sample lines up
+    // with a period (a WMA resync, a Bollinger window) and hides behind it.
+    const samples = RECORDED_CANDLES.map((_, i) => i).filter(
+      (i) => i % 41 === 0 || i === RECORDED_CANDLES.length - 1,
+    );
+    const leaks: string[] = [];
+    for (const request of requests.values()) {
+      const full = fullSeries(request);
+      for (const i of samples) {
+        const prefix = computeIndicatorSeries(request, RECORDED_CANDLES.slice(0, i + 1));
+        if (!prefix.supported) throw new Error(prefix.reason);
+        const at = prefix.values.findIndex((v, k) => v !== full[k]);
+        if (at !== -1) leaks.push(`${JSON.stringify(request.indicator)} differs at ${at} when cut at ${i}`);
+      }
+    }
+
+    // Exact string equality, not a tolerance: the evaluator compares these
+    // decimals, so "close" would be a different verdict at a boundary.
+    expect(requests.size).toBeGreaterThan(0);
+    expect(leaks).toEqual([]);
   });
 
   for (const expectation of EXPECTATIONS) {
@@ -573,34 +682,35 @@ describe("indicator conditions against recorded market history", () => {
   }
 
   /**
-   * Indicators the core accepts and the panel offers, which FEAT-0028 shipped
-   * no condition for — so this suite has nothing to prove about them.
+   * Indicators the core accepts and the panel offers, which have no JavaScript
+   * implementation on the alert path — so there is nothing to prove about when
+   * they fire, because they cannot fire.
    *
-   * They are listed rather than filtered out, because the difference between
-   * "not covered yet" and "nobody noticed" is whether it is written down. Each
-   * one is reachable from the Indicators tab today: a trader can arm an ADX
-   * alert, and no test says it fires on the right candle. FEAT-0446 owns
-   * closing this list.
+   * An alert on any of them is armed from the Indicators tab and then reported
+   * by `RuleEvaluationLoop` as unevaluable on its first close. Wiring one in is a
+   * behaviour change on a money path — an alert that was inert starts firing —
+   * and its expectation belongs in the same change. The test below enforces
+   * that ordering rather than trusting it.
+   *
+   * Parabolic SAR and Ichimoku carry an extra note: each needs a condition-shape
+   * decision before its expectation can be written (FEAT-0446).
    */
+  const NOT_ON_ALERT_PATH = "no JavaScript implementation on the alert path; an alert on it cannot fire";
   const SCOPED_OUT: Record<string, string> = {
-    ema: "FEAT-0028 shipped MA crosses on SMA; EMA is the same shape, untested here",
-    wma: "no condition shipped",
-    vwma: "no condition shipped",
-    hma: "no condition shipped",
-    stochastic: "no condition shipped",
-    stoch_rsi: "no condition shipped",
-    williams_r: "no condition shipped",
-    cci: "no condition shipped",
-    adx: "no condition shipped",
-    ao: "no condition shipped",
-    momentum: "no condition shipped",
-    atr: "no condition shipped",
-    choppiness: "no condition shipped",
-    super_trend: "no condition shipped",
-    mfi: "no condition shipped",
-    obv: "no condition shipped",
-    parabolic_sar: "flips side rather than crossing; needs its own condition shape",
-    ichimoku: "five lines and a forward displacement; needs its own expectations",
+    stochastic: NOT_ON_ALERT_PATH,
+    stoch_rsi: NOT_ON_ALERT_PATH,
+    williams_r: NOT_ON_ALERT_PATH,
+    cci: NOT_ON_ALERT_PATH,
+    adx: NOT_ON_ALERT_PATH,
+    ao: NOT_ON_ALERT_PATH,
+    momentum: NOT_ON_ALERT_PATH,
+    atr: NOT_ON_ALERT_PATH,
+    choppiness: NOT_ON_ALERT_PATH,
+    super_trend: NOT_ON_ALERT_PATH,
+    mfi: NOT_ON_ALERT_PATH,
+    obv: NOT_ON_ALERT_PATH,
+    parabolic_sar: `${NOT_ON_ALERT_PATH}; flips side rather than crossing a level, so the condition shape needs deciding first`,
+    ichimoku: `${NOT_ON_ALERT_PATH}; five lines and a forward displacement, which must match the chart`,
   };
 
   it("accounts for every indicator the core accepts", () => {
@@ -622,6 +732,23 @@ describe("indicator conditions against recorded market history", () => {
     // (say a second RSI threshold) is invisible here. That stays a FEAT-0028
     // review responsibility, and is noted rather than pretended away.
     expect(unaccounted).toEqual([]);
+  });
+
+  it("scopes out only indicators the alert path genuinely cannot compute", () => {
+    const computable = Object.keys(SCOPED_OUT).filter((id) => {
+      const result = computeIndicatorSeries(
+        { indicator: { id, params: {} }, timeframe: TF },
+        RECORDED_CANDLES,
+      );
+      // A parameter refusal still means the path knows the indicator, and would
+      // compute it once configured — exactly the case this test exists to catch.
+      return result.supported || !result.reason.includes("no JavaScript implementation");
+    });
+
+    // The moment one of these is wired into `computeIndicatorSeries`, alerts on
+    // it start firing in production. This fails in that same change, so the
+    // recorded-history expectation cannot be left for later.
+    expect(computable).toEqual([]);
   });
 
   it("does not carry a scoped-out entry for an indicator that is covered", () => {
