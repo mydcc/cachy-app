@@ -99,7 +99,11 @@ const WASM_LOCATION: Record<string, { group: string; key: string }> = {
   "SMA(20)": { group: "movingAverages", key: "SMA20" },
   "SMA(50)": { group: "movingAverages", key: "SMA50" },
   "SMA(200)": { group: "movingAverages", key: "SMA200" },
+  "EMA(20)": { group: "movingAverages", key: "EMA20" },
   "EMA(50)": { group: "movingAverages", key: "EMA50" },
+  "WMA(20)": { group: "movingAverages", key: "WMA20" },
+  "VWMA(20)": { group: "movingAverages", key: "VWMA20" },
+  "HMA(20)": { group: "movingAverages", key: "HMA20" },
   "VolumeMA(20)": { group: "movingAverages", key: "VolMa20" },
   "RSI(14)": { group: "oscillators", key: "RSI14" },
   "MACD line": { group: "oscillators", key: "12-26-9.macd" },
@@ -119,9 +123,9 @@ const MAPPING: Array<{ label: string; group: string; key: string; needs: number;
 
 /** The settings payload `wasmCalculator.ts` builds, reduced to what is compared. */
 const WASM_SETTINGS = JSON.stringify({
-  ema: [{ length: 50 }],
+  ema: [{ length: 20 }, { length: 50 }],
   sma: [{ length: 20 }, { length: 50 }, { length: 200 }],
-  wma: [], vwma: [], hma: [], supertrend: [], psar: [],
+  wma: [{ length: 20 }], vwma: [{ length: 20 }], hma: [{ length: 20 }], supertrend: [], psar: [],
   rsi: [{ length: 14 }],
   macd: [{ fast: 12, slow: 26, signal: 9 }],
   stoch: [], cci: [], adx: [], mom: [], wr: [], mfi: [],
