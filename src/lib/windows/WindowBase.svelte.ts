@@ -115,6 +115,8 @@ export abstract class WindowBase {
     showHeaderIndicators = $state(false);
     allowFeedDuck = $state(true);
     isResponsive = $state(false);
+    /** Opt-in: keep this floating window inside the viewport. */
+    clampToViewport = $state(false);
     /** Width threshold in pixels for automatic mobile maximization. */
     edgeToEdgeBreakpoint = 768;
     /**
@@ -303,6 +305,15 @@ export abstract class WindowBase {
 
         // Setup Responsive maximization for mobile
         this.updateResponsiveState();
+
+        // Re-clamp a restored/saved geometry to the current viewport, so an
+        // opted-in window never opens wider or taller than the screen.
+        if (this.clampToViewport) {
+            this.updateSize(this.width, this.height);
+            // The size may have shrunk; re-clamp the position so a freshly
+            // centered window is not left offset off-screen.
+            this.updatePosition(this.x, this.y);
+        }
     }
 
     /**
@@ -348,6 +359,11 @@ export abstract class WindowBase {
      */
     public handleViewportResize() {
         this.updateResponsiveState();
+        // Re-clamp an opted-in window that the viewport has grown around
+        // (or shrunk under) since it was last sized.
+        if (this.clampToViewport) {
+            this.updateSize(this.width, this.height);
+        }
         // No-ops while maximized (updatePosition's own early return), and
         // otherwise brings a window that's now partly or fully off-screen
         // back into view without requiring a manual drag.
@@ -453,6 +469,7 @@ export abstract class WindowBase {
         this.allowFeedDuck = f.allowFeedDuck ?? true;
         this.isResponsive = f.isResponsive ?? false;
         this.edgeToEdgeBreakpoint = f.edgeToEdgeBreakpoint ?? 768;
+        this.clampToViewport = f.clampToViewport ?? false;
 
         this.showIcon = f.showIcon ?? true;
         this.hasContextMenu = f.hasContextMenu ?? false;
@@ -546,6 +563,15 @@ export abstract class WindowBase {
             // Aspect ratio only applies to the CONTENT area.
             const HEADER_HEIGHT = 41;
             newHeight = Math.round((newWidth / this.aspectRatio) + HEADER_HEIGHT);
+        }
+
+        // Opted-in windows never exceed the viewport. Applied after the
+        // aspect-ratio step so opening, restoring a saved geometry and a live
+        // viewport shrink all pass through the same clamp -- otherwise the
+        // journal (opened at 1200px) stayed wider than a narrow screen.
+        if (this.clampToViewport && typeof window !== 'undefined') {
+            newWidth = Math.min(newWidth, window.innerWidth);
+            newHeight = Math.min(newHeight, window.innerHeight);
         }
 
         this.width = Math.round(newWidth);

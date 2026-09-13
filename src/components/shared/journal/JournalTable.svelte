@@ -317,10 +317,12 @@
     let activeLightboxScreenshot: { url: string; symbol: string } | null = $state(null);
 
     function updateHoverPosition(e: MouseEvent, url: string, symbol: string) {
-        const popoverWidth = 440;
-        const estimatedHeight = 320;
         const winW = typeof window !== "undefined" ? window.innerWidth : 1920;
         const winH = typeof window !== "undefined" ? window.innerHeight : 1080;
+        // Never wider than the viewport, or the flip/clamp below is moot on
+        // a narrow screen and the card lands off-screen.
+        const popoverWidth = Math.min(440, winW - 32);
+        const estimatedHeight = 320;
 
         let x = e.clientX + 14;
         let y = e.clientY - 24;
@@ -329,7 +331,8 @@
         if (x + popoverWidth > winW - 16) {
             x = e.clientX - popoverWidth - 14;
         }
-        // Clamp Y to viewport
+        // Clamp X to viewport, then Y
+        x = Math.max(8, Math.min(x, winW - popoverWidth - 8));
         if (y + estimatedHeight > winH - 16) {
             y = Math.max(16, winH - estimatedHeight - 16);
         }
@@ -1056,7 +1059,7 @@
 {#if activeHoverScreenshot}
     <div
         class="fixed z-50 pointer-events-none rounded-xl overflow-hidden border border-[var(--border-color)] glass-panel shadow-2xl transition-transform duration-75"
-        style="left: {activeHoverScreenshot.x}px; top: {activeHoverScreenshot.y}px; width: 440px;"
+        style="left: {activeHoverScreenshot.x}px; top: {activeHoverScreenshot.y}px; width: min(440px, calc(100vw - 32px));"
     >
         <img
             src={activeHoverScreenshot.url}
@@ -1177,36 +1180,23 @@
         opacity: 0.95;
     }
 
-    /* Sticky Columns Left */
+    /* Only the date column is pinned so the scrollable middle stays usable;
+       symbol, P/L and action scroll with the rest. */
     .sticky-col.col-date {
         position: sticky;
         left: 0;
         z-index: 10;
-    }
-
-    .sticky-col.col-symbol {
-        position: sticky;
-        left: 85px;
-        z-index: 10;
         box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.2);
     }
 
-    /* Sticky Columns Right */
-    .sticky-col-right.col-pnl {
-        position: sticky;
-        right: 75px;
-        z-index: 10;
-        box-shadow: -3px 0 6px -2px rgba(0, 0, 0, 0.2);
-    }
-
+    .sticky-col.col-symbol,
+    .sticky-col-right.col-pnl,
     .sticky-col-right.col-action {
-        position: sticky;
-        right: 0;
-        z-index: 10;
+        position: static;
+        box-shadow: none;
     }
 
-    .journal-table thead th.sticky-col,
-    .journal-table thead th.sticky-col-right {
+    .journal-table thead th.sticky-col {
         z-index: 20;
     }
 
