@@ -46,6 +46,7 @@
  * remembering to update this file.
  */
 
+import { ALERT_PATH_INDICATORS } from "../rules/alertPathIndicators";
 import type { DecimalString, IndicatorRef, ParamValue } from "../rules/types";
 
 /**
@@ -112,7 +113,13 @@ const value = (dimension: OperandDimension): readonly CatalogueOutput[] => [
  * in -- RSI 14, MACD 12/26/9, Bollinger 20/2 -- not the widest legal value.
  * A default outside the registry's bounds fails `indicatorCatalogue.test.ts`.
  */
-export const INDICATOR_CATALOGUE: readonly CatalogueEntry[] = [
+/**
+ * Every indicator the core registry accepts, mirrored with the panel's grouping
+ * and defaults. `indicatorCatalogue.test.ts` holds this against the registry so
+ * the two lists cannot drift. It is not what the panel offers — see
+ * `INDICATOR_CATALOGUE`.
+ */
+export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
     // Oscillators: bounded, and so the family where a plain threshold is the
     // condition a trader actually wants.
     { id: "rsi", group: "oscillator", params: [period("period", 14)], outputs: value("percent") },
@@ -264,11 +271,36 @@ export const INDICATOR_GROUP_ORDER: readonly IndicatorGroup[] = [
     "volume",
 ];
 
+/**
+ * What the alert panel offers: the registry entries the alert path can compute.
+ *
+ * Fourteen registry indicators have no JavaScript implementation on the alert
+ * path. Offered, they produced alerts that were armed, sat in the panel looking
+ * live, and were reported as "can never fire" on their first close (BUG-0451).
+ * Filtering here, once, hides them from every builder, the combo rows, and the
+ * create-alert action on the indicator settings cards, which all resolve
+ * through this list and `catalogueEntry`.
+ */
+export const INDICATOR_CATALOGUE: readonly CatalogueEntry[] = REGISTRY_CATALOGUE.filter((entry) =>
+    ALERT_PATH_INDICATORS.has(entry.id),
+);
+
 const BY_ID = new Map(INDICATOR_CATALOGUE.map((entry) => [entry.id, entry]));
 
 /** The catalogue entry for a registry id, or `null` for one this build cannot name. */
 export function catalogueEntry(id: string): CatalogueEntry | null {
     return BY_ID.get(id) ?? null;
+}
+
+const REGISTRY_BY_ID = new Map(REGISTRY_CATALOGUE.map((entry) => [entry.id, entry]));
+
+/**
+ * Any registry indicator, offered or not. For code that describes the registry
+ * rather than offers an alert — the settings-card mapping's own validity checks.
+ * Anything that lets a trader arm an alert resolves through `catalogueEntry`.
+ */
+export function registryEntry(id: string): CatalogueEntry | null {
+    return REGISTRY_BY_ID.get(id) ?? null;
 }
 
 /** The entries of one group, in catalogue order. */

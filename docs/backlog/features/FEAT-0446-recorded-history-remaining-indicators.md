@@ -53,9 +53,11 @@ The other sixteen are thresholds or crosses in the shape already covered.
 
 ## Acceptance criteria
 
-- [ ] Every id in `indicatorCatalogue.ts` has at least one recorded-history expectation
-      — 9 of 23; the other 14 cannot fire at all today, see "Found: 14 indicators are not
-      on the alert path"
+- [ ] Every id in `REGISTRY_CATALOGUE` has at least one recorded-history expectation —
+      9 of 23; the other 14 cannot fire today, see "Found: 14 indicators are not on the
+      alert path" and "Decided: hide now, wire in groups" (since BUG-0451 the panel's
+      `INDICATOR_CATALOGUE` is only the computable subset, so this criterion names the
+      registry mirror on purpose)
 - [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` is empty, and the test that
       rejects a stale entry keeps it that way — 14 entries left, each now stating the real
       reason
@@ -99,16 +101,36 @@ warmup lengths showed otherwise. `computeIndicatorSeries` supports nine ids — 
 `stochastic`, `stoch_rsi`, `williams_r`, `cci`, `adx`, `ao`, `momentum`, `atr`,
 `choppiness`, `super_trend`, `mfi`, `obv`, `parabolic_sar`, `ichimoku`
 
-The Indicators tab and the combo builder still offer all of them. A trader can arm one;
-`RuleEvaluationLoop` then reports it as unevaluable on the first close ("Alerts that can
-never fire", notify by default). So these are not unproven alerts, they are inert ones,
-and there is no firing to assert an index for.
+The Indicators tab, the combo builder and the settings cards' create-alert action offered
+all of them. A trader could arm one; `RuleEvaluationLoop` then reported it as unevaluable
+on the first close ("Alerts that can never fire", notify by default). So these were not
+unproven alerts, they were inert ones, and there is no firing to assert an index for.
 
 `JSIndicators` already has an implementation of every one of them. Wiring them in is
 therefore feasible, but it is a behaviour change on a money path — an alert that was
 inert starts firing — and each needs its own parity check against the chart, because
-`BUG-0430` and `BUG-0450` show these paths do diverge. That is a product decision, not a
-side effect of a test item.
+`BUG-0430` and `BUG-0450` show these paths do diverge. That was put to the product owner
+rather than taken as a side effect of a test item.
+
+## Decided: hide now, wire in groups (2026-09-13)
+
+**Now:** [`BUG-0451`](../bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) stops
+offering the fourteen. `ALERT_PATH_INDICATORS` is the one list both the series computation
+and the panel catalogue read, so an indicator reappears in the panel in exactly the change
+that makes it compute.
+
+**Then:** wire them in, one group per PR. Each PR adds the ids to `ALERT_PATH_INDICATORS`,
+implements them in `computeIndicatorSeries` from the existing `JSIndicators`, and carries
+in the same diff: a `WASM_LOCATION` parity entry, an `INDICATOR_WARMUP` entry, a
+recorded-history expectation, and the removal from `SCOPED_OUT` and from the pinned hidden
+list in `indicatorCatalogue.test.ts`. Three guards already fail if any of those is missing.
+
+| Group | Indicators | Why together |
+|---|---|---|
+| 1 — single line from close or volume | `momentum`, `obv` | no high/low column yet on the alert path; smallest step |
+| 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once |
+| 3 — several output lines | `stochastic`, `stoch_rsi`, `adx`, `super_trend` | output-line mapping, like MACD and Bollinger |
+| 4 — shape decisions first | `parabolic_sar`, `ichimoku` | SAR flips side; Ichimoku displaces forward — each needs its condition shape decided and written down before it is asserted |
 
 The suite enforces the ordering either way: "scopes out only indicators the alert path
 genuinely cannot compute" fails the moment one of the fourteen becomes computable, so
@@ -124,6 +146,8 @@ its recorded-history expectation has to land in the same change that makes it fi
   [`BUG-0450`](../bugs/BUG-0450-wma-sliding-sum-drift.md) (the JavaScript WMA drifted with
   series length, which failed HMA parity)
 - `SCOPED_OUT` reasons rewritten from "no condition shipped" to what is true
+- [`BUG-0451`](../bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) filed and fixed:
+  the panel offers only what the alert path computes
 
 ## Links
 

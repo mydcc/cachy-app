@@ -686,11 +686,12 @@ describe("indicator conditions against recorded market history", () => {
    * implementation on the alert path — so there is nothing to prove about when
    * they fire, because they cannot fire.
    *
-   * An alert on any of them is armed from the Indicators tab and then reported
-   * by `RuleEvaluationLoop` as unevaluable on its first close. Wiring one in is a
-   * behaviour change on a money path — an alert that was inert starts firing —
-   * and its expectation belongs in the same change. The test below enforces
-   * that ordering rather than trusting it.
+   * Since BUG-0451 the panel no longer offers them — the catalogue reads the
+   * same `ALERT_PATH_INDICATORS` list the series computation does — and an alert
+   * saved on one before that is reported by `RuleEvaluationLoop` as unevaluable.
+   * Wiring one in is a behaviour change on a money path — an alert that was
+   * inert starts firing — and its expectation belongs in the same change. The
+   * test below enforces that ordering rather than trusting it.
    *
    * Parabolic SAR and Ichimoku carry an extra note: each needs a condition-shape
    * decision before its expectation can be written (FEAT-0446).
