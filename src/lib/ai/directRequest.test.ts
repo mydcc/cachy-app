@@ -40,9 +40,35 @@ describe("resolveDirectUrl", () => {
     );
   });
 
-  it("rejects a base URL without an http(s) scheme", () => {
+  it("rejects a base URL without a scheme", () => {
     expect(() => resolveDirectUrl("gw.example.com", "v1/responses")).toThrow(
-      /http:\/\/ or https:\/\//,
+      /must start with https:\/\//,
+    );
+  });
+
+  it("rejects a cleartext http:// base URL", () => {
+    expect(() =>
+      resolveDirectUrl("http://gw.example.com", "v1/chat/completions"),
+    ).toThrow(/Insecure base URL/);
+  });
+
+  it("allows cleartext http:// for loopback gateways", () => {
+    expect(resolveDirectUrl("http://localhost:11434", "v1/chat/completions")).toBe(
+      "http://localhost:11434/v1/chat/completions",
+    );
+    expect(resolveDirectUrl("http://127.0.0.1:8000/v1", "v1/models")).toBe(
+      "http://127.0.0.1:8000/v1/models",
+    );
+  });
+
+  it("does not double a /v1beta base", () => {
+    expect(
+      resolveDirectUrl(
+        "https://generativelanguage.googleapis.com/v1beta",
+        "v1beta/models/x:streamGenerateContent?alt=sse",
+      ),
+    ).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models/x:streamGenerateContent?alt=sse",
     );
   });
 });
@@ -103,6 +129,18 @@ describe("buildDirectRequest", () => {
       { type: "text", text: "S", cache_control: { type: "ephemeral" } },
       { type: "text", text: "\n\nD" },
     ]);
+    expect(body.messages).toEqual([{ role: "user", content: "hi" }]);
+  });
+
+  it("omits the Anthropic system field when there is no system prompt", () => {
+    const request = buildDirectRequest("anthropic-messages", {
+      baseUrl: "https://opencode.ai/zen/v1",
+      apiKey: "sk-ant",
+      model: "claude-sonnet-5",
+      messages: [{ role: "user", content: "hi" }],
+    });
+    const body = JSON.parse(request.body);
+    expect(body.system).toBeUndefined();
     expect(body.messages).toEqual([{ role: "user", content: "hi" }]);
   });
 

@@ -28,20 +28,40 @@ const DEFAULT_MAX_TOKENS = 2000;
 /**
  * Joins a provider base URL with a relative endpoint path.
  *
- * Mirrors `resolveProviderEndpoint`'s version de-duplication so a base URL
- * that already ends in `/v1` or `/api/v1` (OpenCode Zen, command gateways)
- * does not double the segment. Unlike the server helper this requires an
- * explicit http(s) scheme — a browser `fetch` cannot guess one.
+ * Requires `https://` so a browser-direct request never sends the Class A key
+ * in cleartext; `http://` is allowed only for loopback gateways
+ * (localhost / 127.0.0.1 / ::1), matching the relay's reserved-host intent.
+ * De-duplicates a version segment already present in the base URL so
+ * `/v1`, `/api/v1` and `/v1beta` are not doubled.
  */
 export function resolveDirectUrl(baseUrl: string, relativePath: string): string {
   const trimmed = baseUrl.trim().replace(/\/+$/, "");
   if (!/^https?:\/\//i.test(trimmed)) {
+    throw new Error(`Base URL must start with https:// (got "${baseUrl}").`);
+  }
+
+  let hostname: string;
+  try {
+    hostname = new URL(trimmed).hostname.toLowerCase();
+  } catch {
+    throw new Error(`Invalid base URL "${baseUrl}".`);
+  }
+
+  const isLoopback =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname === "[::1]";
+  if (trimmed.toLowerCase().startsWith("http://") && !isLoopback) {
     throw new Error(
-      `Base URL must start with http:// or https:// (got "${baseUrl}").`,
+      `Insecure base URL "${baseUrl}": use https:// (http:// is allowed only for localhost).`,
     );
   }
 
   const rel = relativePath.replace(/^\/+/, "");
+  if (rel.startsWith("v1beta/") && trimmed.endsWith("/v1beta")) {
+    return `${trimmed}/${rel.slice(7)}`;
+  }
   if (rel.startsWith("v1/") && trimmed.endsWith("/v1")) {
     return `${trimmed}/${rel.slice(3)}`;
   }
@@ -149,16 +169,21 @@ function buildAnthropic(params: DirectChatParams): DirectRequest {
   };
   if (params.apiKey.trim()) headers["x-api-key"] = params.apiKey;
 
+  const systemBlocks = anthropicSystemBlocks(system);
+  const body: Record<string, unknown> = {
+    model: params.model,
+    max_tokens: DEFAULT_MAX_TOKENS,
+    messages: turns.map((m) => ({ role: m.role, content: m.content })),
+    stream: true,
+  };
+  // Omit the field entirely without a system prompt; most shims reject an
+  // empty system array.
+  if (systemBlocks.length > 0) body.system = systemBlocks;
+
   return {
     url: resolveDirectUrl(params.baseUrl, "v1/messages"),
     headers,
-    body: JSON.stringify({
-      model: params.model,
-      max_tokens: DEFAULT_MAX_TOKENS,
-      system: anthropicSystemBlocks(system),
-      messages: turns.map((m) => ({ role: m.role, content: m.content })),
-      stream: true,
-    }),
+    body: JSON.stringify(body),
   };
 }
 
