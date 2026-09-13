@@ -6570,6 +6570,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0463-ichimoku-lines-zero-before-window.md"
   },
   {
+    "id": "BUG-0464",
+    "title": "The condition test oracles define a cross differently from the core",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0464-oracle-cross-ties",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0464-test-oracles-cross-convention.md"
+  },
+  {
     "id": "BUG-0466",
     "title": "Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions",
     "type": "bug",
