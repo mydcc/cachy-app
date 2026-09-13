@@ -31,7 +31,7 @@ const STRIP_HEIGHT = 20;
 /** One currently-visible sub-pane, reported to the caller after each render. */
 export interface IndicatorPaneInfo {
     paneIndex: number;
-    key: string;
+    key: SubPaneKey;
     titleKey: string;
     /** Settings shown next to the name, e.g. "14" or "12 26 9"; "" if none. */
     params: string;
@@ -50,7 +50,7 @@ export interface IndicatorPaneInfo {
  * over this list, so the count and what actually gets drawn cannot drift
  * apart.
  */
-const SUB_PANES: { key: string; titleKey: string }[] = [
+const SUB_PANES = [
     { key: "volume", titleKey: "settings.technicals.volume" },
     { key: "rsi", titleKey: "settings.technicals.rsi.title" },
     { key: "macd", titleKey: "settings.technicals.macd.title" },
@@ -64,7 +64,45 @@ const SUB_PANES: { key: string; titleKey: string }[] = [
     { key: "ao", titleKey: "settings.technicals.awesomeOsc" },
     { key: "choppiness", titleKey: "settings.technicals.choppiness" },
     { key: "stochastic", titleKey: "settings.technicals.stochasticTitle" },
-];
+] as const satisfies readonly { key: string; titleKey: string }[];
+
+type SubPaneKey = (typeof SUB_PANES)[number]["key"];
+
+interface CandleColumns {
+    closes: Float64Array;
+    opens: Float64Array;
+    highs: Float64Array;
+    lows: Float64Array;
+    volume: Float64Array;
+}
+
+function candleColumns(rows: ChartRow[]): CandleColumns {
+    const volume = new Float64Array(rows.length);
+    for (let i = 0; i < rows.length; i++) volume[i] = rows[i].volume;
+    return {
+        closes: getSourceData(rows, "close"),
+        opens: getSourceData(rows, "open"),
+        highs: getSourceData(rows, "high"),
+        lows: getSourceData(rows, "low"),
+        volume,
+    };
+}
+
+/** One line a sub-pane draws. */
+interface PaneLine {
+    values: ArrayLike<number>;
+    colorKey: string;
+    fallback: string;
+}
+
+/**
+ * Everything a sub-pane shows, computed from candles: its settings label and
+ * its lines. The header reads the last value of the first line.
+ */
+interface SubPaneContent {
+    params: string;
+    lines: PaneLine[];
+}
 
 /**
  * Reads the per-indicator `visible` flag, toggled by the pane header
@@ -213,14 +251,7 @@ export class IndicatorLayer {
         }
         this.layout = this.computeLayout();
 
-        const closes = getSourceData(rows, "close");
-        const opens = getSourceData(rows, "open");
-        const highs = getSourceData(rows, "high");
-        const lows = getSourceData(rows, "low");
-        const volume = new Float64Array(rows.length);
-        for (let i = 0; i < rows.length; i++) volume[i] = rows[i].volume;
-
-        const ctx = { closes, opens, highs, lows, volume };
+        const ctx = candleColumns(rows);
         this.renderOverlays(rows, ctx);
         this.renderSubPanes(rows, ctx);
         // All panes now exist — set final heights AFTER materialization,
@@ -266,9 +297,23 @@ export class IndicatorLayer {
 
     // ---- helpers --------------------------------------------------------
 
-    private recordPane(paneIndex: number, key: string, params: string, value = ""): void {
+    private recordPane(paneIndex: number, key: SubPaneKey, content: SubPaneContent): void {
         const titleKey = SUB_PANES.find((p) => p.key === key)?.titleKey;
-        if (titleKey) this.panesInfo.push({ paneIndex, key, titleKey, params, value, collapsed: isCollapsed(key) });
+        if (titleKey) {
+            this.panesInfo.push({
+                paneIndex,
+                key,
+                titleKey,
+                params: content.params,
+                value: this.headerValue(content),
+                collapsed: isCollapsed(key),
+            });
+        }
+    }
+
+    private headerValue(content: SubPaneContent): string {
+        const [first] = content.lines;
+        return first ? this.lastValue(first.values) : "";
     }
 
     /** Last finite value of an indicator series, formatted for the pane header. */
@@ -306,66 +351,12 @@ export class IndicatorLayer {
         last.low = tick.low;
         last.close = tick.close;
         last.volume = tick.volume;
-        const a = {
-            closes: getSourceData(rows, "close"),
-            opens: getSourceData(rows, "open"),
-            highs: getSourceData(rows, "high"),
-            lows: getSourceData(rows, "low"),
-            volume: new Float64Array(rows.length),
-        };
-        for (let i = 0; i < rows.length; i++) a.volume[i] = rows[i].volume;
-        const s = indicatorState;
+        // The same computation the full render draws the lines with, so a
+        // header can never read another price, length or indicator than
+        // the line next to it.
+        const columns = candleColumns(rows);
         for (const info of this.panesInfo) {
-            switch (info.key) {
-                case "rsi":
-                    info.value = this.lastValue(JSIndicators.rsi(a.closes, s.rsi.length ?? 14));
-                    break;
-                case "macd": {
-                    const m = JSIndicators.macd(
-                        a.closes,
-                        s.macd.fastLength,
-                        s.macd.slowLength,
-                        s.macd.signalLength,
-                    );
-                    info.value = this.lastValue(m.macd);
-                    break;
-                }
-                case "stochRsi": {
-                    const p = s.stochRsi;
-                    const sr = JSIndicators.stochRsi(a.closes, p.rsiLength || p.length || 14, p.kPeriod, p.dPeriod, 3);
-                    info.value = this.lastValue(sr.k);
-                    break;
-                }
-                case "cci":
-                    info.value = this.lastValue(JSIndicators.cci(a.closes, s.cci.length ?? 20));
-                    break;
-                case "momentum":
-                    info.value = this.lastValue(JSIndicators.mom(a.closes, s.momentum.length ?? 10));
-                    break;
-                case "williamsR":
-                    info.value = this.lastValue(JSIndicators.williamsR(a.highs, a.lows, a.closes, s.williamsR.length ?? 14));
-                    break;
-                case "obv":
-                    info.value = this.lastValue(JSIndicators.obv(a.closes, a.volume));
-                    break;
-                case "mfi":
-                    info.value = this.lastValue(JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, s.mfi.length ?? 14));
-                    break;
-                case "adx":
-                    info.value = this.lastValue(JSIndicators.adx(a.highs, a.lows, a.closes, s.adx.diLength ?? s.adx.adxSmoothing ?? 14));
-                    break;
-                case "ao":
-                    info.value = this.lastValue(JSIndicators.ao(a.highs, a.lows, s.ao.fastLength ?? 5, s.ao.slowLength ?? 34));
-                    break;
-                case "choppiness":
-                    info.value = this.lastValue(JSIndicators.choppiness(a.highs, a.lows, a.closes, s.choppiness.length ?? 14));
-                    break;
-                case "stochastic": {
-                    const k = JSIndicators.stoch(a.highs, a.lows, a.closes, s.stochastic.kPeriod ?? 14);
-                    info.value = this.lastValue(k);
-                    break;
-                }
-            }
+            info.value = this.headerValue(this.subPaneContent(info.key, rows, columns));
         }
         this.onPanesChanged?.(this.panesInfo);
     }
@@ -546,16 +537,7 @@ export class IndicatorLayer {
 
     // ---- overlays (price pane, shared right scale) ----------------------
 
-    private renderOverlays(
-        rows: ChartRow[],
-        a: {
-            closes: Float64Array;
-            opens: Float64Array;
-            highs: Float64Array;
-            lows: Float64Array;
-            volume: Float64Array;
-        },
-    ): void {
+    private renderOverlays(rows: ChartRow[], a: CandleColumns): void {
         const s = indicatorState;
         const P0 = 0;
 
@@ -694,181 +676,129 @@ export class IndicatorLayer {
 
     // ---- sub-panes (oscillators / volume) -------------------------------
 
-    private renderSubPanes(
-        rows: ChartRow[],
-        a: {
-            closes: Float64Array;
-            opens: Float64Array;
-            highs: Float64Array;
-            lows: Float64Array;
-            volume: Float64Array;
-        },
-    ): void {
+    private renderSubPanes(rows: ChartRow[], a: CandleColumns): void {
+        // SUB_PANES order is the claiming order: volume first, as it has the
+        // highest priority when room runs out.
+        for (const { key } of SUB_PANES) {
+            if (!isShownInChart(key)) continue;
+            const collapsed = isCollapsed(key);
+            const idx = this.openSubPane(collapsed, key);
+            if (idx === null) continue;
+            const content = this.subPaneContent(key, rows, a);
+            if (!collapsed) {
+                if (key === "volume") this.addVolume(rows, idx);
+                for (const line of content.lines) {
+                    this.addLine(rows, line.values, idx, line.colorKey, line.fallback);
+                }
+            }
+            this.recordPane(idx, key, content);
+        }
+    }
+
+    /**
+     * The one place a sub-pane's series are computed. Both the full render
+     * (lines and header) and the live tick (header only) read it: two copies
+     * of this switch drifted before, and the tick copy computed the sourced
+     * oscillators over the close whatever the card's source (BUG-0457).
+     */
+    private subPaneContent(key: SubPaneKey, rows: ChartRow[], a: CandleColumns): SubPaneContent {
         const s = indicatorState;
+        const line = (values: ArrayLike<number>, colorKey: string, fallback: string): PaneLine => ({
+            values,
+            colorKey,
+            fallback,
+        });
+        const sourced = (source?: string) => getSourceData(rows, this.src(source));
 
-        // Volume pane (highest priority; shown whenever there is room).
-        if (isShownInChart("volume")) {
-            const idxVol = this.openSubPane(isCollapsed("volume"), "volume");
-            if (idxVol !== null) {
-                if (!isCollapsed("volume")) this.addVolume(rows, idxVol);
-                this.recordPane(idxVol, "volume", "");
-            }
-        }
-
-        // RSI
-        if (isShownInChart("rsi")) {
-            const idx = this.openSubPane(isCollapsed("rsi"), "rsi");
-            if (idx !== null) {
+        switch (key) {
+            case "volume":
+                // Drawn as a histogram by the caller; no header value.
+                return { params: "", lines: [] };
+            case "rsi": {
                 const len = s.rsi.length ?? 14;
-                const d = getSourceData(rows, this.src(s.rsi.source));
-                const series = JSIndicators.rsi(d, len);
-                if (!isCollapsed("rsi")) this.addLine(rows, series, idx, "--accent-color", "#2962ff");
-                this.recordPane(idx, "rsi", `${len}`, this.lastValue(series));
+                return {
+                    params: `${len}`,
+                    lines: [line(JSIndicators.rsi(sourced(s.rsi.source), len), "--accent-color", "#2962ff")],
+                };
             }
-        }
-
-        // MACD
-        if (isShownInChart("macd")) {
-            const idx = this.openSubPane(isCollapsed("macd"), "macd");
-            if (idx !== null) {
-                const d = getSourceData(rows, this.src(s.macd.source));
-                const m = JSIndicators.macd(d, s.macd.fastLength, s.macd.slowLength, s.macd.signalLength);
-                if (!isCollapsed("macd")) {
-                    this.addLine(rows, m.macd, idx, "--accent-color", "#2962ff");
-                    this.addLine(rows, m.signal, idx, "--warning-color", "#ffb300");
-                }
-                this.recordPane(idx, "macd", `${s.macd.fastLength} ${s.macd.slowLength} ${s.macd.signalLength}`, this.lastValue(m.macd));
+            case "macd": {
+                const m = JSIndicators.macd(sourced(s.macd.source), s.macd.fastLength, s.macd.slowLength, s.macd.signalLength);
+                return {
+                    params: `${s.macd.fastLength} ${s.macd.slowLength} ${s.macd.signalLength}`,
+                    lines: [line(m.macd, "--accent-color", "#2962ff"), line(m.signal, "--warning-color", "#ffb300")],
+                };
             }
-        }
-
-        // StochRSI
-        if (isShownInChart("stochRsi")) {
-            const idx = this.openSubPane(isCollapsed("stochRsi"), "stochRsi");
-            if (idx !== null) {
+            case "stochRsi": {
                 const rsiPeriod = s.stochRsi.rsiLength || s.stochRsi.length || 14;
-                const d = getSourceData(rows, this.src(s.stochRsi.source));
-                const sr = JSIndicators.stochRsi(d, rsiPeriod, s.stochRsi.kPeriod, s.stochRsi.dPeriod, 3);
-                if (!isCollapsed("stochRsi")) {
-                    this.addLine(rows, sr.k, idx, "--accent-color", "#2962ff");
-                    this.addLine(rows, sr.d, idx, "--warning-color", "#ffb300");
-                }
-                this.recordPane(idx, "stochRsi", `${rsiPeriod} ${s.stochRsi.kPeriod} ${s.stochRsi.dPeriod}`, this.lastValue(sr.k));
+                const sr = JSIndicators.stochRsi(sourced(s.stochRsi.source), rsiPeriod, s.stochRsi.kPeriod, s.stochRsi.dPeriod, 3);
+                return {
+                    params: `${rsiPeriod} ${s.stochRsi.kPeriod} ${s.stochRsi.dPeriod}`,
+                    lines: [line(sr.k, "--accent-color", "#2962ff"), line(sr.d, "--warning-color", "#ffb300")],
+                };
             }
-        }
-
-        // CCI
-        if (isShownInChart("cci")) {
-            const idx = this.openSubPane(isCollapsed("cci"), "cci");
-            if (idx !== null) {
+            case "cci": {
                 const len = s.cci.length ?? 20;
-                const d = getSourceData(rows, this.src(s.cci.source));
-                const series = JSIndicators.cci(d, len);
-                if (!isCollapsed("cci")) this.addLine(rows, series, idx, "--accent-color", "#2962ff");
-                this.recordPane(idx, "cci", `${len}`, this.lastValue(series));
+                return {
+                    params: `${len}`,
+                    lines: [line(JSIndicators.cci(sourced(s.cci.source), len), "--accent-color", "#2962ff")],
+                };
             }
-        }
-
-        // Momentum
-        if (isShownInChart("momentum")) {
-            const idx = this.openSubPane(isCollapsed("momentum"), "momentum");
-            if (idx !== null) {
+            case "momentum": {
                 const len = s.momentum.length ?? 10;
-                const d = getSourceData(rows, this.src(s.momentum.source));
-                const series = JSIndicators.mom(d, len);
-                if (!isCollapsed("momentum")) this.addLine(rows, series, idx, "--success-color", "#26a69a");
-                this.recordPane(idx, "momentum", `${len}`, this.lastValue(series));
+                return {
+                    params: `${len}`,
+                    lines: [line(JSIndicators.mom(sourced(s.momentum.source), len), "--success-color", "#26a69a")],
+                };
             }
-        }
-
-        // Williams %R
-        if (isShownInChart("williamsR")) {
-            const idx = this.openSubPane(isCollapsed("williamsR"), "williamsR");
-            if (idx !== null) {
+            case "williamsR": {
                 const len = s.williamsR.length ?? 14;
-                const series = JSIndicators.williamsR(a.highs, a.lows, a.closes, len);
-                if (!isCollapsed("williamsR")) {
-                    this.addLine(rows, series, idx, "--danger-color", "#ef5350");
-                }
-                this.recordPane(idx, "williamsR", `${len}`, this.lastValue(series));
+                return {
+                    params: `${len}`,
+                    lines: [line(JSIndicators.williamsR(a.highs, a.lows, a.closes, len), "--danger-color", "#ef5350")],
+                };
             }
-        }
-
-        // OBV
-        if (isShownInChart("obv")) {
-            const idx = this.openSubPane(isCollapsed("obv"), "obv");
-            if (idx !== null) {
-                if (!isCollapsed("obv"))
-                    this.addLine(rows, JSIndicators.obv(a.closes, a.volume), idx, "--text-tertiary", "#9aa0a6");
-                this.recordPane(idx, "obv", "");
-            }
-        }
-
-        // MFI
-        if (isShownInChart("mfi")) {
-            const idx = this.openSubPane(isCollapsed("mfi"), "mfi");
-            if (idx !== null) {
+            case "obv":
+                return {
+                    params: "",
+                    lines: [line(JSIndicators.obv(a.closes, a.volume), "--text-tertiary", "#9aa0a6")],
+                };
+            case "mfi": {
                 const len = s.mfi.length ?? 14;
-                const series = JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, len);
-                if (!isCollapsed("mfi")) {
-                    this.addLine(rows, series, idx, "--accent-color", "#2962ff");
-                }
-                this.recordPane(idx, "mfi", `${len}`, this.lastValue(series));
+                return {
+                    params: `${len}`,
+                    lines: [line(JSIndicators.mfi(a.highs, a.lows, a.closes, a.volume, len), "--accent-color", "#2962ff")],
+                };
             }
-        }
-
-        // ADX
-        if (isShownInChart("adx")) {
-            const idx = this.openSubPane(isCollapsed("adx"), "adx");
-            if (idx !== null) {
+            case "adx": {
                 const len = s.adx.diLength ?? s.adx.adxSmoothing ?? 14;
-                const series = JSIndicators.adx(a.highs, a.lows, a.closes, len);
-                if (!isCollapsed("adx")) {
-                    this.addLine(rows, series, idx, "--accent-color", "#2962ff");
-                }
-                this.recordPane(idx, "adx", `${len}`, this.lastValue(series));
+                return {
+                    params: `${len}`,
+                    lines: [line(JSIndicators.adx(a.highs, a.lows, a.closes, len), "--accent-color", "#2962ff")],
+                };
             }
-        }
-
-        // Awesome Oscillator
-        if (isShownInChart("ao")) {
-            const idx = this.openSubPane(isCollapsed("ao"), "ao");
-            if (idx !== null) {
+            case "ao": {
                 const fast = s.ao.fastLength ?? 5;
                 const slow = s.ao.slowLength ?? 34;
-                const ao = JSIndicators.ao(a.highs, a.lows, fast, slow);
-                if (!isCollapsed("ao")) {
-                    this.addLine(rows, ao, idx, "--warning-color", "#ffb300");
-                }
-                this.recordPane(idx, "ao", `${fast} ${slow}`, this.lastValue(ao));
+                return {
+                    params: `${fast} ${slow}`,
+                    lines: [line(JSIndicators.ao(a.highs, a.lows, fast, slow), "--warning-color", "#ffb300")],
+                };
             }
-        }
-
-        // Choppiness
-        if (isShownInChart("choppiness")) {
-            const idx = this.openSubPane(isCollapsed("choppiness"), "choppiness");
-            if (idx !== null) {
+            case "choppiness": {
                 const len = s.choppiness.length ?? 14;
-                const series = JSIndicators.choppiness(a.highs, a.lows, a.closes, len);
-                if (!isCollapsed("choppiness")) {
-                    this.addLine(rows, series, idx, "--text-tertiary", "#9aa0a6");
-                }
-                this.recordPane(idx, "choppiness", `${len}`, this.lastValue(series));
+                return {
+                    params: `${len}`,
+                    lines: [line(JSIndicators.choppiness(a.highs, a.lows, a.closes, len), "--text-tertiary", "#9aa0a6")],
+                };
             }
-        }
-
-        // Stochastic
-        if (isShownInChart("stochastic")) {
-            const idx = this.openSubPane(isCollapsed("stochastic"), "stochastic");
-            if (idx !== null) {
+            case "stochastic": {
                 const kPeriod = s.stochastic.kPeriod ?? 14;
                 const dPeriod = s.stochastic.dPeriod ?? 3;
                 const k = JSIndicators.stoch(a.highs, a.lows, a.closes, kPeriod);
-                const d = JSIndicators.sma(k, dPeriod);
-                if (!isCollapsed("stochastic")) {
-                    this.addLine(rows, k, idx, "--accent-color", "#2962ff");
-                    this.addLine(rows, d, idx, "--warning-color", "#ffb300");
-                }
-                this.recordPane(idx, "stochastic", `${kPeriod} ${dPeriod}`, this.lastValue(k));
+                return {
+                    params: `${kPeriod} ${dPeriod}`,
+                    lines: [line(k, "--accent-color", "#2962ff"), line(JSIndicators.sma(k, dPeriod), "--warning-color", "#ffb300")],
+                };
             }
         }
     }
