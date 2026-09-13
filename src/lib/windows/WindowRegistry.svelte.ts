@@ -362,7 +362,10 @@ class WindowRegistry {
                     centerByDefault: true,
                     showHeaderIndicators: true,
                     allowFeedDuck: false,
-                    canMinimizeToPanel: false // Minimize to LeftControlPanel instead of top dock
+                    canMinimizeToPanel: false, // Minimize to LeftControlPanel instead of top dock
+                    isResponsive: true, // Maximizes automatically on mobile
+                    edgeToEdgeBreakpoint: 768,
+                    clampToViewport: true // never wider/taller than the screen
                 },
                 layout: {
                     ...baseLayout,

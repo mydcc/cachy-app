@@ -24,6 +24,7 @@
     import { imgbbService } from "../../services/imgbbService";
     import { calculator } from "../../lib/calculator";
     import { _ } from "../../locales/i18n";
+    import type { TranslationKey } from "../../locales/schema";
     import { icons } from "../../lib/constants";
     import { browser } from "$app/environment";
     import { getComputedColor } from "../../utils/colors";
@@ -220,6 +221,35 @@
         action: true,
     });
 
+    type ColumnLabelKey = TranslationKey;
+    /** Localized name for each column key shown in the settings popover. */
+    const columnLabels: Record<string, ColumnLabelKey> = {
+        date: "journal.table.date",
+        symbol: "journal.table.symbol",
+        type: "journal.table.type",
+        entry: "journal.table.entry",
+        exit: "journal.table.exit",
+        sl: "journal.table.sl",
+        slAtr: "journal.table.slAtr",
+        atr: "journal.table.atr",
+        size: "journal.table.size",
+        entryFee: "journal.table.entryFee",
+        exitFee: "journal.table.exitFee",
+        totalFees: "journal.table.totalFees",
+        funding: "journal.table.funding",
+        pnl: "journal.table.pnl",
+        rr: "journal.table.rr",
+        mae: "journal.table.mae",
+        mfe: "journal.table.mfe",
+        efficiency: "journal.table.efficiency",
+        duration: "journal.table.duration",
+        status: "journal.table.status",
+        screenshot: "journal.table.screenshot",
+        tags: "journal.table.tags",
+        notes: "journal.table.notes",
+        action: "journal.table.action",
+    };
+
     function applyColumnPreset(preset: "compact" | "standard" | "fees" | "all") {
         if (preset === "compact") {
             columnVisibility = {
@@ -389,6 +419,28 @@
         return Array.from(set).sort();
     });
 
+    /** Distinct symbols in the active mode, for the filter dropdown. */
+    let availableSymbols = $derived.by(() => {
+        const set = new Set<string>();
+        for (const entry of journalState.entries) {
+            if (tradeMode === "live" && entry.isPaper) continue;
+            if (tradeMode === "paper" && !entry.isPaper) continue;
+            const symbol = entry.symbol?.trim();
+            if (symbol) set.add(symbol);
+        }
+        return Array.from(set).sort();
+    });
+
+    let selectedSymbol = $state("");
+
+    // Drop a symbol selection the active mode no longer offers, so the table
+    // cannot end up silently empty after switching Live/Paper/All.
+    $effect(() => {
+        if (selectedSymbol && !availableSymbols.includes(selectedSymbol)) {
+            selectedSymbol = "";
+        }
+    });
+
     let processedTrades = $derived.by(() => {
         // Invariant expressions hoisted out of the filter loop so they are
         // computed once per re-derivation instead of once per trade.
@@ -410,6 +462,7 @@
             if (filterByLive && trade.isPaper) return false;
             if (filterByPaper && !trade.isPaper) return false;
             if (!matchesAllStatus && trade.status !== journalFilterStatus) return false;
+            if (selectedSymbol && trade.symbol?.trim() !== selectedSymbol) return false;
             if (!noTagSelected && (!trade.tags || !trade.tags.includes(selectedTag))) return false;
             if (hasStartDate || hasEndDate) {
                 const tradeDateMs = new Date(trade.date).getTime();
@@ -417,7 +470,7 @@
                 if (hasEndDate && tradeDateMs > endDateMs) return false;
             }
             if (query) {
-                if (trade.symbol.toLowerCase().includes(query)) return true;
+                if ((trade.symbol?.toLowerCase() ?? "").includes(query)) return true;
                 if (trade.notes && trade.notes.toLowerCase().includes(query)) return true;
                 if (trade.tags && trade.tags.some((t) => t.toLowerCase().includes(query))) return true;
                 return false;
@@ -572,20 +625,63 @@
     />
 {/snippet}
 
+{#snippet syncAction()}
+    {#if uiState.syncProgress}
+        <div
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+            title={$_("dashboard.synchronizingHistory")}
+        >
+            <span class="font-mono text-[10px] text-[var(--text-primary)] font-bold">
+                {uiState.syncProgress.current}/{uiState.syncProgress.total}
+            </span>
+            <div class="w-16 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                <div
+                    class="h-full bg-[var(--accent-color)] transition-all duration-500 ease-out"
+                    style="width: {(uiState.syncProgress.current / Math.max(uiState.syncProgress.total, 1)) * 100}%"
+                ></div>
+            </div>
+        </div>
+    {:else}
+        <!-- Always visible; the history sync is a Pro feature, so the button
+             stays present but disabled until Pro is active instead of
+             silently disappearing. -->
+        <button
+            class="text-[11px] font-bold py-1.5 px-3 rounded-md flex items-center gap-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onclick={app.syncBitunixHistory}
+            disabled={!settingsState.entitlement.isPro || uiState.isPriceFetching || uiState.isLoading}
+            title={!settingsState.entitlement.isPro
+                ? $_("journal.syncRequiresPro")
+                : $_("journal.syncBitunix")}
+        >
+            {#if uiState.isPriceFetching}
+                <div class="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full"></div>
+            {:else if !settingsState.entitlement.isPro}
+                <span class="opacity-70">🔒</span>
+            {:else}
+                <span class="opacity-70">{@html icons.refresh}</span>
+            {/if}
+            <span>
+                {uiState.isPriceFetching ? $_("journal.messages.syncing") : $_("journal.syncBitunix")}
+            </span>
+        </button>
+    {/if}
+{/snippet}
+
 <div
     class="journal-content-wrapper p-4 sm:p-6"
     use:setHeaderSnippet={headerStats}
 >
     <!-- Top-Level Tab Switcher -->
-    <div class="main-tab-nav flex items-center justify-between gap-4 mb-6 border-b border-[var(--border-color)] pb-3">
-        <div class="flex items-center gap-2">
+    <div class="main-tab-nav mb-6 border-b border-[var(--border-color)] pb-3">
+        <div class="tab-scroll flex min-w-0 items-center gap-2 overflow-x-auto">
             <button
                 class="tab-btn"
                 class:active={activeMainTab === "table"}
                 onclick={() => (activeMainTab = "table")}
             >
                 <span class="tab-icon">📋</span>
-                <span>{$_("journal.presets.table")}</span>
+                <span class="tab-label-long">{$_("journal.presets.table")}</span>
+                <span class="tab-label-short">{$_("journal.presets.tableShort")}</span>
                 <span class="tab-badge">{processedTrades.length}</span>
             </button>
             <button
@@ -594,7 +690,8 @@
                 onclick={() => (activeMainTab = "overview")}
             >
                 <span class="tab-icon">📊</span>
-                <span>{$_("journal.presets.overview")}</span>
+                <span class="tab-label-long">{$_("journal.presets.overview")}</span>
+                <span class="tab-label-short">{$_("journal.presets.overviewShort")}</span>
             </button>
             <button
                 class="tab-btn"
@@ -602,45 +699,9 @@
                 onclick={() => (activeMainTab = "deepDive")}
             >
                 <span class="tab-icon">🔬</span>
-                <span>{$_("journal.presets.deepDive")}</span>
+                <span class="tab-label-long">{$_("journal.presets.deepDive")}</span>
+                <span class="tab-label-short">{$_("journal.presets.deepDiveShort")}</span>
             </button>
-        </div>
-
-        <!-- Sync Button & Quick Status in Tab Header -->
-        <div class="flex items-center gap-2">
-            {#if settingsState.entitlement.isPro}
-                {#if uiState.syncProgress}
-                    <div
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)]"
-                        title={$_("dashboard.synchronizingHistory")}
-                    >
-                        <span class="font-mono text-[10px] text-[var(--text-primary)] font-bold">
-                            {uiState.syncProgress.current}/{uiState.syncProgress.total}
-                        </span>
-                        <div class="w-16 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-                            <div
-                                class="h-full bg-[var(--accent-color)] transition-all duration-500 ease-out"
-                                style="width: {(uiState.syncProgress.current / Math.max(uiState.syncProgress.total, 1)) * 100}%"
-                            ></div>
-                        </div>
-                    </div>
-                {:else}
-                    <button
-                        class="text-[11px] font-bold py-1.5 px-3 rounded-md flex items-center gap-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] transition-colors disabled:opacity-50"
-                        onclick={app.syncBitunixHistory}
-                        disabled={uiState.isPriceFetching || uiState.isLoading}
-                    >
-                        {#if uiState.isPriceFetching}
-                            <div class="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full"></div>
-                        {:else}
-                            <span class="opacity-70">{@html icons.refresh}</span>
-                        {/if}
-                        <span>
-                            {uiState.isPriceFetching ? $_("journal.messages.syncing") : $_("journal.syncBitunix")}
-                        </span>
-                    </button>
-                {/if}
-            {/if}
         </div>
     </div>
 
@@ -668,6 +729,8 @@
                 bind:filterDateEnd
                 bind:selectedTag
                 availableTags={allAvailableTags}
+                bind:symbolFilter={selectedSymbol}
+                {availableSymbols}
                 bind:groupBySymbol
                 bind:tradeMode
                 liveCount={liveTradesCount}
@@ -675,6 +738,7 @@
                 totalTrades={journalState.entries.length}
                 filteredCount={processedTrades.length}
                 ontoggleSettings={() => (showColumnSettings = !showColumnSettings)}
+                actions={syncAction}
             />
 
             <!-- Column Settings Dialog Popover -->
@@ -686,7 +750,7 @@
                 ></div>
                 <div class="relative">
                     <div
-                        class="absolute top-0 right-0 z-50 glass-panel border border-[var(--border-color)] rounded-xl shadow-2xl p-5 min-w-[340px] max-w-md animate-fade-in"
+                        class="absolute top-0 right-0 z-50 w-full max-w-md bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-2xl p-5 animate-fade-in"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="col-settings-heading"
@@ -739,7 +803,7 @@
                                         type="checkbox"
                                         bind:checked={columnVisibility[col]}
                                     />
-                                    <span class="truncate">{col}</span>
+                                    <span class="truncate">{$_(columnLabels[col] as ColumnLabelKey)}</span>
                                 </label>
                             {/each}
                         </div>
@@ -833,6 +897,7 @@
     .tab-btn {
         display: flex;
         align-items: center;
+        flex: 0 0 auto;
         gap: 0.5rem;
         padding: 0.5rem 0.85rem;
         border-radius: var(--radius-lg);
@@ -861,6 +926,32 @@
         font-size: var(--text-base);
     }
 
+    /* Short tab labels are mobile-only; the long ones are desktop-only. */
+    .tab-label-short {
+        display: none;
+    }
+
+    /* Horizontal, scrollbar-less tab strip. The mask fades the trailing edge
+       so a cut-off tab reads as "more to scroll" instead of broken. */
+    .tab-scroll {
+        scrollbar-width: none;
+        padding-right: 1.5rem;
+        -webkit-mask-image: linear-gradient(
+            to right,
+            currentColor calc(100% - 1.5rem),
+            transparent
+        );
+        mask-image: linear-gradient(
+            to right,
+            currentColor calc(100% - 1.5rem),
+            transparent
+        );
+    }
+
+    .tab-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
     .tab-badge {
         font-size: 0.7rem;
         padding: 0.1rem 0.4rem;
@@ -883,5 +974,25 @@
 
     .animate-fade-in {
         animation: fadeIn 0.15s ease-out;
+    }
+
+    @media (max-width: 640px) {
+        .tab-btn {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.8rem;
+            gap: 0.35rem;
+        }
+
+        .tab-label-long {
+            display: none;
+        }
+
+        .tab-label-short {
+            display: inline;
+        }
+
+        .tab-icon {
+            font-size: var(--text-sm);
+        }
     }
 </style>

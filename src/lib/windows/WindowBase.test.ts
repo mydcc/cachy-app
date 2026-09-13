@@ -549,3 +549,59 @@ describe("WindowBase 62% visibility invariant", () => {
         }
     });
 });
+
+describe("WindowBase clampToViewport (opt-in)", () => {
+    const originalInnerWidth = window.innerWidth;
+    const originalInnerHeight = window.innerHeight;
+
+    function setViewportHeight(height: number) {
+        Object.defineProperty(window, "innerHeight", {
+            value: height,
+            writable: true,
+            configurable: true,
+        });
+    }
+
+    beforeEach(() => {
+        localStorage.clear();
+        setViewportWidth(1600);
+        setViewportHeight(1000);
+    });
+
+    afterEach(() => {
+        setViewportWidth(originalInnerWidth);
+        setViewportHeight(originalInnerHeight);
+    });
+
+    it("clamps an opted-in window to the viewport and grows it back", () => {
+        const win = makeTestWindow();
+        win.clampToViewport = true;
+        win.updateSize(1400, 900);
+        expect(win.width).toBe(1400);
+        expect(win.height).toBe(900);
+
+        setViewportWidth(1000);
+        setViewportHeight(800);
+        win.handleViewportResize();
+        expect(win.width).toBe(1000);
+        expect(win.height).toBe(800);
+
+        setViewportWidth(1600);
+        setViewportHeight(1000);
+        win.handleViewportResize();
+        // Back to the desired size, not left permanently shrunk.
+        expect(win.width).toBe(1400);
+        expect(win.height).toBe(900);
+    });
+
+    it("does not clamp a window that did not opt in", () => {
+        const win = makeTestWindow();
+        win.updateSize(1400, 900);
+
+        setViewportWidth(1000);
+        setViewportHeight(800);
+        win.handleViewportResize();
+        expect(win.width).toBe(1400);
+        expect(win.height).toBe(900);
+    });
+});

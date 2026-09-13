@@ -752,7 +752,7 @@
                     {$_("journal.deepDive.charts.labels.confluence")}
                 </div>
                 <div
-                    class="grid grid-cols-[auto_repeat(24,1fr)] gap-1 text-[10px] overflow-x-auto pb-2"
+                    class="grid grid-cols-[auto_repeat(24,1fr)] gap-1 text-[10px] overflow-x-auto pb-2 min-w-[560px]"
                 >
                     <div class="h-6"></div>
                     {#each hoursOfDay as hour}

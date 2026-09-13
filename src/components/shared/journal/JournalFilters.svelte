@@ -18,6 +18,7 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { icons } from "../../../lib/constants";
+    import Toggle from "../Toggle.svelte";
 
     interface Props {
         searchQuery?: string;
@@ -26,6 +27,8 @@
         filterDateEnd?: string;
         selectedTag?: string;
         availableTags?: string[];
+        symbolFilter?: string;
+        availableSymbols?: string[];
         groupBySymbol?: boolean;
         tradeMode?: "live" | "paper" | "all";
         liveCount?: number;
@@ -43,6 +46,8 @@
         filterDateEnd = $bindable(""),
         selectedTag = $bindable(""),
         availableTags = [],
+        symbolFilter = $bindable(""),
+        availableSymbols = [],
         groupBySymbol = $bindable(false),
         tradeMode = $bindable("live"),
         liveCount = 0,
@@ -112,6 +117,7 @@
         filterDateStart = "";
         filterDateEnd = "";
         selectedTag = "";
+        symbolFilter = "";
     }
 
     let hasActiveFilters = $derived(
@@ -119,21 +125,26 @@
         filterStatus !== "all" ||
         Boolean(filterDateStart) ||
         Boolean(filterDateEnd) ||
-        Boolean(selectedTag)
+        Boolean(selectedTag) ||
+        Boolean(symbolFilter)
     );
 </script>
 
 <div class="journal-filters space-y-3">
     <!-- Row 1: Primary Search & Select Controls -->
     <div class="filter-controls">
-        <!-- Search Input -->
-        <div class="filter-group col-span-2 sm:col-span-1">
-            <input
-                type="text"
-                bind:value={searchQuery}
-                placeholder={$_("journal.searchSymbolPlaceholder")}
-                class="filter-input"
-            />
+        <!-- Symbol Filter Dropdown (symbols present in the journal) -->
+        <div class="filter-group">
+            <select
+                bind:value={symbolFilter}
+                class="filter-select"
+                aria-label={$_("journal.symbol")}
+            >
+                <option value="">{$_("journal.filters.allSymbols")}</option>
+                {#each availableSymbols as symbol}
+                    <option value={symbol}>{symbol}</option>
+                {/each}
+            </select>
         </div>
 
         <!-- Status Filter -->
@@ -148,7 +159,7 @@
 
         <!-- Tag Filter if tags exist -->
         {#if availableTags.length > 0}
-            <div class="filter-group">
+            <div class="filter-group tag-group">
                 <select bind:value={selectedTag} class="filter-select">
                     <option value="">{$_("journal.filters.filterTags")}</option>
                     {#each availableTags as tag}
@@ -157,6 +168,17 @@
                 </select>
             </div>
         {/if}
+
+        <!-- Free-text search across notes and tags -->
+        <div class="filter-group search-group">
+            <input
+                type="text"
+                bind:value={searchQuery}
+                placeholder={$_("journal.filters.searchNotesTags")}
+                class="filter-input"
+                aria-label={$_("journal.filters.searchNotesTags")}
+            />
+        </div>
 
         <!-- Date Range Inputs -->
         <div class="filter-group date-range">
@@ -177,12 +199,8 @@
 
         <!-- Actions & Settings -->
         <div class="filter-actions">
-            {#if actions}
-                {@render actions()}
-            {/if}
-
             <!-- 3-Way Mode Segmented Control: Live / Paper / All -->
-            <div class="inline-flex p-0.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs font-bold shadow-xs">
+            <div class="mode-segmented inline-flex p-0.5 rounded-lg border border-[var(--input-border-color)] bg-[var(--bg-secondary)] text-xs font-bold shadow-xs">
                 <button
                     type="button"
                     class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
@@ -220,27 +238,35 @@
                 </button>
             </div>
 
-            <label class="pivot-toggle">
-                <input type="checkbox" bind:checked={groupBySymbol} />
-                <span class="toggle-slider"></span>
-                <span class="toggle-text">{$_("journal.labels.pivotMode")}</span>
-            </label>
+            <!-- Trailing controls, kept on one line: Pivot Mode, Sync, Settings -->
+            <div class="action-group">
+                <div class="pivot-toggle">
+                    <Toggle bind:checked={groupBySymbol} />
+                    <span class="toggle-text">{$_("journal.labels.pivotMode")}</span>
+                </div>
 
-            <button
-                class="settings-btn"
-                onclick={toggleSettings}
-                title={$_("journal.labels.tableSettings")}
-                aria-label={$_("journal.labels.tableSettings")}
-            >
-                {@html icons.settings}
-            </button>
+                <div class="action-group-end">
+                    {#if actions}
+                        {@render actions()}
+                    {/if}
+
+                    <button
+                        class="settings-btn"
+                        onclick={toggleSettings}
+                        title={$_("journal.labels.tableSettings")}
+                        aria-label={$_("journal.labels.tableSettings")}
+                    >
+                        {@html icons.settings}
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Row 2: Quick Date Presets & Count / Reset Bar -->
     <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)] text-xs">
-        <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-[var(--text-secondary)] font-medium mr-1">{$_("journal.labels.from")}:</span>
+        <div class="quick-dates">
+            <span class="text-[var(--text-secondary)] font-medium mr-1 shrink-0">{$_("journal.labels.from")}:</span>
             <button
                 class="quick-date-btn"
                 onclick={() => setQuickDate("today")}
@@ -327,7 +353,7 @@
 
     @media (min-width: 1024px) {
         .filter-controls {
-            grid-template-columns: 1.4fr 0.8fr 0.9fr 1.4fr auto;
+            grid-template-columns: 1fr 0.8fr 0.8fr 1fr 1.3fr auto;
         }
     }
 
@@ -341,7 +367,7 @@
     .filter-select {
         width: 100%;
         padding: var(--space-2) var(--space-3);
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--input-border-color, var(--text-secondary));
         border-radius: var(--radius-lg);
         background: var(--input-bg);
         color: var(--text-primary);
@@ -380,48 +406,24 @@
         flex-wrap: wrap;
     }
 
+    /* Pivot Mode + Sync + Settings share one line. */
+    .action-group {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .action-group-end {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
     .pivot-toggle {
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        cursor: pointer;
         user-select: none;
-    }
-
-    .pivot-toggle input {
-        display: none;
-    }
-
-    .toggle-slider {
-        position: relative;
-        width: 32px;
-        height: 18px;
-        background: var(--bg-tertiary);
-        border-radius: 18px;
-        transition: 0.3s;
-        border: 1px solid var(--border-color);
-    }
-
-    .toggle-slider::before {
-        content: "";
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        left: 2px;
-        top: 2px;
-        background: var(--text-secondary);
-        border-radius: 50%;
-        transition: 0.3s;
-    }
-
-    .pivot-toggle input:checked + .toggle-slider {
-        background: var(--accent-color);
-        border-color: var(--accent-color);
-    }
-
-    .pivot-toggle input:checked + .toggle-slider::before {
-        transform: translateX(14px);
-        background: var(--bg-primary);
     }
 
     .toggle-text {
@@ -438,7 +440,7 @@
         width: 34px;
         height: 34px;
         border-radius: var(--radius-lg);
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--input-border-color, var(--text-secondary));
         background: var(--bg-secondary);
         color: var(--text-secondary);
         cursor: pointer;
@@ -453,10 +455,11 @@
     .quick-date-btn {
         padding: var(--space-1) var(--space-2);
         border-radius: var(--radius-md);
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--input-border-color, var(--text-secondary));
         background: var(--bg-secondary);
         color: var(--text-secondary);
         font-size: var(--text-xs);
+        flex: 0 0 auto;
         cursor: pointer;
         transition: all 0.15s ease;
     }
@@ -465,5 +468,52 @@
         background: var(--bg-tertiary);
         color: var(--text-primary);
         border-color: var(--accent-color);
+    }
+
+    /* Quick-date presets scroll horizontally on one line instead of wrapping
+       into two ragged rows on narrow screens. */
+    .quick-dates {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .quick-dates::-webkit-scrollbar {
+        display: none;
+    }
+
+    @media (max-width: 640px) {
+        .filter-controls {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .filter-group.tag-group,
+        .filter-group.search-group,
+        .filter-group.date-range,
+        .filter-actions {
+            grid-column: span 2;
+        }
+
+        .filter-actions {
+            justify-content: space-between;
+        }
+
+        .action-group {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .mode-segmented {
+            width: 100%;
+        }
+
+        .mode-segmented > button {
+            flex: 1 1 0;
+            justify-content: center;
+        }
     }
 </style>
