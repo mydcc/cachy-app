@@ -45,6 +45,9 @@ const WASM_BINARY = resolve(process.cwd(), "static/wasm/technicals_wasm_bg.wasm"
 const TIMEFRAME = "1h";
 const START_MS = 1_757_030_400_000;
 const LEVEL = 100;
+// Both definitions agree on a walk that never fires, so the walk must fire:
+// the closes below meet the level four times in each direction.
+const MIN_FIRINGS = 4;
 
 /**
  * Every way a close can meet the level: touch from below and fall back, touch
@@ -108,8 +111,7 @@ describe("a cross that lands exactly on the level", () => {
       }
 
       expect(disagreements).toEqual([]);
-      // Exercised: both conventions would pass a walk that never fired.
-      expect(fired).toBeGreaterThanOrEqual(4);
+      expect(fired).toBeGreaterThanOrEqual(MIN_FIRINGS);
     },
   );
 });

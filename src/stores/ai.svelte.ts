@@ -13,6 +13,9 @@ import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
+import { flavorOf } from "./settings/aiProviders";
+import { parseStreamChunk, appendToolCallFragment } from "../lib/ai/streamAdapters";
+import { activeUserProvider } from "./settings/aiProviders";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
 import { tradeState } from "./trade.svelte";
@@ -196,7 +199,33 @@ class AiManager {
         appLocale,
       });
 
-      const provider = settings.aiProvider || "gemini";
+      const userProvider = activeUserProvider(
+        settings.userProviders,
+        settings.activeProviderId,
+      );
+      // Other wire formats land in a later slice; refuse rather than send a
+      // request the parser cannot read.
+      if (userProvider && userProvider.flavor !== "openai-chat") {
+        throw new Error(
+          `"${userProvider.label}" speaks ${userProvider.flavor}, which is not supported yet. Use an OpenAI-compatible endpoint.`,
+        );
+      }
+
+      // ADR-0019: credentials are Class A. Until browser-direct transport
+      // lands (Slice 5) a user provider is only reachable through the server
+      // relay, so it must be opted into explicitly. Nothing transits Cachy
+      // infrastructure for a provider that has not.
+      if (userProvider && !userProvider.allowServerRelay) {
+        throw new Error(
+          `Server relay is off for "${userProvider.label}". Enable "Allow server relay" for it in Settings → AI.`,
+        );
+      }
+
+      // A user provider is sent through the OpenAI-compatible route; the
+      // built-ins keep their own route and parser.
+      const provider: AiProvider = userProvider
+        ? "openai"
+        : settings.aiProvider || "gemini";
       const systemPrompt = provider === "anthropic"
         ? JSON.stringify(promptParts)
         : `${promptParts.staticInstruction}\n\n${promptParts.dynamicContext}`;
@@ -214,7 +243,21 @@ class AiManager {
       let model = "";
       let baseUrl = "";
 
-      if (provider === "openai") {
+      if (userProvider) {
+        apiKey = userProvider.apiKey;
+        model = userProvider.model;
+        baseUrl = userProvider.baseUrl;
+        if (!baseUrl.trim()) {
+          throw new Error(
+            `"${userProvider.label}" has no base URL configured. Add one in Settings.`,
+          );
+        }
+        if (!apiKey.trim()) {
+          throw new Error(
+            `"${userProvider.label}" has no API key configured. Add one in Settings.`,
+          );
+        }
+      } else if (provider === "openai") {
         apiKey = settings.openaiApiKey;
         model = settings.openaiModel;
         baseUrl = settings.openaiBaseUrl;
@@ -350,6 +393,7 @@ class AiManager {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";
+      const streamFlavor = flavorOf(provider) ?? "openai-chat";
 
 
       while (true) {
@@ -366,34 +410,18 @@ class AiManager {
             const dataStr = trimmed.slice(6);
             try {
               const data = JSON.parse(dataStr);
-              let delta = "";
-              let toolCallData = null;
-
-              if (provider === "openai" || provider === "openrouter" || provider === "ollama") {
-                delta = data.choices?.[0]?.delta?.content || "";
-                if (data.choices?.[0]?.delta?.tool_calls) {
-                  toolCallData = data.choices[0].delta.tool_calls[0]?.function?.arguments;
-                }
-              } else if (provider === "gemini") {
-                delta = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                if (data.candidates?.[0]?.content?.parts?.[0]?.functionCall) {
-                  const fc = data.candidates[0].content.parts[0].functionCall;
-                  if (fc.args && fc.args.actions) {
-                      toolCallData = JSON.stringify(fc.args);
-                  }
-                }
-              } else if (provider === "anthropic") {
-                if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
-                  delta = data.delta?.text || "";
-                } else if (data.type === "content_block_delta" && data.delta?.type === "input_json_delta") {
-                  toolCallData = data.delta?.partial_json;
-                }
-              }
+              const { text: delta, toolCallFragment: toolCallData } =
+                parseStreamChunk(streamFlavor, data);
 
               if (toolCallData) {
-                  // Buffer tool call chunks
-                  if (!this._toolCallBuffer) this._toolCallBuffer = "";
-                  this._toolCallBuffer += toolCallData;
+                  // Buffer tool call chunks (delta flavors append, the
+                  // Google snapshot flavor keeps the latest — see
+                  // appendToolCallFragment).
+                  this._toolCallBuffer = appendToolCallFragment(
+                    streamFlavor,
+                    this._toolCallBuffer,
+                    toolCallData,
+                  );
               }
 
               if (delta) {
