@@ -384,20 +384,24 @@ export function calculateIndicatorsFromArrays(
           const saVal = res.spanA[idx];
           const sbVal = res.spanB[idx];
 
-          let action = "Neutral";
-          const cloudTop = Math.max(saVal, sbVal);
-          const cloudBottom = Math.min(saVal, sbVal);
+          // No cloud before both spans have a value: "Neutral" off a missing
+          // span is not a reading either (BUG-0463).
+          if ([cVal, bVal, saVal, sbVal].every(Number.isFinite)) {
+              let action = "Neutral";
+              const cloudTop = Math.max(saVal, sbVal);
+              const cloudBottom = Math.min(saVal, sbVal);
 
-          if (currentPrice > cloudTop && cVal > bVal) action = "Buy";
-          else if (currentPrice < cloudBottom && cVal < bVal) action = "Sell";
+              if (currentPrice > cloudTop && cVal > bVal) action = "Buy";
+              else if (currentPrice < cloudBottom && cVal < bVal) action = "Sell";
 
-          advancedInfo.ichimoku = {
-              conversion: cVal,
-              base: bVal,
-              spanA: saVal,
-              spanB: sbVal,
-              action: action
-          };
+              advancedInfo.ichimoku = {
+                  conversion: cVal,
+                  base: bVal,
+                  spanA: saVal,
+                  spanB: sbVal,
+                  action: action
+              };
+          }
       }
 
       if (shouldCalculate('atrTrailingStop')) {
