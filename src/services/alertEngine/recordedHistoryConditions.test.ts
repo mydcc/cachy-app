@@ -417,6 +417,10 @@ const ADX14 = indicator("adx", { period: 14 }, "adx");
 const PLUS_DI14 = indicator("adx", { period: 14 }, "plus_di");
 const MINUS_DI14 = indicator("adx", { period: 14 }, "minus_di");
 const SUPER_TREND = indicator("super_trend", { period: 10, factor: 3 }, "value");
+const ICHIMOKU_PARAMS = { conversion_period: 9, base_period: 26, span_b_period: 52 };
+const ICHIMOKU_CONVERSION = indicator("ichimoku", ICHIMOKU_PARAMS, "conversion");
+const ICHIMOKU_BASE = indicator("ichimoku", ICHIMOKU_PARAMS, "base");
+const ICHIMOKU_SPAN_B = indicator("ichimoku", ICHIMOKU_PARAMS, "span_b");
 
 interface Expectation {
   name: string;
@@ -730,6 +734,17 @@ const EXPECTATIONS: Expectation[] = [
     ],
   },
   {
+    name: "Ichimoku TK cross — conversion line crossing above the base line",
+    condition: cross(ICHIMOKU_CONVERSION, "above", ICHIMOKU_BASE),
+    flips: [],
+  },
+  {
+    // Reads span B where the chart draws it: 26 candles after its window.
+    name: "price falling through the cloud's span B — close crossing below span B",
+    condition: cross(closePrice, "below", ICHIMOKU_SPAN_B),
+    flips: [],
+  },
+  {
     name: "awesome oscillator crossing above zero",
     condition: cross(AO, "above", constant("0")),
     flips: [
@@ -854,7 +869,6 @@ describe("indicator conditions against recorded market history", () => {
   const SCOPED_OUT: Record<string, string> = {
     obv: `${NOT_ON_ALERT_PATH}; accumulates from the first candle it is given, so its level depends on how much history the rolling buffer holds`,
     parabolic_sar: `${NOT_ON_ALERT_PATH}; flips side rather than crossing a level, so the condition shape needs deciding first`,
-    ichimoku: `${NOT_ON_ALERT_PATH}; five lines and a forward displacement, which must match the chart`,
   };
 
   it("accounts for every indicator the core accepts", () => {

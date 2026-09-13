@@ -35,7 +35,8 @@
   instead would leave the trader looking for it.
 
   FEAT-0446 group 3: the same on an ADX card whose DI length and smoothing
-  differ, since the core computes ADX with one length.
+  differ, since the core computes ADX with one length. Group 4: and on an
+  Ichimoku card displacing its cloud by another number of candles than 26.
 -->
 
 <script lang="ts">
@@ -44,7 +45,9 @@
         cardAlertAvailability,
         cardAlertSource,
         seedFromIndicatorSettings,
+        type CardAlertAvailability,
     } from "../../../lib/alerts/indicatorSettingsSeed";
+    import { ICHIMOKU_DISPLACEMENT } from "../../../lib/rules/alertPathIndicators";
     import { indicatorState } from "../../../stores/indicator.svelte";
     import { tradeState } from "../../../stores/trade.svelte";
     import { _ } from "../../../locales/i18n";
@@ -66,20 +69,30 @@
         const card = cardOf(settingsKey);
         return card === null ? "not-alertable" : cardAlertAvailability(settingsKey, card);
     });
-    let refused = $derived(
-        availability === "source-mismatch" || availability === "length-mismatch",
-    );
-    let label = $derived.by(() => {
-        if (availability === "source-mismatch") {
-            return $_("settings.technicals.alertSourceMismatch", {
+    // Every refusal names its reason. A `Record` over the refusal kinds, so a
+    // kind added to `CardAlertAvailability` without a reason fails the type
+    // check instead of showing a refused button labelled "alert on this".
+    const REFUSAL_LABELS: Record<
+        Exclude<CardAlertAvailability, "armable" | "not-alertable">,
+        () => string
+    > = {
+        "source-mismatch": () =>
+            $_("settings.technicals.alertSourceMismatch", {
                 values: { source: cardAlertSource(settingsKey) ?? "close" },
-            });
-        }
-        if (availability === "length-mismatch") {
-            return $_("settings.technicals.alertAdxLengthMismatch");
-        }
-        return $_("settings.technicals.alertOnThis");
-    });
+            }),
+        "length-mismatch": () => $_("settings.technicals.alertAdxLengthMismatch"),
+        "displacement-mismatch": () =>
+            $_("settings.technicals.alertIchimokuDisplacementMismatch", {
+                values: { displacement: ICHIMOKU_DISPLACEMENT },
+            }),
+    };
+
+    let refused = $derived(availability !== "armable" && availability !== "not-alertable");
+    let label = $derived(
+        availability === "armable" || availability === "not-alertable"
+            ? $_("settings.technicals.alertOnThis")
+            : REFUSAL_LABELS[availability](),
+    );
 
     function openPanel() {
         if (availability !== "armable") return;

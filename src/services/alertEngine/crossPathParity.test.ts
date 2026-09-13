@@ -142,6 +142,14 @@ const NOT_IN_WASM: Record<string, string> = {
     "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
   "Stoch RSI %D":
     "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
+  "Ichimoku conversion":
+    "no WASM implementation; indicatorSeries.test.ts checks every Ichimoku line against Decimal window midpoints and against the lines the chart draws",
+  "Ichimoku base":
+    "no WASM implementation; indicatorSeries.test.ts checks every Ichimoku line against Decimal window midpoints and against the lines the chart draws",
+  "Ichimoku span A":
+    "no WASM implementation; indicatorSeries.test.ts checks every Ichimoku line against Decimal window midpoints and against the lines the chart draws",
+  "Ichimoku span B":
+    "no WASM implementation; indicatorSeries.test.ts checks every Ichimoku line against Decimal window midpoints and against the lines the chart draws",
   "SuperTrend(10,3)":
     "WASM reports the trend and both bands, not the band the trend stands on; compared below as the band WASM's trend names",
 };

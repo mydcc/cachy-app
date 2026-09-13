@@ -1381,6 +1381,7 @@ export type TranslationKey =
   | "settings.technicals.alertOnThis"
   | "settings.technicals.alertSourceMismatch"
   | "settings.technicals.alertAdxLengthMismatch"
+  | "settings.technicals.alertIchimokuDisplacementMismatch"
   | "settings.technicals.summaryAction"
   | "settings.technicals.marketConfluence"
   | "settings.technicals.oscillatorsTitle"

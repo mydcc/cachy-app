@@ -76,6 +76,12 @@ export const INDICATOR_WARMUP: IndicatorWarmup[] = [
   { label: "SuperTrend(10,3)", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "value" } },
   { label: "SuperTrend upper", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "upper" } },
   { label: "SuperTrend lower", needs: 11, ref: { id: "super_trend", params: { period: 10, factor: 3 }, output: "lower" } },
+  // Midpoints of 9-, 26- and 52-candle windows; both spans displaced 26 candles
+  // forward, as the chart draws them (ICHIMOKU_DISPLACEMENT).
+  { label: "Ichimoku conversion", needs: 9, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "conversion" } },
+  { label: "Ichimoku base", needs: 26, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "base" } },
+  { label: "Ichimoku span A", needs: 52, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "span_a" } },
+  { label: "Ichimoku span B", needs: 78, ref: { id: "ichimoku", params: { conversion_period: 9, base_period: 26, span_b_period: 52 }, output: "span_b" } },
   { label: "MACD line", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "macd" } },
   { label: "MACD signal", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "signal" } },
   { label: "MACD histogram", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "histogram" } },

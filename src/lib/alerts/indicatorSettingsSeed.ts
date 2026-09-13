@@ -44,7 +44,11 @@ import {
     type CatalogueEntry,
 } from "./indicatorCatalogue";
 import { buildIndicatorCondition, defaultForm } from "./indicatorConditionForm";
-import { alertPathSourceOf, type AlertPathSource } from "../rules/alertPathIndicators";
+import {
+    alertPathSourceOf,
+    ICHIMOKU_DISPLACEMENT,
+    type AlertPathSource,
+} from "../rules/alertPathIndicators";
 import type { IndicatorRef, ParamValue } from "../rules/types";
 import {
     DEFAULT_RULE_TIMEFRAME,
@@ -310,6 +314,17 @@ function lengthsAgree(settingsKey: string, card: SettingsCard): boolean {
 }
 
 /**
+ * Whether an Ichimoku card displaces its cloud as far as the alert path does.
+ *
+ * Mirrors the chart's own fallback (`indicatorLayer.ts`, `displacement || 26`):
+ * a falsy displacement is drawn at 26. Any other card agrees trivially.
+ */
+function displacementAgrees(settingsKey: string, card: SettingsCard): boolean {
+    if (settingsKey !== "ichimoku") return true;
+    return Number(card.displacement || ICHIMOKU_DISPLACEMENT) === ICHIMOKU_DISPLACEMENT; // audit: safe — comparing a candle count, not a financial value
+}
+
+/**
  * What a settings card's alert action may do right now.
  *
  * - `armable` — the action seeds a draft for exactly the line the card draws
@@ -320,6 +335,9 @@ function lengthsAgree(settingsKey: string, card: SettingsCard): boolean {
  *   action refuses and says why (BUG-0453)
  * - `length-mismatch` — the card keeps apart two lengths the core computes as
  *   one (`ONE_LENGTH_CARDS`), so no alert computes the line on screen
+ * - `displacement-mismatch` — an Ichimoku card draws its cloud displaced by
+ *   another number of candles than the alert path (`ICHIMOKU_DISPLACEMENT`),
+ *   so no alert reads the cloud on screen (FEAT-0446 group 4)
  *
  * Unlike `isAlertableIndicator` this reads the card, because the source is a
  * setting the trader changes, not a property of the indicator.
@@ -328,7 +346,8 @@ export type CardAlertAvailability =
     | "armable"
     | "not-alertable"
     | "source-mismatch"
-    | "length-mismatch";
+    | "length-mismatch"
+    | "displacement-mismatch";
 
 export function cardAlertAvailability(
     settingsKey: string,
@@ -337,6 +356,7 @@ export function cardAlertAvailability(
     if (!isAlertableIndicator(settingsKey)) return "not-alertable";
     if (!drawnOverAlertPathSource(settingsKey, card)) return "source-mismatch";
     if (!lengthsAgree(settingsKey, card)) return "length-mismatch";
+    if (!displacementAgrees(settingsKey, card)) return "displacement-mismatch";
     return "armable";
 }
 
