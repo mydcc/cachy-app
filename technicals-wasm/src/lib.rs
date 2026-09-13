@@ -3018,10 +3018,18 @@ mod tests {
         increment: &str,
         max: &str,
     ) {
+        let mid = |hi: &str, lo: &str| -> String {
+            ((hi.parse::<f64>().unwrap() + lo.parse::<f64>().unwrap()) / 2.0).to_string()
+        };
         let n = highs.len();
-        let closes: Vec<String> = lows.clone();
+        let closes: Vec<String> = highs
+            .iter()
+            .zip(lows.iter())
+            .map(|(h, l)| mid(h.as_str(), l.as_str()))
+            .collect();
         let vols: Vec<String> = vec!["1000".to_string(); n];
         let times = vec![0.0; n];
+        let update_close = mid(update_high, update_low);
 
         let mut calc = TechnicalsCalculator::new();
         calc.initialize(
@@ -3032,7 +3040,14 @@ mod tests {
             &times,
             &format!(r#"{{"psar":[{{"start":{start},"increment":{increment},"max":{max}}}]}}"#),
         );
-        let json = calc.update(update_low.into(), update_high.into(), update_low.into(), update_low.into(), "1000".into(), "1".into());
+        let json = calc.update(
+            update_close.clone(),
+            update_high.into(),
+            update_low.into(),
+            update_close,
+            "1000".into(),
+            "1".into(),
+        );
         let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
         let got: f64 = parsed["volatility"]["PSAR"]
             .as_str()
