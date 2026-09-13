@@ -539,8 +539,16 @@
         "reference": {
           "constant": "ein Wert",
           "price": "der Preis",
-          "indicator": "ein anderer Indikator"
+          "indicator": "ein anderer Indikator",
+          "window": "sein eigenes Hoch oder Tief"
         },
+        "windowAggLabel": "Extrem",
+        "windowAgg": {
+          "max": "höchster Wert",
+          "min": "tiefster Wert"
+        },
+        "lookbackLabel": "Kerzen",
+        "windowHint": "Das Fenster schließt die aktuelle Kerze ein: „≥ höchster Wert“ heißt ein neues Hoch über die Kerzenzahl, „≤ tiefster Wert“ ein neues Tief. Das ist keine Divergenz zwischen Umkehrpunkten.",
         "subjectLabel": "Indikator",
         "outputLabel": "Linie",
         "paramsLabel": "Parameter",
@@ -590,7 +598,8 @@
         "reference": {
           "constant": "Ein Wert",
           "price": "Preis",
-          "indicator": "Anderer Indikator"
+          "indicator": "Anderer Indikator",
+          "window": "Eigenes Hoch oder Tief"
         },
         "priceField": {
           "open": "Eröffnung",

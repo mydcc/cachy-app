@@ -17,13 +17,18 @@
 
 import { describe, expect, it } from "vitest";
 
-import { catalogueEntry, defaultRef } from "./indicatorCatalogue";
+import { catalogueEntry, defaultRef, registryEntry } from "./indicatorCatalogue";
 import {
     buildIndicatorCondition,
+    committedWindowLookback,
+    compareOpsFor,
     compatibleIndicators,
     defaultForm,
+    defaultWindowReference,
+    exactWindowLookback,
     isReferenceCompatible,
     readIndicatorForm,
+    referenceKindsFor,
     type IndicatorForm,
 } from "./indicatorConditionForm";
 import { INDICATOR_CATALOGUE } from "./indicatorCatalogue";
@@ -211,5 +216,107 @@ describe("the dimension gate the picker applies", () => {
         expect(compatibleIndicators("percent", INDICATOR_CATALOGUE).map((e) => e.id)).toContain(
             "rsi",
         );
+    });
+});
+
+/**
+ * FEAT-0446 group 4 and ADR-0016: an indicator against the extreme of its own
+ * recent values — "RSI at its 20-candle high", "OBV at its 20-candle low". The
+ * window is always over the subject itself; a window over something else is a
+ * document this builder did not write.
+ */
+describe("an indicator against its own window", () => {
+    const obv = registryEntry("obv")!;
+    const atWindowHigh: IndicatorForm = {
+        subject: defaultRef(rsi),
+        relation: { kind: "compare", op: "gte" },
+        reference: { kind: "window", agg: "max", lookback: 20 },
+    };
+
+    it("builds the window over the subject, and reads it back", () => {
+        const condition = buildIndicatorCondition(atWindowHigh, "1h");
+        expect(condition).toEqual({
+            kind: "compare",
+            left: { kind: "indicator", indicator: defaultRef(rsi) },
+            op: "gte",
+            right: { kind: "window", of: { kind: "indicator", indicator: defaultRef(rsi) }, agg: "max", lookback: 20 },
+            timeframe: "1h",
+        });
+        expect(readIndicatorForm({ kind: "group", op: "all", of: [condition] })).toEqual(atWindowHigh);
+    });
+
+    it("does not read back a window over another operand as its own", () => {
+        const condition = {
+            kind: "compare",
+            left: { kind: "indicator", indicator: defaultRef(rsi) },
+            op: "gte",
+            right: { kind: "window", of: { kind: "indicator", indicator: defaultRef(ema) }, agg: "max", lookback: 20 },
+            timeframe: "1h",
+        } as unknown as Condition;
+        expect(readIndicatorForm({ kind: "group", op: "all", of: [condition] })).toBeNull();
+    });
+
+    it("offers only the comparisons that can be both true and false against the window", () => {
+        // The window includes the candle being evaluated, so a value is never
+        // above its own highest or below its own lowest (FEAT-0028).
+        expect(compareOpsFor({ kind: "window", agg: "max", lookback: 20 })).toEqual(["gte", "lt"]);
+        expect(compareOpsFor({ kind: "window", agg: "min", lookback: 20 })).toEqual(["lte", "gt"]);
+        expect(compareOpsFor({ kind: "constant", value: "0" })).toEqual(["gt", "gte", "lt", "lte", "eq", "neq"]);
+    });
+
+    it("is compatible with any subject, being in the subject's own unit", () => {
+        for (const dimension of ["price", "percent", "volume", "unitless"] as const) {
+            expect(isReferenceCompatible(dimension, { kind: "window", agg: "min", lookback: 5 })).toBe(true);
+        }
+    });
+
+    it("offers a cumulative indicator nothing but its own window, and starts it at its high", () => {
+        expect(referenceKindsFor(obv, "volume")).toEqual(["window"]);
+        expect(defaultForm(obv)).toEqual({
+            subject: defaultRef(obv),
+            relation: { kind: "compare", op: "gte" },
+            reference: { kind: "window", agg: "max", lookback: 20 },
+        });
+    });
+
+    it("offers every other indicator its window beside what it had", () => {
+        expect(referenceKindsFor(rsi, "percent")).toEqual(["constant", "indicator", "window"]);
+        expect(referenceKindsFor(ema, "price")).toEqual(["constant", "price", "indicator", "window"]);
+        // And still starts from a threshold of zero, as before.
+        expect(defaultForm(rsi).reference).toEqual({ kind: "constant", value: "0" });
+    });
+
+    it("hands every fresh form its own window reference, never a shared object", () => {
+        const first = defaultForm(obv).reference;
+        const second = defaultForm(obv).reference;
+        expect(first).toEqual(second);
+        expect(first).not.toBe(second);
+        expect(defaultWindowReference()).not.toBe(defaultWindowReference());
+    });
+});
+
+describe("reading a window lookback out of the input", () => {
+    it("writes through while typing only a whole span the core accepts", () => {
+        expect(exactWindowLookback("20")).toBe(20);
+        expect(exactWindowLookback("2")).toBe(2);
+        expect(exactWindowLookback("500")).toBe(500);
+        // Mid-typing states: "1" on the way to "100", an emptied field, a
+        // fraction, one past the bound. None may reach the draft.
+        for (const raw of ["", "1", "0", "501", "20.5", "-3", "abc"]) {
+            expect(exactWindowLookback(raw), raw).toBeNull();
+        }
+    });
+
+    it("settles a committed value on the nearest whole span the core accepts", () => {
+        expect(committedWindowLookback("501", 20)).toBe(500);
+        expect(committedWindowLookback("0", 20)).toBe(2);
+        expect(committedWindowLookback("-3", 20)).toBe(2);
+        expect(committedWindowLookback("20.9", 20)).toBe(20);
+        expect(committedWindowLookback("50", 20)).toBe(50);
+    });
+
+    it("keeps the previous span when the committed field is empty or not a number", () => {
+        expect(committedWindowLookback("", 30)).toBe(30);
+        expect(committedWindowLookback("abc", 30)).toBe(30);
     });
 });

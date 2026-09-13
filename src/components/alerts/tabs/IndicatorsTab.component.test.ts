@@ -194,6 +194,116 @@ describe("FEAT-0028: IndicatorsTab", () => {
     });
   });
 
+  /**
+   * FEAT-0446 group 4 / ADR-0016: "RSI at its 20-candle high". The window is
+   * over the chosen indicator itself.
+   */
+  describe("an indicator against its own window", () => {
+    function opSelect(el: HTMLElement): HTMLSelectElement {
+      const label = getNestedTranslation("dashboard.alerts.indicators.relationLabel");
+      const select = el.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`);
+      if (!select) throw new Error("no operator select");
+      return select;
+    }
+
+    it("writes a window over the chosen indicator, at its high, with a new-high comparison", () => {
+      const el = render();
+      choose(el, "rsi");
+      setSelect(selectByLabel(el, "dashboard.alerts.indicators.referenceLabel"), "window");
+
+      const rsi = { kind: "indicator", indicator: { id: "rsi", params: { period: 14 }, output: "value" } };
+      expect(writtenCondition()).toEqual({
+        kind: "compare",
+        left: rsi,
+        // Moved off `>`, which can never be true against its own highest.
+        op: "gte",
+        right: { kind: "window", of: rsi, agg: "max", lookback: 20 },
+        timeframe: alertPanelState.draft.trigger_timeframe,
+      });
+      expect(target.textContent).toContain(en.dashboard.alerts.indicators.windowHint);
+    });
+
+    it("offers only the comparisons that can fire, and follows the extreme", () => {
+      const el = render();
+      choose(el, "rsi");
+      setSelect(selectByLabel(el, "dashboard.alerts.indicators.referenceLabel"), "window");
+      expect([...opSelect(el).options].map((option) => option.value)).toEqual(["gte", "lt"]);
+
+      const agg = el.querySelector<HTMLSelectElement>(
+        `select[aria-label="${getNestedTranslation("dashboard.alerts.indicators.windowAggLabel")}"]`,
+      )!;
+      setSelect(agg, "min");
+      expect([...opSelect(el).options].map((option) => option.value)).toEqual(["lte", "gt"]);
+      const condition = writtenCondition();
+      expect(condition?.kind === "compare" && [condition.op, condition.right]).toEqual([
+        "lte",
+        expect.objectContaining({ kind: "window", agg: "min" }),
+      ]);
+    });
+
+    it("carries the number of candles into the window", () => {
+      const el = render();
+      choose(el, "atr");
+      setSelect(selectByLabel(el, "dashboard.alerts.indicators.referenceLabel"), "window");
+      const lookback = el.querySelector<HTMLInputElement>(
+        `input[aria-label="${getNestedTranslation("dashboard.alerts.indicators.lookbackLabel")}"]`,
+      )!;
+      lookback.value = "50";
+      lookback.dispatchEvent(new Event("input", { bubbles: true }));
+      flushSync();
+
+      const condition = writtenCondition();
+      expect(condition?.kind === "compare" && condition.right).toEqual(
+        expect.objectContaining({ kind: "window", lookback: 50 }),
+      );
+    });
+
+    it("keeps the draft on a span the core accepts while typing, and clamps on commit", () => {
+      const el = render();
+      choose(el, "atr");
+      setSelect(selectByLabel(el, "dashboard.alerts.indicators.referenceLabel"), "window");
+      const lookback = el.querySelector<HTMLInputElement>(
+        `input[aria-label="${getNestedTranslation("dashboard.alerts.indicators.lookbackLabel")}"]`,
+      )!;
+      const writtenLookback = (): unknown => {
+        const condition = writtenCondition();
+        return condition?.kind === "compare" && condition.right.kind === "window" && condition.right.lookback;
+      };
+
+      // Emptied, a fraction, one past the bound: states on the way, never written.
+      for (const typed of ["", "20.5", "501"]) {
+        lookback.value = typed;
+        lookback.dispatchEvent(new Event("input", { bubbles: true }));
+        flushSync();
+        expect(writtenLookback(), typed).toBe(20);
+      }
+
+      lookback.dispatchEvent(new Event("change", { bubbles: true }));
+      flushSync();
+      expect(writtenLookback()).toBe(500);
+      expect(lookback.value).toBe("500");
+    });
+
+    it("renders a saved window condition back into the form", () => {
+      const rsi = { kind: "indicator", indicator: { id: "rsi", params: { period: 14 }, output: "value" } } as const;
+      alertPanelState.setSlotCondition("indicators", {
+        kind: "compare",
+        left: rsi,
+        op: "lte",
+        right: { kind: "window", of: rsi, agg: "min", lookback: 30 },
+        timeframe: alertPanelState.draft.trigger_timeframe,
+      } as Condition);
+      const el = render();
+
+      expect(selectByLabel(el, "dashboard.alerts.indicators.referenceLabel").value).toBe("window");
+      expect(
+        el.querySelector<HTMLInputElement>(
+          `input[aria-label="${getNestedTranslation("dashboard.alerts.indicators.lookbackLabel")}"]`,
+        )?.value,
+      ).toBe("30");
+    });
+  });
+
   describe("the dimension gate", () => {
     it("does not offer the price as a reference for a percentage indicator", () => {
       // `rsi > close` is refused by the core with operand_dimension_mismatch.

@@ -45,20 +45,26 @@
         type OperandDimension,
     } from "../../../lib/alerts/indicatorCatalogue";
     import {
+        MAX_WINDOW_LOOKBACK,
+        MIN_WINDOW_LOOKBACK,
         buildIndicatorCondition,
+        committedWindowLookback,
+        compareOpsFor,
         compatibleIndicators,
         defaultForm,
+        defaultWindowReference,
+        exactWindowLookback,
         isReferenceCompatible,
         readIndicatorForm,
+        referenceKindsFor,
         type Reference,
         type Relation,
     } from "../../../lib/alerts/indicatorConditionForm";
-    import type { CompareOp, CrossDirection, ParamValue } from "../../../lib/rules/types";
+    import type { CompareOp, CrossDirection, ParamValue, WindowAgg } from "../../../lib/rules/types";
     import type { TranslationKey } from "../../../locales/schema";
 
     let { symbol: _symbol }: { symbol: string } = $props();
 
-    const COMPARE_OPS: readonly CompareOp[] = ["gt", "gte", "lt", "lte", "eq", "neq"];
     const CROSS_DIRECTIONS: readonly CrossDirection[] = ["above", "below", "any"];
 
     // Read once at init, like every other builder: from here the form owns the
@@ -112,9 +118,11 @@
         params = { ...fresh.subject.params };
         output = fresh.subject.output ?? next.outputs[0].name;
         // A reference chosen for the previous indicator may be in a different
-        // unit, so it goes back to a constant rather than silently becoming an
-        // invalid document the core refuses on arm.
+        // unit, so it goes back to the default rather than silently becoming an
+        // invalid document the core refuses on arm. The relation follows it: a
+        // cumulative indicator starts at its window high, where `>` never fires.
         reference = fresh.reference;
+        relation = fresh.relation;
     }
 
     function chooseOutput(next: string): void {
@@ -128,25 +136,44 @@
     }
 
     function chooseRelationKind(kind: "compare" | "cross"): void {
-        relation = kind === "compare" ? { kind: "compare", op: "gt" } : { kind: "cross", direction: "above" };
+        relation =
+            kind === "compare"
+                ? { kind: "compare", op: compareOpsFor(reference)[0] }
+                : { kind: "cross", direction: "above" };
+    }
+
+    /**
+     * Set the reference, and move a comparison that cannot fire against it to
+     * one that can: `>` against a window's highest is never true.
+     */
+    function setReference(next: Reference): void {
+        reference = next;
+        const ops = compareOpsFor(next);
+        if (relation.kind === "compare" && !ops.includes(relation.op)) {
+            relation = { kind: "compare", op: ops[0] };
+        }
     }
 
     function chooseReferenceKind(kind: Reference["kind"]): void {
         if (kind === "constant") {
-            reference = { kind: "constant", value: "0" };
+            setReference({ kind: "constant", value: "0" });
             return;
         }
         if (kind === "price") {
-            reference = { kind: "price", field: "close" };
+            setReference({ kind: "price", field: "close" });
+            return;
+        }
+        if (kind === "window") {
+            setReference(defaultWindowReference());
             return;
         }
         const first = referenceIndicators[0];
         if (!first) return;
         const line = first.outputs.find((candidate) => candidate.dimension === dimension);
-        reference = {
+        setReference({
             kind: "indicator",
             indicator: { ...defaultRef(first), output: line?.name ?? first.outputs[0].name },
-        };
+        });
     }
 
     function chooseReferenceIndicator(id: string): void {
@@ -249,7 +276,7 @@
                     onchange={(e) =>
                         (relation = { kind: "compare", op: e.currentTarget.value as CompareOp })}
                 >
-                    {#each COMPARE_OPS as op (op)}
+                    {#each compareOpsFor(reference) as op (op)}
                         <option value={op}>{$_(key(`dashboard.alerts.indicators.op.${op}`))}</option>
                     {/each}
                 </select>
@@ -278,18 +305,41 @@
                 value={reference.kind}
                 onchange={(e) => chooseReferenceKind(e.currentTarget.value as Reference["kind"])}
             >
-                <option value="constant">{$_("dashboard.alerts.indicators.reference.constant")}</option>
-                {#if dimension === "price"}
-                    <option value="price">{$_("dashboard.alerts.indicators.reference.price")}</option>
-                {/if}
-                {#if referenceIndicators.length > 0}
-                    <option value="indicator">
-                        {$_("dashboard.alerts.indicators.reference.indicator")}
-                    </option>
-                {/if}
+                {#each referenceKindsFor(entry, dimension) as kind (kind)}
+                    <option value={kind}>{$_(key(`dashboard.alerts.indicators.reference.${kind}`))}</option>
+                {/each}
             </select>
 
-            {#if reference.kind === "constant"}
+            {#if reference.kind === "window"}
+                {@const window = reference}
+                <select
+                    aria-label={$_("dashboard.alerts.indicators.windowAggLabel")}
+                    value={window.agg}
+                    onchange={(e) => setReference({ ...window, agg: e.currentTarget.value as WindowAgg })}
+                >
+                    <option value="max">{$_("dashboard.alerts.indicators.windowAgg.max")}</option>
+                    <option value="min">{$_("dashboard.alerts.indicators.windowAgg.min")}</option>
+                </select>
+                <input
+                    type="number"
+                    min={MIN_WINDOW_LOOKBACK}
+                    max={MAX_WINDOW_LOOKBACK}
+                    step="1"
+                    aria-label={$_("dashboard.alerts.indicators.lookbackLabel")}
+                    value={String(window.lookback)}
+                    oninput={(e) => {
+                        const lookback = exactWindowLookback(e.currentTarget.value);
+                        if (lookback !== null) setReference({ ...window, lookback });
+                    }}
+                    onchange={(e) => {
+                        const lookback = committedWindowLookback(e.currentTarget.value, window.lookback);
+                        // Written back to the field too: a clamp onto the span the
+                        // draft already holds changes no state, so nothing re-renders.
+                        e.currentTarget.value = String(lookback);
+                        setReference({ ...window, lookback });
+                    }}
+                />
+            {:else if reference.kind === "constant"}
                 <input
                     type="text"
                     inputmode="decimal"
@@ -310,6 +360,9 @@
             {/if}
         </label>
 
+        {#if reference.kind === "window"}
+            <p class="hint">{$_("dashboard.alerts.indicators.windowHint")}</p>
+        {/if}
         <p class="hint">{$_("dashboard.alerts.indicators.dimensionHint")}</p>
         <p class="hint">{$_("dashboard.alerts.indicators.closedCandleHint")}</p>
     {:else}
