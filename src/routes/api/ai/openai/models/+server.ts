@@ -33,9 +33,14 @@ interface OpenAiModel {
 // OpenAI's /v1/models lists every model the account can see, including
 // embeddings, TTS, Whisper, moderation and image models — none of which are
 // chat models. Filter down to what actually works with /v1/chat/completions.
+//
+// This describes OpenAI's *own* catalog only. A custom base URL (aggregator,
+// gateway, OpenCode Zen, Command Code) returns its own ids, so the filter must
+// not run there — otherwise every non-GPT and `*-free` model is hidden.
 const CHAT_MODEL_RE = /^(gpt-|o1|o3|o4|chatgpt)/i;
 const EXCLUDE_RE =
   /(embedding|whisper|tts|dall-e|moderation|davinci|babbage|ada|curie|realtime|audio|transcribe|instruct|image)/i;
+const DEFAULT_MODELS_URL = "https://api.openai.com/v1/models";
 
 export const GET: RequestHandler = async ({ url, request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -50,7 +55,7 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
 
   const targetUrl = resolveProviderEndpoint(
     baseUrl,
-    "https://api.openai.com/v1/models",
+    DEFAULT_MODELS_URL,
     "v1/models",
   );
 
@@ -75,8 +80,34 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     }
 
     const data = await response.json();
-    const models: AiModelInfo[] = ((data.data as OpenAiModel[]) || [])
-      .filter((m) => CHAT_MODEL_RE.test(m.id) && !EXCLUDE_RE.test(m.id))
+    const rawModels = ((data.data as OpenAiModel[]) || []).filter(
+      (m) => m && typeof m.id === "string",
+    );
+    // The vendor filter only makes sense against OpenAI's own catalog; with a
+    // custom base URL the provider's ids are authoritative. An explicitly
+    // pasted default URL still resolves to the vendor catalog, so normalize
+    // against the resolved endpoint instead of just checking for emptiness.
+    const trimmedBase = baseUrl?.trim();
+    let isVendorCatalog =
+      targetUrl.trim().toLowerCase().replace(/\/+$/, "") ===
+      DEFAULT_MODELS_URL.toLowerCase();
+    if (!isVendorCatalog && trimmedBase) {
+      try {
+        const withScheme = /^https?:\/\//i.test(trimmedBase)
+          ? trimmedBase
+          : `https://${trimmedBase}`;
+        isVendorCatalog =
+          new URL(withScheme).hostname.toLowerCase() === "api.openai.com";
+      } catch {
+        // Unparseable input: fall back to the endpoint comparison above.
+      }
+    }
+    const models: AiModelInfo[] = rawModels
+      .filter(
+        (m) =>
+          !isVendorCatalog ||
+          (CHAT_MODEL_RE.test(m.id) && !EXCLUDE_RE.test(m.id)),
+      )
       .sort((a, b) => (b.created ?? 0) - (a.created ?? 0))
       .map((m) => ({ id: m.id, label: m.id }));
 

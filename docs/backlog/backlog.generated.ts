@@ -4059,6 +4059,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0465-market-data-channel-lost-on-reconnect.md"
   },
   {
+    "id": "BUG-0468",
+    "title": "A stored rule the core refuses is logged on every close and never reported",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0467-refused-rule-silent",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0468-refused-stored-rule-is-silent.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -5926,6 +5947,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "L",
     "file": "features/FEAT-0461-multi-broker-journal-sync.md"
+  },
+  {
+    "id": "FEAT-0467",
+    "title": "User-managed AI providers with per-provider endpoints and API formats",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "M8",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "ADR-0019",
+    "depends_on": [],
+    "size": "XL",
+    "estimate": "20",
+    "assignee": "opencode",
+    "file": "features/FEAT-0467-multi-provider-management.md"
   },
   {
     "id": "BUG-0007",

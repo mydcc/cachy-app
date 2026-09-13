@@ -46,6 +46,7 @@
 import { collectIndicators } from "../../lib/rules/indicatorRequests";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
+import { isRuleRefusedError } from "../../lib/rules/ruleSchema";
 import type {
   EvaluationCandle,
   EvaluationContext,
@@ -348,7 +349,15 @@ export class RuleEvaluationLoop {
       try {
         firing = this.evaluateRule(rule, symbol, timeframe, anchorMs);
       } catch (e) {
-        logger.error("alerts", `[RuleEngine] Evaluating rule ${rule.id} failed for ${symbol} ${timeframe}`, e);
+        // A refusal is the core saying this document is not a rule it accepts,
+        // and it will say so on every close: the same document, the same core.
+        // That is an alert that can never fire, not a transient failure, so the
+        // trader is told once instead of the log hearing it forever (BUG-0467).
+        if (isRuleRefusedError(e)) {
+          this.reportUnevaluable(rule, `the rule core refuses this rule: ${e.message}`);
+        } else {
+          logger.error("alerts", `[RuleEngine] Evaluating rule ${rule.id} failed for ${symbol} ${timeframe}`, e);
+        }
         continue;
       }
       if (firing === undefined) continue;

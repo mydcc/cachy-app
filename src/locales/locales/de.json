@@ -1519,6 +1519,28 @@
       "customSystemPrompt": "Eigener System-Prompt",
       "customSystemPromptDesc": "Definiere die Persona der KI",
       "systemPromptPlaceholder": "Du bist ein professioneller Krypto-Trading-Assistent...",
+      "customProviders": {
+        "title": "Eigene Provider",
+        "desc": "Füge beliebige OpenAI-kompatible Endpunkte hinzu — OpenCode Zen, Command Code, LiteLLM oder ein selbst gehostetes Gateway. Zugangsdaten werden auf diesem Gerät verschlüsselt und verlassen es nur, wenn du das Relay für diesen Provider aktivierst.",
+        "add": "Provider hinzufügen",
+        "empty": "Noch keine eigenen Provider.",
+        "name": "Name",
+        "namePlaceholder": "OpenCode Zen",
+        "flavor": "API-Format",
+        "flavorOpenaiChat": "OpenAI Chat Completions",
+        "flavorOpenaiResponses": "OpenAI Responses (noch nicht unterstützt)",
+        "flavorAnthropicMessages": "Anthropic Messages (noch nicht unterstützt)",
+        "flavorGoogleGenerate": "Google generateContent (noch nicht unterstützt)",
+        "baseUrl": "Basis-URL",
+        "baseUrlPlaceholder": "https://opencode.ai/zen/v1",
+        "apiKey": "API-Schlüssel",
+        "apiKeyPlaceholder": "sk-...",
+        "activate": "Verwenden",
+        "active": "Aktiv",
+        "delete": "Provider löschen",
+        "relay": "Server-Relay erlauben",
+        "relayDesc": "Vorerst erforderlich: Der Provider wird über den Cachy-Server erreicht, Schlüssel und Prompt laufen darüber. Browser-direkter Transport ist geplant. Ohne diese Option ist der Provider nicht nutzbar."
+      },
       "provider": {
         "openai": "OpenAI",
         "gemini": "Google Gemini",
@@ -1534,7 +1556,8 @@
         "placeholder": "Modell-ID eingeben...",
         "connectionOk": "Verbindung erfolgreich, Modellliste aktuell.",
         "notInList": "Das gespeicherte Modell wurde in der aktuellen Liste des Anbieters nicht gefunden. Es könnte abgeschaltet sein — bitte ein anderes wählen.",
-        "deprecated": "läuft bald aus"
+        "deprecated": "läuft bald aus",
+        "free": "kostenlos"
       },
       "ollamaBaseUrl": "Ollama Server-Adresse",
       "ollamaBaseUrlDesc": "Lokale Ollama-Installation, z. B. http://localhost:11434. Verlässt nie dein Gerät.",
