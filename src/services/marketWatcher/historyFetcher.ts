@@ -377,9 +377,24 @@ export class HistoryFetcher {
                     });
                 } else if (channel.startsWith("kline_")) {
                     const tf = channel.replace("kline_", "");
+
+                    // [PERFORMANCE] IDEA-0413: use the newest stored candle to bound the API fetch window,
+                    // letting the exchange return a minimal payload rather than 1000 overlapping candles.
+                    let startTime: number | undefined;
+                    const existingKlines = marketState.data[symbol]?.klines?.[tf];
+                    if (existingKlines && existingKlines.length > 0) {
+                        const latestTime = existingKlines[existingKlines.length - 1].time;
+                        const intervalMs = safeTfToMs(tf);
+                        if (intervalMs) {
+                            // Fetch from the candle before our newest one to overlap and guarantee continuity
+                            // independently of the local client's clock sync.
+                            startTime = latestTime - intervalMs;
+                        }
+                    }
+
                     const klines = await (provider === "bitget"
-                      ? apiService.fetchBitgetKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs)
-                      : apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, undefined, "normal", timeoutMs));
+                      ? apiService.fetchBitgetKlines(symbol, tf, 1000, startTime, undefined, "normal", timeoutMs)
+                      : apiService.fetchBitunixKlines(symbol, tf, 1000, startTime, undefined, "normal", timeoutMs));
 
                     if (klines && klines.length > 0) {
                       const filled = this.fillGaps(klines, safeTfToMs(tf));

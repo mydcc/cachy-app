@@ -14,3 +14,7 @@ Checking `pending[pending.length - 1].time === k.time` and replacing the last el
 ## Vitest Environment Overhead
 
 Configuring `environment: "happy-dom"` globally causes happy-dom window/DOM context instantiation overhead for all tests, including pure logic/math unit tests. Annotating pure-logic test files with `// @vitest-environment node` and using lazy polyfills for IndexedDB in `vitest.setup.ts` reduced Vitest environment setup duration from 102.65s to 89.80s across the test suite.
+
+## 2026-10-27 - [Market Data] Clock Drift Vulnerability in Pagination
+**Learning:** When dynamically calculating how many historical candles to fetch to fill a gap, never subtract the exchange-provided candle time (`latestTime`) from the user's local `Date.now()`. Client clock drift will artificially skew the elapsed time, leading to `neededKlines` being too small and causing silent, permanent data gaps.
+**Action:** Use native API bounding parameters (e.g. passing `startTime = latestTime - intervalMs` into `fetchBitgetKlines` or `fetchBitunixKlines`) instead of local calculations, letting the exchange compute and return exactly the missing candles.
