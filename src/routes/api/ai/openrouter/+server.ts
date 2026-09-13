@@ -20,6 +20,10 @@ import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { AiRequestSchema } from "../../../../types/ai";
 import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
+import {
+  isUrlAllowedAsync,
+  safeFetch,
+} from "../../../../lib/server/urlValidator";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -49,6 +53,10 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       "v1/chat/completions",
     );
 
+    if (!(await isUrlAllowedAsync(targetUrl))) {
+      return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
+    }
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "X-Title": "Cachy",
@@ -58,7 +66,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     }
 
     // OpenRouter speaks the OpenAI chat-completions wire format.
-    const response = await fetch(targetUrl, {
+    const response = await safeFetch(targetUrl, {
       method: "POST",
       headers,
       body: JSON.stringify({
