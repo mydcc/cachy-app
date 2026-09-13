@@ -6486,6 +6486,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0456-js-atr-first-true-range-zero.md"
   },
   {
+    "id": "BUG-0466",
+    "title": "Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions",
+    "type": "bug",
+    "status": "done",
+    "assignee": "opencode",
+    "shipped": "1.6.0-beta.292",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "cloud",
+    "data_class": "B",
+    "adr": "ADR-0001",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0466-chat-cloud-subscription-lifecycle.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
