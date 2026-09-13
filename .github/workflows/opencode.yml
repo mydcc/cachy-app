@@ -28,13 +28,15 @@ on:
         type: string
 
 # Single place to change the models for every opencode job below. Each job
-# tries OPENCODE_MODEL first; if the run fails (free-tier rate limits, provider
-# outages), it falls back to the next entry. Keep fallbacks on different
-# providers so one saturated upstream does not take all of them down.
+# tries OPENCODE_MODEL first; if the run fails (rate limits, provider outages),
+# it falls back to the next entry. Every entry is a free OpenCode Zen model on a
+# different upstream, so one saturated upstream does not take all of them down
+# and a run never needs a funded Zen balance. The config files below also pin
+# `small_model`, so title generation cannot silently pick a paid model.
 env:
-  OPENCODE_MODEL: opencode/big-pickle
-  OPENCODE_MODEL_FALLBACK_1: opencode/nemotron-3-ultra-free
-  OPENCODE_MODEL_FALLBACK_2: opencode/laguna-s-2.1-free
+  OPENCODE_MODEL: opencode/muse-spark-1.3-contributor-free
+  OPENCODE_MODEL_FALLBACK_1: opencode/big-pickle
+  OPENCODE_MODEL_FALLBACK_2: opencode/deepseek-v4-flash-free
   REVIEW_PROMPT: |
     Review this pull request using the Cachy review checklist:
     - If the PR links a backlog item (Fixes #NNN), read docs/backlog/ and
@@ -127,6 +129,7 @@ jobs:
           cat > ~/.config/opencode/opencode.json <<'JSON'
           {
             "$schema": "https://opencode.ai/config.json",
+            "small_model": "opencode/deepseek-v4-flash-free",
             "permission": {
               "external_directory": { "**": "deny" },
               "bash": {
@@ -180,7 +183,9 @@ jobs:
   # codebase: bash is denied for the agent, so it cannot post comments itself
   # — the action posts the agent’s final message as the single comment per
   # run. Re-reviews after new commits are opt-in: comment "/review" on the PR
-  # (repo owner only).
+  # or reply "/review" on a code line (repo owner only). The line-comment path
+  # is handled explicitly below — `pull_request_review_comment` payloads have no
+  # `github.event.issue`, so without it those requests were silently skipped.
   #
   # Only PRs from branches in this repo are reviewed. Fork PRs are skipped:
   # GitHub does not pass secrets to fork-triggered workflows, so the opencode
@@ -235,6 +240,15 @@ jobs:
           startsWith(github.event.comment.body, '/oc code-review') ||
           startsWith(github.event.comment.body, '/oc code-reivew') ||
           startsWith(github.event.comment.body, '/opencode review') ||
+          startsWith(github.event.comment.body, '/opencode code-review'))) ||
+        (github.event_name == 'pull_request_review_comment' &&
+         github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(fromJson('["mydcc"]'), github.event.comment.user.login) &&
+         (startsWith(github.event.comment.body, '/review') ||
+          startsWith(github.event.comment.body, '/oc review') ||
+          startsWith(github.event.comment.body, '/oc code-review') ||
+          startsWith(github.event.comment.body, '/oc code-reivew') ||
+          startsWith(github.event.comment.body, '/opencode review') ||
           startsWith(github.event.comment.body, '/opencode code-review')))
       )
     runs-on: ubuntu-latest
@@ -268,6 +282,7 @@ jobs:
           cat > ~/.config/opencode/opencode.json <<'JSON'
           {
             "$schema": "https://opencode.ai/config.json",
+            "small_model": "opencode/deepseek-v4-flash-free",
             "permission": { "external_directory": { "**": "deny" } }
           }
           JSON
@@ -340,6 +355,7 @@ jobs:
           cat > ~/.config/opencode/opencode.json <<'JSON'
           {
             "$schema": "https://opencode.ai/config.json",
+            "small_model": "opencode/deepseek-v4-flash-free",
             "permission": { "external_directory": { "**": "deny" } }
           }
           JSON
@@ -411,6 +427,7 @@ jobs:
           cat > ~/.config/opencode/opencode.json <<'JSON'
           {
             "$schema": "https://opencode.ai/config.json",
+            "small_model": "opencode/deepseek-v4-flash-free",
             "permission": { "external_directory": { "**": "deny" } }
           }
           JSON
