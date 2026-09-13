@@ -98,7 +98,7 @@ describe("FEAT-0251: JournalTable Component Tests", () => {
         calculatedTpDetails: [],
     };
 
-    it("renders sticky columns with appropriate CSS classes", () => {
+    it("pins only the date column and lets the rest scroll", () => {
         component = mount(JournalTable, {
             target,
             props: {
@@ -111,11 +111,14 @@ describe("FEAT-0251: JournalTable Component Tests", () => {
         const dateHeader = target.querySelector("th.sticky-col.col-date");
         expect(dateHeader).not.toBeNull();
 
-        const symbolHeader = target.querySelector("th.sticky-col.col-symbol");
+        // Symbol and P/L scroll with the rest; only Date stays pinned.
+        const symbolHeader = target.querySelector("th.col-symbol");
         expect(symbolHeader).not.toBeNull();
+        expect(symbolHeader?.classList.contains("sticky-col")).toBe(false);
 
-        const pnlHeader = target.querySelector("th.sticky-col-right.col-pnl");
+        const pnlHeader = target.querySelector("th.col-pnl");
         expect(pnlHeader).not.toBeNull();
+        expect(pnlHeader?.classList.contains("sticky-col-right")).toBe(false);
     });
 
     it("renders Maker and Taker fee badges in the table row", () => {
