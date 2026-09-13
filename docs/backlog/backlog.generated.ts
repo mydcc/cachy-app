@@ -4080,6 +4080,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0468-refused-stored-rule-is-silent.md"
   },
   {
+    "id": "BUG-0469",
+    "title": "The sync's PR auto-linker prepends Fixes #N to bodies that opt out with [no issue]",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "repo",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0469-autolinker-ignores-no-issue",
+    "start_date": "2026-09-13",
+    "file": "bugs/BUG-0469-autolinker-ignores-no-issue.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
