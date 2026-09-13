@@ -63,11 +63,14 @@ not merely that it flipped somewhere.
       zero crossing, RSI thresholds, Bollinger touch and squeeze, volume anomalies, MA
       crosses) has a test asserting the exact candle index at which it flips
 - [x] Each indicator is asserted only after `needs × 3` candles of history, using the
-      `MAPPING.needs` table rather than a per-test constant
+      shared `INDICATOR_WARMUP` table rather than a per-test constant
 - [x] Every condition has at least one true and one false candle in the fixture — a
       condition that is never true in the fixture fails the suite rather than passing
       vacuously
-- [x] A condition added to FEAT-0028 without a fixture expectation fails the suite
+- [x] An indicator added to the core without either a fixture expectation or a
+      `SCOPED_OUT` entry fails the suite. A new *condition* on an already-covered
+      indicator is not enumerable from the core registry, so it is not caught here —
+      that stays a FEAT-0028 review responsibility
 - [x] The fixture is public market data only (Class C): no symbol watchlist, account,
       or identity data of any kind
 
@@ -96,13 +99,19 @@ The obvious reading of "assert the exact candle index" is a snapshot: run the ev
 copy the indices, assert them. That proves the evaluator still does what it did — and if
 it fires one candle late, firing one candle late becomes the specification.
 
-So the literals in `EXPECTATIONS` are pinned against an **oracle**, plain array indexing
-in the test file, and the evaluator is then required to match the same literals. Three
-things must coincide, and only two of them share any code: the oracle's flips equal the
-literals, the evaluator's flips equal the literals, and the two agree at *every* candle
-rather than only at the flips. A fixture swap breaks the first. An oracle drifting toward
-the implementation breaks the first while the second still passes, which is the failure
-the literals exist to catch.
+So the literals in `EXPECTATIONS` are pinned against an **oracle** that re-derives the
+*condition* — the `compare`/`cross` decisions and the windowed min/max — as plain
+`Decimal` arithmetic in the test file, independently of the Rust evaluator. Three things
+must coincide: the oracle's flips equal the literals, the evaluator's flips equal the
+literals, and the two agree at *every* candle rather than only at the flips. A fixture
+swap breaks the first; an evaluator regression breaks the second and third.
+
+What the oracle does **not** re-derive is the indicator series underneath: it reads the
+normative `computeIndicatorSeries`, the same function that decides production firing
+("one normative path", `indicatorSeries.ts`). A second RSI/MACD implementation here would
+itself need verifying and would test a path the application never takes; that layer is
+covered by `crossPathParity.test.ts` (JS ↔ WASM) and the indicator unit tests. This suite
+proves the condition semantics, not the indicator math.
 
 ### One table, not two
 
@@ -123,7 +132,7 @@ count; SMA(200)'s parity coverage is the 250-candle sweep.
 
 ### What the fixture is worth
 
-Twelve conditions, 39 tests, roughly 70 seconds. The agreement and non-vacuity
+Twelve conditions, 40 tests, roughly 70 seconds. The agreement and non-vacuity
 assertions passed on the first run — the evaluator and the oracle agree at every candle
 of recorded history for all twelve — so what this change adds is proof rather than a
 repair.

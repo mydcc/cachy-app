@@ -25,17 +25,17 @@
  * on 1000 recorded hourly BTCUSDT candles, does each condition flip at the
  * *exact* candle it should?
  *
- * ## The trap this design avoids
+ * ## What the oracle does and does not re-derive
  *
  * The obvious way to write "assert the exact candle index" is to run the
  * evaluator, copy the indices it produced, and assert them. That is a snapshot:
  * it proves the evaluator still does what it did, and if it fires one candle
  * late then firing one candle late becomes the specification.
  *
- * So the literals in `EXPECTATIONS` are pinned against the **oracle** — plain
- * array indexing in this file, obviously correct by inspection — and the
- * evaluator is then required to match the same literals. Three things must
- * coincide for a green run, and only two of them share any code:
+ * So the literals in `EXPECTATIONS` are pinned against an **oracle** that
+ * re-derives the *condition* — the `compare` and `cross` decisions and the
+ * windowed min/max — as plain `Decimal` arithmetic in this file, independently
+ * of the Rust evaluator. Three things must coincide for a green run:
  *
  * 1. the oracle's flips equal the literals;
  * 2. the evaluator's flips equal the literals;
@@ -45,12 +45,25 @@
  * oracle that drifts toward the implementation breaks (1) while (2) still
  * passes, which is the failure the literals exist to catch.
  *
+ * What the oracle deliberately does **not** re-derive is the indicator series
+ * underneath: it reads the normative `computeIndicatorSeries`, the same
+ * function that decides production firing (`indicatorSeries.ts`, "One
+ * normative path"). A second RSI/MACD implementation here would itself need
+ * verifying and would test a path the application never takes; that layer is
+ * covered by `crossPathParity.test.ts` (JS ↔ WASM) and the indicator unit
+ * tests. This suite therefore proves the condition semantics — that the
+ * evaluator flips exactly where the oracle's own `Decimal` arithmetic says it
+ * must — not the indicator math beneath it.
+ *
  * ## Warmup
  *
- * Nothing is asserted before `needs × 3` candles, taken from the shared
- * `INDICATOR_WARMUP` table rather than a constant per test. Below that, seeding
- * drift and a genuine cross are indistinguishable — the failure BUG-0430
- * describes — so an assertion there is noise wearing a green tick.
+ * Nothing is asserted before the deepest indicator's `needs × 3` candles, taken
+ * from the shared `INDICATOR_WARMUP` table rather than a constant per test.
+ * Windowed operands are not part of that factor: their lookback is consumed by
+ * null-propagation (no aggregate before the window is full), so the assertion
+ * simply starts later. Below the warmup, seeding drift and a genuine cross are
+ * indistinguishable — the failure BUG-0430 describes — so an assertion there is
+ * noise wearing a green tick.
  */
 
 import { readFileSync } from "node:fs";
@@ -58,14 +71,16 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { Decimal } from "decimal.js";
+
 import { collectIndicators } from "../../lib/rules/indicatorRequests";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type {
   Condition,
+  DecimalString,
   EvaluationContext,
   EvaluationIndicatorSeries,
-  IndicatorRef,
   Operand,
   RuleDocument,
   Verdict,
@@ -73,6 +88,7 @@ import type {
 import {
   RECORDED_CANDLES,
   RECORDED_SERIES_META,
+  RECORDED_STEP_MS,
   RECORDED_TIMEFRAME,
 } from "../__fixtures__/recordedSeries";
 import { assertableFrom } from "./indicatorWarmup";
@@ -138,20 +154,29 @@ const cross = (left: Operand, direction: "above" | "below", right: Operand): Con
 // The oracle: plain array indexing over the recorded series
 // ---------------------------------------------------------------------------
 
-const seriesCache = new Map<string, (number | null)[]>();
+const seriesCache = new Map<string, (DecimalString | null)[]>();
 
-function seriesFor(operand: Operand): (number | null)[] {
+/**
+ * The decimal string series behind an operand, index-aligned to the candles.
+ *
+ * Everything here stays in `Decimal`/decimal-string form rather than `number`:
+ * the evaluator compares `Decimal`s (`indicatorSeries.ts`, "Precision"), and an
+ * oracle comparing `f64`s would be a different function exactly at the
+ * `gte`/`lte` boundaries these conditions assert on. Same values, same radix,
+ * same answer.
+ */
+function seriesFor(operand: Operand): (DecimalString | null)[] {
   const cacheKey = JSON.stringify(operand);
   const hit = seriesCache.get(cacheKey);
   if (hit) return hit;
 
-  let values: (number | null)[];
+  let values: (DecimalString | null)[];
   if (operand.kind === "constant") {
-    values = RECORDED_CANDLES.map(() => Number(operand.value));
+    values = RECORDED_CANDLES.map(() => operand.value);
   } else if (operand.kind === "price") {
-    values = RECORDED_CANDLES.map((c) => Number(c[operand.field as "close"]));
+    values = RECORDED_CANDLES.map((c) => c[operand.field as "close"]);
   } else if (operand.kind === "volume") {
-    values = RECORDED_CANDLES.map((c) => Number(c.volume));
+    values = RECORDED_CANDLES.map((c) => c.volume);
   } else if (operand.kind === "window") {
     // Rolled here in JavaScript while the evaluator rolls it in Rust. A span
     // reaching before the series, or over a missing value, has no aggregate at
@@ -163,16 +188,30 @@ function seriesFor(operand: Operand): (number | null)[] {
       if (i + 1 < lookback) return null;
       const span = base.slice(i - lookback + 1, i + 1);
       if (span.some((v) => v === null)) return null;
-      const numbers = span as number[];
-      return agg === "min" ? Math.min(...numbers) : Math.max(...numbers);
+      let extreme = span[0] as DecimalString;
+      let extremeValue = new Decimal(extreme);
+      for (let k = 1; k < span.length; k++) {
+        const candidate = span[k] as DecimalString;
+        const candidateValue = new Decimal(candidate);
+        const better =
+          agg === "min" ? candidateValue.lt(extremeValue) : candidateValue.gt(extremeValue);
+        if (better) {
+          extreme = candidate;
+          extremeValue = candidateValue;
+        }
+      }
+      return extreme;
     });
   } else if (operand.kind === "indicator") {
+    // The normative series, shared with the evaluator on purpose — see "What
+    // the oracle does and does not re-derive" above. `values` are already the
+    // decimal strings the evaluator receives.
     const result = computeIndicatorSeries(
       { indicator: operand.indicator, timeframe: TF },
       RECORDED_CANDLES,
     );
     if (!result.supported) throw new Error(result.reason);
-    values = result.values.map((v) => (v === null ? null : Number(v)));
+    values = result.values;
   } else {
     throw new Error(`seriesFor: no series for ${(operand as { kind: string }).kind}`);
   }
@@ -183,11 +222,11 @@ function seriesFor(operand: Operand): (number | null)[] {
 
 type Oracle = (index: number) => boolean | null;
 
-const OPS: Record<string, (a: number, b: number) => boolean> = {
-  gt: (a, b) => a > b,
-  gte: (a, b) => a >= b,
-  lt: (a, b) => a < b,
-  lte: (a, b) => a <= b,
+const OPS: Record<string, (a: Decimal, b: Decimal) => boolean> = {
+  gt: (a, b) => a.gt(b),
+  gte: (a, b) => a.gte(b),
+  lt: (a, b) => a.lt(b),
+  lte: (a, b) => a.lte(b),
 };
 
 function oracleFor(condition: Condition): Oracle {
@@ -205,7 +244,12 @@ function oracleFor(condition: Condition): Oracle {
   if (c.kind === "compare") {
     const op = OPS[c.op as string];
     if (!op) throw new Error(`oracleFor: unknown op ${c.op}`);
-    return (i) => (l[i] === null || r[i] === null ? null : op(l[i] as number, r[i] as number));
+    return (i) => {
+      const left = l[i];
+      const right = r[i];
+      if (left === null || right === null) return null;
+      return op(new Decimal(left), new Decimal(right));
+    };
   }
 
   if (c.kind === "cross") {
@@ -217,7 +261,13 @@ function oracleFor(condition: Condition): Oracle {
       const cl = l[i];
       const cr = r[i];
       if (pl === null || pr === null || cl === null || cr === null) return null;
-      return above ? pl <= pr && cl > cr : pl >= pr && cl < cr;
+      const prevLeft = new Decimal(pl);
+      const prevRight = new Decimal(pr);
+      const curLeft = new Decimal(cl);
+      const curRight = new Decimal(cr);
+      return above
+        ? prevLeft.lte(prevRight) && curLeft.gt(curRight)
+        : prevLeft.gte(prevRight) && curLeft.lt(curRight);
     };
   }
 
@@ -333,8 +383,6 @@ const SMA200 = indicator("sma", { period: 200 });
 
 interface Expectation {
   name: string;
-  /** Every indicator the condition reads, so warmup is derived, not guessed. */
-  reads: IndicatorRef[];
   condition: Condition;
   /** Candle indices where the condition changes value. Pinned by the oracle. */
   flips: number[];
@@ -343,7 +391,6 @@ interface Expectation {
 const EXPECTATIONS: Expectation[] = [
   {
     name: "RSI(14) above the overbought threshold",
-    reads: [{ id: "rsi", params: { period: 14 } }],
     condition: compare(RSI14, "gt", constant("70")),
     flips: [
       127, 128, 176, 178, 359, 362, 370, 377, 378, 379, 417, 462, 472, 474, 549, 550, 552, 553,
@@ -352,7 +399,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "RSI(14) below the oversold threshold",
-    reads: [{ id: "rsi", params: { period: 14 } }],
     condition: compare(RSI14, "lt", constant("30")),
     flips: [
       203, 206, 229, 230, 292, 293, 296, 298, 635, 641, 943, 944, 954, 955
@@ -360,7 +406,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "RSI(14) crossing back above oversold",
-    reads: [{ id: "rsi", params: { period: 14 } }],
     condition: cross(RSI14, "above", constant("30")),
     flips: [
       206, 207, 230, 231, 293, 294, 298, 299, 641, 642, 944, 945, 955, 956
@@ -368,7 +413,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "MACD line crossing above its signal (golden cross)",
-    reads: [{ id: "macd", params: MACD_PARAMS }],
     condition: cross(MACD_LINE, "above", MACD_SIGNAL),
     flips: [
       123, 124, 156, 157, 174, 175, 193, 194, 214, 215, 235, 236, 261, 262, 282, 283, 299, 300,
@@ -379,7 +423,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "MACD line crossing below its signal (death cross)",
-    reads: [{ id: "macd", params: MACD_PARAMS }],
     condition: cross(MACD_LINE, "below", MACD_SIGNAL),
     flips: [
       138, 139, 157, 158, 186, 187, 196, 197, 226, 227, 250, 251, 274, 275, 287, 288, 336, 337,
@@ -390,7 +433,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "MACD histogram turning positive (sign change)",
-    reads: [{ id: "macd", params: MACD_PARAMS }],
     condition: compare(MACD_HIST, "gt", constant("0")),
     flips: [
       123, 138, 156, 157, 174, 186, 193, 196, 214, 226, 235, 250, 261, 274, 282, 287, 299, 336,
@@ -401,7 +443,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "MACD signal crossing zero (DEA zero crossing)",
-    reads: [{ id: "macd", params: MACD_PARAMS }],
     condition: cross(MACD_SIGNAL, "above", constant("0")),
     flips: [
       127, 128, 178, 179, 329, 330, 348, 349, 358, 359, 517, 518, 603, 604, 675, 676, 708, 709,
@@ -410,7 +451,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "price touching the upper Bollinger band",
-    reads: [{ id: "bollinger", params: BB_PARAMS }],
     condition: compare(closePrice, "gte", BB_UPPER),
     flips: [
       61, 62, 83, 87, 124, 128, 153, 154, 176, 178, 222, 223, 244, 247, 347, 348, 357, 360, 361,
@@ -421,7 +461,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "price touching the lower Bollinger band",
-    reads: [{ id: "bollinger", params: BB_PARAMS }],
     condition: compare(closePrice, "lte", BB_LOWER),
     flips: [
       103, 104, 164, 168, 200, 206, 225, 228, 229, 230, 249, 250, 275, 277, 289, 291, 292, 293,
@@ -431,7 +470,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "Bollinger squeeze — bandwidth at its 60-candle minimum",
-    reads: [{ id: "bollinger", params: BB_PARAMS }],
     condition: compare(BB_BANDWIDTH, "lte", windowOf("min", 60, BB_BANDWIDTH)),
     flips: [
       79, 81, 143, 145, 146, 149, 151, 154, 160, 162, 308, 309, 316, 320, 321, 322, 323, 326,
@@ -441,7 +479,6 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "volume anomaly — volume above its 20-candle average",
-    reads: [{ id: "volume_ma", params: { period: 20 } }],
     condition: compare(volumeOperand, "gt", VOLUME_MA20),
     flips: [
       61, 62, 63, 64, 66, 67, 69, 70, 79, 84, 87, 88, 100, 101, 103, 107, 123, 125, 126, 130,
@@ -461,16 +498,21 @@ const EXPECTATIONS: Expectation[] = [
   },
   {
     name: "moving-average golden cross — SMA(50) above SMA(200)",
-    reads: [
-      { id: "sma", params: { period: 50 } },
-      { id: "sma", params: { period: 200 } },
-    ],
     condition: cross(SMA50, "above", SMA200),
     flips: [
       791, 792
     ],
   },
 ];
+
+/** Every indicator id the expectations read, derived from the conditions. */
+function coveredIndicators(): Set<string> {
+  return new Set(
+    EXPECTATIONS.flatMap((e) =>
+      collectIndicators(ruleWith(e.condition)).map((r) => r.indicator.id),
+    ),
+  );
+}
 
 // ---------------------------------------------------------------------------
 
@@ -486,14 +528,17 @@ describe("indicator conditions against recorded market history", () => {
     const gaps: string[] = [];
     for (let i = 1; i < RECORDED_CANDLES.length; i++) {
       const step = RECORDED_CANDLES[i].open_time_ms - RECORDED_CANDLES[i - 1].open_time_ms;
-      if (step !== 3_600_000) gaps.push(`index ${i}: ${step}ms`);
+      if (step !== RECORDED_STEP_MS) gaps.push(`index ${i}: ${step}ms`);
     }
     expect(gaps).toEqual([]);
   });
 
   for (const expectation of EXPECTATIONS) {
     describe(expectation.name, () => {
-      const from = assertableFrom(expectation.reads);
+      // Derived from the condition itself rather than hand-listed beside it: a
+      // condition whose operand changes cannot silently keep a stale warmup.
+      const reads = collectIndicators(ruleWith(expectation.condition)).map((r) => r.indicator);
+      const from = assertableFrom(reads);
 
       // Memoised, not recomputed per test. Walking 1000 candles means slicing
       // the series and re-evaluating at each one; doing that three times over
@@ -564,18 +609,23 @@ describe("indicator conditions against recorded market history", () => {
       | { indicators: Array<{ id: string }> };
     const ids = (Array.isArray(registry) ? registry : registry.indicators).map((e) => e.id);
 
-    const covered = new Set(EXPECTATIONS.flatMap((e) => e.reads.map((r) => r.id)));
+    const covered = coveredIndicators();
     const unaccounted = ids.filter((id) => !covered.has(id) && !(id in SCOPED_OUT));
 
     // The teeth of acceptance criterion 5. An indicator added to the core lands
     // in neither set and fails here, so the choice to ship it without a
     // recorded-history expectation has to be made deliberately — by writing one
     // or by naming it above — rather than by nobody looking.
+    //
+    // This is indicator coverage, not condition coverage: the core exposes no
+    // condition registry, so a new *condition* on an already-covered indicator
+    // (say a second RSI threshold) is invisible here. That stays a FEAT-0028
+    // review responsibility, and is noted rather than pretended away.
     expect(unaccounted).toEqual([]);
   });
 
   it("does not carry a scoped-out entry for an indicator that is covered", () => {
-    const covered = new Set(EXPECTATIONS.flatMap((e) => e.reads.map((r) => r.id)));
+    const covered = coveredIndicators();
     const stale = Object.keys(SCOPED_OUT).filter((id) => covered.has(id));
 
     // The other direction: a list of known gaps that outlives the gap is worse
