@@ -20,6 +20,7 @@ import {
   newProviderId,
   providerConfigFromLegacy,
   redactUserProviders,
+  sanitizeUserProviders,
   validateProviderConfig,
   type ProviderConfig,
 } from "./aiProviders";
@@ -244,5 +245,36 @@ describe("user provider management", () => {
     expect(activeUserProvider(providers, "missing")).toBeUndefined();
     expect(activeUserProvider(providers, "")).toBeUndefined();
     expect(activeUserProvider(undefined, "custom")).toBeUndefined();
+  });
+
+  it("sanitizes stored providers, dropping junk and duplicates", () => {
+    const out = sanitizeUserProviders([
+      {
+        id: "a",
+        label: "A",
+        flavor: "openai-chat",
+        baseUrl: "https://gateway.example.com/v1",
+        model: "m",
+        apiKey: "k",
+        allowServerRelay: true,
+      },
+      { id: "a", label: "duplicate id" },
+      { label: "no id" },
+      null,
+      42,
+      { id: "b", label: "", flavor: "carrier-pigeon" },
+    ]);
+
+    expect(out.map((p) => p.id)).toEqual(["a", "b"]);
+    expect(out[0].allowServerRelay).toBe(true);
+    expect(out[1].label).toBe("b"); // label falls back to the id
+    expect(out[1].flavor).toBe("openai-chat"); // unknown flavor -> default
+    expect(out[1].allowServerRelay).toBe(false);
+  });
+
+  it("returns an empty list for non-array stored input", () => {
+    expect(sanitizeUserProviders(undefined)).toEqual([]);
+    expect(sanitizeUserProviders({ id: "a" })).toEqual([]);
+    expect(sanitizeUserProviders("nope")).toEqual([]);
   });
 });

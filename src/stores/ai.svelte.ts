@@ -13,6 +13,7 @@ import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
+import { activeUserProvider } from "./settings/aiProviders";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
 import { tradeState } from "./trade.svelte";
@@ -196,7 +197,23 @@ class AiManager {
         appLocale,
       });
 
-      const provider = settings.aiProvider || "gemini";
+      const userProvider = activeUserProvider(
+        settings.userProviders,
+        settings.activeProviderId,
+      );
+      // Other wire formats land in a later slice; refuse rather than send a
+      // request the parser cannot read.
+      if (userProvider && userProvider.flavor !== "openai-chat") {
+        throw new Error(
+          `"${userProvider.label}" speaks ${userProvider.flavor}, which is not supported yet. Use an OpenAI-compatible endpoint.`,
+        );
+      }
+
+      // A user provider is sent through the OpenAI-compatible route; the
+      // built-ins keep their own route and parser.
+      const provider: AiProvider = userProvider
+        ? "openai"
+        : settings.aiProvider || "gemini";
       const systemPrompt = provider === "anthropic"
         ? JSON.stringify(promptParts)
         : `${promptParts.staticInstruction}\n\n${promptParts.dynamicContext}`;
@@ -214,7 +231,16 @@ class AiManager {
       let model = "";
       let baseUrl = "";
 
-      if (provider === "openai") {
+      if (userProvider) {
+        apiKey = userProvider.apiKey;
+        model = userProvider.model;
+        baseUrl = userProvider.baseUrl;
+        if (!baseUrl.trim()) {
+          throw new Error(
+            `"${userProvider.label}" has no base URL configured. Add one in Settings.`,
+          );
+        }
+      } else if (provider === "openai") {
         apiKey = settings.openaiApiKey;
         model = settings.openaiModel;
         baseUrl = settings.openaiBaseUrl;

@@ -296,6 +296,43 @@ export function redactUserProviders(
 }
 
 /**
+ * Coerce persisted provider entries into well-formed configs, dropping
+ * anything unusable (non-objects, missing ids, duplicate ids). Used at the
+ * storage boundary and after decryption, so the rest of the app can trust the
+ * shape. A bad entry is dropped rather than repaired into a nameless provider.
+ */
+export function sanitizeUserProviders(raw: unknown): ProviderConfig[] {
+  if (!Array.isArray(raw)) return [];
+
+  const seen = new Set<string>();
+  const providers: ProviderConfig[] = [];
+
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const candidate = entry as Record<string, unknown>;
+    const id = text(candidate.id).trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+
+    const flavor = AI_API_FLAVORS.includes(candidate.flavor as AiApiFlavor)
+      ? (candidate.flavor as AiApiFlavor)
+      : DEFAULT_AI_API_FLAVOR;
+
+    providers.push({
+      id,
+      label: text(candidate.label).trim() || id,
+      flavor,
+      baseUrl: text(candidate.baseUrl).trim(),
+      model: text(candidate.model).trim(),
+      apiKey: text(candidate.apiKey),
+      allowServerRelay: candidate.allowServerRelay === true,
+    });
+  }
+
+  return providers;
+}
+
+/**
  * The active provider when it is a user provider. Returns `undefined` for a
  * built-in id (or a dangling one), so the caller falls back to the built-in
  * settings fields.
