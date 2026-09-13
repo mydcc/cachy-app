@@ -18,12 +18,14 @@
 import { describe, expect, it } from "vitest";
 
 import { collectIndicators, indicatorKey } from "./indicatorRequests";
+import { alertPathSourceOf } from "./alertPathIndicators";
 import { computeIndicatorSeries } from "./indicatorSeries";
 import { Decimal } from "decimal.js";
 
 import { INDICATOR_CATALOGUE, defaultRef } from "../alerts/indicatorCatalogue";
 import { JSIndicators } from "../../utils/indicators";
 import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
+import { RECORDED_CANDLES } from "../../services/__fixtures__/recordedSeries";
 import type {
   Condition,
   EvaluationCandle,
@@ -426,5 +428,180 @@ describe("computeIndicatorSeries", () => {
     );
 
     expect(result.supported).toBe(false);
+  });
+});
+
+/**
+ * FEAT-0446 group 2 — the indicators that read high, low and close.
+ */
+describe("computeIndicatorSeries — high, low and close", () => {
+  /** Candles from `[high, low, close, volume]` rows. */
+  function bars(rows: ReadonlyArray<readonly [number, number, number, number]>): EvaluationCandle[] {
+    return rows.map(([high, low, close, volume], i) => ({
+      open_time_ms: i * 3_600_000,
+      open: String(close),
+      high: String(high),
+      low: String(low),
+      close: String(close),
+      volume: String(volume),
+    }));
+  }
+
+  /** A moving market: every window has range, and closes sit off the typical price. */
+  const moving = bars(
+    Array.from({ length: 80 }, (_, i) => {
+      const mid = 100 + ((i * 7) % 13) - (i % 4);
+      return [mid + 3 + (i % 3), mid - 2 - (i % 2), mid + ((i % 5) - 2), 10 + (i % 6)] as const;
+    }),
+  );
+
+  const series = (indicator: IndicatorRef, candlesIn: EvaluationCandle[]) => {
+    const result = computeIndicatorSeries({ indicator, timeframe: "1h" }, candlesIn);
+    if (!result.supported) throw new Error(result.reason);
+    return result.values;
+  };
+
+  const asWire = (values: Float64Array) =>
+    Array.from(values, (v) => (Number.isFinite(v) ? new Decimal(v).toFixed() : null));
+
+  const column = (field: "high" | "low" | "close" | "volume") =>
+    Float64Array.from(moving, (c) => Number(c[field]));
+
+  it("computes CCI over the typical price, the price alertPathSourceOf names", () => {
+    const high = column("high");
+    const low = column("low");
+    const close = column("close");
+    const typical = high.map((h, i) => (h + low[i] + close[i]) / 3);
+
+    const cci = series({ id: "cci", params: { period: 20 } }, moving);
+
+    expect(alertPathSourceOf("cci")).toBe("hlc3");
+    expect(cci).toEqual(asWire(JSIndicators.cci(typical, 20)));
+    // And not the close, which would be a different line.
+    expect(cci).not.toEqual(asWire(JSIndicators.cci(close, 20)));
+  });
+
+  it("computes Williams %R, ATR, choppiness and MFI as the functions the chart calls", () => {
+    const high = column("high");
+    const low = column("low");
+    const close = column("close");
+    const volume = column("volume");
+
+    expect(series({ id: "williams_r", params: { period: 14 } }, moving)).toEqual(
+      asWire(JSIndicators.williamsR(high, low, close, 14)),
+    );
+    expect(series({ id: "atr", params: { period: 14 } }, moving)).toEqual(
+      asWire(JSIndicators.atr(high, low, close, 14)),
+    );
+    expect(series({ id: "choppiness", params: { period: 14 } }, moving)).toEqual(
+      asWire(JSIndicators.choppiness(high, low, close, 14)),
+    );
+    expect(series({ id: "mfi", params: { period: 14 } }, moving)).toEqual(
+      asWire(JSIndicators.mfi(high, low, close, volume, 14)),
+    );
+  });
+
+  /**
+   * A window with no range has no %R, no choppiness and no CCI: each divides
+   * by it. The chart draws 0 there, and WASM -50 for %R, and neither is a
+   * reading of the market. On the alert path a made-up 0 would fire "%R above
+   * -20" on a halted market, so it is null, which the core reads as
+   * indeterminate — the same decision as the Bollinger bandwidth over a zero
+   * middle band.
+   */
+  describe("a window with no range", () => {
+    // Twenty identical candles, then the moving market.
+    const flatThenMoving = [
+      ...bars(Array.from({ length: 20 }, () => [100, 100, 100, 5] as const)),
+      ...moving.slice(0, 40).map((c, i) => ({ ...c, open_time_ms: (20 + i) * 3_600_000 })),
+    ];
+
+    it.each([
+      ["williams_r", { period: 14 }],
+      ["choppiness", { period: 14 }],
+      ["cci", { period: 14 }],
+    ] as const)("has no %s over it, and a value as soon as the window moves", (id, params) => {
+      const values = series({ id, params }, flatThenMoving);
+      // Candles 13–19 have a full window, all of it flat.
+      expect(values.slice(13, 20)).toEqual(Array(7).fill(null));
+      expect(values.slice(34).every((v) => v !== null)).toBe(true);
+    });
+
+    it("has no MFI where no money flowed either way, rather than the chart's 50", () => {
+      const values = series({ id: "mfi", params: { period: 14 } }, flatThenMoving);
+      expect(values.slice(14, 20)).toEqual(Array(6).fill(null));
+      expect(values.slice(35).every((v) => v !== null)).toBe(true);
+    });
+
+    it("keeps MFI at 100 when money only flowed in", () => {
+      const rising = bars(
+        Array.from({ length: 30 }, (_, i) => [101 + i, 99 + i, 100 + i, 10] as const),
+      );
+      const values = series({ id: "mfi", params: { period: 14 } }, rising);
+      expect(values[20]).toBe("100");
+    });
+  });
+
+  describe("the awesome oscillator", () => {
+    it("has no value before its slower average has a full window, rather than the chart's 0", () => {
+      const values = series({ id: "ao", params: { fast_period: 5, slow_period: 34 } }, moving);
+      expect(values.slice(0, 33)).toEqual(Array(33).fill(null));
+      expect(values[33]).not.toBeNull();
+    });
+
+    /**
+     * WASM has no awesome oscillator, so this is its cross-path check
+     * (`crossPathParity.test.ts`, `NOT_IN_WASM`): the two simple averages of the
+     * median price, recomputed in `Decimal` over the recorded fixture.
+     */
+    it("is the fast minus the slow average of the median price, to within 1e-9 on recorded history", () => {
+      const values = series({ id: "ao", params: { fast_period: 5, slow_period: 34 } }, RECORDED_CANDLES);
+      const median = RECORDED_CANDLES.map((c) => new Decimal(c.high).plus(c.low).div(2));
+      const average = (end: number, n: number) =>
+        median.slice(end - n + 1, end + 1).reduce((a, b) => a.plus(b), new Decimal(0)).div(n);
+
+      const wrong: string[] = [];
+      for (let i = 33; i < RECORDED_CANDLES.length; i++) {
+        const expected = average(i, 5).minus(average(i, 34));
+        const shown = values[i];
+        if (shown === null || new Decimal(shown).minus(expected).abs().gt("1e-9")) {
+          if (wrong.length < 3) wrong.push(`candle ${i}: ${shown} vs ${expected.toFixed(12)}`);
+        }
+      }
+      expect(wrong).toEqual([]);
+    });
+  });
+
+  /**
+   * The alert path reads a rolling buffer (FEAT-0446, "Found: OBV depends on the
+   * loaded window"). A windowed indicator must not care where it starts. %R and
+   * CCI recompute each window, so they agree exactly; choppiness, MFI and AO
+   * slide running sums, so they agree to rounding. ATR is recursive and is left
+   * out on purpose: like RSI and EMA it forgets its start geometrically rather
+   * than not at all.
+   */
+  it("gives the windowed indicators the same value at a candle however much history precedes it", () => {
+    const TRIM = 100;
+    const lines: Array<[IndicatorRef, number, boolean]> = [
+      [{ id: "williams_r", params: { period: 14 } }, 14, true],
+      [{ id: "cci", params: { period: 20 } }, 20, true],
+      [{ id: "choppiness", params: { period: 14 } }, 15, false],
+      [{ id: "mfi", params: { period: 14 } }, 15, false],
+      [{ id: "ao", params: { fast_period: 5, slow_period: 34 } }, 34, false],
+    ];
+    const history = RECORDED_CANDLES.slice(0, 400);
+
+    for (const [ref, needs, exact] of lines) {
+      const full = series(ref, history);
+      const trimmed = series(ref, history.slice(TRIM));
+      for (let i = needs - 1; i < trimmed.length; i++) {
+        const a = trimmed[i];
+        const b = full[TRIM + i];
+        expect(a === null, `${ref.id} at ${i}`).toBe(b === null);
+        if (a === null || b === null) continue;
+        if (exact) expect(a, `${ref.id} at ${i}`).toBe(b);
+        else expect(new Decimal(a).minus(b).abs().lte("1e-9"), `${ref.id} at ${i}: ${a} vs ${b}`).toBe(true);
+      }
+    }
   });
 });

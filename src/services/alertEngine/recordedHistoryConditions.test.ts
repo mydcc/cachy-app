@@ -403,6 +403,12 @@ const WMA20 = indicator("wma", { period: 20 });
 const VWMA20 = indicator("vwma", { period: 20 });
 const HMA20 = indicator("hma", { period: 20 });
 const MOMENTUM10 = indicator("momentum", { period: 10 });
+const WILLIAMS_R14 = indicator("williams_r", { period: 14 });
+const CCI20 = indicator("cci", { period: 20 });
+const ATR14 = indicator("atr", { period: 14 });
+const CHOP14 = indicator("choppiness", { period: 14 });
+const MFI14 = indicator("mfi", { period: 14 });
+const AO = indicator("ao", { fast_period: 5, slow_period: 34 });
 
 interface Expectation {
   name: string;
@@ -601,6 +607,70 @@ const EXPECTATIONS: Expectation[] = [
       939, 940, 960, 961, 974, 975, 983, 984, 986, 987
     ],
   },
+  // FEAT-0446 group 2 — the high/low/close indicators, wired in the same change.
+  {
+    name: "Williams %R(14) overbought — above -20",
+    condition: compare(WILLIAMS_R14, "gt", constant("-20")),
+    flips: [
+      44, 46, 57, 59, 61, 64, 65, 66, 69, 70, 81, 82, 83, 88, 96, 97, 99, 100,
+      123, 128, 144, 146, 175, 180, 220, 223, 240, 241, 242, 247, 263, 264, 265, 266, 309, 310,
+      311, 312, 326, 330, 346, 347, 357, 363, 365, 367, 368, 374, 375, 377, 378, 379, 394, 395,
+      415, 418, 424, 430, 431, 432, 433, 440, 441, 449, 450, 453, 455, 460, 474, 475, 477, 480,
+      510, 513, 515, 516, 520, 521, 534, 536, 537, 538, 547, 550, 552, 553, 594, 595, 596, 597,
+      600, 601, 602, 604, 609, 610, 611, 613, 619, 620, 657, 658, 659, 663, 665, 668, 673, 674,
+      679, 684, 701, 702, 705, 710, 712, 713, 720, 721, 745, 746, 762, 763, 765, 770, 774, 785,
+      825, 827, 828, 829, 853, 854, 855, 859, 907, 910, 911, 912, 913, 916, 919, 920, 963, 964,
+      967, 969, 990, 991, 992, 994
+    ],
+  },
+  {
+    name: "CCI(20) crossing above +100",
+    condition: cross(CCI20, "above", constant("100")),
+    flips: [
+      61, 62, 69, 70, 79, 80, 81, 82, 96, 97, 98, 99, 124, 125, 153, 154, 176, 177,
+      221, 222, 244, 245, 266, 267, 273, 274, 309, 310, 328, 329, 346, 347, 357, 358, 366, 367,
+      369, 370, 378, 379, 393, 394, 415, 416, 435, 436, 442, 443, 451, 452, 473, 474, 478, 479,
+      512, 513, 520, 521, 533, 534, 548, 549, 602, 603, 609, 610, 620, 621, 657, 658, 679, 680,
+      707, 708, 720, 721, 765, 766, 769, 770, 774, 775, 826, 827, 836, 837, 838, 839, 858, 859,
+      908, 909, 911, 912, 919, 920, 967, 968, 993, 994
+    ],
+  },
+  {
+    name: "volatility expansion — ATR(14) at its 50-candle high",
+    condition: compare(ATR14, "gte", windowOf("max", 50, ATR14)),
+    flips: [
+      190, 191, 199, 204, 274, 276, 363, 364, 365, 367, 368, 371, 372, 374, 393, 394, 417, 421,
+      423, 426, 435, 436, 437, 438, 440, 441, 442, 444, 452, 454, 458, 461, 462, 463, 464, 465,
+      537, 540, 634, 636, 696, 697, 703, 707, 777, 780, 785, 786, 800, 803, 893, 894, 896, 899,
+      901, 902, 918, 919, 920, 924, 968, 971
+    ],
+  },
+  {
+    name: "trending market — Choppiness(14) below 38.2",
+    condition: compare(CHOP14, "lt", constant("38.2")),
+    flips: [
+      166, 171, 176, 184, 185, 186, 203, 209, 210, 213, 229, 230, 347, 355, 375, 378, 416, 431,
+      435, 445, 452, 457, 458, 465, 604, 605, 628, 634, 635, 637, 646, 648, 683, 684, 733, 735,
+      777, 791, 810, 813, 874, 875, 968, 972, 982, 984
+    ],
+  },
+  {
+    name: "MFI(14) overbought — above 80",
+    condition: compare(MFI14, "gt", constant("80")),
+    flips: [
+      127, 128, 243, 247, 377, 380, 381, 382, 417, 430, 459, 460, 600, 601, 604, 605, 777, 779,
+      782, 783, 784, 785, 827, 830, 968, 970
+    ],
+  },
+  {
+    name: "awesome oscillator crossing above zero",
+    condition: cross(AO, "above", constant("0")),
+    flips: [
+      106, 107, 125, 126, 177, 178, 246, 247, 266, 267, 313, 314, 318, 319, 347, 348, 358, 359,
+      415, 416, 513, 514, 595, 596, 662, 663, 701, 702, 708, 709, 761, 762, 765, 766, 828, 829,
+      856, 857, 911, 912, 969, 970, 983, 984
+    ],
+  },
 ];
 
 /** Every indicator id the expectations read, derived from the conditions. */
@@ -717,14 +787,8 @@ describe("indicator conditions against recorded market history", () => {
   const SCOPED_OUT: Record<string, string> = {
     stochastic: NOT_ON_ALERT_PATH,
     stoch_rsi: NOT_ON_ALERT_PATH,
-    williams_r: NOT_ON_ALERT_PATH,
-    cci: NOT_ON_ALERT_PATH,
     adx: NOT_ON_ALERT_PATH,
-    ao: NOT_ON_ALERT_PATH,
-    atr: NOT_ON_ALERT_PATH,
-    choppiness: NOT_ON_ALERT_PATH,
     super_trend: NOT_ON_ALERT_PATH,
-    mfi: NOT_ON_ALERT_PATH,
     obv: `${NOT_ON_ALERT_PATH}; accumulates from the first candle it is given, so its level depends on how much history the rolling buffer holds`,
     parabolic_sar: `${NOT_ON_ALERT_PATH}; flips side rather than crossing a level, so the condition shape needs deciding first`,
     ichimoku: `${NOT_ON_ALERT_PATH}; five lines and a forward displacement, which must match the chart`,

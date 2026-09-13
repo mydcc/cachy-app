@@ -54,6 +54,14 @@ export const INDICATOR_WARMUP: IndicatorWarmup[] = [
   { label: "RSI(14)", needs: 15, ref: { id: "rsi", params: { period: 14 } } },
   // The change against the close a full period back, so one candle more than the period.
   { label: "Momentum(10)", needs: 11, ref: { id: "momentum", params: { period: 10 } } },
+  { label: "Williams %R(14)", needs: 14, ref: { id: "williams_r", params: { period: 14 } } },
+  { label: "CCI(20)", needs: 20, ref: { id: "cci", params: { period: 20 } } },
+  // The first candle has no true range (BUG-0456), so a full period of them needs one more.
+  { label: "ATR(14)", needs: 15, ref: { id: "atr", params: { period: 14 } } },
+  { label: "Choppiness(14)", needs: 15, ref: { id: "choppiness", params: { period: 14 } } },
+  // Money flow is a change between typical prices, so the first candle carries none.
+  { label: "MFI(14)", needs: 15, ref: { id: "mfi", params: { period: 14 } } },
+  { label: "AO(5,34)", needs: 34, ref: { id: "ao", params: { fast_period: 5, slow_period: 34 } } },
   { label: "MACD line", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "macd" } },
   { label: "MACD signal", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "signal" } },
   { label: "MACD histogram", needs: 34, ref: { id: "macd", params: { fast_period: 12, slow_period: 26, signal_period: 9 }, output: "histogram" } },

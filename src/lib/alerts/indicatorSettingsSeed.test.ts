@@ -45,6 +45,7 @@ import { catalogueEntry, registryEntry } from "./indicatorCatalogue";
 import {
     alertableIndicatorKeys,
     cardAlertAvailability,
+    cardAlertSource,
     indicatorRefsFrom,
     isAlertableIndicator,
     mappedIndicatorKeys,
@@ -316,39 +317,56 @@ describe("the seed the entry point hands to the panel", () => {
 });
 
 /**
- * BUG-0453. Every indicator on the alert path is computed over the close, and
- * the registry has no parameter to carry anything else. The chart computes a
- * card's line over the card's own source. A card set to `hl2` would therefore
+ * BUG-0453. The chart computes a card's line over the card's own source; an
+ * alert computes the indicator over one fixed price — the close, or for CCI the
+ * typical price (`alertPathSourceOf`). A card drawn over any other price would
  * seed an alert on a different line from the one the trader is looking at, so
  * it seeds none, and the button says why.
  */
-describe("a card whose price source the alert path does not compute over", () => {
-    const NOT_CLOSE = ["open", "high", "low", "hl2", "hlc3"];
+describe("a card whose price source is not the one the alert path computes over", () => {
+    const SOURCES = ["close", "open", "high", "low", "hl2", "hlc3"];
     /** Armable cards that carry a source, read off the store itself. */
     const SOURCED = KEYS.filter((key) => "source" in cardFor(key));
 
     it("covers the armable cards that carry a source", () => {
         expect(SOURCED).toEqual(
-            expect.arrayContaining(["rsi", "momentum", "ema", "macd", "bollingerBands"]),
+            expect.arrayContaining(["rsi", "momentum", "ema", "macd", "bollingerBands", "cci"]),
         );
     });
 
-    it.each(NOT_CLOSE)("seeds no alert from a card set to %s", (source) => {
+    it("computes CCI over the typical price and every other sourced card over the close", () => {
         for (const key of SOURCED) {
-            const card = { ...cardFor(key), source };
-            expect(isAlertableIndicator(key), key).toBe(true);
-            expect(cardAlertAvailability(key, card), key).toBe("source-not-close");
-            expect(indicatorRefsFrom(key, card), key).toEqual([]);
-            expect(seedFromIndicatorSettings(key, card, "BTCUSDT"), key).toBeNull();
+            expect(cardAlertSource(key), key).toBe(key === "cci" ? "hlc3" : "close");
+        }
+        expect(cardAlertSource("pivots")).toBeNull();
+    });
+
+    it("seeds no alert from a card drawn over any other price", () => {
+        for (const key of SOURCED) {
+            for (const source of SOURCES.filter((s) => s !== cardAlertSource(key))) {
+                const card = { ...cardFor(key), source };
+                const label = `${key} on ${source}`;
+                expect(isAlertableIndicator(key), label).toBe(true);
+                expect(cardAlertAvailability(key, card), label).toBe("source-mismatch");
+                expect(indicatorRefsFrom(key, card), label).toEqual([]);
+                expect(seedFromIndicatorSettings(key, card, "BTCUSDT"), label).toBeNull();
+            }
         }
     });
 
-    it("still seeds from a card set to the close", () => {
+    it("seeds from a card drawn over the price the alert path computes over", () => {
         for (const key of SOURCED) {
-            const card = { ...cardFor(key), source: "close" };
+            const card = { ...cardFor(key), source: cardAlertSource(key) };
             expect(cardAlertAvailability(key, card), key).toBe("armable");
             expect(seedFromIndicatorSettings(key, card, "BTCUSDT"), key).not.toBeNull();
         }
+    });
+
+    it("arms the CCI card on the typical price it defaults to", () => {
+        // The case group 2 had to get right: with one price for every
+        // indicator, the CCI card's own default would have been refused.
+        expect(cardFor("cci").source).toBe("hlc3");
+        expect(cardAlertAvailability("cci", cardFor("cci"))).toBe("armable");
     });
 
     it.each([
@@ -361,13 +379,16 @@ describe("a card whose price source the alert path does not compute over", () =>
         const card = { length: 21, source };
         expect(cardAlertAvailability("rsi", card)).toBe("armable");
         expect(indicatorRefsFrom("rsi", card)).toHaveLength(1);
+        // And therefore not as CCI's typical price.
+        expect(cardAlertAvailability("cci", card)).toBe("source-mismatch");
     });
 
-    it("refuses a source it does not recognise rather than assuming the close", () => {
+    it("refuses a source it does not recognise rather than assuming either price", () => {
         // Only reachable through a hand-edited store. Withholding the shortcut
         // costs a click; guessing wrong arms an alert on the wrong line.
         const card = { length: 21, source: "ohlc4" };
-        expect(cardAlertAvailability("rsi", card)).toBe("source-not-close");
+        expect(cardAlertAvailability("rsi", card)).toBe("source-mismatch");
+        expect(cardAlertAvailability("cci", card)).toBe("source-mismatch");
         expect(seedFromIndicatorSettings("rsi", card, "BTCUSDT")).toBeNull();
     });
 

@@ -107,6 +107,11 @@ const WASM_LOCATION: Record<string, { group: string; key: string }> = {
   "VolumeMA(20)": { group: "movingAverages", key: "VolMa20" },
   "RSI(14)": { group: "oscillators", key: "RSI14" },
   "Momentum(10)": { group: "oscillators", key: "MOM10" },
+  "Williams %R(14)": { group: "oscillators", key: "WR14" },
+  "CCI(20)": { group: "oscillators", key: "CCI20" },
+  "ATR(14)": { group: "volatility", key: "ATR14" },
+  "Choppiness(14)": { group: "volatility", key: "CHOP14" },
+  "MFI(14)": { group: "oscillators", key: "MFI14" },
   "MACD line": { group: "oscillators", key: "12-26-9.macd" },
   "MACD signal": { group: "oscillators", key: "12-26-9.signal" },
   "MACD histogram": { group: "oscillators", key: "12-26-9.histogram" },
@@ -115,8 +120,21 @@ const WASM_LOCATION: Record<string, { group: string; key: string }> = {
   "Bollinger basis": { group: "volatility", key: "BB20_basis" },
 };
 
+/**
+ * Warmup entries the WASM calculator has no implementation of, each with where
+ * its values are checked instead.
+ *
+ * Named rather than skipped: an entry missing from both tables still fails
+ * below by name, so leaving an indicator out of parity is a decision someone
+ * wrote down.
+ */
+const NOT_IN_WASM: Record<string, string> = {
+  "AO(5,34)":
+    "no WASM implementation; indicatorSeries.test.ts checks it against Decimal averages of the median price",
+};
+
 const MAPPING: Array<{ label: string; group: string; key: string; needs: number; ref: IndicatorRef }> =
-  INDICATOR_WARMUP.map((w) => {
+  INDICATOR_WARMUP.filter((w) => !(w.label in NOT_IN_WASM)).map((w) => {
     const at = WASM_LOCATION[w.label];
     if (!at) throw new Error(`crossPathParity: no WASM location for "${w.label}"`);
     return { label: w.label, needs: w.needs, ref: w.ref, group: at.group, key: at.key };
@@ -129,9 +147,9 @@ const WASM_SETTINGS = JSON.stringify({
   wma: [{ length: 20 }], vwma: [{ length: 20 }], hma: [{ length: 20 }], supertrend: [], psar: [],
   rsi: [{ length: 14 }],
   macd: [{ fast: 12, slow: 26, signal: 9 }],
-  stoch: [], cci: [], adx: [], mom: [{ length: 10 }], wr: [], mfi: [],
+  stoch: [], cci: [{ length: 20 }], adx: [], mom: [{ length: 10 }], wr: [{ length: 14 }], mfi: [{ length: 14 }],
   bb: [{ length: 20, std_dev: 2 }],
-  atr: [], chop: [],
+  atr: [{ length: 14 }], chop: [{ length: 14 }],
   volma: [{ length: 20 }],
   vwap: [], pivots: [],
 });
@@ -271,13 +289,29 @@ describe("WASM and JS compute the same indicators", () => {
    * the same order of magnitude and the ratio collapses.
    */
   it("does not converge with more history, because there is no seed gap to forget", () => {
-    const early = worstDivergence(40).get("MACD histogram");
-    const late = worstDivergence(250).get("MACD histogram");
+    const early40 = worstDivergence(40);
+    const late250 = worstDivergence(250);
 
-    expect(early).toBeDefined();
-    expect(late).toBeDefined();
+    // ATR(14) is here for BUG-0456: a zero true range seeded into the first
+    // average decayed from 1.84 at 40 candles to 3.2e-7 at 250 — the same
+    // geometric shape, from a different seed gap.
+    for (const label of ["MACD histogram", "ATR(14)"]) {
+      const early = early40.get(label);
+      const late = late250.get(label);
 
-    const ratio = (early?.worst ?? 0) / Math.max(late?.worst ?? 0, Number.MIN_VALUE);
-    expect(ratio).toBeLessThan(1000);
+      expect(early, label).toBeDefined();
+      expect(late, label).toBeDefined();
+
+      const ratio = (early?.worst ?? 0) / Math.max(late?.worst ?? 0, Number.MIN_VALUE);
+      expect(ratio, label).toBeLessThan(1000);
+    }
+  });
+
+  it("names only real warmup entries as absent from WASM, and none that WASM has", () => {
+    const labels = new Set(INDICATOR_WARMUP.map((w) => w.label));
+    for (const label of Object.keys(NOT_IN_WASM)) {
+      expect(labels.has(label), `${label} is not in INDICATOR_WARMUP`).toBe(true);
+      expect(label in WASM_LOCATION, `${label} has a WASM location, so it must be compared`).toBe(false);
+    }
   });
 });

@@ -1587,7 +1587,7 @@
       "strongSell": "Stark Verkaufen",
       "title": "Technische Analyse",
       "alertOnThis": "Alarm auf diesen Indikator",
-      "alertSourceNotClose": "Alarme berechnen diesen Indikator über den Schlusskurs. Stelle die Quelle auf close, um einen Alarm darauf zu setzen.",
+      "alertSourceMismatch": "Alarme berechnen diesen Indikator über {source}. Stelle die Quelle auf {source}, um einen Alarm darauf zu setzen.",
       "optimization": {
         "title": "Performance Optimierung",
         "preferredEngine": "Bevorzugte Engine",
