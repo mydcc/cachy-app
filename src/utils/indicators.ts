@@ -976,62 +976,42 @@ export const JSIndicators = {
     period: number = 10,
     multiplier: number = 3,
   ) {
-    // 1. ATR
     const atr = this.atr(high, low, close, period);
     const len = close.length;
-    const basicUpper = new Float64Array(len).fill(NaN);
-    const basicLower = new Float64Array(len).fill(NaN);
-    const finalUpper = new Float64Array(len).fill(NaN);
-    const finalLower = new Float64Array(len).fill(NaN);
-    const trend = new Int8Array(len).fill(0); // 1 = Bull, -1 = Bear
-    // Initialize trend
-    trend[0] = 1;
+    const upper = new Float64Array(len).fill(NaN);
+    const lower = new Float64Array(len).fill(NaN);
+    const value = new Float64Array(len).fill(NaN);
+    const trend = new Int8Array(len).fill(0); // 1 = up, -1 = down, 0 = no value yet
 
-    // Calculation loop
-    for (let i = 1; i < len; i++) {
+    // The first candle with an ATR starts from its basic bands, in an uptrend —
+    // the WASM core's seed. The bands used to start as NaN, and every later
+    // candle compared against them, so none ever had a value (BUG-0458).
+    const seed = atr.findIndex((v) => Number.isFinite(v));
+    if (seed === -1) return { trend, value, upper, lower };
+
+    for (let i = seed; i < len; i++) {
       const hl2 = (high[i] + low[i]) / 2;
-      basicUpper[i] = hl2 + multiplier * atr[i];
-      basicLower[i] = hl2 - multiplier * atr[i];
+      const basicUpper = hl2 + multiplier * atr[i];
+      const basicLower = hl2 - multiplier * atr[i];
 
-      if (
-        basicUpper[i] < finalUpper[i - 1] ||
-        close[i - 1] > finalUpper[i - 1]
-      ) {
-        finalUpper[i] = basicUpper[i];
+      if (i === seed) {
+        upper[i] = basicUpper;
+        lower[i] = basicLower;
+        trend[i] = 1;
       } else {
-        finalUpper[i] = finalUpper[i - 1];
+        // A band only tightens while the close stays inside it, and resets to
+        // the basic band once the previous close broke through it.
+        upper[i] = basicUpper < upper[i - 1] || close[i - 1] > upper[i - 1] ? basicUpper : upper[i - 1];
+        lower[i] = basicLower > lower[i - 1] || close[i - 1] < lower[i - 1] ? basicLower : lower[i - 1];
+        // The trend flips on a close through this candle's band, as the WASM
+        // core and TradingView's `ta.supertrend` decide it.
+        const previous = trend[i - 1];
+        trend[i] = previous === 1 ? (close[i] < lower[i] ? -1 : 1) : close[i] > upper[i] ? 1 : -1;
       }
-
-      if (
-        basicLower[i] > finalLower[i - 1] ||
-        close[i - 1] < finalLower[i - 1]
-      ) {
-        finalLower[i] = basicLower[i];
-      } else {
-        finalLower[i] = finalLower[i - 1];
-      }
-
-      // Trend Rule
-      let currentTrend = trend[i - 1];
-      if (currentTrend === 1) {
-        if (close[i] < finalLower[i - 1]) currentTrend = -1;
-      } else {
-        if (close[i] > finalUpper[i - 1]) currentTrend = 1;
-      }
-      trend[i] = currentTrend;
+      value[i] = trend[i] === 1 ? lower[i] : upper[i];
     }
 
-    // Convert trend back to float for consistent API, or just map active line
-    // Map trend to active line value
-    const value = new Float64Array(len);
-    for(let i=0; i<len; i++) {
-        value[i] = trend[i] === 1 ? finalLower[i] : finalUpper[i];
-    }
-
-    return {
-      trend,
-      value
-    };
+    return { trend, value, upper, lower };
   },
 
   atrTrailingStop(
@@ -1895,7 +1875,8 @@ export const indicators = {
     period: number = 10,
     factor: number = 3,
   ) {
-    if (close.length < period) return null;
+    // A full period of true ranges needs one candle more: the first has none.
+    if (close.length < period + 1) return null;
     const h = high.map(toNumFast);
     const l = low.map(toNumFast);
     const c = close.map(toNumFast);
