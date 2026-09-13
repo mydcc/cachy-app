@@ -37,4 +37,5 @@ export const ALERT_PATH_INDICATORS: ReadonlySet<string> = new Set([
   "vwma",
   "hma",
   "volume_ma",
+  "momentum",
 ]);

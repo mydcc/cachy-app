@@ -59,8 +59,10 @@ The other sixteen are thresholds or crosses in the shape already covered.
       `INDICATOR_CATALOGUE` is only the computable subset, so this criterion names the
       registry mirror on purpose)
 - [ ] `SCOPED_OUT` in `recordedHistoryConditions.test.ts` names only the ids the alert
-      path genuinely cannot compute — 14 today, each stating the real reason — and the
+      path genuinely cannot compute — 13 today, each stating the real reason — and the
       test that rejects a stale entry keeps it that way
+- [ ] OBV's condition shape is decided and documented before it is wired in (see "Found:
+      OBV depends on the loaded window")
 - [ ] Parabolic SAR's condition shape is decided and documented before it is asserted
 - [ ] Ichimoku's displacement handling is asserted against the chart's own values, not
       only against the evaluator
@@ -127,14 +129,53 @@ list in `indicatorCatalogue.test.ts`. Three guards already fail if any of those 
 
 | Group | Indicators | Why together |
 |---|---|---|
-| 1 — single line from close or volume | `momentum`, `obv` | no high/low column yet on the alert path; smallest step |
-| 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once |
+| 1 — single line from close | `momentum` | no high/low column yet on the alert path; smallest step. **Wired (2026-09-13).** OBV was planned here and moved to group 4 |
+| 2 — single line from high, low, close | `williams_r`, `cci`, `atr`, `choppiness`, `mfi`, `ao` | adds the high/low columns once. `cci` waits for [`BUG-0453`](../bugs/BUG-0453-card-alert-ignores-price-source.md): its card defaults to `hlc3` |
 | 3 — several output lines | `stochastic`, `stoch_rsi`, `adx`, `super_trend` | output-line mapping, like MACD and Bollinger |
-| 4 — shape decisions first | `parabolic_sar`, `ichimoku` | SAR flips side; Ichimoku displaces forward — each needs its condition shape decided and written down before it is asserted |
+| 4 — shape decisions first | `parabolic_sar`, `ichimoku`, `obv` | SAR flips side; Ichimoku displaces forward; OBV's level depends on the loaded window — each needs its condition shape decided and written down before it is asserted |
 
 The suite enforces the ordering either way: "scopes out only indicators the alert path
 genuinely cannot compute" fails the moment one of the fourteen becomes computable, so
 its recorded-history expectation has to land in the same change that makes it fire.
+
+## Found: OBV depends on the loaded window
+
+`JSIndicators.obv` accumulates from the first candle it is handed, starting at zero. That
+is how OBV is defined, and the chart does the same — but on the alert path the first
+candle is not a fixed point in the market. `readClosedCandles` reads `marketState`'s
+kline history, which is a rolling buffer: `settingsState.chartHistoryLimit` candles
+(2000 by default), trimmed from the front as candles close, and extended up to 50,000
+when the chart loads further back.
+
+So OBV's *level* at a given candle changes whenever the buffer's start moves: every close
+once the buffer is full, and whenever the trader scrolls back. Cutting `k` candles off
+the front shifts the whole series by a constant. That makes the conditions split cleanly:
+
+| Condition on OBV | Survives a shifted start? |
+|---|---|
+| against a fixed number (`obv > 1,000,000`, crossing a level) | **no** — fires or stays quiet on how much history is loaded |
+| against a moving average of itself, or its change over `n` candles | yes — the constant cancels |
+| against another volume line (`volume_ma`, the candle's volume) | no, and not meaningful: cumulative against per-candle |
+
+Wiring OBV in as-is would put the first row in the panel on a money path. It stays
+hidden until the shape is decided: restrict it to self-relative conditions, or give it a
+fixed anchor. The recorded-history suite cannot catch this — its fixture always starts
+at candle 0 — so `indicatorSeries.test.ts` pins the property the wired indicators do
+have instead ("gives momentum the same value at a candle however much history precedes
+it").
+
+## Progress (2026-09-13, group 1)
+
+- Momentum wired into the alert path and back in the panel: `ALERT_PATH_INDICATORS`,
+  `computeIndicatorSeries` (`JSIndicators.mom`, the chart's function), warmup
+  `Momentum(10)` needs 11, parity location `MOM10`, and the recorded-history expectation
+  "momentum turning positive — Momentum(10) crossing above zero" (154 flips)
+- [`BUG-0452`](../bugs/BUG-0452-wasm-momentum-off-by-one.md) surfaced on the way and was
+  fixed first: the WASM momentum the Technicals panel shows was a change over one candle
+  more than its period, 139.8 off at worst on the fixture
+- [`BUG-0453`](../bugs/BUG-0453-card-alert-ignores-price-source.md) filed: an alert armed
+  from an indicator card is computed on the close whatever source the card is set to
+- OBV moved to group 4 (above)
 
 ## Progress (2026-09-13)
 
@@ -153,6 +194,6 @@ its recorded-history expectation has to land in the same change that makes it fi
 
 - [`FEAT-0438`](FEAT-0438-recorded-history-condition-correctness.md) — the suite and the fixture this extends
 - [`FEAT-0028`](FEAT-0028-indicator-alerts.md) — the conditions that were shipped
-- `src/lib/alerts/indicatorCatalogue.ts` — the 23 the panel offers
+- `src/lib/alerts/indicatorCatalogue.ts` — `REGISTRY_CATALOGUE` (all 23) and `INDICATOR_CATALOGUE` (what the panel offers)
 - `src/services/alertEngine/indicatorWarmup.ts` — the shared warmup table
-- `src/lib/rules/indicatorSeries.ts` — `SUPPORTED`, the nine ids the alert path computes
+- `src/lib/rules/alertPathIndicators.ts` — `ALERT_PATH_INDICATORS`, the ids the alert path computes

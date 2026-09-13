@@ -271,6 +271,49 @@ describe("computeIndicatorSeries", () => {
     );
   });
 
+  it("computes momentum as the same function the chart calls", () => {
+    const series = Array.from({ length: 40 }, (_, i) => 100 + (i % 7) * 2.5);
+    const result = computeIndicatorSeries(
+      { indicator: { id: "momentum", params: { period: 10 } }, timeframe: "1h" },
+      candles(series),
+    );
+
+    expect(result.supported).toBe(true);
+    if (!result.supported) return;
+    const expected = JSIndicators.mom(Float64Array.from(series), 10);
+    expect(result.values).toEqual(
+      Array.from(expected, (v) => (Number.isFinite(v) ? new Decimal(v).toFixed() : null)),
+    );
+    // The change over the period: nothing before a full period back exists.
+    expect(result.values.slice(0, 10)).toEqual(Array(10).fill(null));
+    expect(result.values[10]).toBe(new Decimal(series[10]).minus(series[0]).toFixed());
+  });
+
+  /**
+   * The live loop reads a rolling buffer: the oldest candle is dropped as a new
+   * one closes, and scrolling the chart back loads more. A value that depended
+   * on where that buffer starts would let an alert fire or stay quiet on how far
+   * the trader scrolled. OBV has exactly that property — it accumulates from
+   * the first candle it is given — which is why it is not wired in with
+   * momentum (FEAT-0446, "Found: OBV depends on the loaded window").
+   */
+  it("gives momentum the same value at a candle however much history precedes it", () => {
+    const series = Array.from({ length: 80 }, (_, i) => 100 + ((i * 13) % 17) - (i % 5));
+    const full = computeIndicatorSeries(
+      { indicator: { id: "momentum", params: { period: 10 } }, timeframe: "1h" },
+      candles(series),
+    );
+    const trimmed = computeIndicatorSeries(
+      { indicator: { id: "momentum", params: { period: 10 } }, timeframe: "1h" },
+      candles(series).slice(25),
+    );
+
+    expect(full.supported && trimmed.supported).toBe(true);
+    if (!full.supported || !trimmed.supported) return;
+    // From the first candle the trimmed buffer has a full period for, onwards.
+    expect(trimmed.values.slice(10)).toEqual(full.values.slice(25 + 10));
+  });
+
   it("refuses an indicator it cannot compute instead of returning nulls", () => {
     const result = computeIndicatorSeries(
       {
