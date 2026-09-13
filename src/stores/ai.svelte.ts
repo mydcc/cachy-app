@@ -19,6 +19,7 @@ import {
   type AiApiFlavor,
 } from "./settings/aiProviders";
 import { parseStreamChunk, appendToolCallFragment } from "../lib/ai/streamAdapters";
+import { buildDirectRequest } from "../lib/ai/directRequest";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
 import { tradeState } from "./trade.svelte";
@@ -227,15 +228,10 @@ class AiManager {
         settings.activeProviderId,
       );
 
-      // ADR-0019: credentials are Class A. Until browser-direct transport
-      // lands (Slice 5) a user provider is only reachable through the server
-      // relay, so it must be opted into explicitly. Nothing transits Cachy
-      // infrastructure for a provider that has not.
-      if (userProvider && !userProvider.allowServerRelay) {
-        throw new Error(
-          `Server relay is off for "${userProvider.label}". Enable "Allow server relay" for it in Settings → AI.`,
-        );
-      }
+      // ADR-0019: credentials are Class A, so browser-direct is the default and
+      // the server relay is an explicit opt-in for providers that block
+      // cross-origin requests. Nothing transits Cachy infrastructure unless the
+      // user turned the relay on.
 
       // The wire format drives the route, the system-prompt shape and the
       // stream parser. Built-ins resolve their flavor from `settings.aiProvider`
@@ -327,6 +323,39 @@ class AiManager {
       let res: Response | null = null;
       let attempt = 0;
       const MAX_RETRIES = 3;
+
+      // Browser-direct: the key never reaches the Cachy server. A CORS or
+      // network failure is surfaced with the relay as the suggested fix.
+      if (userProvider && !userProvider.allowServerRelay) {
+        try {
+          const direct = buildDirectRequest(streamFlavor, {
+            baseUrl,
+            apiKey,
+            model,
+            messages: payloadMessages,
+          });
+          const directRes = await fetch(direct.url, {
+            method: "POST",
+            headers: direct.headers,
+            body: direct.body,
+          });
+          if (!directRes.ok) {
+            const err = await directRes.json().catch(() => ({}));
+            throw new Error(
+              err.error?.message ||
+                err.error ||
+                `Request failed with status ${directRes.status}`,
+            );
+          }
+          res = directRes;
+          this.error = null;
+        } catch (err) {
+          this.isStreaming = false;
+          const message = err instanceof Error ? err.message : String(err);
+          this.error = `Direct request to "${userProvider.label}" failed: ${message}. If the provider blocks browser requests (CORS), enable "Allow server relay" in Settings → AI.`;
+          return;
+        }
+      }
 
       if (provider === "ollama") {
         const targetUrl = (baseUrl?.trim() || "http://localhost:11434").replace(/\/$/, "");
