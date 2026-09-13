@@ -25,6 +25,7 @@ import {
   type ExchangeAccount,
   type LegacyCredentialShape,
 } from "./accounts";
+import { sanitizeUserProviders, type ProviderConfig } from "./aiProviders";
 
 /**
  * Fields whose plain-text value is Klasse-A and gets encrypted before it
@@ -421,6 +422,67 @@ export class SecretsLoader {
       for (const id of Object.keys(data.encryptedAccountKeys)) {
         if (!liveIds.has(id)) delete data.encryptedAccountKeys[id];
       }
+    }
+  }
+
+  /**
+   * Encrypts the live user-provider configs (FEAT-0467) into
+   * `data.encryptedProviderConfigs` before persistence. The serialized
+   * `userProviders` block only ever carries redacted credentials, so without
+   * this the keys would be lost on the next load. `canEncrypt = false` (locked
+   * session) keeps whatever ciphertext already exists; `allowClear = false`
+   * (background decryption still in flight) preserves a blob the live state
+   * cannot yet vouch for — the same reasoning as `applyAccountKeyEncryption`.
+   */
+  async applyProviderConfigEncryption(
+    data: Settings,
+    liveProviders: readonly ProviderConfig[],
+    canEncrypt: boolean,
+    encryptionPassword: string | CryptoKey | undefined,
+    allowClear: boolean,
+  ): Promise<void> {
+    if (!canEncrypt) return;
+
+    const hasMaterial = liveProviders.some(
+      (provider) => provider.apiKey.length > 0,
+    );
+    if (!hasMaterial) {
+      if (allowClear) delete data.encryptedProviderConfigs;
+      return;
+    }
+
+    try {
+      data.encryptedProviderConfigs = await cryptoService.encrypt(
+        JSON.stringify(liveProviders),
+        encryptionPassword,
+      );
+    } catch (err) {
+      // Never fall back to plaintext: keep any previous ciphertext and let the
+      // next save retry. The in-memory copy stays untouched.
+      if (import.meta.env.DEV) {
+        console.error(
+          "[Settings] Failed to encrypt user provider configs:",
+          err,
+        );
+      }
+    }
+  }
+
+  /**
+   * Decrypts the user-provider blob with the device key (obfuscation mode).
+   * Returns `null` on failure so the caller can surface it and leave the
+   * providers redacted rather than presenting empty keys as live.
+   */
+  async decryptProviderConfigsWithDeviceKey(
+    blob: EncryptedBlob,
+  ): Promise<ProviderConfig[] | null> {
+    try {
+      const deviceKey = await this.getDeviceKey(true);
+      const json = await cryptoService.decrypt(blob, deviceKey);
+      return sanitizeUserProviders(JSON.parse(json));
+    } catch (e) {
+      console.error("[Settings] Failed to decrypt user provider configs", e);
+      return null;
     }
   }
 }
