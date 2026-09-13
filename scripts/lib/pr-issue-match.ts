@@ -170,6 +170,15 @@ export function checkBodyForStrayClosingRefs(body: string | null | undefined): B
  */
 export const NO_ISSUE_MARKER = "[no issue]";
 
+/**
+ * Does this body opt out of the closing-reference rule? One reading, shared by
+ * the presence gate and the auto-linker, so the sync never adds a reference the
+ * gate was told not to expect (BUG-0469).
+ */
+export function optsOutOfIssue(body: string | null | undefined): boolean {
+    return !!body && body.toLowerCase().includes(NO_ISSUE_MARKER);
+}
+
 /** Outcome of checking that a PR description carries its closing reference. */
 export type ClosingRefPresenceCheck =
     | { ok: true; declared: number | null; optedOut: boolean }
@@ -192,7 +201,7 @@ export type ClosingRefPresenceCheck =
  * `[no issue]` is the explicit escape hatch; silence is not.
  */
 export function checkBodyHasClosingRef(body: string | null | undefined): ClosingRefPresenceCheck {
-    if (body && body.toLowerCase().includes(NO_ISSUE_MARKER)) {
+    if (optsOutOfIssue(body)) {
         return { ok: true, declared: null, optedOut: true };
     }
     const declared = findClosingTrailer(body ?? "");
@@ -203,6 +212,7 @@ export function checkBodyHasClosingRef(body: string | null | undefined): Closing
 /** What to do about a PR that is missing its `Fixes #<issue>` line. */
 export type LinkDecision =
     | { action: "already-linked" }
+    | { action: "opted-out" }
     | { action: "prepend"; issueNumber: number }
     | { action: "conflict"; existing: number[]; wanted: number };
 
@@ -214,8 +224,13 @@ export type LinkDecision =
  * and got a second, contradictory reference. Merging such a PR closes both.
  * A conflict is reported for a human rather than resolved by guessing: either
  * reference may be the correct one, and the script cannot tell.
+ *
+ * A body that opts out with `[no issue]` is left alone: a PR that only advances
+ * an epic says so on purpose, and a prepended `Fixes #N` would make the flip
+ * gate demand a `done` the PR does not make (BUG-0469).
  */
 export function decideLink(body: string | null | undefined, issueNumber: number): LinkDecision {
+    if (optsOutOfIssue(body)) return { action: "opted-out" };
     const existing = closingReferences(body);
     if (existing.includes(issueNumber)) return { action: "already-linked" };
     if (existing.length > 0) return { action: "conflict", existing, wanted: issueNumber };
