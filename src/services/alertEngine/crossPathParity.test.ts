@@ -118,6 +118,13 @@ const WASM_LOCATION: Record<string, { group: string; key: string }> = {
   "Bollinger upper": { group: "volatility", key: "BB20_upper" },
   "Bollinger lower": { group: "volatility", key: "BB20_lower" },
   "Bollinger basis": { group: "volatility", key: "BB20_basis" },
+  "Stochastic %K": { group: "oscillators", key: "STOCH_14-3-3.k" },
+  "Stochastic %D": { group: "oscillators", key: "STOCH_14-3-3.d" },
+  "ADX(14)": { group: "oscillators", key: "ADX14" },
+  "+DI(14)": { group: "oscillators", key: "ADX14_plus" },
+  "-DI(14)": { group: "oscillators", key: "ADX14_minus" },
+  "SuperTrend upper": { group: "volatility", key: "SuperTrend_10-3_upper" },
+  "SuperTrend lower": { group: "volatility", key: "SuperTrend_10-3_lower" },
 };
 
 /**
@@ -131,6 +138,12 @@ const WASM_LOCATION: Record<string, { group: string; key: string }> = {
 const NOT_IN_WASM: Record<string, string> = {
   "AO(5,34)":
     "no WASM implementation; indicatorSeries.test.ts checks it against Decimal averages of the median price",
+  "Stoch RSI %K":
+    "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
+  "Stoch RSI %D":
+    "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
+  "SuperTrend(10,3)":
+    "WASM reports the trend and both bands, not the band the trend stands on; compared below as the band WASM's trend names",
 };
 
 const MAPPING: Array<{ label: string; group: string; key: string; needs: number; ref: IndicatorRef }> =
@@ -144,10 +157,10 @@ const MAPPING: Array<{ label: string; group: string; key: string; needs: number;
 const WASM_SETTINGS = JSON.stringify({
   ema: [{ length: 20 }, { length: 50 }],
   sma: [{ length: 20 }, { length: 50 }, { length: 200 }],
-  wma: [{ length: 20 }], vwma: [{ length: 20 }], hma: [{ length: 20 }], supertrend: [], psar: [],
+  wma: [{ length: 20 }], vwma: [{ length: 20 }], hma: [{ length: 20 }], supertrend: [{ length: 10, multiplier: 3 }], psar: [],
   rsi: [{ length: 14 }],
   macd: [{ fast: 12, slow: 26, signal: 9 }],
-  stoch: [], cci: [{ length: 20 }], adx: [], mom: [{ length: 10 }], wr: [{ length: 14 }], mfi: [{ length: 14 }],
+  stoch: [{ k: 14, d: 3, smooth: 3 }], cci: [{ length: 20 }], adx: [{ length: 14 }], mom: [{ length: 10 }], wr: [{ length: 14 }], mfi: [{ length: 14 }],
   bb: [{ length: 20, std_dev: 2 }],
   atr: [{ length: 14 }], chop: [{ length: 14 }],
   volma: [{ length: 20 }],
@@ -294,8 +307,9 @@ describe("WASM and JS compute the same indicators", () => {
 
     // ATR(14) is here for BUG-0456: a zero true range seeded into the first
     // average decayed from 1.84 at 40 candles to 3.2e-7 at 250 — the same
-    // geometric shape, from a different seed gap.
-    for (const label of ["MACD histogram", "ATR(14)"]) {
+    // geometric shape, from a different seed gap. ADX(14) for BUG-0459: 13.8
+    // at 40 candles, 4e-6 at 250.
+    for (const label of ["MACD histogram", "ATR(14)", "ADX(14)"]) {
       const early = early40.get(label);
       const late = late250.get(label);
 
@@ -305,6 +319,50 @@ describe("WASM and JS compute the same indicators", () => {
       const ratio = (early?.worst ?? 0) / Math.max(late?.worst ?? 0, Number.MIN_VALUE);
       expect(ratio, label).toBeLessThan(1000);
     }
+  });
+
+  /**
+   * WASM has no SuperTrend line, only the trend and both bands. The line an
+   * alert reads is the band the trend stands on, so it is compared as exactly
+   * that: WASM's lower band where WASM says up, its upper band where it says
+   * down. A trend that disagreed on even one candle lands a whole band away.
+   */
+  it("puts the SuperTrend line on the band WASM's trend names, at every candle", () => {
+    const START = 40;
+    const calc = new wasm.TechnicalsCalculator();
+    const history = CANDLE_SERIES.slice(0, START);
+    calc.initialize(
+      history.map((c) => c.close),
+      history.map((c) => c.high),
+      history.map((c) => c.low),
+      history.map((c) => c.volume ?? "0"),
+      new Float64Array(history.map((c) => c.open_time_ms)),
+      WASM_SETTINGS,
+    );
+    const line = jsSeries({ id: "super_trend", params: { period: 10, factor: 3 }, output: "value" });
+
+    const wrong: string[] = [];
+    let downCandles = 0;
+    for (let i = START; i < CANDLE_SERIES.length; i++) {
+      const c = CANDLE_SERIES[i];
+      const out = JSON.parse(
+        calc.update(c.open, c.high, c.low, c.close, c.volume ?? "0", String(c.open_time_ms)),
+      ) as Record<string, Record<string, string> | undefined>;
+      const volatility = out.volatility ?? {};
+      const up = volatility["SuperTrend_10-3"] === "1";
+      if (!up) downCandles++;
+      const band = up ? volatility["SuperTrend_10-3_lower"] : volatility["SuperTrend_10-3_upper"];
+      const js = line[i];
+      if (band === undefined || js === null || Math.abs(Number(band) - Number(js)) > TOLERANCE) {
+        if (wrong.length < 3) wrong.push(`candle ${i}: JS ${js}, WASM ${up ? "lower" : "upper"} ${band}`);
+      }
+      calc.shift(c.open, c.high, c.low, c.close, c.volume ?? "0", String(c.open_time_ms));
+    }
+
+    expect(wrong).toEqual([]);
+    // Both trends occur, so the line is checked on both bands.
+    expect(downCandles).toBeGreaterThan(0);
+    expect(downCandles).toBeLessThan(CANDLE_SERIES.length - START);
   });
 
   it("names only real warmup entries as absent from WASM, and none that WASM has", () => {

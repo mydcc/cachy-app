@@ -1380,6 +1380,7 @@ export type TranslationKey =
   | "settings.technicals.title"
   | "settings.technicals.alertOnThis"
   | "settings.technicals.alertSourceMismatch"
+  | "settings.technicals.alertAdxLengthMismatch"
   | "settings.technicals.summaryAction"
   | "settings.technicals.marketConfluence"
   | "settings.technicals.oscillatorsTitle"

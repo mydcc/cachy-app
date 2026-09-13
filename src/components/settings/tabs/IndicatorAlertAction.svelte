@@ -33,6 +33,9 @@
   stays, refuses, and names the reason. Opening a draft there would arm an
   alert on a different line from the one on screen; hiding the button
   instead would leave the trader looking for it.
+
+  FEAT-0446 group 3: the same on an ADX card whose DI length and smoothing
+  differ, since the core computes ADX with one length.
 -->
 
 <script lang="ts">
@@ -63,14 +66,20 @@
         const card = cardOf(settingsKey);
         return card === null ? "not-alertable" : cardAlertAvailability(settingsKey, card);
     });
-    let refused = $derived(availability === "source-mismatch");
-    let label = $derived(
-        refused
-            ? $_("settings.technicals.alertSourceMismatch", {
-                  values: { source: cardAlertSource(settingsKey) ?? "close" },
-              })
-            : $_("settings.technicals.alertOnThis"),
+    let refused = $derived(
+        availability === "source-mismatch" || availability === "length-mismatch",
     );
+    let label = $derived.by(() => {
+        if (availability === "source-mismatch") {
+            return $_("settings.technicals.alertSourceMismatch", {
+                values: { source: cardAlertSource(settingsKey) ?? "close" },
+            });
+        }
+        if (availability === "length-mismatch") {
+            return $_("settings.technicals.alertAdxLengthMismatch");
+        }
+        return $_("settings.technicals.alertOnThis");
+    });
 
     function openPanel() {
         if (availability !== "armable") return;

@@ -45,7 +45,7 @@
 
 import { Decimal } from "decimal.js";
 
-import { JSIndicators } from "../../utils/indicators";
+import { calculateADXSeries, JSIndicators } from "../../utils/indicators";
 import { ALERT_PATH_INDICATORS } from "./alertPathIndicators";
 import type { IndicatorRequest } from "./indicatorRequests";
 import { DEFAULT_OUTPUT } from "./indicatorRequests";
@@ -136,6 +136,35 @@ function moneylessWindows(typical: Float64Array, volume: Float64Array, period: n
 function withoutUndefined(values: Float64Array, undefinedAt: boolean[]): Float64Array {
   for (let i = 0; i < values.length; i++) if (undefinedAt[i]) values[i] = Number.NaN;
   return values;
+}
+
+/**
+ * Undefined wherever any of the `span` positions ending there is: an average
+ * over `span` values that include an undefined one is undefined too.
+ */
+function throughAverage(undefinedAt: boolean[], span: number): boolean[] {
+  const out: boolean[] = new Array(undefinedAt.length).fill(false);
+  let lastUndefined = -Infinity;
+  for (let i = 0; i < undefinedAt.length; i++) {
+    if (undefinedAt[i]) lastUndefined = i;
+    out[i] = i - lastUndefined < span;
+  }
+  return out;
+}
+
+/**
+ * One line picked by name out of several an indicator computes together, or a
+ * refusal naming the line that does not exist.
+ */
+function lineNamed(
+  id: string,
+  output: string,
+  lines: Readonly<Record<string, () => Float64Array>>,
+): SeriesResult {
+  const line = Object.hasOwn(lines, output) ? lines[output] : undefined;
+  return line
+    ? { supported: true, values: wire(line()) }
+    : { supported: false, reason: `${id} has no output '${output}'` };
 }
 
 /** A single-line indicator refuses any output but its one line. */
@@ -318,6 +347,104 @@ export function computeIndicatorSeries(
       const warm = Math.max(fast, slow) - 1;
       for (let i = 0; i < Math.min(warm, values.length); i++) values[i] = Number.NaN;
       return { supported: true, values: wire(values) };
+    }
+
+    case "stochastic": {
+      const kPeriod = whole(params.k_period);
+      const kSmoothing = whole(params.k_smoothing);
+      const dPeriod = whole(params.d_period);
+      if (kPeriod === undefined || kSmoothing === undefined || dPeriod === undefined) {
+        return {
+          supported: false,
+          reason: "stochastic needs whole k_period, k_smoothing and d_period",
+        };
+      }
+      const high = column(candles, "high");
+      const low = column(candles, "low");
+      // Computed with the chart's 50 over a window with no range, then nulled
+      // there: a NaN inside would stay in both averages' running sums for good.
+      const k = JSIndicators.sma(JSIndicators.stoch(high, low, close, kPeriod), kSmoothing);
+      const kUndefined = throughAverage(rangelessWindows(high, low, kPeriod), kSmoothing);
+      return lineNamed("stochastic", output, {
+        k: () => withoutUndefined(Float64Array.from(k), kUndefined),
+        d: () => withoutUndefined(JSIndicators.sma(k, dPeriod), throughAverage(kUndefined, dPeriod)),
+      });
+    }
+
+    case "stoch_rsi": {
+      const rsiPeriod = whole(params.rsi_period);
+      const stochPeriod = whole(params.stoch_period);
+      const kPeriod = whole(params.k_period);
+      const dPeriod = whole(params.d_period);
+      if (
+        rsiPeriod === undefined ||
+        stochPeriod === undefined ||
+        kPeriod === undefined ||
+        dPeriod === undefined
+      ) {
+        return {
+          supported: false,
+          reason: "stoch_rsi needs whole rsi_period, stoch_period, k_period and d_period",
+        };
+      }
+      // The stochastic of the RSI over `stoch_period`, %K smoothed by `k_period`
+      // — the chart's function, argument for argument (BUG-0460).
+      const lines = JSIndicators.stochRsi(close, rsiPeriod, stochPeriod, dPeriod, kPeriod);
+      const rsi = JSIndicators.rsi(close, rsiPeriod);
+      // An RSI that did not move over the window has no stochastic, as a price
+      // range of zero has none for %R.
+      const kUndefined = throughAverage(rangelessWindows(rsi, rsi, stochPeriod), kPeriod);
+      return lineNamed("stoch_rsi", output, {
+        k: () => withoutUndefined(lines.k, kUndefined),
+        d: () => withoutUndefined(lines.d, throughAverage(kUndefined, dPeriod)),
+      });
+    }
+
+    case "adx": {
+      const period = whole(params.period);
+      if (period === undefined) {
+        return { supported: false, reason: "adx needs a whole period" };
+      }
+      // One period for the directional smoothing and the ADX's own, as the core
+      // declares it. A card whose two lengths differ refuses to arm
+      // (`cardAlertAvailability`, "length-mismatch").
+      const lines = calculateADXSeries(
+        column(candles, "high"),
+        column(candles, "low"),
+        close,
+        period,
+        period,
+      );
+      return lineNamed("adx", output, {
+        adx: () => lines.adx,
+        plus_di: () => lines.pdi,
+        minus_di: () => lines.mdi,
+      });
+    }
+
+    case "super_trend": {
+      const period = whole(params.period);
+      const multiplier = factor(params.factor);
+      if (period === undefined || multiplier === undefined) {
+        return {
+          supported: false,
+          reason: "super_trend needs a whole period and a positive factor",
+        };
+      }
+      // `value` is the band the trend stands on: the lower band in an uptrend,
+      // the upper one in a downtrend. A close crossing it is the flip.
+      const lines = JSIndicators.superTrend(
+        column(candles, "high"),
+        column(candles, "low"),
+        close,
+        period,
+        multiplier,
+      );
+      return lineNamed("super_trend", output, {
+        value: () => lines.value,
+        upper: () => lines.upper,
+        lower: () => lines.lower,
+      });
     }
 
     case "volume_ma": {

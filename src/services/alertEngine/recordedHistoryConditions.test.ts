@@ -409,6 +409,14 @@ const ATR14 = indicator("atr", { period: 14 });
 const CHOP14 = indicator("choppiness", { period: 14 });
 const MFI14 = indicator("mfi", { period: 14 });
 const AO = indicator("ao", { fast_period: 5, slow_period: 34 });
+const STOCH_PARAMS = { k_period: 14, k_smoothing: 3, d_period: 3 };
+const STOCH_K = indicator("stochastic", STOCH_PARAMS, "k");
+const STOCH_D = indicator("stochastic", STOCH_PARAMS, "d");
+const STOCH_RSI_K = indicator("stoch_rsi", { rsi_period: 14, stoch_period: 14, k_period: 3, d_period: 3 }, "k");
+const ADX14 = indicator("adx", { period: 14 }, "adx");
+const PLUS_DI14 = indicator("adx", { period: 14 }, "plus_di");
+const MINUS_DI14 = indicator("adx", { period: 14 }, "minus_di");
+const SUPER_TREND = indicator("super_trend", { period: 10, factor: 3 }, "value");
 
 interface Expectation {
   name: string;
@@ -662,6 +670,65 @@ const EXPECTATIONS: Expectation[] = [
       782, 783, 784, 785, 827, 830, 968, 970
     ],
   },
+  // FEAT-0446 group 3 — the indicators with several output lines, wired in the same change.
+  {
+    name: "Stochastic %K crossing above %D",
+    condition: cross(STOCH_K, "above", STOCH_D),
+    flips: [
+      62, 63, 69, 70, 79, 80, 96, 97, 105, 106, 116, 117, 121, 122, 134, 135, 141, 142,
+      151, 152, 167, 168, 189, 190, 193, 194, 206, 207, 212, 213, 230, 231, 235, 236, 244, 245,
+      252, 253, 255, 256, 259, 260, 272, 273, 277, 278, 288, 289, 293, 294, 298, 299, 304, 305,
+      318, 319, 322, 323, 334, 335, 339, 340, 343, 344, 354, 355, 366, 367, 369, 370, 378, 379,
+      390, 391, 402, 403, 410, 411, 423, 424, 428, 429, 433, 434, 442, 443, 448, 449, 452, 453,
+      456, 457, 472, 473, 477, 478, 487, 488, 492, 493, 499, 500, 506, 507, 517, 518, 519, 520,
+      529, 530, 544, 545, 547, 548, 553, 554, 561, 562, 569, 570, 578, 579, 588, 589, 598, 599,
+      600, 601, 602, 603, 609, 610, 617, 618, 626, 627, 629, 630, 633, 634, 635, 636, 641, 642,
+      648, 649, 657, 658, 666, 667, 673, 674, 678, 679, 696, 697, 706, 707, 719, 720, 726, 727,
+      734, 735, 742, 743, 751, 752, 764, 765, 774, 775, 782, 783, 796, 797, 803, 804, 813, 814,
+      819, 820, 823, 824, 834, 835, 844, 845, 851, 852, 867, 868, 871, 872, 876, 877, 883, 884,
+      890, 891, 897, 898, 904, 905, 913, 914, 915, 916, 919, 920, 924, 925, 930, 931, 944, 945,
+      956, 957, 967, 968, 979, 980, 984, 985
+    ],
+  },
+  {
+    name: "Stoch RSI %K oversold — below 20",
+    condition: compare(STOCH_RSI_K, "lt", constant("20")),
+    flips: [
+      102, 106, 110, 122, 139, 140, 160, 171, 187, 188, 201, 208, 227, 231, 250, 256, 276, 278,
+      290, 298, 337, 343, 353, 356, 381, 393, 404, 411, 431, 435, 447, 451, 455, 456, 462, 473,
+      481, 493, 503, 508, 526, 527, 528, 529, 556, 563, 566, 569, 584, 588, 623, 631, 632, 642,
+      676, 678, 689, 697, 723, 736, 749, 752, 789, 797, 800, 804, 843, 844, 849, 851, 864, 872,
+      873, 876, 889, 892, 922, 932, 942, 945, 974, 984, 997
+    ],
+  },
+  {
+    name: "strong trend — ADX(14) above 25",
+    condition: compare(ADX14, "gt", constant("25")),
+    flips: [
+      86, 93, 97, 103, 181, 224, 226, 239, 295, 306, 362, 364, 365, 413, 415, 491, 549, 559,
+      583, 594, 612, 613, 617, 627, 637, 663, 685, 700, 736, 760, 779, 813, 883, 884, 886, 912,
+      915, 916, 928, 976
+    ],
+  },
+  {
+    name: "+DI(14) crossing above -DI(14)",
+    condition: cross(PLUS_DI14, "above", MINUS_DI14),
+    flips: [
+      105, 106, 116, 117, 121, 122, 173, 174, 222, 223, 244, 245, 259, 260, 272, 273, 310, 311,
+      328, 329, 346, 347, 356, 357, 410, 411, 491, 492, 510, 511, 530, 531, 533, 534, 594, 595,
+      602, 603, 630, 631, 661, 662, 678, 679, 699, 700, 705, 706, 715, 716, 718, 719, 765, 766,
+      774, 775, 827, 828, 832, 833, 858, 859, 861, 862, 864, 865, 911, 912, 967, 968, 975, 976,
+      979, 980, 985, 986, 993, 994
+    ],
+  },
+  {
+    name: "SuperTrend turning down — price crossing below SuperTrend(10, 3)",
+    condition: cross(closePrice, "below", SUPER_TREND),
+    flips: [
+      166, 167, 186, 187, 249, 250, 352, 353, 504, 505, 567, 568, 628, 629, 690, 691, 731, 732,
+      799, 800, 866, 867, 926, 927
+    ],
+  },
   {
     name: "awesome oscillator crossing above zero",
     condition: cross(AO, "above", constant("0")),
@@ -785,10 +852,6 @@ describe("indicator conditions against recorded market history", () => {
    */
   const NOT_ON_ALERT_PATH = "no JavaScript implementation on the alert path; an alert on it cannot fire";
   const SCOPED_OUT: Record<string, string> = {
-    stochastic: NOT_ON_ALERT_PATH,
-    stoch_rsi: NOT_ON_ALERT_PATH,
-    adx: NOT_ON_ALERT_PATH,
-    super_trend: NOT_ON_ALERT_PATH,
     obv: `${NOT_ON_ALERT_PATH}; accumulates from the first candle it is given, so its level depends on how much history the rolling buffer holds`,
     parabolic_sar: `${NOT_ON_ALERT_PATH}; flips side rather than crossing a level, so the condition shape needs deciding first`,
     ichimoku: `${NOT_ON_ALERT_PATH}; five lines and a forward displacement, which must match the chart`,

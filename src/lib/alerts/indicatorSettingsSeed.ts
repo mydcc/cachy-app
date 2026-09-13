@@ -284,6 +284,32 @@ function drawnOverAlertPathSource(settingsKey: string, card: SettingsCard): bool
 }
 
 /**
+ * Cards that keep apart two lengths the core computes as one.
+ *
+ * The ADX card has a DI length and an ADX smoothing. The core's `adx` has one
+ * period, carried from `adxSmoothing`; the chart draws the pane over
+ * `diLength`, and WASM the panel over `adxSmoothing`. Where the two differ no
+ * alert computes the line the trader is looking at, so the card refuses
+ * (FEAT-0446 group 3).
+ */
+const ONE_LENGTH_CARDS: Readonly<Record<string, readonly [string, string]>> = {
+    adx: ["diLength", "adxSmoothing"],
+};
+
+/**
+ * Whether a card's lengths agree where the core computes them as one.
+ *
+ * Mirrors the chart's own fallback (`indicatorLayer.ts`): a missing DI length
+ * is drawn over the smoothing, so it agrees with it.
+ */
+function lengthsAgree(settingsKey: string, card: SettingsCard): boolean {
+    const pair = ONE_LENGTH_CARDS[settingsKey];
+    if (!pair) return true;
+    const [drawn, carried] = pair;
+    return Number(card[drawn] ?? card[carried]) === Number(card[carried]); // audit: safe — comparing two period settings, not a financial value
+}
+
+/**
  * What a settings card's alert action may do right now.
  *
  * - `armable` — the action seeds a draft for exactly the line the card draws
@@ -292,11 +318,17 @@ function drawnOverAlertPathSource(settingsKey: string, card: SettingsCard): bool
  * - `source-mismatch` — the card draws its line over another price than the
  *   one the alert path computes that indicator over (`cardAlertSource`), so the
  *   action refuses and says why (BUG-0453)
+ * - `length-mismatch` — the card keeps apart two lengths the core computes as
+ *   one (`ONE_LENGTH_CARDS`), so no alert computes the line on screen
  *
  * Unlike `isAlertableIndicator` this reads the card, because the source is a
  * setting the trader changes, not a property of the indicator.
  */
-export type CardAlertAvailability = "armable" | "not-alertable" | "source-mismatch";
+export type CardAlertAvailability =
+    | "armable"
+    | "not-alertable"
+    | "source-mismatch"
+    | "length-mismatch";
 
 export function cardAlertAvailability(
     settingsKey: string,
@@ -304,6 +336,7 @@ export function cardAlertAvailability(
 ): CardAlertAvailability {
     if (!isAlertableIndicator(settingsKey)) return "not-alertable";
     if (!drawnOverAlertPathSource(settingsKey, card)) return "source-mismatch";
+    if (!lengthsAgree(settingsKey, card)) return "length-mismatch";
     return "armable";
 }
 

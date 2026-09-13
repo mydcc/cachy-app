@@ -1588,6 +1588,7 @@
       "title": "Technische Analyse",
       "alertOnThis": "Alarm auf diesen Indikator",
       "alertSourceMismatch": "Alarme berechnen diesen Indikator über {source}. Stelle die Quelle auf {source}, um einen Alarm darauf zu setzen.",
+      "alertAdxLengthMismatch": "Alarme berechnen den ADX mit einer Länge. Setze DI Länge und Glättung auf denselben Wert, um einen Alarm darauf zu setzen.",
       "optimization": {
         "title": "Performance Optimierung",
         "preferredEngine": "Bevorzugte Engine",
