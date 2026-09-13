@@ -40,6 +40,7 @@ interface OpenAiModel {
 const CHAT_MODEL_RE = /^(gpt-|o1|o3|o4|chatgpt)/i;
 const EXCLUDE_RE =
   /(embedding|whisper|tts|dall-e|moderation|davinci|babbage|ada|curie|realtime|audio|transcribe|instruct|image)/i;
+const DEFAULT_MODELS_URL = "https://api.openai.com/v1/models";
 
 export const GET: RequestHandler = async ({ url, request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -54,7 +55,7 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
 
   const targetUrl = resolveProviderEndpoint(
     baseUrl,
-    "https://api.openai.com/v1/models",
+    DEFAULT_MODELS_URL,
     "v1/models",
   );
 
@@ -83,8 +84,24 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
       (m) => m && typeof m.id === "string",
     );
     // The vendor filter only makes sense against OpenAI's own catalog; with a
-    // custom base URL the provider's ids are authoritative.
-    const isVendorCatalog = !baseUrl?.trim();
+    // custom base URL the provider's ids are authoritative. An explicitly
+    // pasted default URL still resolves to the vendor catalog, so normalize
+    // against the resolved endpoint instead of just checking for emptiness.
+    const trimmedBase = baseUrl?.trim();
+    let isVendorCatalog =
+      targetUrl.trim().toLowerCase().replace(/\/+$/, "") ===
+      DEFAULT_MODELS_URL.toLowerCase();
+    if (!isVendorCatalog && trimmedBase) {
+      try {
+        const withScheme = /^https?:\/\//i.test(trimmedBase)
+          ? trimmedBase
+          : `https://${trimmedBase}`;
+        isVendorCatalog =
+          new URL(withScheme).hostname.toLowerCase() === "api.openai.com";
+      } catch {
+        // Unparseable input: fall back to the endpoint comparison above.
+      }
+    }
     const models: AiModelInfo[] = rawModels
       .filter(
         (m) =>
