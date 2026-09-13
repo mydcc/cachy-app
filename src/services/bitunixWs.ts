@@ -350,6 +350,11 @@ export class BitunixWebSocketService {
     logger.log("governance", `[BitunixWS] #${this.instanceId} connect(force=${force}) - isDestroyed was ${this.isDestroyed}`);
     this.isDestroyed = false;
     this.connectPublic(force);
+    // A still-open socket never fires onopen again, so replay here too — the
+    // onopen path only covers freshly opened sockets.
+    if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+      this.replayTradeSubscriptions();
+    }
     this.connectPrivate(force);
   }
 
@@ -438,6 +443,12 @@ export class BitunixWebSocketService {
         // then only needs to (re-)subscribe channels still missing after this
         // flush, so the two don't both send the same channel moments apart.
         this.flushPendingSubscriptions();
+
+        // Direct trade consumers hold their callbacks in `tradeListeners`,
+        // which — unlike `pendingSubscriptions` — survives destroy(). Re-issue
+        // their wire subscriptions before the ledger resync below, so a
+        // reconnect restores the trade channel the consumers still want.
+        this.replayTradeSubscriptions();
 
         // Notify Manager. Also triggers MarketWatcher.resync(), which
         // restores any subscriptions this instance's own buffer lost across
@@ -1208,6 +1219,29 @@ export class BitunixWebSocketService {
     });
     if (args.length > 0) {
       this.sendPublicMessage({ op: "subscribe", args });
+    }
+  }
+
+  /**
+   * Re-issues the wire subscription for every symbol a direct trade consumer
+   * still holds a listener for.
+   *
+   * `destroy()` deliberately clears `pendingSubscriptions` (FEAT-0319: the
+   * ledger re-issues everything it owns after `killAll()`), but
+   * `tradeListeners` is a consumer registry, not a ledger one, and survives
+   * the teardown. Without this replay the callback stays attached while the
+   * venue is never told to stream the channel again, so trade data stops until
+   * the consumer re-subscribes — which only happens on a symbol change.
+   *
+   * Reuses `subscribe()` and its presence/ref-count guard, so it is idempotent
+   * and can never raise a channel's count above what the consumers asked for.
+   */
+  private replayTradeSubscriptions() {
+    if (this.isDestroyed) return;
+    for (const symbol of this.tradeListeners.keys()) {
+      if (!this.pendingSubscriptions.has(`trade:${symbol}`)) {
+        this.subscribe(symbol, "trade");
+      }
     }
   }
 

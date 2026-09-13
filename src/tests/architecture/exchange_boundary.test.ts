@@ -329,3 +329,110 @@ describe("FEAT-0227 — the adapter owns its socket", () => {
         }
     });
 });
+
+/*
+ * FEAT-0227, subscription-lifecycle follow-up:
+ *
+ * A channel subscription made directly on a `MarketDataPort` bypasses the
+ * ledger, so `ConnectionManager.killAll()` clears the venue's replay buffer
+ * (`destroy()` drops `pendingSubscriptions` per FEAT-0319) and nothing
+ * re-issues it — the subscription is silently lost until the consumer happens
+ * to re-subscribe. That is exactly how the SymbolPicker ticker strip went
+ * quiet after a settings change. Channels the ledger owns are reached through
+ * `marketWatcher.register`; only the ledger's own `applyDelta` touches the
+ * port directly.
+ *
+ * `subscribeTrades` is deliberately not guarded: the trade channel has no
+ * ledger requirement, so the adapter's own `subscribeTrades` is the sanctioned
+ * consumer API, and `BitunixWebSocketService` replays it from its consumer
+ * registry after a reconnect.
+ */
+
+/** Direct port calls that skip the ledger for a ledger-owned channel. */
+const DIRECT_CHANNEL_CALLS = /\.(marketData\.subscribe|marketData\.unsubscribe)\s*\(/;
+
+/** The only file allowed to call a port's channel API directly. */
+const CHANNEL_CALL_OWNERS = [
+    path.join("src", "services", "marketWatcher", "subscriptionRegistry.ts"),
+];
+
+/** Every shipped `ts`/`svelte` file under `src`, tests and benches excluded. */
+function allSourceFiles(): string[] {
+    const found: string[] = [];
+    const walk = (dir: string) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(full);
+                continue;
+            }
+            if (!/\.(ts|svelte)$/.test(entry.name)) continue;
+            if (/\.(test|bench|spec)\.ts$/.test(entry.name)) continue;
+            found.push(full);
+        }
+    };
+    walk(SRC);
+    return found;
+}
+
+function findDirectChannelCalls(source: string, file: string): Breach[] {
+    const found: Breach[] = [];
+    const lines = source.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        if (DIRECT_CHANNEL_CALLS.test(lines[i])) {
+            found.push({ file, line: i + 1, excerpt: lines[i].trim() });
+        }
+    }
+    return found;
+}
+
+describe("FEAT-0227 — market-data channels are subscribed through the ledger", () => {
+    it("lets nothing but the ledger call a port's channel API directly", () => {
+        const files = allSourceFiles();
+        expect(files.length).toBeGreaterThan(100); // the scan actually ran
+
+        const breaches: Breach[] = [];
+        for (const file of files) {
+            const relative = path.relative(REPO_ROOT, file);
+            if (CHANNEL_CALL_OWNERS.includes(relative)) continue;
+            breaches.push(...findDirectChannelCalls(readFileSync(file, "utf8"), relative));
+        }
+
+        expect(
+            breaches,
+            `Direct MarketDataPort channel call(s) outside the ledger:\n${breaches
+                .map((b) => `  ${b.file}:${b.line}  ${b.excerpt}`)
+                .join("\n")}\n\nUse marketWatcher.register/unregister so reconnects replay the channel (FEAT-0227).`,
+        ).toEqual([]);
+    });
+
+    it("flags a direct ledger-channel subscribe and unsubscribe", () => {
+        const violating = `
+            activeExchange().marketData.subscribe("BTCUSDT", "ticker");
+            activeExchange().marketData.unsubscribe("BTCUSDT", "ticker");
+        `;
+        expect(findDirectChannelCalls(violating, "synthetic.svelte")).toHaveLength(2);
+    });
+
+    it("does not flag the adapter's trade API, which the venue replays itself", () => {
+        const sanctioned = `activeExchange().marketData.subscribeTrades("BTCUSDT", onTrade);`;
+        expect(findDirectChannelCalls(sanctioned, "synthetic.svelte")).toEqual([]);
+    });
+
+    it("does not flag the ledger-shaped equivalents", () => {
+        const compliant = `
+            marketWatcher.register("BTCUSDT", "ticker");
+            marketWatcher.unregister("BTCUSDT", "ticker");
+        `;
+        expect(findDirectChannelCalls(compliant, "synthetic.svelte")).toEqual([]);
+    });
+
+    it("keeps its owner list honest", () => {
+        for (const owner of CHANNEL_CALL_OWNERS) {
+            expect(
+                existsSync(path.join(REPO_ROOT, owner)),
+                `${owner} is exempted but no longer exists — update CHANNEL_CALL_OWNERS`,
+            ).toBe(true);
+        }
+    });
+});

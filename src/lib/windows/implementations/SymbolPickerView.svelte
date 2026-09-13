@@ -23,6 +23,7 @@
     import { tradeState } from "../../../stores/trade.svelte";
     import { app } from "../../../services/app";
     import { activeExchange } from "../../../services/exchange";
+    import { marketWatcher } from "../../../services/marketWatcher";
     import { uiState } from "../../../stores/ui.svelte";
     import { marketState } from "../../../stores/market.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -138,7 +139,11 @@
         return result;
     });
 
-    // Lazy Subscription Management
+    // Lazy Subscription Management. Every channel goes through MarketWatcher:
+    // the ledger owns the wire subscription and replays it after a reconnect
+    // (FEAT-0227). A direct `marketData.subscribe` bypassed that and was
+    // silently dropped by `ConnectionManager.killAll()` — the picker then sat
+    // on stale snapshot prices until the filter changed.
     let previousSubs = new Set<string>();
 
     $effect(() => {
@@ -146,21 +151,17 @@
         const visible = sortedAndFilteredSymbols.slice(0, 50);
         const newSubs = new Set(visible);
 
-        // Diffing. Resolve the adapter once per run: an exchange switch
-        // between subscribe and cleanup would otherwise unsubscribe on the
-        // wrong venue and leak the subscription on the old one.
-        const { marketData } = activeExchange();
         previousSubs.forEach((s) => {
-            if (!newSubs.has(s)) marketData.unsubscribe(s, "ticker");
+            if (!newSubs.has(s)) marketWatcher.unregister(s, "ticker");
         });
         newSubs.forEach((s) => {
-            if (!previousSubs.has(s)) marketData.subscribe(s, "ticker");
+            if (!previousSubs.has(s)) marketWatcher.register(s, "ticker");
         });
 
         previousSubs = newSubs;
 
         return () => {
-            previousSubs.forEach((s) => marketData.unsubscribe(s, "ticker"));
+            previousSubs.forEach((s) => marketWatcher.unregister(s, "ticker"));
         };
     });
 
