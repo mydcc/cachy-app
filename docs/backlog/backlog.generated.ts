@@ -5910,7 +5910,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0446",
     "title": "Prove the remaining panel indicators against recorded history",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "M4",
     "editions": [

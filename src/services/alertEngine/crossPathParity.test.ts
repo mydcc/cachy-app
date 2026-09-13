@@ -143,6 +143,8 @@ const NOT_IN_WASM: Record<string, string> = {
     "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
   "Stoch RSI %D":
     "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal stochastic of the RSI",
+  OBV:
+    "no WASM implementation; indicatorSeries.test.ts checks it against a Decimal running total of signed volume",
   "Parabolic SAR direction":
     "WASM reports the SAR, not the side it stands on; indicatorSeries.test.ts checks both lines against a Decimal replay of Wilder's SAR",
   "Bollinger bandwidth":

@@ -42,6 +42,7 @@ import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { catalogueEntry, registryEntry } from "./indicatorCatalogue";
+import { ALERT_PATH_INDICATORS } from "../rules/alertPathIndicators";
 import {
     alertableIndicatorKeys,
     cardAlertAvailability,
@@ -227,14 +228,29 @@ describe("carrying the configured parameters rather than the defaults", () => {
         expect(typeof ref.params.std_dev).toBe("string");
     });
 
-    // BUG-0451. OBV has no JavaScript implementation on the alert path, so its
-    // card offers no alert action rather than seeding an alert that would be
-    // armed and never fire. (The Parabolic SAR served here until FEAT-0446
-    // group 4 wired it in.)
-    it("offers no alert action on a card whose indicator an alert cannot fire on", () => {
-        const card = { smoothingLength: 0 };
-        expect(indicatorRefsFrom("obv", card)).toEqual([]);
-        expect(seedFromIndicatorSettings("obv", card, "BTCUSDT")).toBeNull();
+    // BUG-0451. A card whose indicator the alert path cannot compute offers no
+    // alert action rather than seeding an alert that would be armed and never
+    // fire. Since FEAT-0446 group 4 every mapped indicator computes, so this is
+    // checked as the rule itself rather than on a named card that no longer
+    // exists.
+    it("offers an alert action exactly on the cards whose indicator the alert path computes", () => {
+        for (const key of MAPPED) {
+            const computes = mappedIndicatorRefs(key, cardFor(key)).every((ref) => ALERT_PATH_INDICATORS.has(ref.id));
+            expect(isAlertableIndicator(key), key).toBe(computes);
+        }
+    });
+
+    // FEAT-0446 group 4. The core takes OBV only against its own window, so
+    // the card seeds the one shape it accepts rather than "OBV > 0".
+    it("seeds an OBV card at its own 20-candle high", () => {
+        const seed = seedFromIndicatorSettings("obv", { smoothingLength: 0 }, "BTCUSDT");
+        const obv = { kind: "indicator", indicator: { id: "obv", params: {}, output: "value" } };
+        expect(seed?.condition).toMatchObject({
+            kind: "compare",
+            left: obv,
+            op: "gte",
+            right: { kind: "window", of: obv, agg: "max", lookback: 20 },
+        });
     });
 });
 
@@ -318,8 +334,10 @@ describe("the seed the entry point hands to the panel", () => {
             expect(isAlertableIndicator(key), key).toBe(availability !== "not-alertable");
             expect(availability === "armable", key).toBe(seed !== null);
         }
+        // Every mapped card computes on the alert path since FEAT-0446 group 4,
+        // so the armable keys are all of them.
         expect(KEYS.length).toBeGreaterThan(0);
-        expect(KEYS.length).toBeLessThan(MAPPED.length);
+        expect([...KEYS].sort()).toEqual([...MAPPED].sort());
     });
 });
 
@@ -401,7 +419,6 @@ describe("a card whose price source is not the one the alert path computes over"
 
     it("answers not-alertable for a card with no alert action, whatever its source", () => {
         expect(cardAlertAvailability("pivots", { source: "hl2" })).toBe("not-alertable");
-        expect(cardAlertAvailability("obv", {})).toBe("not-alertable");
     });
 });
 
