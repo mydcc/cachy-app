@@ -124,6 +124,55 @@ describe("reaching the action without a mouse", () => {
     });
 });
 
+/**
+ * BUG-0453. The chart draws the card's line over its source; an alert is
+ * always computed over the close. Hiding the button would leave the trader
+ * wondering where it went, so it stays, refuses, and says why.
+ */
+describe("a card whose source is not the close", () => {
+    afterEach(() => {
+        indicatorState.rsi.source = "close";
+    });
+
+    it("keeps the action visible but refuses it, and names the reason", () => {
+        indicatorState.rsi.source = "hl2";
+        const button = render("rsi")!;
+
+        expect(button).not.toBeNull();
+        expect(button.getAttribute("aria-disabled")).toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertSourceNotClose);
+        expect(button.getAttribute("title")).toBe(en.settings.technicals.alertSourceNotClose);
+        // Still a focusable native button, so a keyboard user can reach the reason.
+        expect(button.disabled).toBe(false);
+    });
+
+    it("does not open the panel when pressed", () => {
+        indicatorState.rsi.source = "hlc3";
+        render("rsi")!.click();
+        settle();
+
+        expect(uiState.showAlertsModal).toBe(false);
+    });
+
+    it("becomes armable again as soon as the source is set back to the close", () => {
+        indicatorState.rsi.source = "hl2";
+        const button = render("rsi")!;
+        indicatorState.rsi.source = "close";
+        settle();
+
+        expect(button.getAttribute("aria-disabled")).not.toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertOnThis);
+    });
+
+    it("has the reason in both shipped locales", () => {
+        expect(en.settings.technicals.alertSourceNotClose.trim()).not.toBe("");
+        expect(de.settings.technicals.alertSourceNotClose.trim()).not.toBe("");
+        expect(de.settings.technicals.alertSourceNotClose).not.toBe(
+            en.settings.technicals.alertSourceNotClose,
+        );
+    });
+});
+
 describe("what pressing it does", () => {
     it("opens the Indicators tab on a draft carrying the configured period", () => {
         indicatorState.rsi.length = 21;

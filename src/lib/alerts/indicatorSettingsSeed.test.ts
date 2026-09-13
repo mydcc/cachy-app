@@ -44,6 +44,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { catalogueEntry, registryEntry } from "./indicatorCatalogue";
 import {
     alertableIndicatorKeys,
+    cardAlertAvailability,
     indicatorRefsFrom,
     isAlertableIndicator,
     mappedIndicatorKeys,
@@ -306,8 +307,68 @@ describe("the seed the entry point hands to the panel", () => {
         for (const key of MAPPED) {
             const seed = seedFromIndicatorSettings(key, cardFor(key), "BTCUSDT");
             expect(isAlertableIndicator(key), key).toBe(seed !== null);
+            expect(cardAlertAvailability(key, cardFor(key)) === "armable", key).toBe(seed !== null);
         }
         expect(KEYS.length).toBeGreaterThan(0);
         expect(KEYS.length).toBeLessThan(MAPPED.length);
+    });
+});
+
+/**
+ * BUG-0453. Every indicator on the alert path is computed over the close, and
+ * the registry has no parameter to carry anything else. The chart computes a
+ * card's line over the card's own source. A card set to `hl2` would therefore
+ * seed an alert on a different line from the one the trader is looking at, so
+ * it seeds none, and the button says why.
+ */
+describe("a card whose price source the alert path does not compute over", () => {
+    const NOT_CLOSE = ["open", "high", "low", "hl2", "hlc3"];
+    /** Armable cards that carry a source, read off the store itself. */
+    const SOURCED = KEYS.filter((key) => "source" in cardFor(key));
+
+    it("covers the armable cards that carry a source", () => {
+        expect(SOURCED).toEqual(
+            expect.arrayContaining(["rsi", "momentum", "ema", "macd", "bollingerBands"]),
+        );
+    });
+
+    it.each(NOT_CLOSE)("seeds no alert from a card set to %s", (source) => {
+        for (const key of SOURCED) {
+            const card = { ...cardFor(key), source };
+            expect(cardAlertAvailability(key, card), key).toBe("source-not-close");
+            expect(indicatorRefsFrom(key, card), key).toEqual([]);
+            expect(seedFromIndicatorSettings(key, card, "BTCUSDT"), key).toBeNull();
+        }
+    });
+
+    it("still seeds from a card set to the close", () => {
+        for (const key of SOURCED) {
+            const card = { ...cardFor(key), source: "close" };
+            expect(cardAlertAvailability(key, card), key).toBe("armable");
+            expect(seedFromIndicatorSettings(key, card, "BTCUSDT"), key).not.toBeNull();
+        }
+    });
+
+    it.each([
+        ["missing", undefined],
+        ["null", null],
+        ["empty", ""],
+    ])("reads a %s source as the close, which is what the chart draws for it", (_label, source) => {
+        const card = { length: 21, source };
+        expect(cardAlertAvailability("rsi", card)).toBe("armable");
+        expect(indicatorRefsFrom("rsi", card)).toHaveLength(1);
+    });
+
+    it("refuses a source it does not recognise rather than assuming the close", () => {
+        // Only reachable through a hand-edited store. Withholding the shortcut
+        // costs a click; guessing wrong arms an alert on the wrong line.
+        const card = { length: 21, source: "ohlc4" };
+        expect(cardAlertAvailability("rsi", card)).toBe("source-not-close");
+        expect(seedFromIndicatorSettings("rsi", card, "BTCUSDT")).toBeNull();
+    });
+
+    it("answers not-alertable for a card with no alert action, whatever its source", () => {
+        expect(cardAlertAvailability("pivots", { source: "hl2" })).toBe("not-alertable");
+        expect(cardAlertAvailability("parabolicSar", {})).toBe("not-alertable");
     });
 });

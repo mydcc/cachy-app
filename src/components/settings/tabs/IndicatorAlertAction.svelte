@@ -27,12 +27,18 @@
   Arms nothing. It seeds the draft and opens the panel, which still shows the
   plain-language sentence and still requires its own arm press (ADR-0012
   decision 5).
+
+  BUG-0453: on a card whose line is drawn over another price than the close
+  (`hl2`, `hlc3`, …) the button stays, refuses, and names the reason. An alert
+  is always computed over the close, so opening a draft there would arm an alert
+  on a different line from the one on screen; hiding the button instead would
+  leave the trader looking for it.
 -->
 
 <script lang="ts">
     import { openAlertPanelWith } from "../../../lib/alerts/openAlertPanel";
     import {
-        isAlertableIndicator,
+        cardAlertAvailability,
         seedFromIndicatorSettings,
     } from "../../../lib/alerts/indicatorSettingsSeed";
     import { indicatorState } from "../../../stores/indicator.svelte";
@@ -41,22 +47,38 @@
 
     let { settingsKey }: { settingsKey: string } = $props();
 
+    function cardOf(key: string): Record<string, unknown> | null {
+        const card = (indicatorState as unknown as Record<string, unknown>)[key];
+        return card !== null && typeof card === "object"
+            ? (card as Record<string, unknown>)
+            : null;
+    }
+
     // $derived, not a const: a const captures the prop's first value, and a
     // card rendered for a different indicator would keep the first card's
-    // answer about whether it can be armed.
-    let armable = $derived(isAlertableIndicator(settingsKey));
+    // answer about whether it can be armed. Reading the card inside it also
+    // re-derives when the trader changes the card's source.
+    let availability = $derived.by(() => {
+        const card = cardOf(settingsKey);
+        return card === null ? "not-alertable" : cardAlertAvailability(settingsKey, card);
+    });
+    let refused = $derived(availability === "source-not-close");
+    let label = $derived(
+        refused
+            ? $_("settings.technicals.alertSourceNotClose")
+            : $_("settings.technicals.alertOnThis"),
+    );
 
     function openPanel() {
-        const card = (indicatorState as unknown as Record<string, unknown>)[
-            settingsKey
-        ];
-        if (card === null || typeof card !== "object") return;
+        if (availability !== "armable") return;
+        const card = cardOf(settingsKey);
+        if (card === null) return;
         // The same symbol the panel would have opened on by itself
         // (`AlertPanel.svelte` reads `tradeState.symbol`): two spellings of
         // "the current market" is how a draft ends up on the wrong one.
         const seed = seedFromIndicatorSettings(
             settingsKey,
-            card as Record<string, unknown>,
+            card,
             tradeState.symbol,
         );
         if (seed === null) return;
@@ -64,13 +86,17 @@
     }
 </script>
 
-{#if armable}
+{#if availability !== "not-alertable"}
+    <!-- aria-disabled rather than disabled: a disabled button leaves the tab
+         order, and the reason it gives would be unreachable by keyboard. -->
     <button
         type="button"
         class="alert-action"
+        class:refused
         onclick={openPanel}
-        title={$_("settings.technicals.alertOnThis")}
-        aria-label={$_("settings.technicals.alertOnThis")}
+        title={label}
+        aria-label={label}
+        aria-disabled={refused ? "true" : undefined}
     >
         <svg
             viewBox="0 0 24 24"
@@ -108,6 +134,13 @@
         color: var(--accent-color);
         background-color: var(--bg-secondary);
         border-color: var(--border-color);
+    }
+    .alert-action.refused {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+    .alert-action.refused:hover {
+        color: var(--text-secondary);
     }
     .alert-action:focus-visible {
         outline: 2px solid var(--accent-color);

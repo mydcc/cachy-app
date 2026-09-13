@@ -3916,7 +3916,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0453",
     "title": "An alert armed from an indicator card ignores the card's price source",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -3928,6 +3928,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "claude-code",
+    "branch": "fix/bug-0453-card-alert-source",
+    "start_date": "2026-09-13",
     "file": "bugs/BUG-0453-card-alert-ignores-price-source.md"
   },
   {
@@ -6963,6 +6966,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "features/FEAT-0436-detect-closed-mirror-without-flip.md"
+  },
+  {
+    "id": "FEAT-0454",
+    "title": "Let an indicator alert compute over the price source its card is set to",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "BUG-0453"
+    ],
+    "file": "features/FEAT-0454-alert-on-indicator-price-source.md"
   },
   {
     "id": "IDEA-0036",
