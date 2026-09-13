@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import { CONSTANTS, icons } from "../../../lib/constants";
     const majorsSet = new Set(CONSTANTS.MAJORS);
     import { _ } from "../../../locales/i18n";
@@ -144,25 +144,31 @@
     // (FEAT-0227). A direct `marketData.subscribe` bypassed that and was
     // silently dropped by `ConnectionManager.killAll()` — the picker then sat
     // on stale snapshot prices until the filter changed.
+    //
+    // The diff is incremental and the teardown lives in `onDestroy`, not in the
+    // `$effect` return: an effect cleanup runs on *every* re-run, so on
+    // `[A, B] -> [B, C]` it would unregister B, and the body would then skip
+    // re-registering it (B is still in `previousSubs`) — quietly dropping an
+    // overlapping ticker until it left and re-entered the visible set.
     let previousSubs = new Set<string>();
 
     $effect(() => {
         // Subscribe to top 50 visible symbols
-        const visible = sortedAndFilteredSymbols.slice(0, 50);
-        const newSubs = new Set(visible);
+        const newSubs = new Set(sortedAndFilteredSymbols.slice(0, 50));
 
-        previousSubs.forEach((s) => {
+        for (const s of previousSubs) {
             if (!newSubs.has(s)) marketWatcher.unregister(s, "ticker");
-        });
-        newSubs.forEach((s) => {
+        }
+        for (const s of newSubs) {
             if (!previousSubs.has(s)) marketWatcher.register(s, "ticker");
-        });
+        }
 
         previousSubs = newSubs;
+    });
 
-        return () => {
-            previousSubs.forEach((s) => marketWatcher.unregister(s, "ticker"));
-        };
+    onDestroy(() => {
+        for (const s of previousSubs) marketWatcher.unregister(s, "ticker");
+        previousSubs = new Set();
     });
 
     function getChangePercent(s: string) {
