@@ -2,7 +2,7 @@
 id: BUG-0447
 title: A stale agent re-push on a PR branch silently reverts work already merged to develop
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: repo
 data_class: none
 adr: none
 depends_on: []
+branch: fix/bug-0447-stale-snapshot-revert-guard
+assignee: opencode
+start_date: 2026-09-14
 ---
 
 # BUG-0447 — A stale agent re-push on a PR branch silently reverts work already merged to develop
