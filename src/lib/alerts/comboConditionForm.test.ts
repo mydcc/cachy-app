@@ -146,6 +146,24 @@ describe("readComboForm", () => {
         expect(read?.rows[0].form).toEqual(windowed.rows[0].form);
     });
 
+    it("round-trips a row over the price its indicator is computed over", () => {
+        // FEAT-0454: a condition seeded from a card drawn over hl2 reaches this
+        // tab too. The row does not offer the price, but must not drop it.
+        const one = formWith(1);
+        const row = one.rows[0];
+        const overHl2 = replaceRow(one, row.id, {
+            form: {
+                subject: { id: "rsi", params: { period: 14 }, output: "value", field: "hl2" },
+                relation: { kind: "compare", op: "gte" },
+                reference: { kind: "window", agg: "max", lookback: 20 },
+            },
+        });
+        const built = buildComboCondition(overHl2, TRIGGER);
+        const read = readComboForm(built, TRIGGER);
+        expect(read?.rows[0].form).toEqual(overHl2.rows[0].form);
+        expect(buildComboCondition(read!, TRIGGER)).toEqual(built);
+    });
+
     it("reports a row's own timeframe as its own, not as the trigger's", () => {
         const one = formWith(1);
         const coarser = replaceRow(one, one.rows[0].id, { timeframe: "4h" });

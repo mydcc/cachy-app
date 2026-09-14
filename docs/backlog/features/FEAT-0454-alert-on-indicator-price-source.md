@@ -2,7 +2,7 @@
 id: FEAT-0454
 title: Let an indicator alert compute over the price source its card is set to
 type: feature
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -11,7 +11,7 @@ data_class: none
 adr: ADR-0012
 depends_on: [BUG-0453]
 assignee: claude-code
-branch: feat/feat-0454-indicator-price-source
+branch: feat/feat-0454-card-price-source
 start_date: 2026-09-14
 ---
 
@@ -53,10 +53,10 @@ Carry the source as an optional parameter rather than as a panel setting:
 
 ## Acceptance criteria
 
-- [ ] An alert seeded from an RSI card on `hl2` is computed over `(high + low) / 2`, and a
+- [x] An alert seeded from an RSI card on `hl2` is computed over `(high + low) / 2`, and a
       recorded-history expectation proves it
-- [ ] Rules armed before the change keep their hash and their verdicts
-- [ ] Parity against the chart line for every source the selector offers
+- [x] Rules armed before the change keep their hash and their verdicts
+- [x] Parity against the chart line for every source the selector offers
 
 ## Progress
 
@@ -84,13 +84,24 @@ Carry the source as an optional parameter rather than as a panel setting:
   - **Alerts armed from a non-close card before BUG-0453.** Nothing to surface:
     the document never recorded the card's price, so it means the close, as it
     always computed. There is nothing to retarget it to.
-- Next, slice 2: the seed copies the card's source (`cardAlertSource` must
-  compare against the rule's effective field, not the default),
-  `cardAlertAvailability` stops refusing `source-mismatch`, the Indicators tab
-  offers the price and the sentence names it — at which point the unclaim above
-  is lifted. Lifting it also reaches `canonicalRef` in `indicatorFormLeaf.ts`,
-  which already carries the effective price so a window over RSI-hl2 cannot read
-  as a window over RSI-close; keep it that way.
+- 2026-09-14, slice 2 — the panel.
+  - **Seed.** A card drawn over any price copies it onto the reference
+    (`cardAlertField`), omitted where it is the indicator's default
+    (`referenceFieldFor`), so the draft is the document the core stores.
+    `source-mismatch` remains only for stoch RSI drawn over another price than
+    the close and for a value nobody recognises.
+  - **Indicators tab.** A "Computed over" selector on the six indicators, read
+    back from the reference and written into the subject and any window over it.
+    `indicatorFormOf` claims such a condition; only a price the tab cannot show
+    stays unclaimed. `canonicalRef` compares on the effective price.
+  - **Sentence.** "RSI(14) from the median price (HL2)" / "RSI(14) aus dem
+    Mittelkurs (HL2)", in a window too; the default stays unsaid.
+  - **Acceptance.** The recorded-history hl2 expectation now arms the operand the
+    RSI card on hl2 seeds, so the first criterion is proven end to end. The
+    pinned hashes and slice 1's verdicts cover the second, the per-output parity
+    test the third.
+  - The Combo tab keeps a reference's price through its edits but does not offer
+    one; a new row starts on the default.
 
 ## Links
 

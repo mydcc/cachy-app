@@ -125,38 +125,51 @@ describe("reaching the action without a mouse", () => {
 });
 
 /**
- * BUG-0453. The chart draws the card's line over its source; an alert computes
- * the indicator over one fixed price (the close, or CCI's typical price).
- * Hiding the button would leave the trader wondering where it went, so it
- * stays, refuses, and says which price to choose.
+ * The chart draws the card's line over its source. Since FEAT-0454 an alert
+ * names that price wherever the indicator takes one, so the card arms. Where it
+ * takes none (stoch RSI) the alert is computed over the close, and a card drawn
+ * over anything else keeps BUG-0453's answer: hiding the button would leave the
+ * trader wondering where it went, so it stays, refuses, and says which price to
+ * choose.
  */
-describe("a card whose source is not the price the alert path computes over", () => {
+describe("a card drawn over a price source", () => {
     const reason = (source: string) =>
         en.settings.technicals.alertSourceMismatch.replaceAll("{source}", source);
+    /** Stoch RSI's source is fixed to the close, so only a hand-edited store holds another. */
+    const stochRsiCard = indicatorState.stochRsi as unknown as { source: string };
 
     afterEach(() => {
         indicatorState.rsi.source = "close";
         indicatorState.cci.source = "hlc3";
+        stochRsiCard.source = "close";
     });
 
-    it("keeps the action visible but refuses it, and names the price to choose", () => {
+    // FEAT-0454: the alert names the card's price, so the card no longer refuses.
+    it("arms an RSI card drawn over hl2, and seeds RSI over hl2", () => {
         indicatorState.rsi.source = "hl2";
         const button = render("rsi")!;
 
-        expect(button).not.toBeNull();
-        expect(button.getAttribute("aria-disabled")).toBe("true");
-        expect(button.getAttribute("aria-label")).toBe(reason("close"));
-        expect(button.getAttribute("title")).toBe(reason("close"));
-        // Still a focusable native button, so a keyboard user can reach the reason.
-        expect(button.disabled).toBe(false);
+        expect(button.getAttribute("aria-disabled")).not.toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertOnThis);
+
+        button.click();
+        settle();
+        expect(uiState.showAlertsModal).toBe(true);
+        expect(seededCondition()).toMatchObject({
+            left: { kind: "indicator", indicator: { id: "rsi", field: "hl2" } },
+        });
     });
 
-    it("names the typical price on a CCI card set to the close", () => {
+    it("arms a CCI card set to the close, and seeds CCI over the close", () => {
         indicatorState.cci.source = "close";
         const button = render("cci")!;
 
-        expect(button.getAttribute("aria-disabled")).toBe("true");
-        expect(button.getAttribute("aria-label")).toBe(reason("hlc3"));
+        expect(button.getAttribute("aria-disabled")).not.toBe("true");
+        button.click();
+        settle();
+        expect(seededCondition()).toMatchObject({
+            left: { kind: "indicator", indicator: { id: "cci", field: "close" } },
+        });
     });
 
     it("arms a CCI card on its default typical price", () => {
@@ -166,18 +179,30 @@ describe("a card whose source is not the price the alert path computes over", ()
         expect(button.getAttribute("aria-label")).toBe(en.settings.technicals.alertOnThis);
     });
 
-    it("does not open the panel when pressed", () => {
-        indicatorState.rsi.source = "hlc3";
-        render("rsi")!.click();
+    it("keeps the action visible on a stoch RSI card drawn over another price, refuses it, and names the close", () => {
+        stochRsiCard.source = "hl2";
+        const button = render("stochRsi")!;
+
+        expect(button).not.toBeNull();
+        expect(button.getAttribute("aria-disabled")).toBe("true");
+        expect(button.getAttribute("aria-label")).toBe(reason("close"));
+        expect(button.getAttribute("title")).toBe(reason("close"));
+        // Still a focusable native button, so a keyboard user can reach the reason.
+        expect(button.disabled).toBe(false);
+    });
+
+    it("does not open the panel when a refused card is pressed", () => {
+        stochRsiCard.source = "hlc3";
+        render("stochRsi")!.click();
         settle();
 
         expect(uiState.showAlertsModal).toBe(false);
     });
 
     it("becomes armable again as soon as the source is set back to the close", () => {
-        indicatorState.rsi.source = "hl2";
-        const button = render("rsi")!;
-        indicatorState.rsi.source = "close";
+        stochRsiCard.source = "hl2";
+        const button = render("stochRsi")!;
+        stochRsiCard.source = "close";
         settle();
 
         expect(button.getAttribute("aria-disabled")).not.toBe("true");
@@ -193,11 +218,6 @@ describe("a card whose source is not the price the alert path computes over", ()
     });
 });
 
-/**
- * FEAT-0446 group 3. The ADX card keeps a DI length and a smoothing apart; the
- * core computes ADX with one length. Where they differ, no alert computes the
- * pane on screen, so the action refuses and says what to change.
- */
 describe("an ADX card whose two lengths differ", () => {
     afterEach(() => {
         indicatorState.adx.diLength = 14;

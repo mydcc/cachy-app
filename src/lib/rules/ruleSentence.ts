@@ -44,6 +44,7 @@ import type {
   RuleDocument,
   TimeframeString,
 } from "./types";
+import { isPriceField, referenceFieldFor } from "./alertPathIndicators";
 
 /**
  * The subset of the i18n contract this module needs. Taking a function rather
@@ -104,6 +105,27 @@ export function formatIndicator(ref: IndicatorRef): string {
 }
 
 /**
+ * `RSI(14)`, or `RSI(14) from the median price (HL2)` when the reference names a
+ * price other than the one the indicator is computed over without it (FEAT-0454):
+ * that is another line from the one the trader would otherwise read. The
+ * default, spelled or omitted, stays unsaid, like the last-price series below.
+ *
+ * One fragment per price rather than a `{price}` slot, because German declines
+ * the price after "aus" and the names under `rules.sentence.price` are
+ * nominative.
+ *
+ * A value that names no price (only reachable through a hand-edited document;
+ * the core refuses it) renders as the bare indicator: there is no fragment
+ * for it, and guessing one would arm a sentence for the wrong line.
+ */
+function indicatorName(ref: IndicatorRef, t: SentenceTranslator): string {
+  const name = formatIndicator(ref);
+  if (!isPriceField(ref.field)) return name;
+  const field = referenceFieldFor(ref.id, ref.field);
+  return field === undefined ? name : t(`rules.sentence.indicatorFrom.${field}`, { indicator: name });
+}
+
+/**
  * The price a condition reads, with its series named only when it is not the
  * default. A suffix rather than a separate set of fragments, the way
  * `onTimeframe` already works: a trader reading "the close" is reading the last
@@ -138,7 +160,7 @@ function formatOperand(
     case "volume":
       return t("rules.sentence.volume");
     case "indicator":
-      return formatIndicator(operand.indicator);
+      return indicatorName(operand.indicator, t);
     case "constant":
       return inPercentContext
         ? t("rules.sentence.percentValue", { value: operand.value })
