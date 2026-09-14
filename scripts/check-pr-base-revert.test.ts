@@ -17,9 +17,9 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const SCRIPT = new URL("./check-pr-base-revert.mjs", import.meta.url).pathname;
 
@@ -37,6 +37,15 @@ function git(cwd: string, ...args: string[]) {
 
 function commitFile(dir: string, name: string, content: string, msg: string) {
     writeFileSync(join(dir, name), content);
+    git(dir, "add", name);
+    git(dir, "commit", "-m", msg);
+}
+
+/** Like `commitFile`, but for a nested path (e.g. `docs/backlog/INDEX.md`). */
+function commitPath(dir: string, name: string, content: string, msg: string) {
+    const full = join(dir, name);
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(full, content);
     git(dir, "add", name);
     git(dir, "commit", "-m", msg);
 }
@@ -152,5 +161,44 @@ describe("check-pr-base-revert.mjs", () => {
         const base = git(root, "rev-parse", "develop");
         const result = runScript(root, base, base);
         expect(result.status).toBe(0);
+    });
+
+    /**
+     * The shape that tripped the guard on the FEAT-0454 review (PR #3297): the
+     * branch and the base each rewrite one line of a two-line file, the branch
+     * merges the base, then regenerates the second line. The base's line is
+     * gone from the payload and was not present at the fork, so the raw check
+     * flags it; the path decides whether that is churn or a revert.
+     */
+    function baseAndBranchRewriteOneLine(path: string) {
+        const content = (head: string, value: string) =>
+            `${head}\n${"filler\n".repeat(8)}${value}\n`;
+        commitPath(root, path, content("head", "value A"), "seed");
+        git(root, "checkout", "-b", "feat");
+        commitPath(root, path, content("head-edit", "value A"), "branch edits its own line");
+        git(root, "checkout", "develop");
+        commitPath(root, path, content("head", "value B"), "base rewrites the other line");
+        git(root, "checkout", "feat");
+        git(root, "merge", "develop", "-m", "chore: merge develop into feat");
+        commitPath(root, path, content("head-edit", "value C"), "branch regenerates");
+        return { base: git(root, "rev-parse", "develop"), head: git(root, "rev-parse", "feat") };
+    }
+
+    it("ignores regenerated backlog index churn (BUG-0447 review, PR #3297)", () => {
+        const { base, head } = baseAndBranchRewriteOneLine("docs/backlog/INDEX.md");
+
+        const result = runScript(root, base, head);
+
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("keeps base-branch work intact");
+    });
+
+    it("still fails that shape on a checked path, so the exclusion is narrow", () => {
+        const { base, head } = baseAndBranchRewriteOneLine("src/notes.md");
+
+        const result = runScript(root, base, head);
+
+        expect(result.status).toBe(1);
+        expect(result.output).toContain("src/notes.md");
     });
 });

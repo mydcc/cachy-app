@@ -63,6 +63,22 @@ const ALLOW_LABEL = process.env.ALLOW_LABEL ?? "allow-base-revert";
 // Cap the per-path sample lines in the report; the count is never capped.
 const MAX_SAMPLE_LINES = 10;
 
+/**
+ * Generated aggregates, not source. `node scripts/backlog-index.mjs` rewrites
+ * their summary lines on any item flip, so a PR that regenerates the index
+ * legitimately replaces a line the base also changed — exactly what tripped
+ * this guard on the FEAT-0454 review (PR #3297), where `Counts by status`
+ * moved because the PR flipped one item from `idea` to `in-progress`. The
+ * per-item markdown those aggregates derive from stays checked; a deleted
+ * `BUG-0441-*.md` is still caught, and `npm run backlog:check` proves the
+ * aggregates match the source.
+ */
+const GENERATED_BACKLOG_PATHS = new Set([
+    "docs/backlog/INDEX.md",
+    "docs/backlog/backlog.generated.ts",
+    "docs/backlog/backlog.generated.json",
+]);
+
 function git(...args) {
     return execFileSync("git", args, {
         encoding: "utf8",
@@ -177,6 +193,7 @@ function main() {
     let checked = 0;
     for (const { status, oldPath, path } of payloadEntries(mergeBase, head)) {
         if (status.startsWith("A")) continue; // the PR's own addition.
+        if (GENERATED_BACKLOG_PATHS.has(path) || GENERATED_BACKLOG_PATHS.has(oldPath)) continue;
         checked += 1;
 
         const mBuf = blobBuffer(mergeBase, oldPath);
