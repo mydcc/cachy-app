@@ -37,6 +37,7 @@
     type AiApiFlavor,
   } from "../../stores/settings/aiProviders";
   import type { TranslationKey } from "../../locales/schema";
+  import type { AiProvider } from "../../stores/settings.svelte";
   import AiModelPicker from "./AiModelPicker.svelte";
 
   const FLAVOR_LABEL_KEYS: Record<AiApiFlavor, TranslationKey> = {
@@ -45,6 +46,22 @@
     "anthropic-messages": "settings.ai.customProviders.flavorAnthropicMessages",
     "google-generate": "settings.ai.customProviders.flavorGoogleGenerate",
   };
+
+  /**
+   * The model-list route that serves a flavor. The list is fetched through the
+   * server relay, so the picker is shown only when the relay is on; otherwise
+   * the model is typed by hand.
+   */
+  function modelProviderForFlavor(flavor: AiApiFlavor): AiProvider {
+    switch (flavor) {
+      case "anthropic-messages":
+        return "anthropic";
+      case "google-generate":
+        return "gemini";
+      default:
+        return "openai";
+    }
+  }
 
   function addProvider() {
     const provider = buildUserProvider(settingsState.userProviders);
@@ -175,9 +192,9 @@
               />
             </div>
 
-            {#if provider.flavor === "openai-chat" && provider.allowServerRelay}
+            {#if provider.allowServerRelay}
               <AiModelPicker
-                provider="openai"
+                provider={modelProviderForFlavor(provider.flavor)}
                 apiKey={provider.apiKey}
                 baseUrl={provider.baseUrl}
                 bind:model={provider.model}
