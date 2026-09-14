@@ -5991,7 +5991,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0439",
     "title": "Close the WebGPU leg of cross-path indicator parity",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -6007,6 +6007,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "M",
     "estimate": "5",
+    "assignee": "claude",
+    "start_date": "2026-09-14",
+    "branch": "feat/feat-0439-webgpu-parity",
     "file": "features/FEAT-0439-webgpu-cross-path-parity.md"
   },
   {

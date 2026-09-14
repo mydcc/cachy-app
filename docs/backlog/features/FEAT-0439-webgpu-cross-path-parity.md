@@ -2,7 +2,7 @@
 id: FEAT-0439
 title: Close the WebGPU leg of cross-path indicator parity
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -12,6 +12,9 @@ adr: ADR-0012
 depends_on: [FEAT-0028]
 size: M
 estimate: 5
+assignee: claude
+start_date: 2026-09-14
+branch: feat/feat-0439-webgpu-parity
 ---
 
 # FEAT-0439 — Close the WebGPU leg of cross-path indicator parity
