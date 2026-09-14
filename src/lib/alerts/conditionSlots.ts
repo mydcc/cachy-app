@@ -38,12 +38,12 @@
  *
  * **A slot is claimed by `slotOf()` exactly when that builder's reader can
  * hydrate the condition.** Price and indicators ask their reader's own parser
- * (`priceReadingOf`, `indicatorFormOf`); candlesticks claim patterns. A volume comparison, a window, a position or account
- * condition, and a nested group are unclaimed — no builder emits those shapes, so
- * an unclaimed condition is one no builder will ever replace or remove. Unknown
- * means keep: a shape this module doesn't recognise survives a tab switch
- * untouched rather than being deleted by the builder that came closest to owning
- * it.
+ * (`priceReadingOf`, `indicatorFormOf`); candlesticks claim patterns. A volume
+ * comparison, a window, a position or account condition, and a nested group are
+ * unclaimed — no builder emits those shapes, so an unclaimed condition is one no
+ * builder will ever replace or remove. Unknown means keep: a shape this module
+ * doesn't recognise survives a tab switch untouched rather than being deleted by
+ * the builder that came closest to owning it.
  *
  * An indicator id the panel does not offer — the fourteen BUG-0451 hides — is
  * unclaimed on purpose: `readIndicatorForm` cannot hydrate it, so claiming it
@@ -68,8 +68,8 @@ export type BuilderSlot = "price" | "indicators" | "candlesticks";
 /**
  * Which builder authored `condition`, or `null` when no builder can claim it.
  *
- * Claims match what each builder actually emits — see `buildCondition()` in
- * `PriceTab.svelte`, `buildIndicatorCondition()` in `indicatorConditionForm.ts`
+ * Claims match what each builder actually emits — see `buildPriceCondition()` in
+ * `priceFormLeaf.ts`, `buildIndicatorCondition()` in `indicatorConditionForm.ts`
  * and the pattern condition in `CandlesticksTab.svelte`. A shape those three
  * cannot produce is unclaimed even when it looks close, because a builder that
  * claims a condition it cannot render would hydrate blank and then delete it.
