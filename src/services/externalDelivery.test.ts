@@ -41,7 +41,11 @@ import { externalChannelsStore } from "../stores/externalChannels.svelte";
 import { externalDeliveryLog } from "../stores/externalDeliveryLog.svelte";
 
 const WEBHOOK = "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_";
-const TOKEN = "123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw";
+// Synthetic BotFather-shaped fixture (5-digit prefix + 29-char secret): passes
+// BOT_TOKEN_RE but never matches the real Telegram token pattern, so secret
+// scanning stays quiet. Not a credential — Telegram's doc example was flagged
+// in secret-scanning alert #1.
+const TOKEN = "12345:TEST-TOKEN-FOR-UNIT-TESTS-0000";
 
 function okResponse(status = 204): Response {
     return { ok: status < 400, status, text: async () => "" } as unknown as Response;
