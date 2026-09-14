@@ -2369,6 +2369,8 @@ export type TranslationKey =
   | "apiErrors.tooManyRequests"
   | "chartPatterns.title"
   | "chartPatterns.searchPlaceholder"
+  | "chartPatterns.searchLabel"
+  | "chartPatterns.categoryLabel"
   | "chartPatterns.description"
   | "chartPatterns.characteristics"
   | "chartPatterns.tradingStrategy"

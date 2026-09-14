@@ -2718,6 +2718,8 @@
   "chartPatterns": {
     "title": "Chart Patterns Academy",
     "searchPlaceholder": "Search patterns...",
+    "searchLabel": "Search patterns",
+    "categoryLabel": "Filter by category",
     "description": "Description",
     "characteristics": "Characteristics",
     "tradingStrategy": "Trading Strategy",

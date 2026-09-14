@@ -20,57 +20,34 @@
   own template, minus the ModalFrame wrapper it used to render itself
   through -- the window chrome (title bar, close/minimize/maximize, backdrop
   ineligibility) now comes from WindowFrame via the `academy` registry type.
+
+  Tab state lives in `lib/academy/useAcademyTabs.svelte`, the tab bar in
+  `AcademyTabs.svelte` — both shared with the `/academy` SEO route.
 -->
 
 <script lang="ts">
-   import { onMount } from "svelte";
-   import { _ } from "../../locales/i18n";
+   import AcademyTabs from "./AcademyTabs.svelte";
    import CandlestickPatternsView from "./CandlestickPatternsView.svelte";
    import ChartPatternsView from "./ChartPatternsView.svelte";
+   import { createAcademyTabs } from "../../lib/academy/useAcademyTabs.svelte";
 
-   let activeTab = $state("chartPatterns");
-
-   onMount(() => {
-      const stored = localStorage.getItem("academy_active_tab");
-      if (stored === "chartPatterns" || stored === "candlestickPatterns") {
-         activeTab = stored;
-      }
-   });
-
-   function setTab(tab: string) {
-      activeTab = tab;
-      localStorage.setItem("academy_active_tab", tab);
-   }
+   const tabs = createAcademyTabs();
 </script>
 
 <div class="@container flex flex-col h-full min-h-0 min-w-0 p-4 @sm:p-6">
-   <!-- Tab Header -->
-   <div
-      class="flex flex-wrap border-b border-[var(--border-color)] mb-4 shrink-0 bg-[var(--bg-secondary)] rounded-t-lg p-1 gap-1"
-   >
-      <button
-         class="flex-1 min-w-[140px] py-2.5 text-center text-[10px] font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
-         'chartPatterns'
-            ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm'
-            : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
-         onclick={() => setTab("chartPatterns")}
-      >
-         {$_("chartPatterns.title") || "Chart Patterns"}
-      </button>
-      <button
-         class="flex-1 min-w-[140px] py-2.5 text-center text-[10px] font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
-         'candlestickPatterns'
-            ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm'
-            : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
-         onclick={() => setTab("candlestickPatterns")}
-      >
-         {$_("candlestickPatterns.title") || "Candlestick Patterns"}
-      </button>
-   </div>
+   <AcademyTabs
+      activeTab={tabs.activeTab}
+      onTabChange={(tab) => tabs.setTab(tab)}
+      idPrefix="academy-window"
+   />
 
-   <!-- Content -->
-   <div class="flex-1 overflow-hidden min-w-0">
-      {#if activeTab === "chartPatterns"}
+   <div
+      role="tabpanel"
+      id="academy-window-panel-{tabs.activeTab}"
+      aria-labelledby="academy-window-tab-{tabs.activeTab}"
+      class="flex-1 overflow-hidden min-w-0"
+   >
+      {#if tabs.activeTab === "chartPatterns"}
          <ChartPatternsView />
       {:else}
          <CandlestickPatternsView />

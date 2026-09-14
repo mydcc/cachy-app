@@ -16,13 +16,12 @@
 -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import { CHART_PATTERNS } from "../../services/chartPatterns";
     import ChartPatternChart from "./ChartPatternChart.svelte";
     import { markdown } from "../../actions/markdown";
-    import { safeJsonParse } from "../../utils/safeJson";
+    import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
     import "katex/dist/katex.min.css";
 
     let searchQuery = $state("");
@@ -31,39 +30,13 @@
         CHART_PATTERNS.length > 0 ? CHART_PATTERNS[0].id : null,
     );
 
-    // Favorites State
-    let favorites = $state<Set<string>>(new Set());
-
-    onMount(() => {
-        const stored = localStorage.getItem("chart_pattern_favorites");
-        if (stored) {
-            try {
-                // Use safeJsonParse for resilience, although IDs are strings.
-                // Standard JSON.parse is risky if storage is corrupted.
-                const parsed = safeJsonParse(stored);
-                if (Array.isArray(parsed)) {
-                    favorites = new Set(parsed);
-                }
-            } catch (e) {
-                console.error("Failed to parse favorites", e);
-                // Fallback to empty if corrupt
-                favorites = new Set();
-            }
-        }
-    });
+    // Favorites (shared hook; the storage key stays separate from the
+    // candlestick favorites so no migration is needed).
+    const patternFavorites = createPatternFavorites("chart_pattern_favorites");
+    let favorites = $derived(patternFavorites.favorites);
 
     function toggleFavorite(id: string) {
-        const newFavorites = new Set(favorites);
-        if (newFavorites.has(id)) {
-            newFavorites.delete(id);
-        } else {
-            newFavorites.add(id);
-        }
-        favorites = newFavorites;
-        localStorage.setItem(
-            "chart_pattern_favorites",
-            JSON.stringify([...newFavorites]),
-        );
+        patternFavorites.toggle(id);
     }
 
     // Derived filtered list (names/categories resolve via locale,
@@ -186,13 +159,23 @@
         <div
             class="flex flex-col gap-2 p-1 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
         >
+            <label class="sr-only" for="chart-search"
+                >{$_("chartPatterns.searchLabel")}</label
+            >
             <input
+                id="chart-search"
                 type="text"
+                aria-label={$_("chartPatterns.searchLabel")}
                 placeholder={$_("chartPatterns.searchPlaceholder")}
                 bind:value={searchQuery}
                 class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] focus:border-[var(--accent-color)] outline-none text-[var(--text-primary)] transition-all"
             />
+            <label class="sr-only" for="chart-category"
+                >{$_("chartPatterns.categoryLabel")}</label
+            >
             <select
+                id="chart-category"
+                aria-label={$_("chartPatterns.categoryLabel")}
                 bind:value={selectedCategory}
                 class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] outline-none text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-all"
             >
@@ -212,7 +195,8 @@
         >
             {#each filteredPatterns as pattern}
                 <button
-                    class="text-left px-3 py-2 rounded-lg text-xs font-medium transition-all flex justify-between items-center group
+                    aria-current={selectedPatternId === pattern.id ? "true" : undefined}
+                    class="text-left px-3 py-2 rounded-lg text-xs font-medium transition-all flex justify-between items-center group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-color)]
                            {selectedPatternId === pattern.id
                         ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)]'}"
@@ -273,8 +257,12 @@
                             {getPatternName(currentPattern.id)}
                         </h2>
                         <button
-                            class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"
+                            class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-color)]"
                             onclick={() => toggleFavorite(currentPattern.id)}
+                            aria-pressed={favorites.has(currentPattern.id)}
+                            aria-label={favorites.has(currentPattern.id)
+                                ? $_("marketOverview.tooltips.removeFavorite")
+                                : $_("marketOverview.tooltips.addFavorite")}
                             title={favorites.has(currentPattern.id)
                                 ? $_("marketOverview.tooltips.removeFavorite")
                                 : $_("marketOverview.tooltips.addFavorite")}

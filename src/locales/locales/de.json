@@ -2702,6 +2702,8 @@
   "chartPatterns": {
     "title": "Chartmuster Akademie",
     "searchPlaceholder": "Muster suchen...",
+    "searchLabel": "Muster suchen",
+    "categoryLabel": "Nach Kategorie filtern",
     "description": "Beschreibung",
     "characteristics": "Charakteristika",
     "tradingStrategy": "Handelsstrategie",
