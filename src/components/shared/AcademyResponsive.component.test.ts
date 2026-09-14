@@ -240,4 +240,78 @@ describe("Academy window resize responsiveness (container queries)", () => {
         const split = splitLayout(view);
         expect(split.classList.contains("lg:flex-row")).toBe(false);
     });
+
+    it("tabs expose tab semantics and move with arrow keys", async () => {
+        const root = await renderAcademy();
+
+        expect(root.querySelector('[role="tablist"]')).not.toBeNull();
+
+        const tabs = [...root.querySelectorAll('[role="tab"]')];
+        expect(tabs.length).toBe(2);
+        expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+        expect(tabs[1].getAttribute("aria-selected")).toBe("false");
+
+        (tabs[0] as HTMLElement).focus();
+        tabs[0].dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+        );
+        await settle();
+
+        expect(localStorage.getItem("academy_active_tab")).toBe(
+            "candlestickPatterns",
+        );
+        const updated = [...root.querySelectorAll('[role="tab"]')];
+        expect(updated[0].getAttribute("aria-selected")).toBe("false");
+        expect(updated[1].getAttribute("aria-selected")).toBe("true");
+        expect(document.activeElement).toBe(updated[1]);
+    });
+
+    it("filters the candlestick list by localized name", async () => {
+        const root = await renderAcademy();
+
+        const tabs = root.querySelectorAll('[role="tab"]');
+        (tabs[1] as HTMLElement).click();
+        await settle();
+
+        const view = activeViewRoot(root);
+        const input = view.querySelector("input") as HTMLInputElement;
+        expect(input.getAttribute("aria-label")).toBe(
+            lookup("chartPatterns.searchLabel"),
+        );
+
+        input.value = "Doji";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        await settle();
+
+        const visible = [...view.querySelectorAll("button")].filter((b) =>
+            b.textContent?.includes("Doji"),
+        );
+        expect(visible.length).toBeGreaterThan(0);
+
+        input.value = "zzz-no-such-pattern";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        await settle();
+        expect(view.textContent).toContain(lookup("chartPatterns.noPatterns"));
+    });
+
+    it("toggles a chart favorite with pressed state and persistence", async () => {
+        const root = await renderAcademy();
+        const view = activeViewRoot(root);
+
+        // Header favorite button of the selected chart pattern.
+        const favButton = view.querySelector(
+            "button[aria-pressed]",
+        ) as HTMLElement;
+        expect(favButton).not.toBeNull();
+        expect(favButton.getAttribute("aria-pressed")).toBe("false");
+
+        favButton.click();
+        await settle();
+
+        expect(favButton.getAttribute("aria-pressed")).toBe("true");
+        const stored = JSON.parse(
+            localStorage.getItem("chart_pattern_favorites") ?? "[]",
+        );
+        expect(stored.length).toBe(1);
+    });
 });

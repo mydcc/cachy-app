@@ -15,28 +15,17 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+<!--
+  Public SEO route for the Trading Academy. Renders the same AcademyContent
+  as the AcademyWindow so tab state, favorites and accessibility stay in one
+  place — only the page frame (full-height layout + document title) is local.
+-->
+
 <script lang="ts">
-   import { onMount } from "svelte";
    import { page } from '$app/stores';
-   import { _ } from "../../../../locales/i18n";
-   import CandlestickPatternsView from "../../../../components/shared/CandlestickPatternsView.svelte";
-   import ChartPatternsView from "../../../../components/shared/ChartPatternsView.svelte";
+   import AcademyContent from "../../../../components/shared/AcademyContent.svelte";
    import de from '../../../../locales/locales/de.json';
    import en from '../../../../locales/locales/en.json';
-
-   let activeTab = $state("chartPatterns");
-
-   onMount(() => {
-      const stored = localStorage.getItem("academy_active_tab");
-      if (stored === "chartPatterns" || stored === "candlestickPatterns") {
-         activeTab = stored;
-      }
-   });
-
-   function setTab(tab: string) {
-      activeTab = tab;
-      localStorage.setItem("academy_active_tab", tab);
-   }
 
    let lang = $derived($page.params.lang || 'en');
    let dict = $derived(lang === 'de' ? de : en);
@@ -48,36 +37,6 @@
 </svelte:head>
 
 <div class="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-[var(--bg-primary)]">
-      <!-- Tab Header -->
-      <div
-         class="flex border-b border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] p-2 gap-2"
-      >
-         <button
-            class="flex-1 py-3 text-center text-xs font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
-            'chartPatterns'
-               ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm border border-[var(--border-color)]'
-               : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
-            onclick={() => setTab("chartPatterns")}
-         >
-            {$_("chartPatterns.title") || "Chart Patterns"}
-         </button>
-         <button
-            class="flex-1 py-3 text-center text-xs font-black uppercase tracking-widest rounded-md transition-all {activeTab ===
-            'candlestickPatterns'
-               ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm border border-[var(--border-color)]'
-               : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
-            onclick={() => setTab("candlestickPatterns")}
-         >
-            {$_("candlestickPatterns.title") || "Candlestick Patterns"}
-         </button>
-      </div>
-
-      <!-- Content -->
-      <div class="@container flex-1 overflow-hidden min-w-0 p-4 md:p-6">
-         {#if activeTab === "chartPatterns"}
-            <ChartPatternsView />
-         {:else}
-            <CandlestickPatternsView />
-         {/if}
-      </div>
+   <!-- AcademyContent carries its own @container root + padding. -->
+   <AcademyContent />
 </div>

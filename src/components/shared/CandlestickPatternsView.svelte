@@ -16,13 +16,13 @@
 -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
     import { _ } from "../../locales/i18n";
     import { CANDLESTICK_PATTERNS } from "../../services/candlestickPatterns";
     import CandlestickChart from "./CandlestickChart.svelte";
     import { markdown } from "../../actions/markdown";
-    import { safeJsonParse } from "../../utils/safeJson";
     import type { TranslationKey } from "../../locales/schema";
+    import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
+    import { resolvePatternName } from "../../lib/academy/patternI18n";
     import "katex/dist/katex.min.css";
 
     let searchQuery = $state("");
@@ -31,42 +31,20 @@
         CANDLESTICK_PATTERNS.length > 0 ? CANDLESTICK_PATTERNS[0].id : null,
     );
 
-    // Favorites State
-    let favorites = $state<Set<string>>(new Set());
-
-    onMount(() => {
-        const stored = localStorage.getItem("candlestick_favorites");
-        if (stored) {
-            try {
-                const parsed = safeJsonParse(stored);
-                if (Array.isArray(parsed)) {
-                    favorites = new Set(parsed);
-                }
-            } catch (e) {
-                console.error("Failed to parse favorites", e);
-                favorites = new Set();
-            }
-        }
-    });
+    // Favorites (shared hook; the storage key stays separate from the
+    // chart-pattern favorites so no migration is needed).
+    const patternFavorites = createPatternFavorites("candlestick_favorites");
+    let favorites = $derived(patternFavorites.favorites);
 
     function toggleFavorite(id: string) {
-        const newFavorites = new Set(favorites);
-        if (newFavorites.has(id)) {
-            newFavorites.delete(id);
-        } else {
-            newFavorites.add(id);
-        }
-        favorites = newFavorites;
-        localStorage.setItem(
-            "candlestick_favorites",
-            JSON.stringify([...newFavorites]),
-        );
+        patternFavorites.toggle(id);
     }
 
-    // Derived filtered list
+    // Derived filtered list (names resolve via locale, so search and
+    // filter follow the active language)
     let filteredPatterns = $derived(
         CANDLESTICK_PATTERNS.filter((p) => {
-            const matchesSearch = p.name
+            const matchesSearch = getPatternName(p.id)
                 .toLowerCase()
                 .includes(searchQuery.toLowerCase());
 
@@ -107,6 +85,17 @@
         selectedPatternId = id;
     }
 
+    function getPatternName(patternId: string): string {
+        // Names live in `candlestickPatterns.<id>.name` locale entries;
+        // fall back to the compiled English name when untranslated.
+        return resolvePatternName(
+            $_,
+            `candlestickPatterns.${patternId}.name`,
+            CANDLESTICK_PATTERNS.find((p) => p.id === patternId)?.name ??
+                patternId,
+        );
+    }
+
     function getLocalizedText(patternId: string, key: string): string {
         // Use candlestickPatterns root key for specific patterns
         const i18nKey =
@@ -129,13 +118,23 @@
         <div
             class="flex flex-col gap-2 p-1 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
         >
+            <label class="sr-only" for="candlestick-search"
+                >{$_("chartPatterns.searchLabel")}</label
+            >
             <input
+                id="candlestick-search"
                 type="text"
+                aria-label={$_("chartPatterns.searchLabel")}
                 placeholder={$_("chartPatterns.searchPlaceholder")}
                 bind:value={searchQuery}
                 class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] focus:border-[var(--accent-color)] outline-none text-[var(--text-primary)] transition-all"
             />
+            <label class="sr-only" for="candlestick-category"
+                >{$_("chartPatterns.categoryLabel")}</label
+            >
             <select
+                id="candlestick-category"
+                aria-label={$_("chartPatterns.categoryLabel")}
                 bind:value={selectedCategory}
                 class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] outline-none text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-all"
             >
@@ -155,7 +154,8 @@
         >
             {#each filteredPatterns as pattern}
                 <button
-                    class="text-left px-3 py-2 rounded-lg text-xs font-medium transition-all flex justify-between items-center group
+                    aria-current={selectedPatternId === pattern.id ? "true" : undefined}
+                    class="text-left px-3 py-2 rounded-lg text-xs font-medium transition-all flex justify-between items-center group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-color)]
                            {selectedPatternId === pattern.id
                         ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)]'}"
@@ -177,7 +177,7 @@
                             </svg>
                         {/if}
                         <span class="truncate font-bold tracking-tight"
-                            >{pattern.name}</span
+                            >{getPatternName(pattern.id)}</span
                         >
                     </div>
 
@@ -221,11 +221,15 @@
                         <h2
                             class="text-xl @md:text-2xl font-bold text-[var(--accent-color)] break-words min-w-0"
                         >
-                            {currentPattern.name}
+                            {getPatternName(currentPattern.id)}
                         </h2>
                         <button
-                            class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"
+                            class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-color)]"
                             onclick={() => toggleFavorite(currentPattern.id)}
+                            aria-pressed={favorites.has(currentPattern.id)}
+                            aria-label={favorites.has(currentPattern.id)
+                                ? $_("marketOverview.tooltips.removeFavorite")
+                                : $_("marketOverview.tooltips.addFavorite")}
                             title={favorites.has(currentPattern.id)
                                 ? $_("marketOverview.tooltips.removeFavorite")
                                 : $_("marketOverview.tooltips.addFavorite")}
