@@ -1585,7 +1585,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0447",
     "title": "A stale agent re-push on a PR branch silently reverts work already merged to develop",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1597,6 +1597,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "branch": "fix/bug-0447-stale-snapshot-revert-guard",
+    "assignee": "opencode",
+    "start_date": "2026-09-14",
     "file": "bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md"
   },
   {
