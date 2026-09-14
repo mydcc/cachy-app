@@ -61,14 +61,16 @@ Carry the source as an optional parameter rather than as a panel setting:
 ## Progress
 
 - 2026-09-14, slice 1 — the engine. `IndicatorRef` gains an optional `field` (a
-  `PriceField`) on the seven indicators whose card draws them over a chosen price:
-  rsi, macd, stoch_rsi, cci, momentum, ema, bollinger (`default_field` in
-  `indicator.rs`, mirrored by `defaultFieldOf` and held to it by the catalogue
-  test). `computeIndicatorSeries` computes over that column in the chart's own
-  arithmetic, parity-tested for every output and every selector price; a
-  recorded-history expectation pins RSI(14) over hl2. The panel still cannot
-  write a `field`, the card still refuses, and the Indicators tab leaves a
-  condition naming one unclaimed rather than rewriting it over the close.
+  `PriceField`) on the six indicators whose settings declare a changeable price
+  source and whose chart line is drawn over it: rsi, macd, cci, momentum, ema,
+  bollinger (`default_field` in `indicator.rs`, mirrored by `defaultFieldOf` and
+  held to it by the catalogue test). `stochRsi.source` is fixed to `"close"`, so
+  it is deliberately not among them. `computeIndicatorSeries` computes over that
+  column in the chart's own arithmetic, parity-tested for every output and every
+  `PriceField`; a recorded-history expectation pins RSI(14) over hl2. The panel
+  still cannot write a `field`, the card still refuses, and the Indicators tab
+  leaves a condition naming one unclaimed rather than rewriting it over the
+  close.
 - Named `field`, not `source`: on a price operand `source` is the last-or-mark
   series, and `field` is what a `PriceField` is called everywhere in a document.
 - The questions above, settled:

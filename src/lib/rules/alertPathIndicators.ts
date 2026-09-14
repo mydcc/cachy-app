@@ -79,6 +79,11 @@ export type AlertPathSource = "close" | "hlc3";
  * `default_field` in `technicals-wasm/src/rule/indicator.rs`, held to it by
  * `indicatorCatalogue.test.ts` (FEAT-0454).
  *
+ * These are the indicators whose `IndicatorSettings` declares a price source the
+ * trader may change and whose chart line is drawn over it. `stochRsi.source` is
+ * fixed to `"close"`, so it is not here: a `field` on it would compute a series
+ * the chart never draws.
+ *
  * CCI is defined over the typical price, `(high + low + close) / 3`: the WASM
  * core computes it so, and the CCI settings card defaults to `hlc3`. The others
  * default to the close.
@@ -91,7 +96,6 @@ export type AlertPathSource = "close" | "hlc3";
 const DEFAULT_FIELD_BY_INDICATOR: Readonly<Record<string, AlertPathSource>> = {
   rsi: "close",
   macd: "close",
-  stoch_rsi: "close",
   momentum: "close",
   ema: "close",
   bollinger: "close",

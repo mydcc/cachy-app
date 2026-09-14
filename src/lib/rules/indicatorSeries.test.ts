@@ -951,7 +951,7 @@ describe("computeIndicatorSeries — high, low and close", () => {
  * below computes the alert series over the real candles with `field` set, and
  * over the close of candles flattened to the chart's own source column: the two
  * agree exactly when the alert path reads the column the chart feeds its line,
- * output by output, for every price the settings selector offers.
+ * output by output, for every price a `PriceField` names.
  */
 describe("computeIndicatorSeries — the price an indicator is computed over", () => {
   const FIELDS = ["close", "open", "high", "low", "hl2", "hlc3"] as const;
@@ -987,11 +987,6 @@ describe("computeIndicatorSeries — the price an indicator is computed over", (
     ...["upper", "middle", "lower", "percent_b", "bandwidth"].map((output) => ({
       id: "bollinger",
       params: { period: 20, std_dev: "2" },
-      output,
-    })),
-    ...["k", "d"].map((output) => ({
-      id: "stoch_rsi",
-      params: { rsi_period: 14, stoch_period: 14, k_period: 3, d_period: 3 },
       output,
     })),
   ];

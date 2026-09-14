@@ -24,15 +24,15 @@
 //! unknown fields rather than ignoring them". This module is the closed set that
 //! makes both statements enforceable.
 //!
-//! **The price an indicator is computed over.** The settings cards draw rsi,
-//! macd, stoch_rsi, cci, momentum, ema and bollinger over a price the trader
-//! picks (`close`, `hl2`, `hlc3`, …). Version 1 had no field for it, because
-//! nothing computed an alert series over anything but the default price, and a
-//! schema field the evaluator does not honour is a document that claims one
-//! thing while the engine does another — the exact gap ADR-0012 exists to close.
-//! FEAT-0454 adds `IndicatorRef::field` together with the alert path that
-//! honours it (`computeIndicatorSeries`); see `default_field` for which
-//! indicators take one.
+//! **The price an indicator is computed over.** `IndicatorSettings` declares a
+//! price source on rsi, macd, cci, momentum, ema and bollinger, and the chart
+//! draws each over it (`close`, `hl2`, `hlc3`, …). Version 1 had no field for
+//! it, because nothing computed an alert series over anything but the default
+//! price, and a schema field the evaluator does not honour is a document that
+//! claims one thing while the engine does another — the exact gap ADR-0012
+//! exists to close. FEAT-0454 adds `IndicatorRef::field` together with the
+//! alert path that honours it (`computeIndicatorSeries`); see `default_field`
+//! for which indicators take one.
 
 use std::collections::BTreeMap;
 
@@ -451,17 +451,21 @@ pub enum ParamValue {
     Ratio(Decimal),
 }
 
-/// The indicators whose settings card draws them over a price the trader picks,
+/// The indicators whose settings declare a price source the trader may change,
 /// each with the price it is computed over when a reference names none
 /// (FEAT-0454). `None` for every other indicator: they read several candle
 /// values at once, or volume, and have no single price to swap.
+///
+/// `IndicatorSettings.stochRsi.source` is fixed to `"close"` — the card offers
+/// no choice for it — so it is not one of these: a `field` on it would be a
+/// document claiming a price the chart never draws the line over.
 ///
 /// The typical price for CCI, because CCI is defined over it, the CCI card
 /// defaults to it, and the alert path computed CCI over it before a reference
 /// could name a price at all. The close for the rest, for the same last reason.
 pub fn default_field(id: &str) -> Option<PriceField> {
     match id {
-        "rsi" | "macd" | "stoch_rsi" | "momentum" | "ema" | "bollinger" => Some(PriceField::Close),
+        "rsi" | "macd" | "momentum" | "ema" | "bollinger" => Some(PriceField::Close),
         "cci" => Some(PriceField::Hlc3),
         _ => None,
     }
@@ -1078,8 +1082,8 @@ mod tests {
 
     // ---- FEAT-0454: the price an indicator is computed over ----------------
 
-    /// The settings cards draw these over a price the trader picks, so a rule
-    /// may name one.
+    /// The settings declare a price source on these and the chart draws them
+    /// over it, so a rule may name one.
     #[test]
     fn an_indicator_with_a_price_choice_accepts_every_price_field() {
         for field in [
@@ -1090,7 +1094,7 @@ mod tests {
             PriceField::Hl2,
             PriceField::Hlc3,
         ] {
-            for id in ["rsi", "macd", "stoch_rsi", "cci", "momentum", "ema", "bollinger"] {
+            for id in ["rsi", "macd", "cci", "momentum", "ema", "bollinger"] {
                 let spec = spec_for(id).unwrap();
                 let r = IndicatorRef {
                     id: id.to_string(),
