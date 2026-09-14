@@ -552,6 +552,15 @@
         "subjectLabel": "Indikator",
         "outputLabel": "Linie",
         "paramsLabel": "Parameter",
+        "priceSourceLabel": "Berechnet über",
+        "priceSource": {
+          "close": "Schluss",
+          "open": "Eröffnung",
+          "high": "Hoch",
+          "low": "Tief",
+          "hl2": "Median (HL2)",
+          "hlc3": "Typisch (HLC3)"
+        },
         "relationLabel": "Bedingung",
         "referenceLabel": "Verglichen mit",
         "thresholdLabel": "Wert",
@@ -4339,6 +4348,14 @@
         "close": "der Schlusskurs",
         "hl2": "der Mittelkurs (HL2)",
         "hlc3": "der Typische Preis (HLC3)"
+      },
+      "indicatorFrom": {
+        "open": "{indicator} aus dem Eröffnungskurs",
+        "high": "{indicator} aus dem Hoch",
+        "low": "{indicator} aus dem Tief",
+        "close": "{indicator} aus dem Schlusskurs",
+        "hl2": "{indicator} aus dem Mittelkurs (HL2)",
+        "hlc3": "{indicator} aus dem Typischen Preis (HLC3)"
       },
       "side": {
         "long": "eine Long-Position",

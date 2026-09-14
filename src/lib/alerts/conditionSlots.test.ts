@@ -199,9 +199,10 @@ describe("slotOf — known gap (BUG-0444)", () => {
   });
 
   // FEAT-0454: the core computes an indicator over the price its reference
-  // names, but the tab rebuilds a subject from id, params and output. Claimed,
-  // RSI over hl2 would be rewritten as RSI over the close on the first edit.
-  it("leaves unclaimed an indicator condition that names the price it is computed over", () => {
+  // names, and the tab reads and writes that price back, so it claims the
+  // condition. Only a price the tab cannot show stays unclaimed: one on an
+  // indicator that takes none, or a value no selector offers.
+  it("claims an indicator condition that names the price it is computed over", () => {
     const rsiOverHl2 = { id: "rsi", params: { period: 14 }, field: "hl2" as const };
     expect(
       slotOf({
@@ -211,7 +212,7 @@ describe("slotOf — known gap (BUG-0444)", () => {
         right: { kind: "constant", value: "30" },
         timeframe: "1h",
       }),
-    ).toBeNull();
+    ).toBe("indicators");
     expect(
       slotOf({
         kind: "cross",
@@ -220,7 +221,80 @@ describe("slotOf — known gap (BUG-0444)", () => {
         right: { kind: "indicator", indicator: rsiOverHl2 },
         timeframe: "1h",
       }),
+    ).toBe("indicators");
+    expect(
+      slotOf({
+        kind: "compare",
+        left: { kind: "indicator", indicator: rsiOverHl2 },
+        op: "gte",
+        right: { kind: "window", of: { kind: "indicator", indicator: rsiOverHl2 }, agg: "max", lookback: 20 },
+        timeframe: "1h",
+      }),
+    ).toBe("indicators");
+  });
+
+  it("leaves unclaimed a window over the same indicator computed over another price", () => {
+    const rsi = { id: "rsi", params: { period: 14 } };
+    expect(
+      slotOf({
+        kind: "compare",
+        left: { kind: "indicator", indicator: rsi },
+        op: "gte",
+        right: {
+          kind: "window",
+          of: { kind: "indicator", indicator: { ...rsi, field: "hl2" as const } },
+          agg: "max",
+          lookback: 20,
+        },
+        timeframe: "1h",
+      }),
     ).toBeNull();
+    // The default spelled out is the same line as the default omitted.
+    expect(
+      slotOf({
+        kind: "compare",
+        left: { kind: "indicator", indicator: rsi },
+        op: "gte",
+        right: {
+          kind: "window",
+          of: { kind: "indicator", indicator: { ...rsi, field: "close" as const } },
+          agg: "max",
+          lookback: 20,
+        },
+        timeframe: "1h",
+      }),
+    ).toBe("indicators");
+  });
+
+  it("leaves unclaimed an indicator condition naming a price the tab cannot show", () => {
+    const onWilliamsR = { id: "williams_r", params: { period: 14 }, field: "hl2" as const };
+    const unknownPrice = { id: "rsi", params: { period: 14 }, field: "ohlc4" } as unknown as {
+      id: string;
+      params: Record<string, number>;
+      field: "close";
+    };
+    for (const indicator of [onWilliamsR, unknownPrice]) {
+      expect(
+        slotOf({
+          kind: "compare",
+          left: { kind: "indicator", indicator },
+          op: "gt",
+          right: { kind: "constant", value: "0" },
+          timeframe: "1h",
+        }),
+        indicator.id,
+      ).toBeNull();
+      expect(
+        slotOf({
+          kind: "compare",
+          left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 } } },
+          op: "gt",
+          right: { kind: "window", of: { kind: "indicator", indicator }, agg: "max", lookback: 20 },
+          timeframe: "1h",
+        }),
+        `window over ${indicator.id}`,
+      ).toBeNull();
+    }
   });
 
   it("leaves unclaimed an indicator condition with a mark-source price RHS", () => {

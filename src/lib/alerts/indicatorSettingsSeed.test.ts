@@ -42,7 +42,13 @@ import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { catalogueEntry, registryEntry } from "./indicatorCatalogue";
-import { ALERT_PATH_INDICATORS } from "../rules/alertPathIndicators";
+import {
+    ALERT_PATH_INDICATORS,
+    PRICE_FIELDS,
+    defaultFieldOf,
+    effectiveFieldOf,
+} from "../rules/alertPathIndicators";
+import type { IndicatorRef } from "../rules/types";
 import {
     alertableIndicatorKeys,
     cardAlertAvailability,
@@ -342,33 +348,89 @@ describe("the seed the entry point hands to the panel", () => {
 });
 
 /**
- * BUG-0453. The chart computes a card's line over the card's own source; an
- * alert computes the indicator over one fixed price — the close, or for CCI the
- * typical price (`alertPathSourceOf`). A card drawn over any other price would
- * seed an alert on a different line from the one the trader is looking at, so
- * it seeds none, and the button says why.
+ * FEAT-0454, replacing BUG-0453's refusal. The chart computes a card's line over
+ * the card's own source. An alert armed from the card now names that price on
+ * its reference (`IndicatorRef.field`) wherever the core computes the indicator
+ * over one, so it reads the line on screen. Stoch RSI's source is fixed to the
+ * close, so a card holding another one — only through a hand-edited store —
+ * still seeds nothing, and the button says why.
  */
-describe("a card whose price source is not the one the alert path computes over", () => {
-    const SOURCES = ["close", "open", "high", "low", "hl2", "hlc3"];
+describe("a card drawn over a price source", () => {
     /** Armable cards that carry a source, read off the store itself. */
     const SOURCED = KEYS.filter((key) => "source" in cardFor(key));
+    const indicatorOf = (key: string) => mappingLines(key)[0].id;
+    const PRICED = SOURCED.filter((key) => defaultFieldOf(indicatorOf(key)) !== null);
+    const FIXED = SOURCED.filter((key) => defaultFieldOf(indicatorOf(key)) === null);
+    const leftOf = (seed: ReturnType<typeof seedFromIndicatorSettings>): IndicatorRef =>
+        (seed?.condition as unknown as { left: { indicator: IndicatorRef } }).left.indicator;
 
-    it("covers the armable cards that carry a source", () => {
-        expect(SOURCED).toEqual(
-            expect.arrayContaining(["rsi", "momentum", "ema", "macd", "bollingerBands", "cci"]),
-        );
+    it("lets every sourced card carry its price but stoch RSI's, which is fixed", () => {
+        expect([...PRICED].sort()).toEqual(["bollingerBands", "cci", "ema", "macd", "momentum", "rsi"]);
+        expect(FIXED).toEqual(["stochRsi"]);
     });
 
-    it("computes CCI over the typical price and every other sourced card over the close", () => {
+    it("computes CCI over the typical price and every other sourced card over the close by default", () => {
         for (const key of SOURCED) {
             expect(cardAlertSource(key), key).toBe(key === "cci" ? "hlc3" : "close");
         }
         expect(cardAlertSource("pivots")).toBeNull();
     });
 
-    it("seeds no alert from a card drawn over any other price", () => {
-        for (const key of SOURCED) {
-            for (const source of SOURCES.filter((s) => s !== cardAlertSource(key))) {
+    it("seeds an alert over every price a card with a price choice is drawn over", () => {
+        for (const key of PRICED) {
+            for (const source of PRICE_FIELDS) {
+                const card = { ...cardFor(key), source };
+                const label = `${key} on ${source}`;
+                expect(cardAlertAvailability(key, card), label).toBe("armable");
+                const refs = indicatorRefsFrom(key, card);
+                expect(refs.length, label).toBeGreaterThan(0);
+                for (const ref of refs) expect(effectiveFieldOf(ref), label).toBe(source);
+                const seed = seedFromIndicatorSettings(key, card, "BTCUSDT");
+                expect(effectiveFieldOf(leftOf(seed)), label).toBe(source);
+            }
+        }
+    });
+
+    it("seeds an RSI card on hl2 as RSI over hl2", () => {
+        const seed = seedFromIndicatorSettings("rsi", { length: 14, source: "hl2" }, "BTCUSDT");
+        expect(leftOf(seed)).toEqual({ id: "rsi", params: { period: 14 }, output: "value", field: "hl2" });
+    });
+
+    it("names the price on the reference only when it is not the indicator's default", () => {
+        // The core drops a default field on the wire, so writing one here would
+        // make the draft a different document from the one the core stores.
+        const [rsiClose] = indicatorRefsFrom("rsi", { length: 14, source: "close" });
+        expect("field" in rsiClose).toBe(false);
+        const [cciTypical] = indicatorRefsFrom("cci", { length: 20, source: "hlc3" });
+        expect("field" in cciTypical).toBe(false);
+        const [cciClose] = indicatorRefsFrom("cci", { length: 20, source: "close" });
+        expect(cciClose.field).toBe("close");
+    });
+
+    it("carries the price on every line of a multi-line card", () => {
+        const refs = indicatorRefsFrom("ema", {
+            ema1: { length: 21 },
+            ema2: { length: 50 },
+            ema3: { length: 200 },
+            source: "hl2",
+        });
+        expect(refs.map((ref) => ref.field)).toEqual(["hl2", "hl2", "hl2"]);
+    });
+
+    it.each(PRICED.map((key) => [key] as const))(
+        "%s: the core accepts the seeded condition over every price",
+        (key) => {
+            for (const source of PRICE_FIELDS) {
+                const seed = seedFromIndicatorSettings(key, { ...cardFor(key), source }, "BTCUSDT")!;
+                const document = { ...template, name: `seed ${key} ${source}`, conditions: seed.condition };
+                expect(() => core.rule_validate(JSON.stringify(document)), `${key} on ${source}`).not.toThrow();
+            }
+        },
+    );
+
+    it("seeds no alert from a card whose indicator is computed over one fixed price, drawn over another", () => {
+        for (const key of FIXED) {
+            for (const source of PRICE_FIELDS.filter((s) => s !== cardAlertSource(key))) {
                 const card = { ...cardFor(key), source };
                 const label = `${key} on ${source}`;
                 expect(isAlertableIndicator(key), label).toBe(true);
@@ -376,22 +438,16 @@ describe("a card whose price source is not the one the alert path computes over"
                 expect(indicatorRefsFrom(key, card), label).toEqual([]);
                 expect(seedFromIndicatorSettings(key, card, "BTCUSDT"), label).toBeNull();
             }
-        }
-    });
-
-    it("seeds from a card drawn over the price the alert path computes over", () => {
-        for (const key of SOURCED) {
-            const card = { ...cardFor(key), source: cardAlertSource(key) };
-            expect(cardAlertAvailability(key, card), key).toBe("armable");
-            expect(seedFromIndicatorSettings(key, card, "BTCUSDT"), key).not.toBeNull();
+            const onClose = { ...cardFor(key), source: "close" };
+            expect(cardAlertAvailability(key, onClose), key).toBe("armable");
+            expect(leftOf(seedFromIndicatorSettings(key, onClose, "BTCUSDT")).field, key).toBeUndefined();
         }
     });
 
     it("arms the CCI card on the typical price it defaults to", () => {
-        // The case group 2 had to get right: with one price for every
-        // indicator, the CCI card's own default would have been refused.
         expect(cardFor("cci").source).toBe("hlc3");
         expect(cardAlertAvailability("cci", cardFor("cci"))).toBe("armable");
+        expect(indicatorRefsFrom("cci", cardFor("cci"))[0].field).toBeUndefined();
     });
 
     it.each([
@@ -403,17 +459,20 @@ describe("a card whose price source is not the one the alert path computes over"
     ])("reads a %s source as the close, which is what the chart draws for it", (_label, source) => {
         const card = { length: 21, source };
         expect(cardAlertAvailability("rsi", card)).toBe("armable");
-        expect(indicatorRefsFrom("rsi", card)).toHaveLength(1);
-        // And therefore not as CCI's typical price.
-        expect(cardAlertAvailability("cci", card)).toBe("source-mismatch");
+        expect(indicatorRefsFrom("rsi", card)[0].field).toBeUndefined();
+        // And therefore not as CCI's typical price: CCI over the close.
+        expect(cardAlertAvailability("cci", card)).toBe("armable");
+        expect(indicatorRefsFrom("cci", card)[0].field).toBe("close");
+        expect(cardAlertAvailability("stochRsi", card)).toBe("armable");
     });
 
-    it("refuses a source it does not recognise rather than assuming either price", () => {
+    it("refuses a source it does not recognise rather than assuming a price", () => {
         // Only reachable through a hand-edited store. Withholding the shortcut
         // costs a click; guessing wrong arms an alert on the wrong line.
         const card = { length: 21, source: "ohlc4" };
         expect(cardAlertAvailability("rsi", card)).toBe("source-mismatch");
         expect(cardAlertAvailability("cci", card)).toBe("source-mismatch");
+        expect(cardAlertAvailability("stochRsi", card)).toBe("source-mismatch");
         expect(seedFromIndicatorSettings("rsi", card, "BTCUSDT")).toBeNull();
     });
 

@@ -19,8 +19,9 @@
 import { describe, expect, it } from "vitest";
 import de from "../../locales/locales/de.json";
 import en from "../../locales/locales/en.json";
+import { PRICE_FIELDS } from "./alertPathIndicators";
 import { formatIndicator, renderRuleSentence, type SentenceTranslator } from "./ruleSentence";
-import type { Condition, RuleDocument } from "./types";
+import type { Condition, PriceField, RuleDocument } from "./types";
 
 /**
  * Resolves against the real locale files rather than a stub dictionary. A stub
@@ -321,6 +322,73 @@ describe("renderRuleSentence", () => {
         expect(sentence).toContain("the lowest");
         expect(sentence).toContain("over the last 20 closes");
         expect(sentence).toContain("5%");
+    });
+});
+
+/**
+ * FEAT-0454. An indicator computed over another price than its default is
+ * another line, so the sentence a trader arms from names that price. "from",
+ * not "over": "RSI over the median price is below 30" reads as a comparison.
+ */
+describe("the price an indicator is computed over", () => {
+    const rsiOver = (field: PriceField | undefined): Condition => ({
+        ...rsiBelow30,
+        left: { kind: "indicator", indicator: { id: "rsi", params: { length: 14 }, field } },
+    });
+
+    it("names a price that is not the indicator's default, in both locales", () => {
+        expect(renderRuleSentence(ruleWith(rsiOver("hl2")), et)).toBe(
+            "Notifies when, on the 4h close, RSI(14) from the median price (HL2) is below 30",
+        );
+        expect(renderRuleSentence(ruleWith(rsiOver("hl2")), dt)).toBe(
+            "Benachrichtigt, wenn auf dem 4h-Close RSI(14) aus dem Mittelkurs (HL2) unter 30",
+        );
+    });
+
+    it("says nothing about the default price, spelled or not", () => {
+        const plain = renderRuleSentence(ruleWith(rsiBelow30), et);
+        expect(renderRuleSentence(ruleWith(rsiOver("close")), et)).toBe(plain);
+        const cci = (field: PriceField): Condition => ({
+            ...rsiBelow30,
+            left: { kind: "indicator", indicator: { id: "cci", params: { length: 20 }, field } },
+        });
+        expect(renderRuleSentence(ruleWith(cci("hlc3")), et)).toContain("CCI(20) is below");
+        // The close is not CCI's default, so it is named.
+        expect(renderRuleSentence(ruleWith(cci("close")), et)).toContain("CCI(20) from the close is below");
+    });
+
+    it("names it inside a window over the indicator", () => {
+        const subject = rsiOver("hl2");
+        if (subject.kind !== "compare") throw new Error("compare expected");
+        const atItsHigh: Condition = {
+            ...subject,
+            op: "gte",
+            right: { kind: "window", of: subject.left, agg: "max", lookback: 20 },
+        };
+        expect(renderRuleSentence(ruleWith(atItsHigh), et)).toContain(
+            "the highest RSI(14) from the median price (HL2) over the last 20 closes",
+        );
+    });
+
+    it("has a fragment for every price in both locales", () => {
+        for (const field of PRICE_FIELDS.filter((f) => f !== "close")) {
+            expect(renderRuleSentence(ruleWith(rsiOver(field)), et), field).toContain(`RSI(14) from ${et(`rules.sentence.price.${field}`)}`);
+            expect(() => renderRuleSentence(ruleWith(rsiOver(field)), dt), field).not.toThrow();
+        }
+    });
+
+    it("renders the bare indicator for a value that names no price, instead of a missing key", () => {
+        // Only reachable through a hand-edited document; the core refuses it.
+        // The test translator throws on a missing key, so without the guard
+        // this renders (and throws) `rules.sentence.indicatorFrom.ohlc4`.
+        const unknown = {
+            ...rsiBelow30,
+            left: {
+                kind: "indicator",
+                indicator: { id: "rsi", params: { length: 14 }, field: "ohlc4" as unknown as PriceField },
+            },
+        } as Condition;
+        expect(renderRuleSentence(ruleWith(unknown), et)).toBe(renderRuleSentence(ruleWith(rsiBelow30), et));
     });
 });
 
