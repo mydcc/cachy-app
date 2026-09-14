@@ -17,6 +17,7 @@ import {
   BUILTIN_ENTRY_IDS,
   flavorOf,
   isBuiltinEntryId,
+  modelProviderForFlavor,
   resolveActiveProvider,
   type AiApiFlavor,
 } from "./settings/aiProviders";
@@ -104,18 +105,6 @@ const ROUTE_BY_FLAVOR: Record<AiApiFlavor, string> = {
   "anthropic-messages": "/api/ai/anthropic",
   "google-generate": "/api/ai/gemini",
 };
-
-/** Built-in label closest to a user provider's flavor, for stored messages. */
-function builtinLabelForFlavor(flavor: AiApiFlavor): AiProvider {
-  switch (flavor) {
-    case "anthropic-messages":
-      return "anthropic";
-    case "google-generate":
-      return "gemini";
-    default:
-      return "openai";
-  }
-}
 
 /** Estimated USD cost from token counts and a per-1M-token price, if known. */
 function estimateCostUsd(
@@ -300,7 +289,7 @@ class AiManager {
       const provider: AiProvider = entry
         ? isOllamaEntry
           ? "ollama"
-          : builtinLabelForFlavor(entry.flavor)
+          : modelProviderForFlavor(entry.flavor)
         : settings.aiProvider || "gemini";
 
       // The generic browser-direct path. Ollama keeps its dedicated block
