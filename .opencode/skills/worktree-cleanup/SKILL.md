@@ -38,9 +38,9 @@ bash scripts/worktree-cleanup.sh --all --apply   # actually retire them
 ## What it refuses, and why that matters
 
 The script exits non-zero and changes nothing when the worktree has
-**uncommitted changes**, is **not merged into `origin/develop`**, is the **main
-checkout** or the **current worktree**, or has a **detectable agent session**.
-It never passes `--force`.
+**uncommitted changes**, is **not merged into `origin/develop`**, has **no
+commits beyond `origin/develop`**, is the **main checkout** or the **current
+worktree**, or has a **detectable agent session**. It never passes `--force`.
 
 Treat a refusal as information, not an obstacle:
 
@@ -48,6 +48,16 @@ Treat a refusal as information, not an obstacle:
   save a patch outside the repo first if it really must go.
 - *not merged* — the branch still carries commits `develop` does not have.
   Removing the worktree keeps the branch, but check the work is not lost.
+  A squash-merged branch counts as merged only when its tip is exactly the
+  head commit of the merged PR.
+- *no commits beyond* — the worktree was never worked on. Ancestry cannot tell
+  that apart from "merged", and a freshly created worktree looks exactly like
+  this, so it is refused even in `--all --apply`. If it is **your own**
+  abandoned worktree, retire it explicitly:
+
+  ```bash
+  bash scripts/worktree-cleanup.sh --abandon <branch-or-path>
+  ```
 
 **Do not work around a refusal with `git worktree remove --force`.** The
 refusal is the safeguard, and both failure modes it prevents are unrecoverable.
