@@ -2,7 +2,7 @@
 id: FEAT-0467
 title: User-managed AI providers with per-provider endpoints and API formats
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: M8
 editions: [community, pro, private]
@@ -17,8 +17,8 @@ assignee: opencode
 
 # FEAT-0467 — User-managed AI providers with per-provider endpoints and API formats
 
-> **State:** `in-progress`, claimed by `opencode`. Branch:
-> `feat/0467-slice-1-provider-registry` (Slice 1: provider registry).
+> **State:** `done`. Shipped across #3274, #3277, #3278, #3279, #3284, #3286,
+> #3288 and #3291 (v1.6.0-beta.307); every slice landed.
 
 ## Problem
 
@@ -59,23 +59,23 @@ and ship it in reviewable slices:
 
 ## Acceptance criteria
 
-- [ ] A user can add a custom provider (label, flavor, base URL, API key, model)
+- [x] A user can add a custom provider (label, flavor, base URL, API key, model)
       and chat through it; OpenCode Zen, OpenCode Go and Command Code each work
       end-to-end, including at least one free model.
-- [ ] The model picker lists every model the provider returns for custom
+- [x] The model picker lists every model the provider returns for custom
       endpoints, with free models identifiable and prices shown when offered.
-- [ ] OpenAI Chat Completions, OpenAI Responses, Anthropic Messages and Google
+- [x] OpenAI Chat Completions, OpenAI Responses, Anthropic Messages and Google
       `generateContent` streaming all render text and tool calls correctly
       (fixture-backed adapter tests).
-- [ ] Provider API keys never transit the Cachy server unless the user has
+- [x] Provider API keys never transit the Cachy server unless the user has
       enabled the per-provider relay for a provider that cannot be reached
       cross-origin; the relay is default-off, SSRF-guarded and never logs the
       key or prompt.
-- [ ] The per-provider server proxy still rejects reserved/loopback hosts with
+- [x] The per-provider server proxy still rejects reserved/loopback hosts with
       403 (regression coverage for the completed `BUG-0291`).
-- [ ] Existing built-in provider settings migrate into the registry with no
+- [x] Existing built-in provider settings migrate into the registry with no
       credential loss; an encrypted-key round-trip test passes.
-- [ ] Sending Class A context still requires `aiShareTradeContext` consent
+- [x] Sending Class A context still requires `aiShareTradeContext` consent
       (`ADR-0011`), unchanged.
 
 ## Out of scope
