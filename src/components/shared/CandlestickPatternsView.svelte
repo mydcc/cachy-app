@@ -90,7 +90,7 @@
         // fall back to the compiled English name when untranslated.
         return resolvePatternName(
             $_,
-            `candlestickPatterns.${patternId}.name`,
+            `candlestickPatterns.${patternId}.name` as TranslationKey,
             CANDLESTICK_PATTERNS.find((p) => p.id === patternId)?.name ??
                 patternId,
         );

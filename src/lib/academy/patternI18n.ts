@@ -26,10 +26,12 @@
  * when a translation is missing.
  */
 
+import type { TranslationKey } from "../../locales/schema";
+
 /** Returns the localized name, or `fallbackName` when the key is untranslated. */
 export function resolvePatternName(
-   translate: (key: string) => string,
-   i18nKey: string,
+   translate: (key: TranslationKey) => string,
+   i18nKey: TranslationKey,
    fallbackName: string,
 ): string {
    const text = translate(i18nKey);
