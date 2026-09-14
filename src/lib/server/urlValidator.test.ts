@@ -194,7 +194,7 @@ describe("urlValidator", () => {
   describe("getSafeDispatcher undici lookup contract", () => {
     type LookupCallback = (
       err: Error | null,
-      addresses?: Array<{ address: string; family: number }>,
+      addresses: string | Array<{ address: string; family: number }>,
     ) => void;
     type DispatcherLookup = (
       hostname: string,

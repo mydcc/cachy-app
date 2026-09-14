@@ -208,18 +208,19 @@ export async function getSafeDispatcher(): Promise<unknown> {
             _options: unknown,
             callback: (
               err: Error | null,
-              addresses?: Array<{ address: string; family: number }>,
+              addresses: string | Array<{ address: string; family: number }>,
             ) => void,
           ) => {
             dns.lookup(hostname, { all: true }, (err, addresses) => {
-              if (err) return callback(err);
+              if (err) return callback(err, "");
               if (!addresses || addresses.length === 0) {
-                return callback(new Error("ENOTFOUND"));
+                return callback(new Error("ENOTFOUND"), "");
               }
               for (const addr of addresses) {
                 if (isPrivateOrReservedHost(addr.address)) {
                   return callback(
                     new Error("Blocked target address (SSRF guard)"),
+                    "",
                   );
                 }
               }
