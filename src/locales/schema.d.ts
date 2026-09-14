@@ -1342,6 +1342,7 @@ export type TranslationKey =
   | "settings.ai.customProviders.title"
   | "settings.ai.customProviders.desc"
   | "settings.ai.customProviders.add"
+  | "settings.ai.customProviders.presetBlank"
   | "settings.ai.customProviders.empty"
   | "settings.ai.customProviders.name"
   | "settings.ai.customProviders.namePlaceholder"

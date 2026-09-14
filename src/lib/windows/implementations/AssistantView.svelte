@@ -25,6 +25,7 @@
     import type { TranslationKey } from "../../../locales/schema";
     import { markdown } from "../../../actions/markdown";
     import type { WindowBase } from "../WindowBase.svelte";
+    import { resolveActiveProvider } from "../../../stores/settings/aiProviders";
 
     interface Props {
         window: WindowBase;
@@ -130,15 +131,42 @@
     let isMinimal = $derived(styleMode === "minimal");
     let isAiMode = $derived(settingsState.sidePanelMode === "ai");
 
-    let hasApiKey = $derived.by(() => {
-        const provider = settingsState.aiProvider;
-        if (provider === "gemini") return !!settingsState.geminiApiKey || !!settingsState.geminiBaseUrl?.trim();
-        if (provider === "openai") return !!settingsState.openaiApiKey || !!settingsState.openaiBaseUrl?.trim();
-        if (provider === "anthropic") return !!settingsState.anthropicApiKey || !!settingsState.anthropicBaseUrl?.trim();
-        if (provider === "openrouter") return !!settingsState.openrouterApiKey || !!settingsState.openrouterBaseUrl?.trim();
-        if (provider === "ollama") return true;
-        return false;
-    });
+    let resolvedProvider = $derived(
+        resolveActiveProvider({
+            userProviders: settingsState.userProviders,
+            activeProviderId: settingsState.activeProviderId,
+            aiProvider: settingsState.aiProvider,
+            legacy: {
+                openai: {
+                    apiKey: settingsState.openaiApiKey,
+                    model: settingsState.openaiModel,
+                    baseUrl: settingsState.openaiBaseUrl,
+                },
+                anthropic: {
+                    apiKey: settingsState.anthropicApiKey,
+                    model: settingsState.anthropicModel,
+                    baseUrl: settingsState.anthropicBaseUrl,
+                },
+                gemini: {
+                    apiKey: settingsState.geminiApiKey,
+                    model: settingsState.geminiModel,
+                    baseUrl: settingsState.geminiBaseUrl,
+                },
+                openrouter: {
+                    apiKey: settingsState.openrouterApiKey,
+                    model: settingsState.openrouterModel,
+                    baseUrl: settingsState.openrouterBaseUrl,
+                },
+                ollama: {
+                    apiKey: "",
+                    model: settingsState.ollamaModel,
+                    baseUrl: settingsState.ollamaBaseUrl,
+                },
+            },
+        }),
+    );
+    let hasApiKey = $derived(resolvedProvider.ready);
+    let setupProviderLabel = $derived(resolvedProvider.label);
 
     function adjustTextareaHeight(el: HTMLTextAreaElement) {
         el.style.height = "auto";
@@ -395,7 +423,7 @@
                 <div class="text-3xl mb-3">🔑</div>
                 <h3 class="text-lg font-bold mb-2">{$_("assistant.setupRequired")}</h3>
                 <p class="text-sm opacity-70 mb-4">
-                    {$_("assistant.setupDescription", { values: { provider: settingsState.aiProvider } })}
+                    {$_("assistant.setupDescription", { values: { provider: setupProviderLabel } })}
                 </p>
             </div>
         </div>
@@ -443,7 +471,7 @@
                                         <td>
                                             {#if settingsState.aiShareTradeContext}
                                                 <span class="text-[var(--success-color)]">
-                                                    {$_("settings.ai.contextConsentEnabled", { values: { provider: settingsState.aiProvider.toUpperCase() } })}
+                                                    {$_("settings.ai.contextConsentEnabled", { values: { provider: setupProviderLabel.toUpperCase() } })}
                                                 </span>
                                             {:else}
                                                 <span class="text-[var(--text-secondary)]">

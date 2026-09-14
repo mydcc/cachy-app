@@ -6,33 +6,102 @@
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*
+ * The assistant gate (`hasApiKey` in AssistantView) resolves through
+ * `resolveActiveProvider`, so these pin the blocking behavior against the
+ * real decision: a configured custom provider unlocks the assistant, a
+ * keyless one (or a built-in without key) keeps the overlay.
  */
 
 import { describe, it, expect } from "vitest";
-import { settingsState } from "../../../stores/settings.svelte";
+import {
+  BUILTIN_ENTRY_IDS,
+  resolveActiveProvider,
+} from "../../../stores/settings/aiProviders";
 
-describe("AssistantView hasApiKey logic", () => {
-  function checkHasApiKey(): boolean {
-    const provider = settingsState.aiProvider;
-    if (provider === "gemini") return !!settingsState.geminiApiKey;
-    if (provider === "openai") return !!settingsState.openaiApiKey;
-    if (provider === "anthropic") return !!settingsState.anthropicApiKey;
-    if (provider === "openrouter") return !!settingsState.openrouterApiKey;
-    if (provider === "ollama") return true;
-    return false;
-  }
+const legacy = {
+  openai: { apiKey: "", model: "", baseUrl: "" },
+  anthropic: { apiKey: "", model: "", baseUrl: "" },
+  gemini: { apiKey: "AIza-test", model: "gemini-2.0-flash", baseUrl: "" },
+  openrouter: { apiKey: "", model: "", baseUrl: "" },
+  ollama: { apiKey: "", model: "llama3.3", baseUrl: "http://localhost:11434" },
+};
 
-  it("recognizes openrouterApiKey when provider is openrouter", () => {
-    settingsState.aiProvider = "openrouter";
-    settingsState.openrouterApiKey = "";
-    expect(checkHasApiKey()).toBe(false);
+describe("AssistantView provider gate", () => {
+  it("unlocks for an active custom provider with key and URL", () => {
+    const custom = {
+      id: "zen",
+      label: "OpenCode Zen",
+      flavor: "openai-chat" as const,
+      baseUrl: "https://opencode.ai/zen/v1",
+      model: "kimi-k3",
+      apiKey: "sk-test",
+      allowServerRelay: false,
+    };
 
-    settingsState.openrouterApiKey = "sk-or-test-key";
-    expect(checkHasApiKey()).toBe(true);
+    const resolved = resolveActiveProvider({
+      userProviders: [custom],
+      activeProviderId: "zen",
+      aiProvider: "gemini",
+      legacy,
+    });
+
+    expect(resolved.ready).toBe(true);
+    expect(resolved.label).toBe("OpenCode Zen");
   });
 
-  it("returns true for ollama provider without requiring an API key", () => {
-    settingsState.aiProvider = "ollama";
-    expect(checkHasApiKey()).toBe(true);
+  it("stays blocked for a custom provider without a key", () => {
+    const custom = {
+      id: "zen",
+      label: "OpenCode Zen",
+      flavor: "openai-chat" as const,
+      baseUrl: "https://opencode.ai/zen/v1",
+      model: "kimi-k3",
+      apiKey: "",
+      allowServerRelay: false,
+    };
+
+    const resolved = resolveActiveProvider({
+      userProviders: [custom],
+      activeProviderId: "zen",
+      aiProvider: "gemini",
+      legacy,
+    });
+
+    expect(resolved.ready).toBe(false);
+  });
+
+  it("unlocks for the gemini built-in with a key and shows its label", () => {
+    const resolved = resolveActiveProvider({
+      userProviders: [],
+      activeProviderId: BUILTIN_ENTRY_IDS.gemini,
+      aiProvider: "gemini",
+      legacy,
+    });
+
+    // No stored entry: falls back to the legacy fields, which carry the key.
+    expect(resolved.ready).toBe(true);
+    expect(resolved.label).toBe("Gemini");
+  });
+
+  it("unlocks for ollama without a key", () => {
+    const resolved = resolveActiveProvider({
+      userProviders: [],
+      activeProviderId: BUILTIN_ENTRY_IDS.ollama,
+      aiProvider: "ollama",
+      legacy,
+    });
+
+    expect(resolved.ready).toBe(true);
   });
 });

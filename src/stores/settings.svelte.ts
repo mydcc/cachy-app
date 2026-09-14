@@ -45,6 +45,7 @@ import {
   type LegacyCredentialShape,
 } from "./settings/accounts";
 import {
+  ensureProviderRegistryState,
   redactUserProviders,
   sanitizeUserProviders,
   type ProviderConfig,
@@ -1562,6 +1563,49 @@ export class SettingsManager {
 
   // --- Security Methods ---
 
+  /**
+   * Unifies the provider registry (pure core in `ensureProviderRegistryState`,
+   * tested directly). Idempotent, so it is safe to run after every
+   * decrypt-replace of the registry.
+   */
+  private ensureProviderRegistry(): void {
+    const result = ensureProviderRegistryState({
+      userProviders: this.userProviders,
+      activeProviderId: this.activeProviderId,
+      aiProvider: this.aiProvider,
+      legacy: {
+        openai: {
+          apiKey: this.openaiApiKey,
+          model: this.openaiModel,
+          baseUrl: this.openaiBaseUrl,
+        },
+        anthropic: {
+          apiKey: this.anthropicApiKey,
+          model: this.anthropicModel,
+          baseUrl: this.anthropicBaseUrl,
+        },
+        gemini: {
+          apiKey: this.geminiApiKey,
+          model: this.geminiModel,
+          baseUrl: this.geminiBaseUrl,
+        },
+        openrouter: {
+          apiKey: this.openrouterApiKey,
+          model: this.openrouterModel,
+          baseUrl: this.openrouterBaseUrl,
+        },
+        ollama: {
+          apiKey: "",
+          model: this.ollamaModel,
+          baseUrl: this.ollamaBaseUrl,
+        },
+      },
+    });
+    this.userProviders = result.userProviders;
+    this.activeProviderId = result.activeProviderId;
+    this.aiProvider = result.aiProvider;
+  }
+
   async unlock(password: string): Promise<boolean> {
     const success = await cryptoService.unlockSession(password);
     if (!success) return false;
@@ -1614,6 +1658,7 @@ export class SettingsManager {
               const json = await cryptoService.decrypt(blob);
               if (aborted) return;
               this.userProviders = sanitizeUserProviders(JSON.parse(json));
+              this.ensureProviderRegistry();
             } catch (e) {
               failures++;
               console.error(
@@ -1887,6 +1932,7 @@ export class SettingsManager {
                   !this.userProviders.some((p) => p.apiKey.length > 0)
                 ) {
                   this.userProviders = providers;
+                  this.ensureProviderRegistry();
                 }
               })
               .catch((e) => {
@@ -2023,6 +2069,7 @@ export class SettingsManager {
     this.openrouterBaseUrl = merged.openrouterBaseUrl ?? defaultSettings.openrouterBaseUrl;
     this.userProviders = sanitizeUserProviders(merged.userProviders);
     this.activeProviderId = merged.activeProviderId ?? defaultSettings.activeProviderId;
+    this.ensureProviderRegistry();
     this.analysisDepth = merged.analysisDepth;
     this.aiConfirmActions = merged.aiConfirmActions;
     this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;

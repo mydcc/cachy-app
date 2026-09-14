@@ -67,4 +67,60 @@ describe("aiModelsService", () => {
     const result = await getModels("openai", { baseUrl: "http://localhost:8000/v1" });
     expect(result.models).toEqual([{ id: "custom-model", label: "custom-model" }]);
   });
+
+  it("lists custom provider models browser-direct without touching the server proxy", async () => {
+    const seen: string[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      seen.push(String(input));
+      return new Response(
+        JSON.stringify({ object: "list", data: [{ id: "kimi-k3" }, { id: "other" }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    });
+
+    const result = await getModels(
+      "openai",
+      { apiKey: "sk-test", baseUrl: "https://opencode.ai/zen/go/v1" },
+      { forceRefresh: true, transport: "direct", flavor: "openai-chat" },
+    );
+    expect(result.fromCache).toBe(false);
+    expect(result.models).toEqual([
+      { id: "kimi-k3", label: "kimi-k3" },
+      { id: "other", label: "other" },
+    ]);
+    expect(seen).toEqual(["https://opencode.ai/zen/go/v1/models"]);
+  });
+
+  it("parses the Google models shape on the direct path", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          models: [{ name: "models/gemini-2.0-flash", displayName: "Gemini 2.0 Flash" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await getModels(
+      "gemini",
+      { apiKey: "AIza", baseUrl: "https://generativelanguage.googleapis.com" },
+      { forceRefresh: true, transport: "direct", flavor: "google-generate" },
+    );
+    expect(result.models).toEqual([
+      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+    ]);
+  });
+
+  it("surfaces a direct failure instead of silently returning nothing", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("nope", { status: 403 }),
+    );
+    await expect(
+      getModels(
+        "openai",
+        { apiKey: "k", baseUrl: "https://gw.example.com/v1" },
+        { forceRefresh: true, transport: "direct", flavor: "openai-chat" },
+      ),
+    ).rejects.toThrow("403");
+  });
 });

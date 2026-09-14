@@ -99,6 +99,40 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306) & SSRF guard 
         method: "POST",
       }),
     );
+    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty("X-Title");
+  });
+
+  it("keeps the OpenRouter attribution header when relaying to an OpenRouter baseUrl", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse());
+    globalThis.fetch = fetchMock;
+
+    const request = new Request("http://localhost/api/ai/openai", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-app-access-token": issueToken(),
+        "x-api-key": "sk-or-test",
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "hello" }],
+        model: "anthropic/claude-sonnet-4",
+        baseUrl: "https://openrouter.ai/api/v1",
+      }),
+    });
+
+    const res = await POST(event(request));
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://openrouter.ai/api/v1/chat/completions",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer sk-or-test",
+          "X-Title": "Cachy",
+        }),
+      }),
+    );
   });
 
   it("rejects a reserved/loopback custom baseUrl with 403 (BUG-0291)", async () => {

@@ -229,3 +229,42 @@ export function buildDirectRequest(
       return buildGoogle(params);
   }
 }
+
+export interface DirectModelsParams {
+  baseUrl: string;
+  apiKey: string;
+}
+
+export interface DirectModelsRequest {
+  url: string;
+  headers: Record<string, string>;
+}
+
+const MODELS_PATH_BY_FLAVOR: Record<AiApiFlavor, string> = {
+  "openai-chat": "v1/models",
+  "openai-responses": "v1/models",
+  "anthropic-messages": "v1/models",
+  "google-generate": "v1beta/models",
+};
+
+/**
+ * Browser-direct model-list request for the given wire format, mirroring the
+ * headers each server model-list route sends. Lets a custom or loopback
+ * provider list its models without the key ever reaching Cachy's server.
+ */
+export function buildDirectModelsRequest(
+  flavor: AiApiFlavor,
+  params: DirectModelsParams,
+): DirectModelsRequest {
+  const url = resolveDirectUrl(params.baseUrl, MODELS_PATH_BY_FLAVOR[flavor]);
+  const headers: Record<string, string> = {};
+  if (flavor === "anthropic-messages") {
+    headers["anthropic-version"] = "2023-06-01";
+    if (params.apiKey.trim()) headers["x-api-key"] = params.apiKey;
+  } else if (flavor === "google-generate") {
+    if (params.apiKey.trim()) headers["x-goog-api-key"] = params.apiKey;
+  } else if (params.apiKey.trim()) {
+    headers.Authorization = `Bearer ${params.apiKey}`;
+  }
+  return { url, headers };
+}

@@ -16,16 +16,11 @@
 -->
 
 <!--
-  User-created AI provider management — FEAT-0467 (Slice 2b).
-
-  The built-in providers keep their own settings fields; this manages the
-  `userProviders` list added in Slice 2a. Credentials bound here are Class A:
-  the settings store encrypts them before they reach storage and redacts the
-  serialized block, so binding directly to the live object is safe.
-
-  Only the `openai-chat` flavor is wired end to end for now; the other
-  flavors are selectable but labelled as unsupported until their stream
-  adapters land (Slice 4).
+  User-created AI provider management. Built-ins and user entries share the
+  same `userProviders` registry; this lists the user entries while the fixed
+  tabs cover the built-ins. Credentials bound here are Class A: the settings
+  store encrypts them before they reach storage and redacts the serialized
+  block, so binding directly to the live object is safe.
 -->
 
 <script lang="ts">
@@ -33,11 +28,15 @@
   import { settingsState } from "../../stores/settings.svelte";
   import {
     AI_API_FLAVORS,
+    VENDOR_PRESETS,
     buildUserProvider,
+    isBuiltinEntryId,
+    isLoopbackBaseUrl,
+    modelProviderForFlavor,
+    providerFromPreset,
     type AiApiFlavor,
   } from "../../stores/settings/aiProviders";
   import type { TranslationKey } from "../../locales/schema";
-  import type { AiProvider } from "../../stores/settings.svelte";
   import AiModelPicker from "./AiModelPicker.svelte";
 
   const FLAVOR_LABEL_KEYS: Record<AiApiFlavor, TranslationKey> = {
@@ -47,29 +46,26 @@
     "google-generate": "settings.ai.customProviders.flavorGoogleGenerate",
   };
 
-  /**
-   * The model-list route that serves a flavor. The list is fetched through the
-   * server relay, so the picker is shown only when the relay is on; otherwise
-   * the model is typed by hand.
-   */
-  function modelProviderForFlavor(flavor: AiApiFlavor): AiProvider {
-    switch (flavor) {
-      case "anthropic-messages":
-        return "anthropic";
-      case "google-generate":
-        return "gemini";
-      default:
-        return "openai";
-    }
-  }
+  let selectedPresetId = $state("");
+
+  let customProviders = $derived(
+    settingsState.userProviders.filter((entry) => !isBuiltinEntryId(entry.id)),
+  );
 
   function addProvider() {
-    const provider = buildUserProvider(settingsState.userProviders);
+    const preset = VENDOR_PRESETS.find(
+      (entry) => entry.id === selectedPresetId,
+    );
+    const provider = preset
+      ? providerFromPreset(preset)
+      : buildUserProvider(settingsState.userProviders);
     settingsState.userProviders = [...settingsState.userProviders, provider];
     settingsState.activeProviderId = provider.id;
+    selectedPresetId = "";
   }
 
   function removeProvider(id: string) {
+    if (isBuiltinEntryId(id)) return;
     settingsState.userProviders = settingsState.userProviders.filter(
       (provider) => provider.id !== id,
     );
@@ -88,26 +84,38 @@
     <h3 class="section-title">
       {$_("settings.ai.customProviders.title")}
     </h3>
-    <button
-      type="button"
-      class="add-btn"
-      onclick={addProvider}
-      aria-label={$_("settings.ai.customProviders.add")}
-    >
-      + {$_("settings.ai.customProviders.add")}
-    </button>
+    <div class="flex items-center gap-2">
+      <select
+        bind:value={selectedPresetId}
+        class="input-field"
+        aria-label={$_("settings.ai.customProviders.add")}
+      >
+        <option value="">{$_("settings.ai.customProviders.presetBlank")}</option>
+        {#each VENDOR_PRESETS as preset}
+          <option value={preset.id}>{preset.label}</option>
+        {/each}
+      </select>
+      <button
+        type="button"
+        class="add-btn shrink-0"
+        onclick={addProvider}
+        aria-label={$_("settings.ai.customProviders.add")}
+      >
+        + {$_("settings.ai.customProviders.add")}
+      </button>
+    </div>
   </div>
   <p class="text-[10px] text-[var(--text-secondary)] mb-3">
     {$_("settings.ai.customProviders.desc")}
   </p>
 
-  {#if settingsState.userProviders.length === 0}
+  {#if customProviders.length === 0}
     <p class="text-xs text-[var(--text-secondary)]">
       {$_("settings.ai.customProviders.empty")}
     </p>
   {:else}
     <div class="flex flex-col gap-3">
-      {#each settingsState.userProviders as provider (provider.id)}
+      {#each customProviders as provider (provider.id)}
         <div
           class="provider-card"
           class:active={settingsState.activeProviderId === provider.id}
@@ -192,29 +200,24 @@
               />
             </div>
 
-            {#if provider.allowServerRelay}
-              <AiModelPicker
-                provider={modelProviderForFlavor(provider.flavor)}
-                apiKey={provider.apiKey}
-                baseUrl={provider.baseUrl}
-                bind:model={provider.model}
-              />
-            {:else}
-              <div class="field-group">
-                <label for={`cp-model-${provider.id}`}
-                  >{$_("settings.ai.model.label")}</label
-                >
-                <input
-                  id={`cp-model-${provider.id}`}
-                  bind:value={provider.model}
-                  class="input-field"
-                  placeholder={$_("settings.ai.model.placeholder")}
-                />
-              </div>
-            {/if}
+            <AiModelPicker
+              provider={modelProviderForFlavor(provider.flavor)}
+              apiKey={provider.apiKey}
+              baseUrl={provider.baseUrl}
+              bind:model={provider.model}
+              flavor={provider.flavor}
+              transport={provider.allowServerRelay &&
+              !isLoopbackBaseUrl(provider.baseUrl)
+                ? "server"
+                : "direct"}
+            />
 
             <label class="relay-row">
-              <input type="checkbox" bind:checked={provider.allowServerRelay} />
+              <input
+                type="checkbox"
+                bind:checked={provider.allowServerRelay}
+                disabled={isLoopbackBaseUrl(provider.baseUrl)}
+              />
               <span class="relay-label"
                 >{$_("settings.ai.customProviders.relay")}</span
               >
