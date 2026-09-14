@@ -4,7 +4,7 @@
 
 351 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 293 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 294 · ⛔ dropped 1
 
 ---
 
@@ -242,7 +242,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0425](bugs/BUG-0425-api-schemas-f64.md) | Financial values in API schemas allow f64 numbers | P1 | ✅ done | backend |
 | [BUG-0426](bugs/BUG-0426-stateful-technicals-f64.md) | Stateful technicals calculator uses toNumber on tick close | P1 | ✅ done | technicals |
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | repo |
-| [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | 📋 specced | repo |
+| [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | ✅ done | repo |
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | alerts |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -495,7 +495,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0429](bugs/BUG-0429-sync-reopens-freshly-closed-issues.md) | Backlog sync reopens freshly closed issues before the auto-done flip lands | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0430](bugs/BUG-0430-macd-seeding-mismatch.md) | MACD seeded differently in WASM than everywhere else | P1 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) | Switching builder tabs wipes the condition the trader just configured | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | — |
-| [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
