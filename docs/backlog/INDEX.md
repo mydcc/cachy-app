@@ -4,7 +4,7 @@
 
 352 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 24 · 🟡 in-progress 3 · ✅ done 297 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 3 · ✅ done 298 · ⛔ dropped 1
 
 ---
 
@@ -397,7 +397,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟡 in-progress 3 · ✅ d
 | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | ✅ done | ui |
 | [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | ✅ done | ui |
 | [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | ui |
-| [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | ui |
+| [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | ✅ done | ui |
 | [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | ✅ done | journal |
 | [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | ✅ done | calculation |
 | [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | ✅ done | chat |
@@ -746,7 +746,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟡 in-progress 3 · ✅ d
 | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) | Add a market-driven Galaxy mode to the Trade Flow background | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0325](features/FEAT-0325-tradeflow-indicator-signals.md) | Drive the Trade Flow background from ATR and RSI, not only from trades | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0323](features/FEAT-0323-galaxy-tradeflow-mode.md) |
 | [FEAT-0339](features/FEAT-0339-shared-component-classes.md) | Shared Component Classes | P3 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
-| [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0346](features/FEAT-0346-component-test-coverage.md) | Increase component test coverage | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0365](features/FEAT-0365-calendar-heatmap-precompute-days.md) | Precompute month padding and day arrays in CalendarHeatmap using derived runes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0371](features/FEAT-0371-coordinate-startup-price-and-atr-fetch.md) | Coordinate initial price and ATR fetches at startup to avoid duplicate calculations | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | ✅ done | none | community, pro, private | B | none | [BUG-0373](bugs/BUG-0373-short-sender-id-collision.md) |
