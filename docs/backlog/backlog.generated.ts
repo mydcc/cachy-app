@@ -5976,7 +5976,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0467",
     "title": "User-managed AI providers with per-provider endpoints and API formats",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "M8",
     "editions": [

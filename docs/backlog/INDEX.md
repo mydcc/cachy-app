@@ -4,7 +4,7 @@
 
 351 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 292 · ⛔ dropped 1
+Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 2 · ✅ done 293 · ⛔ dropped 1
 
 ---
 
@@ -194,7 +194,7 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0240](features/FEAT-0240-prompt-caching.md) | Implement prompt caching for base role instructions | P2 | ✅ done | ai |
 | [FEAT-0304](features/FEAT-0304-model-proposes-rules.md) | Let the assistant propose a rule the trader arms | P2 | 💡 idea | ai |
 | [FEAT-0306](features/FEAT-0306-allow-custom-baseurl-for-all-ai-providers.md) | Allow custom baseUrl configuration for all AI providers | P2 | ✅ done | ai |
-| [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | 🟡 in-progress | ai |
+| [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | ✅ done | ai |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | ai |
 
 ### M9
@@ -693,7 +693,7 @@ Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | 📋 specced | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | ✅ done | M4 | community, pro, private | C | ADR-0012 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) |
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | none | pro, private | A | none | — |
-| [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | 🟡 in-progress | M8 | community, pro, private | A | ADR-0019 | — |
+| [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
