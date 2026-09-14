@@ -2,7 +2,8 @@
 id: BUG-0448
 title: An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing
 type: bug
-status: specced
+status: in-progress
+assignee: claude
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -92,6 +93,10 @@ defect, not a timing one.
 
 - The first-timeframe-window and not-deferred residuals of BUG-0441's "Known limitation"
   — those are separate mechanisms with the same no-rollback constraint.
+
+## Progress
+
+- 2026-09-14 — claimed on branch `fix/bug-0448-mid-session-arm-replay`.
 
 ## Links
 
