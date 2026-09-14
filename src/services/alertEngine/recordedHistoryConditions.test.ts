@@ -401,6 +401,11 @@ function walk(condition: Condition, from: number): Walk {
 // ---------------------------------------------------------------------------
 
 const RSI14 = indicator("rsi", { period: 14 });
+/** FEAT-0454: the RSI a card set to hl2 draws, over `(high + low) / 2`. */
+const RSI14_HL2: Operand = {
+  kind: "indicator",
+  indicator: { id: "rsi", params: { period: 14 }, field: "hl2" },
+};
 const MACD_PARAMS = { fast_period: 12, slow_period: 26, signal_period: 9 };
 const MACD_LINE = indicator("macd", MACD_PARAMS, "macd");
 const MACD_SIGNAL = indicator("macd", MACD_PARAMS, "signal");
@@ -462,6 +467,16 @@ const EXPECTATIONS: Expectation[] = [
     condition: compare(RSI14, "lt", constant("30")),
     flips: [
       203, 206, 229, 230, 292, 293, 296, 298, 635, 641, 943, 944, 954, 955
+    ],
+  },
+  {
+    // Beside the close's RSI above, and flipping at other candles: the price a
+    // reference names reaches the series the evaluator reads.
+    name: "RSI(14) over hl2 below the oversold threshold",
+    condition: compare(RSI14_HL2, "lt", constant("30")),
+    flips: [
+      202, 213, 217, 218, 226, 231, 291, 294, 295, 298, 635, 636, 637, 641, 733, 734, 889, 891,
+      943, 946, 947, 948, 954, 955
     ],
   },
   {
