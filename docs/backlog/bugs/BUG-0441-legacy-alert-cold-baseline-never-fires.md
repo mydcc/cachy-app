@@ -219,9 +219,9 @@ still pending when the trader arms a second alert B on it, the replay's historic
 can straddle B's target and fire it at once — even though B was armed at the current
 price and the trader never saw that crossing. Skipping the replay for a symbol whose
 armed set changed would take alert A down with it, which is the population this fix
-targets, so that is not a trade worth making either. This variant is tracked separately as
-[`BUG-0448`](BUG-0448-mid-session-arm-fires-historical-crossing.md), so it is work rather
-than only a note.
+targets, so that is not a trade worth making either. This variant is fixed in
+[`BUG-0448`](BUG-0448-mid-session-arm-fires-historical-crossing.md), which withholds B from
+the engine for the length of the replay instead.
 
 **Left as documentation, not fixed here**, because closing any of these properly means either
 probing stateful `evaluate()` speculatively (it seeds the baseline and can flip
