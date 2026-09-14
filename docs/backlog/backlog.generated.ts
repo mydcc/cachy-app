@@ -6762,7 +6762,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0475",
     "title": "The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [

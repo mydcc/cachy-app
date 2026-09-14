@@ -52,8 +52,10 @@ indicator alerts trustworthy or not.
       or the discrepancy is documented. WASM↔JS: `src/services/alertEngine/crossPathParity.test.ts`.
       GPU↔JS: `tests/gpu/webGpuParity.spec.ts` ([`FEAT-0439`](FEAT-0439-webgpu-cross-path-parity.md)),
       within a derived `f32` bound for all 16 shaders and the MACD, Bollinger, HMA and
-      stochastic composites; four series diverge during warmup and are documented in
-      [`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md). MACD and
+      stochastic composites. The four series that diverged during warmup (ATR, SuperTrend,
+      MACD signal and histogram) were fixed in
+      [`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md); no
+      discrepancy is documented any more. MACD and
       Bollinger do have a GPU path — an earlier note here expected otherwise
 - [ ] German and English strings
 
