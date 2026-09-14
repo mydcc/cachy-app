@@ -75,7 +75,7 @@
 <div
    role="tablist"
    tabindex={-1}
-   aria-label={$_("academy.title") || "Trading Academy"}
+   aria-label={$_("academy.title")}
    bind:this={tablistEl}
    onkeydown={handleKeydown}
    class="flex flex-wrap border-b border-[var(--border-color)] mb-4 shrink-0 bg-[var(--bg-secondary)] rounded-t-lg p-1 gap-1"
