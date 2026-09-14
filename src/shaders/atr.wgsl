@@ -18,15 +18,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     
     if (count <= len) { return; }
     
-    // Initial TR Sum (SMA)
-    // First value TR is High - Low (no previous close)
-    var tr = high_data[0] - low_data[0];
-    var sum_tr = tr;
+    // Candle 0 has no previous close, so it has no true range. The seed is the
+    // mean of the first `len` real true ranges, candles 1..len, and lands on
+    // candle `len` — where the JS path and the WASM core put it (BUG-0456,
+    // BUG-0475).
+    var tr: f32 = 0.0;
+    var sum_tr: f32 = 0.0;
 
-    // Use loop to calculate initial SMA (first 'len' periods)
-    // Actually Wilder's smoothing start point varies, usually SMA of first 'len' TRs.
-    
-    for (var i: u32 = 1; i < len; i++) {
+    for (var i: u32 = 1; i <= len; i++) {
         let h = high_data[i];
         let l = low_data[i];
         let pc = close_data[i-1];
@@ -44,14 +43,14 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     
     var atr = sum_tr / f32(len);
     
-    // Fill initial part
+    // No value before the seed
     for (var k: u32 = 0; k < len; k++) {
         output_data[k] = 0.0;
     }
-    output_data[len - 1] = atr;
+    output_data[len] = atr;
 
     // Recursive Loop
-    for (var i: u32 = len; i < count; i++) {
+    for (var i: u32 = len + 1; i < count; i++) {
         let h = high_data[i];
         let l = low_data[i];
         let pc = close_data[i-1];
