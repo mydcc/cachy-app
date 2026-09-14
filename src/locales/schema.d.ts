@@ -3324,7 +3324,6 @@ export type TranslationKey =
   | "quiz.known"
   | "quiz.categoryLabel"
   | "quiz.categoryTrading"
-  | "quiz.categoryTech"
   | "quiz.notReady"
   | "quiz.quickQuiz"
   | "cloud.title"

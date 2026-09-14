@@ -54,7 +54,7 @@ export type DuckTriggerEvent =
     | { type: "trade_win"; pnl: number | Decimal }
     | { type: "trade_loss"; pnl: number | Decimal }
     | { type: "daily_login" }
-    | { type: "academy_complete"; lessonId: string }
+    | { type: "quiz_correct"; cardId: string }
     | { type: "onboarding_step"; step: number }
     | { type: "onboarding_complete" }
     | { type: "pet" };

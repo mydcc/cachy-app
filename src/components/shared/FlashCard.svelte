@@ -26,6 +26,8 @@
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { markdown } from "../../actions/markdown";
   import { _ } from "../../locales/i18n";
+  import { QUIZ_DECKS } from "../../lib/quiz/decks";
+  import type { TranslationKey } from "../../locales/schema";
 
   let isFlipped = $state(false);
 
@@ -77,38 +79,32 @@
     tabindex="0"
     onkeydown={(e) => e.key === "Escape" && quizState.closeQuiz()}
   >
-    <!-- Category Switcher Pills -->
-    <div
-      class="flex items-center gap-1.5 p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-lg glass-panel z-10"
-      role="toolbar"
-    >
-      <button
-        type="button"
-        class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 {quizState.activeCategory === 'trading' ? 'bg-[var(--accent-color)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
-        onclick={(e) => {
-          e.stopPropagation();
-          if (quizState.activeCategory !== 'trading') {
-            quizState.setCategory('trading');
-            quizState.startQuiz();
-          }
-        }}
+    <!-- Deck Switcher (only rendered once more than one deck exists) -->
+    {#if QUIZ_DECKS.length > 1}
+      <div
+        class="flex items-center gap-1.5 p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-lg glass-panel z-10"
+        role="toolbar"
+        aria-label={$_("quiz.categoryLabel")}
       >
-        {$_("quiz.categoryTrading")}
-      </button>
-      <button
-        type="button"
-        class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 {quizState.activeCategory === 'tech' ? 'bg-[var(--accent-color)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
-        onclick={(e) => {
-          e.stopPropagation();
-          if (quizState.activeCategory !== 'tech') {
-            quizState.setCategory('tech');
-            quizState.startQuiz();
-          }
-        }}
-      >
-        {$_("quiz.categoryTech")}
-      </button>
-    </div>
+        {#each QUIZ_DECKS as deck}
+          <button
+            type="button"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 {quizState.activeDeckId ===
+            deck.id
+              ? 'bg-[var(--accent-color)] text-white shadow-sm'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            onclick={(e) => {
+              e.stopPropagation();
+              if (quizState.activeDeckId !== deck.id) {
+                quizState.startQuiz(deck.id);
+              }
+            }}
+          >
+            {$_(deck.labelKey as TranslationKey)}
+          </button>
+        {/each}
+      </div>
+    {/if}
 
     <!-- Card Container -->
     <div class="relative w-full max-w-md aspect-[4/3]">

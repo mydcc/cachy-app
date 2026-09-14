@@ -42,9 +42,10 @@ export const CONSTANTS = {
   // not localStorage, since handles aren't JSON-serializable.
   LOCAL_STORAGE_FILE_TARGET_CONFIG_PREFIX: "cachy_file_target_config_",
   LOCAL_STORAGE_QUIZ_KEY: "cachy_quiz_state",
-  LOCAL_STORAGE_QUIZ_CATEGORY_KEY: "cachy_quiz_category",
-  FLASHCARDS_CSV_PATH_DE: "/quiz/flashcards_tech_de.csv",
-  FLASHCARDS_CSV_PATH_EN: "/quiz/flashcards_tech_en.csv",
+  // Storage key kept under its historical name on purpose: older builds wrote
+  // the quiz category here ("trading" | "tech"), and the deck migration reads
+  // that value once to map "tech" onto the default deck.
+  LOCAL_STORAGE_QUIZ_DECK_KEY: "cachy_quiz_category",
   FLASHCARDS_TRADING_CSV_PATH_DE: "/quiz/flashcards_trading_de.csv",
   FLASHCARDS_TRADING_CSV_PATH_EN: "/quiz/flashcards_trading_en.csv",
   STATUS_INVALID: "INVALID",

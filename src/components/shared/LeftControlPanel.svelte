@@ -110,25 +110,22 @@
       {@html ICONS.academy}
     </button>
     <!-- Quiz Progress Bar -->
-    {#if quizState.questions.length > 0}
-      {@const progress = Math.min(
-        100,
-        (quizState.knownQuestionIds.size / 52) * 100,
-      )}
+    {#if quizState.totalCount > 0}
+      {@const progress = quizState.progress}
       <div class="absolute -left-[0.25rem] top-1/2 -translate-y-1/2 z-10">
-        <Tooltip text="{quizState.knownQuestionIds.size}/52">
+        <Tooltip text="{progress.known}/{progress.total}">
           <div
             class="flex flex-col h-[28px] w-[3px] rounded-full overflow-hidden shadow-sm"
           >
             <!-- Red Segment (Top) -->
             <div
               class="bg-[var(--danger-color)] w-full transition-all duration-500"
-              style:height="{100 - progress}%"
+              style:height="{100 - progress.percent}%"
             ></div>
             <!-- Green Segment (Bottom) -->
             <div
               class="bg-[var(--success-color)] w-full transition-all duration-500"
-              style:height="{progress}%"
+              style:height="{progress.percent}%"
             ></div>
           </div>
         </Tooltip>

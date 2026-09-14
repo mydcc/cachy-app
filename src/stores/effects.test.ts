@@ -164,9 +164,9 @@ describe("EffectsState", () => {
     expect(effectsState.duckEvents).toHaveLength(0);
   });
 
-  it("should trigger and consume an academy_complete duck event correctly", () => {
-    effectsState.triggerDuckEvent({ type: "academy_complete", lessonId: "lesson-42" });
-    expect(effectsState.duckEvents[0]).toEqual({ type: "academy_complete", lessonId: "lesson-42" });
+  it("should trigger and consume a quiz_correct duck event correctly", () => {
+    effectsState.triggerDuckEvent({ type: "quiz_correct", cardId: "card-42" });
+    expect(effectsState.duckEvents[0]).toEqual({ type: "quiz_correct", cardId: "card-42" });
 
     effectsState.consumeDuckEvent();
     expect(effectsState.duckEvents).toHaveLength(0);

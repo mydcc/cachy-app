@@ -21,20 +21,31 @@ import { locale, _ } from "../locales/i18n";
 import { get } from "svelte/store";
 import { toastService } from "../services/toastService.svelte";
 import { effectsState } from "./effects.svelte";
+import {
+  DEFAULT_QUIZ_DECK_ID,
+  QUIZ_DECKS,
+  isQuizDeckId,
+  type QuizDeck,
+  type QuizDeckId,
+} from "../lib/quiz/decks";
+import { computeQuizProgress } from "../lib/quiz/progress";
+import { parseDeckCsv } from "../lib/quiz/parse";
+import type { FlashCard } from "../lib/quiz/types";
 
-export interface FlashCard {
-  id: string;
-  question: string;
-  answer: string;
-}
+export type { FlashCard };
 
-export type QuizCategory = "trading" | "tech";
+export type { QuizDeckId };
 
+/*
+ * Standalone flashcard quiz. Deliberately independent of the Trading Academy:
+ * its own decks, its own progress, its own overlay. Cards carry a stable id in
+ * the CSV so fixing a question's wording never loses saved progress.
+ */
 class QuizStore {
   questions = $state<FlashCard[]>([]);
   knownQuestionIds = $state<Set<string>>(new Set());
   activeQuestion = $state<FlashCard | null>(null);
-  activeCategory = $state<QuizCategory>("trading");
+  activeDeckId = $state<QuizDeckId>(DEFAULT_QUIZ_DECK_ID);
   isQuizActive = $state(false);
   isLoading = $state(false);
 
@@ -48,6 +59,26 @@ class QuizStore {
     }
   }
 
+  get activeDeck(): QuizDeck {
+    return (
+      QUIZ_DECKS.find((deck) => deck.id === this.activeDeckId) ?? QUIZ_DECKS[0]
+    );
+  }
+
+  /** Cards in the loaded deck that are marked as known. */
+  get knownCount(): number {
+    return computeQuizProgress(this.questions, this.knownQuestionIds).known;
+  }
+
+  /** Total cards in the loaded deck. */
+  get totalCount(): number {
+    return this.questions.length;
+  }
+
+  get progress() {
+    return computeQuizProgress(this.questions, this.knownQuestionIds);
+  }
+
   loadProgress() {
     try {
       const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY);
@@ -57,9 +88,15 @@ class QuizStore {
           this.knownQuestionIds = new Set(parsed);
         }
       }
-      const storedCat = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY);
-      if (storedCat === "tech" || storedCat === "trading") {
-        this.activeCategory = storedCat;
+      // One-time deck migration: older builds stored "tech", which no longer
+      // exists, and any unknown value falls back to the default deck.
+      const storedDeck = localStorage.getItem(
+        CONSTANTS.LOCAL_STORAGE_QUIZ_DECK_KEY,
+      );
+      if (isQuizDeckId(storedDeck)) {
+        this.activeDeckId = storedDeck;
+      } else {
+        this.activeDeckId = DEFAULT_QUIZ_DECK_ID;
       }
     } catch (e) {
       console.warn("Failed to load quiz progress", e);
@@ -74,27 +111,27 @@ class QuizStore {
         JSON.stringify(Array.from(this.knownQuestionIds))
       );
       localStorage.setItem(
-        CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY,
-        this.activeCategory
+        CONSTANTS.LOCAL_STORAGE_QUIZ_DECK_KEY,
+        this.activeDeckId
       );
     } catch (e) {
       console.error("Failed to save quiz progress", e);
     }
   }
 
-  setCategory(category: QuizCategory) {
-    this.activeCategory = category;
+  setDeck(deckId: QuizDeckId) {
+    this.activeDeckId = deckId;
     if (browser) {
       try {
-        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY, category);
+        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_DECK_KEY, deckId);
       } catch (e) {
-        console.error("Failed to save quiz category", e);
+        console.error("Failed to save quiz deck", e);
       }
     }
     this.loadQuestions();
   }
 
-  async loadQuestions(lang: string | null = null, category: QuizCategory | null = null) {
+  async loadQuestions(lang: string | null = null, deckId: QuizDeckId | null = null) {
     try {
       this.isLoading = true;
 
@@ -103,19 +140,11 @@ class QuizStore {
         lang = get(locale);
       }
 
-      const cat = category || this.activeCategory;
-
-      // Select path based on language & category
-      let path: string;
-      if (cat === "trading") {
-        path = (lang && lang.startsWith("de"))
-          ? CONSTANTS.FLASHCARDS_TRADING_CSV_PATH_DE
-          : CONSTANTS.FLASHCARDS_TRADING_CSV_PATH_EN;
-      } else {
-        path = (lang && lang.startsWith("de"))
-          ? CONSTANTS.FLASHCARDS_CSV_PATH_DE
-          : CONSTANTS.FLASHCARDS_CSV_PATH_EN;
+      if (deckId) {
+        this.activeDeckId = deckId;
       }
+      const deck = this.activeDeck;
+      const path = lang && lang.startsWith("de") ? deck.csv.de : deck.csv.en;
 
       const response = await fetch(path);
       if (!response.ok) {
@@ -130,39 +159,18 @@ class QuizStore {
     }
   }
 
+  /**
+   * Parses the deck CSV: an `id,question,answer` header followed by one card
+   * per line. The id is authored, not derived, so editing a question no longer
+   * resets its progress. Kept as a method for callers/tests; the rule lives in
+   * `lib/quiz/parse`.
+   */
   parseCSV(text: string): FlashCard[] {
-    const lines = text.split("\n").filter((l) => l.trim().length > 0);
-    const cards: FlashCard[] = [];
-
-    // Simple regex for CSV splitting: matches comma only if followed by even number of quotes
-    const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-
-    lines.forEach((line) => {
-      const parts = line.split(regex);
-
-      if (parts.length >= 2) {
-        let question = parts[0].trim();
-        let answer = parts[1].trim();
-
-        // Unquote
-        if (question.startsWith('"') && question.endsWith('"')) {
-          question = question.slice(1, -1).replace(/""/g, '"');
-        }
-        if (answer.startsWith('"') && answer.endsWith('"')) {
-          answer = answer.slice(1, -1).replace(/""/g, '"');
-        }
-
-        // Simple ID generation
-        const id = btoa(unescape(encodeURIComponent(question))).slice(0, 16);
-
-        cards.push({ id, question, answer });
-      }
-    });
-    return cards;
+    return parseDeckCsv(text);
   }
 
   /** Picks the next card to show: a random still-unknown one, or (once every
-   * card in the category is known) a random one from the full set. Shared by
+   * card in the deck is known) a random one from the full set. Shared by
    * startQuiz() and nextQuestion() so there is one selection rule, not two. */
   private pickQuestion(): FlashCard | null {
     if (this.questions.length === 0) return null;
@@ -176,9 +184,9 @@ class QuizStore {
     return pool[randomIndex];
   }
 
-  startQuiz(category?: QuizCategory) {
-    if (category && category !== this.activeCategory) {
-      this.setCategory(category);
+  startQuiz(deckId?: QuizDeckId) {
+    if (deckId && deckId !== this.activeDeckId) {
+      this.setDeck(deckId);
     }
 
     const question = this.pickQuestion();
@@ -218,9 +226,11 @@ class QuizStore {
     if (this.activeQuestion) {
       this.knownQuestionIds.add(this.activeQuestion.id);
       this.saveProgress();
+      // Quiz-specific event: the quiz has no connection to the Academy, so it
+      // must not claim an Academy lesson was completed.
       effectsState.triggerDuckEvent({
-        type: "academy_complete",
-        lessonId: this.activeQuestion.id,
+        type: "quiz_correct",
+        cardId: this.activeQuestion.id,
       });
     }
     this.nextQuestion();

@@ -78,6 +78,7 @@ describe("QuizStore", () => {
     quizState.questions = [];
     quizState.knownQuestionIds = new Set();
     quizState.activeQuestion = null;
+    quizState.activeDeckId = "trading";
     quizState.isQuizActive = false;
     quizState.isLoading = false;
     localStorage.clear();
@@ -93,64 +94,69 @@ describe("QuizStore", () => {
 
 
   describe("parseCSV", () => {
-    it("parses unquoted strings correctly", () => {
-      const csv = "Question 1,Answer 1\nQuestion 2,Answer 2";
+    it("skips the id/question/answer header and keeps every field", () => {
+      const csv =
+        "id,question,answer\ncard-1,Question 1,Answer 1\ncard-2,Question 2,Answer 2";
       const cards = quizState.parseCSV(csv);
 
       expect(cards.length).toBe(2);
-      expect(cards[0].question).toBe("Question 1");
-      expect(cards[0].answer).toBe("Answer 1");
-      expect(cards[1].question).toBe("Question 2");
-      expect(cards[1].answer).toBe("Answer 2");
-
-      // btoa(unescape(encodeURIComponent("Question 1"))).slice(0, 16) => "UXVlc3Rpb24gMQ=="
-      expect(cards[0].id).toBe(btoa(unescape(encodeURIComponent("Question 1"))).slice(0, 16));
+      expect(cards[0]).toEqual({
+        id: "card-1",
+        question: "Question 1",
+        answer: "Answer 1",
+      });
+      expect(cards[1]).toEqual({
+        id: "card-2",
+        question: "Question 2",
+        answer: "Answer 2",
+      });
     });
 
-    it("parses double-quoted strings correctly", () => {
-      const csv = '"Question 1, with comma","Answer 1"\n"Question ""2""","Answer 2"';
+    it("keeps quoted commas and unescapes doubled quotes", () => {
+      const csv =
+        'id,question,answer\nq1,"Question 1, with comma","Answer with ""quotes"""';
       const cards = quizState.parseCSV(csv);
 
-      expect(cards.length).toBe(2);
+      expect(cards.length).toBe(1);
+      expect(cards[0].id).toBe("q1");
       expect(cards[0].question).toBe("Question 1, with comma");
-      expect(cards[0].answer).toBe("Answer 1");
-      expect(cards[1].question).toBe('Question "2"');
-      expect(cards[1].answer).toBe("Answer 2");
+      expect(cards[0].answer).toBe('Answer with "quotes"');
     });
 
-    it("ignores empty lines", () => {
-      const csv = "Q1,A1\n\n\nQ2,A2\n";
+    it("ignores empty lines and malformed rows", () => {
+      const csv = "id,question,answer\nq1,Q1,A1\n\nonly-one-field\nq2,Q2,A2\n";
       const cards = quizState.parseCSV(csv);
-      expect(cards.length).toBe(2);
+
+      expect(cards.map((c) => c.id)).toEqual(["q1", "q2"]);
     });
   });
 
 
   describe("loadQuestions", () => {
-    it("fetches English trading flashcards by default when lang is 'en'", async () => {
+    it("fetches the English trading deck by default when lang is 'en'", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve("Q1,A1\nQ2,A2"),
+        text: () => Promise.resolve("id,question,answer\nq1,Q1,A1\nq2,Q2,A2"),
       });
 
       await quizState.loadQuestions("en");
 
       expect(global.fetch).toHaveBeenCalledWith(CONSTANTS.FLASHCARDS_TRADING_CSV_PATH_EN);
       expect(quizState.questions.length).toBe(2);
+      expect(quizState.questions[0].id).toBe("q1");
       expect(quizState.questions[0].question).toBe("Q1");
       expect(quizState.isLoading).toBe(false);
     });
 
-    it("fetches German tech flashcards when category is 'tech' and lang is 'de'", async () => {
+    it("fetches the German trading deck when lang is 'de'", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        text: () => Promise.resolve("Frage 1,Antwort 1"),
+        text: () => Promise.resolve("id,question,answer\nq1,Frage 1,Antwort 1"),
       });
 
-      quizState.activeCategory = "tech";
       await quizState.loadQuestions("de");
 
-      expect(global.fetch).toHaveBeenCalledWith(CONSTANTS.FLASHCARDS_CSV_PATH_DE);
+      expect(global.fetch).toHaveBeenCalledWith(CONSTANTS.FLASHCARDS_TRADING_CSV_PATH_DE);
       expect(quizState.questions.length).toBe(1);
     });
 
@@ -207,6 +213,23 @@ describe("QuizStore", () => {
       expect(quizState.knownQuestionIds.size).toBe(0);
 
       consoleWarnSpy.mockRestore();
+    });
+
+    it("migrates the removed 'tech' deck to the default deck", () => {
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_DECK_KEY, "tech");
+
+      quizState.loadProgress();
+
+      expect(quizState.activeDeckId).toBe("trading");
+    });
+
+    it("saves the active deck alongside progress", () => {
+      quizState.activeDeckId = "trading";
+      quizState.saveProgress();
+
+      expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_QUIZ_DECK_KEY)).toBe(
+        "trading",
+      );
     });
   });
 
@@ -305,8 +328,8 @@ describe("QuizStore", () => {
       expect(quizState.knownQuestionIds.has("testId")).toBe(true);
       expect(saveProgressSpy).toHaveBeenCalled();
       expect(effectsState.duckEvents[0]).toEqual({
-        type: "academy_complete",
-        lessonId: "testId",
+        type: "quiz_correct",
+        cardId: "testId",
       });
       expect(quizState.isQuizActive).toBe(true);
       expect(quizState.activeQuestion).not.toBeNull();
@@ -370,6 +393,38 @@ describe("QuizStore", () => {
 
       vi.advanceTimersByTime(300);
       expect(quizState.activeQuestion).toBeNull();
+    });
+  });
+
+  describe("Progress across old and current ids", () => {
+    it("counts only known ids that belong to the loaded deck", () => {
+      quizState.questions = [
+        { id: "q1", question: "1?", answer: "1!" },
+        { id: "q2", question: "2?", answer: "2!" },
+      ];
+      // "legacy-id" came from the old text-derived scheme and must not count.
+      quizState.knownQuestionIds = new Set(["q1", "legacy-id"]);
+
+      expect(quizState.knownCount).toBe(1);
+      expect(quizState.totalCount).toBe(2);
+      expect(quizState.progress).toEqual({
+        total: 2,
+        known: 1,
+        open: 1,
+        percent: 50,
+      });
+    });
+
+    it("reports an empty progress for an unloaded deck", () => {
+      quizState.questions = [];
+      quizState.knownQuestionIds = new Set(["q1"]);
+
+      expect(quizState.progress).toEqual({
+        total: 0,
+        known: 0,
+        open: 0,
+        percent: 0,
+      });
     });
   });
 

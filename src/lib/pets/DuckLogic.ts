@@ -269,7 +269,7 @@ export class DuckLogic {
                 this.saveState();
                 break;
             }
-            case "academy_complete": {
+            case "quiz_correct": {
                 this.xp += 20;
                 this.level = Math.floor(this.xp / XP_PER_LEVEL) + 1;
                 this.transitionTo(DuckState.CELEBRATING, 1.5);
