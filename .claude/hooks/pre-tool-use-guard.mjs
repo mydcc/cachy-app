@@ -46,11 +46,24 @@ const PROTECTED_RM_TARGETS = new Set([
 const COMMAND_SEPARATOR_RE = /[;&|\n]+/;
 
 // A heredoc opener: `<<EOF`, `<<-EOF`, `<<'EOF'`, `<<"EOF"`. A leading digit is
-// rejected so arithmetic like `1<<2` is not mistaken for a heredoc.
-const HEREDOC_START_RE = /<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/g;
+// rejected so arithmetic like `1<<2` is not mistaken for a heredoc. Group 1 is
+// the `-` form (leading tabs allowed on the terminator), group 3 the delimiter.
+const HEREDOC_START_RE = /<<(-)?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\2/g;
 
+// A heredoc body is shell *data* only when it is written to a file
+// (`cat > f <<EOF`, `tee f <<EOF`). When a shell or interpreter consumes it —
+// `bash <<EOF`, `cat <<EOF | sh`, `eval "$(cat <<EOF …)"` — the body is
+// executable code and must still be scanned.
+const INTERPRETER_RE =
+  /(^|[;&|]\s*)(bash|sh|zsh|dash|ksh|fish|node|python3?|perl|ruby|php|lua|eval|source)\b/;
+const FILE_REDIRECT_RE = />>?(?!&)\s*[^\s|&;<>]+/;
+const DATA_HEREDOC_COMMAND_RE = /(^|[;&|]\s*)(cat|tee)\b/;
+
+// Protected push targets: by name (`origin develop`), via a short refspec
+// (`HEAD:develop`) and via a full ref (`HEAD:refs/heads/develop`,
+// `refs/heads/develop`).
 const PROTECTED_PUSH_RE =
-  /\bgit\s+push\b[^\n]*(?:\s|:)(?:develop|main|master)(?:\s|$)/;
+  /\bgit\s+push\b[^\n]*(?:\s|:|refs\/heads\/)(?:develop|main|master)(?:\s|$)/;
 
 const RULES = [
   {
@@ -143,19 +156,30 @@ function findProtectedRmTargets(cmd) {
   return hits;
 }
 
-// Drop heredoc bodies before scanning: a file body that quotes a line such as
-// `git push origin develop` is data, not a command (BUG-0445).
+// A heredoc body is data only when it is written to a file or read by a data
+// tool; when a shell/interpreter consumes it the body is executable code.
+function isDataHeredocLine(line) {
+  if (INTERPRETER_RE.test(line)) return false;
+  return FILE_REDIRECT_RE.test(line) || DATA_HEREDOC_COMMAND_RE.test(line);
+}
+
+// Drop *data* heredoc bodies before scanning: a file body that quotes a line
+// such as `git push origin develop` is data, not a command (BUG-0445). An
+// interpreter-fed heredoc is left intact so its body is still scanned.
 function stripHeredocBodies(cmd) {
   const kept = [];
   const pendingDelimiters = [];
   for (const line of cmd.split("\n")) {
-    if (pendingDelimiters.length > 0) {
-      if (line.trim() === pendingDelimiters[0]) pendingDelimiters.shift();
+    const pending = pendingDelimiters[0];
+    if (pending) {
+      const candidate = pending.stripTabs ? line.replace(/^\t*/, "") : line;
+      if (candidate === pending.name) pendingDelimiters.shift();
       continue;
     }
     kept.push(line);
+    if (!isDataHeredocLine(line)) continue;
     for (const match of line.matchAll(HEREDOC_START_RE)) {
-      pendingDelimiters.push(match[2]);
+      pendingDelimiters.push({ name: match[3], stripTabs: match[1] === "-" });
     }
   }
   return kept.join("\n");

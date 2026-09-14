@@ -59,8 +59,10 @@ is why the bug only surfaces on chained commands and on heredocs.
 
 Bound the match so it cannot cross a command separator — match against the push
 invocation only, up to the next `&&`, `;`, `|` or newline, and do not scan
-heredoc bodies. Parsing the push refspec properly would be better still, but
-the bounded match closes the false-positive class without a shell parser.
+*data* heredoc bodies. A heredoc fed to a shell or interpreter (`bash <<EOF`,
+`cat <<EOF | sh`, `eval "$(cat <<EOF ...)"`) is executable code and stays
+scanned. Parsing the push refspec properly would be better still, but the
+bounded match closes the false-positive class without a shell parser.
 
 Leave the rule's intent alone: pushing directly to the protected branches stays
 forbidden, and the real cases must keep failing.
@@ -69,11 +71,15 @@ forbidden, and the real cases must keep failing.
 
 - [x] A test asserts the guard still blocks a direct push to each protected
       branch, by name and via a `HEAD:` refspec
+- [x] A test asserts the guard blocks the full-refspec targets
+      (`HEAD:refs/heads/<branch>` and `refs/heads/<branch>`) too
 - [x] A test reproduces this defect — a chained feature-branch push followed by
       a `gh pr create` against the protected branch — and fails without the fix
 - [x] A test covers the heredoc case: a file write whose body quotes such a
       line is allowed
-- [x] The chained and heredoc commands are allowed with the fix, and the
+- [x] A test asserts a heredoc fed to a shell/interpreter (or piped into one)
+      stays scanned and still blocks a protected push
+- [x] The chained and data-heredoc commands are allowed with the fix, and the
       blocking cases above still block
 - [x] No German or English strings added (hook output is developer-facing)
 
