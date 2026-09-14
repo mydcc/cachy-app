@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { isPrivateOrReservedHost, isUrlAllowed } from "./urlValidator";
 
 describe("urlValidator", () => {
@@ -188,6 +188,100 @@ describe("urlValidator", () => {
         vi.doUnmock("undici");
         vi.resetModules();
       }
+    });
+  });
+
+  describe("getSafeDispatcher undici lookup contract", () => {
+    type LookupCallback = (
+      err: Error | null,
+      addresses: string | Array<{ address: string; family: number }>,
+    ) => void;
+    type DispatcherLookup = (
+      hostname: string,
+      options: unknown,
+      callback: LookupCallback,
+    ) => void;
+
+    async function lookupWith(
+      resolved: Array<{ address: string; family: number }>,
+    ): Promise<DispatcherLookup> {
+      vi.resetModules();
+      let lookup: DispatcherLookup | undefined;
+      vi.doMock("undici", () => ({
+        Agent: class {
+          constructor(options: { connect?: { lookup?: DispatcherLookup } }) {
+            lookup = options?.connect?.lookup;
+          }
+          close(): Promise<void> {
+            return Promise.resolve();
+          }
+        },
+      }));
+      vi.doMock("node:dns", () => {
+        const lookupFn = (
+          _hostname: string,
+          _options: unknown,
+          callback: LookupCallback,
+        ) => callback(null, resolved);
+        const promises = { lookup: async () => resolved };
+        return {
+          default: { lookup: lookupFn, promises },
+          lookup: lookupFn,
+          promises,
+        };
+      });
+
+      const { getSafeDispatcher } = await import("./urlValidator");
+      await getSafeDispatcher();
+      if (!lookup) throw new Error("lookup was not wired into the Agent");
+      return lookup;
+    }
+
+    afterEach(() => {
+      vi.doUnmock("undici");
+      vi.doUnmock("node:dns");
+      vi.resetModules();
+    });
+
+    it("hands undici the resolved address array, not an (address, family) pair", async () => {
+      // Regression: undici 8 forwards the callback to dns.lookup with
+      // `all: true`. Returning `(null, address, family)` left undici reading
+      // an undefined address and failed every dial with "fetch failed".
+      const lookup = await lookupWith([{ address: "93.184.216.34", family: 4 }]);
+
+      const result = await new Promise<{
+        err: Error | null;
+        addresses?: unknown;
+      }>((resolve) => {
+        lookup("example.com", { hints: 32, all: true }, (err, addresses) =>
+          resolve({ err, addresses }),
+        );
+      });
+
+      expect(result.err).toBeNull();
+      expect(result.addresses).toEqual([
+        { address: "93.184.216.34", family: 4 },
+      ]);
+    });
+
+    it("still fails closed when any resolved address is private", async () => {
+      const lookup = await lookupWith([{ address: "127.0.0.1", family: 4 }]);
+
+      const err = await new Promise<Error | null>((resolve) => {
+        lookup("rebind.example", { all: true }, (e) => resolve(e));
+      });
+
+      expect(err?.message).toContain("SSRF guard");
+    });
+
+    it("still fails closed when DNS returns no records", async () => {
+      const lookup = await lookupWith([]);
+
+      const err = await new Promise<Error | null>((resolve) => {
+        lookup("empty.example", { all: true }, (e) => resolve(e));
+      });
+
+      expect(err?.message).toContain("ENOTFOUND");
     });
   });
 });
