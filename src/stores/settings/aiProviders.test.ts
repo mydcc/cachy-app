@@ -10,17 +10,27 @@
 import { describe, it, expect } from "vitest";
 import {
   BUILTIN_AI_PROVIDERS,
+  BUILTIN_ENTRY_IDS,
+  VENDOR_PRESETS,
   activeUserProvider,
   buildUserProvider,
   builtinPreset,
+  ensureProviderRegistryState,
   flavorOf,
+  isBuiltinEntryId,
   isBuiltinProvider,
   isFreeModelId,
+  isLoopbackBaseUrl,
   isValidHttpUrl,
+  modelProviderForFlavor,
   newProviderId,
   providerConfigFromLegacy,
+  providerConfigReady,
+  providerFromPreset,
   redactUserProviders,
+  resolveActiveProvider,
   sanitizeUserProviders,
+  seedBuiltinEntries,
   validateProviderConfig,
   type ProviderConfig,
 } from "./aiProviders";
@@ -277,5 +287,186 @@ describe("user provider management", () => {
     expect(sanitizeUserProviders(undefined)).toEqual([]);
     expect(sanitizeUserProviders({ id: "a" })).toEqual([]);
     expect(sanitizeUserProviders("nope")).toEqual([]);
+  });
+});
+
+describe("single-registry unification", () => {
+  const legacy = {
+    openai: { apiKey: "sk-o", model: "gpt-4o", baseUrl: "" },
+    anthropic: { apiKey: "", model: "claude", baseUrl: "" },
+    gemini: { apiKey: "AIza", model: "gem", baseUrl: "" },
+    ollama: { apiKey: "", model: "llama", baseUrl: "http://localhost:11434" },
+    openrouter: { apiKey: "", model: "", baseUrl: "" },
+  };
+  const seedLegacy = {
+    openai: legacy.openai,
+    anthropic: legacy.anthropic,
+    gemini: legacy.gemini,
+    ollama: legacy.ollama,
+  };
+
+  it("seeds the four built-ins once and never touches existing entries", () => {
+    const once = seedBuiltinEntries([], seedLegacy);
+    expect(once.map((p) => p.id)).toEqual([
+      BUILTIN_ENTRY_IDS.openai,
+      BUILTIN_ENTRY_IDS.anthropic,
+      BUILTIN_ENTRY_IDS.gemini,
+      BUILTIN_ENTRY_IDS.ollama,
+    ]);
+    expect(
+      once.find((p) => p.id === BUILTIN_ENTRY_IDS.openai),
+    ).toMatchObject({ apiKey: "sk-o", model: "gpt-4o", allowServerRelay: true });
+    expect(
+      once.find((p) => p.id === BUILTIN_ENTRY_IDS.ollama),
+    ).toMatchObject({ allowServerRelay: false });
+
+    const edited = once.map((p) =>
+      p.id === BUILTIN_ENTRY_IDS.openai ? { ...p, model: "gpt-5" } : p,
+    );
+    const twice = seedBuiltinEntries(edited, seedLegacy);
+    expect(
+      twice.find((p) => p.id === BUILTIN_ENTRY_IDS.openai)?.model,
+    ).toBe("gpt-5");
+    expect(twice).toHaveLength(4);
+  });
+
+  it("marks readiness like the send path requires", () => {
+    expect(providerConfigReady({ ...validConfig })).toBe(true);
+    expect(providerConfigReady({ ...validConfig, apiKey: "  " })).toBe(false);
+    expect(providerConfigReady({ ...validConfig, baseUrl: "" })).toBe(false);
+    expect(providerConfigReady(undefined)).toBe(false);
+    expect(
+      providerConfigReady({
+        ...validConfig,
+        id: BUILTIN_ENTRY_IDS.ollama,
+        apiKey: "",
+      }),
+    ).toBe(true);
+    expect(
+      providerConfigReady({
+        ...validConfig,
+        id: BUILTIN_ENTRY_IDS.openai,
+        baseUrl: "",
+      }),
+    ).toBe(true);
+    expect(
+      providerConfigReady({
+        ...validConfig,
+        id: BUILTIN_ENTRY_IDS.openai,
+        apiKey: "",
+        baseUrl: "https://gw.example.com/v1",
+      }),
+    ).toBe(true);
+    expect(
+      providerConfigReady({
+        ...validConfig,
+        id: BUILTIN_ENTRY_IDS.openai,
+        apiKey: "",
+        baseUrl: "",
+      }),
+    ).toBe(false);
+  });
+
+  it("resolves the stored entry first and falls back to legacy", () => {
+    const custom = { ...validConfig, id: "c1", label: "Zen" };
+    const stored = resolveActiveProvider({
+      userProviders: [custom],
+      activeProviderId: "c1",
+      aiProvider: "gemini",
+      legacy,
+    });
+    expect(stored.entry?.id).toBe("c1");
+    expect(stored.ready).toBe(true);
+    expect(stored.label).toBe("Zen");
+
+    const fallback = resolveActiveProvider({
+      userProviders: [],
+      activeProviderId: "",
+      aiProvider: "gemini",
+      legacy,
+    });
+    expect(fallback.entry?.id).toBe(BUILTIN_ENTRY_IDS.gemini);
+    expect(fallback.ready).toBe(true);
+    expect(fallback.label).toBe("Gemini");
+
+    const missing = resolveActiveProvider({
+      userProviders: [],
+      activeProviderId: "",
+      aiProvider: "anthropic",
+      legacy: {
+        ...legacy,
+        anthropic: { apiKey: "", model: "", baseUrl: "" },
+      },
+    });
+    expect(missing.ready).toBe(false);
+  });
+
+  it("defaults and migrates the registry state", () => {
+    const fresh = ensureProviderRegistryState({
+      userProviders: [],
+      activeProviderId: "",
+      aiProvider: "gemini",
+      legacy,
+    });
+    expect(fresh.userProviders).toHaveLength(4);
+    expect(fresh.activeProviderId).toBe(BUILTIN_ENTRY_IDS.gemini);
+
+    const migrated = ensureProviderRegistryState({
+      userProviders: [],
+      activeProviderId: "",
+      aiProvider: "openrouter",
+      legacy: {
+        ...legacy,
+        openrouter: { apiKey: "sk-or", model: "m", baseUrl: "" },
+      },
+    });
+    expect(migrated.aiProvider).toBe("openai");
+    const entry = migrated.userProviders.find(
+      (p) => p.id === migrated.activeProviderId,
+    );
+    expect(entry?.baseUrl).toBe("https://openrouter.ai/api/v1");
+    expect(entry?.apiKey).toBe("sk-or");
+
+    const kept = ensureProviderRegistryState({
+      userProviders: [{ ...validConfig, id: "c1" }],
+      activeProviderId: "c1",
+      aiProvider: "gemini",
+      legacy,
+    });
+    expect(kept.activeProviderId).toBe("c1");
+  });
+
+  it("offers the vendor presets with fixed base URLs", () => {
+    expect(VENDOR_PRESETS.map((p) => p.id)).toEqual([
+      "xai",
+      "deepseek",
+      "mistral",
+      "groq",
+      "openrouter",
+      "opencode-zen",
+      "opencode-go",
+      "command-code",
+      "omniroute",
+    ]);
+    expect(
+      VENDOR_PRESETS.find((p) => p.id === "omniroute")?.baseUrl,
+    ).toBe("http://localhost:20128/v1");
+    const fromPreset = providerFromPreset(VENDOR_PRESETS[0]);
+    expect(fromPreset.baseUrl).toBe("https://api.x.ai/v1");
+    expect(fromPreset.apiKey).toBe("");
+  });
+
+  it("detects loopback roots and builtin ids", () => {
+    expect(isLoopbackBaseUrl("http://localhost:20128/v1")).toBe(true);
+    expect(isLoopbackBaseUrl("https://opencode.ai/zen/v1")).toBe(false);
+    expect(isBuiltinEntryId(BUILTIN_ENTRY_IDS.openai)).toBe(true);
+    expect(isBuiltinEntryId("whatever")).toBe(false);
+  });
+
+  it("maps flavors to model-list routes", () => {
+    expect(modelProviderForFlavor("openai-chat")).toBe("openai");
+    expect(modelProviderForFlavor("openai-responses")).toBe("openai");
+    expect(modelProviderForFlavor("anthropic-messages")).toBe("anthropic");
+    expect(modelProviderForFlavor("google-generate")).toBe("gemini");
   });
 });

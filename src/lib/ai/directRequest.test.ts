@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { buildDirectRequest, resolveDirectUrl } from "./directRequest";
+import { buildDirectModelsRequest, buildDirectRequest, resolveDirectUrl } from "./directRequest";
 
 const messages = [
   { role: "system", content: "SYS" },
@@ -159,5 +159,37 @@ describe("buildDirectRequest", () => {
     const body = JSON.parse(request.body);
     expect(body.contents).toEqual([{ role: "user", parts: [{ text: "hi" }] }]);
     expect(body.systemInstruction).toEqual({ parts: [{ text: "SYS" }] });
+  });
+});
+
+describe("buildDirectModelsRequest", () => {
+  it("builds the openai models URL without doubling /v1", () => {
+    const request = buildDirectModelsRequest("openai-chat", {
+      baseUrl: "https://opencode.ai/zen/go/v1",
+      apiKey: "k",
+    });
+    expect(request.url).toBe("https://opencode.ai/zen/go/v1/models");
+    expect(request.headers.Authorization).toBe("Bearer k");
+  });
+
+  it("sends the anthropic version header and key header", () => {
+    const request = buildDirectModelsRequest("anthropic-messages", {
+      baseUrl: "https://api.anthropic.com",
+      apiKey: "sk",
+    });
+    expect(request.url).toBe("https://api.anthropic.com/v1/models");
+    expect(request.headers["anthropic-version"]).toBe("2023-06-01");
+    expect(request.headers["x-api-key"]).toBe("sk");
+  });
+
+  it("targets v1beta/models for google with the goog key header", () => {
+    const request = buildDirectModelsRequest("google-generate", {
+      baseUrl: "https://generativelanguage.googleapis.com",
+      apiKey: "AIza",
+    });
+    expect(request.url).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models",
+    );
+    expect(request.headers["x-goog-api-key"]).toBe("AIza");
   });
 });

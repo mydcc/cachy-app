@@ -347,3 +347,281 @@ export function activeUserProvider(
   if (!activeProviderId) return undefined;
   return providers?.find((provider) => provider.id === activeProviderId);
 }
+
+/**
+ * Stable ids for the seeded built-in entries. They live in the same registry
+ * array as user entries so tabs, gate and send path resolve one shape. The
+ * `builtin-` prefix keeps them clear of user UUIDs and of the reserved ids
+ * `sanitizeUserProviders` drops.
+ */
+export const BUILTIN_ENTRY_IDS = {
+  openai: "builtin-openai",
+  anthropic: "builtin-anthropic",
+  gemini: "builtin-gemini",
+  ollama: "builtin-ollama",
+} as const;
+
+/** True for a seeded built-in entry id (as opposed to a user entry). */
+export function isBuiltinEntryId(id: string | undefined | null): boolean {
+  return (
+    id === BUILTIN_ENTRY_IDS.openai ||
+    id === BUILTIN_ENTRY_IDS.anthropic ||
+    id === BUILTIN_ENTRY_IDS.gemini ||
+    id === BUILTIN_ENTRY_IDS.ollama
+  );
+}
+
+const LOOPBACK_RE =
+  /^https?:\/\/(localhost|127\.0\.0\.1|\[?::1\]?)(:\d+)?(\/|$)/i;
+
+/** True for a local gateway root (Ollama, OmniRoute, …), which is always reached browser-direct. */
+export function isLoopbackBaseUrl(baseUrl: string): boolean {
+  return LOOPBACK_RE.test(baseUrl.trim());
+}
+
+/**
+ * Preset catalog for "add provider". A preset only pre-fills label, flavor
+ * and base URL — every field stays editable after adding, including the URL.
+ */
+export interface VendorPreset {
+  id: string;
+  label: string;
+  flavor: AiApiFlavor;
+  baseUrl: string;
+}
+
+export const VENDOR_PRESETS: readonly VendorPreset[] = [
+  { id: "xai", label: "xAI (Grok)", flavor: "openai-chat", baseUrl: "https://api.x.ai/v1" },
+  { id: "deepseek", label: "DeepSeek", flavor: "openai-chat", baseUrl: "https://api.deepseek.com/v1" },
+  { id: "mistral", label: "Mistral", flavor: "openai-chat", baseUrl: "https://api.mistral.ai/v1" },
+  { id: "groq", label: "Groq", flavor: "openai-chat", baseUrl: "https://api.groq.com/openai/v1" },
+  { id: "openrouter", label: "OpenRouter", flavor: "openai-chat", baseUrl: "https://openrouter.ai/api/v1" },
+  { id: "opencode-zen", label: "OpenCode Zen", flavor: "openai-chat", baseUrl: "https://opencode.ai/zen/v1" },
+  { id: "opencode-go", label: "OpenCode Go", flavor: "openai-chat", baseUrl: "https://opencode.ai/zen/go/v1" },
+  { id: "command-code", label: "Command Code", flavor: "openai-chat", baseUrl: "https://api.commandcode.ai/provider/v1" },
+  { id: "omniroute", label: "OmniRoute (lokal)", flavor: "openai-chat", baseUrl: "http://localhost:20128/v1" },
+];
+
+/** A user entry pre-filled from a preset (key and model left blank). */
+export function providerFromPreset(preset: VendorPreset): ProviderConfig {
+  return {
+    ...buildUserProvider([]),
+    label: preset.label,
+    flavor: preset.flavor,
+    baseUrl: preset.baseUrl,
+  };
+}
+
+/** True when the entry carries what the send path requires. */
+export function providerConfigReady(
+  provider: ProviderConfig | undefined | null,
+): provider is ProviderConfig {
+  if (!provider) return false;
+  if (provider.id === BUILTIN_ENTRY_IDS.ollama) return true;
+  if (isBuiltinEntryId(provider.id)) {
+    // Seeded built-ins inherit the legacy leniency (key or custom URL), the
+    // vendor default covering the empty side.
+    return provider.apiKey.trim() !== "" || provider.baseUrl.trim() !== "";
+  }
+  return provider.baseUrl.trim() !== "" && provider.apiKey.trim() !== "";
+}
+
+export interface BuiltinLegacyFields {
+  apiKey: string;
+  model: string;
+  baseUrl: string;
+}
+
+interface BuiltinDef {
+  id: (typeof BUILTIN_ENTRY_IDS)[keyof typeof BUILTIN_ENTRY_IDS];
+  label: string;
+  flavor: AiApiFlavor;
+  relay: boolean;
+  legacyKey: "openai" | "anthropic" | "gemini" | "ollama";
+}
+
+const BUILTIN_DEFS: readonly BuiltinDef[] = [
+  { id: BUILTIN_ENTRY_IDS.openai, label: "OpenAI", flavor: "openai-chat", relay: true, legacyKey: "openai" },
+  { id: BUILTIN_ENTRY_IDS.anthropic, label: "Anthropic", flavor: "anthropic-messages", relay: true, legacyKey: "anthropic" },
+  { id: BUILTIN_ENTRY_IDS.gemini, label: "Gemini", flavor: "google-generate", relay: true, legacyKey: "gemini" },
+  { id: BUILTIN_ENTRY_IDS.ollama, label: "Ollama", flavor: "openai-chat", relay: false, legacyKey: "ollama" },
+];
+
+/**
+ * Ensures the four built-in entries exist, seeded once from the legacy
+ * per-provider fields. Idempotent — existing entries (including user-edited
+ * built-ins) are never touched.
+ */
+export function seedBuiltinEntries(
+  existing: readonly ProviderConfig[],
+  legacy: Record<"openai" | "anthropic" | "gemini" | "ollama", BuiltinLegacyFields>,
+): ProviderConfig[] {
+  const have = new Set(existing.map((entry) => entry.id));
+  const seeded: ProviderConfig[] = [...existing];
+  for (const def of BUILTIN_DEFS) {
+    if (have.has(def.id)) continue;
+    const fields = legacy[def.legacyKey];
+    seeded.push({
+      id: def.id,
+      label: def.label,
+      flavor: def.flavor,
+      baseUrl: fields.baseUrl,
+      model: fields.model,
+      apiKey: fields.apiKey,
+      allowServerRelay: def.relay,
+    });
+  }
+  return seeded;
+}
+
+export interface ResolvedActiveProvider {
+  entry: ProviderConfig | undefined;
+  ready: boolean;
+  label: string;
+}
+
+/**
+ * Single resolution for gate, send path and UI: the stored entry wins; a
+ * profile that predates the seeded registry (or a dangling id) falls back to
+ * a transient built-in built from the legacy fields.
+ */
+export function resolveActiveProvider(input: {
+  userProviders: readonly ProviderConfig[] | undefined | null;
+  activeProviderId: string | undefined | null;
+  aiProvider: AiProvider;
+  legacy: Record<AiProvider, BuiltinLegacyFields>;
+}): ResolvedActiveProvider {
+  const stored = activeUserProvider(input.userProviders, input.activeProviderId);
+  if (stored) {
+    return { entry: stored, ready: providerConfigReady(stored), label: stored.label };
+  }
+  const transient = transientBuiltinEntry(input.aiProvider, input.legacy);
+  return {
+    entry: transient,
+    ready: providerConfigReady(transient),
+    label: transient?.label ?? input.aiProvider,
+  };
+}
+
+function transientBuiltinEntry(
+  aiProvider: AiProvider,
+  legacy: Record<AiProvider, BuiltinLegacyFields>,
+): ProviderConfig | undefined {
+  if (aiProvider === "openrouter") {
+    return {
+      id: "openrouter",
+      label: "OpenRouter",
+      flavor: "openai-chat",
+      baseUrl: legacy.openrouter.baseUrl,
+      model: legacy.openrouter.model,
+      apiKey: legacy.openrouter.apiKey,
+      allowServerRelay: true,
+    };
+  }
+  const def = BUILTIN_DEFS.find((candidate) => candidate.legacyKey === aiProvider);
+  if (!def) return undefined;
+  const fields = legacy[def.legacyKey];
+  return {
+    id: def.id,
+    label: def.label,
+    flavor: def.flavor,
+    baseUrl: fields.baseUrl,
+    model: fields.model,
+    apiKey: fields.apiKey,
+    allowServerRelay: def.relay,
+  };
+}
+
+export interface RegistryEnsureInput {
+  userProviders: readonly ProviderConfig[];
+  activeProviderId: string;
+  aiProvider: AiProvider;
+  legacy: Record<AiProvider, BuiltinLegacyFields>;
+}
+
+export interface RegistryEnsureOutput {
+  userProviders: ProviderConfig[];
+  activeProviderId: string;
+  aiProvider: AiProvider;
+}
+
+/**
+ * Pure core of the registry unification: seeds the built-in entries,
+ * migrates a legacy OpenRouter selection into a preset entry (its tab is
+ * gone), and defaults the active id. Idempotent.
+ */
+export function ensureProviderRegistryState(
+  input: RegistryEnsureInput,
+): RegistryEnsureOutput {
+  let userProviders = seedBuiltinEntries(input.userProviders, {
+    openai: input.legacy.openai,
+    anthropic: input.legacy.anthropic,
+    gemini: input.legacy.gemini,
+    ollama: input.legacy.ollama,
+  });
+  let activeProviderId = input.activeProviderId;
+  let aiProvider = input.aiProvider;
+
+  if (aiProvider === "openrouter") {
+    const base = input.legacy.openrouter.baseUrl.replace(/\/+$/, "");
+    const normalized = (url: string) => url.replace(/\/+$/, "");
+    const existing = userProviders.find(
+      (entry) =>
+        !isBuiltinEntryId(entry.id) &&
+        normalized(entry.baseUrl) !== "" &&
+        (normalized(entry.baseUrl) === base ||
+          normalized(entry.baseUrl) === "https://openrouter.ai/api/v1"),
+    );
+    if (existing) {
+      activeProviderId = existing.id;
+    } else {
+      const preset =
+        VENDOR_PRESETS.find((candidate) => candidate.id === "openrouter") ?? {
+          id: "openrouter",
+          label: "OpenRouter",
+          flavor: "openai-chat" as const,
+          baseUrl: "https://openrouter.ai/api/v1",
+        };
+      const entry = providerFromPreset(preset);
+      entry.apiKey = input.legacy.openrouter.apiKey;
+      entry.model = input.legacy.openrouter.model;
+      if (input.legacy.openrouter.baseUrl.trim()) {
+        entry.baseUrl = input.legacy.openrouter.baseUrl;
+      }
+      entry.allowServerRelay = true;
+      userProviders = [...userProviders, entry];
+      activeProviderId = entry.id;
+    }
+    aiProvider = "openai";
+  }
+
+  if (!userProviders.some((entry) => entry.id === activeProviderId)) {
+    const builtinForProvider: Record<string, string> = {
+      openai: BUILTIN_ENTRY_IDS.openai,
+      anthropic: BUILTIN_ENTRY_IDS.anthropic,
+      gemini: BUILTIN_ENTRY_IDS.gemini,
+      ollama: BUILTIN_ENTRY_IDS.ollama,
+    };
+    const fallback = builtinForProvider[aiProvider] ?? BUILTIN_ENTRY_IDS.gemini;
+    activeProviderId = userProviders.some((entry) => entry.id === fallback)
+      ? fallback
+      : BUILTIN_ENTRY_IDS.gemini;
+  }
+
+  return { userProviders, activeProviderId, aiProvider };
+}
+
+/**
+ * Vendor route key for a wire format's model list. Custom entries reuse the
+ * vendor route of their format; only the format matters, never the label.
+ */
+export function modelProviderForFlavor(flavor: AiApiFlavor): AiProvider {
+  switch (flavor) {
+    case "anthropic-messages":
+      return "anthropic";
+    case "google-generate":
+      return "gemini";
+    default:
+      return "openai";
+  }
+}

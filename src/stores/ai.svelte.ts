@@ -14,8 +14,10 @@ import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
 import {
-  activeUserProvider,
+  BUILTIN_ENTRY_IDS,
   flavorOf,
+  isBuiltinEntryId,
+  resolveActiveProvider,
   type AiApiFlavor,
 } from "./settings/aiProviders";
 import {
@@ -248,10 +250,39 @@ class AiManager {
         appLocale,
       });
 
-      const userProvider = activeUserProvider(
-        settings.userProviders,
-        settings.activeProviderId,
-      );
+      const resolved = resolveActiveProvider({
+        userProviders: settings.userProviders,
+        activeProviderId: settings.activeProviderId,
+        aiProvider: settings.aiProvider,
+        legacy: {
+          openai: {
+            apiKey: settings.openaiApiKey,
+            model: settings.openaiModel,
+            baseUrl: settings.openaiBaseUrl,
+          },
+          anthropic: {
+            apiKey: settings.anthropicApiKey,
+            model: settings.anthropicModel,
+            baseUrl: settings.anthropicBaseUrl,
+          },
+          gemini: {
+            apiKey: settings.geminiApiKey,
+            model: settings.geminiModel,
+            baseUrl: settings.geminiBaseUrl,
+          },
+          openrouter: {
+            apiKey: settings.openrouterApiKey,
+            model: settings.openrouterModel,
+            baseUrl: settings.openrouterBaseUrl,
+          },
+          ollama: {
+            apiKey: "",
+            model: settings.ollamaModel,
+            baseUrl: settings.ollamaBaseUrl,
+          },
+        },
+      });
+      const entry = resolved.entry;
 
       // ADR-0019: credentials are Class A, so browser-direct is the default and
       // the server relay is an explicit opt-in for providers that block
@@ -259,15 +290,22 @@ class AiManager {
       // user turned the relay on.
 
       // The wire format drives the route, the system-prompt shape and the
-      // stream parser. Built-ins resolve their flavor from `settings.aiProvider`
-      // and keep their own routes (OpenRouter adds headers the others do not).
-      const streamFlavor: AiApiFlavor = userProvider
-        ? userProvider.flavor
-        : flavorOf(settings.aiProvider) ?? "openai-chat";
+      // stream parser. Every provider — built-in or user-added — resolves to
+      // one registry entry; the legacy fields are only a fallback.
+      const streamFlavor: AiApiFlavor = entry
+        ? entry.flavor
+        : (flavorOf(settings.aiProvider) ?? "openai-chat");
 
-      const provider: AiProvider = userProvider
-        ? builtinLabelForFlavor(userProvider.flavor)
+      const isOllamaEntry = entry?.id === BUILTIN_ENTRY_IDS.ollama;
+      const provider: AiProvider = entry
+        ? isOllamaEntry
+          ? "ollama"
+          : builtinLabelForFlavor(entry.flavor)
         : settings.aiProvider || "gemini";
+
+      // The generic browser-direct path. Ollama keeps its dedicated block
+      // below (trade-action tools); everything else goes through the entry.
+      const userProvider = entry && !isOllamaEntry ? entry : undefined;
 
       const systemPrompt = streamFlavor === "anthropic-messages"
         ? JSON.stringify(promptParts)
@@ -280,28 +318,39 @@ class AiManager {
         ...this.messages.map((m) => ({ role: m.role, content: m.content })),
       ];
 
-      const endpoint = userProvider
-        ? ROUTE_BY_FLAVOR[userProvider.flavor]
-        : `/api/ai/${provider}`;
+      const endpoint =
+        entry && !isOllamaEntry
+          ? ROUTE_BY_FLAVOR[entry.flavor]
+          : `/api/ai/${provider}`;
 
       let apiKey = "";
       let model = "";
       let baseUrl = "";
 
-      if (userProvider) {
-        apiKey = userProvider.apiKey;
-        model = userProvider.model;
-        baseUrl = userProvider.baseUrl;
-        if (!baseUrl.trim()) {
-          throw new Error(
-            `"${userProvider.label}" has no base URL configured. Add one in Settings.`,
-          );
+      if (entry && !isOllamaEntry) {
+        apiKey = entry.apiKey;
+        model = entry.model;
+        baseUrl = entry.baseUrl;
+        if (isBuiltinEntryId(entry.id)) {
+          if (!apiKey.trim() && !baseUrl.trim()) {
+            throw new Error(`API Key for ${entry.label} is missing in Settings.`);
+          }
+        } else {
+          if (!baseUrl.trim()) {
+            throw new Error(
+              `"${entry.label}" has no base URL configured. Add one in Settings.`,
+            );
+          }
+          if (!apiKey.trim()) {
+            throw new Error(
+              `"${entry.label}" has no API key configured. Add one in Settings.`,
+            );
+          }
         }
-        if (!apiKey.trim()) {
-          throw new Error(
-            `"${userProvider.label}" has no API key configured. Add one in Settings.`,
-          );
-        }
+      } else if (entry && isOllamaEntry) {
+        // Local (or self-hosted) instance — no API key required.
+        model = entry.model;
+        baseUrl = entry.baseUrl;
       } else if (provider === "openai") {
         apiKey = settings.openaiApiKey;
         model = settings.openaiModel;

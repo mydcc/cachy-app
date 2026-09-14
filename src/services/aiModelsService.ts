@@ -9,6 +9,8 @@
 
 import { appFetch } from "../lib/appAuth";
 import type { AiModelInfo } from "../types/ai";
+import { buildDirectModelsRequest } from "../lib/ai/directRequest";
+import type { AiApiFlavor } from "../stores/settings/aiProviders";
 
 export type { AiModelInfo };
 
@@ -110,6 +112,43 @@ export function peekCachedModel(
   return cached?.models.find((m) => m.id === modelId);
 }
 
+async function fetchDirectModels(
+  flavor: AiApiFlavor,
+  opts: ModelFetchOptions,
+): Promise<AiModelInfo[]> {
+  const { url, headers } = buildDirectModelsRequest(flavor, {
+    baseUrl: opts.baseUrl?.trim() ?? "",
+    apiKey: opts.apiKey ?? "",
+  });
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw new Error(`Model list request failed with status ${res.status}`);
+  }
+  const data = (await res.json()) as {
+    data?: Array<{ id?: unknown }>;
+    models?: Array<{ name?: unknown; displayName?: unknown }>;
+  };
+  if (flavor === "google-generate") {
+    const arr = Array.isArray(data.models) ? data.models : [];
+    return arr
+      .filter((m) => typeof m?.name === "string")
+      .map((m) => {
+        const id = (m.name as string).replace(/^models\//, "");
+        return {
+          id,
+          label:
+            typeof m.displayName === "string" && m.displayName
+              ? m.displayName
+              : id,
+        };
+      });
+  }
+  const arr = Array.isArray(data.data) ? data.data : [];
+  return arr
+    .filter((m) => typeof m?.id === "string")
+    .map((m) => ({ id: m.id as string, label: m.id as string }));
+}
+
 /**
  * Resolves the model list for a provider — from cache when fresh, from the
  * network otherwise, falling back to a stale cache entry if the network call
@@ -124,7 +163,15 @@ export function peekCachedModel(
 export async function getModels(
   provider: string,
   opts: ModelFetchOptions,
-  { forceRefresh = false }: { forceRefresh?: boolean } = {},
+  {
+    forceRefresh = false,
+    transport,
+    flavor,
+  }: {
+    forceRefresh?: boolean;
+    transport?: "server" | "direct";
+    flavor?: AiApiFlavor;
+  } = {},
 ): Promise<{ models: AiModelInfo[]; fromCache: boolean }> {
   const scope = cacheScope(provider, opts);
 
@@ -155,6 +202,29 @@ export async function getModels(
       }
     } catch {
       // Direct browser fetch to Ollama failed — fall through to server proxy
+    }
+  }
+
+  // Browser-direct listing for custom and loopback providers: the key never
+  // reaches Cachy's server. The caller picks the transport; loopback roots
+  // must use it because the server proxy rejects reserved hosts by design.
+  // Ollama keeps its `/api/tags` path above and never lands here.
+  if (
+    transport === "direct" &&
+    flavor &&
+    provider !== "ollama" &&
+    opts.baseUrl?.trim()
+  ) {
+    try {
+      const models = await fetchDirectModels(flavor, opts);
+      writeCache(provider, scope, models);
+      return { models, fromCache: false };
+    } catch (e) {
+      if (!forceRefresh) {
+        const stale = readCache(provider, scope);
+        if (stale) return { models: stale.models, fromCache: true };
+      }
+      throw e;
     }
   }
 
