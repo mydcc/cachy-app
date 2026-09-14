@@ -2,7 +2,7 @@
 id: FEAT-0454
 title: Let an indicator alert compute over the price source its card is set to
 type: feature
-status: idea
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: alerts
 data_class: none
 adr: ADR-0012
 depends_on: [BUG-0453]
+assignee: claude-code
+branch: feat/feat-0454-indicator-price-source
+start_date: 2026-09-14
 ---
 
 # FEAT-0454 — Let an indicator alert compute over the price source its card is set to

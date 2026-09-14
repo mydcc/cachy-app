@@ -7284,7 +7284,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0454",
     "title": "Let an indicator alert compute over the price source its card is set to",
     "type": "feature",
-    "status": "idea",
+    "status": "in-progress",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -7298,6 +7298,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0453"
     ],
+    "assignee": "claude-code",
+    "branch": "feat/feat-0454-indicator-price-source",
+    "start_date": "2026-09-14",
     "file": "features/FEAT-0454-alert-on-indicator-price-source.md"
   },
   {
