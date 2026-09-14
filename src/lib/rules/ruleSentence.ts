@@ -44,7 +44,7 @@ import type {
   RuleDocument,
   TimeframeString,
 } from "./types";
-import { referenceFieldFor } from "./alertPathIndicators";
+import { isPriceField, referenceFieldFor } from "./alertPathIndicators";
 
 /**
  * The subset of the i18n contract this module needs. Taking a function rather
@@ -113,10 +113,15 @@ export function formatIndicator(ref: IndicatorRef): string {
  * One fragment per price rather than a `{price}` slot, because German declines
  * the price after "aus" and the names under `rules.sentence.price` are
  * nominative.
+ *
+ * A value that names no price (only reachable through a hand-edited document;
+ * the core refuses it) renders as the bare indicator: there is no fragment
+ * for it, and guessing one would arm a sentence for the wrong line.
  */
 function indicatorName(ref: IndicatorRef, t: SentenceTranslator): string {
   const name = formatIndicator(ref);
-  const field = ref.field === undefined ? undefined : referenceFieldFor(ref.id, ref.field);
+  if (!isPriceField(ref.field)) return name;
+  const field = referenceFieldFor(ref.id, ref.field);
   return field === undefined ? name : t(`rules.sentence.indicatorFrom.${field}`, { indicator: name });
 }
 

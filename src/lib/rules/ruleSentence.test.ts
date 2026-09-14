@@ -376,6 +376,20 @@ describe("the price an indicator is computed over", () => {
             expect(() => renderRuleSentence(ruleWith(rsiOver(field)), dt), field).not.toThrow();
         }
     });
+
+    it("renders the bare indicator for a value that names no price, instead of a missing key", () => {
+        // Only reachable through a hand-edited document; the core refuses it.
+        // The test translator throws on a missing key, so without the guard
+        // this renders (and throws) `rules.sentence.indicatorFrom.ohlc4`.
+        const unknown = {
+            ...rsiBelow30,
+            left: {
+                kind: "indicator",
+                indicator: { id: "rsi", params: { length: 14 }, field: "ohlc4" as unknown as PriceField },
+            },
+        } as Condition;
+        expect(renderRuleSentence(ruleWith(unknown), et)).toBe(renderRuleSentence(ruleWith(rsiBelow30), et));
+    });
 });
 
 describe("a candlestick pattern condition (FEAT-0394)", () => {
