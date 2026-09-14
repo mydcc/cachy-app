@@ -4,7 +4,7 @@
 
 352 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 3 · ✅ done 299 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 2 · ✅ done 300 · ⛔ dropped 1
 
 ---
 
@@ -299,7 +299,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 3 · ✅ d
 | [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | ✅ done | journal |
 | [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | ✅ done | alerts |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | ✅ done | repo |
-| [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 🟡 in-progress | alerts |
+| [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | ✅ done | alerts |
 | [BUG-0452](bugs/BUG-0452-wasm-momentum-off-by-one.md) | The WASM momentum is a change over one candle more than its period | P2 | ✅ done | indicators |
 | [BUG-0453](bugs/BUG-0453-card-alert-ignores-price-source.md) | An alert armed from an indicator card ignores the card's price source | P2 | ✅ done | alerts |
 | [BUG-0455](bugs/BUG-0455-wasm-williams-r-choppiness-window.md) | The WASM Williams %R and choppiness read a high/low window one candle too long | P2 | ✅ done | indicators |
@@ -601,7 +601,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 3 · ✅ d
 | [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
+| [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0452](bugs/BUG-0452-wasm-momentum-off-by-one.md) | The WASM momentum is a change over one candle more than its period | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0453](bugs/BUG-0453-card-alert-ignores-price-source.md) | An alert armed from an indicator card ignores the card's price source | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0455](bugs/BUG-0455-wasm-williams-r-choppiness-window.md) | The WASM Williams %R and choppiness read a high/low window one candle too long | P2 | ✅ done | none | community, pro, private | none | none | — |
