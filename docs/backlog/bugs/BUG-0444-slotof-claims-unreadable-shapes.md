@@ -2,7 +2,7 @@
 id: BUG-0444
 title: slotOf() claims shapes readers cannot round-trip (visit-time wipe)
 type: bug
-status: idea
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: alerts
 data_class: A
 adr: none
 depends_on: [BUG-0443]
+assignee: claude-code
+branch: fix/bug-0444-price-round-trip
+start_date: 2026-09-14
 size: M
 estimate: 3
 ---
@@ -36,12 +39,12 @@ The slot model correctly prevents wipes during tab switches, but it assumes ever
 
 ## Acceptance Criteria
 
-- [ ] `slotOf()` mirrors reader constraints (`referenceFor`-equivalent for indicators, `gte`/`lte` check for price), OR
-- [ ] `setSlotCondition` skips clearing members the slot's reader cannot rehydrate (checked via a dry-run hydration)
-- [ ] Reproduction case (store a window indicator in draft, open Indicators tab) keeps the member in the group
-- [ ] New test case covers at least one edge case (e.g., window RHS indicator)
-- [ ] No existing test's expectation changes
-- [ ] Blocks FEAT-0030 (Combo tab) from depending on `slotOf` for multi-condition handling until resolved
+- [x] `slotOf()` mirrors reader constraints (`referenceFor`-equivalent for indicators, `gte`/`lte` check for price), OR
+- [ ] `setSlotCondition` skips clearing members the slot's reader cannot rehydrate (checked via a dry-run hydration) — not needed: the first option was taken, with the dry run moved into the claim itself
+- [x] Reproduction case (store a window indicator in draft, open Indicators tab) keeps the member in the group
+- [x] New test case covers at least one edge case (e.g., window RHS indicator)
+- [x] No existing test's expectation changes — except the three `known gap (BUG-0444)` assertions, which said they would flip
+- [x] Blocks FEAT-0030 (Combo tab) from depending on `slotOf` for multi-condition handling until resolved
 
 ## Test Plan
 
@@ -74,6 +77,22 @@ After fix: member survives the tab switch.
   window-over-another-operand and mark-source-price RHS cases are unclaimed, and so is
   OBV against anything but its own window. The `percent_change` operator case in the
   price builder is still open, and still pinned in `conditionSlots.test.ts`.
+- 2026-09-14: the price half is closed. `priceFormLeaf.ts` holds the price reader
+  and the price builder together; `priceReadingOf()` reads a candidate form and
+  claims the condition only when `buildPriceCondition()` writes that exact
+  condition back (constants compared as numbers). `slotOf()` and `readPriceForm()`
+  both call it. Beyond the `gt` operator, this unclaims a percentage whose sign
+  does not match its operator, a zero or unparseable level, a fractional lookback,
+  and an explicit `source: "last"`.
+- 2026-09-14: a second loss of the same class, found on the way: the tab did not
+  read the OHLC field or the series back, so a chart click seeded with `mark`
+  (and `high`) was rewritten on mount to `last`/`close`, because `seed()` resets
+  both panel defaults. The tab now hydrates `priceField` and `priceSeries` from
+  the claimed condition.
+- Not in scope, on purpose: every builder writes the draft's `trigger_timeframe`
+  into its condition, so a claimed condition on another timeframe follows the
+  trigger on mount. That is the builders' shared design (`PriceTab`,
+  `IndicatorsTab`, `CandlesticksTab`, `ComboTab`), not a reader gap.
 
 ## Related
 

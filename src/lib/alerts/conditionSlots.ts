@@ -36,15 +36,14 @@
  * two builders' conditions apart: with more than one member it returned `null`,
  * and every reader then hydrated blank and wrote its blank over the draft.
  *
- * **A slot is claimed by `slotOf()` based on operand shapes, not constraints.**
- * The price slot is claimed for `percent_change`/`cross` subjects with a constant
- * RHS; indicators for a subject of `kind: "indicator"` whose id the panel offers;
- * candlesticks for patterns. A volume comparison, a window, a position or account
- * condition, and a nested group are unclaimed — no builder emits those shapes, so
- * an unclaimed condition is one no builder will ever replace or remove. Unknown
- * means keep: a shape this module doesn't recognise survives a tab switch
- * untouched rather than being deleted by the builder that came closest to owning
- * it.
+ * **A slot is claimed by `slotOf()` exactly when that builder's reader can
+ * hydrate the condition.** Price and indicators ask their reader's own parser
+ * (`priceReadingOf`, `indicatorFormOf`); candlesticks claim patterns. A volume
+ * comparison, a window, a position or account condition, and a nested group are
+ * unclaimed — no builder emits those shapes, so an unclaimed condition is one no
+ * builder will ever replace or remove. Unknown means keep: a shape this module
+ * doesn't recognise survives a tab switch untouched rather than being deleted by
+ * the builder that came closest to owning it.
  *
  * An indicator id the panel does not offer — the fourteen BUG-0451 hides — is
  * unclaimed on purpose: `readIndicatorForm` cannot hydrate it, so claiming it
@@ -52,17 +51,15 @@
  * member. Unclaimed, an alert saved while it was still offered survives the tab
  * switch and stays listed as unevaluable.
  *
- * One category remains **claimed but not always round-trippable**: an indicator
- * condition whose right operand the form's `referenceFor` rejects (a window, or
- * a `mark`-source price), or a `percent_change` compared with an operator other
- * than `gte`/`lte`. `slotOf()` claims these today because it checks operand
- * kinds, not the operator constraints each reader imposes on top of them — so
- * the claiming builder hydrates blank and its mount-time write then deletes the
- * member. BUG-0444 tracks tightening `slotOf()` (or `setSlotCondition()`'s clear
- * path) so a claim always means the reader can actually hydrate it.
+ * The same holds for every shape a reader cannot hydrate (BUG-0444): an
+ * indicator against a window over another operand, a `percent_change` against
+ * an operator the price form does not write, a price level the price builder
+ * refuses. A claim used to be a list of operand kinds, so these were claimed,
+ * hydrated blank, and deleted by the mount-time write.
  */
 
 import { indicatorFormOf } from "./indicatorFormLeaf";
+import { priceReadingOf } from "./priceFormLeaf";
 import type { Condition, Operand } from "../rules/types";
 
 /** The builder tabs that author conditions. `combo` (FEAT-0030) spans slots. */
@@ -71,8 +68,8 @@ export type BuilderSlot = "price" | "indicators" | "candlesticks";
 /**
  * Which builder authored `condition`, or `null` when no builder can claim it.
  *
- * Claims match what each builder actually emits — see `buildCondition()` in
- * `PriceTab.svelte`, `buildIndicatorCondition()` in `indicatorConditionForm.ts`
+ * Claims match what each builder actually emits — see `buildPriceCondition()` in
+ * `priceFormLeaf.ts`, `buildIndicatorCondition()` in `indicatorConditionForm.ts`
  * and the pattern condition in `CandlesticksTab.svelte`. A shape those three
  * cannot produce is unclaimed even when it looks close, because a builder that
  * claims a condition it cannot render would hydrate blank and then delete it.
@@ -88,12 +85,9 @@ export function slotOf(condition: Condition): BuilderSlot | null {
     return indicatorFormOf(condition) !== null ? "indicators" : null;
   }
 
-  // The price builder always compares its subject against a typed number; the
-  // same subject against another operand is a shape it has no form for.
-  if (condition.right.kind !== "constant") return null;
-  if (condition.kind === "cross" && subject.kind === "price") return "price";
-  if (condition.kind === "compare" && subject.kind === "percent_change") return "price";
-  return null;
+  // The same for the price builder, whose reader goes one step further: it
+  // claims only what the builder writes back unchanged (BUG-0444).
+  return priceReadingOf(condition) !== null ? "price" : null;
 }
 
 /** Every condition in a draft, whether or not the group wrapper is there. */

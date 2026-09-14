@@ -29,19 +29,11 @@
  * renders it instead of remembering it.
  */
 
-import Decimal from "decimal.js";
 import type { Condition } from "../rules/types";
 import { conditionInSlot } from "./conditionSlots";
+import { priceReadingOf, type PriceFormState, type PriceReading } from "./priceFormLeaf";
 
-export type PriceConditionKind =
-  "rises_above" | "falls_below" | "rise_reaches" | "fall_reaches";
-
-export interface PriceFormState {
-  kind: PriceConditionKind;
-  /** The threshold as typed, so a half-entered "60." is never mangled. */
-  threshold: string;
-  lookback: number;
-}
+export type { PriceConditionKind, PriceFormState, PriceReading } from "./priceFormLeaf";
 
 /** What the tab shows when the draft holds nothing it recognises. */
 export const BLANK_PRICE_FORM: PriceFormState = {
@@ -51,20 +43,18 @@ export const BLANK_PRICE_FORM: PriceFormState = {
 };
 
 /**
- * A threshold string for display: plain digits, trailing zeros dropped.
+ * The price builder's own condition read back, field and series included, or
+ * `null` when the builder authored nothing (BUG-0444).
  *
- * The document's own spelling is used where it parses, so what the trader sees
- * is what will be armed. An unparseable value is passed through untouched
- * rather than silently blanked — a rule the core refused should still show the
- * number that was refused.
+ * A claimed condition is exactly one the builder rebuilds unchanged — see
+ * `priceReadingOf` — so hydrating from this and writing straight back leaves
+ * the document as it was.
  */
-function displayThreshold(raw: string): string {
-  try {
-    const value = new Decimal(raw);
-    return value.isFinite() ? value.toFixed() : raw;
-  } catch {
-    return raw;
-  }
+export function readPriceReading(
+  conditions: Condition | null | undefined,
+): PriceReading | null {
+  const condition = conditionInSlot(conditions, "price");
+  return condition === null ? null : priceReadingOf(condition);
 }
 
 /**
@@ -83,38 +73,5 @@ function displayThreshold(raw: string): string {
 export function readPriceForm(
   conditions: Condition | null | undefined,
 ): PriceFormState {
-  const condition = conditionInSlot(conditions, "price");
-  if (condition === null) return BLANK_PRICE_FORM;
-
-  if (
-    condition.kind === "cross" &&
-    condition.left.kind === "price" &&
-    condition.right.kind === "constant"
-  ) {
-    return {
-      kind: condition.direction === "above" ? "rises_above" : "falls_below",
-      threshold: displayThreshold(condition.right.value),
-      lookback: BLANK_PRICE_FORM.lookback,
-    };
-  }
-
-  if (
-    condition.kind === "compare" &&
-    condition.left.kind === "percent_change" &&
-    condition.right.kind === "constant" &&
-    (condition.op === "gte" || condition.op === "lte")
-  ) {
-    // A fall is written as the rise operand against a negative threshold, so
-    // reading it back means taking the sign off again — the trader typed a
-    // positive 5 and has to see a positive 5.
-    const signed = displayThreshold(condition.right.value);
-    const magnitude = signed.startsWith("-") ? signed.slice(1) : signed;
-    return {
-      kind: condition.op === "gte" ? "rise_reaches" : "fall_reaches",
-      threshold: magnitude,
-      lookback: condition.left.lookback,
-    };
-  }
-
-  return BLANK_PRICE_FORM;
+  return readPriceReading(conditions)?.form ?? BLANK_PRICE_FORM;
 }

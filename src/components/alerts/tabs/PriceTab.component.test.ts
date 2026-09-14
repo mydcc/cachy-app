@@ -206,6 +206,49 @@ describe("FEAT-0390: PriceTab", () => {
         right: { kind: "constant", value: "62000" },
       });
     });
+
+    it("keeps the mark series and OHLC field a chart click seeded (BUG-0444)", () => {
+      // The chart builds the condition from the panel's field and series, and
+      // `seed()` then resets both to close and last. Before this fix the tab
+      // wrote its mount-time rebuild from those reset defaults, so a mark-price
+      // alert silently became a last-price alert before the trader saw it.
+      const seeded: Condition = {
+        kind: "cross",
+        left: { kind: "price", field: "high", source: "mark" },
+        direction: "above",
+        right: { kind: "constant", value: "61234.57" },
+        timeframe: "1h",
+      };
+      alertPanelState.seed({ symbol: "BTCUSDT", tab: "price", condition: seeded });
+
+      const el = render();
+
+      expect(writtenCondition()).toEqual(seeded);
+      expect(alertPanelState.priceSeries).toBe("mark");
+      expect(alertPanelState.priceField).toBe("high");
+      expect(el.querySelector<HTMLSelectElement>("select")?.value).toBe("mark");
+    });
+
+    it("leaves a percentage condition it cannot rebuild in the draft (BUG-0444)", () => {
+      // `gt` is not an operator this form writes. The tab used to claim it,
+      // hydrate blank and write `null` over it on mount.
+      const foreign: Condition = {
+        kind: "compare",
+        left: { kind: "percent_change", field: "close", lookback: 3 },
+        op: "gt",
+        right: { kind: "constant", value: "5" },
+        timeframe: "1h",
+      };
+      alertPanelState.seed({ symbol: "BTCUSDT", tab: "price", condition: foreign });
+
+      render();
+
+      expect(alertPanelState.draft.conditions).toEqual({
+        kind: "group",
+        op: "all",
+        of: [foreign],
+      });
+    });
   });
 
   it("offers all four condition types", () => {

@@ -182,9 +182,10 @@ describe("slotOf — known gap (BUG-0444)", () => {
   // claiming builder hydrated blank and its mount-time write deleted the member
   // (BUG-0443 one step further out).
   //
-  // The indicators half is closed (FEAT-0446 group 4): slotOf asks the reader's
-  // own parser, `indicatorFormOf`, so the first two shapes are unclaimed now.
-  // The price half is still open and still pinned as the gap it is.
+  // Both halves are closed. The indicators half with FEAT-0446 group 4: slotOf
+  // asks the reader's own parser, `indicatorFormOf`. The price half: slotOf asks
+  // `priceReadingOf`, which claims a condition only when the price builder
+  // rebuilds exactly that condition from the form it reads.
   it("leaves unclaimed an indicator condition with a window RHS over another operand", () => {
     expect(
       slotOf({
@@ -209,9 +210,7 @@ describe("slotOf — known gap (BUG-0444)", () => {
     ).toBeNull();
   });
 
-  it("claims a percent_change comparison with an operator readPriceForm cannot render", () => {
-    // readPriceForm only round-trips gte/lte; slotOf checks only the operand
-    // kinds, not the operator.
+  it("leaves unclaimed a percent_change comparison with an operator readPriceForm cannot render", () => {
     expect(
       slotOf({
         kind: "compare",
@@ -220,7 +219,46 @@ describe("slotOf — known gap (BUG-0444)", () => {
         right: { kind: "constant", value: "5" },
         timeframe: "4h",
       }),
-    ).toBe("price");
+    ).toBeNull();
+  });
+
+  it("leaves unclaimed every price shape the builder would rebuild differently or not at all", () => {
+    // Each of these reads as a form, but writing that form back either changes
+    // the rule (a sign flipped, `source: "last"` dropped) or writes nothing (a
+    // zero level, a fractional lookback), which deletes the member.
+    const cannotRebuild = [
+      // A rise to -5 % would be rewritten as a rise to +5 %.
+      { kind: "compare", left: { kind: "percent_change", field: "close", lookback: 3 }, op: "gte", right: { kind: "constant", value: "-5" }, timeframe: "1h" },
+      // A fall to +5 % would be rewritten as a fall to -5 %.
+      { kind: "compare", left: { kind: "percent_change", field: "close", lookback: 3 }, op: "lte", right: { kind: "constant", value: "5" }, timeframe: "1h" },
+      // A zero-percent move: the builder refuses it.
+      { kind: "compare", left: { kind: "percent_change", field: "close", lookback: 3 }, op: "gte", right: { kind: "constant", value: "0" }, timeframe: "1h" },
+      // A fractional lookback: the builder refuses it.
+      { kind: "compare", left: { kind: "percent_change", field: "close", lookback: 2.5 }, op: "gte", right: { kind: "constant", value: "5" }, timeframe: "1h" },
+      // A crossing at zero: the builder refuses it.
+      { kind: "cross", left: { kind: "price", field: "close" }, direction: "above", right: { kind: "constant", value: "0" }, timeframe: "1h" },
+      // An unparseable level: the builder refuses it.
+      { kind: "cross", left: { kind: "price", field: "close" }, direction: "above", right: { kind: "constant", value: "abc" }, timeframe: "1h" },
+      // `source: "last"` spelled out: the builder omits it, so the hash would change.
+      { kind: "cross", left: { kind: "price", field: "close", source: "last" }, direction: "above", right: { kind: "constant", value: "60000" }, timeframe: "1h" },
+    ] as unknown as Condition[];
+    for (const condition of cannotRebuild) {
+      expect(slotOf(condition), JSON.stringify(condition)).toBeNull();
+    }
+  });
+
+  it("still claims a price condition on another OHLC field or the mark series", () => {
+    // The boundary of the check above: the builder writes these, so they stay
+    // its to hydrate and edit.
+    const claimed: Condition[] = [
+      { kind: "cross", left: { kind: "price", field: "high", source: "mark" }, direction: "below", right: { kind: "constant", value: "58000.5" }, timeframe: "4h" },
+      { kind: "compare", left: { kind: "percent_change", field: "low", source: "mark", lookback: 7 }, op: "lte", right: { kind: "constant", value: "-2.5" }, timeframe: "1h" },
+      // Spelled with trailing zeros: the same number, so the same rule.
+      { kind: "cross", left: { kind: "price", field: "close" }, direction: "above", right: { kind: "constant", value: "60000.00" }, timeframe: "1h" },
+    ];
+    for (const condition of claimed) {
+      expect(slotOf(condition), JSON.stringify(condition)).toBe("price");
+    }
   });
 });
 
