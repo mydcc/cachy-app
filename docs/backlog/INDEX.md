@@ -2,9 +2,9 @@
 
 # Backlog index
 
-352 items. How to read and add them: [README.md](README.md).
+360 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ done 299 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 8 · 🟡 in-progress 2 · ✅ done 299 · ⛔ dropped 1
 
 ---
 
@@ -201,6 +201,14 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0471](bugs/BUG-0471-ai-actions-auto-apply-by-default.md) | AI trade actions auto-apply without confirmation by default | P0 | 🟢 ready | ai |
+| [BUG-0472](bugs/BUG-0472-unsanitized-context-in-ai-prompt.md) | Untrusted news and market labels flow unsanitized into the execution-capable AI prompt | P0 | 🟢 ready | ai |
+| [BUG-0473](bugs/BUG-0473-parseaivalue-fails-open-to-zero.md) | parseAiValue fails open to zero on unparseable AI output | P1 | 🟢 ready | ai |
+| [BUG-0474](bugs/BUG-0474-ai-tool-actions-unvalidated.md) | AI tool-call actions accepted without schema validation | P1 | 🟢 ready | ai |
+| [BUG-0476](bugs/BUG-0476-no-immutable-spend-caps.md) | No immutable spend caps independent of AI-influenced sizing inputs | P1 | 🟢 ready | execution |
+| [BUG-0475](bugs/BUG-0475-ai-decisions-not-audit-logged.md) | AI-suggested setup mutations leave no audit record | P2 | 🟢 ready | ai |
+| [BUG-0477](bugs/BUG-0477-market-orders-no-slippage-guard.md) | MARKET orders carry no slippage or deadline protection | P2 | 🟢 ready | execution |
+| [BUG-0478](bugs/BUG-0478-no-intraday-circuit-breaker.md) | No hourly-loss or consecutive-loss circuit breaker | P2 | 🟢 ready | execution |
 | [FEAT-0035](features/FEAT-0035-autonomous-execution-agent.md) | Let an agent trade inside limits it cannot exceed | P2 | 💡 idea | ai |
 | [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | 💡 idea | alerts |
 
@@ -440,6 +448,8 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | ✅ done | M4 | community, pro, private | A | none | — |
 | [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
+| [BUG-0471](bugs/BUG-0471-ai-actions-auto-apply-by-default.md) | AI trade actions auto-apply without confirmation by default | P0 | 🟢 ready | M9 | community, pro, private | A | none | — |
+| [BUG-0472](bugs/BUG-0472-unsanitized-context-in-ai-prompt.md) | Untrusted news and market labels flow unsanitized into the execution-capable AI prompt | P0 | 🟢 ready | M9 | community, pro, private | A | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -499,6 +509,9 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0473](bugs/BUG-0473-parseaivalue-fails-open-to-zero.md) | parseAiValue fails open to zero on unparseable AI output | P1 | 🟢 ready | M9 | community, pro, private | A | none | — |
+| [BUG-0474](bugs/BUG-0474-ai-tool-actions-unvalidated.md) | AI tool-call actions accepted without schema validation | P1 | 🟢 ready | M9 | community, pro, private | A | none | — |
+| [BUG-0476](bugs/BUG-0476-no-immutable-spend-caps.md) | No immutable spend caps independent of AI-influenced sizing inputs | P1 | 🟢 ready | M9 | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -613,6 +626,9 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0468](bugs/BUG-0468-refused-stored-rule-is-silent.md) | A stored rule the core refuses is logged on every close and never reported | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0469](bugs/BUG-0469-autolinker-ignores-no-issue.md) | The sync's PR auto-linker prepends Fixes #N to bodies that opt out with [no issue] | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0475](bugs/BUG-0475-ai-decisions-not-audit-logged.md) | AI-suggested setup mutations leave no audit record | P2 | 🟢 ready | M9 | community, pro, private | A | none | — |
+| [BUG-0477](bugs/BUG-0477-market-orders-no-slippage-guard.md) | MARKET orders carry no slippage or deadline protection | P2 | 🟢 ready | M9 | community, pro, private | none | none | — |
+| [BUG-0478](bugs/BUG-0478-no-intraday-circuit-breaker.md) | No hourly-loss or consecutive-loss circuit breaker | P2 | 🟢 ready | M9 | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -778,4 +794,4 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 
 ---
 
-Next free number: **0471**
+Next free number: **0479**

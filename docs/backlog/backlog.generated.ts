@@ -389,6 +389,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0428-topline-toggle-white-flash.md"
   },
   {
+    "id": "BUG-0471",
+    "title": "AI trade actions auto-apply without confirmation by default",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P0",
+    "milestone": "M9",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0471-ai-actions-auto-apply-by-default.md"
+  },
+  {
+    "id": "BUG-0472",
+    "title": "Untrusted news and market labels flow unsanitized into the execution-capable AI prompt",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P0",
+    "milestone": "M9",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0472-unsanitized-context-in-ai-prompt.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -1641,6 +1677,60 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "branch": "fix/bug-0451-panel-offers-inert-indicators",
     "start_date": "2026-09-13",
     "file": "bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md"
+  },
+  {
+    "id": "BUG-0473",
+    "title": "parseAiValue fails open to zero on unparseable AI output",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "M9",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0473-parseaivalue-fails-open-to-zero.md"
+  },
+  {
+    "id": "BUG-0474",
+    "title": "AI tool-call actions accepted without schema validation",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "M9",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0474-ai-tool-actions-unvalidated.md"
+  },
+  {
+    "id": "BUG-0476",
+    "title": "No immutable spend caps independent of AI-influenced sizing inputs",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "M9",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0476-no-immutable-spend-caps.md"
   },
   {
     "id": "FEAT-0014",
@@ -4123,6 +4213,60 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md"
+  },
+  {
+    "id": "BUG-0475",
+    "title": "AI-suggested setup mutations leave no audit record",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "M9",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0475-ai-decisions-not-audit-logged.md"
+  },
+  {
+    "id": "BUG-0477",
+    "title": "MARKET orders carry no slippage or deadline protection",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "M9",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0477-market-orders-no-slippage-guard.md"
+  },
+  {
+    "id": "BUG-0478",
+    "title": "No hourly-loss or consecutive-loss circuit breaker",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "M9",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0478-no-intraday-circuit-breaker.md"
   },
   {
     "id": "FEAT-0019",
