@@ -503,10 +503,16 @@ export class WebGpuCalculator {
                 
                 if (!result.advanced) result.advanced = {};
                 const lastIdx = len - 1;
-                result.advanced.superTrend = { 
-                    value: st.supertrend[lastIdx], 
-                    trend: st.trend[lastIdx] === 1 ? 'bull' : 'bear' 
-                };
+                // The shader writes trend 0 where the ATR has no value yet. Leave
+                // the field absent then, as the JS path does (BUG-0458), instead of
+                // reading 0 as "bear" and showing a bearish SuperTrend on a series
+                // too short to have one.
+                if (st.trend[lastIdx] !== 0) {
+                    result.advanced.superTrend = { 
+                        value: st.supertrend[lastIdx], 
+                        trend: st.trend[lastIdx] === 1 ? 'bull' : 'bear' 
+                    };
+                }
             }
 
             // Choppiness Index
