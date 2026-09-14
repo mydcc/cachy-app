@@ -2,7 +2,7 @@
 id: FEAT-0438
 title: Prove every indicator condition against recorded history
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -152,6 +152,15 @@ and fails the suite, which is what criterion 5 actually asks for. A second test 
 `SCOPED_OUT` entry for something that *is* covered, because a list of gaps that outlives
 the gap reads as missing coverage that is not missing.
 [`FEAT-0446`](FEAT-0446-recorded-history-remaining-indicators.md) owns emptying it.
+
+## Closed (2026-09-15)
+
+The work shipped in #3220 on 2026-09-13, which deliberately left this item
+`in-progress` until its own review. That review is done: every criterion above is
+ticked, and `recordedHistoryConditions.test.ts` passes on `develop` (with
+`correctedCandle.integration.test.ts`, 113 tests). The remaining gap — the eighteen
+registry indicators in `SCOPED_OUT` — is
+[`FEAT-0446`](FEAT-0446-recorded-history-remaining-indicators.md)'s, not this item's.
 
 ## Links
 

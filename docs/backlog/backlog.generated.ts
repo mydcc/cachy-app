@@ -5967,7 +5967,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0438",
     "title": "Prove every indicator condition against recorded history",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
