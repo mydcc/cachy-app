@@ -23,7 +23,8 @@ import {
     replayBeforeLegacyEvaluation,
     replayPendingLegacySymbolsAtStartup,
     resetLegacyReplayState,
-    setPendingLegacyReplaySymbols,
+    setLegacyReplayPopulation,
+    type LegacyReplayMember,
 } from "./legacyReplayCoordinator";
 
 const candle = (close: string, i: number): EvaluationCandle => ({
@@ -37,6 +38,13 @@ const candle = (close: string, i: number): EvaluationCandle => ({
 
 const series = (closes: string[]): EvaluationCandle[] => closes.map(candle);
 
+/** An alert armed on `symbol` before the reload, i.e. a replay population member. */
+const survivor = (symbol: string, id = `${symbol}-survivor`): LegacyReplayMember => ({
+    id,
+    symbol,
+    condition: { price_reached: "15" },
+});
+
 interface EvaluateCall {
     symbol: string;
     close: string;
@@ -44,9 +52,12 @@ interface EvaluateCall {
 }
 
 /** A mutable fake market store plus a recorder for what the replay fed it. */
-function makeSource(initialHistory: Record<string, string[]>) {
+function makeSource(initialHistory: Record<string, string[]>, initialHeld: LegacyReplayMember[] = []) {
     const history: Record<string, string[]> = { ...initialHistory };
     const calls: EvaluateCall[] = [];
+    let held: LegacyReplayMember[] = [...initialHeld];
+    /** The ids out of the engine during each replay, one entry per replay. */
+    const withheldPerRun: string[][] = [];
 
     const source = {
         readCandles: (symbol: string, _timeframe: string): EvaluationCandle[] =>
@@ -55,11 +66,21 @@ function makeSource(initialHistory: Record<string, string[]>) {
         evaluate: (symbol: string, close: string, at: number): void => {
             calls.push({ symbol, close, at });
         },
+        heldAlertsFor: (symbol: string): readonly LegacyReplayMember[] =>
+            held.filter((alert) => alert.symbol === symbol),
+        withAlertsWithheld: <T>(ids: readonly string[], run: () => T): T => {
+            withheldPerRun.push([...ids]);
+            return run();
+        },
     };
 
     return {
         source,
         calls,
+        withheldPerRun,
+        arm(alert: LegacyReplayMember) {
+            held = [...held.filter((a) => a.id !== alert.id), alert];
+        },
         setHistory(symbol: string, closes: string[]) {
             history[symbol] = closes;
         },
@@ -72,7 +93,7 @@ describe("legacyReplayCoordinator", () => {
     });
 
     it("is inert until a source is configured and a symbol is pending", () => {
-        setPendingLegacyReplaySymbols(["BTCUSDT"]);
+        setLegacyReplayPopulation([survivor("BTCUSDT")]);
 
         expect(() => noteLegacyReplaySeriesObserved("BTCUSDT")).not.toThrow();
         expect(replayPendingLegacySymbolsAtStartup()).toBeNull();
@@ -81,7 +102,7 @@ describe("legacyReplayCoordinator", () => {
     it("replays a pending symbol as soon as its history becomes observable", () => {
         const h = makeSource({ BTCUSDT: ["10", "20"] });
         configureLegacyReplay(h.source);
-        setPendingLegacyReplaySymbols(["BTCUSDT"]);
+        setLegacyReplayPopulation([survivor("BTCUSDT")]);
 
         noteLegacyReplaySeriesObserved("BTCUSDT");
 
@@ -91,7 +112,7 @@ describe("legacyReplayCoordinator", () => {
     it("keeps a symbol pending at startup when its history has not arrived yet, then replays it when it does", () => {
         const h = makeSource({});
         configureLegacyReplay(h.source);
-        setPendingLegacyReplaySymbols(["BTCUSDT"]);
+        setLegacyReplayPopulation([survivor("BTCUSDT")]);
 
         expect(replayPendingLegacySymbolsAtStartup()?.skipped).toEqual(["BTCUSDT"]);
         expect(h.calls).toHaveLength(0);
@@ -105,7 +126,7 @@ describe("legacyReplayCoordinator", () => {
     it("replays before the first live evaluation and never again", () => {
         const h = makeSource({ BTCUSDT: ["10", "20"] });
         configureLegacyReplay(h.source);
-        setPendingLegacyReplaySymbols(["BTCUSDT"]);
+        setLegacyReplayPopulation([survivor("BTCUSDT")]);
 
         replayBeforeLegacyEvaluation("BTCUSDT");
         replayBeforeLegacyEvaluation("BTCUSDT");
@@ -118,7 +139,7 @@ describe("legacyReplayCoordinator", () => {
     it("decides a history-less symbol before its first evaluation, so a late replay cannot fire", () => {
         const h = makeSource({});
         configureLegacyReplay(h.source);
-        setPendingLegacyReplaySymbols(["BTCUSDT"]);
+        setLegacyReplayPopulation([survivor("BTCUSDT")]);
 
         replayBeforeLegacyEvaluation("BTCUSDT");
         h.setHistory("BTCUSDT", ["10", "20"]);
@@ -136,7 +157,7 @@ describe("legacyReplayCoordinator", () => {
                 throw new Error("wasm refused");
             },
         });
-        setPendingLegacyReplaySymbols(["BTCUSDT"]);
+        setLegacyReplayPopulation([survivor("BTCUSDT")]);
 
         expect(replayPendingLegacySymbolsAtStartup()?.failed).toEqual(["BTCUSDT"]);
 
@@ -147,12 +168,62 @@ describe("legacyReplayCoordinator", () => {
     it("does not resurrect a decided symbol when the pending set is recomputed", () => {
         const h = makeSource({ BTCUSDT: ["10", "20"] });
         configureLegacyReplay(h.source);
-        setPendingLegacyReplaySymbols(["BTCUSDT"]);
+        setLegacyReplayPopulation([survivor("BTCUSDT")]);
         replayBeforeLegacyEvaluation("BTCUSDT");
         expect(h.calls).toHaveLength(2);
 
-        setPendingLegacyReplaySymbols(["BTCUSDT"]);
+        setLegacyReplayPopulation([survivor("BTCUSDT")]);
         noteLegacyReplaySeriesObserved("BTCUSDT");
         expect(h.calls).toHaveLength(2);
+    });
+
+    describe("BUG-0448 — only the population is replayed", () => {
+        it("withholds nothing when the engine holds exactly the population", () => {
+            const h = makeSource({ BTCUSDT: ["10", "20"] }, [survivor("BTCUSDT")]);
+            configureLegacyReplay(h.source);
+            setLegacyReplayPopulation([survivor("BTCUSDT")]);
+
+            noteLegacyReplaySeriesObserved("BTCUSDT");
+
+            expect(h.withheldPerRun).toEqual([[]]);
+        });
+
+        it("withholds an alert armed on the symbol after the population was taken", () => {
+            const h = makeSource({}, [survivor("BTCUSDT")]);
+            configureLegacyReplay(h.source);
+            setLegacyReplayPopulation([survivor("BTCUSDT")]);
+            replayPendingLegacySymbolsAtStartup();
+
+            h.arm({ id: "armed-later", symbol: "BTCUSDT", condition: { price_reached: "15" } });
+            h.setHistory("BTCUSDT", ["10", "20"]);
+            replayBeforeLegacyEvaluation("BTCUSDT");
+
+            expect(h.withheldPerRun.at(-1)).toEqual(["armed-later"]);
+        });
+
+        it("withholds a survivor whose level moved after the population was taken", () => {
+            const h = makeSource({ BTCUSDT: ["10", "20"] }, [survivor("BTCUSDT")]);
+            configureLegacyReplay(h.source);
+            setLegacyReplayPopulation([survivor("BTCUSDT")]);
+
+            h.arm({ ...survivor("BTCUSDT"), condition: { price_reached: "18" } });
+            noteLegacyReplaySeriesObserved("BTCUSDT");
+
+            expect(h.withheldPerRun).toEqual([["BTCUSDT-survivor"]]);
+        });
+
+        it("scopes a startup batch per symbol, leaving other symbols' alerts alone", () => {
+            const h = makeSource({ BTCUSDT: ["10", "20"], ETHUSDT: ["1", "2"] }, [
+                survivor("BTCUSDT"),
+                survivor("ETHUSDT"),
+                { id: "eth-later", symbol: "ETHUSDT", condition: { price_reached: "1.5" } },
+            ]);
+            configureLegacyReplay(h.source);
+            setLegacyReplayPopulation([survivor("BTCUSDT"), survivor("ETHUSDT")]);
+
+            replayPendingLegacySymbolsAtStartup();
+
+            expect(h.withheldPerRun).toEqual([["eth-later"]]);
+        });
     });
 });

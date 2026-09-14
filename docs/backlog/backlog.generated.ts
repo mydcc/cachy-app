@@ -3884,7 +3884,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0448",
     "title": "An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "claude",
     "priority": "P2",
     "milestone": "none",
     "editions": [

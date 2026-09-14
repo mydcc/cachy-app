@@ -128,3 +128,135 @@ describe('AlertEngine Service — redundant pushes are skipped, but only those',
         expect(instance.setAlertsCalls).toHaveLength(1);
     });
 });
+
+/**
+ * BUG-0448 — a replay may only decide the alerts it was justified for, so the
+ * service has to be able to take an alert out of the engine for the length of a
+ * replay and put back exactly what it took. That needs the service to know what
+ * the engine holds, including the `active` flag the core flips when it fires.
+ */
+describe('AlertEngine Service — what the engine holds, and withholding it', () => {
+    class HoldingWasm {
+        alerts: Array<{ id: string; symbol: string; condition: Record<string, string>; active: boolean }> = [];
+        fireOnEvaluate: string[] = [];
+        failNextAdd = false;
+        failNextSet = false;
+
+        set_alerts(alertsJson: string) {
+            if (this.failNextSet) {
+                this.failNextSet = false;
+                throw new Error('wasm rejected the set');
+            }
+            this.alerts = JSON.parse(alertsJson);
+        }
+        add_alert(alertJson: string) {
+            if (this.failNextAdd) {
+                this.failNextAdd = false;
+                throw new Error('wasm rejected the alert');
+            }
+            const alert = JSON.parse(alertJson);
+            this.alerts = [...this.alerts.filter((a) => a.id !== alert.id), alert];
+        }
+        remove_alert(id: string) { this.alerts = this.alerts.filter((a) => a.id !== id); }
+        evaluate(symbol: string, price: string, timestamp: number) {
+            return this.fireOnEvaluate.map((alert_id) => ({ alert_id, symbol, timestamp, price }));
+        }
+        free() {}
+    }
+
+    const ALERT_A = { id: 'a', symbol: 'BTCUSDT', condition: { price_reached: '50000.0' }, active: true };
+    const ALERT_B = { id: 'b', symbol: 'BTCUSDT', condition: { price_cross_up: '70000.0' }, active: true };
+    const ALERT_C = { id: 'c', symbol: 'ETHUSDT', condition: { price_reached: '3000.0' }, active: true };
+
+    async function freshEngine() {
+        vi.resetModules();
+        const mod = await import('./alertEngine');
+        const instance = new HoldingWasm();
+        await mod.alertEngine.ensureLoaded(
+            (async () => ({
+                default: async () => {},
+                AlertEngineWasm: class { constructor() { return instance; } },
+            })) as never,
+        );
+        return { engine: mod.alertEngine, instance };
+    }
+
+    it('reports the alerts it holds for one symbol, across set, add and remove', async () => {
+        const { engine } = await freshEngine();
+
+        engine.setAlerts([ALERT_A, ALERT_C]);
+        engine.addAlert(ALERT_B);
+        engine.removeAlert(ALERT_A.id);
+
+        expect(engine.heldAlertsFor('BTCUSDT').map((a) => a.id)).toEqual(['b']);
+        expect(engine.heldAlertsFor('ETHUSDT').map((a) => a.id)).toEqual(['c']);
+    });
+
+    it('does not count an alert the engine refused to add', async () => {
+        const { engine, instance } = await freshEngine();
+
+        instance.failNextAdd = true;
+        engine.addAlert(ALERT_B);
+
+        expect(engine.heldAlertsFor('BTCUSDT')).toEqual([]);
+    });
+
+    it('keeps the previous held set when the engine refuses a new one', async () => {
+        const { engine, instance } = await freshEngine();
+        engine.setAlerts([ALERT_A]);
+
+        instance.failNextSet = true;
+        engine.setAlerts([ALERT_B]);
+
+        // The core parses before it applies, so a rejected push changes
+        // nothing on either side of the boundary.
+        expect(instance.alerts.map((a) => a.id)).toEqual(['a']);
+        expect(engine.heldAlertsFor('BTCUSDT').map((a) => a.id)).toEqual(['a']);
+    });
+
+    it('marks an alert the core just fired as inactive, as the core itself does', async () => {
+        const { engine, instance } = await freshEngine();
+        engine.setAlerts([ALERT_A]);
+
+        instance.fireOnEvaluate = ['a'];
+        engine.evaluate('BTCUSDT', '50000.0', 1);
+
+        expect(engine.heldAlertsFor('BTCUSDT')[0]?.active).toBe(false);
+    });
+
+    it('takes a withheld alert out of the engine for the run and puts it back afterwards', async () => {
+        const { engine, instance } = await freshEngine();
+        engine.setAlerts([ALERT_A, ALERT_B]);
+
+        let heldDuringRun: string[] = [];
+        engine.withAlertsWithheld([ALERT_B.id], () => {
+            heldDuringRun = instance.alerts.map((a) => a.id);
+        });
+
+        expect(heldDuringRun).toEqual(['a']);
+        expect(instance.alerts.map((a) => a.id).sort()).toEqual(['a', 'b']);
+        expect(instance.alerts.find((a) => a.id === 'b')?.active).toBe(true);
+    });
+
+    it('never puts back an alert the engine did not hold, so a covered alert cannot be armed twice', async () => {
+        const { engine, instance } = await freshEngine();
+        engine.setAlerts([ALERT_A]);
+
+        engine.withAlertsWithheld([ALERT_B.id], () => {});
+
+        expect(instance.alerts.map((a) => a.id)).toEqual(['a']);
+    });
+
+    it('puts a withheld alert back even when the run throws', async () => {
+        const { engine, instance } = await freshEngine();
+        engine.setAlerts([ALERT_A, ALERT_B]);
+
+        expect(() =>
+            engine.withAlertsWithheld([ALERT_B.id], () => {
+                throw new Error('replay blew up');
+            }),
+        ).toThrow('replay blew up');
+
+        expect(instance.alerts.map((a) => a.id).sort()).toEqual(['a', 'b']);
+    });
+});
