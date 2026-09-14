@@ -43,6 +43,10 @@ export function indicatorFormOf(condition: Condition): IndicatorForm | null {
     // rewrites the rule on the first edit.
     const entry = catalogueEntry(condition.left.indicator.id);
     if (!entry) return null;
+    // The tab offers no price to compute an indicator over yet and rebuilds each
+    // one from id, params and output, so claiming RSI over hl2 would rewrite it
+    // as RSI over the close (FEAT-0454). Unclaimed, it stays as armed.
+    if (namesAPrice(condition.left) || namesAPrice(condition.right)) return null;
 
     const reference = referenceFor(condition.right, condition.left.indicator);
     if (!reference) return null;
@@ -60,6 +64,12 @@ export function indicatorFormOf(condition: Condition): IndicatorForm | null {
                 : { kind: "cross", direction: condition.direction },
         reference,
     };
+}
+
+/** Whether an operand, or the operand a window is over, is an indicator naming a price. */
+function namesAPrice(operand: Operand): boolean {
+    if (operand.kind === "window") return namesAPrice(operand.of);
+    return operand.kind === "indicator" && operand.indicator.field !== undefined;
 }
 
 function referenceFor(operand: Operand, subject: IndicatorRef): Reference | null {

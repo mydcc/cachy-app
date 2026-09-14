@@ -46,10 +46,15 @@
 import { Decimal } from "decimal.js";
 
 import { calculateADXSeries, JSIndicators } from "../../utils/indicators";
-import { ALERT_PATH_INDICATORS, ICHIMOKU_DISPLACEMENT } from "./alertPathIndicators";
+import {
+  ALERT_PATH_INDICATORS,
+  defaultFieldOf,
+  effectiveFieldOf,
+  ICHIMOKU_DISPLACEMENT,
+} from "./alertPathIndicators";
 import type { IndicatorRequest } from "./indicatorRequests";
 import { DEFAULT_OUTPUT } from "./indicatorRequests";
-import type { DecimalString, EvaluationCandle } from "./types";
+import type { DecimalString, EvaluationCandle, PriceField } from "./types";
 
 /**
  * The outcome of computing one series.
@@ -65,7 +70,7 @@ export type SeriesResult =
 
 function column(
   candles: readonly EvaluationCandle[],
-  field: "high" | "low" | "close" | "volume",
+  field: "open" | "high" | "low" | "close" | "volume",
 ): Float64Array {
   const out = new Float64Array(candles.length);
   for (let i = 0; i < candles.length; i++) {
@@ -75,19 +80,39 @@ function column(
   return out;
 }
 
+const PRICE_FIELDS: ReadonlySet<string> = new Set(["open", "high", "low", "close", "hl2", "hlc3"]);
+
+/**
+ * The price column `field` names, in the chart's arithmetic.
+ *
+ * The same sums in the same order as `getSourceData` (`lib/chart/seriesMap.ts`),
+ * which feeds every line the chart draws over a settings card's source: an
+ * alert on RSI over hl2 must compute the line the trader is looking at, to the
+ * last bit, or a cross the chart shows can be a cross the alert misses
+ * (FEAT-0454).
+ */
+function priceColumn(candles: readonly EvaluationCandle[], field: PriceField): Float64Array {
+  if (field !== "hl2" && field !== "hlc3") return column(candles, field);
+  const high = column(candles, "high");
+  const low = column(candles, "low");
+  const out = new Float64Array(candles.length);
+  if (field === "hl2") {
+    for (let i = 0; i < candles.length; i++) out[i] = (high[i] + low[i]) / 2;
+    return out;
+  }
+  const close = column(candles, "close");
+  for (let i = 0; i < candles.length; i++) out[i] = (high[i] + low[i] + close[i]) / 3;
+  return out;
+}
+
 /**
  * The typical price, `(high + low + close) / 3`.
  *
- * What CCI is defined over, what the WASM core computes it over, and what the
- * CCI settings card defaults to (`hlc3`) — see `alertPathSourceOf`.
+ * What CCI is defined over by default, what MFI weighs its money flow by, and
+ * what the CCI settings card defaults to (`hlc3`) — see `defaultFieldOf`.
  */
 function typicalPrice(candles: readonly EvaluationCandle[]): Float64Array {
-  const high = column(candles, "high");
-  const low = column(candles, "low");
-  const close = column(candles, "close");
-  const out = new Float64Array(candles.length);
-  for (let i = 0; i < candles.length; i++) out[i] = (high[i] + low[i] + close[i]) / 3;
-  return out;
+  return priceColumn(candles, "hlc3");
 }
 
 /**
@@ -231,9 +256,26 @@ export function computeIndicatorSeries(
       reason: `indicator '${indicator.id}' has no JavaScript implementation on the alert path`,
     };
   }
+  if (indicator.field !== undefined) {
+    if (defaultFieldOf(indicator.id) === null) {
+      return {
+        supported: false,
+        reason: `${indicator.id} is not computed over a single price, so it takes no field`,
+      };
+    }
+    // A document comes from `localStorage`; a price this path does not know
+    // is refused rather than computed over the close under its name.
+    if (!PRICE_FIELDS.has(indicator.field)) {
+      return { supported: false, reason: `${indicator.id} has no price '${indicator.field}'` };
+    }
+  }
   if (candles.length === 0) return { supported: true, values: [] };
 
   const close = column(candles, "close");
+  // The price the indicators with a settings-card source are computed over:
+  // the reference's own `field`, else their default (FEAT-0454). Computed on
+  // demand, since most cases below read several columns instead.
+  const price = (): Float64Array => priceColumn(candles, effectiveFieldOf(indicator) ?? "close");
 
   switch (indicator.id) {
     case "rsi": {
@@ -243,7 +285,7 @@ export function computeIndicatorSeries(
       if (output !== DEFAULT_OUTPUT) {
         return { supported: false, reason: `rsi has no output '${output}'` };
       }
-      return { supported: true, values: wire(JSIndicators.rsi(close, period)) };
+      return { supported: true, values: wire(JSIndicators.rsi(price(), period)) };
     }
 
     case "ema":
@@ -266,7 +308,8 @@ export function computeIndicatorSeries(
       // Called through the object, never detached: `hma` builds on `this.wma`,
       // and a detached call threw on every close (BUG-0449).
       const id = indicator.id as "ema" | "sma" | "wma" | "hma";
-      return { supported: true, values: wire(JSIndicators[id](close, period)) };
+      // Over the close for all four, unless an EMA names another price.
+      return { supported: true, values: wire(JSIndicators[id](price(), period)) };
     }
 
     case "momentum": {
@@ -280,9 +323,9 @@ export function computeIndicatorSeries(
           reason: `momentum has no output '${output}'`,
         };
       }
-      // The close against the close a full period back: nothing accumulates, so
+      // The price against the price a full period back: nothing accumulates, so
       // the value at a candle does not depend on where the rolling buffer starts.
-      return { supported: true, values: wire(JSIndicators.mom(close, period)) };
+      return { supported: true, values: wire(JSIndicators.mom(price(), period)) };
     }
 
     case "williams_r":
@@ -305,12 +348,11 @@ export function computeIndicatorSeries(
             JSIndicators.williamsR(high, low, close, period),
             rangelessWindows(high, low, period),
           ),
-        // Over the typical price, the price `alertPathSourceOf("cci")` names.
-        cci: () =>
-          withoutUndefined(
-            JSIndicators.cci(typical, period),
-            rangelessWindows(typical, typical, period),
-          ),
+        // Over the typical price unless the reference names another one.
+        cci: () => {
+          const src = price();
+          return withoutUndefined(JSIndicators.cci(src, period), rangelessWindows(src, src, period));
+        },
         // A zero ATR is a reading — no movement at all — so it is kept.
         atr: () => JSIndicators.atr(high, low, close, period),
         choppiness: () =>
@@ -389,8 +431,9 @@ export function computeIndicatorSeries(
       }
       // The stochastic of the RSI over `stoch_period`, %K smoothed by `k_period`
       // — the chart's function, argument for argument (BUG-0460).
-      const lines = JSIndicators.stochRsi(close, rsiPeriod, stochPeriod, dPeriod, kPeriod);
-      const rsi = JSIndicators.rsi(close, rsiPeriod);
+      const src = price();
+      const lines = JSIndicators.stochRsi(src, rsiPeriod, stochPeriod, dPeriod, kPeriod);
+      const rsi = JSIndicators.rsi(src, rsiPeriod);
       // An RSI that did not move over the window has no stochastic, as a price
       // range of zero has none for %R.
       const kUndefined = throughAverage(rangelessWindows(rsi, rsi, stochPeriod), kPeriod);
@@ -566,7 +609,7 @@ export function computeIndicatorSeries(
           reason: "macd needs whole fast, slow and signal periods",
         };
       }
-      const lines = JSIndicators.macd(close, fast, slow, signal);
+      const lines = JSIndicators.macd(price(), fast, slow, signal);
       if (output === "macd")
         return { supported: true, values: wire(lines.macd) };
       if (output === "signal")
@@ -591,7 +634,10 @@ export function computeIndicatorSeries(
           reason: "bollinger needs a whole period and a positive std_dev",
         };
       }
-      const bands = JSIndicators.bb(close, period, stdDev);
+      // %B places the price the bands are computed over inside them, so both
+      // read the same column.
+      const src = price();
+      const bands = JSIndicators.bb(src, period, stdDev);
       if (output === "upper")
         return { supported: true, values: wire(bands.upper) };
       if (output === "middle")
@@ -601,11 +647,11 @@ export function computeIndicatorSeries(
       if (output === "percent_b") {
         // Derived, like the histogram above. A zero-width band is undefined
         // rather than infinite: `NaN` becomes `null` becomes indeterminate.
-        const percentB = new Float64Array(close.length);
-        for (let i = 0; i < close.length; i++) {
+        const percentB = new Float64Array(src.length);
+        for (let i = 0; i < src.length; i++) {
           const width = bands.upper[i] - bands.lower[i];
           percentB[i] =
-            width === 0 ? Number.NaN : (close[i] - bands.lower[i]) / width;
+            width === 0 ? Number.NaN : (src[i] - bands.lower[i]) / width;
         }
         return { supported: true, values: wire(percentB) };
       }
@@ -622,8 +668,8 @@ export function computeIndicatorSeries(
         // A middle band of zero is undefined, not zero. `0` would read as the
         // tightest band possible and fire every squeeze alert on data that
         // simply is not there — `NaN` becomes `null` becomes indeterminate.
-        const bandwidth = new Float64Array(close.length);
-        for (let i = 0; i < close.length; i++) {
+        const bandwidth = new Float64Array(src.length);
+        for (let i = 0; i < src.length; i++) {
           const middle = bands.middle[i];
           bandwidth[i] =
             middle === 0

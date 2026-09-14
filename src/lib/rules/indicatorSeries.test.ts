@@ -18,7 +18,7 @@
 import { describe, expect, it } from "vitest";
 
 import { collectIndicators, indicatorKey } from "./indicatorRequests";
-import { alertPathSourceOf } from "./alertPathIndicators";
+import { alertPathSourceOf, defaultFieldOf } from "./alertPathIndicators";
 import { computeIndicatorSeries } from "./indicatorSeries";
 import { Decimal } from "decimal.js";
 
@@ -26,6 +26,7 @@ import { INDICATOR_CATALOGUE, defaultRef } from "../alerts/indicatorCatalogue";
 import { calculateADXSeries, JSIndicators } from "../../utils/indicators";
 import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
 import { RECORDED_CANDLES } from "../../services/__fixtures__/recordedSeries";
+import { getSourceData, type ChartRow } from "../chart/seriesMap";
 import type {
   Condition,
   EvaluationCandle,
@@ -939,5 +940,131 @@ describe("computeIndicatorSeries — high, low and close", () => {
         else expect(new Decimal(a).minus(b).abs().lte("1e-9"), `${ref.id} at ${i}: ${a} vs ${b}`).toBe(true);
       }
     }
+  });
+});
+
+/**
+ * FEAT-0454 — an indicator computed over the price its settings card is set to.
+ *
+ * The chart draws these lines as `JSIndicators.<fn>(getSourceData(rows, src))`
+ * (`indicatorLayer.ts`). Rather than restating each function here, the parity
+ * below computes the alert series over the real candles with `field` set, and
+ * over the close of candles flattened to the chart's own source column: the two
+ * agree exactly when the alert path reads the column the chart feeds its line,
+ * output by output, for every price the settings selector offers.
+ */
+describe("computeIndicatorSeries — the price an indicator is computed over", () => {
+  const FIELDS = ["close", "open", "high", "low", "hl2", "hlc3"] as const;
+  const history = RECORDED_CANDLES.slice(0, 300);
+  const rows: ChartRow[] = history.map((c) => ({
+    time: c.open_time_ms as ChartRow["time"],
+    open: Number(c.open),
+    high: Number(c.high),
+    low: Number(c.low),
+    close: Number(c.close),
+    volume: Number(c.volume ?? 0),
+  }));
+
+  /** The candles with every price set to the chart's `source` column. */
+  function flattenedTo(field: (typeof FIELDS)[number]): EvaluationCandle[] {
+    const column = getSourceData(rows, field);
+    return history.map((c, i) => {
+      const price = String(column[i]);
+      return { ...c, open: price, high: price, low: price, close: price };
+    });
+  }
+
+  const LINES: IndicatorRef[] = [
+    { id: "rsi", params: { period: 14 } },
+    { id: "ema", params: { period: 20 } },
+    { id: "momentum", params: { period: 10 } },
+    { id: "cci", params: { period: 20 } },
+    ...["macd", "signal", "histogram"].map((output) => ({
+      id: "macd",
+      params: { fast_period: 12, slow_period: 26, signal_period: 9 },
+      output,
+    })),
+    ...["upper", "middle", "lower", "percent_b", "bandwidth"].map((output) => ({
+      id: "bollinger",
+      params: { period: 20, std_dev: "2" },
+      output,
+    })),
+    ...["k", "d"].map((output) => ({
+      id: "stoch_rsi",
+      params: { rsi_period: 14, stoch_period: 14, k_period: 3, d_period: 3 },
+      output,
+    })),
+  ];
+
+  function values(ref: IndicatorRef, over: EvaluationCandle[]): (string | null)[] {
+    const result = computeIndicatorSeries({ indicator: ref, timeframe: "1h" }, over);
+    if (!result.supported) throw new Error(`${ref.id}: ${result.reason}`);
+    return result.values;
+  }
+
+  it("covers every indicator a reference may name a price on", () => {
+    const covered = [...new Set(LINES.map((ref) => ref.id))].sort();
+    const priced = INDICATOR_CATALOGUE.map((entry) => entry.id).filter((id) => defaultFieldOf(id) !== null);
+    expect(covered).toEqual(priced.sort());
+  });
+
+  for (const field of FIELDS) {
+    it(`computes every line over the ${field} column the chart feeds it`, () => {
+      const flattened = flattenedTo(field);
+      for (const ref of LINES) {
+        // Over the flattened close, not the reference's default: CCI defaults to
+        // hlc3, and `(v + v + v) / 3` is not `v` in f64.
+        expect(values({ ...ref, field }, history), `${ref.id}.${ref.output ?? "value"} over ${field}`).toEqual(
+          values({ ...ref, field: "close" }, flattened),
+        );
+      }
+    });
+  }
+
+  it("reads RSI over hl2 as the chart draws it, and not as it draws the close", () => {
+    const hl2 = values({ ...rsi14, field: "hl2" }, history);
+    const chart = Array.from(JSIndicators.rsi(getSourceData(rows, "hl2"), 14), (v) =>
+      Number.isFinite(v) ? new Decimal(v).toFixed() : null,
+    );
+    expect(hl2).toEqual(chart);
+    expect(hl2).not.toEqual(values(rsi14, history));
+  });
+
+  it("computes a reference naming the default price as the one naming none", () => {
+    expect(values({ ...rsi14, field: "close" }, history)).toEqual(values(rsi14, history));
+    const cci: IndicatorRef = { id: "cci", params: { period: 20 } };
+    expect(values({ ...cci, field: "hlc3" }, history)).toEqual(values(cci, history));
+    expect(values({ ...cci, field: "close" }, history)).not.toEqual(values(cci, history));
+  });
+
+  it("refuses a price on an indicator that is not computed over one", () => {
+    const result = computeIndicatorSeries(
+      { indicator: { id: "atr", params: { period: 14 }, field: "close" }, timeframe: "1h" },
+      history,
+    );
+    expect(result).toEqual({
+      supported: false,
+      reason: "atr is not computed over a single price, so it takes no field",
+    });
+  });
+
+  it("refuses a price it does not know rather than falling back to the close", () => {
+    const result = computeIndicatorSeries(
+      { indicator: { ...rsi14, field: "ohlc4" as never }, timeframe: "1h" },
+      history,
+    );
+    expect(result).toEqual({ supported: false, reason: "rsi has no price 'ohlc4'" });
+  });
+});
+
+describe("indicatorKey — the price an indicator is computed over (FEAT-0454)", () => {
+  it("keeps one indicator over two prices apart", () => {
+    expect(indicatorKey({ ...rsi14, field: "hl2" }, "1h")).not.toBe(indicatorKey(rsi14, "1h"));
+  });
+
+  it("files a reference naming the default price with the one naming none", () => {
+    expect(indicatorKey({ ...rsi14, field: "close" }, "1h")).toBe(indicatorKey(rsi14, "1h"));
+    const cci: IndicatorRef = { id: "cci", params: { period: 20 } };
+    expect(indicatorKey({ ...cci, field: "hlc3" }, "1h")).toBe(indicatorKey(cci, "1h"));
   });
 });

@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { IndicatorRef, PriceField } from "./types";
+
 /**
  * The registry identities the alert path can compute (BUG-0451).
  *
@@ -68,25 +70,50 @@ export const ALERT_PATH_INDICATORS: ReadonlySet<string> = new Set([
  */
 export const ICHIMOKU_DISPLACEMENT = 26;
 
-/** A price an indicator on the alert path is computed over. */
+/** A price an indicator on the alert path is computed over by default. */
 export type AlertPathSource = "close" | "hlc3";
 
 /**
- * The price each single-price indicator on the alert path is computed over,
- * where it is not the close.
+ * The indicators a reference may name a price on (`IndicatorRef.field`), each
+ * with the price it is computed over when the reference names none. Mirrors
+ * `default_field` in `technicals-wasm/src/rule/indicator.rs`, held to it by
+ * `indicatorCatalogue.test.ts` (FEAT-0454).
  *
  * CCI is defined over the typical price, `(high + low + close) / 3`: the WASM
- * core computes it so, and the CCI settings card defaults to `hlc3`. Every other
- * single-price indicator reads the close.
+ * core computes it so, and the CCI settings card defaults to `hlc3`. The others
+ * default to the close.
  *
- * Two readers again: `computeIndicatorSeries` feeds each indicator this price,
- * and the settings seed refuses a card whose line is drawn over another one
- * (BUG-0453) — so "which price does the alert use" has one answer.
+ * Three readers: `computeIndicatorSeries` picks the column it computes over,
+ * `indicatorKey` files the series under it, and the settings seed compares a
+ * card's price against it (BUG-0453) — so "which price does the alert use" has
+ * one answer.
  */
-const SOURCE_BY_INDICATOR: Readonly<Record<string, AlertPathSource>> = {
+const DEFAULT_FIELD_BY_INDICATOR: Readonly<Record<string, AlertPathSource>> = {
+  rsi: "close",
+  macd: "close",
+  stoch_rsi: "close",
+  momentum: "close",
+  ema: "close",
+  bollinger: "close",
   cci: "hlc3",
 };
 
+/** The price `indicatorId` is computed over by default, or `null` for none. */
+export function defaultFieldOf(indicatorId: string): AlertPathSource | null {
+  return Object.hasOwn(DEFAULT_FIELD_BY_INDICATOR, indicatorId)
+    ? DEFAULT_FIELD_BY_INDICATOR[indicatorId]
+    : null;
+}
+
+/** The price a reference is computed over: its own field, else the default. */
+export function effectiveFieldOf(indicator: IndicatorRef): PriceField | null {
+  return indicator.field ?? defaultFieldOf(indicator.id);
+}
+
+/**
+ * The price an indicator is computed over when a reference names none: its
+ * default, or the close for an indicator that reads several candle values.
+ */
 export function alertPathSourceOf(indicatorId: string): AlertPathSource {
-  return SOURCE_BY_INDICATOR[indicatorId] ?? "close";
+  return defaultFieldOf(indicatorId) ?? "close";
 }
