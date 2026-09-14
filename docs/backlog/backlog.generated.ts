@@ -4107,6 +4107,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0469-autolinker-ignores-no-issue.md"
   },
   {
+    "id": "BUG-0470",
+    "title": "worktree-cleanup.sh retires a fresh task worktree that has no commits yet",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "tooling",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
