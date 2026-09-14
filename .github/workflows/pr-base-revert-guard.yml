@@ -1,0 +1,43 @@
+name: Stale Snapshot Revert Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [develop]
+
+# Least-privilege default: this workflow only reads the PR's refs to diff
+# them, it never writes to the repo or the GitHub API.
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Stale Snapshot Revert Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history: the guard walks the PR's first commit and diffs
+          # the merge-base payload against the fork-era tree.
+          fetch-depth: 0
+
+      - name: Fail when the PR reverts base-branch work
+        # BUG-0447: an agent that pushes a stale checkout over the base merges
+        # silently undoes already-merged work, and squash-merge hides it behind
+        # the PR title. The script fails the PR when its merge payload deletes
+        # a file, or removes lines, the base branch introduced after the PR
+        # forked. A deliberate revert opts in with the `allow-base-revert`
+        # label — a visible opt-in, not a commit-message token — which is why
+        # this runs on `labeled`/`unlabeled` too, not just on new commits.
+        #
+        # The label list travels through `env:`, never interpolated into the
+        # shell: it is untrusted external content (any PR author can set
+        # labels, given triage permission), and interpolating it into a `run:`
+        # script would be a command-injection surface. The SHAs are hex and
+        # safe to interpolate, matching commit-lint.yml's convention.
+        env:
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          node scripts/check-pr-base-revert.mjs \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}"
