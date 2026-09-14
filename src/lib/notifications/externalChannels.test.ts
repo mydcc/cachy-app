@@ -37,7 +37,9 @@ import {
 } from "./externalChannels";
 
 const VALID_WEBHOOK = "https://discord.com/api/webhooks/123456789/abcdefQWERTY-_";
-const VALID_TOKEN = "123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw";
+// Synthetic BotFather-shaped fixture — see note in externalDelivery.test.ts
+// (secret-scanning alert #1). Not a credential.
+const VALID_TOKEN = "12345:TEST-TOKEN-FOR-UNIT-TESTS-0000";
 
 function config(patch: Partial<ExternalChannelsConfig> = {}): ExternalChannelsConfig {
     return { ...structuredClone(DEFAULT_EXTERNAL_CHANNELS), ...patch };
