@@ -75,39 +75,39 @@
         </div>
         <div>
           <h2 id="auto-backup-restore-title" class="text-xl font-bold text-[var(--text-primary)]">
-            {$_("app.autoBackup.restoreTitle") || "Recover Local Data"}
+            {$_("app.autoBackup.restoreTitle")}
           </h2>
           <p class="text-xs text-[var(--text-secondary)] mt-1">
-            {$_("app.autoBackup.restoreSubtitle") || "An automatic safety snapshot was found on this device."}
+            {$_("app.autoBackup.restoreSubtitle")}
           </p>
         </div>
       </div>
 
       <!-- Description -->
       <p class="text-sm text-[var(--text-secondary)] leading-relaxed">
-        {$_("app.autoBackup.restoreDescription") || "It looks like your browser storage was recently cleared or reset. We found an automatic local backup (OPFS) that can restore your trade journal, presets, and settings."}
+        {$_("app.autoBackup.restoreDescription")}
       </p>
 
       <!-- Snapshot details card -->
       <div class="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-xl p-4 flex flex-col gap-3">
         <div class="flex items-center justify-between text-xs pb-2 border-b border-[var(--border-primary)]">
-          <span class="text-[var(--text-secondary)]">{$_("app.autoBackup.snapshotDate") || "Snapshot Date"}:</span>
+          <span class="text-[var(--text-secondary)]">{$_("app.autoBackup.snapshotDate")}:</span>
           <span class="font-semibold text-[var(--text-primary)]">{formatDate(pending.timestamp)}</span>
         </div>
 
         <div class="grid grid-cols-2 gap-2 text-xs">
           <div class="flex items-center gap-2 text-[var(--text-secondary)]">
-            <span>📊 {$_("app.autoBackup.journalTrades") || "Journal Trades"}:</span>
+            <span>📊 {$_("app.autoBackup.journalTrades")}:</span>
             <span class="font-bold text-[var(--text-primary)]">{pending.entryCount}</span>
           </div>
           <div class="flex items-center gap-2 text-[var(--text-secondary)]">
-            <span>⚙️ {$_("app.autoBackup.presets") || "Presets"}:</span>
+            <span>⚙️ {$_("app.autoBackup.presets")}:</span>
             <span class="font-bold text-[var(--text-primary)]">{pending.presetCount}</span>
           </div>
           <div class="flex items-center gap-2 text-[var(--text-secondary)] col-span-2">
-            <span>🎛️ {$_("app.autoBackup.settingsSaved") || "Settings & State"}:</span>
+            <span>🎛️ {$_("app.autoBackup.settingsSaved")}:</span>
             <span class="font-bold text-[var(--text-primary)]">
-              {pending.hasSettings ? ($_("app.yes") || "Yes") : ($_("app.no") || "No")}
+              {pending.hasSettings ? ($_("app.yes")) : ($_("app.no"))}
             </span>
           </div>
         </div>
@@ -127,19 +127,21 @@
           class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-[var(--border-primary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm font-medium transition-colors"
           disabled={autoBackupState.isRestoring}
         >
-          {$_("app.autoBackup.dismissButton") || "Start Fresh / Ignore"}
+          {$_("app.autoBackup.dismissButton")}
         </button>
         <button
           type="button"
           onclick={handleRestore}
           class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-accent-paired hover-bg-accent-paired text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2"
           disabled={autoBackupState.isRestoring}
+          aria-busy={autoBackupState.isRestoring}
+          aria-live="polite"
         >
           {#if autoBackupState.isRestoring}
             <span class="animate-spin text-lg">⏳</span>
-            <span>{$_("app.autoBackup.restoring") || "Restoring..."}</span>
+            <span>{$_("app.autoBackup.restoring")}</span>
           {:else}
-            <span>{$_("app.autoBackup.restoreButton") || "Restore My Data"}</span>
+            <span>{$_("app.autoBackup.restoreButton")}</span>
           {/if}
         </button>
       </div>
