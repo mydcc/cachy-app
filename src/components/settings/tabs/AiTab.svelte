@@ -18,19 +18,91 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { settingsState, type AiProvider } from "../../../stores/settings.svelte";
+    import {
+        BUILTIN_ENTRY_IDS,
+        isBuiltinEntryId,
+    } from "../../../stores/settings/aiProviders";
     import Toggle from "../../shared/Toggle.svelte";
-    import AiModelPicker from "../AiModelPicker.svelte";
     import AiProviderManager from "../AiProviderManager.svelte";
+    import ProviderCard from "../ProviderCard.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
 
-    const aiProviders: { value: AiProvider; label: string }[] = [
-        { value: "ollama", label: $_("settings.ai.provider.ollama") },
-        { value: "openrouter", label: $_("settings.ai.provider.openrouter") },
-        { value: "openai", label: $_("settings.ai.provider.openai") },
-        { value: "gemini", label: $_("settings.ai.provider.gemini") },
-        { value: "anthropic", label: $_("settings.ai.provider.anthropic") },
+    interface ProviderTab {
+        id: string;
+        vendor: AiProvider;
+        label: string;
+        showApiKey: boolean;
+        keyLabel: string;
+        keyPlaceholder: string;
+        baseUrlLabel: string;
+        baseUrlPlaceholder: string;
+        baseUrlHint: string;
+    }
+
+    const providerTabs: ProviderTab[] = [
+        {
+            id: BUILTIN_ENTRY_IDS.ollama,
+            vendor: "ollama",
+            label: $_("settings.ai.provider.ollama"),
+            showApiKey: false,
+            keyLabel: "",
+            keyPlaceholder: "",
+            baseUrlLabel: $_("settings.ai.ollamaBaseUrl"),
+            baseUrlPlaceholder: "http://localhost:11434",
+            baseUrlHint: $_("settings.ai.ollamaBaseUrlDesc"),
+        },
+        {
+            id: BUILTIN_ENTRY_IDS.openai,
+            vendor: "openai",
+            label: $_("settings.ai.provider.openai"),
+            showApiKey: true,
+            keyLabel: $_("settings.ai.openaiApiKey"),
+            keyPlaceholder: "sk-...",
+            baseUrlLabel: $_("settings.ai.customBaseUrl"),
+            baseUrlPlaceholder: "http://localhost:8000/v1",
+            baseUrlHint: $_("settings.ai.customBaseUrlDesc"),
+        },
+        {
+            id: BUILTIN_ENTRY_IDS.gemini,
+            vendor: "gemini",
+            label: $_("settings.ai.provider.gemini"),
+            showApiKey: true,
+            keyLabel: $_("settings.ai.geminiApiKey"),
+            keyPlaceholder: "AIza...",
+            baseUrlLabel: $_("settings.ai.customBaseUrl"),
+            baseUrlPlaceholder: "https://generativelanguage.googleapis.com",
+            baseUrlHint: $_("settings.ai.geminiCustomBaseUrlDesc"),
+        },
+        {
+            id: BUILTIN_ENTRY_IDS.anthropic,
+            vendor: "anthropic",
+            label: $_("settings.ai.provider.anthropic"),
+            showApiKey: true,
+            keyLabel: $_("settings.ai.anthropicApiKey"),
+            keyPlaceholder: "sk-ant-...",
+            baseUrlLabel: $_("settings.ai.customBaseUrl"),
+            baseUrlPlaceholder: "https://api.anthropic.com",
+            baseUrlHint: $_("settings.ai.customBaseUrlDesc"),
+        },
     ];
+
+    let managerOpen = $state(false);
+    let showManager = $derived(
+        managerOpen || !isBuiltinEntryId(settingsState.activeProviderId),
+    );
+    let activeTabId = $derived(
+        showManager ? "custom" : settingsState.activeProviderId,
+    );
+    let activeTab = $derived(
+        providerTabs.find((tab) => tab.id === activeTabId),
+    );
+
+    function selectBuiltin(tab: ProviderTab) {
+        settingsState.activeProviderId = tab.id;
+        settingsState.aiProvider = tab.vendor;
+        managerOpen = false;
+    }
 
     // Social Helper
     function addDiscordChannel() {
@@ -111,20 +183,20 @@
                         >{$_("settings.apiProvider")}</span
                     >
                     <div class="segmented-control flex-wrap">
-                        {#each aiProviders as provider}
+                        {#each providerTabs as tab}
                             <button
-                                class="segmented-btn {settingsState.aiProvider ===
-                                provider.value && !settingsState.activeProviderId
-                                    ? 'active'
-                                    : ''}"
-                                onclick={() => {
-                                    settingsState.aiProvider = provider.value;
-                                    settingsState.activeProviderId = "";
-                                }}
+                                class="segmented-btn {activeTabId === tab.id ? 'active' : ''}"
+                                onclick={() => selectBuiltin(tab)}
                             >
-                                {provider.label}
+                                {tab.label}
                             </button>
                         {/each}
+                        <button
+                            class="segmented-btn {activeTabId === 'custom' ? 'active' : ''}"
+                            onclick={() => (managerOpen = true)}
+                        >
+                            {$_("settings.ai.customProviders.title")}
+                        </button>
                     </div>
                     <p class="text-[10px] text-[var(--text-secondary)] mt-1">
                         {$_("settings.ai.providerDesc")}
@@ -132,154 +204,21 @@
                 </div>
 
                 <div class="mt-4 p-4 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)]">
-                    {#if settingsState.aiProvider === "ollama"}
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="field-group">
-                                <label for="ollama-url">{$_("settings.ai.ollamaBaseUrl")}</label>
-                                <input
-                                    id="ollama-url"
-                                    bind:value={settingsState.ollamaBaseUrl}
-                                    class="input-field"
-                                    placeholder="http://localhost:11434"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.ollamaBaseUrlDesc")}
-                                </span>
-                            </div>
-                            <AiModelPicker
-                                provider="ollama"
-                                baseUrl={settingsState.ollamaBaseUrl}
-                                bind:model={settingsState.ollamaModel}
-                            />
-                        </div>
-                    {:else if settingsState.aiProvider === "openrouter"}
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="field-group">
-                                <label for="openrouter-key">{$_("settings.ai.openrouterApiKey")}</label>
-                                <input
-                                    id="openrouter-key"
-                                    type="password"
-                                    bind:value={settingsState.openrouterApiKey}
-                                    class="input-field"
-                                    placeholder="sk-or-..."
-                                />
-                            </div>
-                            <div class="field-group">
-                                <label for="openrouter-base-url">{$_("settings.ai.customBaseUrl")}</label>
-                                <input
-                                    id="openrouter-base-url"
-                                    bind:value={settingsState.openrouterBaseUrl}
-                                    class="input-field"
-                                    placeholder="https://openrouter.ai/api"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.customBaseUrlDesc")}
-                                </span>
-                            </div>
-                            <AiModelPicker
-                                provider="openrouter"
-                                apiKey={settingsState.openrouterApiKey}
-                                baseUrl={settingsState.openrouterBaseUrl}
-                                bind:model={settingsState.openrouterModel}
-                            />
-                        </div>
-                    {:else if settingsState.aiProvider === "openai"}
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="field-group">
-                                <label for="openai-key">{$_("settings.ai.openaiApiKey")}</label>
-                                <input
-                                    id="openai-key"
-                                    type="password"
-                                    bind:value={settingsState.openaiApiKey}
-                                    class="input-field"
-                                    placeholder="sk-..."
-                                />
-                            </div>
-                            <div class="field-group">
-                                <label for="openai-base-url">{$_("settings.ai.customBaseUrl")}</label>
-                                <input
-                                    id="openai-base-url"
-                                    bind:value={settingsState.openaiBaseUrl}
-                                    class="input-field"
-                                    placeholder="http://localhost:8000/v1"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.customBaseUrlDesc")}
-                                </span>
-                            </div>
-                            <AiModelPicker
-                                provider="openai"
-                                apiKey={settingsState.openaiApiKey}
-                                baseUrl={settingsState.openaiBaseUrl}
-                                bind:model={settingsState.openaiModel}
-                            />
-                        </div>
-                    {:else if settingsState.aiProvider === "gemini"}
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="field-group">
-                                <label for="gemini-key">{$_("settings.ai.geminiApiKey")}</label>
-                                <input
-                                    id="gemini-key"
-                                    type="password"
-                                    bind:value={settingsState.geminiApiKey}
-                                    class="input-field"
-                                    placeholder="AIza..."
-                                />
-                            </div>
-                            <div class="field-group">
-                                <label for="gemini-base-url">{$_("settings.ai.customBaseUrl")}</label>
-                                <input
-                                    id="gemini-base-url"
-                                    bind:value={settingsState.geminiBaseUrl}
-                                    class="input-field"
-                                    placeholder="https://generativelanguage.googleapis.com"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.geminiCustomBaseUrlDesc")}
-                                </span>
-                            </div>
-                            <AiModelPicker
-                                provider="gemini"
-                                apiKey={settingsState.geminiApiKey}
-                                baseUrl={settingsState.geminiBaseUrl}
-                                bind:model={settingsState.geminiModel}
-                            />
-                        </div>
-                    {:else if settingsState.aiProvider === "anthropic"}
-                        <div class="grid grid-cols-1 gap-4">
-                            <div class="field-group">
-                                <label for="anthropic-key">{$_("settings.ai.anthropicApiKey")}</label>
-                                <input
-                                    id="anthropic-key"
-                                    type="password"
-                                    bind:value={settingsState.anthropicApiKey}
-                                    class="input-field"
-                                    placeholder="sk-ant-..."
-                                />
-                            </div>
-                            <div class="field-group">
-                                <label for="anthropic-base-url">{$_("settings.ai.customBaseUrl")}</label>
-                                <input
-                                    id="anthropic-base-url"
-                                    bind:value={settingsState.anthropicBaseUrl}
-                                    class="input-field"
-                                    placeholder="https://api.anthropic.com"
-                                />
-                                <span class="text-[10px] text-[var(--text-secondary)]">
-                                    {$_("settings.ai.customBaseUrlDesc")}
-                                </span>
-                            </div>
-                            <AiModelPicker
-                                provider="anthropic"
-                                apiKey={settingsState.anthropicApiKey}
-                                baseUrl={settingsState.anthropicBaseUrl}
-                                bind:model={settingsState.anthropicModel}
-                            />
-                        </div>
+                    {#if showManager}
+                        <AiProviderManager />
+                    {:else if activeTab}
+                        <ProviderCard
+                            entryId={activeTab.id}
+                            vendor={activeTab.vendor}
+                            showApiKey={activeTab.showApiKey}
+                            keyLabel={activeTab.keyLabel}
+                            keyPlaceholder={activeTab.keyPlaceholder}
+                            baseUrlLabel={activeTab.baseUrlLabel}
+                            baseUrlPlaceholder={activeTab.baseUrlPlaceholder}
+                            baseUrlHint={activeTab.baseUrlHint}
+                        />
                     {/if}
                 </div>
-
-                <AiProviderManager />
             </section>
         {/if}
 

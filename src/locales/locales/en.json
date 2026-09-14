@@ -1513,6 +1513,7 @@
         "title": "Custom providers",
         "desc": "Add any OpenAI-compatible endpoint — OpenCode Zen, Command Code, LiteLLM or a self-hosted gateway. Credentials are encrypted on this device; the browser sends them straight to the provider unless you enable the relay.",
         "add": "Add provider",
+        "presetBlank": "Blank (custom URL)",
         "empty": "No custom providers yet.",
         "name": "Name",
         "namePlaceholder": "OpenCode Zen",

@@ -1541,6 +1541,7 @@
         "title": "Eigene Provider",
         "desc": "Füge beliebige OpenAI-kompatible Endpunkte hinzu — OpenCode Zen, Command Code, LiteLLM oder ein selbst gehostetes Gateway. Zugangsdaten werden auf diesem Gerät verschlüsselt; der Browser sendet sie direkt an den Provider, sofern du das Relay nicht aktivierst.",
         "add": "Provider hinzufügen",
+        "presetBlank": "Leer (eigene URL)",
         "empty": "Noch keine eigenen Provider.",
         "name": "Name",
         "namePlaceholder": "OpenCode Zen",

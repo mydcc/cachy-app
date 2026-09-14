@@ -18,7 +18,10 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { getModels, type AiModelInfo } from "../../services/aiModelsService";
-  import { isFreeModelId } from "../../stores/settings/aiProviders";
+  import {
+    isFreeModelId,
+    type AiApiFlavor,
+  } from "../../stores/settings/aiProviders";
   import type { AiProvider } from "../../stores/settings.svelte";
 
   interface Props {
@@ -26,6 +29,8 @@
     apiKey?: string;
     baseUrl?: string;
     model: string;
+    flavor?: AiApiFlavor;
+    transport?: "server" | "direct";
   }
 
   let {
@@ -33,6 +38,8 @@
     apiKey = "",
     baseUrl = "",
     model = $bindable(""),
+    flavor,
+    transport = "server",
   }: Props = $props();
 
   let models = $state<AiModelInfo[]>([]);
@@ -49,7 +56,7 @@
     const gen = ++generation;
     loading = true;
     error = null;
-    getModels(provider, { apiKey, baseUrl }, { forceRefresh })
+    getModels(provider, { apiKey, baseUrl }, { forceRefresh, transport, flavor })
       .then((result) => {
         if (gen !== generation) return;
         models = result.models;
@@ -73,6 +80,8 @@
     void provider;
     void apiKey;
     void baseUrl;
+    void flavor;
+    void transport;
     const timer = setTimeout(() => runLoad(false), 600);
     return () => clearTimeout(timer);
   });

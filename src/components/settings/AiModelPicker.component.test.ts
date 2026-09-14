@@ -86,11 +86,26 @@ describe("FEAT-0346 — AiModelPicker loads and reports the model list", () => {
         expect(getModels).toHaveBeenCalledWith(
             "openai",
             { apiKey: "sk-test", baseUrl: "" },
-            { forceRefresh: false },
+            { forceRefresh: false, transport: "server", flavor: undefined },
         );
         const select = host.querySelector("select");
         expect(select).toBeTruthy();
         expect(select?.querySelector('option[value="gpt-4o"]')?.textContent).toContain("GPT-4o");
+    });
+
+    it("forwards flavor and transport for custom providers", async () => {
+        await render({
+            provider: "openai",
+            baseUrl: "https://gw.example.com/v1",
+            flavor: "openai-chat",
+            transport: "direct",
+        });
+
+        expect(getModels).toHaveBeenCalledWith(
+            "openai",
+            { apiKey: "sk-test", baseUrl: "https://gw.example.com/v1" },
+            { forceRefresh: false, transport: "direct", flavor: "openai-chat" },
+        );
     });
 
     it("reports a successful connection once models arrive", async () => {
