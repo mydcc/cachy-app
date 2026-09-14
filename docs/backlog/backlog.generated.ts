@@ -6762,7 +6762,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0475",
     "title": "The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -6776,6 +6776,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0439"
     ],
+    "assignee": "claude",
+    "start_date": "2026-09-15",
+    "branch": "fix/bug-0475-gpu-warmup-seeding",
     "file": "bugs/BUG-0475-gpu-stages-start-before-their-input.md"
   },
   {

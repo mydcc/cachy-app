@@ -2,7 +2,7 @@
 id: BUG-0475
 title: The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet
 type: bug
-status: specced
+status: in-progress
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: alerts
 data_class: C
 adr: none
 depends_on: [FEAT-0439]
+assignee: claude
+start_date: 2026-09-15
+branch: fix/bug-0475-gpu-warmup-seeding
 ---
 
 # BUG-0475 — The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet
