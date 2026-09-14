@@ -26,8 +26,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 
+/*
+ * The real DOMPurify is replaced by a fake that returns a fixed, safe node,
+ * so the test can prove the component renders the sanitizer's output rather
+ * than the raw string. The fake deliberately does no string filtering of its
+ * own — a regex "sanitizer" here would be a CodeQL finding, not a real one.
+ */
 const { sanitize } = vi.hoisted(() => ({
-    sanitize: vi.fn((data: string) => data.replace(/\son\w+="[^"]*"/g, "")),
+    sanitize: vi.fn((data: string) => `<span data-sanitized data-len="${data.length}"></span>`),
 }));
 vi.mock("dompurify", () => ({ default: { sanitize } }));
 
@@ -64,7 +70,7 @@ describe("FEAT-0346 — Icon sanitises before injecting", () => {
         render({ data: '<svg id="ok" onerror="alert(1)"></svg>' });
 
         expect(sanitize).toHaveBeenCalledWith('<svg id="ok" onerror="alert(1)"></svg>');
-        expect(wrapper().innerHTML).toContain('id="ok"');
+        expect(wrapper().innerHTML).toContain("data-sanitized");
         expect(wrapper().innerHTML).not.toContain("onerror");
     });
 
