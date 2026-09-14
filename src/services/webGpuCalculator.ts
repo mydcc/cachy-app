@@ -499,14 +499,20 @@ export class WebGpuCalculator {
             // SuperTrend
             if (settings.superTrend.enabled !== false) {
                 const atr = await this.calculateAtr(highs32, lows32, closes32, settings.superTrend.period) as Float32Array;
-                const st = await this.calculateSuperTrend(highs32, lows32, closes32, atr, settings.superTrend.factor, len);
+                const st = await this.calculateSuperTrend(highs32, lows32, closes32, atr, settings.superTrend.factor, settings.superTrend.period);
                 
                 if (!result.advanced) result.advanced = {};
                 const lastIdx = len - 1;
-                result.advanced.superTrend = { 
-                    value: st.supertrend[lastIdx], 
-                    trend: st.trend[lastIdx] === 1 ? 'bull' : 'bear' 
-                };
+                // The shader writes trend 0 where the ATR has no value yet. Leave
+                // the field absent then, as the JS path does (BUG-0458), instead of
+                // reading 0 as "bear" and showing a bearish SuperTrend on a series
+                // too short to have one.
+                if (st.trend[lastIdx] !== 0) {
+                    result.advanced.superTrend = { 
+                        value: st.supertrend[lastIdx], 
+                        trend: st.trend[lastIdx] === 1 ? 'bull' : 'bear' 
+                    };
+                }
             }
 
             // Choppiness Index
@@ -585,7 +591,14 @@ export class WebGpuCalculator {
       const slow = await this.calculateEma(data, slowLength);
       const macdLine = new Float32Array(len);
       for (let i = 0; i < len; i++) macdLine[i] = fast[i] - slow[i];
-      const signalLine = await this.calculateEma(macdLine, signalLength);
+      // The line has its first value where the slower EMA seeds. Before that it
+      // is 0 and then a bare fast EMA — a price — so the signal EMA starts at
+      // that candle, as the JS path starts it (BUG-0475); earlier candles stay 0.
+      const lineStart = Math.max(fastLength, slowLength) - 1;
+      const signalLine = new Float32Array(len);
+      if (len - lineStart >= signalLength) {
+          signalLine.set(await this.calculateEma(macdLine.subarray(lineStart), signalLength), lineStart);
+      }
       const histogram = new Float32Array(len);
       for (let i = 0; i < len; i++) histogram[i] = macdLine[i] - signalLine[i];
       return { macdLine, signalLine, histogram };
@@ -677,17 +690,19 @@ export class WebGpuCalculator {
       high: Float32Array, 
       low: Float32Array, 
       close: Float32Array, 
-      atr: Float32Array, 
+      atr: Float32Array,
       factor: number,
-      len: number
+      atrLength: number
   ): Promise<{ supertrend: Float32Array, trend: Float32Array }> {
-      // Params: factor (f32), data_len (u32)
-      // Create mixed buffer
-      const paramsBuf = new ArrayBuffer(8); // 4 + 4
+      const len = close.length;
+      // Params: factor (f32), data_len (u32), seed (u32). The ATR shader has its
+      // first value on candle `atrLength`, so the bands start there (BUG-0475).
+      const paramsBuf = new ArrayBuffer(12);
       const viewF32 = new Float32Array(paramsBuf);
       const viewU32 = new Uint32Array(paramsBuf);
       viewF32[0] = factor;
-      viewU32[1] = len; 
+      viewU32[1] = len;
+      viewU32[2] = atrLength;
       
       // Use generic compute with multiple outputs
       const results = await this.compute(

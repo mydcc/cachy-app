@@ -144,7 +144,7 @@ export const PARITY_CASES: readonly ParityCase[] = [
     accumulates: () => 23,
     gpu: async (g, s) => {
       const atr = await g.calculateAtr(s.high, s.low, s.close, 10);
-      return (await g.calculateSuperTrend(s.high, s.low, s.close, atr, 3, s.close.length)).supertrend;
+      return (await g.calculateSuperTrend(s.high, s.low, s.close, atr, 3, 10)).supertrend;
     },
     js: (s) => JSIndicators.superTrend(s.high, s.low, s.close, 10, 3).value,
   },

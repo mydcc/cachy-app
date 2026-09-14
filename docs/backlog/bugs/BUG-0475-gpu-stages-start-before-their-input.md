@@ -2,7 +2,7 @@
 id: BUG-0475
 title: The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: alerts
 data_class: C
 adr: none
 depends_on: [FEAT-0439]
+assignee: claude
+start_date: 2026-09-15
+branch: fix/bug-0475-gpu-warmup-seeding
 ---
 
 # BUG-0475 — The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet
@@ -72,11 +75,39 @@ gone, which is the check that the fix landed.
 
 ## Acceptance criteria
 
-- [ ] `npm run test:gpu` passes with `ATR(14)`, `SuperTrend(10,3)`, `MACD signal` and
-      `MACD histogram` removed from `KNOWN_DISCREPANCIES`
-- [ ] The ATR's and the SuperTrend's first GPU value sits at the same candle as the JS
-      path's, rather than one candle early
-- [ ] No other case in the suite moves past its bound
+- [x] `npm run test:gpu` passes with `ATR(14)`, `SuperTrend(10,3)`, `MACD signal` and
+      `MACD histogram` removed from `KNOWN_DISCREPANCIES` — the table is empty, 5/5 on
+      SwiftShader and on Intel Gen-11
+- [x] The ATR's and the SuperTrend's first GPU value sits at the same candle as the JS
+      path's, rather than one candle early — asserted by the new `STARTS_WITH_JS` test,
+      which also covers the MACD signal
+- [x] No other case in the suite moves past its bound
+
+## Fixed (2026-09-15)
+
+As specified above, with two details the spec did not settle:
+
+- **`calculateSuperTrend` takes the ATR length, not the data length**, as its last
+  argument, and passes it to the shader as `seed`. The shader cannot find the seed by
+  looking for the first non-zero ATR — a flat stretch has an ATR of exactly 0 — and the
+  data length was already `close.length`.
+- **The signal starts at `max(fast, slow) - 1`**, not `slowLength - 1`, so a caller
+  that swaps fast and slow does not start it early either.
+
+**The bound alone would not have caught a regression here.** It compares only candles
+where JS has a value, so a GPU seed one candle early is invisible once it decays. The
+suite now also asserts that ATR(14), SuperTrend(10,3) and the MACD signal have their
+first non-zero GPU value on the JS path's first candle. Before the fix it read 13 vs 14,
+0 vs 10 and 11 vs 33.
+
+**Found on the way: an Intel Vulkan driver miscompile.** The first rewrite of the trend
+flip updated `trend` in one `if` and chose the band from `trend` in a second `if` in the
+same loop iteration. SwiftShader ran it correctly. Intel Gen-11 wrote `trend = -1` but
+the up-trend's band on every flip candle — 26 candles beyond the bound, the first at
+candle 22, by 579. The flip is now decided once into `bull` and both outputs are
+`select`ed from it. The two adapters are no longer bit-identical in the ATR's last
+digits, but both are inside the bound, so a real adapter is worth the extra run
+(`CACHY_GPU_VULKAN=1`) whenever a shader's control flow changes.
 
 ## Out of scope
 

@@ -60,33 +60,24 @@ const ORIGIN = 'https://gpu-parity.test/';
  * entry, and a list of disagreements that outlives them reads as a GPU path
  * that cannot be trusted when it can.
  *
- * All four share one cause, recorded in BUG-0475: a stage that starts before
- * its input has a value. The divergence is largest at the first candle and
- * decays with the indicator's memory, so `calculate()` — which reads only the
- * newest candle — is affected only for series shorter than the entry's
- * candle, such as a newly listed symbol or a monthly chart.
+ * Empty since BUG-0475 started ATR, SuperTrend and the MACD signal on the
+ * candle their input first has a value, which is where the JS path starts them.
  */
-const KNOWN_DISCREPANCIES: Record<string, { lastDivergentCandle: number; cause: string }> = {
-  'ATR(14)': {
-    lastDivergentCandle: 46,
-    cause:
-      'atr.wgsl takes a true range for the first candle, which has no previous close, and seeds one candle early (the JS path settled this in BUG-0456)',
-  },
-  'SuperTrend(10,3)': {
-    lastDivergentCandle: 46,
-    cause:
-      'supertrend.wgsl runs its band recursion from candle 0 over an ATR that is still 0, and inherits the ATR seed above (the JS path settled this in BUG-0458)',
-  },
-  'MACD signal': {
-    lastDivergentCandle: 82,
-    cause:
-      'calculateMacd seeds the signal EMA over MACD values before the slow EMA exists, which are zeros and then bare fast-EMA prices',
-  },
-  'MACD histogram': {
-    lastDivergentCandle: 81,
-    cause: 'the line minus the mis-seeded signal above',
-  },
-};
+const KNOWN_DISCREPANCIES: Record<string, { lastDivergentCandle: number; cause: string }> = {};
+
+/**
+ * Cases whose GPU series must begin on the JS path's first candle, not merely
+ * agree once both have values.
+ *
+ * The bound only compares candles where JS has a value, so a GPU stage that
+ * seeds one candle early is invisible to it once the early seed has decayed.
+ * BUG-0475 was that: ATR(14) seeded at candle 13, and SuperTrend and the MACD
+ * signal ran over values that did not exist yet. The GPU writes 0 where it has
+ * no value, so its first candle is its first non-zero one. The MACD line and
+ * histogram are not listed: before their seed the GPU writes a bare fast EMA
+ * there, a placeholder BUG-0475 leaves out of scope.
+ */
+const STARTS_WITH_JS = ['ATR(14)', 'SuperTrend(10,3)', 'MACD signal'];
 
 /** No case may be settled by a handful of candles; the deepest warmup here is 33. */
 const MIN_COMPARED_CANDLES = 900;
@@ -197,6 +188,17 @@ test.describe('WebGPU ↔ JS indicator parity (FEAT-0439)', () => {
       expect(compared, `${result.label} compared ${compared} candles`).toBeGreaterThanOrEqual(MIN_COMPARED_CANDLES);
       expect(result.gpu.some((v) => v !== null && v !== 0), `${result.label}: the GPU returned nothing but zeros`).toBe(true);
     }
+  });
+
+  test('a seeded GPU series starts on the same candle as the JS series', () => {
+    const firstGpu = (r: CaseResult) => r.gpu.findIndex((v) => v !== null && v !== 0);
+    const firstJs = (r: CaseResult) => r.js.findIndex((v) => v !== null);
+    const starts = STARTS_WITH_JS.map((label) => {
+      const result = run.results.find((r) => r.label === label);
+      if (!result) throw new Error(`STARTS_WITH_JS names ${label}, which is not a case`);
+      return { label, gpu: firstGpu(result), js: firstJs(result) };
+    });
+    expect(starts.filter((s) => s.gpu !== s.js)).toEqual([]);
   });
 
   test('each GPU series stays within the f32 bound of the JS series', () => {
