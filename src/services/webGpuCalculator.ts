@@ -38,6 +38,21 @@ import type { IndicatorSettings } from '../types/indicators';
 import { calculateIndicatorsFromArrays } from '../utils/technicalsCalculator'; // Fallback
 import { toNumFast } from '../utils/fastConversion';
 
+/**
+ * The VWAP shader's session marker: 1 on the first candle and on every candle
+ * whose UTC calendar day differs from its predecessor's.
+ */
+export function utcSessionStarts(times: ArrayLike<number>): Uint32Array {
+  const starts = new Uint32Array(times.length);
+  if (times.length > 0) starts[0] = 1;
+  for (let i = 1; i < times.length; i++) {
+    if (new Date(times[i]).getUTCDate() !== new Date(times[i - 1]).getUTCDate()) {
+      starts[i] = 1;
+    }
+  }
+  return starts;
+}
+
 export class WebGpuCalculator {
   private device: GPUDevice | null = null;
   private adapter: GPUAdapter | null = null;
@@ -370,20 +385,8 @@ export class WebGpuCalculator {
             
             // HMA
             if (settings.hma.enabled !== false && settings.hma.length > 0) {
-                const length = settings.hma.length;
-                const halfLength = Math.floor(length / 2);
-                const sqrtLength = Math.round(Math.sqrt(length));
-                
-                const wmaHalf = await this.calculateWma(closes32, halfLength) as Float32Array;
-                const wmaFull = await this.calculateWma(closes32, length) as Float32Array;
-                
-                const intermediate = new Float32Array(len);
-                for(let i=0; i<len; i++) {
-                    intermediate[i] = (2 * wmaHalf[i]) - wmaFull[i];
-                }
-                
-                const hma = await this.calculateWma(intermediate, sqrtLength) as Float32Array;
-                this.injectResult(result, `HMA${length}`, hma, closes, 'movingAverages');
+                const hma = await this.calculateHma(closes32, settings.hma.length);
+                this.injectResult(result, `HMA${settings.hma.length}`, hma, closes, 'movingAverages');
             }
             
             // Volume MA
@@ -407,17 +410,9 @@ export class WebGpuCalculator {
             
             // MACD
             if (settings.macd.enabled !== false) {
-                 const fast = await this.calculateEma(closes32, settings.macd.fastLength) as Float32Array;
-                 const slow = await this.calculateEma(closes32, settings.macd.slowLength) as Float32Array;
-                 
-                 const macdLine = new Float32Array(len);
-                 for(let i=0; i<len; i++) macdLine[i] = fast[i] - slow[i];
-                 
-                 const signalLine = await this.calculateEma(macdLine, settings.macd.signalLength) as Float32Array;
-                 
-                 const histogram = new Float32Array(len);
-                 for(let i=0; i<len; i++) histogram[i] = macdLine[i] - signalLine[i];
-                 
+                 const { macdLine, signalLine, histogram } = await this.calculateMacd(
+                     closes32, settings.macd.fastLength, settings.macd.slowLength, settings.macd.signalLength
+                 );
                  this.injectResult(result, `MACD_Line`, macdLine, closes, 'oscillators');
                  this.injectResult(result, `MACD_Signal`, signalLine, closes, 'oscillators');
                  this.injectResult(result, `MACD_Hist`, histogram, closes, 'oscillators');
@@ -431,11 +426,12 @@ export class WebGpuCalculator {
 
             // Stoch
             if (settings.stochastic.enabled !== false) {
-                 const k_raw = await this.calculateStochRaw(highs32, lows32, closes32, settings.stochastic.kPeriod);
-                 const k_smooth = await this.calculateSma(k_raw as Float32Array, settings.stochastic.kSmoothing) as Float32Array;
-                 const d_line = await this.calculateSma(k_smooth, settings.stochastic.dPeriod) as Float32Array;
-                 this.injectResult(result, `StochK`, k_smooth, closes, 'oscillators');
-                 this.injectResult(result, `StochD`, d_line, closes, 'oscillators');
+                 const { k, d } = await this.calculateStochastic(
+                     highs32, lows32, closes32,
+                     settings.stochastic.kPeriod, settings.stochastic.kSmoothing, settings.stochastic.dPeriod
+                 );
+                 this.injectResult(result, `StochK`, k, closes, 'oscillators');
+                 this.injectResult(result, `StochD`, d, closes, 'oscillators');
             }
             
             // CCI
@@ -483,18 +479,10 @@ export class WebGpuCalculator {
             
             // Bollinger Bands
             if (settings.bollingerBands.enabled !== false) {
-                const middle = await this.calculateSma(closes32, settings.bollingerBands.length) as Float32Array;
-                const stddev = await this.calculateStdDev(closes32, settings.bollingerBands.length) as Float32Array;
-                
-                const upper = new Float32Array(len);
-                const lower = new Float32Array(len);
-                const mult = settings.bollingerBands.stdDev;
-                
-                for(let i=0; i<len; i++) {
-                    upper[i] = middle[i] + (stddev[i] * mult);
-                    lower[i] = middle[i] - (stddev[i] * mult);
-                }
-                
+                const { middle, upper, lower } = await this.calculateBollinger(
+                    closes32, settings.bollingerBands.length, settings.bollingerBands.stdDev
+                );
+
                 if (!result.volatility) result.volatility = { atr: 0, bb: { upper:0, middle:0, lower:0, percentP:0 } };
                 const idx = len - 1;
                 const range = upper[idx] - lower[idx];
@@ -532,16 +520,7 @@ export class WebGpuCalculator {
             
             // VWAP
             if (settings.vwap.enabled !== false) {
-                const isNewSession = new Uint32Array(len);
-                isNewSession[0] = 1;
-                for(let i=1; i<len; i++) {
-                     const current = new Date(times[i]);
-                     const prev = new Date(times[i-1]);
-                     if (current.getUTCDate() !== prev.getUTCDate()) {
-                         isNewSession[i] = 1;
-                     }
-                }
-                const val = await this.calculateVwap(highs32, lows32, closes32, volumes32, isNewSession) as Float32Array;
+                const val = await this.calculateVwap(highs32, lows32, closes32, volumes32, utcSessionStarts(times));
                 if (!result.advanced) result.advanced = {};
                 result.advanced.vwap = val[len-1];
             }
@@ -576,6 +555,71 @@ export class WebGpuCalculator {
           if (category === 'movingAverages') entry.price = closes[lastIdx];
           arr.push(entry);
       }
+  }
+
+  // --- Composites ---
+  //
+  // Indicators assembled from several shader passes. They live here rather than
+  // inline in calculate() so the FEAT-0439 parity suite can run exactly the
+  // arithmetic that reaches the chart instead of re-assembling it in the test.
+
+  async calculateHma(data: Float32Array, length: number): Promise<Float32Array> {
+      const len = data.length;
+      const wmaHalf = await this.calculateWma(data, Math.floor(length / 2));
+      const wmaFull = await this.calculateWma(data, length);
+      const intermediate = new Float32Array(len);
+      for (let i = 0; i < len; i++) {
+          intermediate[i] = (2 * wmaHalf[i]) - wmaFull[i];
+      }
+      return this.calculateWma(intermediate, Math.round(Math.sqrt(length)));
+  }
+
+  async calculateMacd(
+      data: Float32Array,
+      fastLength: number,
+      slowLength: number,
+      signalLength: number
+  ): Promise<{ macdLine: Float32Array; signalLine: Float32Array; histogram: Float32Array }> {
+      const len = data.length;
+      const fast = await this.calculateEma(data, fastLength);
+      const slow = await this.calculateEma(data, slowLength);
+      const macdLine = new Float32Array(len);
+      for (let i = 0; i < len; i++) macdLine[i] = fast[i] - slow[i];
+      const signalLine = await this.calculateEma(macdLine, signalLength);
+      const histogram = new Float32Array(len);
+      for (let i = 0; i < len; i++) histogram[i] = macdLine[i] - signalLine[i];
+      return { macdLine, signalLine, histogram };
+  }
+
+  async calculateStochastic(
+      high: Float32Array,
+      low: Float32Array,
+      close: Float32Array,
+      kPeriod: number,
+      kSmoothing: number,
+      dPeriod: number
+  ): Promise<{ k: Float32Array; d: Float32Array }> {
+      const kRaw = await this.calculateStochRaw(high, low, close, kPeriod);
+      const k = await this.calculateSma(kRaw, kSmoothing);
+      const d = await this.calculateSma(k, dPeriod);
+      return { k, d };
+  }
+
+  async calculateBollinger(
+      data: Float32Array,
+      length: number,
+      multiplier: number
+  ): Promise<{ middle: Float32Array; upper: Float32Array; lower: Float32Array }> {
+      const len = data.length;
+      const middle = await this.calculateSma(data, length);
+      const stddev = await this.calculateStdDev(data, length);
+      const upper = new Float32Array(len);
+      const lower = new Float32Array(len);
+      for (let i = 0; i < len; i++) {
+          upper[i] = middle[i] + (stddev[i] * multiplier);
+          lower[i] = middle[i] - (stddev[i] * multiplier);
+      }
+      return { middle, upper, lower };
   }
 
   // --- Helper Methods ---
