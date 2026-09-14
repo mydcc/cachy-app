@@ -34,6 +34,7 @@ Locally, developers and agents follow these rules:
   - **A folder/pattern:** `npx vitest run src/services/tradeService`
   - **Changed files only (git-based):** `npm run test:changed`
   - **Pure-logic `unit` project only:** `npm run test:unit`
+- **WebGPU shaders or `webGpuCalculator.ts`:** run `npm run test:gpu` (~10s). It holds every GPU indicator to the JS path in headless Chromium, which provides a software WebGPU adapter, so no GPU is needed. No CI workflow runs Playwright, so this suite is a local and pre-release gate: a green CI run says nothing about it.
 - **Non-code changes:** If only documentation, markdown, shell scripts, or root configs are touched, tests and `npm run check` are completely unnecessary and are skipped.
 - **Local resource protection:** Local Vitest worker count defaults to max 2 workers (`vite.config.ts`), and test scripts run through `scripts/run-lowpri.sh` (`taskset` CPU affinity clamping to at most half cores, idle I/O priority via `ionice -c 3`, and `nice -n 19`).
 

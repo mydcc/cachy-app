@@ -43,10 +43,13 @@ indicator alerts trustworthy or not.
 - [ ] Closed-candle evaluation is the default and intra-candle is opt-in per
       alert
 - [ ] Recalculation on a corrected candle does not double-fire
-- [ ] Conditions produce identical results across the WASM, GPU and JS paths —
-      or the discrepancy is documented. WASM↔JS is shipped
-      (`src/services/alertEngine/crossPathParity.test.ts`); the WebGPU leg is owned by
-      [`FEAT-0439`](FEAT-0439-webgpu-cross-path-parity.md)
+- [x] Conditions produce identical results across the WASM, GPU and JS paths —
+      or the discrepancy is documented. WASM↔JS: `src/services/alertEngine/crossPathParity.test.ts`.
+      GPU↔JS: `tests/gpu/webGpuParity.spec.ts` ([`FEAT-0439`](FEAT-0439-webgpu-cross-path-parity.md)),
+      within a derived `f32` bound for all 16 shaders and the MACD, Bollinger, HMA and
+      stochastic composites; four series diverge during warmup and are documented in
+      [`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md). MACD and
+      Bollinger do have a GPU path — an earlier note here expected otherwise
 - [ ] German and English strings
 
 ## Note added while planning the Super-Alert work (2026-09-04)

@@ -23,7 +23,8 @@
  *
  * `indicatorSeries.ts` makes the JS path normative: an alert must not depend on
  * which engine happened to be available. But the *chart* a trader reads while
- * setting that alert is drawn from the WASM path. If the two disagree, the
+ * setting that alert is drawn from the WASM path (on the default `auto` engine
+ * setting). If the two disagree, the
  * trader arms a rule against one set of numbers and the engine fires on
  * another, and nothing in the product ever says so.
  *
@@ -42,11 +43,9 @@
  * ## What is not covered
  *
  * The WebGPU path. It needs a real `navigator.gpu`, which no Node test
- * environment provides; the rest of this codebase mocks it wholesale for the
- * same reason (see `engineBenchmark.test.ts`, and BUG-0005's resolution, which
- * settled for a structural check for exactly this reason). Covering it needs a
- * browser, which is Playwright's job, not this file's. Recorded as remaining
- * work in FEAT-0028.
+ * environment provides, so it is held to the JS path in a browser instead:
+ * `tests/gpu/webGpuParity.spec.ts` (FEAT-0439, `npm run test:gpu`), against a
+ * bound derived from `f32` precision rather than this file's `f64` one.
  */
 
 import { readFileSync } from "node:fs";

@@ -5991,7 +5991,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0439",
     "title": "Close the WebGPU leg of cross-path indicator parity",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -6007,6 +6007,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "M",
     "estimate": "5",
+    "assignee": "claude",
+    "start_date": "2026-09-14",
+    "branch": "feat/feat-0439-webgpu-parity",
     "file": "features/FEAT-0439-webgpu-cross-path-parity.md"
   },
   {
@@ -6754,6 +6757,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "S",
     "file": "bugs/BUG-0466-chat-cloud-subscription-lifecycle.md"
+  },
+  {
+    "id": "BUG-0475",
+    "title": "The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "C",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0439"
+    ],
+    "file": "bugs/BUG-0475-gpu-stages-start-before-their-input.md"
+  },
+  {
+    "id": "BUG-0476",
+    "title": "The raw stochastic shader cannot see a low above 10,000,000",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "C",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md"
   },
   {
     "id": "FEAT-0022",
