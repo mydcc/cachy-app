@@ -53,7 +53,7 @@ import {
     type CatalogueEntry,
 } from "./indicatorCatalogue";
 import { MAX_WINDOW_LOOKBACK, MIN_WINDOW_LOOKBACK } from "./indicatorConditionForm";
-import { ALERT_PATH_INDICATORS } from "../rules/alertPathIndicators";
+import { ALERT_PATH_INDICATORS, defaultFieldOf } from "../rules/alertPathIndicators";
 import { computeIndicatorSeries } from "../rules/indicatorSeries";
 
 const WASM_JS = pathToFileURL(resolve(process.cwd(), "static/wasm/technicals_wasm.js")).href;
@@ -70,6 +70,7 @@ interface RegistryEntry {
     params: RegistryParam[];
     outputs: { name: string; dimension: string }[];
     cumulative: boolean;
+    field: string | null;
 }
 interface RuleCore {
     rule_indicator_registry(): string;
@@ -142,6 +143,16 @@ describe("indicator catalogue against the core registry", () => {
         "%s: is cumulative exactly when the registry says so",
         (id, entry: CatalogueEntry) => {
             expect(entry.cumulative === true).toBe(registryEntry(id)!.cumulative);
+        },
+    );
+
+    it.each(REGISTRY_CATALOGUE.map((entry) => [entry.id] as const))(
+        "%s: is computed over the price the registry names when a reference names none (FEAT-0454)",
+        (id) => {
+            // `defaultFieldOf` keys the alert path's series and picks the column
+            // it computes over; a default that drifted from the core would compute
+            // one price while the core files the series under another.
+            expect(defaultFieldOf(id)).toBe(registryEntry(id)!.field);
         },
     );
 

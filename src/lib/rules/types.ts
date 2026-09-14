@@ -76,6 +76,12 @@ export interface IndicatorRef {
   params: Record<string, ParamValue>;
   /** Which output line to read. Defaults to `value` for single-line indicators. */
   output?: string;
+  /**
+   * The price the indicator is computed over, for the indicators whose settings
+   * card offers one (`defaultFieldOf`). Left off for that default: the core
+   * drops a field naming it, so a rule keeps its content hash (FEAT-0454).
+   */
+  field?: PriceField;
 }
 
 /** Which end of a window an `Operand` of kind `window` reads. */

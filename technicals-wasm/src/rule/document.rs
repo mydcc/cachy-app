@@ -411,6 +411,7 @@ mod tests {
             id: "rsi".to_string(),
             params,
             output: "value".to_string(),
+            field: None,
         }
     }
 
@@ -733,6 +734,92 @@ mod tests {
             !canonical.contains(r#""source":"last""#),
             "a default price source must not be serialised: {canonical}"
         );
+    }
+
+    fn indicator_rule(id: &str, params: &[(&str, u32)], output: &str) -> RuleDocument {
+        let mut doc = rsi_dip();
+        doc.conditions = Condition::Compare {
+            left: Operand::Indicator {
+                indicator: IndicatorRef {
+                    id: id.to_string(),
+                    params: params
+                        .iter()
+                        .map(|(name, n)| (name.to_string(), ParamValue::Count(*n)))
+                        .collect(),
+                    output: output.to_string(),
+                    field: None,
+                },
+            },
+            op: CompareOp::Lt,
+            right: Operand::Constant { value: d("30") },
+            timeframe: tf("4h"),
+        };
+        doc
+    }
+
+    /// FEAT-0454 — the content hash of indicator rules armed before indicator
+    /// conditions could name a price, pinned as literals taken from the code
+    /// that armed them. A round-trip test cannot catch a new field that is
+    /// always serialised: both sides of the comparison would carry it. A
+    /// literal can.
+    #[test]
+    fn indicator_rules_armed_before_a_price_source_keep_their_hash() {
+        let pinned = [
+            (
+                indicator_rule("rsi", &[("period", 14)], "value"),
+                "2b772d251dc44615f7a5f369ac0a09a0d3359dc7460f5e5d7b26896423589aba",
+            ),
+            (
+                indicator_rule("cci", &[("period", 20)], "value"),
+                "9b0481633ca118d7944ea03b37e7372c1bc7bb00bdf4c80b41f9e61456e8ebe1",
+            ),
+            (
+                indicator_rule(
+                    "macd",
+                    &[("fast_period", 12), ("slow_period", 26), ("signal_period", 9)],
+                    "histogram",
+                ),
+                "27ae840796cb35b3958285df690d07a74998d66460735de7feae0cec07fa4cf6",
+            ),
+        ];
+        let (docs, hashes): (Vec<_>, Vec<_>) = pinned.into_iter().unzip();
+        let actual: Vec<String> = docs.iter().map(|d| d.content_hash().unwrap()).collect();
+        assert_eq!(actual, hashes);
+    }
+
+    fn rsi_rule_over(field: Option<PriceField>) -> RuleDocument {
+        let mut doc = rsi_dip();
+        doc.conditions = Condition::Compare {
+            left: Operand::Indicator {
+                indicator: IndicatorRef { field, ..rsi(14) },
+            },
+            op: CompareOp::Lt,
+            right: Operand::Constant { value: d("30") },
+            timeframe: tf("4h"),
+        };
+        doc
+    }
+
+    /// RSI over `(high + low) / 2` is a different alarm from RSI over the close.
+    #[test]
+    fn computing_an_indicator_over_another_price_changes_the_hash() {
+        assert_ne!(
+            rsi_rule_over(Some(PriceField::Hl2)).content_hash().unwrap(),
+            rsi_rule_over(None).content_hash().unwrap(),
+        );
+    }
+
+    /// Naming the close on an RSI is the rule armed without it: one hash, the
+    /// pinned one, whichever way it is spelled or parsed.
+    #[test]
+    fn naming_the_default_price_keeps_the_pinned_hash() {
+        let explicit = rsi_rule_over(Some(PriceField::Close));
+        let pinned = "2b772d251dc44615f7a5f369ac0a09a0d3359dc7460f5e5d7b26896423589aba";
+        assert_eq!(explicit.content_hash().unwrap(), pinned);
+
+        let json = serialise_document(&explicit).unwrap();
+        assert!(!json.contains(r#""field":"close""#), "{json}");
+        assert_eq!(parse_document(&json).unwrap().content_hash().unwrap(), pinned);
     }
 
     /// The same document written before this field existed — i.e. with no
@@ -1149,6 +1236,7 @@ mod tests {
             id: id.to_string(),
             params,
             output: "value".to_string(),
+            field: None,
         }
     }
 
@@ -1272,11 +1360,13 @@ mod tests {
             id: "bollinger".to_string(),
             params: params.clone(),
             output: "upper".to_string(),
+            field: None,
         };
         let ratio = IndicatorRef {
             id: "bollinger".to_string(),
             params,
             output: "percent_b".to_string(),
+            field: None,
         };
         assert_eq!(band.output_dimension(), Some(Dimension::Price));
         assert_eq!(ratio.output_dimension(), Some(Dimension::Unitless));
@@ -1292,6 +1382,7 @@ mod tests {
             id: "rsi".to_string(),
             params: BTreeMap::new(),
             output: "histogram".to_string(),
+            field: None,
         };
         assert_eq!(bogus.output_dimension(), None);
         let doc = with(compare(
@@ -1451,6 +1542,7 @@ mod tests {
                 id: "obv".to_string(),
                 params: BTreeMap::new(),
                 output: "value".to_string(),
+                field: None,
             },
         }
     }
@@ -1480,6 +1572,7 @@ mod tests {
                             id: "volume_ma".to_string(),
                             params: BTreeMap::from([("period".to_string(), ParamValue::Count(20))]),
                             output: "value".to_string(),
+                            field: None,
                         },
                     },
                 ),
@@ -1548,6 +1641,7 @@ mod tests {
                 id: "obv".to_string(),
                 params: BTreeMap::new(),
                 output: "histogram".to_string(),
+                field: None,
             },
         };
         let conditions = [
@@ -1618,6 +1712,7 @@ mod tests {
             id: "ema".to_string(),
             params,
             output: "value".to_string(),
+            field: None,
         };
 
         let doc = with(compare(

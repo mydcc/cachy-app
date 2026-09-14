@@ -33,6 +33,7 @@
  * its contents or sent anywhere.
  */
 
+import { effectiveFieldOf } from "./alertPathIndicators";
 import type { IndicatorRef, RuleDocument, TimeframeString } from "./types";
 
 /** One indicator series a document reads, at one timeframe. */
@@ -60,7 +61,10 @@ export function indicatorKey(
     .sort()
     .map((name) => `${name}=${String(indicator.params[name])}`)
     .join(",");
-  return `${timeframe}|${indicator.id}|${params}|${indicator.output ?? DEFAULT_OUTPUT}`;
+  // The effective price, as the core keys it: RSI over hl2 is its own series,
+  // and an RSI naming the close is the one naming none (FEAT-0454).
+  const field = effectiveFieldOf(indicator) ?? "";
+  return `${timeframe}|${indicator.id}|${params}|${indicator.output ?? DEFAULT_OUTPUT}|${field}`;
 }
 
 /**
