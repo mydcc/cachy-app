@@ -100,6 +100,25 @@ Three facts constrain the design:
 - A model picker that filters out IDs the provider returned because they do not
   match a vendor-specific pattern.
 
+## Amendment (2026-09-14): single registry, tabs, presets, model-list transport
+
+- The registry is the single source of truth: the four built-ins (OpenAI,
+  Anthropic, Gemini, Ollama) are seeded entries (`builtin-*`), not separate
+  settings fields plus a parallel custom list. The provider switcher is five
+  tabs (the four built-ins plus Custom); OpenRouter is not a tab — it is a
+  preset in the add-dropdown.
+- Adding a provider offers vendor presets (xAI, DeepSeek, Mistral, Groq,
+  OpenRouter, OpenCode Zen, OpenCode Go, Command Code, OmniRoute, blank) that
+  pre-fill label, flavor and base URL; every field stays editable, including
+  the URL.
+- Model lists are always fetched, never typed: browser-direct per flavor by
+  default, via the server model-list route only when the entry allows relay.
+  Loopback roots (Ollama, OmniRoute, …) are always browser-direct — the server
+  proxy rejects reserved hosts by design, so relay is not offered for them.
+- Gate, send path and picker resolve the same active registry entry, so the
+  "setup required" overlay, the chat transport and the model list can no
+  longer disagree with each other.
+
 ## References
 
 - [`ADR-0001: Local-First boundary`](0001-local-first-boundary.md)
