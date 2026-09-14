@@ -58,6 +58,34 @@ Carry the source as an optional parameter rather than as a panel setting:
 - [ ] Rules armed before the change keep their hash and their verdicts
 - [ ] Parity against the chart line for every source the selector offers
 
+## Progress
+
+- 2026-09-14, slice 1 — the engine. `IndicatorRef` gains an optional `field` (a
+  `PriceField`) on the seven indicators whose card draws them over a chosen price:
+  rsi, macd, stoch_rsi, cci, momentum, ema, bollinger (`default_field` in
+  `indicator.rs`, mirrored by `defaultFieldOf` and held to it by the catalogue
+  test). `computeIndicatorSeries` computes over that column in the chart's own
+  arithmetic, parity-tested for every output and every selector price; a
+  recorded-history expectation pins RSI(14) over hl2. The panel still cannot
+  write a `field`, the card still refuses, and the Indicators tab leaves a
+  condition naming one unclaimed rather than rewriting it over the close.
+- Named `field`, not `source`: on a price operand `source` is the last-or-mark
+  series, and `field` is what a `PriceField` is called everywhere in a document.
+- The questions above, settled:
+  - **Hash.** A `field` naming the indicator's default price (close, hlc3 for
+    CCI) is dropped both ways across the wire, so a rule armed before keeps its
+    canonical form. Three hashes are pinned as literals taken from the code that
+    armed them. The evaluator also keys series on the effective price: without
+    that, RSI over hl2 and RSI over the close in one rule would share a series.
+  - **WASM Technicals calculator.** Out of scope: it feeds the Technicals panel,
+    not the alert path and not the chart line the ACs name.
+  - **Alerts armed from a non-close card before BUG-0453.** Nothing to surface:
+    the document never recorded the card's price, so it means the close, as it
+    always computed. There is nothing to retarget it to.
+- Next, slice 2: the seed copies the card's source, `cardAlertAvailability` stops
+  refusing `source-mismatch`, the Indicators tab offers the price and the sentence
+  names it — at which point the unclaim above is lifted.
+
 ## Links
 
 - [`BUG-0453`](../bugs/BUG-0453-card-alert-ignores-price-source.md) — the containment this replaces
