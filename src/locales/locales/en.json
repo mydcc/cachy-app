@@ -552,6 +552,15 @@
         "subjectLabel": "Indicator",
         "outputLabel": "Line",
         "paramsLabel": "Parameters",
+        "priceSourceLabel": "Computed over",
+        "priceSource": {
+          "close": "Close",
+          "open": "Open",
+          "high": "High",
+          "low": "Low",
+          "hl2": "Median (HL2)",
+          "hlc3": "Typical (HLC3)"
+        },
         "relationLabel": "Condition",
         "referenceLabel": "Compared with",
         "thresholdLabel": "Value",

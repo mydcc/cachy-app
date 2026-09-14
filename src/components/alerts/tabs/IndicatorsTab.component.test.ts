@@ -349,6 +349,91 @@ describe("FEAT-0028: IndicatorsTab", () => {
     });
   });
 
+  // FEAT-0454. The core computes RSI, MACD, CCI, momentum, EMA and Bollinger
+  // over the price a reference names. The tab offers that price, reads it back,
+  // and writes it into every place the subject appears.
+  describe("the price an indicator is computed over", () => {
+    const PRICE_LABEL = "dashboard.alerts.indicators.priceSourceLabel";
+
+    function hasPriceSelect(el: HTMLElement): boolean {
+      const text = getNestedTranslation(PRICE_LABEL);
+      return [...el.querySelectorAll("label.field span")].some((span) => span.textContent?.trim() === text);
+    }
+
+    function subjectOf(condition: Condition | undefined): Record<string, unknown> {
+      if (condition?.kind !== "compare" && condition?.kind !== "cross") throw new Error("no leaf written");
+      if (condition.left.kind !== "indicator") throw new Error("subject is not an indicator");
+      return condition.left.indicator as unknown as Record<string, unknown>;
+    }
+
+    it("offers every price on an indicator that takes one, starting on its default", () => {
+      const el = render();
+      choose(el, "rsi");
+      const select = selectByLabel(el, PRICE_LABEL);
+      expect([...select.options].map((option) => option.value)).toEqual(["close", "open", "high", "low", "hl2", "hlc3"]);
+      expect(select.value).toBe("close");
+
+      choose(el, "cci");
+      expect(selectByLabel(el, PRICE_LABEL).value).toBe("hlc3");
+    });
+
+    it("offers no price on an indicator that is not computed over one", () => {
+      const el = render();
+      choose(el, "williams_r");
+      expect(hasPriceSelect(el)).toBe(false);
+    });
+
+    it("writes the chosen price into the subject and into a window over it", () => {
+      const el = render();
+      choose(el, "rsi");
+      setSelect(selectByLabel(el, PRICE_LABEL), "hl2");
+      expect(subjectOf(writtenCondition()).field).toBe("hl2");
+
+      setSelect(selectByLabel(el, "dashboard.alerts.indicators.referenceLabel"), "window");
+      const written = writtenCondition();
+      expect(written).toMatchObject({
+        left: { indicator: { id: "rsi", field: "hl2" } },
+        right: { kind: "window", of: { kind: "indicator", indicator: { id: "rsi", field: "hl2" } } },
+      });
+    });
+
+    it("writes no price once the default is chosen back, as the core stores it", () => {
+      const el = render();
+      choose(el, "rsi");
+      setSelect(selectByLabel(el, PRICE_LABEL), "hl2");
+      setSelect(selectByLabel(el, PRICE_LABEL), "close");
+      expect("field" in subjectOf(writtenCondition())).toBe(false);
+    });
+
+    it("starts another indicator on its own default price", () => {
+      const el = render();
+      choose(el, "rsi");
+      setSelect(selectByLabel(el, PRICE_LABEL), "hl2");
+      choose(el, "macd");
+      expect("field" in subjectOf(writtenCondition())).toBe(false);
+      expect(selectByLabel(el, PRICE_LABEL).value).toBe("close");
+    });
+
+    it("keeps a saved condition over hl2 exactly as armed, and shows its price", () => {
+      // The condition a card drawn over hl2 seeds. Mounting writes through
+      // once; before FEAT-0454 slice 2 that write would have dropped the price.
+      const saved: Condition = {
+        kind: "compare",
+        left: { kind: "indicator", indicator: { id: "rsi", params: { period: 14 }, output: "value", field: "hl2" } },
+        op: "lt",
+        right: { kind: "constant", value: "30" },
+        timeframe: alertPanelState.draft.trigger_timeframe,
+      };
+      alertPanelState.setSingleCondition(saved);
+
+      const el = render();
+
+      expect(tile(el, "rsi").getAttribute("aria-pressed")).toBe("true");
+      expect(selectByLabel(el, PRICE_LABEL).value).toBe("hl2");
+      expect(alertPanelState.draft.conditions).toEqual({ kind: "group", op: "all", of: [saved] });
+    });
+  });
+
   describe("a draft that already holds a condition", () => {
     it("renders the form back out of the document rather than starting blank", () => {
       // The same document whether it was seeded from the chart, typed in

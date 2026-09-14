@@ -552,6 +552,15 @@
         "subjectLabel": "Indikator",
         "outputLabel": "Linie",
         "paramsLabel": "Parameter",
+        "priceSourceLabel": "Berechnet über",
+        "priceSource": {
+          "close": "Schluss",
+          "open": "Eröffnung",
+          "high": "Hoch",
+          "low": "Tief",
+          "hl2": "Median (HL2)",
+          "hlc3": "Typisch (HLC3)"
+        },
         "relationLabel": "Bedingung",
         "referenceLabel": "Verglichen mit",
         "thresholdLabel": "Wert",

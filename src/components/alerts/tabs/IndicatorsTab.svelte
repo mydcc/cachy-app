@@ -60,7 +60,19 @@
         type Reference,
         type Relation,
     } from "../../../lib/alerts/indicatorConditionForm";
-    import type { CompareOp, CrossDirection, ParamValue, WindowAgg } from "../../../lib/rules/types";
+    import {
+        PRICE_FIELDS,
+        defaultFieldOf,
+        referenceFieldFor,
+    } from "../../../lib/rules/alertPathIndicators";
+    import type {
+        CompareOp,
+        CrossDirection,
+        IndicatorRef,
+        ParamValue,
+        PriceField,
+        WindowAgg,
+    } from "../../../lib/rules/types";
     import type { TranslationKey } from "../../../locales/schema";
 
     let { symbol: _symbol }: { symbol: string } = $props();
@@ -74,6 +86,9 @@
     let chosenId = $state<string | null>(initial?.subject.id ?? null);
     let params = $state<Record<string, ParamValue>>({ ...(initial?.subject.params ?? {}) });
     let output = $state<string>(initial?.subject.output ?? "value");
+    // The price the subject is computed over, as the document spells it:
+    // absent for the indicator's default (FEAT-0454).
+    let field = $state<PriceField | undefined>(initial?.subject.field);
     let relation = $state<Relation>(initial?.relation ?? { kind: "compare", op: "gt" });
     let reference = $state<Reference>(initial?.reference ?? { kind: "constant", value: "0" });
 
@@ -84,7 +99,14 @@
     let referenceIndicators = $derived(
         entry ? compatibleIndicators(dimension, INDICATOR_CATALOGUE) : [],
     );
+    let defaultField = $derived(entry ? defaultFieldOf(entry.id) : null);
     let conditionRefusals = $derived(refusalsForField(alertPanelState.refusals, "conditions"));
+
+    /** The subject as the document spells it, its price included. */
+    function subjectRef(chosen: CatalogueEntry): IndicatorRef {
+        const ref: IndicatorRef = { id: chosen.id, params: { ...params }, output };
+        return field === undefined ? ref : { ...ref, field };
+    }
 
     // The document is the single source of truth, so the tab writes through on
     // every edit rather than converting on arm. Null clears this builder's
@@ -103,7 +125,7 @@
             "indicators",
             buildIndicatorCondition(
                 {
-                    subject: { id: entry.id, params: { ...params }, output },
+                    subject: subjectRef(entry),
                     relation,
                     reference,
                 },
@@ -117,6 +139,9 @@
         chosenId = next.id;
         params = { ...fresh.subject.params };
         output = fresh.subject.output ?? next.outputs[0].name;
+        // Each indicator starts on its own default price: hl2 chosen for RSI
+        // is not a choice made for MACD, and one that takes no price has none.
+        field = undefined;
         // A reference chosen for the previous indicator may be in a different
         // unit, so it goes back to the default rather than silently becoming an
         // invalid document the core refuses on arm. The relation follows it: a
@@ -133,6 +158,13 @@
         if (!isReferenceCompatible(dimensionOf(entry, next), reference)) {
             reference = { kind: "constant", value: "0" };
         }
+    }
+
+    function chooseField(next: PriceField): void {
+        if (!entry) return;
+        // Spelled as the core stores it, so choosing the default back leaves
+        // the document the one armed before the price existed.
+        field = referenceFieldFor(entry.id, next);
     }
 
     function chooseRelationKind(kind: "compare" | "cross"): void {
@@ -258,6 +290,20 @@
                     </label>
                 {/each}
             </fieldset>
+        {/if}
+
+        {#if defaultField !== null}
+            <label class="field">
+                <span>{$_("dashboard.alerts.indicators.priceSourceLabel")}</span>
+                <select
+                    value={field ?? defaultField}
+                    onchange={(e) => chooseField(e.currentTarget.value as PriceField)}
+                >
+                    {#each PRICE_FIELDS as price (price)}
+                        <option value={price}>{$_(key(`dashboard.alerts.indicators.priceSource.${price}`))}</option>
+                    {/each}
+                </select>
+            </label>
         {/if}
 
         <label class="field">

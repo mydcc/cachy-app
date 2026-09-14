@@ -33,7 +33,7 @@
 
 import { catalogueEntry } from "./indicatorCatalogue";
 import type { IndicatorForm, Reference } from "./indicatorConditionForm";
-import { effectiveFieldOf } from "../rules/alertPathIndicators";
+import { defaultFieldOf, effectiveFieldOf, isPriceField } from "../rules/alertPathIndicators";
 import type { Condition, IndicatorRef, Operand } from "../rules/types";
 
 export function indicatorFormOf(condition: Condition): IndicatorForm | null {
@@ -44,10 +44,14 @@ export function indicatorFormOf(condition: Condition): IndicatorForm | null {
     // rewrites the rule on the first edit.
     const entry = catalogueEntry(condition.left.indicator.id);
     if (!entry) return null;
-    // The tab offers no price to compute an indicator over yet and rebuilds each
-    // one from id, params and output, so claiming RSI over hl2 would rewrite it
-    // as RSI over the close (FEAT-0454). Unclaimed, it stays as armed.
-    if (namesAPrice(condition.left) || namesAPrice(condition.right)) return null;
+    // The tab reads the price an indicator is computed over and writes it back
+    // (FEAT-0454), but only a price its selector offers on an indicator that
+    // takes one. Claiming any other would render a selector on no option, or
+    // none at all, over a price the rule still carries. Unclaimed, it stays as
+    // armed.
+    if (namesAPriceTheTabCannotShow(condition.left) || namesAPriceTheTabCannotShow(condition.right)) {
+        return null;
+    }
 
     const reference = referenceFor(condition.right, condition.left.indicator);
     if (!reference) return null;
@@ -67,10 +71,15 @@ export function indicatorFormOf(condition: Condition): IndicatorForm | null {
     };
 }
 
-/** Whether an operand, or the operand a window is over, is an indicator naming a price. */
-function namesAPrice(operand: Operand): boolean {
-    if (operand.kind === "window") return namesAPrice(operand.of);
-    return operand.kind === "indicator" && operand.indicator.field !== undefined;
+/**
+ * Whether an operand, or the operand a window is over, is an indicator naming a
+ * price the tab cannot show: a value that is no price, or any price on an
+ * indicator that is not computed over one.
+ */
+function namesAPriceTheTabCannotShow(operand: Operand): boolean {
+    if (operand.kind === "window") return namesAPriceTheTabCannotShow(operand.of);
+    if (operand.kind !== "indicator" || operand.indicator.field === undefined) return false;
+    return !isPriceField(operand.indicator.field) || defaultFieldOf(operand.indicator.id) === null;
 }
 
 function referenceFor(operand: Operand, subject: IndicatorRef): Reference | null {
@@ -108,9 +117,7 @@ function referenceFor(operand: Operand, subject: IndicatorRef): Reference | null
  * close are two lines, so a window over one must not read as a window over the
  * other. It is the *effective* price, so a rule that spells the default and one
  * that omits it still compare equal, as the core canonicalises them to one
- * document. Unreachable today — `indicatorFormOf` leaves any condition naming a
- * price unclaimed before this runs — but the comparison is already correct for
- * when slice 2 lifts that.
+ * document.
  */
 function canonicalRef(ref: IndicatorRef): unknown {
     const params = Object.entries(ref.params ?? {}).sort(([a], [b]) => a.localeCompare(b));
