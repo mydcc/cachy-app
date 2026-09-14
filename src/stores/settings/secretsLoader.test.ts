@@ -167,3 +167,61 @@ describe("SecretsLoader.applyAccounts", () => {
     expect(keysForExchange(result.accounts, "bitunix").key).toBe("new");
   });
 });
+
+describe("SecretsLoader provider config encryption (FEAT-0467)", () => {
+  const providers = [
+    {
+      id: "zen",
+      label: "OpenCode Zen",
+      flavor: "openai-chat" as const,
+      baseUrl: "https://opencode.ai/zen/v1",
+      model: "deepseek-v4-flash-free",
+      apiKey: "sk-secret",
+      allowServerRelay: false,
+    },
+  ];
+
+  it("encrypts live provider configs and stores only the ciphertext", async () => {
+    vi.mocked(cryptoService.encrypt).mockResolvedValueOnce(canaryBlob);
+    const loader = new SecretsLoader();
+    const data = {} as never;
+
+    await loader.applyProviderConfigEncryption(data, providers, true, undefined, true);
+
+    expect(cryptoService.encrypt).toHaveBeenCalledWith(
+      JSON.stringify(providers),
+      undefined,
+    );
+    expect(
+      (data as { encryptedProviderConfigs?: unknown }).encryptedProviderConfigs,
+    ).toEqual(canaryBlob);
+  });
+
+  it("round-trips provider configs back through the device key", async () => {
+    vi.mocked(cryptoService.decrypt).mockResolvedValueOnce(
+      JSON.stringify(providers),
+    );
+    const loader = new SecretsLoader();
+
+    await expect(
+      loader.decryptProviderConfigsWithDeviceKey(canaryBlob),
+    ).resolves.toEqual(providers);
+  });
+
+  it("clears the ciphertext when no provider carries a key", async () => {
+    const loader = new SecretsLoader();
+    const data = { encryptedProviderConfigs: canaryBlob } as never;
+
+    await loader.applyProviderConfigEncryption(
+      data,
+      providers.map((p) => ({ ...p, apiKey: "" })),
+      true,
+      undefined,
+      true,
+    );
+
+    expect(
+      (data as { encryptedProviderConfigs?: unknown }).encryptedProviderConfigs,
+    ).toBeUndefined();
+  });
+});
