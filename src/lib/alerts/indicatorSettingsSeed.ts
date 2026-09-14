@@ -46,10 +46,13 @@ import {
 import { buildIndicatorCondition, defaultForm } from "./indicatorConditionForm";
 import {
     alertPathSourceOf,
+    defaultFieldOf,
     ICHIMOKU_DISPLACEMENT,
+    isPriceField,
+    referenceFieldFor,
     type AlertPathSource,
 } from "../rules/alertPathIndicators";
-import type { IndicatorRef, ParamValue } from "../rules/types";
+import type { IndicatorRef, ParamValue, PriceField } from "../rules/types";
 import {
     DEFAULT_RULE_TIMEFRAME,
     type AlertPanelSeed,
@@ -259,19 +262,17 @@ export function isAlertableIndicator(settingsKey: string): boolean {
 }
 
 /**
- * The price an alert armed from this card is computed over, or `null` for a
- * card with no mapping.
+ * The price an alert armed from this card is computed over when its reference
+ * names none, or `null` for a card with no mapping.
  *
  * Read from `alertPathSourceOf`, the table `computeIndicatorSeries` uses, so
  * the seed cannot believe one price while the series is computed over another.
  * Close for every card but CCI's (BUG-0453, FEAT-0446 group 2). A card's lines
  * share one indicator, so the first line speaks for the card.
  *
- * This is the *default* price only, because FEAT-0454 slice 1 leaves the seed
- * refusing any card whose source differs from it. Slice 2, which lets the card
- * carry the price, must compare against the rule's effective field
- * (`effectiveFieldOf` in `../rules/alertPathIndicators`) — otherwise a card set
- * to a price the rule now records would still be refused.
+ * Only the default: a card whose indicator takes a price (`defaultFieldOf`)
+ * carries its own onto the reference (`cardAlertField`). This is the price the
+ * refusal names for a card that cannot.
  */
 export function cardAlertSource(settingsKey: string): AlertPathSource | null {
     const first = SETTINGS_MAPPINGS[settingsKey]?.[0];
@@ -279,18 +280,29 @@ export function cardAlertSource(settingsKey: string): AlertPathSource | null {
 }
 
 /**
- * Whether a card's line is drawn over the price the alert path computes over.
+ * The price a card's line is drawn over, when an alert can be computed over it
+ * too; `null` when none can (FEAT-0454).
  *
  * Mirrors the chart's own fallback (`indicatorLayer.ts`, `src`): a falsy source
  * (`undefined`, `null`, `""`, `0`, `false`) is drawn over the close, because
- * that is what the chart draws for one. Any other value must name the alert
- * path's price exactly, including a value this module does not recognise: that
- * is only reachable through a hand-edited store, and guessing would arm an
- * alert on a line the trader may not be looking at.
+ * that is what the chart draws for one. So a CCI card with no source is CCI
+ * over the close, not over its default typical price.
+ *
+ * - An indicator that takes a price (`defaultFieldOf`) is computed over any
+ *   price the card names.
+ * - One that does not is computed over the close only (stoch RSI, whose card
+ *   source is fixed), so any other price has no alert.
+ * - A value this module does not recognise has none either: it is only
+ *   reachable through a hand-edited store, and guessing would arm an alert on
+ *   a line the trader may not be looking at.
  */
-function drawnOverAlertPathSource(settingsKey: string, card: SettingsCard): boolean {
+function cardAlertField(settingsKey: string, card: SettingsCard): PriceField | null {
+    const first = SETTINGS_MAPPINGS[settingsKey]?.[0];
+    if (!first) return null;
     const drawn = card.source || "close";
-    return drawn === cardAlertSource(settingsKey);
+    if (!isPriceField(drawn)) return null;
+    if (defaultFieldOf(first.id) === null) return drawn === alertPathSourceOf(first.id) ? drawn : null;
+    return drawn;
 }
 
 /**
@@ -336,9 +348,11 @@ function displacementAgrees(settingsKey: string, card: SettingsCard): boolean {
  * - `armable` — the action seeds a draft for exactly the line the card draws
  * - `not-alertable` — the card has no alert action at all (no mapping, or an
  *   indicator the alert path cannot compute)
- * - `source-mismatch` — the card draws its line over another price than the
- *   one the alert path computes that indicator over (`cardAlertSource`), so the
- *   action refuses and says why (BUG-0453)
+ * - `source-mismatch` — the card draws its line over a price no alert computes
+ *   that indicator over (`cardAlertField`): another than the close for one that
+ *   takes no price, or a value nobody recognises. The action refuses and says
+ *   why (BUG-0453). Any price on an indicator that takes one is armable
+ *   (FEAT-0454).
  * - `length-mismatch` — the card keeps apart two lengths the core computes as
  *   one (`ONE_LENGTH_CARDS`), so no alert computes the line on screen
  * - `displacement-mismatch` — an Ichimoku card draws its cloud displaced by
@@ -360,7 +374,7 @@ export function cardAlertAvailability(
     card: SettingsCard,
 ): CardAlertAvailability {
     if (!isAlertableIndicator(settingsKey)) return "not-alertable";
-    if (!drawnOverAlertPathSource(settingsKey, card)) return "source-mismatch";
+    if (cardAlertField(settingsKey, card) === null) return "source-mismatch";
     if (!lengthsAgree(settingsKey, card)) return "length-mismatch";
     if (!displacementAgrees(settingsKey, card)) return "displacement-mismatch";
     return "armable";
@@ -402,14 +416,20 @@ export function mappingLines(
     }));
 }
 
-/** Fills one line's parameters, falling back to the registry's defaults. */
-function refFor(mapping: LineMapping, entry: CatalogueEntry, card: SettingsCard): IndicatorRef {
+/**
+ * Fills one line's parameters, falling back to the registry's defaults, and
+ * names the price the card draws it over unless that is the indicator's
+ * default (`referenceFieldFor`): the core stores that reference without one.
+ */
+function refFor(mapping: LineMapping, entry: CatalogueEntry, card: SettingsCard, drawn: PriceField | null): IndicatorRef {
     const params: Record<string, ParamValue> = {};
     for (const declared of entry.params) {
         const read = mapping.params[declared.name];
         params[declared.name] = read?.(card) ?? declared.default;
     }
-    return { id: entry.id, params, output: entry.outputs[0].name };
+    const ref: IndicatorRef = { id: entry.id, params, output: entry.outputs[0].name };
+    const field = drawn === null ? undefined : referenceFieldFor(entry.id, drawn);
+    return field === undefined ? ref : { ...ref, field };
 }
 
 /**
@@ -439,11 +459,12 @@ export function mappedIndicatorRefs(
 ): readonly IndicatorRef[] {
     const mappings = SETTINGS_MAPPINGS[settingsKey];
     if (!mappings) return [];
+    const drawn = cardAlertField(settingsKey, card);
     const refs: IndicatorRef[] = [];
     for (const mapping of mappings) {
         const entry = registryEntry(mapping.id);
         if (!entry) continue;
-        refs.push(refFor(mapping, entry, card));
+        refs.push(refFor(mapping, entry, card, drawn));
     }
     return refs;
 }

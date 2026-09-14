@@ -115,6 +115,32 @@ export function effectiveFieldOf(indicator: IndicatorRef): PriceField | null {
 }
 
 /**
+ * Every price an indicator can be computed over, in the order the chart's
+ * source selectors list them (`SourceKind` in `../chart/seriesMap`).
+ */
+export const PRICE_FIELDS: readonly PriceField[] = ["close", "open", "high", "low", "hl2", "hlc3"];
+
+/** Whether a value read from outside a document names a price. */
+export function isPriceField(value: unknown): value is PriceField {
+  return typeof value === "string" && (PRICE_FIELDS as readonly string[]).includes(value);
+}
+
+/**
+ * `field` as a reference to `indicatorId` spells it: absent when it names the
+ * price the indicator is computed over without one (`alertPathSourceOf`). The
+ * core drops a default field on the wire, so a draft written this way is
+ * already the document the core stores, and a rule armed over the default
+ * keeps the hash it had before the field existed.
+ *
+ * Against `alertPathSourceOf`, not `defaultFieldOf`: an indicator that takes no
+ * price is computed over the close, so "the close" on it is no field at all,
+ * while any other price stays spelled and the core refuses it.
+ */
+export function referenceFieldFor(indicatorId: string, field: PriceField): PriceField | undefined {
+  return field === alertPathSourceOf(indicatorId) ? undefined : field;
+}
+
+/**
  * The price an indicator is computed over when a reference names none: its
  * default, or the close for an indicator that reads several candle values.
  */

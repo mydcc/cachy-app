@@ -28,11 +28,12 @@
   plain-language sentence and still requires its own arm press (ADR-0012
   decision 5).
 
-  BUG-0453: on a card whose line is drawn over another price than the one
-  the alert path computes for that indicator (`hl2`, `hlc3`, …) the button
-  stays, refuses, and names the reason. Opening a draft there would arm an
-  alert on a different line from the one on screen; hiding the button
-  instead would leave the trader looking for it.
+  FEAT-0454: a card drawn over `hl2`, `hlc3`, … seeds an alert over that same
+  price wherever the indicator takes one. BUG-0453 still holds where it takes
+  none: on a card drawn over a price no alert computes, the button stays,
+  refuses, and names the reason. Opening a draft there would arm an alert on a
+  different line from the one on screen; hiding the button instead would leave
+  the trader looking for it.
 
   FEAT-0446 group 3: the same on an ADX card whose DI length and smoothing
   differ, since the core computes ADX with one length. Group 4: and on an

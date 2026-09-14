@@ -51,6 +51,7 @@ import {
   defaultFieldOf,
   effectiveFieldOf,
   ICHIMOKU_DISPLACEMENT,
+  isPriceField,
 } from "./alertPathIndicators";
 import type { IndicatorRequest } from "./indicatorRequests";
 import { DEFAULT_OUTPUT } from "./indicatorRequests";
@@ -79,8 +80,6 @@ function column(
   }
   return out;
 }
-
-const PRICE_FIELDS: ReadonlySet<string> = new Set(["open", "high", "low", "close", "hl2", "hlc3"]);
 
 /**
  * The price column `field` names, in the chart's arithmetic.
@@ -265,7 +264,7 @@ export function computeIndicatorSeries(
     }
     // A document comes from `localStorage`; a price this path does not know
     // is refused rather than computed over the close under its name.
-    if (!PRICE_FIELDS.has(indicator.field)) {
+    if (!isPriceField(indicator.field)) {
       return { supported: false, reason: `${indicator.id} has no price '${indicator.field}'` };
     }
   }
