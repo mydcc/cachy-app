@@ -7310,7 +7310,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0454",
     "title": "Let an indicator alert compute over the price source its card is set to",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
