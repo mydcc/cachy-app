@@ -104,6 +104,32 @@ Use for code analysis, action routing, and semantic understanding.
 - `jcodemunch_guide` — full catalogue and rules.
 - **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search when jCodeMunch can answer the question.
 
+### Graph-Tools Health Gate (Non-Negotiable)
+
+Before the first task tool call in any session, the agent MUST pass this gate.
+It overrides the general fallback order: an unresponsive graph tool is a stop,
+not a silent fallback to file search.
+
+1. Register: run `bash scripts/index-worktree.sh` once (safe no-op on the main
+   checkout, idempotent on re-run).
+2. Verify Gortex: `gortex repos` must answer within 60s (one retry). Count its
+   rows, MISSING entries included, main checkout excluded: **never more than 3
+   tracked worktrees.** More than 3 means someone's cleanup is overdue — do not
+   start on top of it.
+3. Verify jCodeMunch: `order { "action": "resolve_repo", "args": { "path": "." } }`
+   must succeed.
+
+If any check fails: stop task work immediately. Only the read-only diagnosis
+needed to name the blocker (`gortex daemon status`, `gortex repos`) is allowed,
+then report it in one sentence (which tool, which symptom, tracked count) and
+wait. Never fall back to grep/Glob/Bash code search without saying so, never
+untrack or delete another agent's worktree, and never "work around" the gate.
+Cleanup of foreign worktrees is a human decision
+(`bash scripts/worktree-cleanup.sh --all` reports, `--apply` retires).
+
+Convention: open the session's first status message with the gate result, e.g.
+`Gate: gortex fresh (2 tracked), jcm ok` — violations become visible at once.
+
 ### Working inside a git worktree
 Graph tools resolve the repo from the current working directory. Inside a linked git worktree they only work after the worktree is registered with Gortex (jCodeMunch already maps any worktree path to the indexed root repo via `resolve_repo .`, so it needs no extra step).
 - At the start of a session whose cwd is a git worktree (not the main checkout), run `bash scripts/index-worktree.sh` once. The script detects the worktree, registers it with `gortex call track_repository --arg as_worktree=true`, and indexes it; it is a safe no-op on the main checkout or outside a repo, and re-running is idempotent.
