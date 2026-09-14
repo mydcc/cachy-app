@@ -198,19 +198,32 @@ export async function getSafeDispatcher(): Promise<unknown> {
       const { Agent } = await import("undici");
       _safeDispatcher = new Agent({
         connect: {
-          lookup: (hostname: string, _options: unknown, callback: (err: Error | null, address: string, family: number) => void) => {
+          // undici 8 calls this with `{ all: true }` and forwards the callback
+          // straight to Node's dns.lookup, so it must use the `all: true`
+          // shape. The older `(err, address, family)` shape leaves undici
+          // reading an undefined address and fails every dial with
+          // "fetch failed".
+          lookup: (
+            hostname: string,
+            _options: unknown,
+            callback: (
+              err: Error | null,
+              addresses?: Array<{ address: string; family: number }>,
+            ) => void,
+          ) => {
             dns.lookup(hostname, { all: true }, (err, addresses) => {
-              if (err) return callback(err, "", 4);
+              if (err) return callback(err);
               if (!addresses || addresses.length === 0) {
-                return callback(new Error("ENOTFOUND"), "", 4);
+                return callback(new Error("ENOTFOUND"));
               }
               for (const addr of addresses) {
                 if (isPrivateOrReservedHost(addr.address)) {
-                  return callback(new Error("Blocked target address (SSRF guard)"), "", 4);
+                  return callback(
+                    new Error("Blocked target address (SSRF guard)"),
+                  );
                 }
               }
-              const chosen = addresses[0];
-              callback(null, chosen.address, chosen.family);
+              callback(null, addresses);
             });
           },
         },
