@@ -24,22 +24,22 @@
 //! unknown fields rather than ignoring them". This module is the closed set that
 //! makes both statements enforceable.
 //!
-//! **Why there is no `source` parameter in version 1.** The TypeScript
-//! `IndicatorSettings` interface declares a price source (`close`, `hl2`,
-//! `hlc3`, …) on rsi, macd, cci, momentum, ema and bollinger — but the WASM core
-//! has no such field and computes every one of them on the close;
-//! `technicalsCalculator.ts` passes `closesNum` to the Bollinger path
-//! unconditionally. A schema field the evaluator does not honour is a document
-//! that claims one thing while the engine does another, which is the exact gap
-//! ADR-0012 exists to close. A rule that wants the high compares against a
-//! `price` operand, which the evaluator genuinely holds.
+//! **The price an indicator is computed over.** The settings cards draw rsi,
+//! macd, stoch_rsi, cci, momentum, ema and bollinger over a price the trader
+//! picks (`close`, `hl2`, `hlc3`, …). Version 1 had no field for it, because
+//! nothing computed an alert series over anything but the default price, and a
+//! schema field the evaluator does not honour is a document that claims one
+//! thing while the engine does another — the exact gap ADR-0012 exists to close.
+//! FEAT-0454 adds `IndicatorRef::field` together with the alert path that
+//! honours it (`computeIndicatorSeries`); see `default_field` for which
+//! indicators take one.
 
 use std::collections::BTreeMap;
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use super::condition::Dimension;
+use super::condition::{Dimension, PriceField};
 use super::refusal::{RefusalCode, RuleRefusal};
 
 /// The domain of a parameter, and so what "invalid" means for it.
@@ -451,25 +451,92 @@ pub enum ParamValue {
     Ratio(Decimal),
 }
 
+/// The indicators whose settings card draws them over a price the trader picks,
+/// each with the price it is computed over when a reference names none
+/// (FEAT-0454). `None` for every other indicator: they read several candle
+/// values at once, or volume, and have no single price to swap.
+///
+/// The typical price for CCI, because CCI is defined over it, the CCI card
+/// defaults to it, and the alert path computed CCI over it before a reference
+/// could name a price at all. The close for the rest, for the same last reason.
+pub fn default_field(id: &str) -> Option<PriceField> {
+    match id {
+        "rsi" | "macd" | "stoch_rsi" | "momentum" | "ema" | "bollinger" => Some(PriceField::Close),
+        "cci" => Some(PriceField::Hlc3),
+        _ => None,
+    }
+}
+
 /// A named indicator with its parameters and the output line being read.
 ///
-/// `deny_unknown_fields` is the enforcement point for "unknown fields are
-/// rejected rather than ignored": a typo'd key is a refusal, not a silently
-/// defaulted rule.
+/// Serialised through [`IndicatorRefWire`], which carries `deny_unknown_fields`
+/// — the enforcement point for "unknown fields are rejected rather than
+/// ignored": a typo'd key is a refusal, not a silently defaulted rule.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
+#[serde(from = "IndicatorRefWire", into = "IndicatorRefWire")]
 pub struct IndicatorRef {
     pub id: String,
     /// `BTreeMap`, not `HashMap`: iteration order is the serialisation order, and
     /// the serialisation is what gets hashed. A `HashMap` would give the same
     /// rule a different hash per process.
-    #[serde(default)]
     pub params: BTreeMap<String, ParamValue>,
     /// Which line of a multi-line indicator to read. Always present after
     /// validation; `default_output` fills it for the single-line case so a
     /// document never has to spell `"output": "value"` to mean the obvious thing.
-    #[serde(default = "default_output")]
     pub output: String,
+    /// The price the indicator is computed over, where its card offers a choice
+    /// (`default_field`). `None` means that default.
+    ///
+    /// Named `field` because it is a [`PriceField`], as on a price operand; the
+    /// `source` there is the last-or-mark series, which this is not: indicators
+    /// are computed over the last-traded series.
+    ///
+    /// Naming the default is the reference that names none, both ways across the
+    /// wire, so a rule armed before this field existed keeps its canonical form
+    /// and its content hash, and `"field": "close"` on an RSI cannot become a
+    /// second strategy in the log.
+    pub field: Option<PriceField>,
+}
+
+/// The wire shape of an [`IndicatorRef`]. The conversions both ways drop a
+/// `field` that names the indicator's default price.
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct IndicatorRefWire {
+    id: String,
+    #[serde(default)]
+    params: BTreeMap<String, ParamValue>,
+    #[serde(default = "default_output")]
+    output: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    field: Option<PriceField>,
+}
+
+/// `field` unless it names `id`'s default price.
+fn without_default(id: &str, field: Option<PriceField>) -> Option<PriceField> {
+    field.filter(|f| Some(*f) != default_field(id))
+}
+
+impl From<IndicatorRefWire> for IndicatorRef {
+    fn from(wire: IndicatorRefWire) -> Self {
+        Self {
+            field: without_default(&wire.id, wire.field),
+            id: wire.id,
+            params: wire.params,
+            output: wire.output,
+        }
+    }
+}
+
+impl From<IndicatorRef> for IndicatorRefWire {
+    fn from(r: IndicatorRef) -> Self {
+        Self {
+            field: without_default(&r.id, r.field),
+            id: r.id,
+            params: r.params,
+            output: r.output,
+        }
+    }
 }
 
 fn default_output() -> String {
@@ -477,6 +544,12 @@ fn default_output() -> String {
 }
 
 impl IndicatorRef {
+    /// The price this reference is computed over: its own `field`, else the
+    /// indicator's default. `None` for an indicator with no price choice.
+    pub fn effective_field(&self) -> Option<PriceField> {
+        self.field.or_else(|| default_field(&self.id))
+    }
+
     /// What this reference's chosen output line is denominated in.
     ///
     /// `None` when the id or the output is not in the registry. That case is
@@ -551,6 +624,24 @@ impl IndicatorRef {
                 continue;
             };
             check_param(param, value, &format!("{field}.params.{name}"), out);
+        }
+
+        if self.field.is_some() && default_field(spec.id).is_none() {
+            out.push(RuleRefusal::new(
+                RefusalCode::InvalidIndicatorParameter,
+                format!("{field}.field"),
+                format!(
+                    "`{}` is not computed over a single price, so it takes no `field`; \
+                     the indicators that do are {}",
+                    spec.id,
+                    REGISTRY
+                        .iter()
+                        .map(|s| s.id)
+                        .filter(|id| default_field(id).is_some())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            ));
         }
 
         for param in spec.params {
@@ -709,6 +800,9 @@ pub fn registry_json() -> String {
                 // pairing the core accepts, from the same list that refuses
                 // the others, rather than from a copy of it.
                 "cumulative": is_cumulative(spec.id),
+                // The price a reference is computed over when it names none,
+                // or null for an indicator that takes no price (FEAT-0454).
+                "field": default_field(spec.id),
             })
         })
         .collect();
@@ -728,6 +822,14 @@ mod tests {
                 .map(|(k, v)| (k.to_string(), v.clone()))
                 .collect(),
             output: output.to_string(),
+            field: None,
+        }
+    }
+
+    fn rsi_14_over(field: Option<PriceField>) -> IndicatorRef {
+        IndicatorRef {
+            field,
+            ..indicator("rsi", &[("period", ParamValue::Count(14))], "value")
         }
     }
 
@@ -974,6 +1076,118 @@ mod tests {
         assert!(err.to_string().contains("source"), "got: {err}");
     }
 
+    // ---- FEAT-0454: the price an indicator is computed over ----------------
+
+    /// The settings cards draw these over a price the trader picks, so a rule
+    /// may name one.
+    #[test]
+    fn an_indicator_with_a_price_choice_accepts_every_price_field() {
+        for field in [
+            PriceField::Open,
+            PriceField::High,
+            PriceField::Low,
+            PriceField::Close,
+            PriceField::Hl2,
+            PriceField::Hlc3,
+        ] {
+            for id in ["rsi", "macd", "stoch_rsi", "cci", "momentum", "ema", "bollinger"] {
+                let spec = spec_for(id).unwrap();
+                let r = IndicatorRef {
+                    id: id.to_string(),
+                    params: spec
+                        .params
+                        .iter()
+                        .map(|p| {
+                            let value = match p.kind {
+                                ParamKind::Period { min, .. } => ParamValue::Count(min.max(3)),
+                                ParamKind::Factor { min, .. } => {
+                                    ParamValue::Ratio(Decimal::from_str(min).unwrap())
+                                }
+                            };
+                            (p.name.to_string(), value)
+                        })
+                        .collect(),
+                    output: spec.outputs[0].0.to_string(),
+                    field: Some(field),
+                };
+                assert!(refusals(&r).is_empty(), "{id} over {field:?}: {:?}", refusals(&r));
+            }
+        }
+    }
+
+    #[test]
+    fn a_named_price_travels_on_the_wire() {
+        let r: IndicatorRef =
+            serde_json::from_str(r#"{"id":"rsi","params":{"period":14},"field":"hl2"}"#).unwrap();
+        assert_eq!(r, rsi_14_over(Some(PriceField::Hl2)));
+        assert!(serde_json::to_string(&r).unwrap().contains(r#""field":"hl2""#));
+    }
+
+    /// The price an indicator is computed over when a reference names none is
+    /// the close, or for CCI the typical price. Naming it anyway is the same
+    /// reference, spelled once: otherwise two byte-different spellings of one
+    /// rule would be two strategies in the log.
+    #[test]
+    fn naming_the_default_price_is_the_reference_that_names_none() {
+        let explicit: IndicatorRef =
+            serde_json::from_str(r#"{"id":"rsi","params":{"period":14},"field":"close"}"#)
+                .unwrap();
+        assert_eq!(explicit, rsi_14_over(None));
+
+        let cci: IndicatorRef =
+            serde_json::from_str(r#"{"id":"cci","params":{"period":20},"field":"hlc3"}"#).unwrap();
+        assert_eq!(cci.field, None);
+
+        let literal = rsi_14_over(Some(PriceField::Close));
+        assert_eq!(
+            serde_json::to_string(&literal).unwrap(),
+            serde_json::to_string(&rsi_14_over(None)).unwrap()
+        );
+    }
+
+    /// CCI over the close is not CCI over its default price.
+    #[test]
+    fn the_close_is_not_the_default_price_of_cci() {
+        let cci: IndicatorRef =
+            serde_json::from_str(r#"{"id":"cci","params":{"period":20},"field":"close"}"#)
+                .unwrap();
+        assert_eq!(cci.field, Some(PriceField::Close));
+    }
+
+    #[test]
+    fn the_effective_price_fills_in_the_default() {
+        assert_eq!(rsi_14_over(None).effective_field(), Some(PriceField::Close));
+        assert_eq!(
+            indicator("cci", &[("period", ParamValue::Count(20))], "value").effective_field(),
+            Some(PriceField::Hlc3)
+        );
+        assert_eq!(
+            indicator("atr", &[("period", ParamValue::Count(14))], "value").effective_field(),
+            None
+        );
+    }
+
+    /// ATR reads high, low and close together; there is no single price to
+    /// swap. A price named on it would be a document claiming a choice the
+    /// engine does not make.
+    #[test]
+    fn an_indicator_without_a_price_choice_refuses_one() {
+        let atr = IndicatorRef {
+            field: Some(PriceField::Close),
+            ..indicator("atr", &[("period", ParamValue::Count(14))], "value")
+        };
+        let out = refusals(&atr);
+        assert_eq!(out.len(), 1, "{out:?}");
+        assert_eq!(out[0].code, RefusalCode::InvalidIndicatorParameter);
+        assert_eq!(out[0].field, "conditions[0].left.indicator.field");
+    }
+
+    #[test]
+    fn an_unknown_price_field_fails_to_parse() {
+        let json = r#"{"id":"rsi","params":{"period":14},"field":"ohlc4"}"#;
+        assert!(serde_json::from_str::<IndicatorRef>(json).is_err());
+    }
+
     #[test]
     fn output_defaults_to_value_for_single_line_indicators() {
         let r: IndicatorRef =
@@ -1078,6 +1292,12 @@ mod tests {
         for (entry, spec) in entries.iter().zip(REGISTRY.iter()) {
             assert_eq!(entry["id"], spec.id);
             assert_eq!(entry["cumulative"], spec.id == "obv", "{}", spec.id);
+            assert_eq!(
+                entry["field"],
+                serde_json::json!(default_field(spec.id)),
+                "{}",
+                spec.id
+            );
 
             let params = entry["params"].as_array().expect("params is an array");
             assert_eq!(params.len(), spec.params.len());
