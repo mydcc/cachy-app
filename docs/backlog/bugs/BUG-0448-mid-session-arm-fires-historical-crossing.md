@@ -118,7 +118,7 @@ history before the fix; closing it needs a per-alert baseline the core does not 
 - [`BUG-0441`](BUG-0441-legacy-alert-cold-baseline-never-fires.md) — the replay this
   scoping defect sits in; its "Known limitation" third variant is this item
 - `src/services/alertEngine/legacyReplayCoordinator.ts` — `configureLegacyReplay`,
-  `replayBeforeLegacyEvaluation`, `setPendingLegacyReplaySymbols`
+  `replayBeforeLegacyEvaluation`, `setLegacyReplayPopulation`
 - `src/stores/alerts.svelte.ts` — `initAlertEngine`, where the pending snapshot is taken
 - `src/stores/market/applyUpdate.ts` — the pre-evaluation replay call
 - `technicals-wasm/src/alert_engine.rs` — `AlertEngine::evaluate`, engine-wide per symbol

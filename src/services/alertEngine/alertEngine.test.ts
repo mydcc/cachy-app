@@ -140,8 +140,15 @@ describe('AlertEngine Service — what the engine holds, and withholding it', ()
         alerts: Array<{ id: string; symbol: string; condition: Record<string, string>; active: boolean }> = [];
         fireOnEvaluate: string[] = [];
         failNextAdd = false;
+        failNextSet = false;
 
-        set_alerts(alertsJson: string) { this.alerts = JSON.parse(alertsJson); }
+        set_alerts(alertsJson: string) {
+            if (this.failNextSet) {
+                this.failNextSet = false;
+                throw new Error('wasm rejected the set');
+            }
+            this.alerts = JSON.parse(alertsJson);
+        }
         add_alert(alertJson: string) {
             if (this.failNextAdd) {
                 this.failNextAdd = false;
@@ -192,6 +199,19 @@ describe('AlertEngine Service — what the engine holds, and withholding it', ()
         engine.addAlert(ALERT_B);
 
         expect(engine.heldAlertsFor('BTCUSDT')).toEqual([]);
+    });
+
+    it('keeps the previous held set when the engine refuses a new one', async () => {
+        const { engine, instance } = await freshEngine();
+        engine.setAlerts([ALERT_A]);
+
+        instance.failNextSet = true;
+        engine.setAlerts([ALERT_B]);
+
+        // The core parses before it applies, so a rejected push changes
+        // nothing on either side of the boundary.
+        expect(instance.alerts.map((a) => a.id)).toEqual(['a']);
+        expect(engine.heldAlertsFor('BTCUSDT').map((a) => a.id)).toEqual(['a']);
     });
 
     it('marks an alert the core just fired as inactive, as the core itself does', async () => {

@@ -160,9 +160,11 @@ class AlertEngineService {
       this.lastAlertsJson = alertsJson;
       this.held = new Map(alerts.map((alert) => [alert.id, { ...alert }]));
     } catch (e) {
-      // Deliberately not remembered: after a failed push the engine's set is
-      // unknown, and the next call has to send again rather than assume this
-      // one landed.
+      // Deliberately not remembered: after a failed push the next call has to
+      // send again rather than assume this one landed. `held` stays at the
+      // previous set on purpose — the core parses the payload before applying
+      // it, so a rejected push leaves the engine's set (and this mirror of it)
+      // unchanged.
       this.lastAlertsJson = null;
       logger.error('alerts', '[AlertEngine] Error setting alerts', e);
     }
