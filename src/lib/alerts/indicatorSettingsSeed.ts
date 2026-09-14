@@ -266,6 +266,12 @@ export function isAlertableIndicator(settingsKey: string): boolean {
  * the seed cannot believe one price while the series is computed over another.
  * Close for every card but CCI's (BUG-0453, FEAT-0446 group 2). A card's lines
  * share one indicator, so the first line speaks for the card.
+ *
+ * This is the *default* price only, because FEAT-0454 slice 1 leaves the seed
+ * refusing any card whose source differs from it. Slice 2, which lets the card
+ * carry the price, must compare against the rule's effective field
+ * (`effectiveFieldOf` in `../rules/alertPathIndicators`) — otherwise a card set
+ * to a price the rule now records would still be refused.
  */
 export function cardAlertSource(settingsKey: string): AlertPathSource | null {
     const first = SETTINGS_MAPPINGS[settingsKey]?.[0];

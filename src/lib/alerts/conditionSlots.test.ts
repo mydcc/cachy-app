@@ -198,6 +198,31 @@ describe("slotOf — known gap (BUG-0444)", () => {
     ).toBeNull();
   });
 
+  // FEAT-0454: the core computes an indicator over the price its reference
+  // names, but the tab rebuilds a subject from id, params and output. Claimed,
+  // RSI over hl2 would be rewritten as RSI over the close on the first edit.
+  it("leaves unclaimed an indicator condition that names the price it is computed over", () => {
+    const rsiOverHl2 = { id: "rsi", params: { period: 14 }, field: "hl2" as const };
+    expect(
+      slotOf({
+        kind: "compare",
+        left: { kind: "indicator", indicator: rsiOverHl2 },
+        op: "lt",
+        right: { kind: "constant", value: "30" },
+        timeframe: "1h",
+      }),
+    ).toBeNull();
+    expect(
+      slotOf({
+        kind: "cross",
+        left: { kind: "indicator", indicator: { id: "rsi", params: { period: 21 } } },
+        direction: "above",
+        right: { kind: "indicator", indicator: rsiOverHl2 },
+        timeframe: "1h",
+      }),
+    ).toBeNull();
+  });
+
   it("leaves unclaimed an indicator condition with a mark-source price RHS", () => {
     expect(
       slotOf({

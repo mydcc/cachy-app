@@ -259,10 +259,16 @@ impl InMemoryMarket {
 }
 
 fn indicator_key(indicator: &IndicatorRef) -> String {
-    // The params map is a BTreeMap, so this is stable across processes.
+    // The params map is a BTreeMap, so this is stable across processes. The
+    // effective price is part of the identity: RSI over hl2 and RSI over the
+    // close are two series, and an RSI naming the close is the one naming none
+    // (FEAT-0454).
     format!(
-        "{}|{:?}|{}",
-        indicator.id, indicator.params, indicator.output
+        "{}|{:?}|{}|{:?}",
+        indicator.id,
+        indicator.params,
+        indicator.output,
+        indicator.effective_field()
     )
 }
 
@@ -802,6 +808,7 @@ mod tests {
             id: "rsi".to_string(),
             params,
             output: "value".to_string(),
+            field: None,
         }
     }
 
@@ -866,6 +873,58 @@ mod tests {
             valid_until_ms: None,
             note: None,
         }
+    }
+
+    // ---- FEAT-0454: the price an indicator is computed over ----------------
+
+    fn rsi_over(period: u32, field: Option<PriceField>) -> IndicatorRef {
+        IndicatorRef {
+            field,
+            ..rsi(period)
+        }
+    }
+
+    /// RSI over `(high + low) / 2` and RSI over the close are two series. Keyed
+    /// on id, params and output alone, whichever the caller handed over last
+    /// would answer for both sides, and "RSI(hl2) above RSI(close)" would
+    /// compare a line with itself.
+    #[test]
+    fn an_indicator_over_another_price_is_its_own_series() {
+        let document = notify_doc(Condition::Compare {
+            left: Operand::Indicator {
+                indicator: rsi_over(14, None),
+            },
+            op: CompareOp::Lt,
+            right: Operand::Indicator {
+                indicator: rsi_over(14, Some(PriceField::Hl2)),
+            },
+            timeframe: tf("4h"),
+        });
+        let market = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles(&["60000", "60000"]))
+            .with_indicator(&rsi_over(14, None), tf("4h"), 1, d("40"))
+            .with_indicator(&rsi_over(14, Some(PriceField::Hl2)), tf("4h"), 1, d("60"));
+
+        assert_eq!(evaluate(&document, &market, None), Verdict::Fires);
+    }
+
+    /// Naming the price an indicator is computed over anyway reads the series a
+    /// reference that names none reads.
+    #[test]
+    fn naming_the_default_price_reads_the_same_series() {
+        let document = notify_doc(Condition::Compare {
+            left: Operand::Indicator {
+                indicator: rsi_over(14, Some(PriceField::Close)),
+            },
+            op: CompareOp::Lt,
+            right: Operand::Constant { value: d("30") },
+            timeframe: tf("4h"),
+        });
+        let market = InMemoryMarket::new()
+            .with_candles(tf("4h"), candles(&["60000", "60000"]))
+            .with_indicator(&rsi_over(14, None), tf("4h"), 1, d("25"));
+
+        assert_eq!(evaluate(&document, &market, None), Verdict::Fires);
     }
 
     // ---- FEAT-0390: price source and percentage moves ----------------------
