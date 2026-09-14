@@ -2,7 +2,7 @@
 id: FEAT-0346
 title: "Increase component test coverage"
 type: feature
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,8 @@ data_class: none
 adr: none
 depends_on: []
 parent: FEAT-0341
+assignee: opencode
+branch: feat/feat-0346-component-tests
 ---
 
 ## Problem
@@ -20,8 +22,8 @@ A codebase analysis reveals that out of ~135 `.svelte` components, only 19 have 
 Establish a testing initiative to backfill component tests for the most critical UI elements (e.g., Modals, Trade Settings, and Core Background Engines).
 
 ## Acceptance criteria
-- [ ] Core trading inputs and panels are covered by `*.component.test.ts` files.
-- [ ] All new tests run successfully in the `components` Vitest project.
+- [x] Core trading inputs and panels are covered by `*.component.test.ts` files.
+- [x] All new tests run successfully in the `components` Vitest project.
 
 ## Out of scope
 - 100% test coverage for every single component.

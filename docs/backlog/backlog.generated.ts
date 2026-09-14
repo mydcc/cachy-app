@@ -7031,7 +7031,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0346",
     "title": "Increase component test coverage",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -7044,6 +7044,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "parent": "FEAT-0341",
+    "assignee": "opencode",
+    "branch": "feat/feat-0346-component-tests",
     "file": "features/FEAT-0346-component-test-coverage.md"
   },
   {
