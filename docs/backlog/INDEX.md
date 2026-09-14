@@ -2,9 +2,9 @@
 
 # Backlog index
 
-353 items. How to read and add them: [README.md](README.md).
+356 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 2 · ✅ done 301 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 25 · 🟡 in-progress 2 · ✅ done 301 · ⛔ dropped 1
 
 ---
 
@@ -246,6 +246,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 2 · ✅ d
 | [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | ✅ done | repo |
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | alerts |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
+| [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | 📋 specced | security |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -311,6 +312,8 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 2 · ✅ d
 | [BUG-0468](bugs/BUG-0468-refused-stored-rule-is-silent.md) | A stored rule the core refuses is logged on every close and never reported | P2 | ✅ done | alerts |
 | [BUG-0469](bugs/BUG-0469-autolinker-ignores-no-issue.md) | The sync's PR auto-linker prepends Fixes #N to bodies that opt out with [no issue] | P2 | ✅ done | repo |
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | tooling |
+| [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | 📋 specced | security |
+| [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | 📋 specced | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -500,6 +503,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 2 · ✅ d
 | [BUG-0447](bugs/BUG-0447-agent-snapshot-push-reverts-merged-work.md) | A stale agent re-push on a PR branch silently reverts work already merged to develop | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -614,6 +618,8 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 2 · ✅ d
 | [BUG-0468](bugs/BUG-0468-refused-stored-rule-is-silent.md) | A stored rule the core refuses is logged on every close and never reported | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0469](bugs/BUG-0469-autolinker-ignores-no-issue.md) | The sync's PR auto-linker prepends Fixes #N to bodies that opt out with [no issue] | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | 🟡 in-progress | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -780,4 +786,4 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟡 in-progress 2 · ✅ d
 
 ---
 
-Next free number: **0472**
+Next free number: **0475**

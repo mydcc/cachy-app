@@ -1643,6 +1643,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md"
   },
   {
+    "id": "BUG-0472",
+    "title": "AI trade-setup actions execute immediately unless the user opted into confirmation",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0472-ai-actions-execute-without-confirmation.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -4124,6 +4143,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md"
+  },
+  {
+    "id": "BUG-0473",
+    "title": "News headlines enter the AI prompt unquoted with no data-only instruction",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md"
+  },
+  {
+    "id": "BUG-0474",
+    "title": "Parsed AI actions are executed without schema validation",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "file": "bugs/BUG-0474-ai-actions-executed-without-schema-validation.md"
   },
   {
     "id": "FEAT-0019",
