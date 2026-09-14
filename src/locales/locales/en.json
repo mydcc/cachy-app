@@ -4349,6 +4349,14 @@
         "hl2": "the median price (HL2)",
         "hlc3": "the typical price (HLC3)"
       },
+      "indicatorFrom": {
+        "open": "{indicator} from the open",
+        "high": "{indicator} from the high",
+        "low": "{indicator} from the low",
+        "close": "{indicator} from the close",
+        "hl2": "{indicator} from the median price (HL2)",
+        "hlc3": "{indicator} from the typical price (HLC3)"
+      },
       "side": {
         "long": "a long position",
         "short": "a short position",
