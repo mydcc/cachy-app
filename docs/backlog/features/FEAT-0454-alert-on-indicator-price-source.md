@@ -84,9 +84,13 @@ Carry the source as an optional parameter rather than as a panel setting:
   - **Alerts armed from a non-close card before BUG-0453.** Nothing to surface:
     the document never recorded the card's price, so it means the close, as it
     always computed. There is nothing to retarget it to.
-- Next, slice 2: the seed copies the card's source, `cardAlertAvailability` stops
-  refusing `source-mismatch`, the Indicators tab offers the price and the sentence
-  names it — at which point the unclaim above is lifted.
+- Next, slice 2: the seed copies the card's source (`cardAlertSource` must
+  compare against the rule's effective field, not the default),
+  `cardAlertAvailability` stops refusing `source-mismatch`, the Indicators tab
+  offers the price and the sentence names it — at which point the unclaim above
+  is lifted. Lifting it also reaches `canonicalRef` in `indicatorFormLeaf.ts`,
+  which already carries the effective price so a window over RSI-hl2 cannot read
+  as a window over RSI-close; keep it that way.
 
 ## Links
 

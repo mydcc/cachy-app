@@ -33,6 +33,7 @@
 
 import { catalogueEntry } from "./indicatorCatalogue";
 import type { IndicatorForm, Reference } from "./indicatorConditionForm";
+import { effectiveFieldOf } from "../rules/alertPathIndicators";
 import type { Condition, IndicatorRef, Operand } from "../rules/types";
 
 export function indicatorFormOf(condition: Condition): IndicatorForm | null {
@@ -99,8 +100,19 @@ function referenceFor(operand: Operand, subject: IndicatorRef): Reference | null
     }
 }
 
-/** A ref with sorted parameters and its output spelled, for comparison only. */
+/**
+ * A ref with sorted parameters, its output spelled and its effective price, for
+ * comparison only.
+ *
+ * The price is part of the identity (FEAT-0454): RSI over hl2 and RSI over the
+ * close are two lines, so a window over one must not read as a window over the
+ * other. It is the *effective* price, so a rule that spells the default and one
+ * that omits it still compare equal, as the core canonicalises them to one
+ * document. Unreachable today — `indicatorFormOf` leaves any condition naming a
+ * price unclaimed before this runs — but the comparison is already correct for
+ * when slice 2 lifts that.
+ */
 function canonicalRef(ref: IndicatorRef): unknown {
     const params = Object.entries(ref.params ?? {}).sort(([a], [b]) => a.localeCompare(b));
-    return [ref.id, params, ref.output ?? "value"];
+    return [ref.id, params, ref.output ?? "value", effectiveFieldOf(ref)];
 }
