@@ -26,6 +26,15 @@ import {
   safeFetch,
 } from "../../../../lib/server/urlValidator";
 
+/** True when the resolved relay target is OpenRouter, which expects its attribution header. */
+function isOpenRouterTarget(targetUrl: string): boolean {
+  try {
+    return new URL(targetUrl).hostname.toLowerCase() === "openrouter.ai";
+  } catch {
+    return false;
+  }
+}
+
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
@@ -61,6 +70,12 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
+    // Migrated OpenRouter entries relay through this route (the wire format
+    // picks the route, not the vendor): keep the attribution header the
+    // dedicated OpenRouter route sends so those requests stay attributed.
+    if (isOpenRouterTarget(targetUrl)) {
+      headers["X-Title"] = "Cachy";
+    }
     if (apiKey) {
       headers.Authorization = `Bearer ${apiKey}`;
     }
