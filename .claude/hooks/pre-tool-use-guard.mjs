@@ -40,6 +40,18 @@ const PROTECTED_RM_TARGETS = new Set([
   ".git",
 ]);
 
+// Command separators, plus newline: the push target is one command, never the
+// whole line. Without this a chained `gh pr create --base develop` after a
+// feature-branch push satisfies the branch check (BUG-0445).
+const COMMAND_SEPARATOR_RE = /[;&|\n]+/;
+
+// A heredoc opener: `<<EOF`, `<<-EOF`, `<<'EOF'`, `<<"EOF"`. A leading digit is
+// rejected so arithmetic like `1<<2` is not mistaken for a heredoc.
+const HEREDOC_START_RE = /<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/g;
+
+const PROTECTED_PUSH_RE =
+  /\bgit\s+push\b[^\n]*(?:\s|:)(?:develop|main|master)(?:\s|$)/;
+
 const RULES = [
   {
     id: "rm-recursive-force-protected",
@@ -59,8 +71,7 @@ const RULES = [
     id: "git-push-protected-branch",
     reason:
       "direct push to develop/main is forbidden (open a feature branch instead)",
-    test: (cmd) =>
-      /\bgit\s+push\b[^\n]*(?:\s|:)(?:develop|main|master)(?:\s|$)/.test(cmd),
+    test: isProtectedPush,
   },
   {
     id: "git-clean-force",
@@ -130,6 +141,31 @@ function findProtectedRmTargets(cmd) {
     }
   }
   return hits;
+}
+
+// Drop heredoc bodies before scanning: a file body that quotes a line such as
+// `git push origin develop` is data, not a command (BUG-0445).
+function stripHeredocBodies(cmd) {
+  const kept = [];
+  const pendingDelimiters = [];
+  for (const line of cmd.split("\n")) {
+    if (pendingDelimiters.length > 0) {
+      if (line.trim() === pendingDelimiters[0]) pendingDelimiters.shift();
+      continue;
+    }
+    kept.push(line);
+    for (const match of line.matchAll(HEREDOC_START_RE)) {
+      pendingDelimiters.push(match[2]);
+    }
+  }
+  return kept.join("\n");
+}
+
+// The push target lives in a single command, so test each command separately.
+function isProtectedPush(cmd) {
+  return stripHeredocBodies(cmd)
+    .split(COMMAND_SEPARATOR_RE)
+    .some((segment) => PROTECTED_PUSH_RE.test(segment));
 }
 
 function readStdin() {

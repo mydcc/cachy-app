@@ -24,6 +24,11 @@ const BLOCKED_COMMANDS = [
   "git push --force origin develop",
   "git push -f origin main",
   "git push origin develop",
+  "git push origin main",
+  "git push origin master",
+  "git push origin HEAD:develop",
+  "git push origin HEAD:main",
+  "git push origin HEAD:master",
   "git clean -fdx",
   "git reset --hard HEAD~1",
   "git add -A",
@@ -38,6 +43,10 @@ const ALLOWED_COMMANDS = [
   "rm -rf node_modules",
   "rm -rf /tmp/opencode/build",
   "git push --force-with-lease origin feat/harness",
+  // BUG-0445: the protected branch belongs to the chained command, not the push.
+  "git push origin feat/harness && gh pr create --base develop",
+  // BUG-0445: a quoted line inside a heredoc body is data, not a push target.
+  "cat > /tmp/note.md <<'EOF'\ngit push origin develop\nEOF",
   "git add src/services/tradeService.ts",
   "git clean -n",
   "npm run test:changed",

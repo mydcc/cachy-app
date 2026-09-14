@@ -2,7 +2,7 @@
 id: BUG-0445
 title: The push guard matches a branch name from a later command in the same line
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -67,15 +67,15 @@ forbidden, and the real cases must keep failing.
 
 ## Acceptance criteria
 
-- [ ] A test asserts the guard still blocks a direct push to each protected
+- [x] A test asserts the guard still blocks a direct push to each protected
       branch, by name and via a `HEAD:` refspec
-- [ ] A test reproduces this defect — a chained feature-branch push followed by
+- [x] A test reproduces this defect — a chained feature-branch push followed by
       a `gh pr create` against the protected branch — and fails without the fix
-- [ ] A test covers the heredoc case: a file write whose body quotes such a
+- [x] A test covers the heredoc case: a file write whose body quotes such a
       line is allowed
-- [ ] The chained and heredoc commands are allowed with the fix, and the
+- [x] The chained and heredoc commands are allowed with the fix, and the
       blocking cases above still block
-- [ ] No German or English strings added (hook output is developer-facing)
+- [x] No German or English strings added (hook output is developer-facing)
 
 ## Links
 
