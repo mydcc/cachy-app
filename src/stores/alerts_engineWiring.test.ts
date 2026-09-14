@@ -471,6 +471,79 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       expect(stillArmed?.active).toBe(true);
     });
 
+    describe("BUG-0448 — an alert armed while its symbol still waits for history", () => {
+      /** Armed mid-session at a level the history below walks through. */
+      const ARMED_MID_SESSION = {
+        id: "alert-armed-mid-session",
+        symbol: "BTCUSDT",
+        condition: { price_reached: "50150.0" },
+        active: true,
+      };
+      // Crosses ARMED_BEFORE_RELOAD's 50000 and ARMED_MID_SESSION's 50150.
+      const HISTORY = ["49800.0", "49900.0", "50100.0", "50200.0"];
+
+      async function armMidSessionThenReceiveHistory() {
+        const mod = await importFreshAlertsModule();
+        const coordinator = await import("../services/alertEngine/legacyReplayCoordinator");
+        // No history at startup: BTCUSDT stays pending.
+        await mod.initAlertEngine(fakeLoader);
+        mod.alertState.addAlert({ ...ARMED_MID_SESSION });
+        mockReadClosedCandles.mockReturnValue(closes(HISTORY));
+        return { ...mod, coordinator };
+      }
+
+      const find = (defs: Array<{ id: string; active: boolean }>, id: string) =>
+        defs.find((a) => a.id === id);
+
+      it("does not fire the new alert when history arrives", async () => {
+        const { alertState, coordinator } = await armMidSessionThenReceiveHistory();
+
+        coordinator.noteLegacyReplaySeriesObserved("BTCUSDT");
+
+        // Fails without the fix: the replay is symbol-wide, so the 50100 →
+        // 50200 close fires an alert that did not exist when price got there.
+        expect(find(alertState.definitions, ARMED_MID_SESSION.id)?.active).toBe(true);
+      });
+
+      it("does not fire the new alert when the first live tick replays instead", async () => {
+        const { alertState, coordinator } = await armMidSessionThenReceiveHistory();
+
+        coordinator.replayBeforeLegacyEvaluation("BTCUSDT");
+
+        expect(find(alertState.definitions, ARMED_MID_SESSION.id)?.active).toBe(true);
+      });
+
+      it("still fires the alert that survived the reload from the same history", async () => {
+        const { alertState, coordinator } = await armMidSessionThenReceiveHistory();
+
+        coordinator.noteLegacyReplaySeriesObserved("BTCUSDT");
+
+        // BUG-0441's behaviour, kept rather than traded away.
+        expect(find(alertState.definitions, ARMED_BEFORE_RELOAD.id)?.active).toBe(false);
+      });
+
+      it("keeps the new alert armed on the engine after the replay, so its own crossing still fires", async () => {
+        const { alertState, coordinator } = await armMidSessionThenReceiveHistory();
+        const { alertEngine } = await import("../services/alertEngine/alertEngine");
+
+        coordinator.noteLegacyReplaySeriesObserved("BTCUSDT");
+        alertEngine.evaluate("BTCUSDT", "50100.0", 20);
+
+        expect(find(alertState.definitions, ARMED_MID_SESSION.id)?.active).toBe(false);
+      });
+
+      it("treats a reload survivor edited before its history arrived as newly armed", async () => {
+        const { alertState, coordinator } = await armMidSessionThenReceiveHistory();
+        // Moved from 50000 to 50150: a trader who moves a level has not asked
+        // about a crossing of the new one that happened before the edit.
+        alertState.updateAlert(ARMED_BEFORE_RELOAD.id, { condition: { price_reached: "50150.0" } });
+
+        coordinator.noteLegacyReplaySeriesObserved("BTCUSDT");
+
+        expect(find(alertState.definitions, ARMED_BEFORE_RELOAD.id)?.active).toBe(true);
+      });
+    });
+
     it("starts up normally when no history is available", async () => {
       const { alertState, initAlertEngine } = await importFreshAlertsModule();
       mockReadClosedCandles.mockReturnValue([]);

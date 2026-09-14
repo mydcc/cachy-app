@@ -37,7 +37,7 @@ import {
 import {
     configureLegacyReplay,
     replayPendingLegacySymbolsAtStartup,
-    setPendingLegacyReplaySymbols,
+    setLegacyReplayPopulation,
 } from "../services/alertEngine/legacyReplayCoordinator";
 import { recordFiring, recordLegacyFiring } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
@@ -460,10 +460,12 @@ export async function initAlertEngine(
                 throw new Error(`[BUG-0441] legacy replay evaluation failed for ${symbol}`);
             }
         },
+        // BUG-0448: the replay decides only the alerts below — anything armed
+        // on the symbol later sits it out.
+        heldAlertsFor: (symbol) => alertEngine.heldAlertsFor(symbol),
+        withAlertsWithheld: (ids, run) => alertEngine.withAlertsWithheld(ids, run),
     });
-    setPendingLegacyReplaySymbols(
-        alertsForLegacyEngine(alertState.definitions, covered).map((alert) => alert.symbol),
-    );
+    setLegacyReplayPopulation(alertsForLegacyEngine(alertState.definitions, covered));
     const replayed = replayPendingLegacySymbolsAtStartup();
     if (replayed !== null) {
         logger.log(

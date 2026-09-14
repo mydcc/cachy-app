@@ -100,6 +100,17 @@ class AlertEngineService {
   private lastAlertsJson: string | null = null;
 
   /**
+   * What the engine holds, by id — BUG-0448.
+   *
+   * The core keeps its alert set behind the WASM boundary and offers no read
+   * back, but a replay has to know which alerts it would reach before it runs.
+   * Every path that moves the core's set moves this one only once the core
+   * accepted the change, and `evaluate` mirrors the core's fire-once flip of
+   * `active`, so putting a withheld alert back can never re-arm one that fired.
+   */
+  private held = new Map<string, AlertDefinition>();
+
+  /**
    * Whether the engine can actually evaluate. While this is false every method
    * below early-returns and no alert can fire — the state BUG-0382 shipped in.
    */
@@ -122,6 +133,7 @@ class AlertEngineService {
         // holds no alerts, and anything remembered about the previous one
         // would let the next setAlerts() skip the push that fills it.
         this.lastAlertsJson = null;
+        this.held = new Map();
 
         logger.log('alerts', '[AlertEngine] WASM Alert Engine loaded successfully.');
       } catch (err) {
@@ -146,6 +158,7 @@ class AlertEngineService {
     try {
       this.instance.set_alerts(alertsJson);
       this.lastAlertsJson = alertsJson;
+      this.held = new Map(alerts.map((alert) => [alert.id, { ...alert }]));
     } catch (e) {
       // Deliberately not remembered: after a failed push the engine's set is
       // unknown, and the next call has to send again rather than assume this
@@ -162,6 +175,7 @@ class AlertEngineService {
     this.lastAlertsJson = null;
     try {
       this.instance.add_alert(JSON.stringify(alert));
+      this.held.set(alert.id, { ...alert });
     } catch (e) {
       logger.error('alerts', '[AlertEngine] Error adding alert', e);
     }
@@ -172,8 +186,39 @@ class AlertEngineService {
     this.lastAlertsJson = null;
     try {
       this.instance.remove_alert(id);
+      this.held.delete(id);
     } catch (e) {
       logger.error('alerts', '[AlertEngine] Error removing alert', e);
+    }
+  }
+
+  /** Copies of the alerts the engine holds for `symbol`, fired ones included. */
+  heldAlertsFor(symbol: string): AlertDefinition[] {
+    return Array.from(this.held.values())
+      .filter((alert) => alert.symbol === symbol)
+      .map((alert) => ({ ...alert }));
+  }
+
+  /**
+   * Runs `run` with the given alerts out of the engine, then puts back exactly
+   * the ones it took — BUG-0448.
+   *
+   * An id the engine does not hold is ignored rather than added afterwards: an
+   * alert the rule engine covers is absent here on purpose, and putting it back
+   * would arm it on both engines. An alert `run` itself re-added is left as
+   * `run` left it.
+   */
+  withAlertsWithheld<T>(ids: readonly string[], run: () => T): T {
+    const withheld = ids
+      .map((id) => this.held.get(id))
+      .filter((alert): alert is AlertDefinition => alert !== undefined);
+    for (const alert of withheld) this.removeAlert(alert.id);
+    try {
+      return run();
+    } finally {
+      for (const alert of withheld) {
+        if (!this.held.has(alert.id)) this.addAlert(alert);
+      }
     }
   }
 
@@ -192,6 +237,10 @@ class AlertEngineService {
       const events: AlertEvent[] = this.instance.evaluate(symbol, currentPriceStr, timestamp);
       if (events && events.length > 0) {
         events.forEach(event => {
+            // Mirrors the core's hysteresis before anyone is told, so a
+            // listener that withholds or re-reads the set sees it spent.
+            const fired = this.held.get(event.alert_id);
+            if (fired) this.held.set(event.alert_id, { ...fired, active: false });
             logger.log('alerts', `[AlertEngine] ALERT FIRED for ${event.symbol} at ${event.price}`);
             this.notifyFired(event);
         });

@@ -47,19 +47,35 @@
  * A symbol whose history never arrives degrades to exactly the pre-fix
  * behaviour (the crossing is lost) rather than to an alert that silently never
  * evaluates at all.
+ *
+ * BUG-0448 — *which* alerts a replay may decide. The engine evaluates every
+ * alert it holds for a symbol, but the replay is only justified for the alerts
+ * that were already armed when the history happened: the ones that survived
+ * the reload. An alert armed (or moved to a new level) after startup, while its
+ * symbol still waited for history, is withheld from the engine for the length
+ * of the replay and put back afterwards, so a crossing from before it existed
+ * cannot fire it. The population is therefore a set of alerts, not of symbols.
  */
 
 import { replayClosedCandles, type ReplayReport } from "./replayClosedCandles";
+import type { AlertDefinition } from "./alertEngine";
 import type { EvaluationCandle } from "../../lib/rules/types";
+
+/** What identifies an alert the replay was justified for. */
+export type LegacyReplayMember = Pick<AlertDefinition, "id" | "symbol" | "condition">;
 
 export interface LegacyReplaySource {
     readCandles: (symbol: string, timeframe: string) => EvaluationCandle[];
     timeframesFor?: (symbol: string) => readonly string[];
     evaluate: (symbol: string, close: string, timestampMs: number) => void;
+    /** The alerts the engine holds for `symbol` right now. */
+    heldAlertsFor: (symbol: string) => readonly LegacyReplayMember[];
+    /** Runs `run` with `ids` out of the engine, restoring them afterwards. */
+    withAlertsWithheld: <T>(ids: readonly string[], run: () => T) => T;
 }
 
 let source: LegacyReplaySource | null = null;
-let pending = new Set<string>();
+let pending = new Map<string, LegacyReplayMember[]>();
 let decided = new Set<string>();
 
 /** Wires the readers the replay needs. Safe to call again; last write wins. */
@@ -68,32 +84,66 @@ export function configureLegacyReplay(next: LegacyReplaySource): void {
 }
 
 /**
- * The symbols with an armed alert on the legacy engine, i.e. the ones a replay
- * could still recover. Replacing the set is intentional: coverage changes
- * re-derive it, and `decided` is what prevents a second replay of a symbol
- * whose ordering window has already closed.
+ * The alerts armed on the legacy engine at startup, i.e. the ones a replay
+ * could still recover — and the only ones it may decide. Replacing the set is
+ * intentional: coverage changes re-derive it, and `decided` is what prevents a
+ * second replay of a symbol whose ordering window has already closed.
  */
-export function setPendingLegacyReplaySymbols(symbols: Iterable<string>): void {
-    pending = new Set(symbols);
+export function setLegacyReplayPopulation(alerts: Iterable<LegacyReplayMember>): void {
+    const next = new Map<string, LegacyReplayMember[]>();
+    for (const alert of alerts) {
+        next.set(alert.symbol, [...(next.get(alert.symbol) ?? []), { ...alert }]);
+    }
+    pending = next;
 }
 
 /** Test seam: forget everything so a fresh module graph starts clean. */
 export function resetLegacyReplayState(): void {
     source = null;
-    pending = new Set();
+    pending = new Map();
     decided = new Set();
+}
+
+/**
+ * Same alert *and* same level. A survivor moved to a new level is a new
+ * question: the trader never asked about a crossing of it that predates the
+ * edit, so it sits the replay out like an alert armed after startup.
+ */
+function isSameMember(a: LegacyReplayMember, b: LegacyReplayMember): boolean {
+    return (
+        a.id === b.id &&
+        a.symbol === b.symbol &&
+        JSON.stringify(a.condition) === JSON.stringify(b.condition)
+    );
+}
+
+/** The ids the engine holds for these symbols that the replay was not justified for. */
+function outsidersOf(from: LegacyReplaySource, symbols: readonly string[]): string[] {
+    return symbols.flatMap((symbol) => {
+        const population = pending.get(symbol) ?? [];
+        return from
+            .heldAlertsFor(symbol)
+            .filter((held) => !population.some((member) => isSameMember(held, member)))
+            .map((held) => held.id);
+    });
+}
+
+function replayScoped(from: LegacyReplaySource, symbols: readonly string[]): ReplayReport {
+    return from.withAlertsWithheld(outsidersOf(from, symbols), () =>
+        replayClosedCandles({
+            alerts: symbols.map((symbol) => ({ symbol, active: true })),
+            readCandles: from.readCandles,
+            timeframesFor: from.timeframesFor,
+            evaluate: from.evaluate,
+        }),
+    );
 }
 
 type Attempt = "replayed" | "skipped" | "failed";
 
 function attempt(symbol: string): Attempt {
     if (source === null) return "skipped";
-    const report = replayClosedCandles({
-        alerts: [{ symbol, active: true }],
-        readCandles: source.readCandles,
-        timeframesFor: source.timeframesFor,
-        evaluate: source.evaluate,
-    });
+    const report = replayScoped(source, [symbol]);
     if (report.replayed.includes(symbol)) return "replayed";
     if (report.failed.includes(symbol)) return "failed";
     return "skipped";
@@ -107,15 +157,10 @@ function attempt(symbol: string): Attempt {
  */
 export function replayPendingLegacySymbolsAtStartup(): ReplayReport | null {
     if (source === null) return null;
-    const candidates = Array.from(pending).filter((symbol) => !decided.has(symbol));
+    const candidates = Array.from(pending.keys()).filter((symbol) => !decided.has(symbol));
     if (candidates.length === 0) return null;
 
-    const report = replayClosedCandles({
-        alerts: candidates.map((symbol) => ({ symbol, active: true })),
-        readCandles: source.readCandles,
-        timeframesFor: source.timeframesFor,
-        evaluate: source.evaluate,
-    });
+    const report = replayScoped(source, candidates);
 
     // A symbol that replayed or threw is decided; only "no history yet" stays
     // pending for the later hooks to retry.
