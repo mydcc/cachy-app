@@ -21,6 +21,8 @@ set -uo pipefail
 #   - never touches the main checkout or the worktree it runs from
 #   - refuses a branch that is neither merged into origin/develop nor
 #     squash-merged via a GitHub PR (see is_pr_merged)
+#   - refuses a branch that was never worked on (see is_unworked), unless
+#     --abandon names it explicitly
 #   - skips worktrees with a live agent session where it can detect one
 #   - --all reports only, until --apply is added
 #
@@ -28,6 +30,8 @@ set -uo pipefail
 #   bash scripts/worktree-cleanup.sh <branch|path>   # retire one (normal case)
 #   bash scripts/worktree-cleanup.sh --all           # report retirable ones
 #   bash scripts/worktree-cleanup.sh --all --apply   # retire them
+#   bash scripts/worktree-cleanup.sh --abandon <branch|path>
+#                                    # retire one that never got a commit
 #
 # After successful retirements the script re-fetches origin/develop, so the
 # next task branch starts current without a manual fetch.
@@ -80,16 +84,36 @@ branch_of() {
     git -C "$1" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
 
-# True when GitHub reports a MERGED pull request for this head branch.
-# Squash-merges land as brand-new commits, so merge-base ancestry can never
-# prove them merged — without this check every squash-merged worktree would
-# be refused forever. gh-only (no heuristics); absent/broken gh means "no".
+# True when GitHub reports a MERGED pull request whose head commit is exactly
+# this branch's tip. Squash-merges land as brand-new commits, so merge-base
+# ancestry can never prove them merged — without this check every
+# squash-merged worktree would be refused forever. Matching the head commit,
+# not just the branch name, matters twice over: a backlog branch name gets
+# reused for a follow-up task, and a branch can gain commits after its PR
+# merged. gh-only (no heuristics); absent/broken gh means "no".
 is_pr_merged() {
-    local count=""
+    local tip="" heads=""
     command -v gh >/dev/null 2>&1 || return 1
-    count="$(gh pr list --head "$1" --state merged --json number 2>/dev/null |
-        grep -c '"number"')" || return 1
-    [ "$count" -gt 0 ] 2>/dev/null
+    tip="$(git rev-parse --verify --quiet "$1^{commit}")" || return 1
+    heads="$(gh pr list --head "$1" --state merged \
+        --json headRefOid --jq '.[].headRefOid' 2>/dev/null)" || return 1
+    grep -qxF "$tip" <<<"$heads"
+}
+
+# True when the branch tip was itself a tip of origin/develop at some point,
+# i.e. the branch was cut from develop and never received a commit. Such a
+# tip is an ancestor of develop, so ancestry alone reads a brand-new task
+# worktree as "merged" — on 2026-09-14 an --all --apply sweep removed one
+# three minutes after it was created. A branch merged with a merge commit
+# enters develop as a second parent, so its tip is never on the first-parent
+# line and stays retirable without asking GitHub.
+is_unworked() {
+    local tip=""
+    tip="$(git rev-parse --verify --quiet "$1^{commit}")" || return 1
+    # Collect first, then match: `rev-list | grep -q` would let grep close the
+    # pipe early and pipefail would report rev-list's SIGPIPE as "no match".
+    # shellcheck disable=SC2143
+    [ -n "$(git rev-list --first-parent "$BASE" | grep -xF "$tip")" ]
 }
 
 # Returns 0 when the worktree may be retired; otherwise prints why.
@@ -101,10 +125,31 @@ check() {
         echo "uncommitted changes"; return 1
     fi
     if has_active_session "$path"; then echo "agent session active"; return 1; fi
-    if ! git merge-base --is-ancestor "$branch" "$BASE" 2>/dev/null; then
+    if is_unworked "$branch"; then
+        is_pr_merged "$branch" || {
+            echo "no commits beyond $BASE — never worked on (--abandon to retire)"
+            return 1
+        }
+    elif ! git merge-base --is-ancestor "$branch" "$BASE" 2>/dev/null; then
         is_pr_merged "$branch" || { echo "not merged into $BASE"; return 1; }
     fi
     return 0
+}
+
+# --abandon: same safeguards as check(), but only for a branch that never got
+# a commit — so nothing can be lost except the empty worktree itself. It
+# takes an explicit name and never runs from the --all sweep.
+check_abandon() {
+    local path="$1" branch="$2" reason=""
+    reason="$(check "$path" "$branch")" && {
+        echo "already merged — retire it without --abandon"; return 1
+    }
+    case "$reason" in
+        "no commits beyond "*) return 0 ;;
+        "not merged into "*)
+            echo "has commits of its own — push or merge them first"; return 1 ;;
+        *) echo "$reason"; return 1 ;;
+    esac
 }
 
 retire() {
@@ -114,10 +159,12 @@ retire() {
             { gortex untrack "$path" >/dev/null 2>&1 ||
               echo "  note: gortex untrack failed (daemon down?) — rerun later"; }
         git branch -d "$branch" >/dev/null 2>&1 || {
-            # Squash-merged branches are never ancestors, so -d cannot
-            # succeed for them. -D is confined to this branch: check()
-            # already proved the merge via is_pr_merged above.
-            is_pr_merged "$branch" &&
+            # -d compares against the local HEAD, which can lag behind
+            # $BASE, and squash-merged branches are never ancestors at all.
+            # -D is confined to a tip that is provably in $BASE or is the
+            # exact head of a merged PR — check() established one of them.
+            { git merge-base --is-ancestor "$branch" "$BASE" 2>/dev/null ||
+              is_pr_merged "$branch"; } &&
             git branch -D "$branch" >/dev/null 2>&1
         }
         echo "retired  $branch"
@@ -136,9 +183,11 @@ refresh_base() {
 }
 
 if [ "${1:-}" != "--all" ]; then
+    guard=check
+    if [ "${1:-}" = "--abandon" ]; then guard=check_abandon; shift; fi
     target="${1:-}"
     [ -n "$target" ] || {
-        echo "usage: worktree-cleanup.sh <branch|path> | --all [--apply]" >&2
+        echo "usage: worktree-cleanup.sh <branch|path> | --abandon <branch|path> | --all [--apply]" >&2
         exit 1
     }
     path="$(resolve_path "$target")" || {
@@ -146,7 +195,7 @@ if [ "${1:-}" != "--all" ]; then
         exit 1
     }
     branch="$(branch_of "$path")"
-    if reason="$(check "$path" "$branch")"; then
+    if reason="$("$guard" "$path" "$branch")"; then
         retire "$path" "$branch" || exit 1
         refresh_base
     else
