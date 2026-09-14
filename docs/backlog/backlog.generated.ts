@@ -6016,6 +6016,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0467-multi-provider-management.md"
   },
   {
+    "id": "FEAT-0471",
+    "title": "Single AI provider registry with five tabs and fetched model pickers",
+    "type": "feature",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "M8",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ai",
+    "data_class": "A",
+    "adr": "ADR-0019",
+    "depends_on": [
+      "FEAT-0467"
+    ],
+    "file": "features/FEAT-0471-single-provider-registry-five-tabs.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
