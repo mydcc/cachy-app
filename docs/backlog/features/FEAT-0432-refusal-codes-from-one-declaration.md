@@ -2,7 +2,7 @@
 id: FEAT-0432
 title: Generate the refusal-code list from the enum instead of maintaining it twice
 type: feature
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: alerts
 data_class: none
 adr: ADR-0012
 depends_on: []
+assignee: opencode
+start_date: 2026-09-14
+branch: feat/feat-0432-refusal-codes-macro
 ---
 
 # FEAT-0432 — Generate the refusal-code list from the enum instead of maintaining it twice

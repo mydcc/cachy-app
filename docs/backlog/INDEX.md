@@ -4,7 +4,7 @@
 
 352 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-progress 3 · ✅ done 295 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 25 · 🟡 in-progress 3 · ✅ done 296 · ⛔ dropped 1
 
 ---
 
@@ -405,7 +405,7 @@ Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | ai |
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | alerts |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | docs |
-| [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | 🟢 ready | alerts |
+| [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | ✅ done | alerts |
 | [FEAT-0436](features/FEAT-0436-detect-closed-mirror-without-flip.md) | Detect backlog mirror issues that closed without the item being marked done | P3 | 💡 idea | ci |
 | [FEAT-0454](features/FEAT-0454-alert-on-indicator-price-source.md) | Let an indicator alert compute over the price source its card is set to | P3 | 🟡 in-progress | alerts |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
@@ -757,7 +757,7 @@ Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 💡 idea | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | 🟢 ready | none | community, pro, private | none | ADR-0012 | — |
+| [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | ✅ done | none | community, pro, private | none | ADR-0012 | — |
 | [FEAT-0436](features/FEAT-0436-detect-closed-mirror-without-flip.md) | Detect backlog mirror issues that closed without the item being marked done | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0454](features/FEAT-0454-alert-on-indicator-price-source.md) | Let an indicator alert compute over the price source its card is set to | P3 | 🟡 in-progress | none | community, pro, private | none | ADR-0012 | [BUG-0453](bugs/BUG-0453-card-alert-ignores-price-source.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
