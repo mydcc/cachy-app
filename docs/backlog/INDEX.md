@@ -4,7 +4,7 @@
 
 351 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 2 · ✅ done 292 · ⛔ dropped 1
+Counts by status: 💡 idea 28 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-progress 2 · ✅ done 293 · ⛔ dropped 1
 
 ---
 
@@ -297,7 +297,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | ci |
 | [BUG-0441](bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md) | A legacy alert whose target was crossed while the app was closed never fires | P2 | ✅ done | alerts |
 | [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | ✅ done | journal |
-| [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | 💡 idea | alerts |
+| [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | ✅ done | alerts |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | 📋 specced | repo |
 | [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 📋 specced | alerts |
 | [BUG-0452](bugs/BUG-0452-wasm-momentum-off-by-one.md) | The WASM momentum is a change over one candle more than its period | P2 | ✅ done | indicators |
@@ -598,7 +598,7 @@ Counts by status: 💡 idea 29 · 📋 specced 26 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0435](bugs/BUG-0435-presence-and-flip-declaration-semantics.md) | The body lint mutates the description and the two gates disagree on what it declares | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0441](bugs/BUG-0441-legacy-alert-cold-baseline-never-fires.md) | A legacy alert whose target was crossed while the app was closed never fires | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0442](bugs/BUG-0442-destroyed-journal-store-still-writes.md) | A destroyed journal store can still write to localStorage | P2 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) |
+| [BUG-0444](bugs/BUG-0444-slotof-claims-unreadable-shapes.md) | slotOf() claims shapes readers cannot round-trip (visit-time wipe) | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0443](bugs/BUG-0443-builder-tab-switch-wipes-condition.md) |
 | [BUG-0445](bugs/BUG-0445-push-guard-matches-across-chained-commands.md) | The push guard matches a branch name from a later command in the same line | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0448](bugs/BUG-0448-mid-session-arm-fires-historical-crossing.md) | An alert armed mid-session on a still-pending legacy symbol can fire from a historical crossing | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0452](bugs/BUG-0452-wasm-momentum-off-by-one.md) | The WASM momentum is a change over one candle more than its period | P2 | ✅ done | none | community, pro, private | none | none | — |

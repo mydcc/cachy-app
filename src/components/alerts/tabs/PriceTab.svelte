@@ -41,7 +41,6 @@
 -->
 
 <script lang="ts">
-    import Decimal from "decimal.js";
     import { _ } from "../../../locales/i18n";
     import {
         alertPanelState,
@@ -49,9 +48,14 @@
     } from "../../../stores/alertPanel.svelte";
     import type { Condition, PriceSource } from "../../../lib/rules/types";
     import {
-        readPriceForm,
+        BLANK_PRICE_FORM,
+        readPriceReading,
         type PriceConditionKind,
     } from "../../../lib/alerts/priceConditionForm";
+    import {
+        buildPriceCondition,
+        parsePriceThreshold,
+    } from "../../../lib/alerts/priceFormLeaf";
     import type { TranslationKey } from "../../../locales/schema";
 
     let { symbol: _symbol }: { symbol: string } = $props();
@@ -85,8 +89,18 @@
      * discards a half-built condition. Read once at init on purpose -- from
      * here on the form owns the document, and re-reading it on every write
      * would fight the write-through effect below.
+     *
+     * The field and the series are read back too (BUG-0444). They are panel
+     * state the builder applies, and a chart click seeds the draft straight
+     * after `reset()` put them back to close and last: without this the
+     * mount-time write turned a mark-price alert into a last-price one.
      */
-    const initial = readPriceForm(alertPanelState.draft.conditions);
+    const reading = readPriceReading(alertPanelState.draft.conditions);
+    const initial = reading?.form ?? BLANK_PRICE_FORM;
+    if (reading) {
+        alertPanelState.priceField = reading.field;
+        alertPanelState.priceSeries = reading.source;
+    }
 
     let kind = $state<PriceConditionKind>(initial.kind);
     /** The threshold, as typed. A string so a half-typed "60." is not mangled. */
@@ -96,78 +110,23 @@
 
     let isPercent = $derived(kind === "rise_reaches" || kind === "fall_reaches");
 
-    /**
-     * The typed threshold as a Decimal, or null while it is not a number yet.
-     *
-     * `Decimal` throws on unparseable input and this runs on every keystroke,
-     * so the throw is caught rather than allowed to take the panel down over a
-     * lone minus sign.
-     */
-    let parsedThreshold = $derived.by(() => {
-        const raw = threshold.trim();
-        if (raw === "") return null;
-        try {
-            const value = new Decimal(raw);
-            return value.isFinite() ? value : null;
-        } catch {
-            return null;
-        }
-    });
-
-    /**
-     * A decimal as plain digits, never in exponential notation.
-     *
-     * `toString()` switches to `1.23456789e-7` below 1e-7, and that spelling
-     * would travel into the rule document, into its content hash, and on to a
-     * core that expects plain decimal strings. `toFixed()` with no argument
-     * keeps the exact value in normal notation, which is the same rule the
-     * klines route already follows for small prices.
-     */
-    function plainDecimal(value: Decimal): string {
-        return value.toFixed();
-    }
+    /** The typed threshold as a Decimal, or null while it is not a number yet. */
+    let parsedThreshold = $derived(parsePriceThreshold(threshold));
 
     /**
      * The condition the current form describes, or null when it is not usable
-     * yet. Never throws: the shell validates on every edit.
+     * yet. The builder is shared with the reader, which claims a condition
+     * only when this rebuilds it unchanged (`priceFormLeaf.ts`).
      */
     function buildCondition(): Condition | null {
-        const value = parsedThreshold;
-        if (value === null) return null;
-
-        const timeframe = alertPanelState.draft.trigger_timeframe;
-        const field = alertPanelState.priceField;
-        const source = alertPanelState.priceSeries;
-        // `source` is left off entirely for the last series, so a rule that
-        // reads it serialises exactly as it did before this field existed and
-        // keeps its content hash.
-        const seriesPart = source === "mark" ? { source } : {};
-
-        if (kind === "rises_above" || kind === "falls_below") {
-            // A negative or zero price is not a level anything crosses.
-            if (value.lte(0)) return null;
-            return {
-                kind: "cross",
-                left: { kind: "price", field, ...seriesPart },
-                direction: kind === "rises_above" ? "above" : "below",
-                right: { kind: "constant", value: plainDecimal(value) },
-                timeframe,
-            };
-        }
-
-        // A move of zero percent is every candle, which is an alarm that never
-        // stops rather than one that never fires.
-        if (value.lte(0)) return null;
-        if (!Number.isInteger(lookback) || lookback < 1) return null;
-
-        const signed = kind === "rise_reaches" ? value : value.negated();
-        return {
-            kind: "compare",
-            left: { kind: "percent_change", field, ...seriesPart, lookback },
-            op: kind === "rise_reaches" ? "gte" : "lte",
-            right: { kind: "constant", value: plainDecimal(signed) },
-            timeframe,
-        };
+        return buildPriceCondition(
+            {
+                form: { kind, threshold, lookback },
+                field: alertPanelState.priceField,
+                source: alertPanelState.priceSeries,
+            },
+            alertPanelState.draft.trigger_timeframe,
+        );
     }
 
     // The document is the single source of truth (see alertPanel.svelte.ts), so
