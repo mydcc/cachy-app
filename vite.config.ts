@@ -60,6 +60,8 @@ const VITEST_EXCLUDE = [
   ".worktrees/**",
   // Playwright specs must only run via `npm run test:e2e`, not Vitest
   "tests/e2e/**",
+  // The WebGPU parity suite needs a real browser adapter: `npm run test:gpu`.
+  "tests/gpu/**",
   // Benchmarks that assert wall-clock time or heap growth. They are useful
   // signals but cannot be pass/fail gates: on a shared CI runner a single GC
   // pause moves the result more than any real regression would. The scaling

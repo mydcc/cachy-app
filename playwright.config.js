@@ -19,6 +19,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  // Needs no app server and its own browser flags: playwright.gpu.config.ts.
+  testIgnore: '**/gpu/**',
   fullyParallel: true,
   reporter: 'html',
   use: {

@@ -31,6 +31,7 @@
     "test:changed": "bash ./scripts/run-lowpri.sh vitest run --changed",
     "test:seq": "bash ./scripts/run-lowpri.sh vitest run --no-file-parallelism",
     "test:e2e": "playwright test tests/e2e",
+    "test:gpu": "playwright test --config playwright.gpu.config.ts",
     "test:perf": "vitest run --config vitest.perf.config.ts",
     "benchmark:technicals": "vitest bench",
     "backlog:index": "node scripts/backlog-index.mjs",
