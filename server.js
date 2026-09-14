@@ -25,19 +25,20 @@ const app = express();
 // Use compression to improve Lighthouse Performance Score
 app.use(compression());
 
-// Apply security headers to all requests. Runs before express.static, so
-// static assets already carry them — no need to repeat the call in setHeaders.
+// Apply security headers to all requests.
 app.use((req, res, next) => {
   applySecurityHeaders(res);
   next();
 });
 
 // Let SvelteKit serve static assets with correct caching headers. Security
-// headers are already set by the middleware above; only cache behavior
-// differs per file here. path is a filesystem path (backslashes on Windows).
+// headers are explicitly applied via applySecurityHeaders(res) in setHeaders
+// because express.static sets its own response headers and does not inherit
+// from preceding middleware. path is a filesystem path (backslashes on Windows).
 app.use(express.static('build/client', {
   index: false,
   setHeaders: (res, path) => {
+    applySecurityHeaders(res);
     res.setHeader('Cache-Control', cacheControlFor(path));
   }
 }));

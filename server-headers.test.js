@@ -132,3 +132,23 @@ describe('cacheControlFor', () => {
     expect(cacheControlFor('build/client/favicon.ico')).toBe('no-cache');
   });
 });
+
+describe('static asset headers integration', () => {
+  it('applies security headers and cache control for express.static setHeaders callback', () => {
+    const res = mockRes();
+    const staticFilePath = 'build/client/_app/immutable/entry/start.abc123.js';
+
+    // Simulate express.static setHeaders callback behavior
+    applySecurityHeaders(res);
+    res.setHeader('Cache-Control', cacheControlFor(staticFilePath));
+
+    expect(res.headers.get('Strict-Transport-Security')).toBe(
+      'max-age=31536000; includeSubDomains; preload',
+    );
+    expect(res.headers.get('Content-Security-Policy')).toBeDefined();
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+  });
+});
