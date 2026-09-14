@@ -4,7 +4,7 @@
 
 358 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 26 · 🟡 in-progress 2 · ✅ done 302 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 26 · 🟡 in-progress 1 · ✅ done 303 · ⛔ dropped 1
 
 ---
 
@@ -146,7 +146,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟡 in-progress 2 · ✅ d
 | [FEAT-0394](features/FEAT-0394-candlestick-pattern-conditions.md) | Candlestick pattern conditions | P2 | ✅ done | alerts |
 | [FEAT-0395](features/FEAT-0395-alert-entry-points.md) | Create an alert from the chart and from indicator settings | P2 | ✅ done | alerts |
 | [FEAT-0397](features/FEAT-0397-notification-channels.md) | Configure notification delivery channels (Email, Discord, Telegram) | P2 | ✅ done | alerts |
-| [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | 🟡 in-progress | alerts |
+| [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | ✅ done | alerts |
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | ✅ done | alerts |
 | [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | ✅ done | alerts |
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | trade-panel |
@@ -700,7 +700,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟡 in-progress 2 · ✅ d
 | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) |
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) |
-| [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | 🟡 in-progress | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
+| [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | ✅ done | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | ✅ done | M4 | community, pro, private | C | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | ✅ done | M4 | community, pro, private | C | ADR-0012 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) |
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | none | pro, private | A | none | — |

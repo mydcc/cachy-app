@@ -38,11 +38,16 @@ indicator alerts trustworthy or not.
 
 ## Acceptance criteria
 
-- [ ] Each condition fires correctly against recorded historical data, tested
-      per indicator — owned by [`FEAT-0438`](FEAT-0438-recorded-history-condition-correctness.md)
+- [x] Each condition fires correctly against recorded historical data, tested
+      per indicator — owned by [`FEAT-0438`](FEAT-0438-recorded-history-condition-correctness.md):
+      `src/services/alertEngine/recordedHistoryConditions.test.ts`, twelve conditions
+      pinned to their flip candle against an independent oracle over 1000 recorded
+      BTCUSDT candles
 - [ ] Closed-candle evaluation is the default and intra-candle is opt-in per
       alert
-- [ ] Recalculation on a corrected candle does not double-fire
+- [x] Recalculation on a corrected candle does not double-fire —
+      `src/services/alertEngine/correctedCandle.integration.test.ts` (revised last
+      candle, full replay after reconnect, a genuinely new candle still fires)
 - [x] Conditions produce identical results across the WASM, GPU and JS paths —
       or the discrepancy is documented. WASM↔JS: `src/services/alertEngine/crossPathParity.test.ts`.
       GPU↔JS: `tests/gpu/webGpuParity.spec.ts` ([`FEAT-0439`](FEAT-0439-webgpu-cross-path-parity.md)),
