@@ -1,5 +1,5 @@
 ---
-id: BUG-0472
+id: BUG-0476
 title: The raw stochastic shader cannot see a low above 10,000,000
 type: bug
 status: specced
@@ -12,7 +12,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0472 — The raw stochastic shader cannot see a low above 10,000,000
+# BUG-0476 — The raw stochastic shader cannot see a low above 10,000,000
 
 ## Symptom
 

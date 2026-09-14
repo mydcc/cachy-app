@@ -74,7 +74,7 @@ GPU adapter — reporting "no adapter, not run" — rather than passing green on
       the test, not a hand-tuned constant — `tests/gpu/f32Bound.ts`
 - [x] An indicator that cannot meet its derived bound produces a documented discrepancy
       entry, and the docs say which path the chart and the evaluator each use —
-      `KNOWN_DISCREPANCIES` (four series, [`BUG-0471`](../bugs/BUG-0471-gpu-stages-start-before-their-input.md));
+      `KNOWN_DISCREPANCIES` (four series, [`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md));
       paths in "Which path draws, which path decides" below
 - [x] With no GPU adapter available the suite reports "not run" and fails loudly rather
       than reporting success
@@ -158,12 +158,12 @@ Four mutations, each run against the finished suite:
 
 ### Found, and not this change's to fix
 
-- [`BUG-0471`](../bugs/BUG-0471-gpu-stages-start-before-their-input.md) — ATR, SuperTrend
+- [`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md) — ATR, SuperTrend
   and the MACD signal start before their input has a value. At candle 33 the GPU's MACD
   signal is +7,976.87 where JS has −178.00. The divergence decays and is inside the
   bound from candle 83 on, so a 750-candle chart is not affected, but a short one is.
   Pinned in `KNOWN_DISCREPANCIES`.
-- [`BUG-0472`](../bugs/BUG-0472-stoch-raw-shader-caps-lows-at-ten-million.md) — the raw
+- [`BUG-0476`](../bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) — the raw
   stochastic shader starts its lowest low at 10,000,000. Latent; the fixture cannot
   reach it.
 

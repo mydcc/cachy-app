@@ -48,7 +48,7 @@ indicator alerts trustworthy or not.
       GPU↔JS: `tests/gpu/webGpuParity.spec.ts` ([`FEAT-0439`](FEAT-0439-webgpu-cross-path-parity.md)),
       within a derived `f32` bound for all 16 shaders and the MACD, Bollinger, HMA and
       stochastic composites; four series diverge during warmup and are documented in
-      [`BUG-0471`](../bugs/BUG-0471-gpu-stages-start-before-their-input.md). MACD and
+      [`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md). MACD and
       Bollinger do have a GPU path — an earlier note here expected otherwise
 - [ ] German and English strings
 

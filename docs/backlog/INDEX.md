@@ -2,9 +2,9 @@
 
 # Backlog index
 
-356 items. How to read and add them: [README.md](README.md).
+358 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ done 301 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 26 · 🟡 in-progress 2 · ✅ done 302 · ⛔ dropped 1
 
 ---
 
@@ -386,8 +386,8 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0463](bugs/BUG-0463-ichimoku-lines-zero-before-window.md) | Ichimoku lines are zero until their windows are full | P3 | ✅ done | indicators |
 | [BUG-0464](bugs/BUG-0464-test-oracles-cross-convention.md) | The condition test oracles define a cross differently from the core | P3 | ✅ done | alerts |
 | [BUG-0466](bugs/BUG-0466-chat-cloud-subscription-lifecycle.md) | Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions | P3 | ✅ done | cloud |
-| [BUG-0471](bugs/BUG-0471-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | 📋 specced | alerts |
-| [BUG-0472](bugs/BUG-0472-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | 📋 specced | alerts |
+| [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | 📋 specced | alerts |
+| [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | 📋 specced | alerts |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -739,8 +739,8 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0463](bugs/BUG-0463-ichimoku-lines-zero-before-window.md) | Ichimoku lines are zero until their windows are full | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0464](bugs/BUG-0464-test-oracles-cross-convention.md) | The condition test oracles define a cross differently from the core | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0466](bugs/BUG-0466-chat-cloud-subscription-lifecycle.md) | Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions | P3 | ✅ done | none | community, pro, private | B | ADR-0001 | — |
-| [BUG-0471](bugs/BUG-0471-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | 📋 specced | none | community, pro, private | C | none | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) |
-| [BUG-0472](bugs/BUG-0472-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | 📋 specced | none | community, pro, private | C | none | — |
+| [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | 📋 specced | none | community, pro, private | C | none | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) |
+| [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | 📋 specced | none | community, pro, private | C | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -790,4 +790,4 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 
 ---
 
-Next free number: **0475**
+Next free number: **0477**

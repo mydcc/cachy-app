@@ -1,5 +1,5 @@
 ---
-id: BUG-0471
+id: BUG-0475
 title: The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet
 type: bug
 status: specced
@@ -12,7 +12,7 @@ adr: none
 depends_on: [FEAT-0439]
 ---
 
-# BUG-0471 — The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet
+# BUG-0475 — The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet
 
 ## Symptom
 

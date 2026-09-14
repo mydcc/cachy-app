@@ -60,7 +60,7 @@ const ORIGIN = 'https://gpu-parity.test/';
  * entry, and a list of disagreements that outlives them reads as a GPU path
  * that cannot be trusted when it can.
  *
- * All four share one cause, recorded in BUG-0471: a stage that starts before
+ * All four share one cause, recorded in BUG-0475: a stage that starts before
  * its input has a value. The divergence is largest at the first candle and
  * decays with the indicator's memory, so `calculate()` — which reads only the
  * newest candle — is affected only for series shorter than the entry's

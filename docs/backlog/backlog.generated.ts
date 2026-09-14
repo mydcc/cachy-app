@@ -6759,7 +6759,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0466-chat-cloud-subscription-lifecycle.md"
   },
   {
-    "id": "BUG-0471",
+    "id": "BUG-0475",
     "title": "The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet",
     "type": "bug",
     "status": "specced",
@@ -6776,10 +6776,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0439"
     ],
-    "file": "bugs/BUG-0471-gpu-stages-start-before-their-input.md"
+    "file": "bugs/BUG-0475-gpu-stages-start-before-their-input.md"
   },
   {
-    "id": "BUG-0472",
+    "id": "BUG-0476",
     "title": "The raw stochastic shader cannot see a low above 10,000,000",
     "type": "bug",
     "status": "specced",
@@ -6794,7 +6794,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "C",
     "adr": "none",
     "depends_on": [],
-    "file": "bugs/BUG-0472-stoch-raw-shader-caps-lows-at-ten-million.md"
+    "file": "bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md"
   },
   {
     "id": "FEAT-0022",
