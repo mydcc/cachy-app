@@ -7325,7 +7325,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0453"
     ],
     "assignee": "claude-code",
-    "branch": "feat/feat-0454-indicator-price-source",
+    "branch": "feat/feat-0454-card-price-source",
     "start_date": "2026-09-14",
     "file": "features/FEAT-0454-alert-on-indicator-price-source.md"
   },

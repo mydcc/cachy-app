@@ -11,7 +11,7 @@ data_class: none
 adr: ADR-0012
 depends_on: [BUG-0453]
 assignee: claude-code
-branch: feat/feat-0454-indicator-price-source
+branch: feat/feat-0454-card-price-source
 start_date: 2026-09-14
 ---
 
