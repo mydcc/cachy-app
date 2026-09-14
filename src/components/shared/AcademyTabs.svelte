@@ -20,6 +20,8 @@
   `tablist` container, `tab` buttons with `aria-selected`, arrow-key
   navigation with focus management. `idPrefix` keeps tab/panel ids unique
   when more than one Academy view is mounted.
+  No `aria-controls`: only the active panel is rendered, so an inactive
+  tab would reference an ID that is not in the DOM.
 -->
 
 <script lang="ts">
@@ -40,10 +42,6 @@
 
    function tabId(tab: AcademyTab): string {
       return `${idPrefix}-tab-${tab}`;
-   }
-
-   function panelId(tab: AcademyTab): string {
-      return `${idPrefix}-panel-${tab}`;
    }
 
    function focusTab(index: number) {
@@ -86,7 +84,6 @@
          role="tab"
          id={tabId(tab)}
          aria-selected={selected}
-         aria-controls={panelId(tab)}
          tabindex={selected ? 0 : -1}
          class="flex-1 min-w-[140px] py-2.5 text-center text-xs font-black uppercase tracking-widest rounded-md transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-color)] {selected
             ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm'
