@@ -73,6 +73,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { Decimal } from "decimal.js";
 
+import { seedFromIndicatorSettings } from "../../lib/alerts/indicatorSettingsSeed";
 import { collectIndicators, type IndicatorRequest } from "../../lib/rules/indicatorRequests";
 import { computeIndicatorSeries } from "../../lib/rules/indicatorSeries";
 import { ruleSchema } from "../../lib/rules/ruleSchema";
@@ -400,12 +401,24 @@ function walk(condition: Condition, from: number): Walk {
 // The conditions, and where each one flips in this fixture
 // ---------------------------------------------------------------------------
 
+/** The subject of the condition a settings card seeds (FEAT-0395). */
+function seededSubject(settingsKey: string, card: Record<string, unknown>): Operand {
+  const seed = seedFromIndicatorSettings(settingsKey, card, "BTCUSDT");
+  const condition = seed?.condition;
+  if (condition?.kind !== "compare" && condition?.kind !== "cross") {
+    throw new Error(`${settingsKey} seeds no indicator condition`);
+  }
+  return condition.left;
+}
+
 const RSI14 = indicator("rsi", { period: 14 });
-/** FEAT-0454: the RSI a card set to hl2 draws, over `(high + low) / 2`. */
-const RSI14_HL2: Operand = {
-  kind: "indicator",
-  indicator: { id: "rsi", params: { period: 14 }, field: "hl2" },
-};
+/**
+ * FEAT-0454: the RSI a card set to hl2 draws, over `(high + low) / 2`. Taken
+ * from the alert the card itself seeds rather than written out, so this
+ * expectation is the alert a trader arms there: a seed that stopped carrying
+ * the price would compute the close's RSI and flip at other candles.
+ */
+const RSI14_HL2: Operand = seededSubject("rsi", { length: 14, source: "hl2" });
 const MACD_PARAMS = { fast_period: 12, slow_period: 26, signal_period: 9 };
 const MACD_LINE = indicator("macd", MACD_PARAMS, "macd");
 const MACD_SIGNAL = indicator("macd", MACD_PARAMS, "signal");
