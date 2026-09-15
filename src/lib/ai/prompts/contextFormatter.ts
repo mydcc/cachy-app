@@ -3,9 +3,12 @@
  */
 
 /**
- * Strip markdown links and bare URLs from untrusted third-party strings
- * before they enter the AI prompt — BUG-0473. The model has no browser, so
+ * Strip markdown links, bare URLs and backticks from untrusted third-party
+ * strings before they enter the AI prompt — BUG-0473. The model has no browser, so
  * links carry no information; they only widen the prompt-injection surface.
+ * Backticks go too: a ``` run inside a headline would break the ```json fence
+ * around the context block and allow fence-text spoofing (e.g. a fake
+ * ### END DATA line).
  * Cosmetic only: the real boundary is the CURRENT DATA delimiter in
  * formatDynamicContext plus the data-trust rule in safetyRules.
  * Total: non-string input (e.g. a missing feed field) yields "" instead of
@@ -15,7 +18,8 @@ export function stripMarkdownLinks(value: unknown): string {
   if (typeof value !== "string") return "";
   return value
     .replace(/\[([^\]\n]*)\]\(\s*[^)\n]+\s*\)/g, "$1")
-    .replace(/https?:\/\/\S+/g, "[link]");
+    .replace(/https?:\/\/\S+/g, "[link]")
+    .replace(/`/g, "'");
 }
 
 export function formatTemporalRules(): string {
