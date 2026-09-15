@@ -75,8 +75,9 @@ handling.
 - Data-boundary delimiters in `formatDynamicContext`: the JSON context is
   wrapped in `### CURRENT DATA (UNTRUSTED ...)` + ` ```json ` ... ` ``` ` +
   `### END DATA`.
-- `stripMarkdownLinks` in `contextFormatter.ts`, applied to news titles in
-  `gatherContext` (`title` only; `source`, count and `ago` handling untouched).
+- `stripMarkdownLinks` in `contextFormatter.ts`, applied to news titles and
+  source names in `gatherContext` (links, bare URLs and backticks stripped;
+  non-string input yields ""; count and `ago` handling untouched).
 - `DATA TRUST BOUNDARY` rule in `safetyRules.ts` plus an untrusted qualifier
   on the `LATEST NEWS` capability line.
 - Three tests in `src/tests/ai/prompts.test.ts`: injection marker lands
