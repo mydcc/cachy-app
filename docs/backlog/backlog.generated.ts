@@ -6804,6 +6804,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md"
   },
   {
+    "id": "BUG-0478",
+    "title": "Indicator i18n guard misses runtime keys built from condition enums",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0028"
+    ],
+    "file": "bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",

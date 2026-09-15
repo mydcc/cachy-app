@@ -2,9 +2,9 @@
 
 # Backlog index
 
-358 items. How to read and add them: [README.md](README.md).
+359 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 308 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 308 · ⛔ dropped 1
 
 ---
 
@@ -388,6 +388,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0466](bugs/BUG-0466-chat-cloud-subscription-lifecycle.md) | Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions | P3 | ✅ done | cloud |
 | [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | ✅ done | alerts |
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | alerts |
+| [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | 📋 specced | alerts |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -741,6 +742,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0466](bugs/BUG-0466-chat-cloud-subscription-lifecycle.md) | Global Chat re-registers its table listener on every reconnect and never releases its cloud subscriptions | P3 | ✅ done | none | community, pro, private | B | ADR-0001 | — |
 | [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | ✅ done | none | community, pro, private | C | none | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) |
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | none | community, pro, private | C | none | — |
+| [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | 📋 specced | none | community, pro, private | A | none | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -790,4 +792,4 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0477**
+Next free number: **0479**
