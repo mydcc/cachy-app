@@ -75,10 +75,19 @@
         pendingId = null;
     }
 
-    function usesLine(entry: AlertTemplate): string {
-        const names = (INDICATORS_BY_TEMPLATE.get(entry.id) ?? []).map((id) => $_(key(nameKey(id))));
-        return $_("dashboard.alerts.templates.uses", { values: { indicators: names.join(", ") } });
-    }
+    /** Card text per template, built once per render instead of per row inside `{#each}`. */
+    let cards = $derived(
+        shown.map((entry) => ({
+            entry,
+            uses: $_("dashboard.alerts.templates.uses", {
+                values: {
+                    indicators: (INDICATORS_BY_TEMPLATE.get(entry.id) ?? [])
+                        .map((id) => $_(key(nameKey(id))))
+                        .join(", "),
+                },
+            }),
+        })),
+    );
 
     function load(entry: AlertTemplate) {
         if (hasRuleInProgress && pendingId !== entry.id) {
@@ -118,14 +127,14 @@
     </div>
 
     <ul class="cards">
-        {#each shown as entry (entry.id)}
+        {#each cards as { entry, uses } (entry.id)}
             <li class="card" data-template={entry.id}>
                 <div class="card-head">
                     <h4 class="card-name">{$_(key(templateNameKey(entry.id)))}</h4>
                     <span class="badge">{entry.timeframe}</span>
                 </div>
                 <p class="card-description">{$_(key(templateDescriptionKey(entry.id)))}</p>
-                <p class="card-uses">{usesLine(entry)}</p>
+                <p class="card-uses">{uses}</p>
 
                 {#if pendingId === entry.id}
                     <p class="replace-hint" role="alert">
