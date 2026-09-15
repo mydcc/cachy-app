@@ -1188,6 +1188,9 @@ class AiManager {
     }
 
     try {
+      // Cases mirror AI_ACTION_CATALOG — anything else is refused by the
+      // guard above, so adding a new executable action means adding the
+      // catalog entry and its case here together.
       switch (action.action) {
         case "setEntryPrice":
           if (action.value !== undefined) {
@@ -1234,13 +1237,7 @@ class AiManager {
             tradeState.riskPercentage = String(parseAiValue(action.value as string));
           }
           break;
-        case "setSymbol":
-          if (action.value !== undefined) {
-            tradeState.symbol = String(action.value);
-          }
-          break;
-        case "setAtrMultiplier":
-        case "setStopLossATR": {
+        case "setAtrMultiplier": {
           const mult = action.value || action.atrMultiplier;
           if (mult !== undefined) {
             // parseAiValue returns Decimal, convert to string for tradeState
@@ -1274,34 +1271,6 @@ class AiManager {
           if (typeof action.index === "number" && tradeState.targets.length > 1) {
             app.removeTakeProfitRow(action.index);
           }
-          break;
-        case "setAtrMode":
-          if (action.value === "auto" || action.value === "manual") {
-            tradeState.atrMode = action.value;
-          }
-          break;
-        case "setAtrTimeframe":
-          if (typeof action.value === "string") {
-            tradeState.atrTimeframe = action.value;
-          }
-          break;
-        case "setAnalysisTimeframe":
-          if (typeof action.value === "string") {
-            tradeState.analysisTimeframe = action.value;
-          }
-          break;
-        case "setAutoPrice":
-          if (typeof action.value === "boolean" && settingsState.aiAllowSettingsChanges) {
-            settingsState.autoUpdatePriceInput = action.value;
-          }
-          break;
-        case "setAccountSize":
-          if (action.value !== undefined) {
-            tradeState.accountSize = String(parseAiValue(action.value as string));
-          }
-          break;
-        case "resetSetup":
-          tradeState.resetInputs(true, true);
           break;
         case "setNotes":
           if (typeof action.value === "string") {
