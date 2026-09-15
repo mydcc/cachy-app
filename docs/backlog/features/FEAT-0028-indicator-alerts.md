@@ -2,7 +2,7 @@
 id: FEAT-0028
 title: Alerts on indicator conditions
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: M4
 editions: [community, pro, private]
@@ -43,8 +43,13 @@ indicator alerts trustworthy or not.
       `src/services/alertEngine/recordedHistoryConditions.test.ts`, twelve conditions
       pinned to their flip candle against an independent oracle over 1000 recorded
       BTCUSDT candles
-- [ ] Closed-candle evaluation is the default and intra-candle is opt-in per
-      alert
+- [x] Closed-candle evaluation is the default ~~and intra-candle is opt-in per
+      alert~~ — closed-candle is the only mode: `RuleEvaluationLoop` yields an
+      anchor only once a strictly later open time appears, so no condition is
+      decided on an open candle. The intra-candle opt-in was split out on
+      2026-09-15 into [`FEAT-0477`](FEAT-0477-intra-candle-alert-evaluation.md);
+      it has to add its own once-per-candle state without weakening the AC3 guard,
+      which is its own piece of work rather than a tick box here
 - [x] Recalculation on a corrected candle does not double-fire —
       `src/services/alertEngine/correctedCandle.integration.test.ts` (revised last
       candle, full replay after reconnect, a genuinely new candle still fires)
@@ -57,7 +62,13 @@ indicator alerts trustworthy or not.
       [`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md); no
       discrepancy is documented any more. MACD and
       Bollinger do have a GPU path — an earlier note here expected otherwise
-- [ ] German and English strings
+- [x] German and English strings — every key the catalogue builds at runtime
+      (`nameKey`, `outputKey`, `paramKey`, group names and hints, over the whole
+      registry) resolves to a non-empty string in both locales, and the
+      `dashboard.alerts.indicators` subtree carries the same keys in German and
+      English: `src/lib/alerts/indicatorCatalogue.test.ts`, "indicator alert
+      strings". Those keys are cast to `TranslationKey`, so no type check covered
+      them; removing German `output.span_b` fails both tests by name
 
 ## Note added while planning the Super-Alert work (2026-09-04)
 
@@ -381,3 +392,12 @@ Both remaining acceptance criteria are unchanged by this work:
   work owed to both items, not two.
 - **AC 4** still covers WASM and JS but not WebGPU, which needs a browser and
   belongs in Playwright.
+
+## Closed (2026-09-15)
+
+The "still open" notes above are history: AC 1 closed with
+[`FEAT-0438`](FEAT-0438-recorded-history-condition-correctness.md), AC 4's WebGPU
+leg with [`FEAT-0439`](FEAT-0439-webgpu-cross-path-parity.md) and
+[`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md), AC 5 with
+the locale test in `indicatorCatalogue.test.ts`. AC 2's intra-candle opt-in lives
+on as [`FEAT-0477`](FEAT-0477-intra-candle-alert-evaluation.md).

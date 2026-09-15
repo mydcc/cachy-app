@@ -4205,7 +4205,7 @@
       "id": "FEAT-0028",
       "title": "Alerts on indicator conditions",
       "type": "feature",
-      "status": "in-progress",
+      "status": "done",
       "priority": "P2",
       "milestone": "M4",
       "editions": [
@@ -7447,6 +7447,26 @@
       "file": "features/FEAT-0454-alert-on-indicator-price-source.md"
     },
     {
+      "id": "FEAT-0477",
+      "title": "Offer intra-candle evaluation as an explicit per-alert opt-in",
+      "type": "feature",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [
+        "FEAT-0028"
+      ],
+      "file": "features/FEAT-0477-intra-candle-alert-evaluation.md"
+    },
+    {
       "id": "IDEA-0036",
       "title": "A gamified fork built on SpacetimeDB and the 3D layer",
       "type": "idea",
@@ -7758,5 +7778,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 359
+  "count": 360
 }
