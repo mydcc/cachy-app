@@ -170,7 +170,7 @@ export async function signCachyRequest(
 /**
  * Signs and dispatches one Cachy request.
  *
- * `headers` is merged after the envelope, so a caller can add `x-provider` or
+ * `headers` is merged before the envelope, so a caller can add `x-provider` or
  * `content-type` but cannot overwrite `x-api-key` or `x-api-sign`.
  */
 export async function exchangeSignedFetch(
@@ -183,8 +183,12 @@ export async function exchangeSignedFetch(
 
   const headers: Record<string, string> = {
     "content-type": "application/json",
-    ...signed.headers,
     ...input.headers,
+    // Last, so the envelope cannot be displaced by a caller-supplied header.
+    // A caller that spreads its own `x-api-key` would otherwise sign with one
+    // key and advertise another, and the server guard could not tell — it
+    // compares signed bytes, not key identity.
+    ...signed.headers,
   };
 
   const doFetch = input.fetchFn ?? fetch;

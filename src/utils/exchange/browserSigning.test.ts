@@ -20,7 +20,7 @@
  * anywhere, and no passphrase outside the Bitget-reachable routes. A test that
  * only checked the signature was present would pass while the boundary leaked.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { SIGNING_ERRORS, exchangeSignedFetch, signCachyRequest } from "./browserSigning";
 
 const KEYS = {
@@ -183,6 +183,20 @@ describe("signCachyRequest — preconditions", () => {
     ).rejects.toThrow(SIGNING_ERRORS.VENUE_NOT_SUPPORTED);
   });
 
+  // ADR-0013 failure mode 3. Without the guard the signers fail on
+  // `.digest of undefined` inside `crypto.subtle`, which reads as a broken app
+  // rather than as "this origin is not a secure context".
+  it("refuses to sign outside a secure context", async () => {
+    vi.stubGlobal("crypto", {});
+    try {
+      await expect(
+        signCachyRequest({ cachyPath: "/api/sync", keys: BITUNIX_KEYS, now: NOW }),
+      ).rejects.toThrow(SIGNING_ERRORS.INSECURE_CONTEXT);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("infers the venue on a single-venue route", async () => {
     const signed = await signCachyRequest({
       cachyPath: "/api/sync",
@@ -252,5 +266,30 @@ describe("exchangeSignedFetch", () => {
     expect(captured["x-provider"]).toBe("bitunix");
     expect(captured["x-api-sign"]).toMatch(/^[0-9a-f]{64}$/);
     expect(captured["x-api-secret"]).toBeUndefined();
+  });
+
+  // The envelope is merged last precisely so a caller cannot displace it. A
+  // caller that passes its own `x-api-key` would otherwise sign with one key and
+  // advertise another, which the server guard cannot detect — it compares signed
+  // bytes, not key identity.
+  it("keeps envelope when caller passes colliding credentials", async () => {
+    let captured: Record<string, string> = {};
+    const fetchFn = (async (_url: string, init: RequestInit) => {
+      captured = init.headers as Record<string, string>;
+      return new Response("{}", { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await exchangeSignedFetch({
+      cachyPath: "/api/orders",
+      keys: KEYS,
+      venue: "bitunix",
+      payload: { exchange: "bitunix", symbol: "BTCUSDT" },
+      headers: { "x-api-key": "attacker-key", "x-api-sign": "attacker-sign" },
+      now: NOW,
+      fetchFn,
+    });
+
+    expect(captured["x-api-key"]).toBe(KEYS.apiKey);
+    expect(captured["x-api-sign"]).toMatch(/^[0-9a-f]{64}$/);
   });
 });
