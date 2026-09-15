@@ -21,8 +21,6 @@ Use jCodeMunch for deeper code analysis, action routing, and improvement suggest
 - `jcodemunch_guide` — full catalogue and usage rules
 
 **Rule:** Prefer jCodeMunch (`route`/`order`) over grep/find for code understanding and navigation.
-### Worktree sessions
-Gortex reads `git worktree list` and serves each linked checkout as a layer over its family's primary graph, so a linked worktree needs no setup of its own. jCodeMunch maps any worktree path to the indexed root repo via `resolve_repo .`.
 
 
 ## Git Worktree — Non-Negotiable

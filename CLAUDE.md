@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md
 
 Cachy — Local-First web app for crypto traders (Position Size Calculator, Risk Management, Trade Journal, real-time market data via Bitunix/Bitget). Code flows into a trading engine managing real money: Precision and verification always come before speed.
@@ -87,8 +89,6 @@ Five things asked means five things delivered, no matter how long they take. If 
 ## MCP Tools
 
 Both MCP servers are mandatory (see `AGENTS.md` → Tools & MCP). Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository. Use Gortex graph tools (`gortex__explore`, `gortex__search`, `gortex__impact`, etc.) for all code navigation and impact analysis.
-
-**Gortex — worktrees:** Gortex reads `git worktree list` and serves each linked checkout as a layer over its family's primary graph, so a linked worktree needs no setup of its own.
 
 ## Commits & Branches
 

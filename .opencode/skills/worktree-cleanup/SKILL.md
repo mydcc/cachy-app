@@ -8,12 +8,6 @@ description: Retires a finished git worktree — removes the directory and delet
 `AGENTS.md` § "Agent Lifecycle: Check, Claim, Clean Up" requires every agent to
 retire its worktree when the work is done or abandoned. This skill is that step.
 
-**Gortex needs no call here.** The daemon discovers linked worktrees from
-`git worktree list` and serves each one as a layer over its family's primary
-graph, so no tracking is involved and nothing is indexed twice. What cleanup
-still has to do is the filesystem half: remove the directory, delete the
-branch.
-
 ## Retire your own worktree (the normal case)
 
 Run this **from the main checkout**, naming the worktree you just finished —
