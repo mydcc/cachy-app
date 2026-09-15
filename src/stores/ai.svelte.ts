@@ -1396,16 +1396,49 @@ class AiManager {
     const pending = this.pendingActions.get(actionId);
     if (!pending) return;
 
-    // Execute all actions in batch
-    pending.actions.forEach((action) => {
+    // Re-validate against the live permission set (BUG-0472): an action may
+    // have been allowed when queued but switched off before confirm, or the
+    // batch may have been injected into the queue directly, bypassing the
+    // sendMessage filter. Only still-permitted actions may execute.
+    const { permitted, blocked } = filterPermittedActions(
+      pending.actions,
+      settingsState.aiAllowedActions ?? AI_ALLOWED_ACTIONS_DEFAULT,
+    );
+
+    if (blocked.length > 0) {
+      logger.warn("ai", "AI actions revoked before confirm", {
+        blocked: blocked.map((action) => action.action),
+      });
+      const t = get(_);
+      this.messages = [
+        ...this.messages,
+        {
+          id: generateId(),
+          role: "system",
+          content: `⛔ ${t("settings.ai.permissions.blockedNotice", {
+            values: {
+              actions: blocked.map((action) => action.action).join(", "),
+            },
+          })}`,
+          timestamp: Date.now(),
+        },
+      ];
+    }
+
+    // Execute all still-permitted actions in batch
+    permitted.forEach((action) => {
       this.executeAction(action, false);
     });
 
     // Remove from pending
     this.pendingActions.delete(actionId);
 
-    // Update message to show confirmed status
-    this.updateActionMessage(actionId, "confirmed");
+    // Update message to show confirmed status — "rejected" when nothing was
+    // still permitted, so a revoked batch never looks confirmed.
+    this.updateActionMessage(
+      actionId,
+      permitted.length > 0 ? "confirmed" : "rejected",
+    );
     this.save();
   }
 

@@ -91,6 +91,32 @@ describe("AI action confirmation (BUG-0472)", () => {
     expect(aiState.pendingActions.size).toBe(0);
   });
 
+  it("re-checks permissions at confirm time", async () => {
+    settingsState.aiAllowedActions = withLeverageAllowed();
+    const before = tradeState.leverage;
+    vi.mocked(appFetch).mockResolvedValue(
+      streamResponse(actionBatch([{ action: "setLeverage", value: "50" }])),
+    );
+
+    await aiState.sendMessage("set leverage to 50");
+    expect(aiState.pendingActions.size).toBe(1);
+
+    // User revokes the permission while the batch is still pending.
+    settingsState.aiAllowedActions = [...AI_ALLOWED_ACTIONS_DEFAULT];
+
+    const [pendingId] = [...aiState.pendingActions.keys()];
+    aiState.confirmAction(pendingId);
+
+    expect(tradeState.leverage).toBe(before);
+    expect(aiState.pendingActions.size).toBe(0);
+    expect(
+      aiState.messages.some(
+        (message) =>
+          message.role === "system" && message.content.includes("setLeverage"),
+      ),
+    ).toBe(true);
+  });
+
   it("applies a benign note immediately when the toggle is off", async () => {
     vi.mocked(appFetch).mockResolvedValue(
       streamResponse(
