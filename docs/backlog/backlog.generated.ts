@@ -6785,7 +6785,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0476",
     "title": "The raw stochastic shader cannot see a low above 10,000,000",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -6797,6 +6797,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "C",
     "adr": "none",
     "depends_on": [],
+    "assignee": "claude",
+    "start_date": "2026-09-15",
+    "branch": "fix/bug-0476-stoch-raw-min-low",
     "file": "bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md"
   },
   {

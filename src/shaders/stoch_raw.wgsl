@@ -26,11 +26,13 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
 
-    // Find Min Low and Max High in window
-    var min_low: f32 = 10000000.0; // Init high
-    var max_high: f32 = 0.0;       // Init low
-    
-    for (var i: u32 = 0; i < params.k_len; i++) {
+    // Find Min Low and Max High in window. Both start from the window's newest
+    // candle rather than a constant: a fixed start is a price no window can
+    // cross, and a start of 10,000,000 left every low above it unseen (BUG-0476).
+    var min_low: f32 = low_data[id];
+    var max_high: f32 = high_data[id];
+
+    for (var i: u32 = 1; i < params.k_len; i++) {
         let idx = id - i;
         let h = high_data[idx];
         let l = low_data[idx];

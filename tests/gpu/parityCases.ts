@@ -64,6 +64,9 @@ const typical = (s: InputSeries): Float64Array =>
 const stochasticK = (s: InputSeries): Float64Array =>
   JSIndicators.sma(JSIndicators.stoch(s.high, s.low, s.close, 14), 3);
 
+/** 2^10: lifts the recorded BTCUSDT lows (the lowest is 62,268.3) past 60,000,000. */
+const ABOVE_TEN_MILLION = 1024;
+
 export const PARITY_CASES: readonly ParityCase[] = [
   // A window of 20 additions; the division rounds once more but is cancelled by
   // the same factor that scales the sum.
@@ -135,6 +138,22 @@ export const PARITY_CASES: readonly ParityCase[] = [
     accumulates: () => 10,
     gpu: async (g, s) => (await g.calculateStochastic(s.high, s.low, s.close, 14, 3, 3)).d,
     js: (s) => JSIndicators.sma(stochasticK(s), 3),
+  },
+  // BUG-0476: the recorded prices moved above 10,000,000, where a window's lows
+  // all sit above any fixed "no low yet" start value. A power of two scales f32
+  // exactly and leaves %K unchanged, so the bound is the unscaled case's.
+  {
+    label: "Stochastic %K (price above 10,000,000)",
+    shaders: ["stoch_raw", "sma"],
+    accumulates: () => 7,
+    gpu: async (g, s) => {
+      const up = (v: Float32Array) => v.map((x) => x * ABOVE_TEN_MILLION);
+      return (await g.calculateStochastic(up(s.high), up(s.low), up(s.close), 14, 3, 3)).k;
+    },
+    js: (s) => {
+      const up = (v: Float64Array) => v.map((x) => x * ABOVE_TEN_MILLION);
+      return stochasticK({ ...s, high: up(s.high), low: up(s.low), close: up(s.close) });
+    },
   },
   // An ATR(10) (2·10) and the band arithmetic around hl2 (3). The band recursion
   // selects between values and rounds nothing. Composed as `calculate()` composes it.
