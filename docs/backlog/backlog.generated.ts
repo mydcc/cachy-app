@@ -6785,7 +6785,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0476",
     "title": "The raw stochastic shader cannot see a low above 10,000,000",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
