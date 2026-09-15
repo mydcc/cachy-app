@@ -30,7 +30,7 @@
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../utils";
 import type { BitunixOrderPayload } from "../../types/bitunix";
-import type { OrderRequestPayload } from "../../types/orderSchemas";
+import type { PlaceOrderPayload } from "../../types/orderSchemas";
 import { ORDER_ERRORS, cleanPayload } from "../server/venues/orderErrors";
 
 /** The shape `modifyBitunixOrder` accepts (FEAT-0065). */
@@ -64,7 +64,7 @@ export interface BitunixModifyData {
  * and strips them. Signing this object directly would produce a body the
  * exchange rejects.
  */
-export function buildBitunixOrderPayload(payload: OrderRequestPayload): BitunixOrderPayload {
+export function buildBitunixOrderPayload(payload: PlaceOrderPayload): BitunixOrderPayload {
   return {
     symbol: payload.symbol,
     side: payload.side,

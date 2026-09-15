@@ -30,10 +30,10 @@ import {
   buildBitunixPlaceOrderBody,
 } from "./bitunixBodies";
 import { ORDER_ERRORS, cleanPayload } from "../server/venues/orderErrors";
-import type { OrderRequestPayload } from "../../types/orderSchemas";
+import type { PlaceOrderPayload } from "../../types/orderSchemas";
 
-const asRequest = (value: Record<string, unknown>): OrderRequestPayload =>
-  value as unknown as OrderRequestPayload;
+const asRequest = (value: Record<string, unknown>): PlaceOrderPayload =>
+  value as unknown as PlaceOrderPayload;
 
 describe("cleanPayload", () => {
   it("drops only undefined keys, keeping null, empty string and zero", () => {
