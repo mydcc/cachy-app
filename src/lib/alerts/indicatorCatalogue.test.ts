@@ -359,7 +359,9 @@ describe("indicator alert strings", () => {
     ];
 
     it.each(LOCALES)("has a non-empty %s string for every key the catalogue builds", (_, bundle) => {
-        const missing = [...new Set(catalogueKeys())].filter((key) => {
+        const keys = [...new Set(catalogueKeys())];
+        expect(keys.length).toBeGreaterThan(0);
+        const missing = keys.filter((key) => {
             const value = lookup(bundle, key);
             return typeof value !== "string" || value.trim() === "";
         });
@@ -367,7 +369,13 @@ describe("indicator alert strings", () => {
     });
 
     it("carries the same strings in German and English", () => {
+        for (const [name, bundle] of LOCALES) {
+            const subtree = lookup(bundle, SUBTREE);
+            expect(subtree, `${name} ${SUBTREE}`).toBeTypeOf("object");
+            expect(subtree, `${name} ${SUBTREE}`).not.toBeNull();
+        }
         const keysOf = (bundle: Bundle): string[] => leafKeys(lookup(bundle, SUBTREE), SUBTREE).sort();
+        expect(keysOf(de).length).toBeGreaterThan(0);
         expect(keysOf(de)).toEqual(keysOf(en));
         const empty = keysOf(de).filter((key) =>
             LOCALES.some(([, bundle]) => String(lookup(bundle, key)).trim() === ""),
