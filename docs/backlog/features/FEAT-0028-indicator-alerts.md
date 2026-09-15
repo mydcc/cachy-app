@@ -57,7 +57,13 @@ indicator alerts trustworthy or not.
       [`BUG-0475`](../bugs/BUG-0475-gpu-stages-start-before-their-input.md); no
       discrepancy is documented any more. MACD and
       Bollinger do have a GPU path — an earlier note here expected otherwise
-- [ ] German and English strings
+- [x] German and English strings — every key the catalogue builds at runtime
+      (`nameKey`, `outputKey`, `paramKey`, group names and hints, over the whole
+      registry) resolves to a non-empty string in both locales, and the
+      `dashboard.alerts.indicators` subtree carries the same keys in German and
+      English: `src/lib/alerts/indicatorCatalogue.test.ts`, "indicator alert
+      strings". Those keys are cast to `TranslationKey`, so no type check covered
+      them; removing German `output.span_b` fails both tests by name
 
 ## Note added while planning the Super-Alert work (2026-09-04)
 
