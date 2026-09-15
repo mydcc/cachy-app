@@ -113,24 +113,19 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
     response.headers.set("Cache-Control", "no-cache");
   }
 
-  // COOP: same-origin-allow-popups keeps TradingView popup compatibility
-  response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-  // DO NOT add Cross-Origin-Embedder-Policy (COEP). COEP breaks embedded channel iframes (e.g. space.cachy.app Unity Metaverse) and external news modals.
-  // DO NOT restrict camera, microphone, xr-spatial-tracking, or geolocation to () as it breaks 3D space.cachy.app metaverse and external iframe modals.
-  response.headers.set("X-Frame-Options", "SAMEORIGIN");
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("Permissions-Policy", "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), xr-spatial-tracking=(self \"https://space.cachy.app\" *), display-capture=(self \"https://space.cachy.app\"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*");
-
-  // CSP fallback for responses SvelteKit did not already protect (e.g. API
-  // routes): SvelteKit's nonce CSP (kit.csp.mode "auto") must win wherever
-  // present — overwriting it would strip nonces and break app.html scripts.
   // Single source of truth stays server-headers.js (shared with Express).
-  const fallbackCsp = SECURITY_HEADERS.find(([name]) => name === "Content-Security-Policy")?.[1];
-  if (fallbackCsp && !response.headers.has("Content-Security-Policy")) {
-    response.headers.set("Content-Security-Policy", fallbackCsp);
+  // SvelteKit's nonce CSP (kit.csp.mode "auto") must win wherever present —
+  // overwriting it would strip nonces and break app.html scripts.
+  for (const [name, value] of SECURITY_HEADERS) {
+    if (name === "Content-Security-Policy") {
+      if (!response.headers.has("Content-Security-Policy")) {
+        response.headers.set(name, value);
+      }
+    } else {
+      response.headers.set(name, value);
+    }
   }
-  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+
   return response;
 };
 

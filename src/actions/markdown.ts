@@ -15,14 +15,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { renderSafeMarkdown } from "../utils/markdownUtils";
+import { ensureKatexCss, renderSafeMarkdown } from "../utils/markdownUtils";
 
 /**
  * Svelte Action to render Markdown with KaTeX support into an element.
  * Usage: <div use:markdown={content}></div>
+ *
+ * Svelte actions only run client-side, so this is the choke point that
+ * guarantees KaTeX math styles for every use:markdown consumer (Assistant
+ * chat, Flashcards, pattern views) — independent of loadInstruction.
  */
 export function markdown(node: HTMLElement, content: string) {
     const update = (newContent: string) => {
+        void ensureKatexCss();
         if (!newContent) {
             node.replaceChildren();
             return;

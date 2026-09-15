@@ -87,3 +87,19 @@ export function renderTrustedMarkdown(text: string): string {
         return "";
     }
 }
+
+let katexCssPromise: Promise<unknown> | null = null;
+
+/**
+ * Injects KaTeX math styles on demand (Vite applies the CSS import as a side
+ * effect). The promise is cached — safe to call from every markdown render
+ * path. A failure only affects math styling, so it degrades to console.debug.
+ */
+export function ensureKatexCss(): Promise<unknown> {
+    if (!katexCssPromise) {
+        katexCssPromise = import("katex/dist/katex.min.css").catch((e: unknown) => {
+            console.debug("KaTeX CSS failed to load dynamically:", e);
+        });
+    }
+    return katexCssPromise;
+}

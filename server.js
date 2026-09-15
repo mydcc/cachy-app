@@ -22,8 +22,9 @@ import { applySecurityHeaders, cacheControlFor } from './server-headers.js';
 
 const app = express();
 
-// Use compression to improve Lighthouse Performance Score
-app.use(compression());
+// Level 6 compression improves the Lighthouse Performance Score. The default
+// 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
+app.use(compression({ level: 6 }));
 
 // Apply security headers to all requests.
 app.use((req, res, next) => {

@@ -17,8 +17,7 @@
 
 @import "tailwindcss";
 
-/* Import KaTeX CSS globally - MUST be before Tailwind directives */
-@import "katex/dist/katex.min.css";
+/* KaTeX CSS is loaded dynamically on demand in markdownLoader.ts */
 @import "./themes.css";
 
 /*

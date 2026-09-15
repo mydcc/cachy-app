@@ -18,6 +18,7 @@
 import { marked, type Tokens } from "marked";
 import markedKatex from "marked-katex-extension";
 import { locale } from "../locales/i18n";
+import { ensureKatexCss } from "../utils/markdownUtils";
 import { get } from "svelte/store";
 import generatedChangelog from "../../CHANGELOG.md?raw";
 import generatedChangelogDe from "../../CHANGELOG.de.md?raw";
@@ -150,6 +151,10 @@ export async function loadInstruction(
     | "whitepaper",
   lang?: string
 ): Promise<InstructionContent> {
+  // KaTeX styles load on demand (cached after the first call). Failures only
+  // affect math styling, so they degrade to console.debug, not an error.
+  await ensureKatexCss();
+
   const currentLocale = lang || get(locale);
   // Path relative to project root for module lookup
   const relativePath = `/src/lib/assets/content/${name}.${currentLocale}.md`;
