@@ -26,9 +26,14 @@
  * template from a variant of it.
  *
  * A template carries no `action` and no `provenance`. `templateDocument`
- * writes `notify` and `human` itself, so "a template arrives armed to trade"
- * is not a state this module can express, rather than a state a test hopes to
- * catch.
+ * writes `notify` and `human` itself, so a template cannot arrive with an
+ * order attached.
+ *
+ * `enabled` and the lifecycle fields come from the base, so the guarantee that
+ * a loaded rule is not half-armed belongs to the caller: `loadTemplate` lays a
+ * template over a fresh `blankDraft` rather than over whatever the trader
+ * abandoned, and a draft with `enabled: true` is not armed until `arm()`
+ * persists it.
  *
  * Every condition is one the Combo builder (FEAT-0030) can open: an indicator
  * on the left, a number, a price or another indicator on the right, at most
