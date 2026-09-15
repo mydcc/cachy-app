@@ -37,7 +37,12 @@ import {
   DEFAULT_UPSTREAM_TIMEOUT_MS,
   type UpstreamApiError,
 } from "../fetchWithTimeout";
-import { ORDER_ERRORS, cleanPayload, type ExchangeError } from "./orderErrors";
+import { ORDER_ERRORS, type ExchangeError } from "./orderErrors";
+import {
+  buildBitunixModifyOrderBody,
+  buildBitunixOrderPayload,
+  buildBitunixPlaceOrderBody,
+} from "../../exchange/bitunixBodies";
 import {
   UPSTREAM_RETRY_ATTEMPTS,
   isRetryableUpstreamStatus,
@@ -286,23 +291,7 @@ async function modifyBitunixOrder(
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/modify_order";
 
-    const body: Record<string, unknown> = {
-        orderId: modifyData.orderId,
-        clientId: modifyData.clientId,
-        symbol: modifyData.symbol,
-        qty: modifyData.qty,
-        price: modifyData.price,
-        tpPrice: modifyData.tpPrice,
-        tpStopType: modifyData.tpStopType,
-        tpOrderType: modifyData.tpOrderType,
-        tpOrderPrice: modifyData.tpOrderPrice,
-        slPrice: modifyData.slPrice,
-        slStopType: modifyData.slStopType,
-        slOrderType: modifyData.slOrderType,
-        slOrderPrice: modifyData.slOrderPrice,
-    };
-
-    const finalPayload = cleanPayload(body);
+    const finalPayload = buildBitunixModifyOrderBody(modifyData);
     const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
 
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
@@ -337,54 +326,7 @@ async function placeBitunixOrder(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
-  const safeQty = formatApiNum(orderData.qty);
-  if (!safeQty || new Decimal(safeQty).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
-
-  const payload: BitunixOrderPayload = {
-    ...orderData,
-    qty: safeQty,
-  };
-
-  const type = payload.orderType;
-  if (type === "LIMIT" || type === "STOP_LIMIT" || type === "TAKE_PROFIT_LIMIT") {
-    const safePrice = formatApiNum(orderData.price);
-    if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
-    payload.price = safePrice;
-  }
-
-  if (orderData.triggerPrice) {
-    const safeTrigger = formatApiNum(orderData.triggerPrice as string | number | undefined);
-    if (!safeTrigger) throw new Error(ORDER_ERRORS.INVALID_TRIGGER);
-    payload.triggerPrice = safeTrigger;
-  }
-
-  // FEAT-0069: attached TP/SL levels go through the same Decimal formatting
-  // as every other price. `formatApiNum` is what keeps a low-priced asset
-  // from being serialised as "1e-7", which the exchange rejects.
-  for (const field of [
-    "tpPrice",
-    "tpOrderPrice",
-    "slPrice",
-    "slOrderPrice",
-  ] as const) {
-    const raw = orderData[field] as string | number | undefined;
-    if (raw === undefined) continue;
-    const safe = formatApiNum(raw);
-    if (!safe || new Decimal(safe).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
-    payload[field] = safe;
-  }
-
-  // A LIMIT take-profit or stop needs the price it will be placed at.
-  // Catching it here costs nothing; learning it from a rejection costs a
-  // round trip with a position already open behind it.
-  if (payload.tpOrderType === "LIMIT" && payload.tpOrderPrice === undefined) {
-    throw new Error(ORDER_ERRORS.INVALID_PRICE);
-  }
-  if (payload.slOrderType === "LIMIT" && payload.slOrderPrice === undefined) {
-    throw new Error(ORDER_ERRORS.INVALID_PRICE);
-  }
-
-  const finalPayload = cleanPayload(payload);
+  const finalPayload = buildBitunixPlaceOrderBody(orderData);
 
   const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
 
@@ -1103,35 +1045,7 @@ async function executeOrder(
     return { orders };
   }
   if (payload.type === "place-order") {
-    const orderPayload: BitunixOrderPayload = {
-      symbol: payload.symbol,
-      side: payload.side,
-      orderType: payload.orderType,
-      qty: payload.qty,
-      price: payload.price,
-      reduceOnly: Boolean(payload.reduceOnly),
-      triggerPrice: payload.triggerPrice || payload.stopPrice,
-      // HEDGE-mode close (BUG-0062) — see PlaceOrderSchema's comment.
-      tradeSide: payload.tradeSide,
-      positionId: payload.positionId,
-      // FEAT-0069. `effect` is documented as required for LIMIT and
-      // meaningless otherwise, so a market order sends none rather than a
-      // value the exchange ignores.
-      effect: payload.orderType === "MARKET" ? undefined : payload.effect,
-      clientId: payload.clientId,
-      tpPrice: payload.tpPrice,
-      tpStopType: payload.tpStopType,
-      tpOrderType: payload.tpOrderType,
-      tpOrderPrice: payload.tpOrderPrice,
-      slPrice: payload.slPrice,
-      slStopType: payload.slStopType,
-      slOrderType: payload.slOrderType,
-      slOrderPrice: payload.slOrderPrice,
-    };
-    // Remove undefined safe
-    const cleanedPayload = cleanPayload(orderPayload);
-
-    return await placeBitunixOrder(apiKey, apiSecret, cleanedPayload);
+    return await placeBitunixOrder(apiKey, apiSecret, buildBitunixOrderPayload(payload));
   }
   if (payload.type === "close-position") {
     const safeAmount = formatApiNum(payload.amount);
