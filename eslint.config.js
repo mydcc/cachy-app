@@ -53,6 +53,9 @@ export default [
       "static/ammo/",
       "static/js/",
       "static/wasm/",
+      // Agent-adapter output written by `gortex init`. Generated tooling, not
+      // project source — the Pi extension is TypeScript the linter rejects.
+      ".pi/",
       // Saved reference pages with vendored assets, not project source.
       "info/",
       // Test and build output.
