@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# Retires a finished git worktree: removes the directory, untracks it from
-# Gortex, and deletes the merged branch. Counterpart to
-# scripts/index-worktree.sh, which registers a worktree at session start.
+# Retires a finished git worktree: removes the directory and deletes the
+# merged branch.
 #
-# Both halves matter. `git worktree remove` untracks nothing and
-# `gortex untrack` removes no directory, so doing only one leaves a stale
-# half behind. Every tracked worktree is a full repo in the graph (~31k nodes
-# here); five stale copies were enough to push `explore` past its deadline.
+# No Gortex tracking call is involved: the daemon discovers linked worktrees
+# from `git worktree list` and serves them as layers over the family's primary
+# graph. A worktree only becomes a separate full graph if someone explicitly
+# tracks it, which AGENTS.md forbids.
 #
 # The default is to retire ONE named worktree — the one you just finished, as
 # "Agent Lifecycle" in AGENTS.md prescribes. Sweeping up other agents'
@@ -155,9 +154,6 @@ check_abandon() {
 retire() {
     local path="$1" branch="$2"
     if git worktree remove "$path" 2>/dev/null; then
-        command -v gortex >/dev/null 2>&1 &&
-            { gortex untrack "$path" >/dev/null 2>&1 ||
-              echo "  note: gortex untrack failed (daemon down?) — rerun later"; }
         git branch -d "$branch" >/dev/null 2>&1 || {
             # -d compares against the local HEAD, which can lag behind
             # $BASE, and squash-merged branches are never ancestors at all.

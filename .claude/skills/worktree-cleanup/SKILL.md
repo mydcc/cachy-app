@@ -1,6 +1,6 @@
 ---
 name: worktree-cleanup
-description: Retires a finished git worktree — removes the directory, untracks it from Gortex, and deletes the merged branch. Use after a PR is merged or a task is abandoned, as phase 3 of the Agent Lifecycle in AGENTS.md.
+description: Retires a finished git worktree — removes the directory and deletes the merged branch. Use after a PR is merged or a task is abandoned, as phase 3 of the Agent Lifecycle in AGENTS.md.
 ---
 
 # Worktree Cleanup — Phase 3 of the Agent Lifecycle
@@ -8,11 +8,11 @@ description: Retires a finished git worktree — removes the directory, untracks
 `AGENTS.md` § "Agent Lifecycle: Check, Claim, Clean Up" requires every agent to
 retire its worktree when the work is done or abandoned. This skill is that step.
 
-**Cleanup has two halves that must both happen.** `git worktree remove`
-untracks nothing from Gortex, and `gortex untrack` removes no directory. Doing
-only one leaves a stale half behind — and a leftover tracked worktree is not
-free: it is a full repo in the graph (~31k nodes for this project), so several
-of them slow every graph query down until `explore` hits its deadline.
+**Gortex needs no call here.** The daemon discovers linked worktrees from
+`git worktree list` and serves each one as a layer over its family's primary
+graph, so no tracking is involved and nothing is indexed twice. What cleanup
+still has to do is the filesystem half: remove the directory, delete the
+branch.
 
 ## Retire your own worktree (the normal case)
 
@@ -23,7 +23,7 @@ you cannot remove the worktree you are standing in:
 bash scripts/worktree-cleanup.sh <branch-or-path>
 ```
 
-It removes the directory, untracks it from Gortex, and deletes the branch.
+It removes the directory and deletes the branch.
 
 ## Sweep up (opt-in)
 
@@ -72,7 +72,5 @@ Prefer the targeted form over `--all` for exactly this reason.
 
 ## Related
 
-- `scripts/index-worktree.sh` — the counterpart that registers a worktree at
-  session start
-- `AGENTS.md` § "Working inside a git worktree" — why graph tools fail inside
-  an unregistered worktree, and the cwd trap behind `repository not tracked`
+- `AGENTS.md` § "Working inside a git worktree" — why a worktree needs no
+  registration, and why `gortex track` on one must never be used

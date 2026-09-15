@@ -10,7 +10,7 @@ Two MCP servers are active in this workspace. **Both must be initialized** at th
 
 The Gortex MCP `instructions.md` is loaded automatically. Its core rule: **MUST use Gortex MCP** for all code navigation, exploration, and impact analysis.
 
-**Worktree sessions:** if the cwd is a git worktree (not the main checkout), run `bash scripts/index-worktree.sh` once before the first graph call. The script registers the worktree with the daemon; it is a safe no-op on the main checkout.
+**Worktree sessions:** no registration step exists. Gortex discovers linked worktrees from `git worktree list` and serves each as a layer over its family's primary graph, so nothing is indexed twice. Verify with `gortex repos families` — every worktree must read `automatic/checkout_ready`, never `dedicated`. **Never run `gortex track` on a worktree.** Requires Gortex v0.64 or newer.
 
 ### 2. jCodeMunch — Code Analysis & Semantic Routing
 
@@ -45,7 +45,7 @@ git worktree add .worktrees/<branch-name> -b <branch-name> origin/develop
 
 For Antigravity subagent tasks: use `Workspace: "share"` (not `"branch"`) to avoid duplicating storage while maintaining isolation.
 
-Cleanup after merge: `bash scripts/worktree-cleanup.sh <branch>` (removes worktree, untracks from Gortex, deletes branch — see `AGENTS.md` → Agent Lifecycle).
+Cleanup after merge: `bash scripts/worktree-cleanup.sh <branch>` (removes worktree, deletes branch — see `AGENTS.md` → Agent Lifecycle).
 
 ## Interaction & Workflow Rules — Non-Negotiable
 

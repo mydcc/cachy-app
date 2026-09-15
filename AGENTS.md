@@ -104,38 +104,13 @@ Use for code analysis, action routing, and semantic understanding.
 - `jcodemunch_guide` — full catalogue and rules.
 - **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search when jCodeMunch can answer the question.
 
-### Graph-Tools Health Gate (Non-Negotiable)
-
-Before the first task tool call in any session, the agent MUST pass this gate.
-It overrides the general fallback order: an unresponsive graph tool is a stop,
-not a silent fallback to file search.
-
-1. Register: run `bash scripts/index-worktree.sh` once (safe no-op on the main
-   checkout, idempotent on re-run).
-2. Verify Gortex: `gortex repos` must answer within 60s (one retry). Count its
-   rows, MISSING entries included, main checkout excluded: **never more than 3
-   tracked worktrees.** More than 3 means someone's cleanup is overdue — do not
-   start on top of it.
-3. Verify jCodeMunch: `order { "action": "resolve_repo", "args": { "path": "." } }`
-   must succeed.
-
-If any check fails: stop task work immediately. Only the read-only diagnosis
-needed to name the blocker (`gortex daemon status`, `gortex repos`) is allowed,
-then report it in one sentence (which tool, which symptom, tracked count) and
-wait. Never fall back to grep/Glob/Bash code search without saying so, never
-untrack or delete another agent's worktree, and never "work around" the gate.
-Cleanup of foreign worktrees is a human decision
-(`bash scripts/worktree-cleanup.sh --all` reports, `--apply` retires).
-
-Convention: open the session's first status message with the gate result, e.g.
-`Gate: gortex fresh (2 tracked), jcm ok` — violations become visible at once.
-
 ### Working inside a git worktree
-Graph tools resolve the repo from the current working directory. Inside a linked git worktree they only work after the worktree is registered with Gortex (jCodeMunch already maps any worktree path to the indexed root repo via `resolve_repo .`, so it needs no extra step).
-- At the start of a session whose cwd is a git worktree (not the main checkout), run `bash scripts/index-worktree.sh` once. The script detects the worktree, registers it with `gortex call track_repository --arg as_worktree=true`, and indexes it; it is a safe no-op on the main checkout or outside a repo, and re-running is idempotent.
-- After registration, `gortex__*` graph calls resolve against the worktree instance (shown as `<base>@<workspace>`) and jCodeMunch `resolve_repo .` returns the root repo id.
-- **Registration alone is not enough — the client's working directory decides.** The MCP server reports its *own* process cwd to the daemon, so a client that spawns `gortex mcp` from a non-repo directory (typically `$HOME`) fails every call with `repository not tracked: <path>`, however correctly the repo is tracked. Passing a `path` or `repo` argument does not help: resolution happens before they are read.
-- **Diagnose that before re-registering anything.** Run `gortex daemon status` and read the `cwd` column under **MCP sessions**: a row pointing at a non-repo directory is this problem, not a tracking gap. Fix it in that client's launch configuration — and note that some clients ignore an MCP config's `cwd` field entirely, so the directory may have to be forced in the launch command or wrapper script itself. A parent directory that holds the repos as direct children resolves in multi-repo mode and works as a general fallback.
+
+**A worktree needs no registration.** The daemon reads `git worktree list` itself: a linked checkout is discovered automatically and served as a layer over its family's primary graph, so nothing is indexed twice. Verify with `gortex repos families` — every worktree must appear as `automatic/checkout_ready`. Gortex must be v0.64 or newer for this; older releases predate checkout families.
+
+**Never track a worktree.** `gortex track <worktree>` (or the equivalent `track_repository --arg as_worktree=true`) promotes it to a `dedicated` checkout with its own full graph — the exact duplicate this rule prevents. If `gortex repos families` shows a worktree as `dedicated`, demote it with `gortex untrack <path>`; that returns it to the automatic lane, where `gortex repos forget` would remove it outright.
+
+**The client's working directory decides, not the tracking.** The MCP server reports its own process cwd to the daemon, so a client that spawns `gortex mcp` from a non-repo directory (typically `$HOME`) fails every call with `repository not tracked: <path>`. Passing a `path` or `repo` argument does not help: resolution happens before they are read. Diagnose it with `gortex daemon status` — read the `cwd` column under **MCP sessions** — and fix it in that client's launch configuration. Some clients ignore an MCP config's `cwd` field entirely, so the directory may have to be forced in the launch command or wrapper script itself. A parent directory that holds the repos as direct children resolves in multi-repo mode and works as a general fallback.
 
 Agent-specific config files (`CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`) contain tool-specific startup sequences for their respective runtimes.
 
@@ -190,7 +165,7 @@ An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-gr
 
 ## Git Cleanliness and Parallel Agent Workspaces
 
-Since multiple agents (e.g., Claude, Antigravity, Cursor, OpenCode) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own session Git worktree (or Antigravity subagent with `Workspace: "share"`) — never directly in the shared checkout. One worktree per agent session is enough; a worktree per task is not required and actively harmful (worktree pile-up slows every graph query — each tracked worktree is a full repo in the graph, ~31k nodes — and testing in the wrong worktree causes false results):
+Since multiple agents (e.g., Claude, Antigravity, Cursor, OpenCode) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own session Git worktree (or Antigravity subagent with `Workspace: "share"`) — never directly in the shared checkout. One worktree per agent session is enough; a worktree per task is not required and actively harmful (a pile-up of stale worktree directories makes every checkout harder to reason about, and testing in the wrong worktree causes false results):
 
 **Required sequence once per session:**
 ```bash
@@ -219,7 +194,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 - In the item's front matter set `status: in-progress`, `assignee: <agent-name>` (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …), and note the branch name in the item. `npm run backlog:check` fails while an `in-progress` item has no `assignee` — that is intentional, so stale claims surface immediately.
 
 **3. After finishing (mandatory cleanup — also when abandoning):**
-- Retire your session worktree at session end — **both halves**: `bash scripts/worktree-cleanup.sh <branch>` from the main checkout removes the directory, untracks it from Gortex and deletes the merged branch in one step. `git worktree remove` alone untracks nothing, and a leftover tracked worktree is a full repo in the graph (~31k nodes), so a handful of them slows every graph query until `explore` hits its deadline. The script refuses anything dirty, unmerged, never worked on or in use — a task you abandon before its first commit is retired with `--abandon <branch>` — never pass `--force` to work around that (`--force` only after saving uncommitted work as a patch outside the repo).
+- Retire your session worktree at session end: `bash scripts/worktree-cleanup.sh <branch>` from the main checkout removes the directory and deletes the merged branch in one step. Gortex discovers linked worktrees on its own, so no tracking call is involved. The script refuses anything dirty, unmerged, never worked on or in use — a task you abandon before its first commit is retired with `--abandon <branch>` — never pass `--force` to work around that (`--force` only after saving uncommitted work as a patch outside the repo).
 - Delete the branch once merged or abandoned; push first if its commits should be preserved.
 - Update the item: `status: done` (+ shipped version) when merged; otherwise leave a short state note ("what exists, what is open") so the next agent can continue instead of doing archaeology.
 - Never leave uncommitted changes behind: commit them to the branch or save a patch.
