@@ -4,7 +4,7 @@
 
 358 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 2 · 🟡 in-progress 1 · ✅ done 306 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 307 · ⛔ dropped 1
 
 ---
 
@@ -312,7 +312,7 @@ Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0468](bugs/BUG-0468-refused-stored-rule-is-silent.md) | A stored rule the core refuses is logged on every close and never reported | P2 | ✅ done | alerts |
 | [BUG-0469](bugs/BUG-0469-autolinker-ignores-no-issue.md) | The sync's PR auto-linker prepends Fixes #N to bodies that opt out with [no issue] | P2 | ✅ done | repo |
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | tooling |
-| [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | 🟢 ready | security |
+| [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | security |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | 🟢 ready | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
@@ -620,7 +620,7 @@ Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 2 · 🟡 in-pro
 | [BUG-0468](bugs/BUG-0468-refused-stored-rule-is-silent.md) | A stored rule the core refuses is logged on every close and never reported | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0469](bugs/BUG-0469-autolinker-ignores-no-issue.md) | The sync's PR auto-linker prepends Fixes #N to bodies that opt out with [no issue] | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
