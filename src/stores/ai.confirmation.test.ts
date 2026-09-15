@@ -133,6 +133,19 @@ describe("AI action confirmation (BUG-0472)", () => {
     expect(aiState.pendingActions.size).toBe(0);
   });
 
+  it("refuses catalog-unknown actions even when queued directly", () => {
+    aiState.pendingActions.set("direct", {
+      id: "direct",
+      actions: [{ action: "setSymbol", value: "ETHUSDT" }],
+      timestamp: Date.now(),
+    });
+
+    aiState.confirmAction("direct");
+
+    expect(tradeState.symbol).toBe("");
+    expect(aiState.pendingActions.size).toBe(0);
+  });
+
   it("drops malformed shapes with a notice instead of crashing", async () => {
     vi.mocked(appFetch).mockResolvedValue(
       streamResponse(

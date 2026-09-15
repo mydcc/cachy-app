@@ -33,6 +33,7 @@ describe("AI action policy", () => {
       "resetSetup",
       "setAccountSize",
       "setAtrMode",
+      "setAtrTimeframe",
       "setAnalysisTimeframe",
       "setAutoPrice",
     ]) {

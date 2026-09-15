@@ -33,6 +33,7 @@ import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
 import {
   AI_ALLOWED_ACTIONS_DEFAULT,
   filterPermittedActions,
+  isKnownAiAction,
   shouldForceConfirm,
 } from "../lib/ai/actionPolicy";
 import { tradeState } from "./trade.svelte";
@@ -1175,6 +1176,16 @@ class AiManager {
   private executeAction(action: AiAction, confirmNeeded: boolean): boolean {
     // confirmNeeded is now handled at the batch level in processResponse
     if (confirmNeeded) return false;
+
+    // Defense in depth (BUG-0472): sendMessage only queues catalog actions,
+    // but refuse unknown ones here as well so a future direct caller can
+    // never replay a dropped action (setSymbol, resetSetup, …).
+    if (!isKnownAiAction(action.action)) {
+      logger.warn("ai", "AI action refused: unknown to permission policy", {
+        action: action.action,
+      });
+      return false;
+    }
 
     try {
       switch (action.action) {
