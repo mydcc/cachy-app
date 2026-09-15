@@ -7313,7 +7313,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0391",
     "title": "A template library for alert rules",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "assignee": "claude",
+    "branch": "feat/feat-0391-alert-template-library",
     "priority": "P3",
     "milestone": "M4",
     "editions": [

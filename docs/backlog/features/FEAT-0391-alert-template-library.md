@@ -2,7 +2,9 @@
 id: FEAT-0391
 title: A template library for alert rules
 type: feature
-status: specced
+status: done
+assignee: claude
+branch: feat/feat-0391-alert-template-library
 priority: P3
 milestone: M4
 editions: [community, pro, private]
@@ -47,21 +49,45 @@ Every template ships at `consequence_level: notify` and
 
 ## Acceptance criteria
 
-- [ ] Every shipped template passes `validate()` — asserted by a test that iterates the
-      whole library, so a broken template cannot ship
-- [ ] Loading a template fills the Combo builder and the rule can be edited before arming
-- [ ] An unedited template and a second trader's unedited copy of it have the same
-      content hash
-- [ ] No shipped template has a `consequence_level` above `notify`
-- [ ] Categories filter the list
-- [ ] German and English names and descriptions for every template
+- [x] Every shipped template passes `validate()` — asserted by a test that iterates the
+      whole library, so a broken template cannot ship: `templateLibrary.test.ts`,
+      "passes validate()", one case per template against the committed WASM core
+- [x] Loading a template fills the Combo builder and the rule can be edited before arming
+      — `alertPanelState.loadTemplate` writes the draft and switches to Combo;
+      `templateLibrary.test.ts` round-trips every template through `readComboForm` /
+      `buildComboCondition` unchanged, so the tab opens unlocked and its mount-time
+      write-through does not rewrite the template; `TemplatesTab.component.test.ts`
+      pins the click
+- [x] An unedited template and a second trader's unedited copy of it have the same
+      content hash — same test file, with different ids, timestamps and localised names;
+      editing one threshold changes the hash
+- [x] No shipped template has a `consequence_level` above `notify` — the template type
+      has no `action` field at all; `templateDocument` writes `notify` and `human` over
+      whatever draft it replaces, asserted against a `send` draft with an order and a veto
+- [x] Categories filter the list — `templatesIn` and the chip row, tested in both files
+- [x] German and English names and descriptions for every template — every runtime key
+      (names, descriptions, categories, the indicator names a card shows) resolves in
+      both locales, and the `dashboard.alerts.templates` subtree has the same keys
 
+## Decisions (2026-09-15)
 
-## Blocked by
-
-[`FEAT-0030`](FEAT-0030-combined-alerts.md) is currently `status: idea`. This item cannot
-load a template into the Combo builder without the Combo tab itself, which FEAT-0030 owns.
-This item remains specced and ready to implement once FEAT-0030 shifts from idea to ready.
+- **TEMA cross above VWAP was not shipped.** Neither `tema` nor `vwap` is in the rule
+  core's indicator registry, so that template could never pass `validate()`. Two
+  templates the registry and the alert path can compute take its place: *ADX trend
+  breakout* (ADX 14 crosses above 25 while +DI is above −DI) and *RSI bounce inside a
+  range* (RSI 14 crosses back above 30 while Choppiness 14 is above 61.8). Adding TEMA
+  or VWAP to the registry is its own item.
+- **No Risk category.** A risk template needs a position or account condition, and the
+  Combo builder does not open those; loading one would land in a locked tab. The
+  categories shown are derived from the library, so one appears once a template needs it.
+- **"Confirmed by volume" is a volume-average comparison.** The Combo builder's left side
+  is always an indicator, so raw candle volume cannot be a leg. The template reads
+  `volume_ma(5) > volume_ma(20)`: recent volume above its longer average.
+- **Loading over a rule in progress asks once.** The draft has no undo, so the first click
+  on a card shows "Replace my rule" / "Keep my rule" instead of discarding the conditions.
+- **A template is a timeframe and a condition tree, laid over a fresh draft.** Symbol,
+  identity and lifecycle defaults come from the panel's own blank draft, so there is one
+  definition of a blank rule rather than a second one in the library.
 
 ## Out of scope
 
@@ -73,4 +99,5 @@ This item remains specced and ready to implement once FEAT-0030 shifts from idea
 
 - [`FEAT-0304`](FEAT-0304-model-proposes-rules.md) — the register that reads these hashes
 - [`FEAT-0030`](FEAT-0030-combined-alerts.md) — the builder templates load into
+- `src/lib/alerts/templateLibrary.ts`, `src/components/alerts/tabs/TemplatesTab.svelte`
 - Reference behaviour: Bitunix "Super Alert" Templates tab (described, not reproduced)

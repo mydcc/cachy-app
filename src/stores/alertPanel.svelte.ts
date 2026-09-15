@@ -56,6 +56,7 @@ import {
   slotOf,
   type BuilderSlot,
 } from "../lib/alerts/conditionSlots";
+import { templateDocument, type AlertTemplate } from "../lib/alerts/templateLibrary";
 import { logger } from "../services/logger";
 import { generateId } from "../utils/utils";
 
@@ -311,6 +312,29 @@ class AlertPanelStore {
   setConditionGroup(group: Condition | null) {
     this.draft.conditions =
       group && group.kind === "group" ? group : { kind: "group", op: "all", of: [] };
+  }
+
+  /**
+   * Replace the draft with a template and open it in the Combo tab for editing
+   * (FEAT-0391).
+   *
+   * Starts from a fresh draft on the current symbol, so nothing from the rule
+   * the trader abandoned -- a veto, a note, an expiry -- rides along into what
+   * reads as the template. The Combo tab rather than arming: a template is a
+   * starting point, and the trader sees every value before it can fire.
+   *
+   * `name` is the template's name in the trader's language. Not hashed, so
+   * two traders loading the same template in German and English still hold
+   * the same strategy.
+   */
+  loadTemplate(template: AlertTemplate, name: string) {
+    this.reset(this.draft.symbol);
+    this.draft = templateDocument(
+      template,
+      $state.snapshot(this.draft) as RuleDocument,
+      name,
+    );
+    this.activeTab = "combo";
   }
 
   setSymbol(symbol: string) {

@@ -357,8 +357,6 @@
         "sentenceLabel": "Diese Regel bedeutet",
         "arm": "Alarm scharf schalten",
         "loading": "Tab wird geladen …",
-        "pendingTitle": "Dieser Baukasten kommt noch",
-        "pendingBody": "Der Tab ist Teil von {item} und noch nicht gebaut. Bis dahin legst du Preisalarme unter „Verwalten“ an.",
         "coreUnavailable": "Die Regel konnte nicht geprüft werden, weil der Regel-Kern nicht geladen ist. Das heißt nicht, dass deine Regel falsch ist — sie wurde gar nicht erst geprüft.",
         "otherRefusals": "Weitere Beanstandungen",
         "storeUnreadable": "Der Regelspeicher konnte nicht gelesen werden. Es wurde nichts scharf geschaltet, damit deine bestehenden Alarme nicht überschrieben werden.",
@@ -390,6 +388,39 @@
       },
       "brokenRule": {
         "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann."
+      },
+      "templates": {
+        "intro": "Ausgangspunkte, keine fertigen Strategien. Eine Vorlage öffnet sich im Kombi-Tab, wo du jeden Wert vor dem Scharfschalten ändern kannst, und sie benachrichtigt immer nur.",
+        "filterLabel": "Kategorie",
+        "all": "Alle",
+        "category": {
+          "classic": "Klassiker",
+          "trend": "Trend",
+          "reversal": "Umkehr",
+          "range": "Seitwärts",
+          "breakout": "Ausbruch"
+        },
+        "uses": "Nutzt: {indicators}",
+        "load": "Im Kombi-Tab bearbeiten",
+        "replaceHint": "Das ersetzt die Bedingungen, die du gerade baust.",
+        "replace": "Meine Regel ersetzen",
+        "cancel": "Meine Regel behalten",
+        "name": {
+          "golden_cross_volume": "50/200-Golden-Cross mit Volumenbestätigung",
+          "vegas_tunnel_continuation": "Vegas-Tunnel-Trendfortsetzung",
+          "macd_golden_cross_rsi_oversold": "MACD-Golden-Cross bei überverkauftem RSI",
+          "macd_death_cross_rsi_overbought": "MACD-Death-Cross bei überkauftem RSI",
+          "rsi_range_reversion": "RSI-Abpraller in der Seitwärtsphase",
+          "adx_trend_breakout": "ADX-Trendausbruch"
+        },
+        "description": {
+          "golden_cross_volume": "SMA 50 kreuzt SMA 200 nach oben, während der Volumendurchschnitt über 5 Kerzen über dem über 20 Kerzen liegt.",
+          "vegas_tunnel_continuation": "EMA 12 kreuzt EMA 144 nach oben, während EMA 144 über EMA 169 bleibt: ein Aufwärtstrend, der aus dem Tunnel weiterläuft.",
+          "macd_golden_cross_rsi_oversold": "Die MACD-Linie kreuzt ihre Signallinie nach oben, während der RSI 14 unter 30 liegt.",
+          "macd_death_cross_rsi_overbought": "Die MACD-Linie kreuzt ihre Signallinie nach unten, während der RSI 14 über 70 liegt.",
+          "rsi_range_reversion": "Der RSI 14 kreuzt wieder über 30, während die Choppiness 14 über 61,8 liegt, der Markt also seitwärts läuft.",
+          "adx_trend_breakout": "Der ADX 14 kreuzt über 25, während +DI über −DI liegt: ein Trend, der nach oben an Stärke gewinnt."
+        }
       },
       "price": {
         "conditionType": "Bedingungstyp",

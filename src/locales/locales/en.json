@@ -357,8 +357,6 @@
         "sentenceLabel": "This rule means",
         "arm": "Arm alert",
         "loading": "Loading tab …",
-        "pendingTitle": "This builder is still to come",
-        "pendingBody": "This tab is part of {item} and has not been built yet. Until then, create price alerts under “Manage”.",
         "coreUnavailable": "The rule could not be checked because the rule core is not loaded. That does not mean your rule is wrong — it was never checked at all.",
         "otherRefusals": "Other objections",
         "storeUnreadable": "The rule store could not be read. Nothing was armed, so your existing alerts are not overwritten.",
@@ -390,6 +388,39 @@
       },
       "brokenRule": {
         "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate."
+      },
+      "templates": {
+        "intro": "Starting points, not finished strategies. A template opens in the Combo tab, where you can change every value before arming, and it only ever notifies.",
+        "filterLabel": "Category",
+        "all": "All",
+        "category": {
+          "classic": "Classic",
+          "trend": "Trend",
+          "reversal": "Reversal",
+          "range": "Range",
+          "breakout": "Breakout"
+        },
+        "uses": "Uses: {indicators}",
+        "load": "Edit in Combo",
+        "replaceHint": "This replaces the conditions you are building.",
+        "replace": "Replace my rule",
+        "cancel": "Keep my rule",
+        "name": {
+          "golden_cross_volume": "50/200 golden cross confirmed by volume",
+          "vegas_tunnel_continuation": "Vegas tunnel trend continuation",
+          "macd_golden_cross_rsi_oversold": "MACD golden cross while RSI is oversold",
+          "macd_death_cross_rsi_overbought": "MACD death cross while RSI is overbought",
+          "rsi_range_reversion": "RSI bounce inside a range",
+          "adx_trend_breakout": "ADX trend breakout"
+        },
+        "description": {
+          "golden_cross_volume": "SMA 50 crosses above SMA 200 while the 5-candle volume average is above the 20-candle average.",
+          "vegas_tunnel_continuation": "EMA 12 crosses above EMA 144 while EMA 144 holds above EMA 169: an uptrend resuming out of the tunnel.",
+          "macd_golden_cross_rsi_oversold": "The MACD line crosses above its signal line while RSI 14 is below 30.",
+          "macd_death_cross_rsi_overbought": "The MACD line crosses below its signal line while RSI 14 is above 70.",
+          "rsi_range_reversion": "RSI 14 crosses back above 30 while Choppiness 14 is above 61.8, a market moving sideways.",
+          "adx_trend_breakout": "ADX 14 crosses above 25 while +DI is above −DI: a trend gaining strength to the upside."
+        }
       },
       "price": {
         "conditionType": "Condition Type",
